@@ -72,7 +72,8 @@ const char argp_program_doc[] =
 	"    ./sslsniff --no-openssl # don't show OpenSSL calls\n"
 	"    ./sslsniff --no-gnutls  # don't show GnuTLS calls\n"
 	"    ./sslsniff --no-nss     # don't show NSS calls\n"
-	"    ./sslsniff --handshake # show handshake events\n";
+	"    ./sslsniff --handshake # show handshake events\n"
+	"    ./sslsniff --binary-path ~/.nvm/versions/node/v20.0.0/bin/node # attach to Node.js binary\n";
 
 struct env {
 	pid_t pid;
@@ -104,6 +105,7 @@ static const struct argp_option opts[] = {
 	{"no-nss", 'n', NULL, 0, "Do not show NSS calls."},
 	{"handshake", 'h', NULL, 0, "Show handshake events."},
 	{"verbose", 'v', NULL, 0, "Verbose debug output"},
+	{"binary-path", EXTRA_LIB_KEY, "PATH", 0, "Attach to specific binary (e.g., ~/.nvm/versions/node/v20.0.0/bin/node)."},
 	{},
 };
 
@@ -134,6 +136,9 @@ static error_t parse_arg(int key, char *arg, struct argp_state *state) {
 		break;
 	case 'v':
 		verbose = true;
+		break;
+	case EXTRA_LIB_KEY:
+		env.extra_lib = strdup(arg);
 		break;
 	default:
 		return ARGP_ERR_UNKNOWN;
@@ -509,6 +514,15 @@ int main(int argc, char **argv) {
 		}
 	}
 
+	// Handle custom binary path for statically-linked SSL (e.g., NVM Node.js)
+	if (env.extra_lib) {
+		if (verbose) {
+			fprintf(stderr, "Attaching to binary: %s\n", env.extra_lib);
+		}
+		// For binaries with statically-linked OpenSSL, try to attach OpenSSL functions
+		attach_openssl(obj, env.extra_lib);
+	}
+
 	rb = ring_buffer__new(bpf_map__fd(obj->maps.rb), handle_event, NULL, NULL);
 	if (!rb) {
 		err = -errno;
@@ -535,6 +549,14 @@ cleanup:
 	if (event_buf) {
 		free(event_buf);
 		event_buf = NULL;
+	}
+	if (env.extra_lib) {
+		free(env.extra_lib);
+		env.extra_lib = NULL;
+	}
+	if (env.comm) {
+		free(env.comm);
+		env.comm = NULL;
 	}
 	ring_buffer__free(rb);
 	sslsniff_bpf__destroy(obj);
