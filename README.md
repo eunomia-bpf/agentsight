@@ -29,6 +29,27 @@ Visit [http://127.0.0.1:8080](http://127.0.0.1:8080) to view the recorded data.
   <p><em>Real-time timeline visualization showing AI agent interactions and system calls</em></p>
 </div>
 
+## 🚀 Quick Start for NVM Node.js Users
+
+If you're using Node.js installed via NVM (Node Version Manager), the default setup may not capture SSL traffic from tools like Claude or Gemini CLI. This is because NVM Node.js binaries statically link OpenSSL instead of using system shared libraries.
+
+**Solution:** Use the `--binary-path` option to attach directly to your Node.js binary:
+
+```bash
+# Find your active Node.js binary path
+node -pe "process.execPath"
+# Example output: /home/user/.nvm/versions/node/v20.0.0/bin/node
+
+# Record claude or gemini activity with NVM Node.js
+sudo ./agentsight ssl --binary-path ~/.nvm/versions/node/v20.0.0/bin/node --comm node
+
+# Or use the record command with custom SSL arguments
+sudo ./agentsight record -c node -- --binary-path ~/.nvm/versions/node/v20.0.0/bin/node
+```
+
+**Why this works:** NVM Node.js binaries bundle OpenSSL statically, so AgentSight needs to attach UProbes directly to the executable rather than system SSL libraries.
+
+Visit [http://127.0.0.1:8080](http://127.0.0.1:8080) to view the captured data in real-time.
 
 ## 🚀 Why AgentSight?
 
@@ -136,6 +157,51 @@ make build
 # make build-rust      # Build Rust collector
 
 ```
+
+### Usage Examples
+
+#### Basic Monitoring
+
+```bash
+# Monitor all SSL traffic from system applications
+sudo ./agentsight record -c "python"  # For Python AI tools
+sudo ./agentsight record -c "node"    # For Node.js AI tools
+sudo ./agentsight record -c "claude"  # For Claude Desktop
+
+# Combined SSL and process monitoring with web interface
+sudo ./agentsight trace --ssl --process --server
+```
+
+#### NVM Node.js Applications
+
+For Node.js installed via NVM, use the `--binary-path` option:
+
+```bash
+# Monitor Node.js applications with statically-linked SSL
+sudo ./agentsight ssl --binary-path ~/.nvm/versions/node/v20.0.0/bin/node --comm node
+
+# Record with custom binary path
+sudo ./agentsight record -c node -- --binary-path ~/.nvm/versions/node/v20.0.0/bin/node
+
+# Advanced filtering with custom binary
+sudo ./agentsight trace --ssl --binary-path /usr/local/bin/node --http-filter "request.method=POST"
+```
+
+#### Direct eBPF Program Usage
+
+```bash
+# Run eBPF programs directly for development/testing
+sudo ./bpf/sslsniff --binary-path ~/.nvm/versions/node/v20.0.0/bin/node --verbose
+sudo ./bpf/process -c python
+```
+
+#### Web Interface Access
+
+All monitoring commands with `--server` flag provide web visualization at:
+- **Timeline View**: http://127.0.0.1:8080/timeline  
+- **Process Tree**: http://127.0.0.1:8080/tree
+- **Raw Logs**: http://127.0.0.1:8080/logs
+
 ## ❓ Frequently Asked Questions
 
 ### General
@@ -159,6 +225,9 @@ A: Yes, use combined monitoring modes for concurrent multi-agent observation wit
 
 **Q: How do I filter sensitive data?**  
 A: Built-in analyzers can remove authentication headers and filter specific content patterns.
+
+**Q: Why doesn't AgentSight capture traffic from my NVM Node.js application?**  
+A: NVM Node.js binaries statically link OpenSSL instead of using system libraries. Use the `--binary-path` option to attach directly to your Node.js binary: `--binary-path ~/.nvm/versions/node/v20.0.0/bin/node`
 
 ### Troubleshooting
 
