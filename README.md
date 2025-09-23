@@ -164,9 +164,6 @@ sudo ./agentsight ssl --binary-path ~/.nvm/versions/node/v20.0.0/bin/node --comm
 
 # Record with custom binary path
 sudo ./agentsight record -c node -- --binary-path ~/.nvm/versions/node/v20.0.0/bin/node
-
-# Advanced filtering with custom binary
-sudo ./agentsight trace --ssl --binary-path /usr/local/bin/node --http-filter "request.method=POST"
 ```
 
 #### Direct eBPF Program Usage
