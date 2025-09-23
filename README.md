@@ -15,6 +15,8 @@ wget https://github.com/eunomia-bpf/agentsight/releases/download/v0.0.78/agentsi
 sudo ./agentsight record -c "claude"
 # Record agent behavior from gemini-cli (comm is "node")
 sudo ./agentsight record -c "node"
+# Record claude or gemini activity with NVM Node.js, if bundle OpenSSL statically
+sudo ./agentsight ssl --binary-path ~/.nvm/versions/node/v20.0.0/bin/node --comm node
 ```
 
 Visit [http://127.0.0.1:8080](http://127.0.0.1:8080) to view the recorded data.
@@ -28,26 +30,6 @@ Visit [http://127.0.0.1:8080](http://127.0.0.1:8080) to view the recorded data.
   <img src="docs/demo-timeline.png" alt="AgentSight Demo - Timeline Visualization" width="800">
   <p><em>Real-time timeline visualization showing AI agent interactions and system calls</em></p>
 </div>
-
-## 🚀 Quick Start for NVM Node.js Users
-
-If you're using Node.js installed via NVM (Node Version Manager), the default setup may not capture SSL traffic from tools like Claude or Gemini CLI. This is because NVM Node.js binaries statically link OpenSSL instead of using system shared libraries.
-
-**Solution:** Use the `--binary-path` option to attach directly to your Node.js binary:
-
-```bash
-# Find your active Node.js binary path
-node -pe "process.execPath"
-# Example output: /home/user/.nvm/versions/node/v20.0.0/bin/node
-
-# Record claude or gemini activity with NVM Node.js
-sudo ./agentsight ssl --binary-path ~/.nvm/versions/node/v20.0.0/bin/node --comm node
-
-# Or use the record command with custom SSL arguments
-sudo ./agentsight record -c node -- --binary-path ~/.nvm/versions/node/v20.0.0/bin/node
-```
-
-**Why this works:** NVM Node.js binaries bundle OpenSSL statically, so AgentSight needs to attach UProbes directly to the executable rather than system SSL libraries.
 
 Visit [http://127.0.0.1:8080](http://127.0.0.1:8080) to view the captured data in real-time.
 
