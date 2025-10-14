@@ -52,14 +52,12 @@ mod comprehensive_analyzer_chain_tests {
     /// Custom test analyzer that simulates errors
     struct ErrorSimulatorAnalyzer {
         error_on_event_number: usize,
-        event_count: AtomicUsize,
     }
 
     impl ErrorSimulatorAnalyzer {
         fn new(error_on_event_number: usize) -> Self {
             Self {
                 error_on_event_number,
-                event_count: AtomicUsize::new(0),
             }
         }
     }
