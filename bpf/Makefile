@@ -31,7 +31,7 @@ CFLAGS += $(ASAN_FLAGS)
 ALL_LDFLAGS += $(ASAN_FLAGS)
 endif
 
-APPS = sslsniff process test_process_utils # minimal minimal_legacy uprobe kprobe fentry usdt sockfilter tc ksyscall
+APPS = sslsniff process test_process_utils test_process_filter # minimal minimal_legacy uprobe kprobe fentry usdt sockfilter tc ksyscall
 
 CARGO ?= $(shell which cargo)
 ifeq ($(strip $(CARGO)),)
@@ -106,9 +106,12 @@ help:
 	@echo "  make ASAN=1 sslsniff"
 
 .PHONY: test
-test: test_process_utils
+test: test_process_utils test_process_filter
 	@echo "Running process_utils tests..."
 	@./test_process_utils
+	@echo ""
+	@echo "Running process_filter tests..."
+	@./test_process_filter
 
 $(OUTPUT) $(OUTPUT)/libbpf $(BPFTOOL_OUTPUT):
 	$(call msg,MKDIR,$@)
@@ -153,10 +156,14 @@ $(OUTPUT)/%.skel.h: $(OUTPUT)/%.bpf.o | $(OUTPUT) $(BPFTOOL)
 	$(Q)$(BPFTOOL) gen skeleton $< > $@
 
 # Build user-space code
-$(patsubst %,$(OUTPUT)/%.o,$(filter-out test_process_utils,$(APPS))): %.o: %.skel.h
+$(patsubst %,$(OUTPUT)/%.o,$(filter-out test_process_utils test_process_filter,$(APPS))): %.o: %.skel.h
 
-# Special rule for test program (no BPF skeleton needed)
+# Special rule for test programs (no BPF skeleton needed)
 $(OUTPUT)/test_process_utils.o: test_process_utils.c $(wildcard *.h) | $(OUTPUT)
+	$(call msg,CC,$@)
+	$(Q)$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+
+$(OUTPUT)/test_process_filter.o: test_process_filter.c $(wildcard *.h) | $(OUTPUT)
 	$(call msg,CC,$@)
 	$(Q)$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
 
@@ -169,12 +176,16 @@ $(patsubst %,$(OUTPUT)/%.o,$(BZS_APPS)): $(LIBBLAZESYM_HEADER)
 $(BZS_APPS): $(LIBBLAZESYM_OBJ)
 
 # Build application binary
-$(filter-out test_process_utils,$(APPS)): %: $(OUTPUT)/%.o $(LIBBPF_OBJ) | $(OUTPUT)
+$(filter-out test_process_utils test_process_filter,$(APPS)): %: $(OUTPUT)/%.o $(LIBBPF_OBJ) | $(OUTPUT)
 	$(call msg,BINARY,$@)
 	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -lelf -lz -o $@
 
-# Special rule for test program (no libbpf needed)
+# Special rules for test programs (no libbpf needed)
 test_process_utils: $(OUTPUT)/test_process_utils.o | $(OUTPUT)
+	$(call msg,BINARY,$@)
+	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -o $@
+
+test_process_filter: $(OUTPUT)/test_process_filter.o | $(OUTPUT)
 	$(call msg,BINARY,$@)
 	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -o $@
 
