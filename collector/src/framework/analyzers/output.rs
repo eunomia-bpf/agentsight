@@ -6,14 +6,12 @@ use log::debug;
 
 /// Output analyzer that provides real-time formatted event output
 pub struct OutputAnalyzer {
-    name: String,
 }
 
 impl OutputAnalyzer {
     /// Create a new OutputAnalyzer with default formatting
     pub fn new() -> Self {
         Self {
-            name: "output".to_string(),
         }
     }
 
@@ -72,7 +70,7 @@ impl Analyzer for OutputAnalyzer {
     }
 
     fn name(&self) -> &str {
-        &self.name
+        "output"
     }
 }
 

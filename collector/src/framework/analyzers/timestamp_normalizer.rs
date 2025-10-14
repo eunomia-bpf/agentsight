@@ -14,13 +14,11 @@ type EventStream = Pin<Box<dyn Stream<Item = Event> + Send>>;
 
 #[derive(Debug)]
 pub struct TimestampNormalizer {
-    name: String,
 }
 
 impl TimestampNormalizer {
     pub fn new() -> Self {
         Self {
-            name: "TimestampNormalizer".to_string(),
         }
     }
 }
@@ -45,7 +43,7 @@ impl Analyzer for TimestampNormalizer {
     }
 
     fn name(&self) -> &str {
-        &self.name
+        "TimestampNormalizer"
     }
 }
 

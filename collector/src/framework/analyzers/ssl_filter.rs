@@ -7,7 +7,6 @@ use serde_json::Value;
 /// SSL Filter Analyzer that filters SSL events based on configurable expressions
 /// Filters SSL events based on data content, function, latency, etc.
 pub struct SSLFilter {
-    name: String,
     /// Filter expressions to exclude events
     exclude_patterns: Vec<String>,
     /// Compiled filter expressions
@@ -50,7 +49,6 @@ impl SSLFilter {
     /// Create a new SSL filter with no patterns (passes everything through)
     pub fn new() -> Self {
         SSLFilter {
-            name: "SSLFilter".to_string(),
             exclude_patterns: Vec::new(),
             filters: Vec::new(),
             debug: false,
@@ -384,7 +382,7 @@ impl Analyzer for SSLFilter {
     }
 
     fn name(&self) -> &str {
-        &self.name
+        "SSLFilter"
     }
 }
 

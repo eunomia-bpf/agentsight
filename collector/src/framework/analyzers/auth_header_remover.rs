@@ -8,7 +8,6 @@ use serde_json::Value;
 /// This analyzer should be used after HTTPFilter to clean sensitive data from HTTP traffic
 #[derive(Debug)]
 pub struct AuthHeaderRemover {
-    name: String,
     /// List of authorization header names to remove (case-insensitive)
     auth_headers: Vec<String>,
     /// Whether to log when headers are removed (for debugging)
@@ -19,7 +18,6 @@ impl AuthHeaderRemover {
     /// Create a new AuthHeaderRemover with default authorization headers
     pub fn new() -> Self {
         Self {
-            name: "AuthHeaderRemover".to_string(),
             auth_headers: vec![
                 "authorization".to_string(),
                 "x-api-key".to_string(),
@@ -31,15 +29,6 @@ impl AuthHeaderRemover {
                 "cookie".to_string(),
                 "set-cookie".to_string(),
             ],
-            debug: false,
-        }
-    }
-
-    /// Create a new AuthHeaderRemover with custom header names
-    pub fn with_headers(headers: Vec<String>) -> Self {
-        Self {
-            name: "AuthHeaderRemover".to_string(),
-            auth_headers: headers.into_iter().map(|h| h.to_lowercase()).collect(),
             debug: false,
         }
     }
@@ -100,7 +89,6 @@ impl Analyzer for AuthHeaderRemover {
             // Only process events from http_parser
             if event.source == "http_parser" {
                 event.data = AuthHeaderRemover {
-                    name: "AuthHeaderRemover".to_string(),
                     auth_headers: auth_headers.clone(),
                     debug,
                 }.remove_auth_headers(event.data);
@@ -112,7 +100,7 @@ impl Analyzer for AuthHeaderRemover {
     }
 
     fn name(&self) -> &str {
-        &self.name
+        "AuthHeaderRemover"
     }
 }
 
@@ -181,34 +169,6 @@ mod tests {
         assert_eq!(collected[0].data, event_data);
     }
 
-    #[tokio::test]
-    async fn test_custom_headers() {
-        let mut analyzer = AuthHeaderRemover::with_headers(vec!["custom-auth".to_string()]);
-        
-        let event_data = json!({
-            "message_type": "request",
-            "headers": {
-                "authorization": "Bearer token123",
-                "custom-auth": "secret",
-                "content-type": "application/json"
-            }
-        });
-        
-        let test_event = Event::new("http_parser".to_string(), 1234, "http_parser".to_string(), event_data);
-        let events = vec![test_event];
-        
-        let input_stream: EventStream = Box::pin(stream::iter(events));
-        let output_stream = analyzer.process(input_stream).await.unwrap();
-        
-        let collected: Vec<_> = output_stream.collect().await;
-        
-        let headers = collected[0].data.get("headers").and_then(|v| v.as_object()).unwrap();
-        
-        // Only custom-auth should be removed (authorization not in custom list)
-        assert!(headers.contains_key("authorization"));
-        assert!(!headers.contains_key("custom-auth"));
-        assert!(headers.contains_key("content-type"));
-    }
 
     #[tokio::test]
     async fn test_case_insensitive_matching() {

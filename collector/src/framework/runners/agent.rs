@@ -8,16 +8,14 @@ use futures::stream::select_all;
 pub struct AgentRunner {
     runners: Vec<Box<dyn Runner>>,
     analyzers: Vec<Box<dyn Analyzer>>,
-    name: String,
 }
 
 impl AgentRunner {
     /// Create a new AgentRunner with the given name
-    pub fn new(name: impl Into<String>) -> Self {
+    pub fn new(_name: impl Into<String>) -> Self {
         Self {
             runners: Vec::new(),
             analyzers: Vec::new(),
-            name: name.into(),
         }
     }
     
@@ -77,11 +75,11 @@ impl Runner for AgentRunner {
     }
     
     fn name(&self) -> &str {
-        &self.name
+        "AgentRunner"
     }
-    
+
     fn id(&self) -> String {
-        format!("agent-{}", self.name)
+        "agent-runner".to_string()
     }
 }
 
@@ -359,9 +357,9 @@ mod tests {
     #[tokio::test]
     async fn test_agent_runner_name_and_id() {
         let agent = AgentRunner::new("my-test-agent");
-        
-        assert_eq!(agent.name(), "my-test-agent");
-        assert_eq!(agent.id(), "agent-my-test-agent");
+
+        assert_eq!(agent.name(), "AgentRunner");
+        assert_eq!(agent.id(), "agent-runner");
     }
     
     #[tokio::test]

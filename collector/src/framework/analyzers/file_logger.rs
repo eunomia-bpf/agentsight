@@ -13,15 +13,12 @@ use std::sync::{Arc, Mutex};
 pub struct LogRotationConfig {
     /// Maximum size of a single log file in bytes
     pub max_file_size: u64,
-    
+
     /// Maximum number of rotated log files to keep (excluding current)
     pub max_files: usize,
-    
+
     /// Check file size every N events (performance optimization)
     pub size_check_interval: u64,
-    
-    /// Whether to compress rotated files (optional feature)
-    pub compress_rotated: bool,
 }
 
 impl Default for LogRotationConfig {
@@ -30,17 +27,15 @@ impl Default for LogRotationConfig {
             max_file_size: 10_000_000, // 10MB
             max_files: 5,
             size_check_interval: 100,
-            compress_rotated: false,
         }
     }
 }
 
 /// FileLogger analyzer that logs events to a specified file
 pub struct FileLogger {
-    name: String,
     file_path: String,
     file_handle: Arc<Mutex<File>>,
-    
+
     // New fields for rotation
     rotation_config: Option<LogRotationConfig>,
     event_count: Arc<Mutex<u64>>,
@@ -56,7 +51,6 @@ impl FileLogger {
             .open(&path_str)?;
 
         Ok(Self {
-            name: "FileLogger".to_string(),
             file_path: path_str,
             file_handle: Arc::new(Mutex::new(file)),
             rotation_config: None,
@@ -66,7 +60,7 @@ impl FileLogger {
     
     /// Create FileLogger with rotation configuration
     pub fn with_rotation<P: AsRef<Path>>(
-        file_path: P, 
+        file_path: P,
         config: LogRotationConfig
     ) -> Result<Self, std::io::Error> {
         let path_str = file_path.as_ref().to_string_lossy().to_string();
@@ -76,7 +70,6 @@ impl FileLogger {
             .open(&path_str)?;
 
         Ok(Self {
-            name: "FileLogger".to_string(),
             file_path: path_str,
             file_handle: Arc::new(Mutex::new(file)),
             rotation_config: Some(config),
@@ -249,7 +242,7 @@ impl Analyzer for FileLogger {
     }
 
     fn name(&self) -> &str {
-        &self.name
+        "FileLogger"
     }
 }
 
@@ -330,7 +323,6 @@ mod tests {
         assert_eq!(config.max_file_size, 10_000_000);
         assert_eq!(config.max_files, 5);
         assert_eq!(config.size_check_interval, 100);
-        assert!(!config.compress_rotated);
     }
 
     #[tokio::test]
@@ -342,7 +334,6 @@ mod tests {
             max_file_size: 100, // Very small for testing
             max_files: 3,
             size_check_interval: 1, // Check every event
-            compress_rotated: false,
         };
         
         let logger = FileLogger::with_rotation(&log_path, config).unwrap();
@@ -367,10 +358,9 @@ mod tests {
         let log_path = temp_dir.path().join("test.log");
         
         let config = LogRotationConfig {
-            max_file_size: 50, // Very small for testing  
+            max_file_size: 50, // Very small for testing
             max_files: 2,
             size_check_interval: 1, // Check every event
-            compress_rotated: false,
         };
         
         let mut logger = FileLogger::with_rotation(&log_path, config).unwrap();
@@ -402,7 +392,6 @@ mod tests {
             max_file_size: 30,
             max_files: 2, // Only keep 2 rotated files
             size_check_interval: 1,
-            compress_rotated: false,
         };
         
         let mut logger = FileLogger::with_rotation(&log_path, config).unwrap();
@@ -440,7 +429,6 @@ mod tests {
             max_file_size: 50,
             max_files: 2,
             size_check_interval: 1,
-            compress_rotated: false,
         };
         
         let mut logger = FileLogger::with_rotation(&log_path, config).unwrap();
@@ -494,7 +482,6 @@ mod tests {
             max_file_size: 50,
             max_files: 2,
             size_check_interval: 10, // Only check every 10 events
-            compress_rotated: false,
         };
         
         let mut logger = FileLogger::with_rotation(&log_path, config).unwrap();

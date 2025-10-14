@@ -8,7 +8,6 @@ use std::collections::HashMap;
 
 /// HTTP Parser Analyzer that parses SSL traffic into HTTP requests/responses
 pub struct HTTPParser {
-    name: String,
     /// Flag to include raw data in parsed events (default: true)
     include_raw_data: bool,
 }
@@ -40,7 +39,6 @@ impl HTTPParser {
     /// Create a new HTTPParser with default settings (raw data included)
     pub fn new() -> Self {
         HTTPParser {
-            name: "HTTPParser".to_string(),
             include_raw_data: true,
         }
     }
@@ -257,6 +255,6 @@ impl Analyzer for HTTPParser {
     }
 
     fn name(&self) -> &str {
-        &self.name
+        "HTTPParser"
     }
 }

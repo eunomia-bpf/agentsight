@@ -12,7 +12,6 @@ use super::event::SSEProcessorEvent;
 
 /// SSE Event Processor that merges Server-Sent Events content fragments
 pub struct SSEProcessor {
-    name: String,
     /// Store accumulated SSE content by connection + message ID
     sse_buffers: Arc<Mutex<HashMap<String, SSEAccumulator>>>,
     /// Timeout for incomplete SSE streams (in milliseconds)
@@ -58,7 +57,6 @@ impl SSEProcessor {
     /// Create a new SSEProcessor with custom timeout
     pub fn new_with_timeout(timeout_ms: u64) -> Self {
         SSEProcessor {
-            name: "SSEProcessor".to_string(),
             sse_buffers: Arc::new(Mutex::new(HashMap::new())),
             timeout_ms,
             debug: false,
@@ -613,7 +611,7 @@ impl Analyzer for SSEProcessor {
     }
 
     fn name(&self) -> &str {
-        &self.name
+        "SSEProcessor"
     }
 }
 

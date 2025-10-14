@@ -37,7 +37,6 @@ fn update_global_metrics(total: u64, filtered: u64, passed: u64) {
 /// Similar to Python filter_expression.py but integrated into the Rust framework
 #[derive(Debug)]
 pub struct HTTPFilter {
-    name: String,
     /// Filter expressions to exclude events
     exclude_patterns: Vec<String>,
     /// Compiled filter expressions
@@ -86,9 +85,8 @@ impl HTTPFilter {
             filtered_events_count: 0,
             passed_events_count: 0,
         })));
-        
+
         HTTPFilter {
-            name: "HTTPFilter".to_string(),
             exclude_patterns: Vec::new(),
             filters: Vec::new(),
             debug: false,
@@ -441,7 +439,7 @@ impl Analyzer for HTTPFilter {
     }
 
     fn name(&self) -> &str {
-        &self.name
+        "HTTPFilter"
     }
 }
 

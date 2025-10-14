@@ -583,7 +583,7 @@ mod tests {
                         assert_eq!(event.pid, current_pid);
 
                         // Verify payload structure
-                        let payload = event.payload;
+                        let payload = &event.data;
                         assert!(payload.get("cpu").is_some());
                         assert!(payload.get("memory").is_some());
                         assert!(payload.get("process").is_some());

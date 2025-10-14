@@ -66,13 +66,6 @@ pub fn boot_ns_to_epoch_ms(ns_since_boot: u64) -> u64 {
     (boot_time_ms + offset_ms) as u64
 }
 
-/// Get current time as milliseconds since UNIX epoch
-pub fn now_epoch_ms() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_millis() as u64
-}
 
 #[cfg(test)]
 mod tests {
@@ -103,10 +96,4 @@ mod tests {
         assert_eq!(result_ms, expected_ms as u64);
     }
 
-    #[test]
-    fn test_now_epoch_ms() {
-        let now_ms = now_epoch_ms();
-        // Should be reasonable (after year 2020)
-        assert!(now_ms > 1577836800000); // 2020-01-01 in milliseconds
-    }
 }
