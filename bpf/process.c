@@ -13,6 +13,7 @@
 #include "process.h"
 #include "process.skel.h"
 #include "process_utils.h"
+#include "process_filter.h"
 
 #define MAX_COMMAND_LIST 256
 #define FILE_DEDUP_WINDOW_NS 60000000000ULL  // 60 seconds in nanoseconds
@@ -60,6 +61,9 @@ static struct env {
 	.filter_mode = FILTER_MODE_PROC,
 	.pid = 0
 };
+
+/* Global PID tracker for userspace filtering */
+static struct pid_tracker pid_tracker;
 
 const char *argp_program_version = "process-tracer 1.0";
 const char *argp_program_bug_address = "<bpf@vger.kernel.org>";
@@ -420,101 +424,48 @@ static void sig_handler(int sig)
 	exiting = true;
 }
 
-
-static int setup_command_filters(struct process_bpf *skel, char **command_list, int command_count)
-{
-	for (int i = 0; i < command_count && i < MAX_COMMAND_FILTERS; i++) {
-		struct command_filter filter = {
-		};
-		
-		strncpy(filter.comm, command_list[i], TASK_COMM_LEN - 1);
-		filter.comm[TASK_COMM_LEN - 1] = '\0';
-		
-		skel->rodata->command_filters[i] = filter;
-	}
-	
-	return 0;
-}
-
-/* Populate initial PIDs in the eBPF map from existing processes */
-static int populate_initial_pids(struct process_bpf *skel, char **command_list, int command_count, enum filter_mode filter_mode, pid_t **tracked_pids_out)
+/* Populate initial PIDs in the userspace tracker from existing processes */
+static int populate_initial_pids(struct pid_tracker *tracker, char **command_list, int command_count, enum filter_mode filter_mode)
 {
 	DIR *proc_dir;
 	struct dirent *entry;
 	pid_t pid, ppid;
 	char comm[TASK_COMM_LEN];
 	int tracked_count = 0;
-	static pid_t tracked_pids_array[MAX_TRACKED_PIDS];
-	*tracked_pids_out = tracked_pids_array;
-	
+
 	proc_dir = opendir("/proc");
 	if (!proc_dir) {
 		fprintf(stderr, "Failed to open /proc directory\n");
 		return -1;
 	}
-	
+
 	while ((entry = readdir(proc_dir)) != NULL) {
 		/* Skip non-numeric entries */
 		if (strspn(entry->d_name, "0123456789") != strlen(entry->d_name))
 			continue;
-		
+
 		pid = (pid_t)strtol(entry->d_name, NULL, 10);
 		if (pid <= 0)
 			continue;
-		
+
 		/* Read process command */
 		if (read_proc_comm(pid, comm, sizeof(comm)) != 0)
 			continue;
-		
+
 		/* Read parent PID */
 		if (read_proc_ppid(pid, &ppid) != 0)
 			continue;
-		
-		bool should_track = (filter_mode == FILTER_MODE_ALL);
-		
-		/* If using filter mode, check if this process matches any configured filter */
-		if (filter_mode == FILTER_MODE_FILTER) {
-			should_track = false;
-			
-			/* Check if PID matches if -p option was specified */
-			if (env.pid > 0) {
-				if (pid == env.pid) {
-					should_track = true;
-				}
-			}
-			/* Otherwise check command filters */
-			else if (command_list && command_count > 0) {
-				for (int i = 0; i < command_count; i++) {
-					if (command_matches_filter(comm, command_list[i])) {
-						should_track = true;
-						break;
-					}
-				}
-			}
-		}
-		
-		if (should_track) {
-			/* Add to tracked PIDs in eBPF map */
-			struct pid_info pid_info = {
-				.pid = pid,
-				.ppid = ppid,
-				.is_tracked = true
-			};
-			
-			int err = bpf_map__update_elem(skel->maps.tracked_pids, &pid, sizeof(pid),
-			                               &pid_info, sizeof(pid_info), BPF_ANY);
-			if (err && filter_mode != FILTER_MODE_ALL) {  /* Don't spam errors when tracing all processes */
-				fprintf(stderr, "Failed to add PID %d to tracked list: %d\n", pid, err);
-			}
-			if (!err) {
-				if (tracked_count < MAX_TRACKED_PIDS) {
-					tracked_pids_array[tracked_count] = pid;
-				}
+
+		/* Check if we should track this process */
+		if (should_track_process(tracker, comm, pid, ppid)) {
+			if (pid_tracker_add(tracker, pid, ppid)) {
 				tracked_count++;
+			} else if (env.verbose) {
+				fprintf(stderr, "Warning: Failed to add PID %d to tracker (table full)\n", pid);
 			}
 		}
 	}
-	
+
 	closedir(proc_dir);
 	return tracked_count;
 }
@@ -522,21 +473,31 @@ static int populate_initial_pids(struct process_bpf *skel, char **command_list, 
 static int handle_event(void *ctx, void *data, size_t data_sz)
 {
 	const struct event *e = data;
-	
+	struct pid_tracker *tracker = (struct pid_tracker *)ctx;
+
 	// Use kernel timestamp from the event instead of generating our own
 	uint64_t timestamp_ns = e->timestamp_ns;
 
 	switch (e->type) {
 		case EVENT_TYPE_PROCESS:
-			// For process events, always report immediately
-			printf("{");
-			printf("\"timestamp\":%llu,", timestamp_ns);
-			printf("\"event\":\"%s\",", e->exit_event ? "EXIT" : "EXEC");
-			printf("\"comm\":\"%s\",", e->comm);
-			printf("\"pid\":%d,", e->pid);
-			printf("\"ppid\":%d", e->ppid);
-
 			if (e->exit_event) {
+				// EXIT event: check if tracked before reporting
+				bool is_tracked = pid_tracker_is_tracked(tracker, e->pid);
+
+				// Remove from tracker regardless
+				pid_tracker_remove(tracker, e->pid);
+
+				// Only report if tracked (or if in ALL/PROC mode)
+				if (!is_tracked && tracker->filter_mode == FILTER_MODE_FILTER) {
+					break;
+				}
+
+				printf("{");
+				printf("\"timestamp\":%llu,", timestamp_ns);
+				printf("\"event\":\"EXIT\",");
+				printf("\"comm\":\"%s\",", e->comm);
+				printf("\"pid\":%d,", e->pid);
+				printf("\"ppid\":%d", e->ppid);
 				printf(",\"exit_code\":%u", e->exit_code);
 				if (e->duration_ns)
 					printf(",\"duration_ms\":%llu", e->duration_ns / 1000000);
@@ -561,15 +522,50 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
 				// Flush all pending FILE_OPEN aggregations for this PID
 				flush_pid_file_opens(e->pid, timestamp_ns);
 			} else {
-				printf(",\"filename\":\"%s\"", e->filename);
-				printf(",\"full_command\":\"%s\"", e->full_command);
-				printf("}\n");
-				fflush(stdout);
+				// EXEC event: check if should track
+				if (should_track_process(tracker, e->comm, e->pid, e->ppid)) {
+					pid_tracker_add(tracker, e->pid, e->ppid);
+
+					// Report the EXEC event
+					printf("{");
+					printf("\"timestamp\":%llu,", timestamp_ns);
+					printf("\"event\":\"EXEC\",");
+					printf("\"comm\":\"%s\",", e->comm);
+					printf("\"pid\":%d,", e->pid);
+					printf("\"ppid\":%d", e->ppid);
+					printf(",\"filename\":\"%s\"", e->filename);
+					printf(",\"full_command\":\"%s\"", e->full_command);
+					printf("}\n");
+					fflush(stdout);
+				} else if (tracker->filter_mode == FILTER_MODE_FILTER) {
+					// In filter mode, don't report untracked processes
+					break;
+				} else {
+					// In ALL/PROC modes, report all processes but add them to tracker for PROC mode
+					if (tracker->filter_mode == FILTER_MODE_PROC) {
+						pid_tracker_add(tracker, e->pid, e->ppid);
+					}
+
+					printf("{");
+					printf("\"timestamp\":%llu,", timestamp_ns);
+					printf("\"event\":\"EXEC\",");
+					printf("\"comm\":\"%s\",", e->comm);
+					printf("\"pid\":%d,", e->pid);
+					printf("\"ppid\":%d", e->ppid);
+					printf(",\"filename\":\"%s\"", e->filename);
+					printf(",\"full_command\":\"%s\"", e->full_command);
+					printf("}\n");
+					fflush(stdout);
+				}
 			}
 			break;
-			
+
 		case EVENT_TYPE_BASH_READLINE:
-			// For bash readline events, always report immediately
+			// Check if should report bash readline for this PID
+			if (!should_report_bash_readline(tracker, e->pid)) {
+				break;
+			}
+
 			printf("{");
 			printf("\"timestamp\":%llu,", timestamp_ns);
 			printf("\"event\":\"BASH_READLINE\",");
@@ -579,26 +575,31 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
 			printf("}\n");
 			fflush(stdout);
 			break;
-			
+
 		case EVENT_TYPE_FILE_OPERATION:
 			// Only handle FILE_OPEN events, skip FILE_CLOSE
 			if (!e->file_op.is_open) {
 				break;
 			}
-			
+
+			// Check if should report file ops for this PID
+			if (!should_report_file_ops(tracker, e->pid)) {
+				break;
+			}
+
 			// Get count for this FILE_OPEN operation
 			char warning_msg[128];
 			uint32_t count = get_file_open_count(e, timestamp_ns, warning_msg, sizeof(warning_msg));
-			
+
 			// Skip if this is a duplicate (count == 0)
 			if (count == 0) {
 				break;
 			}
-			
+
 			// Report the FILE_OPEN event with count
 			print_file_open_event(e, timestamp_ns, count, strlen(warning_msg) > 0 ? warning_msg : NULL);
 			break;
-			
+
 		default:
 			// For unknown events, always report immediately
 			printf("{");
@@ -626,6 +627,9 @@ int main(int argc, char **argv)
 
 	/* filter_mode is set via -m flag or -a flag, defaults to FILTER_MODE_FILTER */
 
+	/* Initialize userspace PID tracker */
+	pid_tracker_init(&pid_tracker, env.command_list, env.command_count, env.filter_mode, env.pid);
+
 	/* Set up libbpf errors and debug info callback */
 	libbpf_set_print(libbpf_print_fn);
 
@@ -640,18 +644,9 @@ int main(int argc, char **argv)
 		return 1;
 	}
 
-	/* Parameterize BPF code with minimum duration and filter mode */
+	/* Parameterize BPF code with minimum duration */
 	skel->rodata->min_duration_ns = env.min_duration_ms * 1000000ULL;
-	skel->rodata->filter_mode = env.filter_mode;
 
-	/* Setup command filters if using filter mode */
-	if (env.filter_mode == FILTER_MODE_FILTER) {
-		err = setup_command_filters(skel, env.command_list, env.command_count);
-		if (err) {
-			fprintf(stderr, "Failed to setup command filters\n");
-			goto cleanup;
-		}
-	}
 	/* Load & verify BPF programs */
 	err = process_bpf__load(skel);
 	if (err) {
@@ -659,9 +654,8 @@ int main(int argc, char **argv)
 		goto cleanup;
 	}
 
-	/* Populate initial PIDs from existing processes */
-	pid_t *tracked_pids_array;
-	int tracked_count = populate_initial_pids(skel, env.command_list, env.command_count, env.filter_mode, &tracked_pids_array);
+	/* Populate initial PIDs from existing processes into userspace tracker */
+	int tracked_count = populate_initial_pids(&pid_tracker, env.command_list, env.command_count, env.filter_mode);
 	if (tracked_count < 0) {
 		fprintf(stderr, "Failed to populate initial PIDs\n");
 		goto cleanup;
@@ -678,8 +672,8 @@ int main(int argc, char **argv)
 		goto cleanup;
 	}
 
-	/* Set up ring buffer polling */
-	rb = ring_buffer__new(bpf_map__fd(skel->maps.rb), handle_event, NULL, NULL);
+	/* Set up ring buffer polling with pid_tracker as context */
+	rb = ring_buffer__new(bpf_map__fd(skel->maps.rb), handle_event, &pid_tracker, NULL);
 	if (!rb) {
 		err = -1;
 		fprintf(stderr, "Failed to create ring buffer\n");
