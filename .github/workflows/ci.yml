@@ -45,6 +45,12 @@ jobs:
         cd bpf
         make test
 
+    - name: Build frontend
+      run: |
+        cd frontend
+        npm install
+        npm run build
+
     - name: Build Rust collector
       run: |
         cd collector
