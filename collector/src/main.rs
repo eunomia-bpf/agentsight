@@ -10,7 +10,7 @@ mod server;
 use framework::{
     binary_extractor::BinaryExtractor,
     runners::{SslRunner, ProcessRunner, AgentRunner, SystemRunner, RunnerError, Runner},
-    analyzers::{OutputAnalyzer, FileLogger, SSEProcessor, HTTPParser, HTTPFilter, AuthHeaderRemover, SSLFilter, TimestampNormalizer, print_global_http_filter_metrics, print_global_ssl_filter_metrics}
+    analyzers::{OutputAnalyzer, FileLogger, SSEProcessor, HTTPParser, HTTPDecompressor, HTTPFilter, AuthHeaderRemover, SSLFilter, TimestampNormalizer, print_global_http_filter_metrics, print_global_ssl_filter_metrics}
 };
 
 use server::WebServer;
@@ -333,7 +333,10 @@ async fn run_raw_ssl(binary_extractor: &BinaryExtractor, enable_chunk_merger: bo
             HTTPParser::new().disable_raw_data()
         };
         ssl_runner = ssl_runner.add_analyzer(Box::new(http_parser));
-        
+
+        // Add HTTP decompressor to decompress gzip/deflate responses
+        ssl_runner = ssl_runner.add_analyzer(Box::new(HTTPDecompressor::new()));
+
         // Add HTTP filter if patterns are provided
         if !http_filter_patterns.is_empty() {
             ssl_runner = ssl_runner.add_analyzer(Box::new(HTTPFilter::with_patterns(http_filter_patterns.clone())));
@@ -512,7 +515,10 @@ async fn run_trace(
                 HTTPParser::new().disable_raw_data()
             };
             ssl_runner = ssl_runner.add_analyzer(Box::new(http_parser));
-            
+
+            // Add HTTP decompressor after HTTP parser to decompress gzip/deflate responses
+            ssl_runner = ssl_runner.add_analyzer(Box::new(HTTPDecompressor::new()));
+
             // Add HTTP filter to SSL runner if patterns are provided
             if !http_filter.is_empty() {
                 ssl_runner = ssl_runner.add_analyzer(Box::new(HTTPFilter::with_patterns(http_filter.to_vec())));
