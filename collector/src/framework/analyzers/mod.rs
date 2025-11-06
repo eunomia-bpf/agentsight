@@ -18,6 +18,7 @@ pub trait Analyzer: Send + Sync {
 pub mod output;
 pub mod file_logger;
 pub mod sse_processor;
+pub mod ssl_merger;
 pub mod http_parser;
 pub mod http_decompressor;
 pub mod http_filter;
@@ -33,6 +34,7 @@ mod sse_processor_tests;
 pub use output::OutputAnalyzer;
 pub use file_logger::FileLogger;
 pub use sse_processor::SSEProcessor;
+pub use ssl_merger::SSLMerger;
 pub use http_parser::HTTPParser;
 pub use http_decompressor::HTTPDecompressor;
 pub use http_filter::{HTTPFilter, print_global_http_filter_metrics};

@@ -83,16 +83,29 @@ impl HTTPDecompressor {
     }
 
     /// Handle chunked transfer encoding - extract the actual data from chunks
+    /// Works with bytes instead of strings to handle binary gzip data
     fn extract_from_chunked(body: &str) -> Option<Vec<u8>> {
         // Parse chunked transfer encoding format:
         // <chunk-size-hex>\r\n<chunk-data>\r\n...
         let mut result = Vec::new();
-        let mut remaining = body;
+
+        // Convert string to bytes for binary-safe processing
+        let body_bytes = Self::decode_json_escaped_string(body);
+        let mut pos = 0;
 
         loop {
             // Find the first \r\n which separates chunk size from data
-            if let Some(newline_pos) = remaining.find("\r\n") {
-                let chunk_size_str = &remaining[..newline_pos];
+            let newline_pos = body_bytes[pos..].windows(2)
+                .position(|w| w == b"\r\n")
+                .map(|p| pos + p);
+
+            if let Some(newline_pos) = newline_pos {
+                // Extract chunk size string (should be ASCII hex digits)
+                let chunk_size_bytes = &body_bytes[pos..newline_pos];
+                let chunk_size_str = match std::str::from_utf8(chunk_size_bytes) {
+                    Ok(s) => s,
+                    Err(_) => return None, // Invalid UTF-8 in chunk size
+                };
 
                 // Parse chunk size as hex
                 let chunk_size = match usize::from_str_radix(chunk_size_str.trim(), 16) {
@@ -105,17 +118,21 @@ impl HTTPDecompressor {
                     break;
                 }
 
-                // Extract chunk data
+                // Extract chunk data (binary safe)
                 let data_start = newline_pos + 2; // Skip \r\n
-                if data_start + chunk_size > remaining.len() {
+                if data_start + chunk_size > body_bytes.len() {
                     return None; // Incomplete chunk
                 }
 
-                let chunk_data = &remaining[data_start..data_start + chunk_size];
-                result.extend_from_slice(&Self::decode_json_escaped_string(chunk_data));
+                let chunk_data = &body_bytes[data_start..data_start + chunk_size];
+                result.extend_from_slice(chunk_data);
 
                 // Move to next chunk (skip chunk data and trailing \r\n)
-                remaining = &remaining[data_start + chunk_size + 2..];
+                pos = data_start + chunk_size + 2;
+
+                if pos >= body_bytes.len() {
+                    break;
+                }
             } else {
                 break;
             }

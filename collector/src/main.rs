@@ -10,7 +10,7 @@ mod server;
 use framework::{
     binary_extractor::BinaryExtractor,
     runners::{SslRunner, ProcessRunner, AgentRunner, SystemRunner, RunnerError, Runner},
-    analyzers::{OutputAnalyzer, FileLogger, SSEProcessor, HTTPParser, HTTPDecompressor, HTTPFilter, AuthHeaderRemover, SSLFilter, TimestampNormalizer, print_global_http_filter_metrics, print_global_ssl_filter_metrics}
+    analyzers::{OutputAnalyzer, FileLogger, SSEProcessor, SSLMerger, HTTPParser, HTTPDecompressor, HTTPFilter, AuthHeaderRemover, SSLFilter, TimestampNormalizer, print_global_http_filter_metrics, print_global_ssl_filter_metrics}
 };
 
 use server::WebServer;
@@ -507,8 +507,11 @@ async fn run_trace(
         }
         
         if ssl_http {
+            // Add SSL merger FIRST to combine consecutive READ events into complete HTTP messages
+            ssl_runner = ssl_runner.add_analyzer(Box::new(SSLMerger::new()));
+
             ssl_runner = ssl_runner.add_analyzer(Box::new(SSEProcessor::new_with_timeout(30000)));
-            
+
             let http_parser = if ssl_raw_data {
                 HTTPParser::new()
             } else {
@@ -523,7 +526,7 @@ async fn run_trace(
             if !http_filter.is_empty() {
                 ssl_runner = ssl_runner.add_analyzer(Box::new(HTTPFilter::with_patterns(http_filter.to_vec())));
             }
-            
+
             // Add authorization header remover by default (unless disabled)
             if !disable_auth_removal {
                 ssl_runner = ssl_runner.add_analyzer(Box::new(AuthHeaderRemover::new()));
