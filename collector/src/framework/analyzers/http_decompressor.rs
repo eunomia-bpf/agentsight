@@ -22,6 +22,7 @@ impl HTTPDecompressor {
     }
 
     /// Keep the compressed data in the event (adds a compressed_body field)
+    #[allow(dead_code)]
     pub fn keep_compressed(mut self) -> Self {
         self.keep_compressed = true;
         self
