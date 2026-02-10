@@ -79,11 +79,12 @@ impl SSLMerger {
             // For non-chunked, check Content-Length
             if let Some(cl_start) = headers.to_lowercase().find("content-length:") {
                 let cl_line = &headers[cl_start..];
-                if let Some(cl_end) = cl_line.find("\r\n") {
-                    let cl_value = &cl_line[15..cl_end].trim();
-                    if let Ok(content_length) = cl_value.parse::<usize>() {
-                        return body.len() >= content_length;
-                    }
+                // Find the end of the Content-Length header line
+                // It could be followed by \r\n (if there are more headers) or end of headers
+                let cl_end = cl_line.find("\r\n").unwrap_or(cl_line.len());
+                let cl_value = cl_line[15..cl_end].trim();
+                if let Ok(content_length) = cl_value.parse::<usize>() {
+                    return body.len() >= content_length;
                 }
             }
 
