@@ -233,6 +233,37 @@ sudo ./agentsight trace --ssl true --process true --server true
 sudo ./agentsight record -c "python" --server-port 8080 --log-file /tmp/agent.log
 ```
 
+#### Browser Plaintext Capture
+
+For browser-specific plaintext capture, use the standalone `browsertrace` BPF
+tool instead of `sslsniff`:
+
+```bash
+# Chrome / Chromium
+sudo ./bpf/browsertrace --binary-path /opt/google/chrome/chrome
+
+# Firefox on Ubuntu Snap
+sudo ./bpf/browsertrace --binary-path /snap/firefox/current/usr/lib/firefox/firefox
+```
+
+> **Note**: On Ubuntu, `/usr/bin/firefox` is often a wrapper script rather than
+> the real browser ELF. Point `browsertrace` at the actual Firefox binary.
+
+#### Local MCP over stdio
+
+For local MCP servers that communicate over `stdio` instead of HTTP/TLS, use
+the standalone `stdiocap` BPF tool:
+
+```bash
+# Capture stdin/stdout/stderr payloads for a local MCP server process
+sudo ./bpf/stdiocap -p <mcp_server_pid>
+```
+
+AgentSight also includes a minimal MCP fixture for local testing under
+[`docs/mcp-test/README.md`](docs/mcp-test/README.md). It provides both `stdio`
+and HTTP test modes so you can generate predictable MCP traffic before wiring
+it into the Rust collector.
+
 #### Direct eBPF Program Usage
 
 ```bash
@@ -241,6 +272,12 @@ sudo ./bpf/sslsniff --binary-path ~/.local/share/claude/versions/2.1.39
 
 # Run sslsniff on NVM Node.js
 sudo ./bpf/sslsniff --binary-path ~/.nvm/versions/node/v20.0.0/bin/node --verbose
+
+# Run browsertrace directly on Chrome
+sudo ./bpf/browsertrace --binary-path /opt/google/chrome/chrome
+
+# Run stdiocap directly on a local MCP server PID
+sudo ./bpf/stdiocap -p 12345
 
 # Run process tracer
 sudo ./bpf/process -c python
