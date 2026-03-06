@@ -221,9 +221,10 @@ test_process_filter: $(OUTPUT)/test_process_filter.o | $(OUTPUT)
 	$(call msg,BINARY,$@)
 	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -o $@
 
-test_process_new_map_flush: $(OUTPUT)/test_process_new_map_flush.o | $(OUTPUT)
+# map_flush helper uses libbpf_num_possible_cpus() from libbpf.
+test_process_new_map_flush: $(OUTPUT)/test_process_new_map_flush.o $(LIBBPF_OBJ) | $(OUTPUT)
 	$(call msg,BINARY,$@)
-	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -o $@
+	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -lelf -lz -o $@
 
 test_process_new_mem_info: $(OUTPUT)/test_process_new_mem_info.o | $(OUTPUT)
 	$(call msg,BINARY,$@)
