@@ -10,11 +10,13 @@ use tokio::time::{sleep, Duration};
 
 const PROCESS_BINARY: &[u8] = include_bytes!("../../../bpf/process");
 const SSLSNIFF_BINARY: &[u8] = include_bytes!("../../../bpf/sslsniff");
+const STDIOCAP_BINARY: &[u8] = include_bytes!("../../../bpf/stdiocap");
 
 pub struct BinaryExtractor {
     _temp_dir: TempDir, // Keep alive to prevent cleanup
     pub process_path: PathBuf,
     pub sslsniff_path: PathBuf,
+    pub stdiocap_path: PathBuf,
 }
 
 impl BinaryExtractor {
@@ -33,6 +35,10 @@ impl BinaryExtractor {
         // Extract and setup the sslsniff binary
         let sslsniff_path = temp_path.join("sslsniff");
         Self::extract_binary(&sslsniff_path, SSLSNIFF_BINARY, "sslsniff").await?;
+
+        // Extract and setup the stdiocap binary
+        let stdiocap_path = temp_path.join("stdiocap");
+        Self::extract_binary(&stdiocap_path, STDIOCAP_BINARY, "stdiocap").await?;
         
         // Small delay to ensure files are fully written
         sleep(Duration::from_millis(100)).await;
@@ -41,6 +47,7 @@ impl BinaryExtractor {
             _temp_dir: temp_dir,
             process_path,
             sslsniff_path,
+            stdiocap_path,
         })
     }
     
@@ -71,5 +78,9 @@ impl BinaryExtractor {
     
     pub fn get_sslsniff_path(&self) -> &Path {
         &self.sslsniff_path
+    }
+
+    pub fn get_stdiocap_path(&self) -> &Path {
+        &self.stdiocap_path
     }
 }

@@ -49,6 +49,9 @@ cargo run ssl --http-parser
 # Process lifecycle monitoring
 cargo run process
 
+# Stdio payload monitoring for a local MCP server or CLI child process
+sudo cargo run stdio -- --pid 1234
+
 # Combined agent monitoring
 cargo run agent -- --comm python --pid 1234
 
@@ -97,6 +100,21 @@ cargo run process -- --pid 1234
 cargo run process --quiet
 ```
 
+### Stdio Monitoring
+
+Capture plaintext stdin/stdout/stderr payloads from a target process:
+
+```bash
+# Capture stdio payloads from one PID
+sudo cargo run stdio -- --pid 1234
+
+# Filter by UID or comm
+sudo cargo run stdio -- --pid 1234 --uid 1000 --comm python3
+
+# Capture all file descriptors instead of only 0/1/2
+sudo cargo run stdio -- --pid 1234 --all-fds
+```
+
 ### Agent Monitoring (Combined)
 
 Comprehensive monitoring with both SSL and process events:
@@ -122,6 +140,9 @@ cargo run agent --output /var/log/agent.log --quiet
 
 # Web server with visualization
 cargo run server
+
+# Stdio-only monitoring through the trace entrypoint
+sudo cargo run trace -- --ssl=false --process=false --stdio --pid 1234
 ```
 
 ## Configuration Options
@@ -145,6 +166,10 @@ cargo run server
 
 - `--ssl`: Enable/disable SSL monitoring
 - `--process`: Enable/disable process monitoring
+- `--stdio`: Enable/disable stdio payload monitoring
+- `--stdio-uid`: Filter stdio events by user ID
+- `--stdio-all-fds`: Capture all file descriptors instead of only stdin/stdout/stderr
+- `--stdio-max-bytes`: Limit captured bytes per stdio event
 - `--ssl-uid`: Filter SSL events by user ID
 - `--ssl-handshake`: Show SSL handshake events
 - `--output`: Output file path

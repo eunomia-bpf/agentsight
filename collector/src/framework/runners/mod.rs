@@ -65,15 +65,41 @@ impl Default for ProcessConfig {
     }
 }
 
+/// Configuration for stdio payload monitoring
+#[derive(Debug, Clone)]
+pub struct StdioConfig {
+    #[allow(dead_code)]
+    pub pid: Option<u32>,
+    #[allow(dead_code)]
+    pub uid: Option<u32>,
+    #[allow(dead_code)]
+    pub all_fds: bool,
+    #[allow(dead_code)]
+    pub max_bytes: Option<u32>,
+}
+
+impl Default for StdioConfig {
+    fn default() -> Self {
+        Self {
+            pid: None,
+            uid: None,
+            all_fds: false,
+            max_bytes: None,
+        }
+    }
+}
+
 pub mod common;
 pub mod ssl;
 pub mod process;
 pub mod fake; // Add fake runner for testing
 pub mod agent; // Add agent runner for flexible composition
+pub mod stdio;
 pub mod system; // Add system runner for CPU and memory monitoring
 
 pub use ssl::SslRunner;
+pub use stdio::StdioRunner;
 pub use process::ProcessRunner;
 pub use fake::FakeRunner; // Export FakeRunner
 pub use agent::AgentRunner; // Export AgentRunner
-pub use system::SystemRunner; // Export SystemRunner 
+pub use system::SystemRunner; // Export SystemRunner
