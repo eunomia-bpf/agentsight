@@ -5,7 +5,7 @@ use std::fs;
 use std::io::Write;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
-use std::sync::OnceLock;
+use std::sync::{Mutex, OnceLock};
 use tempfile::TempDir;
 use tokio::time::{sleep, Duration};
 
@@ -17,6 +17,7 @@ pub struct BinaryExtractor {
     _temp_dir: TempDir, // Keep alive to prevent cleanup
     pub process_path: PathBuf,
     pub sslsniff_path: PathBuf,
+    stdiocap_init_lock: Mutex<()>,
     stdiocap_path: OnceLock<PathBuf>,
 }
 
@@ -44,6 +45,7 @@ impl BinaryExtractor {
             _temp_dir: temp_dir,
             process_path,
             sslsniff_path,
+            stdiocap_init_lock: Mutex::new(()),
             stdiocap_path: OnceLock::new(),
         })
     }
@@ -82,6 +84,17 @@ impl BinaryExtractor {
             return Ok(path.as_path());
         }
 
+        let _guard = self.stdiocap_init_lock.lock().map_err(|_| {
+            std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "stdiocap extraction lock poisoned",
+            )
+        })?;
+
+        if let Some(path) = self.stdiocap_path.get() {
+            return Ok(path.as_path());
+        }
+
         let stdiocap_path = self._temp_dir.path().join("stdiocap");
         {
             let mut file = fs::File::create(&stdiocap_path)?;
@@ -94,7 +107,17 @@ impl BinaryExtractor {
         fs::set_permissions(&stdiocap_path, perms)?;
         println!("Extracted stdiocap binary to: {}", stdiocap_path.display());
 
-        let _ = self.stdiocap_path.set(stdiocap_path);
-        Ok(self.stdiocap_path.get().expect("stdiocap path should be initialized").as_path())
+        self.stdiocap_path.set(stdiocap_path).map_err(|_| {
+            std::io::Error::new(
+                std::io::ErrorKind::Other,
+                "stdiocap path initialized concurrently",
+            )
+        })?;
+
+        Ok(self
+            .stdiocap_path
+            .get()
+            .expect("stdiocap path should be initialized")
+            .as_path())
     }
 }
