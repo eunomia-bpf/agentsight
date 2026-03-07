@@ -5,6 +5,7 @@ use std::fs;
 use std::io::Write;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 use tempfile::TempDir;
 use tokio::time::{sleep, Duration};
 
@@ -16,11 +17,11 @@ pub struct BinaryExtractor {
     _temp_dir: TempDir, // Keep alive to prevent cleanup
     pub process_path: PathBuf,
     pub sslsniff_path: PathBuf,
-    pub stdiocap_path: PathBuf,
+    stdiocap_path: OnceLock<PathBuf>,
 }
 
 impl BinaryExtractor {
-    pub async fn new() -> Result<Self, Box<dyn std::error::Error>> {
+    pub async fn new() -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         println!("Creating temporary directory...");
         
         let temp_dir = TempDir::new()?;
@@ -36,10 +37,6 @@ impl BinaryExtractor {
         let sslsniff_path = temp_path.join("sslsniff");
         Self::extract_binary(&sslsniff_path, SSLSNIFF_BINARY, "sslsniff").await?;
 
-        // Extract and setup the stdiocap binary
-        let stdiocap_path = temp_path.join("stdiocap");
-        Self::extract_binary(&stdiocap_path, STDIOCAP_BINARY, "stdiocap").await?;
-        
         // Small delay to ensure files are fully written
         sleep(Duration::from_millis(100)).await;
         
@@ -47,7 +44,7 @@ impl BinaryExtractor {
             _temp_dir: temp_dir,
             process_path,
             sslsniff_path,
-            stdiocap_path,
+            stdiocap_path: OnceLock::new(),
         })
     }
     
@@ -55,7 +52,7 @@ impl BinaryExtractor {
         path: &Path,
         binary_data: &[u8],
         name: &str,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         {
             let mut file = fs::File::create(path)?;
             file.write_all(binary_data)?;
@@ -80,7 +77,24 @@ impl BinaryExtractor {
         &self.sslsniff_path
     }
 
-    pub fn get_stdiocap_path(&self) -> &Path {
-        &self.stdiocap_path
+    pub fn get_stdiocap_path(&self) -> Result<&Path, Box<dyn std::error::Error + Send + Sync>> {
+        if let Some(path) = self.stdiocap_path.get() {
+            return Ok(path.as_path());
+        }
+
+        let stdiocap_path = self._temp_dir.path().join("stdiocap");
+        {
+            let mut file = fs::File::create(&stdiocap_path)?;
+            file.write_all(STDIOCAP_BINARY)?;
+            file.flush()?;
+        }
+
+        let mut perms = fs::metadata(&stdiocap_path)?.permissions();
+        perms.set_mode(0o755);
+        fs::set_permissions(&stdiocap_path, perms)?;
+        println!("Extracted stdiocap binary to: {}", stdiocap_path.display());
+
+        let _ = self.stdiocap_path.set(stdiocap_path);
+        Ok(self.stdiocap_path.get().expect("stdiocap path should be initialized").as_path())
     }
 }

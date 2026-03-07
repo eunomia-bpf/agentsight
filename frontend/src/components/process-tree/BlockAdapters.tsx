@@ -2,12 +2,14 @@
 // Copyright (c) 2026 eunomia-bpf org.
 
 import { ParsedEvent } from '@/utils/eventParsers';
+import { decodeStdioMessage } from '@/utils/stdioParser';
 import { UnifiedBlockData } from './UnifiedBlock';
 import { 
   SparklesIcon, 
   CheckCircleIcon, 
   DocumentIcon, 
   CpuChipIcon, 
+  CommandLineIcon,
   LockClosedIcon 
 } from '@heroicons/react/24/outline';
 
@@ -212,6 +214,35 @@ export function adaptSSLEvent(event: ParsedEvent): UnifiedBlockData {
   };
 }
 
+export function adaptStdioEvent(event: ParsedEvent): UnifiedBlockData {
+  const metadata = event.metadata || {};
+  const decoded = decodeStdioMessage(metadata);
+  const tags = ['STDIO', decoded.direction || 'UNKNOWN', decoded.fdRole.toUpperCase()];
+
+  if (decoded.method) {
+    tags.push(decoded.method);
+  } else if (decoded.kind !== 'text' && decoded.kind !== 'unknown') {
+    tags.push(decoded.kind.toUpperCase());
+  }
+
+  if (decoded.toolName) {
+    tags.push(decoded.toolName);
+  }
+
+  return {
+    id: event.id,
+    type: 'stdio',
+    timestamp: event.timestamp,
+    tags,
+    bgGradient: 'bg-gradient-to-r from-slate-50 via-indigo-50 to-sky-50',
+    borderColor: 'border-indigo-400',
+    iconColor: 'text-indigo-700',
+    icon: CommandLineIcon,
+    foldContent: decoded.summary,
+    expandedContent: event.content || JSON.stringify(event.metadata, null, 2)
+  };
+}
+
 // Main adapter function
 export function adaptEventToUnifiedBlock(event: ParsedEvent): UnifiedBlockData {
   switch (event.type) {
@@ -223,6 +254,8 @@ export function adaptEventToUnifiedBlock(event: ParsedEvent): UnifiedBlockData {
       return adaptFileEvent(event);
     case 'process':
       return adaptProcessEvent(event);
+    case 'stdio':
+      return adaptStdioEvent(event);
     case 'ssl':
     default:
       return adaptSSLEvent(event);

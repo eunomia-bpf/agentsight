@@ -135,6 +135,8 @@ export function filterProcessTree(processTree: ProcessNode[], filters: ProcessTr
         mockEvent.source = event.metadata.original_source;
       } else if (event.type === 'prompt' || event.type === 'response') {
         mockEvent.source = 'http_parser';
+      } else if (event.type === 'stdio') {
+        mockEvent.source = 'stdio';
       } else if (event.type === 'file') {
         mockEvent.source = 'process';
       } else if (event.type === 'process') {

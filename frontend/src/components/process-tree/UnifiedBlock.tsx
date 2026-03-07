@@ -11,7 +11,7 @@ import React from 'react';
 
 export interface UnifiedBlockData {
   id: string;
-  type: 'prompt' | 'response' | 'ssl' | 'file' | 'process';
+  type: 'prompt' | 'response' | 'ssl' | 'file' | 'process' | 'stdio';
   timestamp: number;
   tags: string[];
   bgGradient: string;
@@ -48,6 +48,7 @@ export function UnifiedBlock({ data, isExpanded, onToggle }: UnifiedBlockProps) 
     if (bgGradient.includes('cyan')) return 'hover:from-cyan-100 hover:via-sky-100 hover:to-blue-100';
     if (bgGradient.includes('green')) return 'hover:from-green-100 hover:via-emerald-100 hover:to-teal-100';
     if (bgGradient.includes('orange')) return 'hover:from-orange-100 hover:via-amber-100 hover:to-yellow-100';
+    if (bgGradient.includes('slate')) return 'hover:from-slate-100 hover:via-indigo-100 hover:to-sky-100';
     if (bgGradient.includes('purple')) return 'hover:from-purple-100 hover:via-violet-100 hover:to-indigo-100';
     return 'hover:bg-gray-100';
   };

@@ -75,6 +75,13 @@ export function ProcessNode({
         </span>
       );
     }
+    if (eventCounts.stdio) {
+      badges.push(
+        <span key="stdio" className="px-2 py-1 bg-indigo-100 text-indigo-800 text-xs rounded-full">
+          {eventCounts.stdio} stdio
+        </span>
+      );
+    }
     return badges;
   };
 

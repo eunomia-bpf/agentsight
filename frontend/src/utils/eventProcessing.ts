@@ -2,6 +2,7 @@
 // Copyright (c) 2026 eunomia-bpf org.
 
 import { Event, ProcessedEvent } from '@/types/event';
+import { decodeStdioMessage, isStdioSource } from './stdioParser';
 
 export const SOURCE_COLORS = [
   '#3B82F6', // blue
@@ -68,6 +69,11 @@ export function formatDuration(ms: number): string {
 }
 
 export function formatEventSummary(event: ProcessedEvent): string {
+  if (isStdioSource(event.source)) {
+    const decoded = decodeStdioMessage(event.data);
+    return `${event.comm} (${event.pid}) · ${decoded.summary}`;
+  }
+
   return `${event.comm} (${event.pid})`;
 }
 

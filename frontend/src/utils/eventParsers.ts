@@ -3,6 +3,11 @@
 
 import { Event } from '@/types/event';
 import { comparePrompts } from './jsonDiff';
+import {
+  decodeStdioMessage,
+  formatStdioExpandedContent,
+  isStdioSource,
+} from './stdioParser';
 
 // Store prompt history per process for diff comparison
 const promptHistoryByPid = new Map<number, ParsedEvent[]>();
@@ -27,7 +32,7 @@ export interface TimelineItem {
 export interface ParsedEvent {
   id: string;
   timestamp: number;
-  type: 'prompt' | 'response' | 'ssl' | 'file' | 'process' | 'system';
+  type: 'prompt' | 'response' | 'ssl' | 'file' | 'process' | 'stdio' | 'system';
   title: string;
   content: string;
   metadata: Record<string, any>;
@@ -202,6 +207,8 @@ export function parseEventData(event: Event): ParsedEvent | null {
       return parseFileEvent(event);
     case 'process':
       return parseProcessEvent(event);
+    case 'stdio':
+      return parseStdioEvent(event);
     default:
       return parseGenericEvent(event);
   }
@@ -215,12 +222,17 @@ function determineEventType(source: string, data: any): ParsedEvent['type'] {
     return 'system';
   }
 
+  if (isStdioEvent(source, data)) return 'stdio';
   if (isPromptEvent(source, data)) return 'prompt';
   if (isResponseEvent(source, data)) return 'response';
   if (isFileEvent(source, data)) return 'file';
   if (isProcessEvent(source, data)) return 'process';
   if (source.toLowerCase().includes('ssl') || source === 'http_parser') return 'ssl';
   return 'ssl';
+}
+
+function isStdioEvent(source: string, _data: any): boolean {
+  return isStdioSource(source);
 }
 
 function isPromptEvent(source: string, data: any): boolean {
@@ -301,7 +313,7 @@ function parsePromptEvent(event: Event): ParsedEvent {
     type: 'prompt',
     title: `${method} ${model}`,
     content: content,
-    metadata: { model, method, url: `${data.host || ''}${data.path || ''}`, raw: data },
+    metadata: { model, method, url: `${data.host || ''}${data.path || ''}`, raw: data, original_source: event.source },
     isExpanded: false
   };
   
@@ -360,7 +372,7 @@ function parseResponseEvent(event: Event): ParsedEvent {
     type: 'response',
     title: model,
     content: content,
-    metadata: { model, raw: data },
+    metadata: { model, raw: data, original_source: event.source },
     isExpanded: false
   };
 }
@@ -385,7 +397,7 @@ function parseSSLEvent(event: Event): ParsedEvent {
     type: 'ssl',
     title,
     content: content,
-    metadata: data,
+    metadata: { ...data, original_source: event.source },
     isExpanded: false
   };
 }
@@ -404,7 +416,7 @@ function parseFileEvent(event: Event): ParsedEvent {
     type: 'file',
     title: `${operation} ${path}`,
     content: content,
-    metadata: data,
+    metadata: { ...data, original_source: event.source },
     isExpanded: false
   };
 }
@@ -424,7 +436,30 @@ function parseProcessEvent(event: Event): ParsedEvent {
     type: 'process',
     title,
     content: content,
-    metadata: data,
+    metadata: { ...data, original_source: event.source },
+    isExpanded: false
+  };
+}
+
+function parseStdioEvent(event: Event): ParsedEvent {
+  const decoded = decodeStdioMessage(event.data);
+
+  return {
+    id: event.id,
+    timestamp: event.timestamp,
+    type: 'stdio',
+    title: decoded.title,
+    content: formatStdioExpandedContent(decoded),
+    metadata: {
+      ...event.data,
+      original_source: event.source,
+      stdio_kind: decoded.kind,
+      rpc_method: decoded.method,
+      rpc_id: decoded.id,
+      tool_name: decoded.toolName,
+      summary: decoded.summary,
+      parsed_payload: decoded.parsedPayload,
+    },
     isExpanded: false
   };
 }
@@ -439,7 +474,7 @@ function parseGenericEvent(event: Event): ParsedEvent {
     type: 'ssl',
     title: `${event.source} event`,
     content: content,
-    metadata: event.data,
+    metadata: { ...event.data, original_source: event.source },
     isExpanded: false
   };
 }

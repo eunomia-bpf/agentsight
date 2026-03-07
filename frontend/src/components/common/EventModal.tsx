@@ -4,6 +4,7 @@
 'use client';
 
 import { ProcessedEvent } from '@/types/event';
+import { decodeStdioMessage, formatStdioExpandedContent, isStdioSource } from '@/utils/stdioParser';
 
 interface EventModalProps {
   event: ProcessedEvent | null;
@@ -13,6 +14,8 @@ interface EventModalProps {
 
 export function EventModal({ event, onClose, title = 'Event Details' }: EventModalProps) {
   if (!event) return null;
+
+  const decodedStdio = isStdioSource(event.source) ? decodeStdioMessage(event.data) : null;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -65,6 +68,43 @@ export function EventModal({ event, onClose, title = 'Event Details' }: EventMod
                 <div className="text-sm text-gray-900 font-mono">{event.timestamp}</div>
               </div>
             </div>
+
+            {decodedStdio && (
+              <div className="border-t pt-4">
+                <h3 className="font-medium text-gray-900 mb-2">Decoded Stdio</h3>
+                <div className="grid grid-cols-2 gap-4 mb-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Direction</label>
+                    <div className="text-sm text-gray-900">{decodedStdio.direction || 'UNKNOWN'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">FD Role</label>
+                    <div className="text-sm text-gray-900">{decodedStdio.fdRole}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Kind</label>
+                    <div className="text-sm text-gray-900">{decodedStdio.kind}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Message ID</label>
+                    <div className="text-sm text-gray-900 font-mono">{decodedStdio.id || 'n/a'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Method</label>
+                    <div className="text-sm text-gray-900">{decodedStdio.method || 'n/a'}</div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Tool</label>
+                    <div className="text-sm text-gray-900">{decodedStdio.toolName || 'n/a'}</div>
+                  </div>
+                </div>
+                <div className="bg-indigo-50 rounded-md p-3 max-h-64 overflow-y-auto">
+                  <pre className="text-sm text-gray-800 font-mono whitespace-pre-wrap">
+                    {formatStdioExpandedContent(decodedStdio)}
+                  </pre>
+                </div>
+              </div>
+            )}
 
             {/* Raw Data */}
             <div className="border-t pt-4">
