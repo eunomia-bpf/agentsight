@@ -1,0 +1,68 @@
+Codex CLI HTTPS Traffic Capture Attempt - 2026-03-16
+=====================================================
+
+Tool: OpenAI Codex CLI v0.114.0 (codex-cli)
+Binary: /home/yunwei37/.nvm/versions/node/v22.22.0/bin/codex
+  -> symlink to ../lib/node_modules/@openai/codex/bin/codex.js (Node.js wrapper)
+  -> spawns native binary: .../codex-linux-x64/vendor/x86_64-unknown-linux-musl/codex/codex
+
+RESULT: 0 events captured
+REASON: Two blocking issues
+
+Issue 1: Codex uses rustls, not OpenSSL
+-----------------------------------------
+The codex native binary is:
+  - ELF 64-bit LSB pie executable, static-pie linked (musl), stripped
+  - Uses tokio-rustls 0.26.4 and rama-tls-rustls 0.3.0-alpha.4 for TLS
+  - Does NOT link OpenSSL (no SSL_read/SSL_write symbols)
+  - sslsniff hooks OpenSSL/GnuTLS/NSS only, so it CANNOT intercept rustls traffic
+
+sslsniff error when targeting codex binary:
+  "libbpf: elf: failed to find symbol 'SSL_write' in '...codex'"
+  "Failed to attach: no SSL symbols or BoringSSL patterns found"
+
+The Node.js wrapper (codex.js) only spawns the Rust binary; it does not
+make any HTTPS calls itself, so hooking Node.js also yields nothing.
+
+Issue 2: Codex usage limit exceeded
+-------------------------------------
+Every codex exec attempt returns:
+  "ERROR: You've hit your usage limit. Visit https://chatgpt.com/codex/settings/usage
+   to purchase more credits or try again at Mar 18th, 2026 9:57 AM."
+
+Even if we could intercept TLS, we would only capture the error response.
+
+Architecture Summary
+---------------------
+codex CLI architecture (v0.114.0):
+  1. /usr/bin/codex -> Node.js script (codex.js)
+  2. codex.js spawns native Rust binary via child_process.spawn()
+  3. Rust binary: static-pie linked (musl libc), stripped
+     - HTTP client: hyper 1.8.1 + hyper-util 0.1.19
+     - TLS: rustls via tokio-rustls 0.26.4, rama-tls-rustls 0.3.0-alpha.4
+     - OpenSSL assembly: CRYPTOGAMS routines present (likely for crypto primitives)
+       but no OpenSSL SSL_* API functions
+  4. API endpoint: api.openai.com (inferred from error message)
+
+Recommendations for Capturing Codex Traffic
+---------------------------------------------
+1. MITM Proxy: Use mitmproxy/mitmdump with HTTPS_PROXY env var
+   (codex binary has proxy-related strings; likely supports HTTP_PROXY)
+
+2. Patch sslsniff for rustls: Add uprobe support for rustls functions
+   (e.g., rustls::client::ClientConnection::read_tls)
+   Requires the binary to not be stripped, or known symbol offsets.
+
+3. LD_PRELOAD approach: Won't work -- binary is statically linked.
+
+4. Kernel-level: Use kprobes on tcp_sendmsg/tcp_recvmsg to capture
+   plaintext before/after TLS. This requires correlating with the TLS
+   record layer manually.
+
+5. ptrace/strace: Can capture syscall-level read/write but data is
+   already encrypted at that point.
+
+Files
+------
+codex-raw.jsonl     - Empty (0 events captured)
+codex-summary.txt   - This file
