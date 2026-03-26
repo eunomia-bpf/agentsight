@@ -15,7 +15,7 @@ AgentSight 是一款专为监控 LLM 智能体行为而设计的可观测性工�
 wget https://github.com/eunomia-bpf/agentsight/releases/latest/download/agentsight && chmod +x agentsight
 # 记录 Claude Code 活动（基于 Bun，静态链接 BoringSSL，需要 --binary-path）
 sudo ./agentsight record -c claude --binary-path ~/.local/share/claude/versions/$(claude --version | head -1)
-# 记录 Claude 智能体行���（旧版本）
+# 记录 Claude 智能体行为（旧版本）
 sudo ./agentsight record -c "claude"
 # 记录 gemini-cli 智能体行为（comm 为 "node"）
 sudo ./agentsight record -c "node"
@@ -296,7 +296,7 @@ sudo ./bpf/process -c python
 ### 技术问题
 
 **问：支持哪些 Linux 发行版？**
-答���任何内核 4.1+（推荐 5.0+）的发行版。已在 Ubuntu 20.04+、CentOS 8+、RHEL 8+ 上测试通过。
+答：任何内核 4.1+（推荐 5.0+）的发行版。已在 Ubuntu 20.04+、CentOS 8+、RHEL 8+ 上测试通过。
 
 **问：能否同时监控多个智能体？**
 答：可以，使用组合监控模式可以对多个智能体进行并发观测和关联分析。
