@@ -3,7 +3,6 @@
 
 'use client';
 
-import { useState } from 'react';
 import { ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import React from 'react';
 
@@ -41,6 +40,18 @@ export function UnifiedBlock({ data, isExpanded, onToggle }: UnifiedBlockProps) 
   };
 
   const shouldShowExpandButton = data.expandedContent.length > 300;
+  const handleToggle = () => {
+    if (!shouldShowExpandButton) {
+      return;
+    }
+
+    const selection = window.getSelection();
+    if (selection && selection.toString().length > 0) {
+      return;
+    }
+
+    onToggle();
+  };
 
   // Get gradient hover classes
   const getHoverGradient = (bgGradient: string) => {
@@ -57,7 +68,7 @@ export function UnifiedBlock({ data, isExpanded, onToggle }: UnifiedBlockProps) 
     <div className="mb-1">
       <div
         className={`relative p-2 ${data.bgGradient} border-l-4 ${data.borderColor} rounded-lg cursor-pointer ${getHoverGradient(data.bgGradient)} transition-all duration-200 shadow-sm hover:shadow-md`}
-        onClick={() => shouldShowExpandButton && onToggle()}
+        onClick={handleToggle}
       >
         {/* Single line header */}
         <div className="flex items-center space-x-3">
@@ -119,7 +130,7 @@ export function UnifiedBlock({ data, isExpanded, onToggle }: UnifiedBlockProps) 
         {isExpanded && (
           <div className={`mt-2 pt-2 border-t ${data.borderColor.replace('border-', 'border-').replace('-400', '-200')}`}>
             <div className="bg-white/50 p-2 rounded border">
-              <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed text-gray-800">
+              <pre className="select-text whitespace-pre-wrap font-mono text-xs leading-relaxed text-gray-800">
                 {data.expandedContent}
               </pre>
             </div>

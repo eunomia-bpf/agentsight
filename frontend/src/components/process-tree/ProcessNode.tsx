@@ -3,7 +3,6 @@
 
 'use client';
 
-import { useState } from 'react';
 import { ChevronDownIcon, ChevronRightIcon, CpuChipIcon } from '@heroicons/react/24/outline';
 import { ProcessNode as ProcessNodeType, ParsedEvent, TimelineItem } from '@/utils/eventParsers';
 import { UnifiedBlock } from './UnifiedBlock';
@@ -119,10 +118,10 @@ export function ProcessNode({
   };
 
   return (
-    <div className="select-none">
+    <div>
       {/* Process Header */}
       <div
-        className="flex items-center py-3 px-4 hover:bg-gray-50 cursor-pointer border-l-2 border-indigo-200 rounded-r-lg transition-colors"
+        className="select-none flex items-center py-3 px-4 hover:bg-gray-50 cursor-pointer border-l-2 border-indigo-200 rounded-r-lg transition-colors"
         style={{ marginLeft: `${indent}px` }}
         onClick={() => onToggleProcess(process.pid)}
       >

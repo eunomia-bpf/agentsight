@@ -15,6 +15,208 @@ import {
 
 // Simplified - no longer need these helper functions
 
+function safeJsonParse(value: string): any | null {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
+
+function decodeEscapedText(value: string): string {
+  const parsed = safeJsonParse(value);
+  return typeof parsed === 'string' ? parsed : value;
+}
+
+/**
+ * Leniently unescape JSON string escape sequences.
+ * Unlike JSON.parse, this handles invalid escape sequences (e.g. from SSL
+ * capture corruption) gracefully by dropping the backslash.
+ */
+function lenientUnescape(s: string): string {
+  return s.replace(/\\(u[0-9a-fA-F]{4}|.)/g, (_, seq: string) => {
+    if (seq.length === 5 && seq[0] === 'u') {
+      return String.fromCharCode(parseInt(seq.substring(1), 16));
+    }
+    switch (seq) {
+      case 'n': return '\n';
+      case 't': return '\t';
+      case 'r': return '\r';
+      case '"': return '"';
+      case '\\': return '\\';
+      case '/': return '/';
+      case 'b': return '\b';
+      case 'f': return '\f';
+      default: return seq;
+    }
+  });
+}
+
+/**
+ * Extract a string field's raw value from potentially malformed JSON.
+ * Walks the string character by character to handle corrupted escape sequences
+ * that would break JSON.parse.
+ */
+function extractRawStringField(json: string, key: string): string | null {
+  const keyStr = `"${key}"`;
+  const keyIdx = json.indexOf(keyStr);
+  if (keyIdx === -1) return null;
+
+  let i = keyIdx + keyStr.length;
+  while (i < json.length && (json[i] === ' ' || json[i] === ':' || json[i] === '\t')) i++;
+  if (i >= json.length || json[i] !== '"') return null;
+  i++; // skip opening quote
+
+  const start = i;
+  while (i < json.length) {
+    if (json[i] === '\\') {
+      i += 2; // skip any escape sequence (valid or not)
+    } else if (json[i] === '"') {
+      return json.substring(start, i);
+    } else {
+      i++;
+    }
+  }
+  return json.substring(start);
+}
+
+/**
+ * Format extracted content with an optional file path header line.
+ */
+function formatWithFilePath(content: string, filePath: string | null): string {
+  if (filePath) {
+    const separator = '\u2500'.repeat(Math.min(filePath.length + 2, 60));
+    return `[${filePath}]\n${separator}\n${content}`;
+  }
+  return content;
+}
+
+function splitConcatenatedJsonObjects(value: string): string[] {
+  const chunks: string[] = [];
+  let start = -1;
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+
+  for (let i = 0; i < value.length; i++) {
+    const char = value[i];
+
+    if (inString) {
+      if (escape) {
+        escape = false;
+      } else if (char === '\\') {
+        escape = true;
+      } else if (char === '"') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+      continue;
+    }
+
+    if (char === '{') {
+      if (depth === 0) {
+        start = i;
+      }
+      depth += 1;
+      continue;
+    }
+
+    if (char === '}') {
+      depth -= 1;
+      if (depth === 0 && start >= 0) {
+        chunks.push(value.slice(start, i + 1));
+        start = -1;
+      }
+    }
+  }
+
+  return chunks;
+}
+
+function formatJsonContent(rawJsonContent: string): string {
+  const decoded = decodeEscapedText(rawJsonContent).trim();
+
+  const parsedWhole = safeJsonParse(decoded);
+  if (parsedWhole && typeof parsedWhole === 'object') {
+    const content = typeof parsedWhole.content === 'string'
+      ? parsedWhole.content
+      : JSON.stringify(parsedWhole, null, 2);
+    const filePath = typeof parsedWhole.file_path === 'string' ? parsedWhole.file_path : null;
+    return formatWithFilePath(String(content).trim(), filePath);
+  }
+
+  const chunks = splitConcatenatedJsonObjects(decoded);
+  if (chunks.length === 0) {
+    return decoded;
+  }
+
+  const formattedChunks = chunks.map((chunk, index) => {
+    const parsedChunk = safeJsonParse(chunk);
+
+    let content: string;
+    let filePath: string | null = null;
+
+    if (parsedChunk && typeof parsedChunk === 'object') {
+      content = typeof parsedChunk.content === 'string'
+        ? parsedChunk.content
+        : JSON.stringify(parsedChunk, null, 2);
+      filePath = typeof parsedChunk.file_path === 'string' ? parsedChunk.file_path : null;
+    } else {
+      // JSON.parse failed — likely corrupted escape sequences from SSL capture.
+      // Try manual field extraction with lenient unescaping.
+      const rawContent = extractRawStringField(chunk, 'content');
+      const rawFilePath = extractRawStringField(chunk, 'file_path');
+
+      if (rawContent !== null) {
+        content = lenientUnescape(rawContent);
+        filePath = rawFilePath !== null ? lenientUnescape(rawFilePath) : null;
+      } else {
+        // Can't locate a content field — unescape the whole chunk
+        content = lenientUnescape(chunk);
+      }
+    }
+
+    const formatted = formatWithFilePath(String(content).trim(), filePath);
+
+    return chunks.length > 1
+      ? `=== PART ${index + 1} ===\n${formatted}`
+      : formatted;
+  });
+
+  return formattedChunks.join('\n\n');
+}
+
+/**
+ * Format prompt content for display.
+ * Parses JSON and unescapes string literals so \n and \t render as real whitespace.
+ */
+function formatPromptExpandedContent(content: string): string {
+  const parsed = safeJsonParse(content);
+  if (parsed && typeof parsed === 'object') {
+    const pretty = JSON.stringify(parsed, null, 2);
+    return lenientUnescape(pretty);
+  }
+  return lenientUnescape(content);
+}
+
+function formatResponseExpandedContent(event: ParsedEvent): string {
+  const raw = event.metadata?.raw;
+  if (raw && typeof raw === 'object') {
+    if (typeof raw.json_content === 'string' && raw.json_content.trim().length > 0) {
+      return formatJsonContent(raw.json_content);
+    }
+    if (typeof raw.text_content === 'string' && raw.text_content.trim().length > 0) {
+      return raw.text_content.trim();
+    }
+    return JSON.stringify(raw, null, 2);
+  }
+  return event.content || JSON.stringify(event.metadata, null, 2);
+}
+
 export function adaptPromptEvent(event: ParsedEvent): UnifiedBlockData {
   const metadata = event.metadata || {};
   
@@ -24,17 +226,18 @@ export function adaptPromptEvent(event: ParsedEvent): UnifiedBlockData {
     tags.push('CHANGED');
   }
   
-  // Fold content: show diff summary if available
-  let foldContent = event.content && event.content.length > 0 
-    ? event.content.substring(0, 100) + (event.content.length > 100 ? '...' : '')
+  // Expanded content: include diff if available
+  const rawContent = event.content || JSON.stringify(event.metadata, null, 2);
+  let expandedContent = formatPromptExpandedContent(rawContent);
+
+  // Fold content: use formatted content for preview so escape sequences are resolved
+  let foldContent = expandedContent && expandedContent.length > 0
+    ? expandedContent.replace(/\n/g, ' ').substring(0, 100) + (expandedContent.length > 100 ? '...' : '')
     : metadata.url || '';
-    
+
   if (event.promptDiff?.summary) {
     foldContent = `📝 ${event.promptDiff.summary}`;
   }
-
-  // Expanded content: include diff if available
-  let expandedContent = event.content || JSON.stringify(event.metadata, null, 2);
   
   if (event.promptDiff?.diff) {
     expandedContent = `=== CHANGES FROM PREVIOUS PROMPT ===\n${event.promptDiff.diff}\n\n=== FULL CONTENT ===\n${expandedContent}`;
@@ -62,14 +265,12 @@ export function adaptPromptEvent(event: ParsedEvent): UnifiedBlockData {
 
 export function adaptResponseEvent(event: ParsedEvent): UnifiedBlockData {
   const metadata = event.metadata || {};
+  const expandedContent = formatResponseExpandedContent(event);
   
   // Fold content: short preview
-  const foldContent = event.content && event.content.length > 0 
-    ? event.content.substring(0, 100) + (event.content.length > 100 ? '...' : '')
+  const foldContent = expandedContent && expandedContent.length > 0 
+    ? expandedContent.substring(0, 100) + (expandedContent.length > 100 ? '...' : '')
     : '';
-
-  // Expanded content: everything
-  const expandedContent = event.content || JSON.stringify(event.metadata, null, 2);
 
   return {
     id: event.id,
