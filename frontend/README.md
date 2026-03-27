@@ -1,5 +1,7 @@
 # AgentSight Frontend
 
+**English** | [中文](README.zh-CN.md)
+
 A modern React/TypeScript web interface for visualizing AI agent observability data from the AgentSight collector. Features interactive timeline views, process trees, and real-time event streaming.
 
 ## Overview

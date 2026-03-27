@@ -1,5 +1,7 @@
 # eBPF Monitoring Tools
 
+**English** | [中文](README.zh-CN.md)
+
 This directory contains eBPF-based monitoring tools for system observability and security analysis.
 
 ## Tools Overview

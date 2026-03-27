@@ -1,5 +1,7 @@
 # AgentSight Collector
 
+**English** | [中文](README.zh-CN.md)
+
 A high-performance Rust streaming framework for real-time AI agent observability through eBPF-based system monitoring. The collector provides a pluggable architecture for processing SSL/TLS traffic and process lifecycle events with minimal overhead.
 
 ## Overview

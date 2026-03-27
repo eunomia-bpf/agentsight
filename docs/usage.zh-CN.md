@@ -1,10 +1,10 @@
-# Usage
+# 使用说明
 
-**English** | [中文](usage.zh-CN.md)
+[English](usage.md) | **中文**
 
-## Command-line parameters for monitoring Claude Code with agentsight
+## 使用agentsight监测Claude Code的命令行参数
 
-After successfully compiling from source, the agentsight binary is located in the `collector/target/release/` directory under the project root. Navigate to the source code root directory and run the following commands to test:
+使用源代码编译成功后，agentsight二进制程序生成位置在当前目录下的collector/target/release/目录下，进入源代码的根目录，然后执行如下命令来测试：
 
 ```sh
 sudo ./collector/target/release/agentsight ssl --http-parser --http-filter "request.path_prefix=/v1/rgstr | response.status_code=202 | request.method=HEAD | response.body=" --ssl-filter "data=0\r\n\r\n"
