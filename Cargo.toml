@@ -1,0 +1,82 @@
+[package]
+name = "agentsight"
+version = "0.1.0"
+edition = "2024"
+license = "Apache-2.0"
+
+[lib]
+name = "agentsight"
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+anyhow = "1.0.86"
+async-stream = "0.3.6"
+async-trait = "0.1.89"
+byteorder = "1.5.0"
+cached = "0.52.0"
+capstone = "0.12.0"
+chrono = "0.4.41"
+clru = "0.6.2"
+crossbeam-channel = "0.5.13"
+ctrlc = "3.4"
+daemonize = "0.5"
+ctor = "0.2.8"
+env_logger = "0.11.5"
+futures = "0.3.32"
+gimli = "0.30.0"
+glob = "0.3.1"
+httparse = "1.10.1"
+libbpf-rs = "0.23.3"
+libc = "0.2.155"
+log = "0.4.22"
+log4rs = "1.3.0"
+lru = "0.12.3"
+memmap2 = "0.9.4"
+moka = { version = "0.12.10", features = ["sync"] }
+num_cpus = "1.16.0"
+object = "0.36.1"
+once_cell = "1.19.0"
+pagemap = "0.1.0"
+perf-event-open-sys = "4.0.0"
+procfs = "0.16.0"
+protobuf = "3.5.1"
+read-process-memory = "0.1.6"
+regex = "1.10.5"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0"
+minijinja = "2.8"
+base64 = "0.22"
+sha2 = "0.10.8"
+rusqlite = { version = "0.32", features = ["bundled"] }
+structopt = "0.3.26"
+# Tokenizer for text to token count conversion
+tokenizers = { version = "0.21", features = ["http"] }
+# HTTP client for downloading tokenizer files
+ureq = "2.10"
+symbolic-common = "12.10.0"
+symbolic-demangle = { version = "12.10.0", default-features = false, features = [
+    "rust",
+    "cpp",
+] }
+# LLM message format types for OpenAI SSE parsing
+# llm = { version = "1.2", features = ["openai"] }
+tempfile = "3.10.1"
+thiserror = "1.0.63"
+typed-arena = "2.0.2"
+tokio = { version = "1", features = ["rt"] }
+uname = "0.1.1"
+aliyun-log-rust-sdk = "0.1"
+aliyun-log-sdk-protobuf = "0.1"
+# Static link OpenSSL to avoid runtime dependency on libssl.so.1.1
+openssl = { version = "0.10", features = ["vendored"] }
+
+# [profile.release]
+# debug = true
+
+[profile.dev]
+debug-assertions = false
+
+[build-dependencies]
+libbpf-cargo = "0.23.3"
+bindgen = "0.69.4"
+cc = "1.1.31"

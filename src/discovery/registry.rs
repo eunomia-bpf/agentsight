@@ -1,0 +1,26 @@
+//! Built-in registry of known AI agents
+//!
+//! This module provides the default list of AI coding assistants and agents
+//! that can be automatically discovered on the system.
+
+use super::agent::AgentInfo;
+use super::agents::cosh::CoshMatcher;
+use super::matcher::AgentMatcher;
+
+/// Returns a list of known AI agent matchers
+///
+/// This function provides a built-in registry of common AI coding assistants
+/// and agents that can be discovered on the system.
+pub fn known_agents() -> Vec<Box<dyn AgentMatcher>> {
+    vec![
+        // OpenClaw
+        Box::new(AgentInfo::new(
+            "OpenClaw",
+            vec!["openclaw-gatewa"],
+            "OpenClaw - open-source AI personal assistant",
+            "personal-assistant",
+        )),
+        // Cosh (custom matcher: node + /usr/bin/co)
+        Box::new(CoshMatcher::new()),
+    ]
+}
