@@ -870,7 +870,7 @@ async fn start_web_server_if_enabled(
         return Ok(None);
     }
 
-    let addr = format!("127.0.0.1:{}", port).parse()
+    let addr = format!("0.0.0.0:{}", port).parse()
         .map_err(|e| format!("Invalid server address: {}", e))?;
 
     let web_server = WebServer::new(event_sender, log_file).map_err(|e| format!("Failed to create web server: {}", e))?;
