@@ -5,6 +5,7 @@
 
 import { ProcessedEvent } from '@/types/event';
 import { formatEventSummary } from '@/utils/eventProcessing';
+import { useTranslation } from '@/i18n';
 
 interface LogListProps {
   events: ProcessedEvent[];
@@ -12,10 +13,11 @@ interface LogListProps {
 }
 
 export function LogList({ events, onEventClick }: LogListProps) {
+  const { t } = useTranslation();
   if (events.length === 0) {
     return (
       <div className="p-8 text-center text-gray-500">
-        No events found matching the current filters.
+        {t('log.noEvents')}
       </div>
     );
   }

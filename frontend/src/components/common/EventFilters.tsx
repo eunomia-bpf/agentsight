@@ -6,6 +6,7 @@
 import { ProcessedEvent } from '@/types/event';
 import { getUniqueValues } from '@/utils/eventProcessing';
 import { useMemo } from 'react';
+import { useTranslation } from '@/i18n';
 
 interface EventFiltersProps {
   events: ProcessedEvent[];
@@ -32,6 +33,7 @@ export function EventFilters({
   onSearchChange,
   showSearch = false
 }: EventFiltersProps) {
+  const { t } = useTranslation();
   const sources = useMemo(() => {
     const unique = new Set(events.map(event => event.source));
     return Array.from(unique).sort();
@@ -53,7 +55,7 @@ export function EventFilters({
         <div className="flex-1">
           <input
             type="text"
-            placeholder="Search events..."
+            placeholder={t('filter.searchEvents')}
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -68,7 +70,7 @@ export function EventFilters({
             onChange={(e) => onSourceChange(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
-            <option value="">All Sources</option>
+            <option value="">{t('filter.allSources')}</option>
             {sources.map(source => (
               <option key={source} value={source}>
                 {source} ({events.filter(e => e.source === source).length})
@@ -83,7 +85,7 @@ export function EventFilters({
             onChange={(e) => onCommChange(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
-            <option value="">All Processes</option>
+            <option value="">{t('filter.allProcesses')}</option>
             {commValues.map(comm => (
               <option key={comm} value={comm}>
                 {comm} ({events.filter(e => e.comm === comm).length})
@@ -98,10 +100,10 @@ export function EventFilters({
             onChange={(e) => onPidChange(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
-            <option value="">All PIDs</option>
+            <option value="">{t('filter.allPids')}</option>
             {pidValues.map(pid => (
               <option key={pid} value={pid}>
-                PID {pid} ({events.filter(e => e.pid.toString() === pid).length})
+                {t('filter.pid', { pid })} ({events.filter(e => e.pid.toString() === pid).length})
               </option>
             ))}
           </select>

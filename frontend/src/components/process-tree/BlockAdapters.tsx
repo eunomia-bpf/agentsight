@@ -221,9 +221,9 @@ export function adaptPromptEvent(event: ParsedEvent): UnifiedBlockData {
   const metadata = event.metadata || {};
   
   // Update tags to include diff info
-  const tags = ['AI PROMPT', metadata.model, metadata.method].filter(Boolean);
+  const tags = ['tag.aiPrompt', metadata.model, metadata.method].filter(Boolean);
   if (event.promptDiff?.hasChanges) {
-    tags.push('CHANGED');
+    tags.push('tag.changed');
   }
   
   // Expanded content: include diff if available
@@ -276,7 +276,7 @@ export function adaptResponseEvent(event: ParsedEvent): UnifiedBlockData {
     id: event.id,
     type: 'response',
     timestamp: event.timestamp,
-    tags: ['AI RESPONSE', metadata.model].filter(Boolean),
+    tags: ['tag.aiResponse', metadata.model].filter(Boolean),
     bgGradient: 'bg-gradient-to-r from-green-50 via-emerald-50 to-teal-50',
     borderColor: 'border-green-400',
     iconColor: 'text-green-600',
@@ -405,7 +405,7 @@ export function adaptSSLEvent(event: ParsedEvent): UnifiedBlockData {
     id: event.id,
     type: 'ssl',
     timestamp: event.timestamp,
-    tags: ['SSL', direction.toUpperCase(), `${size} bytes`].filter(Boolean),
+    tags: ['tag.ssl', direction.toUpperCase(), `${size} bytes`].filter(Boolean),
     bgGradient: 'bg-gradient-to-r from-orange-50 via-amber-50 to-yellow-50',
     borderColor: 'border-orange-400',
     iconColor: 'text-orange-600',
@@ -418,7 +418,7 @@ export function adaptSSLEvent(event: ParsedEvent): UnifiedBlockData {
 export function adaptStdioEvent(event: ParsedEvent): UnifiedBlockData {
   const metadata = event.metadata || {};
   const decoded = decodeStdioMessage(metadata);
-  const tags = ['STDIO', decoded.direction || 'UNKNOWN', decoded.fdRole.toUpperCase()];
+  const tags = ['tag.stdio', decoded.direction || 'UNKNOWN', decoded.fdRole.toUpperCase()];
 
   if (decoded.method) {
     tags.push(decoded.method);

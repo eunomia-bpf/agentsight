@@ -9,11 +9,14 @@ import { TimelineView } from '@/components/TimelineView';
 import { ProcessTreeView } from '@/components/ProcessTreeView';
 import { ResourceMetricsView } from '@/components/ResourceMetricsView';
 import { UploadPanel } from '@/components/UploadPanel';
+import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
+import { useTranslation } from '@/i18n';
 import { Event } from '@/types/event';
 
 type ViewMode = 'log' | 'timeline' | 'process-tree' | 'metrics';
 
 export default function Home() {
+  const { t } = useTranslation();
   const [file, setFile] = useState<File | null>(null);
   const [logContent, setLogContent] = useState<string>('');
   const [events, setEvents] = useState<Event[]>([]);
@@ -173,11 +176,14 @@ export default function Home() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {/* Header */}
         <div className="text-center mb-8">
+          <div className="flex justify-end mb-4">
+            <LanguageSwitcher />
+          </div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            AgentSight Analyzer
+            {t('app.title')}
           </h1>
           <p className="text-gray-600">
-            Upload and analyze eBPF agent trace logs with dual view modes
+            {t('app.subtitle')}
           </p>
         </div>
 
@@ -200,19 +206,19 @@ export default function Home() {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <div className="text-sm text-gray-600">
-                  <span className="font-medium">{events.length}</span> events loaded
+                  <span className="font-medium">{events.length}</span> {t('app.eventsLoaded', { count: events.length })}
                 </div>
                 
                 {file && (
                   <div className="text-sm text-gray-600">
-                    File: <span className="font-medium">{file.name}</span>
+                    {t('app.file')} <span className="font-medium">{file.name}</span>
                   </div>
                 )}
                 
                 {syncing && (
                   <div className="flex items-center text-sm text-blue-600">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
-                    Syncing...
+                    {t('app.syncing')}
                   </div>
                 )}
               </div>
@@ -228,7 +234,7 @@ export default function Home() {
                         : 'text-gray-600 hover:bg-gray-100'
                     }`}
                   >
-                    Log View
+                    {t('app.logView')}
                   </button>
                   <button
                     onClick={() => setViewMode('timeline')}
@@ -238,7 +244,7 @@ export default function Home() {
                         : 'text-gray-600 hover:bg-gray-100'
                     }`}
                   >
-                    Timeline View
+                    {t('app.timelineView')}
                   </button>
                   <button
                     onClick={() => setViewMode('process-tree')}
@@ -248,7 +254,7 @@ export default function Home() {
                         : 'text-gray-600 hover:bg-gray-100'
                     }`}
                   >
-                    Process Tree
+                    {t('app.processTree')}
                   </button>
                   <button
                     onClick={() => setViewMode('metrics')}
@@ -258,7 +264,7 @@ export default function Home() {
                         : 'text-gray-600 hover:bg-gray-100'
                     }`}
                   >
-                    Metrics
+                    {t('app.metrics')}
                   </button>
                 </div>
                 
@@ -267,7 +273,7 @@ export default function Home() {
                   onClick={() => setShowUploadPanel(!showUploadPanel)}
                   className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-md transition-colors border border-gray-300"
                 >
-                  {showUploadPanel ? 'Hide' : 'Upload'} Log
+                  {showUploadPanel ? t('app.hideLog') : t('app.uploadLog')}
                 </button>
                 
                 <button
@@ -275,14 +281,14 @@ export default function Home() {
                   disabled={syncing}
                   className="px-4 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-md transition-colors border border-blue-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Sync Data
+                  {t('app.syncData')}
                 </button>
                 
                 <button
                   onClick={clearData}
                   className="px-4 py-2 text-sm text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md transition-colors"
                 >
-                  Clear Data
+                  {t('app.clearData')}
                 </button>
               </div>
             </div>
@@ -305,23 +311,23 @@ export default function Home() {
                 {syncing ? (
                   <div className="flex flex-col items-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-                    <p className="text-lg">Loading events from server...</p>
+                    <p className="text-lg">{t('app.loadingEvents')}</p>
                   </div>
                 ) : (
                   <>
-                    <p className="text-lg mb-4">No events loaded</p>
+                    <p className="text-lg mb-4">{t('app.noEventsLoaded')}</p>
                     <div className="space-x-4">
                       <button
                         onClick={syncData}
                         className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
                       >
-                        Sync Data from Server
+                        {t('app.syncFromServer')}
                       </button>
                       <button
                         onClick={() => setShowUploadPanel(true)}
                         className="px-6 py-3 bg-gray-600 text-white font-semibold rounded-lg hover:bg-gray-700 transition-colors"
                       >
-                        Upload Log File
+                        {t('app.uploadLogFile')}
                       </button>
                     </div>
                   </>

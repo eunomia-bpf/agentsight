@@ -9,12 +9,14 @@ import { processEvents, filterEvents } from '@/utils/eventProcessing';
 import { EventFilters } from '@/components/common/EventFilters';
 import { EventModal } from '@/components/common/EventModal';
 import { LogList } from './LogList';
+import { useTranslation } from '@/i18n';
 
 interface LogViewProps {
   events: Event[];
 }
 
 export function LogView({ events }: LogViewProps) {
+  const { t } = useTranslation();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedSource, setSelectedSource] = useState<string>('');
   const [selectedComm, setSelectedComm] = useState<string>('');
@@ -64,7 +66,7 @@ export function LogView({ events }: LogViewProps) {
       <EventModal
         event={selectedEvent}
         onClose={() => setSelectedEvent(null)}
-        title="Log Event Details"
+        title={t('log.eventDetails')}
       />
     </div>
   );

@@ -5,6 +5,8 @@
 
 import { ChevronDownIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import React from 'react';
+import { useTranslation } from '@/i18n';
+import type { TranslationKey } from '@/i18n';
 
 // Clean unified block interface
 
@@ -30,6 +32,15 @@ interface UnifiedBlockProps {
 // Simplified unified block - no complex field rendering needed
 
 export function UnifiedBlock({ data, isExpanded, onToggle }: UnifiedBlockProps) {
+  const { t } = useTranslation();
+
+  const translateTag = (tag: string): string => {
+    if (tag.startsWith('tag.')) {
+      return t(tag as TranslationKey);
+    }
+    return tag;
+  };
+
   const formatTimestamp = (timestamp: number) => {
     return new Date(timestamp).toLocaleTimeString('en-US', {
       hour12: false,
@@ -87,14 +98,14 @@ export function UnifiedBlock({ data, isExpanded, onToggle }: UnifiedBlockProps) 
                     const textColor = data.iconColor.replace('-600', '-800').replace('-700', '-800');
                     return (
                       <span key={tag} className={`px-2 py-1 text-xs font-bold rounded uppercase ${bgColor} ${textColor}`}>
-                        {tag}
+                        {translateTag(tag)}
                       </span>
                     );
                   } else {
                     // Other tags use gray
                     return (
                       <span key={tag} className="px-2 py-1 bg-gray-100 text-gray-800 text-xs font-bold rounded uppercase">
-                        {tag}
+                        {translateTag(tag)}
                       </span>
                     );
                   }

@@ -4,6 +4,7 @@
 'use client';
 
 import { useCallback } from 'react';
+import { useTranslation } from '@/i18n';
 
 interface TimelineScrollBarProps {
   zoomLevel: number;
@@ -18,6 +19,7 @@ export function TimelineScrollBar({
   baseTimeSpan,
   onScrollChange
 }: TimelineScrollBarProps) {
+  const { t } = useTranslation();
   const zoomedSpan = baseTimeSpan / zoomLevel;
   const maxOffset = baseTimeSpan - zoomedSpan;
   const visiblePercentage = (zoomedSpan / baseTimeSpan) * 100;
@@ -67,9 +69,9 @@ export function TimelineScrollBar({
   return (
     <div className="mt-2 mb-4">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-xs text-gray-600">Scroll Position</span>
+        <span className="text-xs text-gray-600">{t('timeline.scrollPosition')}</span>
         <span className="text-xs text-gray-500">
-          {Math.round(scrollProgress * 100)}% scrolled
+          {t('timeline.scrolled', { percent: Math.round(scrollProgress * 100) })}
         </span>
       </div>
       <div 
