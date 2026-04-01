@@ -139,7 +139,7 @@ agentsight discover --verbose
 | 组件 | 版本 |
 |------|------|
 | Linux 内核 | >= 5.8（需要 BTF 支持） |
-| Rust | >= 1.70 |
+| Rust | >= 1.80 |
 | clang / llvm | >= 11（用于 eBPF 编译） |
 | libbpf | >= 0.8 |
 

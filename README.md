@@ -139,7 +139,7 @@ agentsight discover --verbose
 | Component | Version |
 |-----------|---------|
 | Linux kernel | >= 5.8 (BTF support) |
-| Rust | >= 1.70 |
+| Rust | >= 1.80 |
 | clang / llvm | >= 11 (for eBPF compilation) |
 | libbpf | >= 0.8 |
 
