@@ -388,6 +388,10 @@ mod tests {
         let template = QwenChatTemplate::new();
         let messages = vec![
             serde_json::json!({
+                "role": "user",
+                "content": "What is the answer to life?"
+            }),
+            serde_json::json!({
                 "role": "assistant",
                 "content": "The answer is 42.",
                 "reasoning_content": "Let me think..."
