@@ -70,7 +70,7 @@ impl Parser {
                     };
                 }
                 Err(e) => {
-                   log::error!("Failed to parse HTTP event: {e}, raw data: {:?}", ssl_event.payload());
+                   log::debug!("Failed to parse HTTP event: {e}, raw data: {:?}", ssl_event.payload());
                 }
             }
         }

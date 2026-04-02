@@ -38,6 +38,9 @@ pub mod chrome_trace;
 pub mod discovery;
 pub mod tokenizer;
 pub mod genai;
+#[cfg(feature = "server")]
+pub mod server;
+pub mod token_breakdown;
 mod unified;
 pub mod ffi;
 

@@ -15,7 +15,7 @@ pub struct AuditCommand {
     pub pid: Option<u32>,
 
     /// Filter by event type: "llm" or "process"
-    #[structopt(long, name = "type")]
+    #[structopt(long = "type")]
     pub event_type: Option<String>,
 
     /// Output as JSON

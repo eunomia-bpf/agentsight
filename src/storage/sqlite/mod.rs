@@ -9,6 +9,7 @@
 
 pub mod audit;
 pub mod connection;
+pub mod genai;
 pub mod http;
 pub mod token;
 pub mod token_consumption;
@@ -31,6 +32,9 @@ pub use token_consumption::{
 
 // Re-export HTTP storage
 pub use http::HttpStore;
+
+// Re-export GenAI SQLite storage
+pub use genai::GenAISqliteStore;
 
 // Re-export connection utilities
 pub use connection::{create_connection, default_base_path};

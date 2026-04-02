@@ -4,5 +4,7 @@
 //! Each provider implements the [`Tokenizer`] trait from the core module.
 
 mod qwen;
+mod fallback;
 
 pub use qwen::QwenTokenizer;
+pub use fallback::ByteCountTokenizer;

@@ -16,6 +16,7 @@ use super::semantic::{
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
+use sha2::{Sha256, Digest};
 
 /// Builder that constructs GenAI semantic events from AnalysisResult
 pub struct GenAIBuilder {
@@ -115,7 +116,13 @@ impl GenAIBuilder {
         let model = token_record.as_ref()
             .and_then(|t| t.model.as_ref().filter(|m| !m.is_empty()).cloned())
             .or_else(|| self.extract_model_from_message(&parsed_message))
+            .or_else(|| Self::extract_model_from_body(&http.request_body, &http.response_body))
             .unwrap_or_else(|| "unknown".to_string());
+
+        // 在 request move 之前提取用户查询、fingerprint 和 session_id
+        let query_fp = Self::compute_user_query_fingerprint(&request);
+        let user_query = Self::extract_last_user_query(&request);
+        let session_id = Self::compute_session_id(&request);
 
         Some(LLMCall {
             call_id,
@@ -155,6 +162,14 @@ impl GenAIBuilder {
                 } else if http.path.contains("/completions") {
                     meta.insert("operation_name".to_string(), "text_completion".to_string());
                 }
+                // conversation_id: 对话ID，同一 user query 触发的所有调用共享
+                meta.insert("conversation_id".to_string(), query_fp);
+                // user_query: 用户实际输入的原文
+                if let Some(ref q) = user_query {
+                    meta.insert("user_query".to_string(), q.clone());
+                }
+                // session_id: 同一 agent 进程的完整会话标识
+                meta.insert("session_id".to_string(), session_id);
                 meta
             },
         })
@@ -432,10 +447,144 @@ impl GenAIBuilder {
         }
     }
 
+    /// 从 HTTP request/response body 中直接提取 model 字段
+    ///
+    /// 优先从 request body 取（用户请求的 model），
+    /// 如果没有则从 response body 取（SSE 响应中的 model）
+    fn extract_model_from_body(request_body: &Option<String>, response_body: &Option<String>) -> Option<String> {
+        // 尝试从 request body 获取
+        if let Some(body) = request_body {
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(body) {
+                if let Some(model) = v.get("model").and_then(|m| m.as_str()) {
+                    if !model.is_empty() {
+                        return Some(model.to_string());
+                    }
+                }
+            }
+        }
+        // 尝试从 response body 获取（SSE 响应是 JSON 数组，取第一个 chunk）
+        if let Some(body) = response_body {
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(body) {
+                // 非 SSE: 直接是 JSON 对象
+                if let Some(model) = v.get("model").and_then(|m| m.as_str()) {
+                    if !model.is_empty() {
+                        return Some(model.to_string());
+                    }
+                }
+                // SSE: JSON 数组，取第一个 chunk 的 model
+                if let Some(arr) = v.as_array() {
+                    for chunk in arr {
+                        if let Some(model) = chunk.get("model").and_then(|m| m.as_str()) {
+                            if !model.is_empty() {
+                                return Some(model.to_string());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        None
+    }
+
     /// Generate globally unique ID (unique across restarts)
     fn generate_id(&self) -> String {
         let seq = self.call_counter.fetch_add(1, Ordering::Relaxed);
         format!("{}_{}", self.session_prefix, seq)
+    }
+
+    /// 生成 session_id（32 位 hex）
+    ///
+    /// 基于第一条 user message 原文生成，原文包含时间戳前缀如
+    /// `[Tue 2026-03-31 17:19 GMT+8] 用户输入`，天然唯一。
+    /// - 同一会话（含退出重进）：第一条 user message 不变 → session_id 稳定
+    /// - 新会话：时间戳不同 → session_id 不同
+    fn compute_session_id(request: &LLMRequest) -> String {
+        // 找第一条有实际文本的 user message（原始文本，含时间戳）
+        let first_user_raw: String = request.messages.iter()
+            .filter(|m| m.role == "user")
+            .find_map(|m| {
+                let text: String = m.parts.iter()
+                    .filter_map(|p| match p {
+                        MessagePart::Text { content } if !content.is_empty() => Some(content.as_str()),
+                        _ => None,
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                if text.is_empty() { None } else { Some(text) }
+            })
+            .unwrap_or_default();
+
+        let hash = Sha256::digest(first_user_raw.as_bytes());
+        format!("{:x}", hash)[..32].to_string()
+    }
+
+    /// 提取最后一条有实际文本内容的 user message 的原始文本
+    ///
+    /// 跳过 Anthropic 格式中只包含 tool_result 的 user message
+    fn extract_last_user_raw(request: &LLMRequest) -> Option<String> {
+        request.messages.iter()
+            .rev()
+            .filter(|m| m.role == "user")
+            .find_map(|m| {
+                let text: String = m.parts.iter()
+                    .filter_map(|p| match p {
+                        MessagePart::Text { content } if !content.is_empty() => Some(content.as_str()),
+                        _ => None,
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                if text.is_empty() { None } else { Some(text) }
+            })
+    }
+
+    /// 提取清理后的 user query（去除 metadata 前缀，用于展示）
+    fn extract_last_user_query(request: &LLMRequest) -> Option<String> {
+        Self::extract_last_user_raw(request)
+            .map(|raw| Self::strip_user_query_prefix(&raw))
+    }
+
+    /// 去除 user message 中的 metadata 前缀，只保留用户实际输入的文本
+    ///
+    /// OpenClaw 等 Agent 会在 user message 前面加上元数据，格式如：
+    /// ```text
+    /// Sender (untrusted metadata):
+    /// ```json
+    /// {"label":"...", ...}
+    /// ```
+    ///
+    /// [Tue 2026-03-31 17:19 GMT+8] 用户实际输入
+    /// ```
+    fn strip_user_query_prefix(text: &str) -> String {
+        // 查找最后一个 [timestamp] 模式，取其后的内容
+        // 格式: [Day YYYY-MM-DD HH:MM TZ] 或 [Day, DD Mon YYYY HH:MM:SS TZ]
+        if let Some(pos) = text.rfind(']') {
+            // 确认 ] 前面有对应的 [
+            if let Some(bracket_start) = text[..pos].rfind('[') {
+                let bracket_content = &text[bracket_start + 1..pos];
+                // 简单验证：方括号内包含数字（日期）和冒号（时间）
+                if bracket_content.contains(':') && bracket_content.chars().any(|c| c.is_ascii_digit()) {
+                    let after = text[pos + 1..].trim_start();
+                    if !after.is_empty() {
+                        return after.to_string();
+                    }
+                }
+            }
+        }
+        text.to_string()
+    }
+    
+    /// 计算 user query 的 fingerprint，用于关联同一个请求的调用链
+    ///
+    /// 使用原始文本（包含时间戳前缀）计算 hash，
+    /// 这样相同命令在不同时间发送也会产生不同的 fingerprint
+    fn compute_user_query_fingerprint(request: &LLMRequest) -> String {
+        match Self::extract_last_user_raw(request) {
+            Some(content) => {
+                let hash = Sha256::digest(content.as_bytes());
+                format!("{:x}", hash)[..32].to_string()
+            }
+            None => "no_user_query".to_string(),
+        }
     }
 
     /// 通过进程名匹配 agent registry，返回已知 agent 名称

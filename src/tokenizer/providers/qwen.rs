@@ -22,6 +22,8 @@
 use anyhow::{anyhow, Result};
 use std::io::Write;
 use std::path::Path;
+use std::thread;
+use std::time::Duration;
 use tempfile::NamedTempFile;
 use tokenizers::Tokenizer as HFTokenizer;
 
@@ -75,7 +77,34 @@ impl QwenTokenizer {
     /// )?;
     /// ```
     pub fn from_url(url: &str, model_name: &str) -> Result<Self> {
-        // Download to a temporary file
+        const MAX_RETRIES: u32 = 5;
+        const RETRY_DELAY_SECS: u64 = 10;
+
+        let mut last_error = None;
+        for attempt in 1..=MAX_RETRIES {
+            match Self::try_download(url, model_name) {
+                Ok(tokenizer) => return Ok(tokenizer),
+                Err(e) => {
+                    last_error = Some(e);
+                    if attempt < MAX_RETRIES {
+                        eprintln!(
+                            "Download attempt {}/{} failed. Retrying in {} seconds...",
+                            attempt, MAX_RETRIES, RETRY_DELAY_SECS
+                        );
+                        thread::sleep(Duration::from_secs(RETRY_DELAY_SECS));
+                    }
+                }
+            }
+        }
+
+        Err(anyhow!(
+            "Failed to download tokenizer from '{}' after {} retries: {:?}",
+            url, MAX_RETRIES, last_error
+        ))
+    }
+
+    /// Try to download and load tokenizer once
+    fn try_download(url: &str, model_name: &str) -> Result<Self> {
         let mut temp_file = NamedTempFile::new()
             .map_err(|e| anyhow!("Failed to create temporary file: {}", e))?;
 
@@ -87,13 +116,10 @@ impl QwenTokenizer {
         std::io::copy(&mut reader, &mut temp_file)
             .map_err(|e| anyhow!("Failed to write tokenizer to temporary file: {}", e))?;
 
-        // Flush and get the path
         temp_file.flush()
             .map_err(|e| anyhow!("Failed to flush temporary file: {}", e))?;
 
         let temp_path = temp_file.path();
-
-        // Load tokenizer from the temporary file
         let tokenizer = HFTokenizer::from_file(temp_path)
             .map_err(|e| anyhow!("Failed to load tokenizer from temporary file: {}", e))?;
 
@@ -164,6 +190,18 @@ impl Tokenizer for QwenTokenizer {
     /// Get the model name
     fn model_name(&self) -> &str {
         &self.model_name
+    }
+
+    /// Count tokens with special token recognition.
+    ///
+    /// Uses `encode(text, true)` to include special tokens like <|im_start|>, <|im_end|>
+    /// in the count, which is essential for accurate ChatML token analysis.
+    fn count_with_special_tokens(&self, text: &str) -> Result<usize> {
+        let encoding = self
+            .tokenizer
+            .encode(text, true)
+            .map_err(|e| anyhow!("Failed to encode text with special tokens: {}", e))?;
+        Ok(encoding.len())
     }
 }
 

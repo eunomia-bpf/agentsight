@@ -41,7 +41,7 @@ pub use core::{Tokenizer, ChatTemplate, ChatTemplateType, ChatTokenCount};
 pub use model::TokenizerModel;
 
 // Re-export provider types
-pub use providers::QwenTokenizer;
+pub use providers::{QwenTokenizer, ByteCountTokenizer};
 
 // Re-export template types
 pub use templates::QwenChatTemplate;

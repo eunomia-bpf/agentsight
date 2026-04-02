@@ -272,12 +272,18 @@ impl SlsUploader {
                         }
                     }
 
-                    // ── gen_ai.input.messages (non-system, parts-based) ──
-                    let input_msgs: Vec<&super::semantic::InputMessage> = call.request.messages.iter()
+                    // ── gen_ai.input.messages (增量：只取最新一轮) ──
+                    // 从后往前找最后一条 user message，取它及之后的所有非 system 消息
+                    let non_system: Vec<&super::semantic::InputMessage> = call.request.messages.iter()
                         .filter(|m| m.role != "system")
                         .collect();
-                    if !input_msgs.is_empty() {
-                        if let Ok(json) = serde_json::to_string(&input_msgs) {
+                    let latest_msgs = if let Some(last_user_idx) = non_system.iter().rposition(|m| m.role == "user") {
+                        &non_system[last_user_idx..]
+                    } else {
+                        &non_system[..]
+                    };
+                    if !latest_msgs.is_empty() {
+                        if let Ok(json) = serde_json::to_string(&latest_msgs) {
                             log.add_content_kv("gen_ai.input.messages", &json);
                         }
                     }
@@ -312,6 +318,15 @@ impl SlsUploader {
                         if let Some(cnt) = call.metadata.get("sse_event_count") {
                             log.add_content_kv("agentsight.sse_event_count", cnt);
                         }
+                    }
+                    if let Some(cid) = call.metadata.get("conversation_id") {
+                        log.add_content_kv("agentsight.conversation_id", cid);
+                    }
+                    if let Some(uq) = call.metadata.get("user_query") {
+                        log.add_content_kv("agentsight.user_query", uq);
+                    }
+                    if let Some(sid) = call.metadata.get("session_id") {
+                        log.add_content_kv("agentsight.session_id", sid);
                     }
                 }
                 GenAISemanticEvent::ToolUse(tool) => {

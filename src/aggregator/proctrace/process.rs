@@ -105,8 +105,9 @@ impl AggregatedProcess {
 
     /// Build event name with stdout preview (max 50 chars)
     fn build_event_name(&self, stdout_str: &str, stderr_str: &str) -> String {
-        let stdout_preview = if stdout_str.len() > 50 {
-            format!("{}...", &stdout_str[..50].trim())
+        let stdout_preview = if stdout_str.chars().count() > 50 {
+            let truncated: String = stdout_str.chars().take(50).collect();
+            format!("{}...", truncated.trim())
         } else if !stdout_str.is_empty() {
             stdout_str.trim().to_string()
         } else {

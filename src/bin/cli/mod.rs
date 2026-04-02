@@ -10,6 +10,8 @@ pub mod token;
 pub mod trace;
 pub mod audit;
 pub mod discover;
+#[cfg(feature = "server")]
+pub mod serve;
 
 /// Parse period string into TimePeriod
 pub fn parse_period(s: &str) -> agentsight::TimePeriod {

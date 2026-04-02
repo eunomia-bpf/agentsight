@@ -2,7 +2,10 @@
 name = "agentsight"
 version = "0.1.0"
 edition = "2024"
-license = "Apache-2.0"
+
+[features]
+default = ["server"]
+server = ["dep:actix-web", "dep:actix-cors"]
 
 [lib]
 name = "agentsight"
@@ -69,6 +72,9 @@ aliyun-log-rust-sdk = "0.1"
 aliyun-log-sdk-protobuf = "0.1"
 # Static link OpenSSL to avoid runtime dependency on libssl.so.1.1
 openssl = { version = "0.10", features = ["vendored"] }
+# HTTP API server (optional, enabled by "server" feature)
+actix-web = { version = "4", optional = true }
+actix-cors = { version = "0.7", optional = true }
 
 # [profile.release]
 # debug = true

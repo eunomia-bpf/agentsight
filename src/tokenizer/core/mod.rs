@@ -22,6 +22,15 @@ pub trait Tokenizer: Send + Sync {
 
     /// Get the model name
     fn model_name(&self) -> &str;
+
+    /// Count tokens with special token recognition (e.g., <|im_start|>, <|im_end|>).
+    ///
+    /// For ChatML analysis, special tokens should be counted. The default
+    /// implementation delegates to `count()` which typically excludes special tokens.
+    /// Providers that support special tokens should override this.
+    fn count_with_special_tokens(&self, text: &str) -> Result<usize> {
+        self.count(text)
+    }
 }
 
 /// Chat template trait for formatting messages

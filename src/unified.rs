@@ -34,6 +34,7 @@ use crate::probes::{Probes, ProbesPoller};
 use crate::storage::{
     SqliteConfig, Storage, StorageBackend, TimePeriod, TokenQuery, TokenQueryResult,
 };
+use crate::storage::sqlite::GenAISqliteStore;
 use crate::tokenizer::{create_tokenizer_from_file, create_tokenizer_from_url, ChatTemplateType};
 
 /// Main AgentSight struct for tracing AI agent activity
@@ -121,7 +122,7 @@ impl AgentSight {
         // Always add local JSONL exporter
         genai_exporters.push(Box::new(GenAIStore::new(&GenAIStore::default_path())));
 
-        // Add SLS exporter if configured
+        // Add SLS exporter if configured, otherwise fallback to SQLite
         if config.sls_enabled() {
             match SlsUploader::new(&config) {
                 Ok(uploader) => {
@@ -130,6 +131,17 @@ impl AgentSight {
                 }
                 Err(e) => {
                     log::warn!("Failed to initialize SLS exporter: {}", e);
+                }
+            }
+        } else {
+            // No SLS credentials configured, use SQLite as local storage
+            match GenAISqliteStore::new() {
+                Ok(store) => {
+                    log::info!("SQLite GenAI exporter enabled (SLS not configured)");
+                    genai_exporters.push(Box::new(store));
+                }
+                Err(e) => {
+                    log::warn!("Failed to initialize SQLite GenAI exporter: {}", e);
                 }
             }
         }
@@ -166,13 +178,13 @@ impl AgentSight {
                     Analyzer::with_tokenizer(tokenizer, chat_template)
                 }
                 Err(e) => {
-                    log::warn!("Failed to load tokenizer from URL {}: {}. Using analyzer without tokenizer.", tokenizer_url, e);
-                    Analyzer::new()
+                    log::warn!("Failed to load tokenizer from URL {}: {}. Using ByteCountTokenizer as fallback.", tokenizer_url, e);
+                    Self::create_analyzer_with_fallback_tokenizer()
                 }
             }
         } else {
-            log::debug!("No tokenizer configured. Using analyzer without tokenizer.");
-            Analyzer::new()
+            log::debug!("No tokenizer configured. Using ByteCountTokenizer as fallback.");
+            Self::create_analyzer_with_fallback_tokenizer()
         };
 
         log::info!(
@@ -209,6 +221,21 @@ impl AgentSight {
             purge_interval: config.purge_interval,
         };
         Storage::with_sqlite_config(&sqlite_config)
+    }
+
+    /// Create analyzer with ByteCountTokenizer as fallback
+    ///
+    /// Used when no proper tokenizer is available. Provides approximate
+    /// token counting based on byte/character counts.
+    fn create_analyzer_with_fallback_tokenizer() -> Analyzer {
+        use crate::tokenizer::ByteCountTokenizer;
+        let tokenizer = ByteCountTokenizer::new();
+        let chat_template = ChatTemplateType::Qwen.create_template();
+        log::info!(
+            "Using ByteCountTokenizer as fallback (ratio: {} chars/token)",
+            4.0
+        );
+        Analyzer::with_tokenizer(Box::new(tokenizer), chat_template)
     }
 
     /// Check if running
