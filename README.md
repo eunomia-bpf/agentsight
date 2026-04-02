@@ -191,6 +191,10 @@ Token parsing supports multiple LLM API formats:
 - Google Gemini
 - Qwen (with native chat template support)
 
+## Origins
+
+This project is derived from [https://github.com/eunomia-bpf/agentsight.git](https://github.com/eunomia-bpf/agentsight.git).
+
 ## License
 
 Apache License 2.0 — see [LICENSE](../../LICENSE) for details.

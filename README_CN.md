@@ -191,6 +191,10 @@ Token 解析支持多种 LLM API 格式：
 - Google Gemini
 - 通义千问 Qwen（支持原生 Chat Template）
 
+## 项目起源
+
+本项目源于 [https://github.com/eunomia-bpf/agentsight.git](https://github.com/eunomia-bpf/agentsight.git)。
+
 ## 许可证
 
 Apache License 2.0 — 详见 [LICENSE](../../LICENSE)。
