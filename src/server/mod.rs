@@ -1,7 +1,7 @@
 //! API server module
 //!
 //! Provides a lightweight HTTP API server using actix-web for querying
-//! AgentSight storage data.
+//! AgentSight storage data, and optionally serves the embedded frontend.
 
 mod handlers;
 
@@ -9,7 +9,13 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 use actix_cors::Cors;
-use actix_web::{web, App, HttpServer};
+use actix_web::{get, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
+use include_dir::{include_dir, Dir};
+
+/// Embedded frontend static files (built from dashboard/ via `npm run build:embed`)
+/// The directory `frontend-dist/` must exist at compile time; if it is absent
+/// (e.g. first build before running npm), Rust will use an empty dir.
+static FRONTEND: Dir<'static> = include_dir!("$CARGO_MANIFEST_DIR/frontend-dist");
 
 /// Shared application state accessible from all handlers
 pub struct AppState {
@@ -19,9 +25,62 @@ pub struct AppState {
     pub start_time: Instant,
 }
 
+// ─── Static file handler ─────────────────────────────────────────────────────
+
+/// Serve embedded frontend files.
+/// Any path that doesn't start with /api or /health is treated as a static
+/// asset; unknown paths fall back to index.html (SPA client-side routing).
+#[get("/{tail:.*}")]
+async fn serve_frontend(req: HttpRequest) -> impl Responder {
+    let path = req.match_info().get("tail").unwrap_or("");
+
+    // Try exact match first
+    let file = if path.is_empty() {
+        FRONTEND.get_file("index.html")
+    } else {
+        FRONTEND.get_file(path)
+    };
+
+    match file {
+        Some(f) => {
+            let mime = if path.is_empty() {
+                "text/html; charset=utf-8"
+            } else {
+                mime_for_path(path)
+            };
+            HttpResponse::Ok()
+                .content_type(mime)
+                .body(f.contents())
+        }
+        None => {
+            // SPA fallback: return index.html for unmatched paths
+            match FRONTEND.get_file("index.html") {
+                Some(index) => HttpResponse::Ok()
+                    .content_type("text/html; charset=utf-8")
+                    .body(index.contents()),
+                None => HttpResponse::NotFound().body("Frontend not embedded. Run `npm run build:embed` first."),
+            }
+        }
+    }
+}
+
+fn mime_for_path(path: &str) -> &'static str {
+    if path.ends_with(".html") { "text/html; charset=utf-8" }
+    else if path.ends_with(".js") { "application/javascript; charset=utf-8" }
+    else if path.ends_with(".css") { "text/css; charset=utf-8" }
+    else if path.ends_with(".json") { "application/json" }
+    else if path.ends_with(".svg") { "image/svg+xml" }
+    else if path.ends_with(".png") { "image/png" }
+    else if path.ends_with(".ico") { "image/x-icon" }
+    else if path.ends_with(".woff2") { "font/woff2" }
+    else { "application/octet-stream" }
+}
+
+// ─── Server entry point ───────────────────────────────────────────────────────
+
 /// Start the API server
 ///
-/// Binds to the given host:port and serves API endpoints.
+/// Binds to the given host:port and serves API endpoints + embedded frontend.
 /// This function blocks until the server is shut down.
 pub async fn run_server(host: &str, port: u16, storage_path: PathBuf) -> std::io::Result<()> {
     let data = web::Data::new(AppState {
@@ -29,8 +88,14 @@ pub async fn run_server(host: &str, port: u16, storage_path: PathBuf) -> std::io
         start_time: Instant::now(),
     });
 
+    let has_frontend = FRONTEND.get_file("index.html").is_some();
     log::info!("AgentSight API server listening on http://{}:{}", host, port);
     eprintln!("AgentSight API server listening on http://{}:{}", host, port);
+    if has_frontend {
+        eprintln!("Dashboard UI: http://{}:{}/", host, port);
+    } else {
+        eprintln!("[WARN] Frontend not embedded. Run `npm run build:embed` in dashboard/ then recompile.");
+    }
 
     HttpServer::new(move || {
         let cors = Cors::default()
@@ -42,8 +107,16 @@ pub async fn run_server(host: &str, port: u16, storage_path: PathBuf) -> std::io
         App::new()
             .wrap(cors)
             .app_data(data.clone())
+            // API routes (registered before the catch-all static handler)
             .service(handlers::health)
             .service(handlers::stats)
+            .service(handlers::list_sessions)
+            .service(handlers::list_traces_by_session)
+            .service(handlers::get_trace_detail)
+            .service(handlers::list_agent_names)
+            .service(handlers::get_timeseries)
+            // Frontend static files (catch-all, must be last)
+            .service(serve_frontend)
     })
     .bind((host, port))?
     .run()

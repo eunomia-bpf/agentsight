@@ -49,4 +49,14 @@ fn main() {
     // generate_header(&mut out, "frametypes");
     // generate_header(&mut out, "errors");
     // generate_header(&mut out, "stackdeltatypes");
+
+    // 确保 frontend-dist 目录存在，避免 include_dir! 宏在编译期因目录不存在而 panic
+    // 前端构建产物放入该目录后重新编译即可嵌入
+    let manifest_dir = env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR must be set");
+    let frontend_dist = PathBuf::from(&manifest_dir).join("frontend-dist");
+    if !frontend_dist.exists() {
+        std::fs::create_dir_all(&frontend_dist)
+            .expect("Failed to create frontend-dist directory");
+    }
+    println!("cargo:rerun-if-changed=frontend-dist");
 }

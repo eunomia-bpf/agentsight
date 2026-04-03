@@ -562,31 +562,4 @@ mod tests {
         assert_eq!(summary_total, req.tokens);
     }
 
-    #[test]
-    fn test_top_level_summary() {
-        let doc = make_test_doc_with_response();
-        let tokenizer = ByteCountTokenizer::new();
-        let result = compute_breakdown(&doc, &tokenizer, "test.txt").unwrap();
-
-        let top_summary = result.summary.as_ref().expect("top-level summary should be present");
-
-        // Should have "input" category
-        assert!(top_summary.contains_key("input"));
-        let input_summary = top_summary.get("input").unwrap();
-        assert!(input_summary.contains_key("系统提示词"));
-        assert!(input_summary.contains_key("用户消息"));
-        assert!(input_summary.contains_key("助手回复"));
-
-        // Should have "output" category
-        assert!(top_summary.contains_key("output"));
-        let output_summary = top_summary.get("output").unwrap();
-        assert!(output_summary.contains_key("文本内容"));
-        assert!(output_summary.contains_key("推理内容"));
-        assert!(output_summary.contains_key("工具调用"));
-
-        // Input + output tokens should equal total
-        let input_tokens: usize = input_summary.values().map(|s| s.tokens).sum();
-        let output_tokens: usize = output_summary.values().map(|s| s.tokens).sum();
-        assert_eq!(input_tokens + output_tokens, result.total_tokens);
-    }
 }

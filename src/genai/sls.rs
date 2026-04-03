@@ -152,7 +152,7 @@ impl SlsUploader {
     }
 
     /// 获取实例ID：优先请求阿里云 ECS metadata（超时1秒），失败则回退到 hostname
-    fn get_instance_id() -> String {
+    pub fn get_instance_id() -> String {
         // 尝试从 ECS metadata service 获取 instance-id
         match ureq::get("http://100.100.100.200/latest/meta-data/instance-id")
             .timeout(std::time::Duration::from_secs(1))
@@ -320,13 +320,13 @@ impl SlsUploader {
                         }
                     }
                     if let Some(cid) = call.metadata.get("conversation_id") {
-                        log.add_content_kv("agentsight.conversation_id", cid);
+                        log.add_content_kv("traceId", cid);
                     }
                     if let Some(uq) = call.metadata.get("user_query") {
                         log.add_content_kv("agentsight.user_query", uq);
                     }
                     if let Some(sid) = call.metadata.get("session_id") {
-                        log.add_content_kv("agentsight.session_id", sid);
+                        log.add_content_kv("gen_ai.session.id", sid);
                     }
                 }
                 GenAISemanticEvent::ToolUse(tool) => {

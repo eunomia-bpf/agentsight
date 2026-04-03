@@ -1,7 +1,7 @@
 //! Serve subcommand — start the API server
 
 use agentsight::server::run_server;
-use agentsight::SqliteConfig;
+use agentsight::storage::sqlite::GenAISqliteStore;
 use structopt::StructOpt;
 
 /// Start the AgentSight API server
@@ -25,7 +25,8 @@ impl ServeCommand {
         let db_path = self.db
             .as_ref()
             .map(|p| std::path::PathBuf::from(p))
-            .unwrap_or_else(|| SqliteConfig::default().db_path());
+            // Default to genai_events.db — the same file the tracer writes to
+            .unwrap_or_else(|| GenAISqliteStore::default_path());
 
         let host = self.host.clone();
         let port = self.port;

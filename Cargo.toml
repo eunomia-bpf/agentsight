@@ -5,7 +5,7 @@ edition = "2024"
 
 [features]
 default = ["server"]
-server = ["dep:actix-web", "dep:actix-cors"]
+server = ["dep:actix-web", "dep:actix-cors", "dep:include_dir"]
 
 [lib]
 name = "agentsight"
@@ -75,6 +75,8 @@ openssl = { version = "0.10", features = ["vendored"] }
 # HTTP API server (optional, enabled by "server" feature)
 actix-web = { version = "4", optional = true }
 actix-cors = { version = "0.7", optional = true }
+# Embed frontend static files into the binary (optional, enabled by "server" feature)
+include_dir = { version = "0.7", optional = true }
 
 # [profile.release]
 # debug = true
