@@ -47,13 +47,15 @@ read-process-memory = "0.1.6"
 regex = "1.10.5"
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0"
-minijinja = "2.8"
 base64 = "0.22"
 sha2 = "0.10.8"
 rusqlite = { version = "0.32", features = ["bundled"] }
 structopt = "0.3.26"
 # Tokenizer for text to token count conversion
-tokenizers = { version = "0.21", features = ["http"] }
+llm-tokenizer = "1.3"
+# Jinja2 template engine (same version as llm-tokenizer uses internally)
+minijinja = "2"
+minijinja-contrib = { version = "2", features = ["pycompat"] }
 # HTTP client for downloading tokenizer files
 ureq = "2.10"
 symbolic-common = "12.10.0"
@@ -63,7 +65,6 @@ symbolic-demangle = { version = "12.10.0", default-features = false, features = 
 ] }
 # LLM message format types for OpenAI SSE parsing
 # llm = { version = "1.2", features = ["openai"] }
-tempfile = "3.10.1"
 thiserror = "1.0.63"
 typed-arena = "2.0.2"
 tokio = { version = "1", features = ["rt"] }

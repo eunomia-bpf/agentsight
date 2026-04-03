@@ -95,7 +95,10 @@ impl ChatTemplateType {
     /// Create a chat template instance
     pub fn create_template(&self) -> Box<dyn ChatTemplate> {
         match self {
-            ChatTemplateType::Qwen => Box::new(super::templates::QwenChatTemplate::new()),
+            ChatTemplateType::Qwen => {
+                Box::new(super::llm_tok::LlmTokenizer::default_template()
+                    .expect("Default Qwen template should be valid"))
+            }
         }
     }
 }

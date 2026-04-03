@@ -89,10 +89,11 @@ pub use discovery::{AgentInfo, AgentMatcher, AgentScanner, DiscoveredAgent, Proc
 
 // Re-export tokenizer types
 pub use tokenizer::{
-    Tokenizer, TokenizerModel, QwenTokenizer, TokenizerRegistry, TokenCountBreakdown,
+    Tokenizer, TokenizerModel, LlmTokenizer, TokenizerRegistry, TokenCountBreakdown,
     create_tokenizer, create_tokenizer_from_file, create_tokenizer_from_url,
     create_tokenizer_registry, create_tokenizer_registry_from_file, create_tokenizer_registry_multi,
-    ChatTemplate, ChatTemplateType, ChatTokenCount, QwenChatTemplate, count_chat_tokens,
+    ChatTemplate, ChatTemplateType, ChatTokenCount, count_chat_tokens,
+    ByteCountTokenizer,
 };
 
 // Re-export genai types

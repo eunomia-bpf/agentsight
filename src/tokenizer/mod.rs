@@ -1,18 +1,20 @@
 //! Tokenizer module - text to token count conversion
 //!
 //! Provides tokenizer implementations for various LLM models.
-//! Uses Hugging Face tokenizers library for tokenization.
+//! Uses `llm-tokenizer` crate for tokenization and chat template rendering.
 //!
 //! # Supported Models
 //! - Qwen series (Qwen3.5 Plus, Qwen2.5, Qwen2)
+//! - GPT models (via model name detection)
+//! - Claude models (via model name detection)
 //!
 //! # Architecture
 //!
 //! This module is organized into submodules:
 //! - [`core`] - Core traits and types (Tokenizer trait, ChatTemplate trait, etc.)
 //! - [`model`] - Model definitions and detection (TokenizerModel enum)
-//! - [`providers`] - Model-specific tokenizer implementations (Qwen, etc.)
-//! - [`templates`] - Chat template implementations for formatting messages
+//! - [`providers`] - Fallback tokenizer implementation (ByteCountTokenizer)
+//! - [`llm_tok`] - Unified tokenizer + chat template adapter (LlmTokenizer)
 //! - [`registry`] - Tokenizer registry with automatic model detection
 //! - [`factory`] - Factory functions for creating tokenizers
 //!
@@ -30,9 +32,13 @@
 pub mod core;
 pub mod model;
 pub mod providers;
-pub mod templates;
+pub mod llm_tok;
 pub mod registry;
 pub mod factory;
+
+// Keep templates directory around for the embedded Jinja template file
+// (qwen_chat_template.jinja is loaded via include_str! in llm_tok.rs)
+mod templates {}
 
 // Re-export core types
 pub use core::{Tokenizer, ChatTemplate, ChatTemplateType, ChatTokenCount};
@@ -40,11 +46,11 @@ pub use core::{Tokenizer, ChatTemplate, ChatTemplateType, ChatTokenCount};
 // Re-export model types
 pub use model::TokenizerModel;
 
-// Re-export provider types
-pub use providers::{QwenTokenizer, ByteCountTokenizer};
+// Re-export the unified tokenizer
+pub use llm_tok::LlmTokenizer;
 
-// Re-export template types
-pub use templates::QwenChatTemplate;
+// Re-export provider types
+pub use providers::ByteCountTokenizer;
 
 // Re-export registry types and functions
 pub use registry::{TokenizerRegistry, TokenCountBreakdown, count_chat_tokens};
@@ -63,6 +69,12 @@ pub use factory::{
 };
 
 // Deprecated re-exports for backward compatibility
+#[deprecated(since = "0.3.0", note = "Use LlmTokenizer instead")]
+pub type QwenTokenizer = LlmTokenizer;
+
+#[deprecated(since = "0.3.0", note = "Use LlmTokenizer instead")]
+pub type QwenChatTemplate = LlmTokenizer;
+
 #[deprecated(since = "0.2.0", note = "Use TokenizerRegistry instead")]
 pub use registry::TokenizerRegistry as UnifiedTokenizer;
 

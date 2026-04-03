@@ -10,8 +10,8 @@ use structopt::StructOpt;
 
 use crate::chrome_trace::ChromeTraceEvent;
 use crate::tokenizer::core::{ChatTemplate, Tokenizer};
-use crate::tokenizer::providers::{ByteCountTokenizer, QwenTokenizer};
-use crate::tokenizer::templates::QwenChatTemplate;
+use crate::tokenizer::providers::ByteCountTokenizer;
+use crate::tokenizer::llm_tok::LlmTokenizer;
 
 use super::breakdown::compute_breakdown;
 use super::classifier::classify_document;
@@ -66,12 +66,12 @@ impl AnalyzeChatmlCommand {
         let (tokenizer, chat_template): (Box<dyn Tokenizer>, Box<dyn ChatTemplate>) =
             if p.exists() {
                 let tokenizer_json = std::fs::read_to_string(p)?;
-                let qwen_tokenizer = QwenTokenizer::from_file(p, &self.model)?;
-                let chat_template = QwenChatTemplate::from_tokenizer_json(&tokenizer_json)?;
-                (Box::new(qwen_tokenizer), Box::new(chat_template))
+                let llm_tok = LlmTokenizer::from_file(p, &self.model)?;
+                let chat_template = LlmTokenizer::from_tokenizer_json(&tokenizer_json)?;
+                (Box::new(llm_tok), Box::new(chat_template))
             } else {
                 // Fallback: use ByteCountTokenizer with a default Qwen template
-                let chat_template = QwenChatTemplate::new();
+                let chat_template = LlmTokenizer::default_template()?;
                 (Box::new(ByteCountTokenizer::new()), Box::new(chat_template))
             };
 
