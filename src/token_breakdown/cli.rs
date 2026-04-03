@@ -9,9 +9,7 @@ use std::path::Path;
 use structopt::StructOpt;
 
 use crate::chrome_trace::ChromeTraceEvent;
-use crate::tokenizer::core::{ChatTemplate, Tokenizer};
-use crate::tokenizer::providers::ByteCountTokenizer;
-use crate::tokenizer::llm_tok::LlmTokenizer;
+use crate::tokenizer::LlmTokenizer;
 
 use super::breakdown::compute_breakdown;
 use super::classifier::classify_document;
@@ -63,16 +61,15 @@ impl AnalyzeChatmlCommand {
     fn process_trace_events(&self, events: &[ChromeTraceEvent]) -> anyhow::Result<()> {
         // Load tokenizer and chat template
         let p = Path::new(&self.tokenizer_path);
-        let (tokenizer, chat_template): (Box<dyn Tokenizer>, Box<dyn ChatTemplate>) =
+        let (tokenizer, chat_template): (LlmTokenizer, LlmTokenizer) =
             if p.exists() {
-                let tokenizer_json = std::fs::read_to_string(p)?;
-                let llm_tok = LlmTokenizer::from_file(p, &self.model)?;
-                let chat_template = LlmTokenizer::from_tokenizer_json(&tokenizer_json)?;
-                (Box::new(llm_tok), Box::new(chat_template))
+                let llm_tok = LlmTokenizer::from_file(p, p)?;
+                // Use the same tokenizer for both tokenization and chat template
+                (llm_tok.clone(), llm_tok)
             } else {
-                // Fallback: use ByteCountTokenizer with a default Qwen template
-                let chat_template = LlmTokenizer::default_template()?;
-                (Box::new(ByteCountTokenizer::new()), Box::new(chat_template))
+                // Fallback: use default template
+                let chat_template = LlmTokenizer::from_file("tokenizer.json", "tokenizer_config.json")?;
+                (chat_template.clone(), chat_template)
             };
 
         // Sort events by timestamp to ensure correct order
@@ -144,7 +141,7 @@ impl AnalyzeChatmlCommand {
 
             if let Some(classified) = classified {
                 let source_path = format!("{}_{}", event.cat, event_idx);
-                let breakdown = compute_breakdown(&classified, tokenizer.as_ref(), &source_path)?;
+                let breakdown = compute_breakdown(&classified, &tokenizer, &source_path)?;
                 breakdowns.push(breakdown);
             }
         }

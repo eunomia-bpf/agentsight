@@ -87,14 +87,6 @@ pub use unified::{AgentSight, ProcessResult};
 // Re-export discovery types
 pub use discovery::{AgentInfo, AgentMatcher, AgentScanner, DiscoveredAgent, ProcessContext, known_agents};
 
-// Re-export tokenizer types
-pub use tokenizer::{
-    Tokenizer, TokenizerModel, LlmTokenizer, TokenizerRegistry, TokenCountBreakdown,
-    create_tokenizer, create_tokenizer_from_file, create_tokenizer_from_url,
-    create_tokenizer_registry, create_tokenizer_registry_from_file, create_tokenizer_registry_multi,
-    ChatTemplate, ChatTemplateType, ChatTokenCount, count_chat_tokens,
-    ByteCountTokenizer,
-};
 
 // Re-export genai types
 pub use genai::{

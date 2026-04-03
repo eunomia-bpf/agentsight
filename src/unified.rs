@@ -35,7 +35,7 @@ use crate::storage::{
     SqliteConfig, Storage, StorageBackend, TimePeriod, TokenQuery, TokenQueryResult,
 };
 use crate::storage::sqlite::GenAISqliteStore;
-use crate::tokenizer::{create_tokenizer_from_file, create_tokenizer_from_url, ChatTemplateType};
+use crate::tokenizer::LlmTokenizer;
 
 /// Main AgentSight struct for tracing AI agent activity
 ///
@@ -149,14 +149,19 @@ impl AgentSight {
         // Create analyzer with tokenizer if configured
         let analyzer = if let Some(ref tokenizer_path) = config.tokenizer_path {
             if Path::new(tokenizer_path).exists() {
-                match create_tokenizer_from_file(tokenizer_path) {
+                // Assume tokenizer_config.json is in the same directory
+                let config_path = Path::new(tokenizer_path)
+                    .parent()
+                    .map(|p| p.join("tokenizer_config.json"))
+                    .unwrap_or_else(|| Path::new("tokenizer_config.json").to_path_buf());
+                
+                match LlmTokenizer::from_file(tokenizer_path, &config_path) {
                     Ok(tokenizer) => {
-                        let chat_template = ChatTemplateType::Qwen.create_template();
                         log::info!(
-                            "Tokenizer loaded from: {:?}, using Qwen chat template",
+                            "Tokenizer loaded from: {:?}",
                             tokenizer_path
                         );
-                        Analyzer::with_tokenizer(tokenizer, chat_template)
+                        Analyzer::with_tokenizer(tokenizer.clone(), tokenizer)
                     }
                     Err(e) => {
                         log::warn!("Failed to load tokenizer from {:?}: {}. Using analyzer without tokenizer.", tokenizer_path, e);
@@ -167,24 +172,8 @@ impl AgentSight {
                 log::warn!("Tokenizer file not found: {:?}. Using analyzer without tokenizer.", tokenizer_path);
                 Analyzer::new()
             }
-        } else if let Some(ref tokenizer_url) = config.tokenizer_url {
-            match create_tokenizer_from_url(tokenizer_url, "qwen") {
-                Ok(tokenizer) => {
-                    let chat_template = ChatTemplateType::Qwen.create_template();
-                    log::info!(
-                        "Tokenizer loaded from URL: {}, using Qwen chat template",
-                        tokenizer_url
-                    );
-                    Analyzer::with_tokenizer(tokenizer, chat_template)
-                }
-                Err(e) => {
-                    log::warn!("Failed to load tokenizer from URL {}: {}. Using ByteCountTokenizer as fallback.", tokenizer_url, e);
-                    Self::create_analyzer_with_fallback_tokenizer()
-                }
-            }
         } else {
-            log::debug!("No tokenizer configured. Using ByteCountTokenizer as fallback.");
-            Self::create_analyzer_with_fallback_tokenizer()
+            Analyzer::new()
         };
 
         log::info!(
@@ -221,21 +210,6 @@ impl AgentSight {
             purge_interval: config.purge_interval,
         };
         Storage::with_sqlite_config(&sqlite_config)
-    }
-
-    /// Create analyzer with ByteCountTokenizer as fallback
-    ///
-    /// Used when no proper tokenizer is available. Provides approximate
-    /// token counting based on byte/character counts.
-    fn create_analyzer_with_fallback_tokenizer() -> Analyzer {
-        use crate::tokenizer::ByteCountTokenizer;
-        let tokenizer = ByteCountTokenizer::new();
-        let chat_template = ChatTemplateType::Qwen.create_template();
-        log::info!(
-            "Using ByteCountTokenizer as fallback (ratio: {} chars/token)",
-            4.0
-        );
-        Analyzer::with_tokenizer(Box::new(tokenizer), chat_template)
     }
 
     /// Check if running

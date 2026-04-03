@@ -9,7 +9,7 @@
 
 use anyhow::Result;
 
-use crate::tokenizer::core::Tokenizer;
+use crate::tokenizer::LlmTokenizer;
 
 use super::types::{
     ChatMLTokenBreakdown, ClassifiedDocument, ConversationTurnType, EventNode, ResponseItem,
@@ -57,7 +57,7 @@ fn compute_summary(children: &[TokenBreakdownNode], event_total: usize) -> BTree
 /// - "response" event (if response data present): content + reasoning_content + tool_calls
 pub fn compute_breakdown(
     doc: &ClassifiedDocument,
-    tokenizer: &dyn Tokenizer,
+    tokenizer: &LlmTokenizer,
     file_path: &str,
 ) -> Result<ChatMLTokenBreakdown> {
     // === Build request event ===

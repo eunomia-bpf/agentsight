@@ -22,8 +22,7 @@
 
 use crate::aggregator::AggregatedResult;
 use crate::parser::sse::ParsedSseEvent;
-use crate::tokenizer::{Tokenizer, ChatTemplate};
-use crate::tokenizer::registry::count_chat_tokens;
+use crate::tokenizer::LlmTokenizer;
 use crate::analyzer::token::extract_response_content;
 
 use super::{AuditAnalyzer, TokenParser, MessageParser, AuditRecord, TokenRecord, TokenUsage, ParsedApiMessage, AnalysisResult, PromptTokenCount, HttpRecord};
@@ -79,10 +78,9 @@ pub struct ResponseTokenCount {
 /// ```
 pub fn count_request_tokens(
     request_json: &serde_json::Value,
-    tokenizer: &dyn Tokenizer,
-    chat_template: &dyn ChatTemplate,
+    tokenizer: &LlmTokenizer,
+    chat_template: &LlmTokenizer,
 ) -> Option<RequestTokenCount> {
-    use crate::tokenizer::core::ChatTemplate as _;
     // Extract messages
     let messages = request_json.get("messages")
         .and_then(|m| m.as_array())?;
@@ -199,7 +197,7 @@ pub fn count_request_tokens(
 /// ```
 pub fn count_response_tokens(
     response_jsons: &[serde_json::Value],
-    tokenizer: &dyn Tokenizer,
+    tokenizer: &LlmTokenizer,
 ) -> Option<ResponseTokenCount> {
     let mut by_type: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
     let mut per_block: Vec<OutputTokenCount> = Vec::new();
@@ -364,9 +362,9 @@ pub struct Analyzer {
     token: TokenParser,
     message: MessageParser,
     /// Optional tokenizer for computing prompt token counts
-    tokenizer: Option<Box<dyn Tokenizer>>,
+    tokenizer: Option<LlmTokenizer>,
     /// Optional chat template for formatting messages
-    chat_template: Option<Box<dyn ChatTemplate>>,
+    chat_template: Option<LlmTokenizer>,
 }
 
 impl Default for Analyzer {
@@ -403,8 +401,8 @@ impl Analyzer {
     /// let analyzer = Analyzer::with_tokenizer(Box::new(tokenizer), chat_template);
     /// ```
     pub fn with_tokenizer(
-        tokenizer: Box<dyn Tokenizer>,
-        chat_template: Box<dyn ChatTemplate>,
+        tokenizer: LlmTokenizer,
+        chat_template: LlmTokenizer,
     ) -> Self {
         Analyzer {
             audit: AuditAnalyzer::new(),
@@ -706,8 +704,8 @@ impl Analyzer {
     fn compute_prompt_tokens(
         &self,
         msg_result: &AnalysisResult,
-        tokenizer: &dyn Tokenizer,
-        chat_template: &dyn ChatTemplate,
+        tokenizer: &LlmTokenizer,
+        chat_template: &LlmTokenizer,
     ) -> Option<PromptTokenCount> {
         let messages = match msg_result {
             AnalysisResult::Message(ParsedApiMessage::OpenAICompletion { request, .. }) => {
@@ -728,17 +726,44 @@ impl Analyzer {
 
         let message_count = messages.len();
 
-        match count_chat_tokens(tokenizer, chat_template, &messages) {
-            Ok(result) => Some(PromptTokenCount {
-                provider,
-                model,
-                message_count,
-                prompt_tokens: result.total_tokens,
-                per_message_tokens: result.per_message_tokens,
-                formatted_prompt: result.formatted_prompt,
-            }),
+        // Convert messages to JSON values
+        let messages_json: Vec<serde_json::Value> = messages
+            .iter()
+            .filter_map(|m| serde_json::to_value(m).ok())
+            .collect();
+
+        // Apply chat template and count tokens
+        match chat_template.apply_chat_template(&messages_json, true) {
+            Ok(formatted_prompt) => {
+                match tokenizer.count(&formatted_prompt) {
+                    Ok(prompt_tokens) => {
+                        // Compute per-message token counts
+                        let per_message_tokens: Vec<usize> = messages
+                            .iter()
+                            .filter_map(|m| {
+                                let msg_json = serde_json::to_value(m).ok()?;
+                                let content = msg_json.get("content")?.as_str()?.to_string();
+                                tokenizer.count(&content).ok()
+                            })
+                            .collect();
+
+                        Some(PromptTokenCount {
+                            provider,
+                            model,
+                            message_count,
+                            prompt_tokens,
+                            per_message_tokens,
+                            formatted_prompt,
+                        })
+                    }
+                    Err(e) => {
+                        log::warn!("Failed to count tokens: {}", e);
+                        None
+                    }
+                }
+            }
             Err(e) => {
-                log::warn!("Failed to compute prompt tokens: {}", e);
+                log::warn!("Failed to apply chat template: {}", e);
                 None
             }
         }
@@ -810,9 +835,8 @@ impl Analyzer {
         pid: u32,
         comm: String,
     ) -> Option<TokenConsumptionBreakdown> {
-        use crate::tokenizer::core::ChatTemplate;
         let (tokenizer, chat_template) = match (&self.tokenizer, &self.chat_template) {
-            (Some(t), Some(ct)) => (t.as_ref(), ct.as_ref()),
+            (Some(t), Some(ct)) => (t, ct),
             _ => {
                 log::warn!("Tokenizer or chat template not available, cannot compute accurate token consumption");
                 return None;
@@ -882,12 +906,7 @@ impl Analyzer {
 
         // Count system prompt tokens separately
         let system_prompt_tokens = if let Some(ref system) = system_prompt {
-            let system_formatted = if chat_template.template_name() == "qwen" {
-                format!("<|im_start|>system\n{}<|im_end|>", system)
-            } else {
-                system.clone()
-            };
-            tokenizer.count(&system_formatted).unwrap_or(system.len() / 4)
+            tokenizer.count(system).unwrap_or(system.len() / 4)
         } else {
             0
         };
@@ -931,8 +950,8 @@ impl Analyzer {
     fn compute_output_token_breakdown_from_json(
         &self,
         response_jsons: &[serde_json::Value],
-        tokenizer: &dyn Tokenizer,
-        _chat_template: &dyn ChatTemplate,
+        tokenizer: &LlmTokenizer,
+        _chat_template: &LlmTokenizer,
     ) -> (std::collections::HashMap<String, usize>, Vec<OutputTokenCount>) {
         let mut output_by_type: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
         let mut output_per_block: Vec<OutputTokenCount> = Vec::new();
@@ -1018,7 +1037,7 @@ impl Analyzer {
 
         // Get tokenizer and chat template
         let (tokenizer, chat_template) = match (&self.tokenizer, &self.chat_template) {
-            (Some(t), Some(ct)) => (t.as_ref(), ct.as_ref()),
+            (Some(t), Some(ct)) => (t, ct),
             _ => {
                 log::warn!("Tokenizer or chat template not available, cannot compute accurate token consumption");
                 return None;
