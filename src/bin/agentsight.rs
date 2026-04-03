@@ -35,6 +35,7 @@ pub enum Command {
 fn main() {
     let cmd = Command::from_args();
     
+    env_logger::init();
     match cmd {
         Command::Token(token_cmd) => token_cmd.execute(),
         Command::Trace(trace_cmd) => trace_cmd.execute(),

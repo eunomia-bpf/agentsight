@@ -149,8 +149,6 @@ pub struct ResponseItem {
 /// Complete token breakdown result (JSON output root)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChatMLTokenBreakdown {
-    /// Path to the analyzed file
-    pub file_path: String,
     /// Model name used for tokenization
     pub model_name: String,
     /// Total tokens across all events

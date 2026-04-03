@@ -2,14 +2,13 @@
 //!
 //! Usage:
 //! ```bash
-//! agentsight analyze-chatml --chrome-trace <trace.json> [--tokenizer-path <path>] [--model <name>] [--pretty]
+//! agentsight analyze-chatml --chrome-trace <trace.json> [--model <name>] [--pretty]
 //! ```
 
-use std::path::Path;
 use structopt::StructOpt;
 
 use crate::chrome_trace::ChromeTraceEvent;
-use crate::tokenizer::LlmTokenizer;
+use crate::tokenizer::get_global_tokenizer;
 
 use super::breakdown::compute_breakdown;
 use super::classifier::classify_document;
@@ -23,15 +22,7 @@ pub struct AnalyzeChatmlCommand {
     #[structopt(long = "chrome-trace", parse(from_os_str))]
     pub chrome_trace: std::path::PathBuf,
 
-    /// Path to tokenizer.json file (defaults to ./tokenizer.json, supports TOKENIZER_PATH env var)
-    #[structopt(
-        long = "tokenizer-path",
-        env = "TOKENIZER_PATH",
-        default_value = "tokenizer.json"
-    )]
-    pub tokenizer_path: String,
-
-    /// Model name for display in output
+    /// Model name for tokenizer lookup (used with get_global_tokenizer)
     #[structopt(long, default_value = "qwen3.5-plus")]
     pub model: String,
 
@@ -59,18 +50,9 @@ impl AnalyzeChatmlCommand {
 
     /// Process trace events - each http.request and http.response is an independent event
     fn process_trace_events(&self, events: &[ChromeTraceEvent]) -> anyhow::Result<()> {
-        // Load tokenizer and chat template
-        let p = Path::new(&self.tokenizer_path);
-        let (tokenizer, chat_template): (LlmTokenizer, LlmTokenizer) =
-            if p.exists() {
-                let llm_tok = LlmTokenizer::from_file(p, p)?;
-                // Use the same tokenizer for both tokenization and chat template
-                (llm_tok.clone(), llm_tok)
-            } else {
-                // Fallback: use default template
-                let chat_template = LlmTokenizer::from_file("tokenizer.json", "tokenizer_config.json")?;
-                (chat_template.clone(), chat_template)
-            };
+        // Get global tokenizer for the specified model
+        let tokenizer = get_global_tokenizer(&self.model).unwrap();
+        let chat_template = tokenizer.clone();
 
         // Sort events by timestamp to ensure correct order
         let mut sorted_events: Vec<ChromeTraceEvent> = events.to_vec();
@@ -108,7 +90,6 @@ impl AnalyzeChatmlCommand {
                                 } else {
                                     chat_template.apply_chat_template(&msgs, true)?
                                 };
-                                println!("{}", chatml_text);
                                 let doc = parse_chatml(&chatml_text)?;
                                 Some(classify_document(&doc.blocks, None))
                             } else {
@@ -140,8 +121,7 @@ impl AnalyzeChatmlCommand {
             };
 
             if let Some(classified) = classified {
-                let source_path = format!("{}_{}", event.cat, event_idx);
-                let breakdown = compute_breakdown(&classified, &tokenizer, &source_path)?;
+                let breakdown = compute_breakdown(&classified, &tokenizer)?;
                 breakdowns.push(breakdown);
             }
         }

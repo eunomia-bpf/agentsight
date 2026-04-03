@@ -58,7 +58,6 @@ fn compute_summary(children: &[TokenBreakdownNode], event_total: usize) -> BTree
 pub fn compute_breakdown(
     doc: &ClassifiedDocument,
     tokenizer: &LlmTokenizer,
-    file_path: &str,
 ) -> Result<ChatMLTokenBreakdown> {
     // === Build request event ===
 
@@ -344,7 +343,6 @@ pub fn compute_breakdown(
     top_summary.insert("by_history".to_string(), by_history);
 
     Ok(ChatMLTokenBreakdown {
-        file_path: file_path.to_string(),
         model_name: tokenizer.model_name().to_string(),
         total_tokens,
         summary: Some(top_summary),
@@ -396,9 +394,7 @@ mod tests {
     fn test_request_only_structure() {
         let doc = make_test_doc();
         let tokenizer = ByteCountTokenizer::new();
-        let result = compute_breakdown(&doc, &tokenizer, "test.txt").unwrap();
-
-        assert_eq!(result.file_path, "test.txt");
+        let result = compute_breakdown(&doc, &tokenizer).unwrap();
         assert_eq!(result.events.len(), 1); // only request
         assert_eq!(result.events[0].event_type, "request");
         // system_prompt + individual messages in order
@@ -414,7 +410,7 @@ mod tests {
     fn test_system_prompt_no_children() {
         let doc = make_test_doc();
         let tokenizer = ByteCountTokenizer::new();
-        let result = compute_breakdown(&doc, &tokenizer, "test.txt").unwrap();
+        let result = compute_breakdown(&doc, &tokenizer).unwrap();
 
         let sys = &result.events[0].children[0];
         assert!(sys.children.is_none()); // no sub-segmentation
@@ -425,7 +421,7 @@ mod tests {
     fn test_request_response_structure() {
         let doc = make_test_doc_with_response();
         let tokenizer = ByteCountTokenizer::new();
-        let result = compute_breakdown(&doc, &tokenizer, "test.txt").unwrap();
+        let result = compute_breakdown(&doc, &tokenizer).unwrap();
 
         assert_eq!(result.events.len(), 2); // request + response
         assert_eq!(result.events[0].event_type, "request");
@@ -443,7 +439,7 @@ mod tests {
     fn test_token_sum_consistency() {
         let doc = make_test_doc_with_response();
         let tokenizer = ByteCountTokenizer::new();
-        let result = compute_breakdown(&doc, &tokenizer, "test.txt").unwrap();
+        let result = compute_breakdown(&doc, &tokenizer).unwrap();
 
         // request children sum == request total (flattened structure)
         let req = &result.events[0];
@@ -464,7 +460,7 @@ mod tests {
     fn test_is_history_propagated() {
         let doc = make_test_doc();
         let tokenizer = ByteCountTokenizer::new();
-        let result = compute_breakdown(&doc, &tokenizer, "test.txt").unwrap();
+        let result = compute_breakdown(&doc, &tokenizer).unwrap();
 
         // First user message is history
         let user_msg_0 = &result.events[0].children[1];
@@ -483,7 +479,7 @@ mod tests {
     fn test_percentage_range() {
         let doc = make_test_doc_with_response();
         let tokenizer = ByteCountTokenizer::new();
-        let result = compute_breakdown(&doc, &tokenizer, "test.txt").unwrap();
+        let result = compute_breakdown(&doc, &tokenizer).unwrap();
 
         for event in &result.events {
             assert!(
@@ -505,7 +501,7 @@ mod tests {
         });
 
         let tokenizer = ByteCountTokenizer::new();
-        let result = compute_breakdown(&doc, &tokenizer, "test.txt").unwrap();
+        let result = compute_breakdown(&doc, &tokenizer).unwrap();
 
         let resp = &result.events[1];
         // reasoning_content should have 0 tokens
@@ -529,7 +525,7 @@ mod tests {
         };
 
         let tokenizer = ByteCountTokenizer::new();
-        let result = compute_breakdown(&doc, &tokenizer, "test.txt").unwrap();
+        let result = compute_breakdown(&doc, &tokenizer).unwrap();
 
         let sys = &result.events[0].children[0];
         assert_eq!(sys.tokens, 0);
@@ -539,7 +535,7 @@ mod tests {
     fn test_summary_statistics() {
         let doc = make_test_doc();
         let tokenizer = ByteCountTokenizer::new();
-        let result = compute_breakdown(&doc, &tokenizer, "test.txt").unwrap();
+        let result = compute_breakdown(&doc, &tokenizer).unwrap();
 
         let req = &result.events[0];
         let summary = req.summary.as_ref().expect("summary should be present");

@@ -36,6 +36,9 @@ pub const DEFAULT_RETENTION_DAYS: u64 = 30;
 /// Default purge check interval (every N inserts)
 pub const DEFAULT_PURGE_INTERVAL: u64 = 1000;
 
+pub const HF_ENDPOINT: &str = "https://hf-mirror.com";
+pub const HF_HOME: &str = "~/.agentsight/tokenizers";
+
 // ==================== Global Verbose State ====================
 
 static VERBOSE: AtomicBool = AtomicBool::new(false);
