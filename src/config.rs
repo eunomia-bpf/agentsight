@@ -37,7 +37,17 @@ pub const DEFAULT_RETENTION_DAYS: u64 = 30;
 pub const DEFAULT_PURGE_INTERVAL: u64 = 1000;
 
 pub const HF_ENDPOINT: &str = "https://hf-mirror.com";
-pub const HF_HOME: &str = "~/.agentsight/tokenizers";
+
+/// Get the HF_HOME path, expanding `~` to the user's home directory.
+/// 
+/// Uses `$HOME` on Unix and `$USERPROFILE` on Windows as fallback.
+/// Returns `./.agentsight/tokenizers` if home directory cannot be determined.
+pub fn hf_home() -> PathBuf {
+    let home = std::env::var("HOME")
+        .or_else(|_| std::env::var("USERPROFILE"))
+        .unwrap_or_else(|_| ".".to_string());
+    PathBuf::from(home).join(".agentsight/tokenizers")
+}
 
 // ==================== Global Verbose State ====================
 

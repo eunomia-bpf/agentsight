@@ -3,7 +3,7 @@
 //! Provides a unified interface for managing multiple LLM tokenizers,
 //! allowing different models to be used based on model name.
 
-use crate::config::{HF_ENDPOINT, HF_HOME};
+use crate::config::{HF_ENDPOINT, hf_home};
 use crate::tokenizer::llm_tok::LlmTokenizer;
 use crate::tokenizer::model_mapping::map_to_hf_model_id;
 use anyhow::{Result, anyhow};
@@ -74,7 +74,7 @@ impl MultiModelTokenizer {
     fn get_hf_api(&mut self) -> Result<&Api> {
         if self.hf_api.is_none() {
             let api = ApiBuilder::new()
-                .with_cache_dir(PathBuf::from(HF_HOME))
+                .with_cache_dir(hf_home())
                 .with_endpoint(HF_ENDPOINT.to_string())
                 .with_progress(true)
                 .build()
