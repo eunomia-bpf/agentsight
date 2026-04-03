@@ -117,6 +117,21 @@ agentsight audit --pid 12345 --type llm
 agentsight audit --summary
 ```
 
+### `agentsight serve`
+
+Start the HTTP API server and serve the embedded Dashboard UI.
+
+```bash
+# Start with default settings (binds to 127.0.0.1:7396)
+agentsight serve
+
+# Bind to all interfaces on a custom port
+agentsight serve --host 0.0.0.0 --port 8080
+
+# Point to a specific database file
+agentsight serve --db /path/to/genai_events.db
+```
+
 ### `agentsight discover`
 
 Discover AI agents running on the system.
@@ -131,6 +146,68 @@ agentsight discover --list
 # Verbose output with executable paths
 agentsight discover --verbose
 ```
+
+## Dashboard
+
+The Dashboard is a React-based web UI for visualizing conversation history, trace details, and token statistics. It is embedded into the `agentsight serve` binary at compile time.
+
+### Build the Dashboard
+
+```bash
+cd src/agentsight
+
+# Build frontend and embed into frontend-dist/ (required before cargo build)
+make build-frontend
+
+# Then build the Rust binary with the embedded UI
+make build
+
+# Or do both in one step
+make build-all
+```
+
+### Scenario 1 — Collect data and view the Dashboard simultaneously
+
+Run the tracer and the API server in two separate terminals:
+
+```bash
+# Terminal 1: start eBPF tracing (writes to SQLite)
+sudo agentsight trace
+
+# Terminal 2: start the API server (reads from the same SQLite)
+agentsight serve
+```
+
+Open `http://127.0.0.1:7396` in your browser. The Dashboard auto-refreshes as new data arrives.
+
+> **Running on a remote server?** Bind to all interfaces and access via the server's public IP:
+> ```bash
+> agentsight serve --host 0.0.0.0 --port 7396
+> ```
+> Then open `http://<server-public-ip>:7396` in your local browser.
+> Make sure port 7396 is allowed in the server's firewall / security group rules.
+
+### Scenario 2 — Browse historical data only
+
+No tracing needed. Just start the server pointing at an existing database:
+
+```bash
+agentsight serve --db /path/to/genai_events.db
+```
+
+Open `http://127.0.0.1:7396` to explore recorded conversations and traces.
+
+### Dashboard Development
+
+To iterate on the frontend without rebuilding the Rust binary:
+
+```bash
+cd src/agentsight/dashboard
+npm install
+npm run dev          # starts webpack-dev-server on http://localhost:3004
+```
+
+When finished, run `make build-frontend && cargo build --release` to embed the updated UI.
 
 ## Quick Start
 

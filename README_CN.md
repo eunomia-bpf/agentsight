@@ -117,6 +117,21 @@ agentsight audit --pid 12345 --type llm
 agentsight audit --summary
 ```
 
+### `agentsight serve`
+
+启动 HTTP API 服务器，同时提供嵌入式 Dashboard UI。
+
+```bash
+# 使用默认配置启动（绑定到 127.0.0.1:7396）
+agentsight serve
+
+# 绑定到所有网络接口并指定端口
+agentsight serve --host 0.0.0.0 --port 8080
+
+# 指定数据库文件路径
+agentsight serve --db /path/to/genai_events.db
+```
+
 ### `agentsight discover`
 
 发现系统上运行的 AI Agent。
@@ -131,6 +146,57 @@ agentsight discover --list
 # 详细输出（包含可执行文件路径）
 agentsight discover --verbose
 ```
+
+## Dashboard
+
+Dashboard 是基于 React 的 Web 可视化界面，用于查看对话历史、Trace 详情和 Token 统计数据。它在编译时嵌入到 `agentsight serve` 二进制文件中。
+
+### 构建 Dashboard
+
+```bash
+cd src/agentsight
+
+# 构建前端并输出到 frontend-dist/（cargo build 前必须先执行）
+make build-frontend
+
+# 再构建包含嵌入 UI 的 Rust 二进制
+make build
+
+# 或一步完成
+make build-all
+```
+
+### 场景一 — 同时采集数据并查看 Dashboard
+
+在两个终端中分别运行追踪器和 API 服务器：
+
+```bash
+# 终端 1：启动 eBPF 追踪（写入 SQLite）
+sudo agentsight trace
+
+# 终端 2：启动 API 服务器（读取同一 SQLite 文件）
+agentsight serve
+```
+
+在浏览器中打开 `http://127.0.0.1:7396`，Dashboard 会随新数据自动刷新。
+
+> **在远程服务器上运行？** 绑定到所有网络接口，通过服务器公网 IP 访问：
+> ```bash
+> agentsight serve --host 0.0.0.0 --port 7396
+> ```
+> 然后在本地浏览器中打开 `http://<服务器公网IP>:7396`。
+> 请确保服务器防火墙 / 安全组已放行 7396 端口。
+
+### 场景二 — 仅查看历史数据
+
+无需启动追踪，直接指向已有数据库启动服务器：
+
+```bash
+agentsight serve --db /path/to/genai_events.db
+```
+
+打开 `http://127.0.0.1:7396` 即可浏览已记录的对话和 Trace。
+
 
 ## 快速开始
 

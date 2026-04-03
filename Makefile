@@ -6,6 +6,13 @@
 build: ## Build agentsight binary
 	cargo build --release
 
+.PHONY: build-frontend
+build-frontend: ## Build and embed frontend into frontend-dist/
+	cd dashboard && npm install && npm run build:embed
+
+.PHONY: build-all
+build-all: build-frontend build ## Build frontend then Rust binary (with embedded UI)
+
 # =============================================================================
 # INSTALL
 # =============================================================================
