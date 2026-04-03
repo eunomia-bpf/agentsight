@@ -447,9 +447,9 @@ impl Analyzer {
 
         // 5. Token consumption analysis - breakdown by message role
         // This runs for any HTTP request with messages (not just SSE responses)
-        if let Some(breakdown) = self.analyze_token_consumption(result) {
-            results.push(AnalysisResult::TokenConsumption(breakdown));
-        }
+        // if let Some(breakdown) = self.analyze_token_consumption(result) {
+        //     results.push(AnalysisResult::TokenConsumption(breakdown));
+        // }
 
         // 3. Message analysis - parse LLM API request/response bodies
         // if let Some(msg_result) = self.extract_message_from_http(result) {

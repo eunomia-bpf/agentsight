@@ -5,6 +5,7 @@
 //! agentsight analyze-chatml --chrome-trace <trace.json> [--model <name>] [--pretty]
 //! ```
 
+use serde_json::Value;
 use structopt::StructOpt;
 
 use crate::chrome_trace::ChromeTraceEvent;
@@ -83,12 +84,29 @@ impl AnalyzeChatmlCommand {
                                 (msgs, tools)
                             };
 
-                            if let Some(msgs) = messages.and_then(|v| v.as_array().cloned()) {
+                            if let Some(mut msgs) = messages.and_then(|v| v.as_array().cloned()) {
                                 event_idx += 1;
+                                // Process tool_calls arguments: parse JSON string to object in place
+                                for msg in msgs.iter_mut() {
+                                    if let Some(tool_calls) = msg.get_mut("tool_calls").and_then(|tc| tc.as_array_mut()) {
+                                        for tool_call in tool_calls.iter_mut() {
+                                            if let Some(func) = tool_call.get_mut("function") {
+                                                if let Some(args) = func.get("arguments") {
+                                                    if let Some(args_str) = args.as_str() {
+                                                        // Try to parse arguments string as JSON object
+                                                        if let Ok(parsed) = serde_json::from_str::<Value>(args_str) {
+                                                            func["arguments"] = parsed;
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                                 let chatml_text = if let Some(tools_arr) = tools {
-                                    chat_template.apply_chat_template_with_tools(&msgs, Some(&tools_arr), true)?
+                                    chat_template.apply_chat_template_with_tools(&msgs, Some(&tools_arr), false)?
                                 } else {
-                                    chat_template.apply_chat_template(&msgs, true)?
+                                    panic!("No tools provided");
                                 };
                                 let doc = parse_chatml(&chatml_text)?;
                                 Some(classify_document(&doc.blocks, None))

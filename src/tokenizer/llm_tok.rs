@@ -96,7 +96,7 @@ impl LlmTokenizer {
     fn do_apply_chat_template(
         &self,
         messages: &[Value],
-        _tools: Option<&[Value]>,
+        tools: Option<&[Value]>,
         add_generation_prompt: bool,
     ) -> Result<String> {
         // Use the llm-tokenizer crate's built-in chat template support
@@ -104,6 +104,7 @@ impl LlmTokenizer {
             messages,
             ChatTemplateParams {
                 add_generation_prompt,
+                tools,
                 ..Default::default()
             },
         )
