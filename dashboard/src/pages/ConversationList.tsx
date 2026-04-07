@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   LineChart, Line, BarChart, Bar,
@@ -34,6 +34,52 @@ function nsToDate(ns: number): string {
 /** Truncate a long ID for display */
 function shortId(id: string, len = 16): string {
   return id.length > len ? id.slice(0, len) + '…' : id;
+}
+
+/** 复制按钮组件，点击后短暂显示「已复制」反馈 */
+const CopyButton: React.FC<{ text: string }> = ({ text }) => {
+  const [copied, setCopied] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleCopy = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const done = () => {
+      setCopied(true);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => setCopied(false), 1500);
+    };
+    // HTTP 环境下 clipboard API 可能不可用，使用 execCommand fallback
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+    } else {
+      fallbackCopy(text, done);
+    }
+  };
+  return (
+    <button
+      onClick={handleCopy}
+      className={`flex-shrink-0 px-1.5 py-0.5 rounded text-xs transition-colors ${
+        copied
+          ? 'bg-green-100 text-green-600'
+          : 'bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-700'
+      }`}
+      title="复制完整 ID"
+    >
+      {copied ? '✓ 已复制' : '复制'}
+    </button>
+  );
+};
+
+function fallbackCopy(text: string, done: () => void) {
+  const el = document.createElement('textarea');
+  el.value = text;
+  el.style.position = 'fixed';
+  el.style.opacity = '0';
+  document.body.appendChild(el);
+  el.focus();
+  el.select();
+  try { document.execCommand('copy'); } catch {}
+  document.body.removeChild(el);
+  done();
 }
 
 /** datetime-local input value from a timestamp (ms) — uses local timezone */
@@ -276,7 +322,7 @@ const TraceSubTable: React.FC<TraceSubTableProps> = ({ sessionId }) => {
   if (loading)
     return (
       <tr>
-        <td colSpan={7} className="px-8 py-4 text-sm text-gray-400 bg-blue-50">
+        <td colSpan={8} className="px-8 py-4 text-sm text-gray-400 bg-blue-50">
           加载 Trace 列表...
         </td>
       </tr>
@@ -284,7 +330,7 @@ const TraceSubTable: React.FC<TraceSubTableProps> = ({ sessionId }) => {
   if (error)
     return (
       <tr>
-        <td colSpan={7} className="px-8 py-4 text-sm text-red-500 bg-blue-50">
+        <td colSpan={8} className="px-8 py-4 text-sm text-red-500 bg-blue-50">
           ⚠️ {error}
         </td>
       </tr>
@@ -297,7 +343,7 @@ const TraceSubTable: React.FC<TraceSubTableProps> = ({ sessionId }) => {
     <>
       {/* Sub-header */}
       <tr className="bg-blue-50 border-t border-blue-100">
-        <td colSpan={7} className="px-8 py-2">
+        <td colSpan={8} className="px-8 py-2">
           <div className="grid grid-cols-8 text-xs font-semibold text-blue-700 uppercase tracking-wide">
             <div className="col-span-2">Trace ID</div>
             <div className="col-span-2">用户请求</div>
@@ -311,7 +357,7 @@ const TraceSubTable: React.FC<TraceSubTableProps> = ({ sessionId }) => {
 
       {traces.length === 0 && (
         <tr className="bg-blue-50">
-          <td colSpan={7} className="px-8 py-3 text-sm text-gray-400">
+          <td colSpan={8} className="px-8 py-3 text-sm text-gray-400">
             该 Session 下暂无 Trace
           </td>
         </tr>
@@ -319,16 +365,19 @@ const TraceSubTable: React.FC<TraceSubTableProps> = ({ sessionId }) => {
 
       {pageTraces.map((tr) => (
         <tr key={tr.trace_id} className="bg-blue-50 hover:bg-blue-100 transition-colors">
-          <td colSpan={7} className="px-8 py-2">
+          <td colSpan={8} className="px-8 py-2">
             <div className="grid grid-cols-8 items-center text-sm">
               {/* Col 1: Trace ID */}
               <div className="col-span-2 min-w-0 pr-2">
-                <span
-                  className="font-mono text-xs text-blue-600 cursor-pointer hover:underline block truncate"
-                  title={tr.trace_id}
-                >
-                  {shortId(tr.trace_id, 20)}
-                </span>
+                <div className="flex items-center gap-1">
+                  <span
+                    className="font-mono text-xs text-blue-600 block truncate"
+                    title={tr.trace_id}
+                  >
+                    {shortId(tr.trace_id, 20)}
+                  </span>
+                  <CopyButton text={tr.trace_id} />
+                </div>
               </div>
               {/* Col 2: User query */}
               <div className="col-span-2 min-w-0 pr-2">
@@ -352,7 +401,7 @@ const TraceSubTable: React.FC<TraceSubTableProps> = ({ sessionId }) => {
               <div className="text-xs text-gray-500">{nsToDate(tr.start_ns)}</div>
               <div className="text-right">
                 <button
-                  onClick={() => navigate(`/trace/${encodeURIComponent(tr.trace_id)}`)}
+                  onClick={() => navigate(`/atif?type=trace&id=${encodeURIComponent(tr.trace_id)}`)}
                   className="px-3 py-1 bg-white border border-blue-300 text-blue-700 rounded-lg text-xs hover:bg-blue-50 transition-colors"
                 >
                   详情
@@ -366,7 +415,7 @@ const TraceSubTable: React.FC<TraceSubTableProps> = ({ sessionId }) => {
       {/* 分页控制 */}
       {totalPages > 1 && (
         <tr className="bg-blue-50 border-t border-blue-100">
-          <td colSpan={7} className="px-8 py-2">
+          <td colSpan={8} className="px-8 py-2">
             <div className="flex items-center gap-2 justify-end">
               <span className="text-xs text-gray-500">
                 {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, traces.length)} / {traces.length} 条
@@ -940,12 +989,15 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
                     <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
                       最近活跃
                     </th>
+                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                      操作
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {!loading && sessions.length === 0 && (
                     <tr>
-                      <td colSpan={7} className="px-6 py-12 text-center text-gray-400">
+                      <td colSpan={8} className="px-6 py-12 text-center text-gray-400">
                         <div className="text-4xl mb-2">🔍</div>
                         <p>所选时间范围内暂无 Session 数据</p>
                         <p className="text-xs mt-1">请确认 agentsight 服务已启动并有数据写入</p>
@@ -977,6 +1029,7 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
                               >
                                 {shortId(sess.session_id, 24)}
                               </span>
+                              <CopyButton text={sess.session_id} />
                             </div>
                           </td>
                           <td className="px-6 py-4 text-sm text-gray-700">
@@ -1002,6 +1055,15 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
                           </td>
                           <td className="px-6 py-4 text-xs text-gray-500">
                             {nsToDate(sess.last_seen_ns)}
+                          </td>
+                          <td className="px-6 py-4">
+                            <a
+                              href={`#/atif?type=session&id=${encodeURIComponent(sess.session_id)}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="px-3 py-1 bg-white border border-blue-300 text-blue-700 rounded-lg text-xs hover:bg-blue-50 transition-colors whitespace-nowrap"
+                            >
+                              详情
+                            </a>
                           </td>
                         </tr>
 

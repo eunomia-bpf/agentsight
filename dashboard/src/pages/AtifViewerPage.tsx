@@ -456,6 +456,13 @@ export const AtifViewerPage: React.FC = () => {
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="max-w-screen-xl mx-auto flex items-center gap-4">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex-shrink-0 flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm transition-colors"
+            title="返回上一页"
+          >
+            ← 返回
+          </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-lg font-bold text-gray-900">ATIF 轨迹查看器</h1>
             {doc && (

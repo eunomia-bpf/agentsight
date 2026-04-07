@@ -2,8 +2,6 @@ import React from 'react';
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import { NavBar } from './components/NavBar';
 import { ConversationList } from './pages/ConversationList';
-import { TraceEventsPage } from './pages/TraceEventsPage';
-import { TraceDetailPage } from './pages/TraceDetailPage';
 import { AtifViewerPage } from './pages/AtifViewerPage';
 
 const App: React.FC = () => {
@@ -13,8 +11,6 @@ const App: React.FC = () => {
         <NavBar />
         <Routes>
           <Route path="/" element={<ConversationList />} />
-          <Route path="/trace-events" element={<TraceEventsPage />} />
-          <Route path="/trace/:traceId" element={<TraceDetailPage />} />
           <Route path="/atif" element={<AtifViewerPage />} />
         </Routes>
       </div>
