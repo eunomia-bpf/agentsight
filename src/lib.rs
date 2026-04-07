@@ -38,6 +38,7 @@ pub mod chrome_trace;
 pub mod discovery;
 pub mod tokenizer;
 pub mod genai;
+pub mod atif;
 #[cfg(feature = "server")]
 pub mod server;
 pub mod token_breakdown;

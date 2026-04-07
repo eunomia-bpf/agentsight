@@ -115,6 +115,8 @@ pub async fn run_server(host: &str, port: u16, storage_path: PathBuf) -> std::io
             .service(handlers::get_trace_detail)
             .service(handlers::list_agent_names)
             .service(handlers::get_timeseries)
+            .service(handlers::export_atif_trace)
+            .service(handlers::export_atif_session)
             // Frontend static files (catch-all, must be last)
             .service(serve_frontend)
     })

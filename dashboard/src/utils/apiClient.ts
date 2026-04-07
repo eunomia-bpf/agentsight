@@ -165,3 +165,25 @@ export async function fetchTimeseries(
   if (agentName) params.set('agent_name', agentName);
   return apiFetch<TimeseriesResponse>(`${API_BASE}/api/timeseries?${params.toString()}`);
 }
+
+// ─── ATIF export APIs ────────────────────────────────────────────────────────
+
+import type { AtifDocument } from '../types';
+
+/**
+ * Export a single trace as an ATIF v1.6 trajectory document.
+ */
+export async function fetchAtifByTrace(traceId: string): Promise<AtifDocument> {
+  return apiFetch<AtifDocument>(
+    `${API_BASE}/api/export/atif/trace/${encodeURIComponent(traceId)}`
+  );
+}
+
+/**
+ * Export a full session (all traces) as an ATIF v1.6 trajectory document.
+ */
+export async function fetchAtifBySession(sessionId: string): Promise<AtifDocument> {
+  return apiFetch<AtifDocument>(
+    `${API_BASE}/api/export/atif/session/${encodeURIComponent(sessionId)}`
+  );
+}

@@ -9,10 +9,12 @@ import {
   fetchTraces,
   fetchAgentNames,
   fetchTimeseries,
+  fetchTraceDetail,
   SessionSummary,
   TraceSummary,
   TimeseriesBucket,
   ModelTimeseriesBucket,
+  TraceEventDetail,
 } from '../utils/apiClient';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -784,15 +786,7 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
   const totalOutputTokens = sessions.reduce((s, x) => s + x.total_output_tokens, 0);
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
-        <div className="max-w-screen-xl mx-auto">
-          <h1 className="text-xl font-bold text-gray-900">Agent 可观测</h1>
-          <p className="text-xs text-gray-500 mt-0.5">Session / Trace Token 分析</p>
-        </div>
-      </header>
-
+    <>
       <main className="max-w-screen-xl mx-auto px-6 py-6 space-y-6">
         {/* ── Filter bar ── */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex flex-wrap items-end gap-4">
@@ -1034,6 +1028,6 @@ export const ConversationList: React.FC<ConversationListProps> = () => {
           </div>
         )}
       </main>
-    </div>
+    </>
   );
 };

@@ -228,3 +228,83 @@ fn now_ns() -> u64 {
 fn hours_ago_ns(hours: u64) -> u64 {
     now_ns().saturating_sub(hours * 3600 * 1_000_000_000)
 }
+
+// ─── ATIF export endpoints ──────────────────────────────────────────────────
+
+/// GET /api/export/atif/trace/{trace_id}
+///
+/// Exports a single trace as an ATIF v1.6 trajectory document.
+#[get("/api/export/atif/trace/{trace_id}")]
+pub async fn export_atif_trace(
+    data: web::Data<AppState>,
+    path: web::Path<String>,
+) -> impl Responder {
+    let db_path = &data.storage_path;
+    let trace_id = path.into_inner();
+
+    let store = match GenAISqliteStore::new_with_path(db_path) {
+        Ok(s) => s,
+        Err(e) => {
+            return HttpResponse::InternalServerError()
+                .json(serde_json::json!({"error": e.to_string()}))
+        }
+    };
+
+    let events = match store.get_trace_events(&trace_id) {
+        Ok(e) => e,
+        Err(e) => {
+            return HttpResponse::InternalServerError()
+                .json(serde_json::json!({"error": e.to_string()}))
+        }
+    };
+
+    if events.is_empty() {
+        return HttpResponse::NotFound()
+            .json(serde_json::json!({"error": "trace not found"}));
+    }
+
+    match crate::atif::convert_trace_to_atif(&trace_id, events) {
+        Ok(doc) => HttpResponse::Ok().json(doc),
+        Err(e) => HttpResponse::InternalServerError()
+            .json(serde_json::json!({"error": e.to_string()})),
+    }
+}
+
+/// GET /api/export/atif/session/{session_id}
+///
+/// Exports a full session (all traces) as an ATIF v1.6 trajectory document.
+#[get("/api/export/atif/session/{session_id}")]
+pub async fn export_atif_session(
+    data: web::Data<AppState>,
+    path: web::Path<String>,
+) -> impl Responder {
+    let db_path = &data.storage_path;
+    let session_id = path.into_inner();
+
+    let store = match GenAISqliteStore::new_with_path(db_path) {
+        Ok(s) => s,
+        Err(e) => {
+            return HttpResponse::InternalServerError()
+                .json(serde_json::json!({"error": e.to_string()}))
+        }
+    };
+
+    let events = match store.get_events_by_session(&session_id) {
+        Ok(e) => e,
+        Err(e) => {
+            return HttpResponse::InternalServerError()
+                .json(serde_json::json!({"error": e.to_string()}))
+        }
+    };
+
+    if events.is_empty() {
+        return HttpResponse::NotFound()
+            .json(serde_json::json!({"error": "session not found"}));
+    }
+
+    match crate::atif::convert_session_to_atif(&session_id, events) {
+        Ok(doc) => HttpResponse::Ok().json(doc),
+        Err(e) => HttpResponse::InternalServerError()
+            .json(serde_json::json!({"error": e.to_string()})),
+    }
+}
