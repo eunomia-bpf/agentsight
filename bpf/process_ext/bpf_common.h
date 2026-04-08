@@ -100,40 +100,48 @@ static __always_inline void format_fd_detail(char *buf, int buf_len, int fd)
 }
 
 /* Format "N.N.N.N:PORT" for IPv4 addresses without bpf_snprintf */
+/* Fully unrolled for BPF verifier (no loops / back-edges) */
+static __always_inline void write_octet(char *buf, int buf_len, int *pos, u8 val)
+{
+	if (val >= 100 && *pos < buf_len - 1) buf[(*pos)++] = '0' + val / 100;
+	if (val >= 10  && *pos < buf_len - 1) buf[(*pos)++] = '0' + (val / 10) % 10;
+	if (*pos < buf_len - 1)               buf[(*pos)++] = '0' + val % 10;
+}
+
 static __always_inline void format_ipv4_port(char *buf, int buf_len, u32 ip, u16 port)
 {
 	int pos = 0;
-	u8 octets[4];
-	octets[0] = ip & 0xFF;
-	octets[1] = (ip >> 8) & 0xFF;
-	octets[2] = (ip >> 16) & 0xFF;
-	octets[3] = (ip >> 24) & 0xFF;
+	u8 o0 = ip & 0xFF;
+	u8 o1 = (ip >> 8) & 0xFF;
+	u8 o2 = (ip >> 16) & 0xFF;
+	u8 o3 = (ip >> 24) & 0xFF;
 
-	/* Write each octet */
-	for (int o = 0; o < 4 && pos < buf_len - 2; o++) {
-		if (o > 0 && pos < buf_len - 1)
-			buf[pos++] = '.';
-		u8 val = octets[o];
-		if (val >= 100 && pos < buf_len - 1) buf[pos++] = '0' + val / 100;
-		if (val >= 10 && pos < buf_len - 1) buf[pos++] = '0' + (val / 10) % 10;
-		if (pos < buf_len - 1) buf[pos++] = '0' + val % 10;
-	}
+	/* Octet 0 */
+	write_octet(buf, buf_len, &pos, o0);
+	/* Octet 1 */
+	if (pos < buf_len - 1) buf[pos++] = '.';
+	write_octet(buf, buf_len, &pos, o1);
+	/* Octet 2 */
+	if (pos < buf_len - 1) buf[pos++] = '.';
+	write_octet(buf, buf_len, &pos, o2);
+	/* Octet 3 */
+	if (pos < buf_len - 1) buf[pos++] = '.';
+	write_octet(buf, buf_len, &pos, o3);
 
-	/* :PORT */
+	/* :PORT — max 5 digits, write manually */
 	if (pos < buf_len - 1) buf[pos++] = ':';
-	char pdigits[6];
-	int plen = 0;
 	unsigned int p = port;
-	if (p == 0) {
-		pdigits[plen++] = '0';
-	} else {
-		while (p > 0 && plen < 5) {
-			pdigits[plen++] = '0' + (p % 10);
-			p /= 10;
-		}
-	}
-	for (int i = plen - 1; i >= 0 && pos < buf_len - 1; i--)
-		buf[pos++] = pdigits[i];
+	/* Extract each digit (max 65535 = 5 digits) */
+	char d4 = '0' + (p / 10000) % 10;
+	char d3 = '0' + (p / 1000) % 10;
+	char d2 = '0' + (p / 100) % 10;
+	char d1 = '0' + (p / 10) % 10;
+	char d0 = '0' + p % 10;
+	if (p >= 10000 && pos < buf_len - 1) buf[pos++] = d4;
+	if (p >= 1000  && pos < buf_len - 1) buf[pos++] = d3;
+	if (p >= 100   && pos < buf_len - 1) buf[pos++] = d2;
+	if (p >= 10    && pos < buf_len - 1) buf[pos++] = d1;
+	if (pos < buf_len - 1) buf[pos++] = d0;
 
 	buf[pos] = '\0';
 }

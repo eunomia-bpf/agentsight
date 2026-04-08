@@ -98,6 +98,9 @@ static int g_overflow_fd = -1;
 static int g_exit_mem_fd = -1;
 
 /* Page size for memory info */
+
+#include "container_info.h"
+
 static long page_size_kb;
 
 /* Target PID for resource sampling (set from -p or first matched process) */
@@ -497,6 +500,7 @@ static void print_file_open_event(const struct event *e, uint64_t timestamp_ns, 
 	printf("\"flags\":%d", e->file_op.flags);
 	if (extra_fields && strlen(extra_fields) > 0)
 		printf(",%s", extra_fields);
+	print_container_fields(e->pid);
 	printf("}\n");
 	fflush(stdout);
 }
@@ -682,6 +686,7 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
 				}
 			}
 
+			print_container_fields(e->pid);
 			printf("}\n");
 			fflush(stdout);
 
@@ -727,6 +732,7 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
 					       mem.shared_pages * page_size_kb);
 				}
 
+				print_container_fields(e->pid);
 				printf("}\n");
 				fflush(stdout);
 			} else if (tracker->filter_mode == FILTER_MODE_FILTER) {
@@ -740,6 +746,7 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
 				       (unsigned long long)timestamp_ns, e->comm, e->pid, e->ppid);
 				printf(",\"filename\":\"%s\"", e->filename);
 				printf(",\"full_command\":\"%s\"", e->full_command);
+				print_container_fields(e->pid);
 				printf("}\n");
 				fflush(stdout);
 			}

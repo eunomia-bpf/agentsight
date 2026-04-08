@@ -316,6 +316,7 @@ export function adaptFileEvent(event: ParsedEvent): UnifiedBlockData {
   const tags = [operation.toUpperCase()];
   if (metadata.fd !== undefined) tags.push(`FD ${metadata.fd}`);
   if (metadata.size !== undefined) tags.push(formatFileSize(metadata.size));
+  if (metadata.container_id) tags.push(`🐳${metadata.container_id}`);
 
   // Fold content: file path
   const foldContent = filepath;
@@ -367,9 +368,11 @@ export function adaptProcessEvent(event: ParsedEvent): UnifiedBlockData {
   const colors = getProcessColors(eventType);
   const tags = [eventType.toUpperCase()];
   if (pid) tags.push(`PID ${pid}`);
+  if (metadata.container_id) tags.push(`🐳${metadata.container_id}`);
 
-  // Fold content: command and PID
-  const foldContent = comm && pid ? `${comm} (PID: ${pid})` : comm || `PID: ${pid}`;
+  // Fold content: command and PID, with ns_pid for container processes
+  const pidDisplay = metadata.ns_pid ? `${pid} (ns:${metadata.ns_pid})` : pid;
+  const foldContent = comm && pid ? `${comm} (PID: ${pidDisplay})` : comm || `PID: ${pidDisplay}`;
 
   // Expanded content: everything
   const expandedContent = event.content || JSON.stringify(event.metadata, null, 2);
@@ -391,21 +394,42 @@ export function adaptProcessEvent(event: ParsedEvent): UnifiedBlockData {
 export function adaptSSLEvent(event: ParsedEvent): UnifiedBlockData {
   const metadata = event.metadata || {};
   
-  const direction = metadata.direction || '';
-  const size = metadata.data_size || metadata.size || 0;
+  // Map sslsniff JSON fields: function -> direction, buf_size -> size, data -> content
+  const sslFunction = metadata.function || metadata.direction || '';
+  const direction = sslFunction.includes('WRITE') || sslFunction.includes('SEND') ? 'SEND' :
+                    sslFunction.includes('READ') || sslFunction.includes('RECV') ? 'RECV' :
+                    sslFunction.includes('HANDSHAKE') ? 'HANDSHAKE' : '';
+  const size = metadata.buf_size || metadata.data_size || metadata.len || metadata.size || 0;
   const comm = metadata.comm || '';
+  const sslData = metadata.data || '';
 
-  // Fold content: size and command
-  const foldContent = comm ? `${size} bytes - ${comm}` : `${size} bytes`;
+  // Fold content: show data preview if available, otherwise size
+  let foldContent: string;
+  if (sslData && typeof sslData === 'string' && sslData.length > 0) {
+    const preview = sslData.replace(/\r\n/g, ' ').replace(/\n/g, ' ').substring(0, 120);
+    foldContent = preview + (sslData.length > 120 ? '...' : '');
+  } else {
+    foldContent = comm ? `${size} bytes - ${comm}` : `${size} bytes`;
+  }
 
-  // Expanded content: everything
-  const expandedContent = event.content || JSON.stringify(event.metadata, null, 2);
+  // Expanded content: show readable SSL data, fallback to full JSON
+  let expandedContent: string;
+  if (sslData && typeof sslData === 'string' && sslData.length > 0) {
+    expandedContent = sslData;
+  } else {
+    expandedContent = event.content || JSON.stringify(event.metadata, null, 2);
+  }
+
+  const sizeTag = size > 0 ? `${size} bytes` : '';
+
+  // Container info
+  const containerTag = metadata.container_id ? `🐳${metadata.container_id}` : '';
 
   return {
     id: event.id,
     type: 'ssl',
     timestamp: event.timestamp,
-    tags: ['SSL', direction.toUpperCase(), `${size} bytes`].filter(Boolean),
+    tags: ['SSL', direction, sizeTag, containerTag].filter(Boolean),
     bgGradient: 'bg-gradient-to-r from-orange-50 via-amber-50 to-yellow-50',
     borderColor: 'border-orange-400',
     iconColor: 'text-orange-600',
