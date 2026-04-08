@@ -9,7 +9,7 @@
 use structopt::StructOpt;
 
 mod cli;
-use cli::{token::TokenCommand, trace::TraceCommand, audit::AuditCommand, discover::DiscoverCommand};
+use cli::{token::TokenCommand, trace::TraceCommand, audit::AuditCommand, discover::DiscoverCommand, metrics::MetricsCommand};
 #[cfg(feature = "server")]
 use cli::serve::ServeCommand;
 use agentsight::token_breakdown::AnalyzeChatmlCommand;
@@ -27,6 +27,8 @@ pub enum Command {
     Discover(DiscoverCommand),
     /// Analyze a ChatML file and output token consumption breakdown
     AnalyzeChatml(AnalyzeChatmlCommand),
+    /// Print per-agent token usage metrics in Prometheus text format
+    Metrics(MetricsCommand),
     /// Start the API server
     #[cfg(feature = "server")]
     Serve(ServeCommand),
@@ -41,6 +43,7 @@ fn main() {
         Command::Audit(audit_cmd) => audit_cmd.execute(),
         Command::Discover(discover_cmd) => discover_cmd.execute(),
         Command::AnalyzeChatml(cmd) => cmd.execute(),
+        Command::Metrics(metrics_cmd) => metrics_cmd.execute(),
         #[cfg(feature = "server")]
         Command::Serve(serve_cmd) => serve_cmd.execute(),
     }

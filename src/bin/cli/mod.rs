@@ -10,6 +10,7 @@ pub mod token;
 pub mod trace;
 pub mod audit;
 pub mod discover;
+pub mod metrics;
 #[cfg(feature = "server")]
 pub mod serve;
 
