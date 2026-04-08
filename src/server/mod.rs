@@ -109,6 +109,7 @@ pub async fn run_server(host: &str, port: u16, storage_path: PathBuf) -> std::io
             .app_data(data.clone())
             // API routes (registered before the catch-all static handler)
             .service(handlers::health)
+            .service(handlers::metrics)
             .service(handlers::stats)
             .service(handlers::list_sessions)
             .service(handlers::list_traces_by_session)

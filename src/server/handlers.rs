@@ -9,6 +9,16 @@ use crate::storage::sqlite::genai::{TimeseriesBucket, ModelTimeseriesBucket};
 use crate::storage::sqlite::token::TokenQuery;
 use crate::TimePeriod;
 
+// ─── Prometheus helpers ───────────────────────────────────────────────────────
+
+/// Escape a Prometheus label value per the text format spec:
+/// backslash → \\, double-quote → \", newline → \n
+fn escape_label(s: &str) -> String {
+    s.replace('\\', "\\\\")
+     .replace('"', "\\\"")
+     .replace('\n', "\\n")
+}
+
 /// GET /health — health check endpoint
 #[get("/health")]
 pub async fn health(data: web::Data<AppState>) -> impl Responder {
@@ -227,6 +237,85 @@ fn now_ns() -> u64 {
 /// Calculate nanosecond timestamp for N hours ago
 fn hours_ago_ns(hours: u64) -> u64 {
     now_ns().saturating_sub(hours * 3600 * 1_000_000_000)
+}
+
+// ─── Prometheus metrics endpoint ─────────────────────────────────────────────
+
+/// GET /metrics — Prometheus text format token usage metrics
+///
+/// Exposes per-agent counters for input tokens, output tokens, total tokens,
+/// and LLM request count, aggregated over all recorded history.
+/// The response Content-Type is `text/plain; version=0.0.4` as required by
+/// the Prometheus exposition format.
+#[get("/metrics")]
+pub async fn metrics(data: web::Data<AppState>) -> impl Responder {
+    let db_path = &data.storage_path;
+
+    let summaries = match GenAISqliteStore::new_with_path(db_path) {
+        Ok(store) => match store.get_agent_token_summary() {
+            Ok(v) => v,
+            Err(e) => {
+                return HttpResponse::InternalServerError()
+                    .content_type("text/plain; version=0.0.4")
+                    .body(format!("# ERROR querying metrics: {}\n", e));
+            }
+        },
+        Err(e) => {
+            return HttpResponse::InternalServerError()
+                .content_type("text/plain; version=0.0.4")
+                .body(format!("# ERROR opening database: {}\n", e));
+        }
+    };
+
+    let mut out = String::with_capacity(512 + summaries.len() * 128);
+
+    // agentsight_token_input_total
+    out.push_str("# HELP agentsight_token_input_total Total input tokens consumed by agent (all-time)\n");
+    out.push_str("# TYPE agentsight_token_input_total counter\n");
+    for s in &summaries {
+        out.push_str(&format!(
+            "agentsight_token_input_total{{agent=\"{}\"}} {}\n",
+            escape_label(&s.agent_name), s.input_tokens
+        ));
+    }
+    out.push('\n');
+
+    // agentsight_token_output_total
+    out.push_str("# HELP agentsight_token_output_total Total output tokens consumed by agent (all-time)\n");
+    out.push_str("# TYPE agentsight_token_output_total counter\n");
+    for s in &summaries {
+        out.push_str(&format!(
+            "agentsight_token_output_total{{agent=\"{}\"}} {}\n",
+            escape_label(&s.agent_name), s.output_tokens
+        ));
+    }
+    out.push('\n');
+
+    // agentsight_token_total_total
+    out.push_str("# HELP agentsight_token_total_total Total tokens (input+output) consumed by agent (all-time)\n");
+    out.push_str("# TYPE agentsight_token_total_total counter\n");
+    for s in &summaries {
+        out.push_str(&format!(
+            "agentsight_token_total_total{{agent=\"{}\"}} {}\n",
+            escape_label(&s.agent_name), s.total_tokens
+        ));
+    }
+    out.push('\n');
+
+    // agentsight_llm_requests_total
+    out.push_str("# HELP agentsight_llm_requests_total Total LLM requests made by agent (all-time)\n");
+    out.push_str("# TYPE agentsight_llm_requests_total counter\n");
+    for s in &summaries {
+        out.push_str(&format!(
+            "agentsight_llm_requests_total{{agent=\"{}\"}} {}\n",
+            escape_label(&s.agent_name), s.request_count
+        ));
+    }
+    out.push('\n');
+
+    HttpResponse::Ok()
+        .content_type("text/plain; version=0.0.4")
+        .body(out)
 }
 
 // ─── ATIF export endpoints ──────────────────────────────────────────────────

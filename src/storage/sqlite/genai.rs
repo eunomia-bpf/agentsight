@@ -30,6 +30,16 @@ pub struct ModelTimeseriesBucket {
     pub total_tokens: i64,
 }
 
+/// Per-agent token usage summary (all-time aggregation)
+#[derive(Debug, serde::Serialize)]
+pub struct AgentTokenSummary {
+    pub agent_name: String,
+    pub input_tokens: i64,
+    pub output_tokens: i64,
+    pub total_tokens: i64,
+    pub request_count: i64,
+}
+
 /// Summary of a single gen_ai.session_id within a time window
 #[derive(Debug, serde::Serialize)]
 pub struct SessionSummary {
@@ -424,6 +434,41 @@ impl GenAISqliteStore {
         };
 
         Ok(rows)
+    }
+
+    /// Return per-agent token usage aggregated over all recorded history.
+    ///
+    /// Groups by `COALESCE(agent_name, process_name, 'unknown')` so that every
+    /// LLM call is attributed to some label even when agent_name is NULL.
+    pub fn get_agent_token_summary(
+        &self,
+    ) -> Result<Vec<AgentTokenSummary>, Box<dyn std::error::Error>> {
+        let conn = self.conn.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT COALESCE(agent_name, process_name, 'unknown') AS agent,
+                    COALESCE(SUM(input_tokens),  0) AS input_tokens,
+                    COALESCE(SUM(output_tokens), 0) AS output_tokens,
+                    COALESCE(SUM(total_tokens),  0) AS total_tokens,
+                    COUNT(*)                        AS request_count
+             FROM genai_events
+             WHERE event_type = 'llm_call'
+             GROUP BY agent
+             ORDER BY total_tokens DESC",
+        )?;
+        let rows = stmt.query_map([], |row| {
+            Ok(AgentTokenSummary {
+                agent_name:    row.get(0)?,
+                input_tokens:  row.get(1)?,
+                output_tokens: row.get(2)?,
+                total_tokens:  row.get(3)?,
+                request_count: row.get(4)?,
+            })
+        })?;
+        let mut result = Vec::new();
+        for row in rows {
+            result.push(row?);
+        }
+        Ok(result)
     }
 
     /// Fetch all LLM call events for a given trace ID.
