@@ -68,7 +68,7 @@ impl TokenParser {
     }
 
     /// Internal method to parse JSON and extract token usage
-    fn parse_json(&self, json: &serde_json::Value) -> Option<TokenUsage> {
+    pub fn parse_json(&self, json: &serde_json::Value) -> Option<TokenUsage> {
         // 1. Check for message_start event (Anthropic streaming)
         if json.get("type").and_then(|v| v.as_str()) == Some("message_start") {
             if let Some(message) = json.get("message") {

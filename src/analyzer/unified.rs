@@ -429,7 +429,7 @@ impl Analyzer {
         }
 
         // 2. Token analysis - extract from SSE events
-        let token_result = match result {
+        let mut token_result = match result {
             AggregatedResult::SseComplete(pair) => {
                 let pid = pair.request.source_event.pid;
                 let comm = pair.request.source_event.comm_str();
@@ -443,15 +443,6 @@ impl Analyzer {
             _ => None,
         };
         
-        if let Some(record) = token_result {
-            results.push(AnalysisResult::Token(record));
-        } else {
-            // Fallback: manually compute tokens using get_global_tokenizer
-            if let Some(record) = self.compute_tokens_manually(result) {
-                results.push(AnalysisResult::Token(record));
-            }
-        }
-
         // 5. Token consumption analysis - breakdown by message role
         // This runs for any HTTP request with messages (not just SSE responses)
         // if let Some(breakdown) = self.analyze_token_consumption(result) {
@@ -473,10 +464,44 @@ impl Analyzer {
 
         // 4. HTTP data export - extract raw HTTP request/response data
         if let Some(http_record) = self.extract_http_record(result) {
+            if token_result.is_none() && http_record.is_sse {
+                if let Some(body) = &http_record.response_body {
+                    if let Ok(x) = serde_json::from_str::<Vec<serde_json::Value>>(body) {
+                        if let Some(last) = x.last() {
+                            let parser = TokenParser::new();
+                            if let Some(usage) = parser.parse_json(last) {
+                                let record = TokenRecord::new(
+                                    http_record.pid,
+                                    http_record.comm.clone(),
+                                    usage.provider.to_string(),
+                                    usage.input_tokens,
+                                    usage.output_tokens,
+                                )
+                                .with_model(usage.model.clone().unwrap_or_default())
+                                .with_cache_tokens(
+                                    usage.cache_creation_input_tokens.unwrap_or(0),
+                                    usage.cache_read_input_tokens.unwrap_or(0),
+                                );
+
+                                token_result = Some(record);
+                            }
+                        }
+                    }
+                }
+            }
             results.push(AnalysisResult::Http(http_record));
+
         }
 
-        
+
+        if let Some(record) = token_result {
+            results.push(AnalysisResult::Token(record));
+        } else {
+            // Fallback: manually compute tokens using get_global_tokenizer
+            if let Some(record) = self.compute_tokens_manually(result) {
+                results.push(AnalysisResult::Token(record));
+            }
+        }
 
         results
     }
