@@ -79,13 +79,17 @@ actix-web = { version = "4", optional = true }
 actix-cors = { version = "0.7", optional = true }
 # Embed frontend static files into the binary (optional, enabled by "server" feature)
 include_dir = { version = "0.7", optional = true }
-hf-hub = { git = "https://github.com/chengshuyi/hf-hub.git", rev = "05f5134f40dbb5dc9f1617df1aaef628d49e951f" }
+# hf-hub for downloading tokenizer files (patched to use GitHub version below)
+hf-hub = "0.5"
 
 # [profile.release]
 # debug = true
 
 [profile.dev]
 debug-assertions = false
+
+[patch.crates-io]
+hf-hub = { git = "https://github.com/chengshuyi/hf-hub.git", rev = "05f5134f40dbb5dc9f1617df1aaef628d49e951f" }
 
 [build-dependencies]
 libbpf-cargo = "0.23.3"
