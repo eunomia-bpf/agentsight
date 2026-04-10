@@ -117,6 +117,38 @@ impl SslEvent {
         self.buf.starts_with(b"HTTP")
     }
 
+    /// Check if payload is an HTTP/2 connection preface
+    pub fn is_http2_preface(&self) -> bool {
+        self.buf.starts_with(b"PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n")
+    }
+
+    /// Heuristic check for HTTP/2 binary frame data
+    pub fn is_http2_frame(&self) -> bool {
+        if self.buf.len() < 9 {
+            return false;
+        }
+        // Parse 3-byte frame length
+        let length = ((self.buf[0] as usize) << 16)
+            | ((self.buf[1] as usize) << 8)
+            | (self.buf[2] as usize);
+        // Frame type must be a known type (0..=9)
+        let frame_type = self.buf[3];
+        if frame_type > 9 {
+            return false;
+        }
+        // Reserved bit of stream ID must be 0
+        if self.buf[5] & 0x80 != 0 {
+            return false;
+        }
+        // Frame payload must fit in the buffer
+        9 + length <= self.buf.len()
+    }
+
+    /// Check if payload is HTTP/2 (preface or binary frames)
+    pub fn is_http2(&self) -> bool {
+        self.is_http2_preface() || self.is_http2_frame()
+    }
+
     /// Get comm as a String
     pub fn comm_str(&self) -> String {
         self.comm.clone()

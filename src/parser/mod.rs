@@ -31,6 +31,7 @@
 //! ```
 
 pub mod http;
+pub mod http2;
 pub mod sse;
 pub mod proctrace;
 mod result;
@@ -50,3 +51,6 @@ pub use sse::{SseParser, ParsedSseEvent};
 
 // Re-export proctrace types
 pub use proctrace::{ProcTraceParser, ParsedProcEvent, ProcEventType};
+
+// Re-export HTTP/2 types
+pub use http2::{Http2Parser, Http2FrameType, ParsedHttp2Frame};

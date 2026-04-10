@@ -146,6 +146,20 @@ static MODEL_MAPPING: Lazy<HashMap<&'static str, &'static str>> = Lazy::new(|| {
     // Moonshot uses custom tokenizer, fallback to similar model
     m.insert("moonshot-v1", "Qwen/Qwen2.5-7B-Instruct");
     
+    // ============== Kimi Models (Moonshot K2.5 series) ==============
+    // Kimi K2.5 series - uses Qwen2.5 tokenizer as base
+    m.insert("kimi-k2.5", "Qwen/Qwen2.5-7B-Instruct");
+    m.insert("kimi-k2.5-8k", "Qwen/Qwen2.5-7B-Instruct");
+    m.insert("kimi-k2.5-32k", "Qwen/Qwen2.5-7B-Instruct");
+    m.insert("kimi-k2.5-128k", "Qwen/Qwen2.5-7B-Instruct");
+    m.insert("kimi-k2.5-longcontext", "Qwen/Qwen2.5-7B-Instruct");
+    
+    // Legacy Kimi models
+    m.insert("kimi-v1", "Qwen/Qwen2.5-7B-Instruct");
+    m.insert("kimi-v1-8k", "Qwen/Qwen2.5-7B-Instruct");
+    m.insert("kimi-v1-32k", "Qwen/Qwen2.5-7B-Instruct");
+    m.insert("kimi-v1-128k", "Qwen/Qwen2.5-7B-Instruct");
+    
     // ============== Google Gemini Models ==============
     m.insert("gemini-pro", "google/gemma-2-9b-it");
     m.insert("gemini-1.5-pro", "google/gemma-2-9b-it");
@@ -232,7 +246,7 @@ pub fn map_to_hf_model_id(model_name: &str) -> &str {
     }
     
     // Return original name - will fail at download time with clear error
-    model_name
+    "Qwen/Qwen3.5-397B-A17B"
 }
 
 /// Check if a model name has a known mapping to HuggingFace.
@@ -302,8 +316,8 @@ mod tests {
     
     #[test]
     fn test_unknown_model() {
-        // Unknown model - should return original name
-        assert_eq!(map_to_hf_model_id("some-unknown-model"), "some-unknown-model");
+        // Unknown model - should return default fallback
+        assert_eq!(map_to_hf_model_id("some-unknown-model"), "Qwen/Qwen3.5-397B-A17B");
     }
     
     #[test]

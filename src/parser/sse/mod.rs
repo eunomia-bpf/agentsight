@@ -26,5 +26,8 @@ pub(crate) mod parser;
 pub use event::ParsedSseEvent;
 pub use parser::SseParser;
 
+// Re-export legacy API
+pub use parser::SSEParser;
+
 // Re-export legacy event types (for backward compatibility)
 pub use event::{SSEEvent, SSEEvents};

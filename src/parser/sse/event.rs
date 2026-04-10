@@ -66,7 +66,10 @@ impl ParsedSseEvent {
 
     /// Get data (zero-copy)
     pub fn data(&self) -> &[u8] {
-        &self.source_event.buf[self.data_offset..self.data_offset + self.data_len]
+        let buf_len = self.source_event.buf.len();
+        let start = self.data_offset.min(buf_len);
+        let end = (self.data_offset + self.data_len).min(buf_len);
+        &self.source_event.buf[start..end]
     }
 
     pub fn body_str(&self) -> &str {

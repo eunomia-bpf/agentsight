@@ -6,6 +6,7 @@
 use crate::parser::http::{ParsedRequest, ParsedResponse};
 use crate::parser::sse::ParsedSseEvent;
 use crate::parser::proctrace::ParsedProcEvent;
+use crate::parser::http2::ParsedHttp2Frame;
 
 /// Parsed message from events
 #[derive(Debug, Clone)]
@@ -16,6 +17,8 @@ pub enum ParsedMessage {
     Response(ParsedResponse),
     /// SSE Event
     SseEvent(ParsedSseEvent),
+    /// HTTP/2 Frames
+    Http2Frames(Vec<ParsedHttp2Frame>),
     /// Process Event
     ProcEvent(ParsedProcEvent),
 }
@@ -27,6 +30,7 @@ impl ParsedMessage {
             ParsedMessage::Request(_) => "Request",
             ParsedMessage::Response(_) => "Response",
             ParsedMessage::SseEvent(_) => "SseEvent",
+            ParsedMessage::Http2Frames(_) => "Http2Frames",
             ParsedMessage::ProcEvent(_) => "ProcEvent",
         }
     }

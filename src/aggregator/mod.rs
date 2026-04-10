@@ -19,6 +19,7 @@
 //! ```
 
 mod http;
+mod http2;
 mod proctrace;
 mod result;
 mod unified;
@@ -33,6 +34,11 @@ pub use result::AggregatedResult;
 pub use http::{
     HttpConnectionAggregator, ConnectionId, ConnectionState,
     HttpPair, ParsedRequest, AggregatedResponse,
+};
+
+// Re-export HTTP/2 types
+pub use http2::{
+    Http2StreamAggregator, Http2Stream, Http2StreamState, StreamId, StreamDirection,
 };
 
 // Re-export proctrace types

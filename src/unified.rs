@@ -278,10 +278,10 @@ impl AgentSight {
         for agg_result in &aggregated_results {
             // Original analysis and storage pipeline
             let analysis_results = self.analyzer.analyze_aggregated(agg_result);
-            
+
             // Build GenAI semantic events from analysis results (reuse extracted data)
             let genai_events = self.genai_builder.build(&analysis_results);
-            
+
             // Export GenAI semantic events to all registered exporters
             if !genai_events.is_empty() {
                 for exporter in &self.genai_exporters {

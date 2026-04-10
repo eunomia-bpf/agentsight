@@ -57,6 +57,7 @@ pub use parser::{
     HttpParser, ParsedHttpMessage, ParsedRequest, ParsedResponse,
     SseParser, ParsedSseEvent,
     ProcTraceParser, ParsedProcEvent, ProcEventType,
+    Http2Parser, Http2FrameType, ParsedHttp2Frame,
     Parser, ParsedMessage, ParseResult,
 };
 pub use analyzer::{

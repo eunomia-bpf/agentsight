@@ -502,7 +502,10 @@ impl Analyzer {
                 let req_body = request.json_body();
                 self.analyze_message(&request.path, req_body.as_ref(), None)
             }
-            AggregatedResult::ResponseOnly { .. } | AggregatedResult::ProcessComplete(_) => None,
+            AggregatedResult::ResponseOnly { .. } 
+            | AggregatedResult::ProcessComplete(_) 
+            | AggregatedResult::Http2Frames { .. }
+            | AggregatedResult::Http2StreamComplete(_) => None,
         }
     }
 
@@ -545,6 +548,10 @@ impl Analyzer {
 
         // NOTE: tool_calls and reasoning_content extraction from SSE events
         // is handled in genai::builder via direct SSE response body parsing.
+
+        if record.total_tokens() ==0 {
+            return None;
+        }
 
         Some(record)
     }
@@ -806,6 +813,39 @@ impl Analyzer {
                     duration_ns: 0,
                     is_sse: false,
                     sse_event_count: 0,
+                })
+            }
+            AggregatedResult::Http2StreamComplete(stream) => {
+                let request_body = stream.request_body_str();
+
+                // Try SSE parsing first, fallback to regular text if it fails
+                // This is more robust than checking content-type header (which may fail due to HPACK)
+                let (response_body, sse_event_count) = if let Some(sse_json) = stream.response_sse_json_array() {
+                    // Successfully parsed as SSE
+                    let event_count = sse_json.as_array().map(|a| a.len()).unwrap_or(0);
+                    (Some(serde_json::to_string(&sse_json).unwrap_or_default()), event_count)
+                } else {
+                    // Not SSE, try regular JSON or raw text
+                    let body = stream.response_json_body()
+                        .map(|v| serde_json::to_string(&v).unwrap_or_default())
+                        .or_else(|| stream.response_body_str());
+                    (body, 0)
+                };
+
+                Some(HttpRecord {
+                    timestamp_ns: stream.start_timestamp_ns,
+                    pid: stream.pid(),
+                    comm: stream.comm(),
+                    method: stream.method(),
+                    path: stream.path(),
+                    status_code: stream.status_code(),
+                    request_headers: stream.request_headers_json(),
+                    request_body,
+                    response_headers: stream.response_headers_json(),
+                    response_body,
+                    duration_ns: stream.end_timestamp_ns.saturating_sub(stream.start_timestamp_ns),
+                    is_sse: sse_event_count > 0,
+                    sse_event_count,
                 })
             }
             // ProcessComplete and ResponseOnly don't have request info, skip

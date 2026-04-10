@@ -4,6 +4,7 @@
 //! It combines HTTP Connection Aggregator and Process Event Aggregator.
 
 use super::http::{ConnectionId, HttpConnectionAggregator};
+use super::http2::Http2StreamAggregator;
 use super::proctrace::ProcessEventAggregator;
 use super::result::AggregatedResult;
 use crate::chrome_trace::{export_trace_events, ToChromeTraceEvent};
@@ -12,9 +13,10 @@ use crate::parser::{ParseResult, ParsedMessage};
 /// Unified aggregator for all event types
 ///
 /// This aggregator provides a unified entry point for aggregating parsed messages.
-/// It internally manages HTTP connections and process lifecycles.
+/// It internally manages HTTP connections, HTTP/2 streams, and process lifecycles.
 pub struct Aggregator {
     http: HttpConnectionAggregator,
+    http2: Http2StreamAggregator,
     process: ProcessEventAggregator,
 }
 
@@ -29,36 +31,44 @@ impl Aggregator {
     pub fn new() -> Self {
         Aggregator {
             http: HttpConnectionAggregator::new(),
+            http2: Http2StreamAggregator::new(),
             process: ProcessEventAggregator::new(),
         }
     }
 
     /// Process a parsed message
     ///
-    /// Returns aggregated result when a complete unit is formed.
-    pub fn process_message(&mut self, msg: ParsedMessage) -> Option<AggregatedResult> {
-        let result = match msg {
+    /// Returns aggregated results when complete units are formed.
+    /// Note: Returns a Vec because HTTP/2 frame processing can produce multiple completed streams.
+    fn process_message(&mut self, msg: ParsedMessage) -> Vec<AggregatedResult> {
+        match msg {
             ParsedMessage::Request(req) => {
                 self.http.process_request(req);
-                None
+                vec![]
             }
-            ParsedMessage::Response(resp) => self.http.process_response(resp),
+            ParsedMessage::Response(resp) => {
+                self.http.process_response(resp).into_iter().collect()
+            }
             ParsedMessage::SseEvent(sse_event) => {
                 let conn_id = ConnectionId::from_ssl_event(sse_event.source_event());
-                self.http.process_sse_event(&conn_id, sse_event)
+                self.http.process_sse_event(&conn_id, sse_event).into_iter().collect()
             }
-            ParsedMessage::ProcEvent(proc_event) => self
-                .process
-                .process_parsed_event(&proc_event)
-                .map(AggregatedResult::ProcessComplete),
-        };
-
-        // Export chrome trace if enabled
-        if let Some(ref r) = result {
-            export_trace_events(r);
+            ParsedMessage::ProcEvent(proc_event) => {
+                self.process
+                    .process_parsed_event(&proc_event)
+                    .map(AggregatedResult::ProcessComplete)
+                    .into_iter()
+                    .collect()
+            }
+            ParsedMessage::Http2Frames(frames) => {
+                // Use HTTP/2 stream aggregator to correlate frames by stream_id
+                let completed_streams = self.http2.process_frames(frames);
+                completed_streams
+                    .into_iter()
+                    .map(AggregatedResult::Http2StreamComplete)
+                    .collect()
+            }
         }
-
-        result
     }
 
     /// Process parse result
@@ -73,11 +83,18 @@ impl Aggregator {
                 .collect::<Vec<_>>()
                 .join(", ")
         );
-        result
+        let results: Vec<AggregatedResult> = result
             .messages
             .into_iter()
-            .filter_map(|msg| self.process_message(msg))
-            .collect()
+            .flat_map(|msg| self.process_message(msg))
+            .collect();
+        
+        // Export chrome trace if enabled
+        for r in &results {
+            export_trace_events(r);
+        }
+        
+        results
     }
 
     /// Get reference to HTTP aggregator
@@ -102,12 +119,13 @@ impl Aggregator {
 
     /// Check if there are any pending aggregations
     pub fn has_pending(&self) -> bool {
-        self.http.has_pending() || self.process.has_pending()
+        self.http.has_pending() || self.http2.has_pending() || self.process.has_pending()
     }
 
     /// Clear all aggregations
     pub fn clear(&mut self) {
         self.http.clear();
+        self.http2.clear();
         self.process.clear();
     }
 }

@@ -86,7 +86,7 @@ impl GenAIBuilder {
         let http = http_record?;
         
         // Check if this is an LLM API call
-        if !self.is_llm_api_path(&http.path) {
+        if !self.is_llm_api_path(&http.path) && !http.is_sse {
             return None;
         }
 
@@ -94,7 +94,6 @@ impl GenAIBuilder {
 
         // Build request from parsed message or HTTP record
         let request = self.build_request(&parsed_message, &http);
-        
         // Build response from parsed message or HTTP record
         let response = self.build_response(&parsed_message, &http, &token_record);
 

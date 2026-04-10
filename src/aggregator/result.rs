@@ -4,7 +4,9 @@
 //! the output of aggregating parsed messages from various sources.
 
 use crate::chrome_trace::{ChromeTraceEvent, ToChromeTraceEvent};
+use crate::parser::http2::ParsedHttp2Frame;
 use super::http::{ConnectionId, HttpPair, ParsedRequest, AggregatedResponse};
+use super::http2::Http2Stream;
 use super::proctrace::AggregatedProcess;
 
 /// Aggregated result from any aggregator
@@ -26,6 +28,13 @@ pub enum AggregatedResult {
         connection_id: ConnectionId,
         response: AggregatedResponse,
     },
+    /// HTTP/2 frames (pass-through, no stream reassembly)
+    Http2Frames {
+        connection_id: ConnectionId,
+        frames: Vec<ParsedHttp2Frame>,
+    },
+    /// HTTP/2 stream complete (request/response aggregated by stream_id)
+    Http2StreamComplete(Http2Stream),
 }
 
 impl AggregatedResult {
@@ -37,6 +46,8 @@ impl AggregatedResult {
             AggregatedResult::ProcessComplete(_) => "process_complete",
             AggregatedResult::RequestOnly { .. } => "request_only",
             AggregatedResult::ResponseOnly { .. } => "response_only",
+            AggregatedResult::Http2Frames { .. } => "http2_frames",
+            AggregatedResult::Http2StreamComplete(_) => "http2_stream_complete",
         }
     }
 }
@@ -55,6 +66,12 @@ impl ToChromeTraceEvent for AggregatedResult {
             AggregatedResult::ResponseOnly { .. } => {
                 log::warn!("ResponseOnly: {:?}", self);
                 vec![]
+            },
+            AggregatedResult::Http2Frames { frames, .. } => {
+                frames.iter().flat_map(|f| f.to_chrome_trace_events()).collect()
+            },
+            AggregatedResult::Http2StreamComplete(stream) => {
+                stream.to_chrome_trace_events()
             },
         }
     }

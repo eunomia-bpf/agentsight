@@ -10,6 +10,7 @@
 use super::{ParseResult, ParsedMessage};
 use crate::event::Event;
 use crate::parser::http::{HttpParser, ParsedHttpMessage};
+use crate::parser::http2::Http2Parser;
 use crate::parser::proctrace::ProcTraceParser;
 use crate::parser::sse::SseParser;
 use crate::probes::proctrace::VariableEvent;
@@ -22,6 +23,7 @@ use std::rc::Rc;
 /// aggregate or correlate messages. Use aggregators for that.
 pub struct Parser {
     http_parser: HttpParser,
+    http2_parser: Http2Parser,
     sse_parser: SseParser,
 }
 
@@ -36,6 +38,7 @@ impl Parser {
     pub fn new() -> Self {
         Parser {
             http_parser: HttpParser::new(),
+            http2_parser: Http2Parser::new(),
             sse_parser: SseParser::new(),
         }
     }
@@ -45,20 +48,10 @@ impl Parser {
     /// Returns parsed HTTP Request/Response or SSE Events.
     /// Does NOT aggregate or correlate - use `HttpConnectionAggregator` for that.
     pub fn parse_ssl_event(&self, ssl_event: Rc<SslEvent>) -> ParseResult {
-        let is_sse = !ssl_event.is_http();
-        if is_sse {
-            log::debug!("Parsing SSE event: {:?}", ssl_event.payload());
-            let sse_events = self.sse_parser.parse(ssl_event.clone());
-            log::debug!("Parsed SSE events: {:?}", sse_events);
-            
-            // Return SSE events directly (token parsing is done in analyzer layer)
-            let messages = sse_events
-                .into_iter()
-                .map(ParsedMessage::SseEvent)
-                .collect();
+        log::debug!("parse_ssl_event: length={}", ssl_event.buf_size());
 
-            return ParseResult { messages };
-        } else {
+        // 1. HTTP/1.x detection (text-based protocols)
+        if ssl_event.is_http() {
             match self.http_parser.parse(ssl_event.clone()) {
                 Ok(msg) => {
                     let message = match msg {
@@ -70,12 +63,28 @@ impl Parser {
                     };
                 }
                 Err(e) => {
-                   log::debug!("Failed to parse HTTP event: {e}, raw data: {:?}", ssl_event.payload());
+                    log::debug!("Failed to parse HTTP/1.x event: {e}");
                 }
             }
         }
 
-        ParseResult { messages: vec![] }
+        // 2. HTTP/2 detection (binary frame protocol)
+        if ssl_event.is_http2() {
+            let frames = self.http2_parser.parse(ssl_event.clone());
+            if !frames.is_empty() {
+                return ParseResult {
+                    messages: vec![ParsedMessage::Http2Frames(frames)],
+                };
+            }
+        }
+
+        // 3. Fallback: SSE data
+        let sse_events = self.sse_parser.parse(ssl_event.clone());
+        let messages = sse_events
+            .into_iter()
+            .map(ParsedMessage::SseEvent)
+            .collect();
+        ParseResult { messages }
     }
 
     /// Parse process event into messages
@@ -111,5 +120,10 @@ impl Parser {
     /// Get reference to SSE parser
     pub fn sse_parser(&self) -> &SseParser {
         &self.sse_parser
+    }
+
+    /// Get reference to HTTP/2 parser
+    pub fn http2_parser(&self) -> &Http2Parser {
+        &self.http2_parser
     }
 }
