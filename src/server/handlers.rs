@@ -1,9 +1,10 @@
 //! API request handlers
 
 use actix_web::{get, web, HttpResponse, Responder};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use super::AppState;
+use crate::health::AgentHealthStatus;
 use crate::storage::sqlite::{AuditStore, TokenStore, GenAISqliteStore};
 use crate::storage::sqlite::genai::{TimeseriesBucket, ModelTimeseriesBucket};
 use crate::storage::sqlite::token::TokenQuery;
@@ -316,6 +317,106 @@ pub async fn metrics(data: web::Data<AppState>) -> impl Responder {
     HttpResponse::Ok()
         .content_type("text/plain; version=0.0.4")
         .body(out)
+}
+
+// ─── Agent health endpoint ──────────────────────────────────────────────────
+
+/// Response body for /api/agent-health
+#[derive(Debug, Serialize)]
+pub struct AgentHealthResponse {
+    pub agents: Vec<AgentHealthStatus>,
+    pub last_scan_time: u64,
+}
+
+/// GET /api/agent-health
+///
+/// Returns the latest health check results for all discovered agent processes.
+#[get("/api/agent-health")]
+pub async fn get_agent_health(data: web::Data<AppState>) -> impl Responder {
+    let store = data.health_store.read().unwrap();
+    HttpResponse::Ok().json(AgentHealthResponse {
+        agents: store.all_agents(),
+        last_scan_time: store.last_scan_time,
+    })
+}
+
+/// DELETE /api/agent-health/{pid}
+///
+/// User-acknowledges an offline agent and removes it from the store.
+#[actix_web::delete("/api/agent-health/{pid}")]
+pub async fn delete_agent_health(
+    data: web::Data<AppState>,
+    path: web::Path<u32>,
+) -> impl Responder {
+    let pid = path.into_inner();
+    let removed = data.health_store.write().unwrap().remove_by_pid(pid);
+    if removed {
+        HttpResponse::Ok().json(serde_json::json!({"ok": true}))
+    } else {
+        HttpResponse::NotFound().json(serde_json::json!({"error": "pid not found"}))
+    }
+}
+
+/// POST /api/agent-health/{pid}/restart
+///
+/// Kill the hung process and re-launch it with its original command line.
+#[actix_web::post("/api/agent-health/{pid}/restart")]
+pub async fn restart_agent_health(
+    data: web::Data<AppState>,
+    path: web::Path<u32>,
+) -> impl Responder {
+    let pid = path.into_inner();
+
+    // 从 store 中取出 restart_cmd
+    let restart_cmd = {
+        let store = data.health_store.read().unwrap();
+        store.all_agents()
+            .into_iter()
+            .find(|a| a.pid == pid)
+            .and_then(|a| a.restart_cmd)
+    };
+
+    let cmd = match restart_cmd {
+        Some(c) if !c.is_empty() => c,
+        _ => return HttpResponse::BadRequest()
+            .json(serde_json::json!({"error": "no restart command available for this pid"})),
+    };
+
+    // Step 1: kill -9
+    use std::process::Command;
+    let kill_result = Command::new("kill")
+        .args(["-9", &pid.to_string()])
+        .output();
+
+    if let Err(e) = kill_result {
+        return HttpResponse::InternalServerError()
+            .json(serde_json::json!({"error": format!("kill failed: {}", e)}));
+    }
+
+    // Step 2: 短暂等待进程退出
+    std::thread::sleep(std::time::Duration::from_millis(500));
+
+    // Step 3: re-exec（后台启动，不等待）
+    let exe = &cmd[0];
+    let args = &cmd[1..];
+    match Command::new(exe).args(args).spawn() {
+        Ok(child) => {
+            let new_pid = child.id();
+            log::info!(
+                "Restarted agent pid={} -> new pid={}, cmd={:?}",
+                pid, new_pid, cmd
+            );
+            // 从 store 中删除旧 PID 条目，下次扫描时新 PID 会自动加入
+            data.health_store.write().unwrap().remove_by_pid(pid);
+            HttpResponse::Ok().json(serde_json::json!({
+                "ok": true,
+                "new_pid": new_pid,
+                "cmd": cmd,
+            }))
+        }
+        Err(e) => HttpResponse::InternalServerError()
+            .json(serde_json::json!({"error": format!("re-exec failed: {}", e)})),
+    }
 }
 
 // ─── ATIF export endpoints ──────────────────────────────────────────────────

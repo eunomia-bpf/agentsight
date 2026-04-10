@@ -6,11 +6,14 @@
 mod handlers;
 
 use std::path::PathBuf;
-use std::time::Instant;
+use std::sync::{Arc, RwLock};
+use std::time::{Duration, Instant};
 
 use actix_cors::Cors;
 use actix_web::{get, web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use include_dir::{include_dir, Dir};
+
+use crate::health::{HealthChecker, HealthStore};
 
 /// Embedded frontend static files (built from dashboard/ via `npm run build:embed`)
 /// The directory `frontend-dist/` must exist at compile time; if it is absent
@@ -23,6 +26,8 @@ pub struct AppState {
     pub storage_path: PathBuf,
     /// Server start time (for uptime calculation)
     pub start_time: Instant,
+    /// Shared health store populated by the background HealthChecker
+    pub health_store: Arc<RwLock<HealthStore>>,
 }
 
 // ─── Static file handler ─────────────────────────────────────────────────────
@@ -83,9 +88,15 @@ fn mime_for_path(path: &str) -> &'static str {
 /// Binds to the given host:port and serves API endpoints + embedded frontend.
 /// This function blocks until the server is shut down.
 pub async fn run_server(host: &str, port: u16, storage_path: PathBuf) -> std::io::Result<()> {
+    // Spin up the background health checker
+    let health_store = Arc::new(RwLock::new(HealthStore::new()));
+    let checker = HealthChecker::new(Arc::clone(&health_store), Duration::from_secs(30));
+    checker.start();
+
     let data = web::Data::new(AppState {
         storage_path,
         start_time: Instant::now(),
+        health_store,
     });
 
     let has_frontend = FRONTEND.get_file("index.html").is_some();
@@ -100,7 +111,7 @@ pub async fn run_server(host: &str, port: u16, storage_path: PathBuf) -> std::io
     HttpServer::new(move || {
         let cors = Cors::default()
             .allow_any_origin()
-            .allowed_methods(vec!["GET", "OPTIONS"])
+            .allowed_methods(vec!["GET", "DELETE", "POST", "OPTIONS"])
             .allowed_headers(vec!["Content-Type"])
             .max_age(3600);
 
@@ -118,6 +129,9 @@ pub async fn run_server(host: &str, port: u16, storage_path: PathBuf) -> std::io
             .service(handlers::get_timeseries)
             .service(handlers::export_atif_trace)
             .service(handlers::export_atif_session)
+            .service(handlers::get_agent_health)
+            .service(handlers::delete_agent_health)
+            .service(handlers::restart_agent_health)
             // Frontend static files (catch-all, must be last)
             .service(serve_frontend)
     })

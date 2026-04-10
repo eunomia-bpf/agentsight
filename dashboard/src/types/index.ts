@@ -164,7 +164,27 @@ export interface TraceData {
   events: TraceEvent[];
 }
 
-// ==================== ATIF v1.6 Types ====================
+// ==================== Agent Health Types ====================
+
+export interface AgentHealthStatus {
+  pid: number;
+  agent_name: string;
+  category: string;
+  exe_path: string;
+  ports: number[];
+  status: 'healthy' | 'unhealthy' | 'hung' | 'unknown' | 'no_port' | 'offline';
+  last_check_time: number;
+  latency_ms: number | null;
+  error_message: string | null;
+  /** 用于重启的完整命令行，undefined 表示不支持重启 */
+  restart_cmd?: string[];
+}
+
+export interface AgentHealthResponse {
+  agents: AgentHealthStatus[];
+  last_scan_time: number;
+}
+
 
 export interface AtifToolCall {
   tool_call_id: string;

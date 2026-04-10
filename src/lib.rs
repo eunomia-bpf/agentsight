@@ -36,6 +36,7 @@ pub mod analyzer;
 pub mod storage;
 pub mod chrome_trace;
 pub mod discovery;
+pub mod health;
 pub mod tokenizer;
 pub mod genai;
 pub mod atif;
