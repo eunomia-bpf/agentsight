@@ -3,8 +3,8 @@
 //! This module provides the default list of AI coding assistants and agents
 //! that can be automatically discovered on the system.
 
-use super::agent::AgentInfo;
 use super::agents::cosh::CoshMatcher;
+use super::agents::openclaw::OpenClawMatcher;
 use super::matcher::AgentMatcher;
 
 /// Returns a list of known AI agent matchers
@@ -13,13 +13,8 @@ use super::matcher::AgentMatcher;
 /// and agents that can be discovered on the system.
 pub fn known_agents() -> Vec<Box<dyn AgentMatcher>> {
     vec![
-        // OpenClaw
-        Box::new(AgentInfo::new(
-            "OpenClaw",
-            vec!["openclaw-gatewa"],
-            "OpenClaw - open-source AI personal assistant",
-            "personal-assistant",
-        )),
+        // OpenClaw (custom matcher: handles both direct binary and node startup)
+        Box::new(OpenClawMatcher::new()),
         // Cosh (custom matcher: node + /usr/bin/co)
         Box::new(CoshMatcher::new()),
     ]

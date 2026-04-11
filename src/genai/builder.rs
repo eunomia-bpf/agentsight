@@ -349,6 +349,22 @@ impl GenAIBuilder {
                                     parts.push(MessagePart::Text { content: text.clone() });
                                 }
                             }
+                            crate::analyzer::message::AnthropicContentBlock::ToolUse { id, name, input } => {
+                                // Anthropic tool_use: convert to MessagePart::ToolCall
+                                parts.push(MessagePart::ToolCall {
+                                    id: Some(id.clone()),
+                                    name: name.clone(),
+                                    arguments: Some(input.clone()),
+                                });
+                            }
+                            crate::analyzer::message::AnthropicContentBlock::ToolResult { tool_use_id, content, .. } => {
+                                // Anthropic tool_result: convert to MessagePart::ToolCallResponse
+                                let response_val = content.clone().unwrap_or(serde_json::Value::Null);
+                                parts.push(MessagePart::ToolCallResponse {
+                                    id: Some(tool_use_id.clone()),
+                                    response: response_val,
+                                });
+                            }
                             _ => {}
                         }
                     }
@@ -381,14 +397,24 @@ impl GenAIBuilder {
                 if let Some(msg) = msgs.first_mut() {
                     if msg.role == "assistant" {
                         let has_reasoning = msg.parts.iter().any(|p| matches!(p, MessagePart::Reasoning { .. }));
+                        // Check if any tool_call is missing id
+                        let has_tool_calls_without_id = msg.parts.iter().any(|p| {
+                            matches!(p, MessagePart::ToolCall { id, .. } if id.is_none())
+                        });
                         let has_tool_calls = msg.parts.iter().any(|p| matches!(p, MessagePart::ToolCall { .. }));
+
                         if let Some((extra, sse_finish)) = Self::extract_parts_from_sse_body(body) {
                             if !has_reasoning {
                                 if let Some(r) = extra.iter().find(|p| matches!(p, MessagePart::Reasoning { .. })) {
                                     msg.parts.insert(0, r.clone());
                                 }
                             }
-                            if !has_tool_calls {
+                            // Always try to enrich tool_calls if missing id or no tool_calls
+                            if !has_tool_calls || has_tool_calls_without_id {
+                                // Remove existing tool_calls without id, replace with SSE ones
+                                if has_tool_calls_without_id {
+                                    msg.parts.retain(|p| !matches!(p, MessagePart::ToolCall { id, .. } if id.is_none()));
+                                }
                                 for p in extra.into_iter().filter(|p| matches!(p, MessagePart::ToolCall { .. })) {
                                     msg.parts.push(p);
                                 }
@@ -741,7 +767,9 @@ impl GenAIBuilder {
         // tool_call delta merging: index -> (id, name, arguments_accumulated)
         let mut tc_map: HashMap<u32, (String, String, String)> = HashMap::new();
 
-        for chunk in &chunks {
+        log::debug!("[GenAI] Parsing SSE body with {} chunks", chunks.len());
+
+        for (chunk_idx, chunk) in chunks.iter().enumerate() {
             let choices = chunk.get("choices").and_then(|c| c.as_array());
             let choices = match choices {
                 Some(c) => c,
@@ -767,7 +795,10 @@ impl GenAIBuilder {
                         let entry = tc_map.entry(idx)
                             .or_insert_with(|| (String::new(), String::new(), String::new()));
                         if let Some(id) = tc.get("id").and_then(|v| v.as_str()) {
-                            entry.0 = id.to_string();
+                            if !id.is_empty() {
+                                entry.0 = id.to_string();
+                            }
+                            // 空字符串不覆盖已有的 id
                         }
                         if let Some(func) = tc.get("function") {
                             if let Some(name) = func.get("name").and_then(|v| v.as_str()) {

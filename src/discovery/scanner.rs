@@ -90,21 +90,25 @@ impl AgentScanner {
     ///
     /// # Arguments
     /// * `pid` - Process ID
-    /// * `comm` - Process command name (from BPF event)
+    /// * `comm` - Process command name (from BPF event, already updated at sys_exit_execve)
     ///
     /// # Returns
     ///
     /// `Some(DiscoveredAgent)` if the process is a known agent, `None` otherwise.
-    pub fn on_process_create(&mut self, pid: u32, _comm: &str) -> Option<&DiscoveredAgent> {
-        // NOTE: We ignore the BPF comm because at sys_enter_execve time,
-        // the process hasn't completed execve yet, so comm is the OLD name.
-        // We read the actual comm from /proc/[pid]/comm instead.
-        
-        // Read actual process name from /proc/[pid]/comm
-        let comm_path = format!("/proc/{}/comm", pid);
-        let comm = fs::read_to_string(&comm_path)
-            .map(|s| s.trim().to_string())
-            .unwrap_or_default();
+    pub fn on_process_create(&mut self, pid: u32, bpf_comm: &str) -> Option<&DiscoveredAgent> {
+        // Use BPF comm as primary source (already updated at sys_exit_execve time).
+        // Fallback to /proc/[pid]/comm only if BPF comm is empty or too short.
+        let comm = if bpf_comm.len() >= 3 {
+            bpf_comm.to_string()
+        } else {
+            // Fallback: read from /proc/[pid]/comm
+            let comm_path = format!("/proc/{}/comm", pid);
+            fs::read_to_string(&comm_path)
+                .ok()
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .unwrap_or_else(|| bpf_comm.to_string())
+        };
         
         // Read full command line from /proc/[pid]/cmdline
         let cmdline_args = read_cmdline(&format!("/proc/{}/cmdline", pid));

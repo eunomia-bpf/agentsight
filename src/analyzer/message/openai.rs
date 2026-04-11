@@ -159,7 +159,10 @@ impl OpenAIParser {
                             let entry = tool_call_map.entry(idx)
                                 .or_insert_with(|| (String::new(), String::new(), String::new()));
                             if let Some(id) = tc.get("id").and_then(|v| v.as_str()) {
-                                entry.0 = id.to_string();
+                                if !id.is_empty() {
+                                    entry.0 = id.to_string();
+                                }
+                                // 空字符串不覆盖已有的 id
                             }
                             if let Some(func) = tc.get("function") {
                                 if let Some(name) = func.get("name").and_then(|v| v.as_str()) {
