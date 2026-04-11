@@ -38,7 +38,7 @@ impl AgentMatcher for CoshMatcher {
         // Match: node runtime with "/usr/bin/co", "/usr/bin/cosh" or "/usr/bin/copliot" in cmdline args
         let is_node = match_name_with_version_suffix(&comm_lower, "node");
         let has_co = ctx.cmdline_args.iter().any(|arg| {
-            arg == "/usr/bin/co" || arg == "/usr/bin/cosh" || arg == "/usr/bin/copliot"
+            arg == "/usr/bin/co" || arg == "/usr/bin/cosh" || arg == "/usr/bin/copliot" || arg == "/usr/local/lib/copilot-shell/cli.js"
         });
 
         is_node && has_co

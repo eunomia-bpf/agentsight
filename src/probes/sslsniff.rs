@@ -555,6 +555,7 @@ fn ssl_libs_from_maps(pid: i32) -> Result<Vec<(String, u64, SslLibKind)>> {
         }
         if let Some(kind) = classify_ssl_lib(&path_str) {
             seen_inodes.insert(inode);
+            let path_str = format!("/proc/{pid}/root{}", path_str);
             results.push((path_str, inode, kind));
         }
     }
