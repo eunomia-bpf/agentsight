@@ -110,16 +110,22 @@ int handle_exec(struct trace_event_raw_sched_process_exec *ctx)
 
 	/* Read command line from userspace memory */
 	if (arg_len > 0) {
-		long ret = bpf_probe_read_user_str(&e->full_command, arg_len + 1, (void *)arg_start);
+		/* Use bpf_probe_read_user to read full argv block (not _str which stops at first \0) */
+		long ret = bpf_probe_read_user(&e->full_command, arg_len, (void *)arg_start);
 		if (ret < 0) {
 			/* Fallback to just comm if we can't read cmdline */
 			bpf_probe_read_kernel_str(&e->full_command, sizeof(e->full_command), e->comm);
 		} else {
-			/* Replace null bytes with spaces for readability */
-			for (int i = 0; i < MAX_COMMAND_LEN - 1 && i < ret - 1; i++) {
+			/* Replace null bytes between argv entries with spaces */
+			for (int i = 0; i < MAX_COMMAND_LEN - 1 && i < (int)arg_len - 1; i++) {
 				if (e->full_command[i] == '\0')
 					e->full_command[i] = ' ';
 			}
+			/* Ensure null termination */
+			if (arg_len < MAX_COMMAND_LEN)
+				e->full_command[arg_len] = '\0';
+			else
+				e->full_command[MAX_COMMAND_LEN - 1] = '\0';
 		}
 	} else {
 		/* No arguments, use comm */
