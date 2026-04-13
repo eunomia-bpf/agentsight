@@ -172,14 +172,25 @@ int handle_exec(struct trace_event_raw_sched_process_exec *ctx)
 		arg_len = MAX_COMMAND_LEN - 1;
 
 	if (arg_len > 0) {
-		long ret = bpf_probe_read_user_str(&e->full_command, arg_len + 1, (void *)arg_start);
+		/* Use bpf_probe_read_user (not _str) to read the entire argv block.
+		 * argv in memory: "chmod\0+x\0/path/file\0"
+		 * _str variant stops at first \0, losing all arguments after argv[0].
+		 * _user reads raw bytes so we get the full command line. */
+		long ret = bpf_probe_read_user(&e->full_command, arg_len, (void *)arg_start);
 		if (ret < 0) {
 			bpf_probe_read_kernel_str(&e->full_command, sizeof(e->full_command), e->comm);
 		} else {
-			for (int i = 0; i < MAX_COMMAND_LEN - 1 && i < ret - 1; i++) {
+			/* Replace \0 separators between argv entries with spaces.
+			 * Keep the last byte as \0 terminator for the C string. */
+			for (int i = 0; i < MAX_COMMAND_LEN - 1 && i < (int)arg_len - 1; i++) {
 				if (e->full_command[i] == '\0')
 					e->full_command[i] = ' ';
 			}
+			/* Ensure null termination */
+			if (arg_len < MAX_COMMAND_LEN)
+				e->full_command[arg_len] = '\0';
+			else
+				e->full_command[MAX_COMMAND_LEN - 1] = '\0';
 		}
 	} else {
 		bpf_probe_read_kernel_str(&e->full_command, sizeof(e->full_command), e->comm);

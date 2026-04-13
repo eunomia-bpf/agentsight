@@ -64,37 +64,24 @@ impl Runner for ProcessRunner {
         let json_stream = self.executor.get_json_stream().await?;
         
         // Convert JSON values directly to framework Events
-        let event_stream = json_stream.map(|json_value| {
-            // Extract timestamp if available, otherwise use current time
+        // Filter out metadata events (CLOCK_SYNC etc.) that lack pid/comm
+        let event_stream = json_stream.filter_map(|json_value| async move {
+            let pid = json_value.get("pid").and_then(|v| v.as_u64()).map(|p| p as u32)?;
             let timestamp = json_value.get("timestamp")
                 .and_then(|v| v.as_u64())
-                .unwrap_or_else(|| {
-                    panic!("Missing timestamp field in process event: {}", json_value);
-                });
-            
-            // Extract pid - panic if not found
-            let pid = json_value.get("pid")
-                .and_then(|v| v.as_u64())
-                .map(|p| p as u32)
-                .unwrap_or_else(|| {
-                    panic!("Missing pid field in process event: {}", json_value);
-                });
-            
-            // Extract comm - panic if not found
+                .unwrap_or(0);
             let comm = json_value.get("comm")
                 .and_then(|v| v.as_str())
-                .unwrap_or_else(|| {
-                    panic!("Missing comm field in process event: {}", json_value);
-                })
+                .unwrap_or("unknown")
                 .to_string();
             
-            Event::new_with_timestamp(
+            Some(Event::new_with_timestamp(
                 timestamp,
-                "process".to_string(), // source is runner name
+                "process".to_string(),
                 pid,
                 comm,
                 json_value,
-            )
+            ))
         });
         
         AnalyzerProcessor::process_through_analyzers(Box::pin(event_stream), &mut self.analyzers).await

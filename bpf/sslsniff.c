@@ -22,6 +22,8 @@
 
 #include "sslsniff.skel.h"
 #include "sslsniff.h"
+#include "container_utils.h"
+#include "container_info.h"
 
 #define INVALID_UID -1
 #define INVALID_PID -1
@@ -393,6 +395,86 @@ int attach_openssl_by_offset(struct sslsniff_bpf *skel, const char *lib,
 	return 0;
 }
 
+
+/*
+ * Attach OpenSSL uprobe to a container library path.
+ * Uses dynamic link management instead of skel->links to support
+ * multiple simultaneous uprobe attachments across containers.
+ */
+int attach_openssl_container(struct sslsniff_bpf *skel, const char *lib) {
+    LIBBPF_OPTS(bpf_uprobe_opts, opts);
+    struct bpf_link *link;
+    int attached = 0;
+
+    const char *sym_names[] = {"SSL_write", "SSL_read"};
+    struct bpf_program *entry_progs[] = {
+        skel->progs.probe_SSL_rw_enter,
+        skel->progs.probe_SSL_rw_enter,
+    };
+    struct bpf_program *exit_progs[] = {
+        skel->progs.probe_SSL_write_exit,
+        skel->progs.probe_SSL_read_exit,
+    };
+
+    for (int i = 0; i < 2; i++) {
+        /* entry */
+        opts.func_name = sym_names[i];
+        opts.retprobe = false;
+        link = bpf_program__attach_uprobe_opts(entry_progs[i], -1, lib, 0, &opts);
+        if (link) {
+            add_dynamic_link(link);
+            attached++;
+        }
+        /* return */
+        opts.retprobe = true;
+        link = bpf_program__attach_uprobe_opts(exit_progs[i], -1, lib, 0, &opts);
+        if (link) {
+            add_dynamic_link(link);
+            attached++;
+        }
+    }
+
+    /* SSL_write_ex / SSL_read_ex */
+    const char *ex_sym_names[] = {"SSL_write_ex", "SSL_read_ex"};
+    struct bpf_program *ex_entry_progs[] = {
+        skel->progs.probe_SSL_write_ex_enter,
+        skel->progs.probe_SSL_read_ex_enter,
+    };
+    struct bpf_program *ex_exit_progs[] = {
+        skel->progs.probe_SSL_write_ex_exit,
+        skel->progs.probe_SSL_read_ex_exit,
+    };
+
+    for (int i = 0; i < 2; i++) {
+        opts.func_name = ex_sym_names[i];
+        opts.retprobe = false;
+        link = bpf_program__attach_uprobe_opts(ex_entry_progs[i], -1, lib, 0, &opts);
+        if (link) {
+            add_dynamic_link(link);
+            attached++;
+        }
+        opts.retprobe = true;
+        link = bpf_program__attach_uprobe_opts(ex_exit_progs[i], -1, lib, 0, &opts);
+        if (link) {
+            add_dynamic_link(link);
+            attached++;
+        }
+    }
+
+    /* SSL_do_handshake */
+    opts.func_name = "SSL_do_handshake";
+    opts.retprobe = false;
+    link = bpf_program__attach_uprobe_opts(skel->progs.probe_SSL_do_handshake_enter, -1, lib, 0, &opts);
+    if (link) { add_dynamic_link(link); attached++; }
+
+    opts.retprobe = true;
+    link = bpf_program__attach_uprobe_opts(skel->progs.probe_SSL_do_handshake_exit, -1, lib, 0, &opts);
+    if (link) { add_dynamic_link(link); attached++; }
+
+    fprintf(stderr, "Container uprobe: attached %d probes to %s\n", attached, lib);
+    return attached > 0 ? 0 : -1;
+}
+
 /*
  * Find the path of a library using ldconfig.
  */
@@ -607,6 +689,9 @@ void print_event(struct probe_SSL_data_t *event, const char *evt) {
 		printf("\"data\":null,\"truncated\":false");
 	}
 
+	// Container info (ns_pid, container_id) if applicable
+	print_container_fields(event->pid);
+
 	// Close JSON object
 	printf("}\n");
 	fflush(stdout);
@@ -663,14 +748,47 @@ int main(int argc, char **argv) {
 	}
 
 	if (env.openssl) {
-		char *openssl_path = find_library_path("libssl.so");
-		if (verbose) {
-			fprintf(stderr, "OpenSSL path: %s\n", openssl_path ? openssl_path : "not found");
+		char *openssl_path = NULL;
+
+		if (env.pid > 0) {
+			/* Specified PID: resolve SSL lib from that process's maps
+			 * (works for container processes) */
+			openssl_path = find_library_path_for_pid(env.pid, "libssl.so", verbose);
+			if (verbose)
+				fprintf(stderr, "OpenSSL path (via PID %d maps): %s\n",
+						env.pid, openssl_path ? openssl_path : "not found");
 		}
+
+		if (!openssl_path) {
+			/* Fallback: host ldconfig */
+			openssl_path = find_library_path("libssl.so");
+			if (verbose)
+				fprintf(stderr, "OpenSSL path (host ldconfig): %s\n",
+						openssl_path ? openssl_path : "not found");
+		}
+
 		if (openssl_path) {
 			attach_openssl(obj, openssl_path);
 		} else {
 			warn("OpenSSL library not found\n");
+		}
+
+		/* Scan for additional SSL libraries in container processes */
+		if (env.pid <= 0) {
+			struct pid_lib_entry entries[MAX_CONTAINER_LIBS];
+			int count = find_pids_with_library("libssl.so", entries,
+							   MAX_CONTAINER_LIBS, verbose);
+			for (int i = 0; i < count; i++) {
+				/* Skip if same as host lib already attached */
+				if (openssl_path &&
+				    strcmp(entries[i].lib_path, openssl_path) == 0)
+					continue;
+				if (verbose)
+					fprintf(stderr,
+						"Attaching uprobe to container lib: %s\n",
+						entries[i].lib_path);
+				attach_openssl_container(obj, entries[i].lib_path);
+			}
 		}
 	}
 	if (env.gnutls) {
@@ -750,6 +868,7 @@ int main(int argc, char **argv) {
 	}
 
 cleanup:
+	cleanup_dynamic_links();
 	if (event_buf) {
 		free(event_buf);
 		event_buf = NULL;
