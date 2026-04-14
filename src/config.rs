@@ -307,8 +307,10 @@ impl AgentsightConfig {
 ///
 /// Returns `$HOME/.agentsight` or `/tmp/.agentsight` if HOME is not set
 pub fn default_base_path() -> PathBuf {
-    let home = "/var/log/sysak/";
-    PathBuf::from(home).join(".agentsight")
+    std::env::var_os("HOME")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("/tmp"))
+        .join(".agentsight")
 }
 
 /// Convert BPF ktime (nanoseconds since boot) to Unix timestamp (nanoseconds since epoch)
