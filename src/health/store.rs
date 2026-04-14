@@ -69,7 +69,8 @@ impl HealthStore {
     }
 
     /// Mark stale PIDs as Offline instead of removing them outright.
-    /// Already-offline entries are left untouched (preserve offline_since time).
+    /// Already-offline entries are left untouched, preserving the existing
+    /// `last_check_time` value that was set when they were first marked offline.
     pub fn mark_stale_offline(&mut self, active_pids: &HashSet<u32>) -> Vec<AgentHealthStatus> {
         let mut newly_offline = Vec::new();
         for (pid, entry) in self.agents.iter_mut() {
