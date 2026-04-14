@@ -61,7 +61,7 @@ pub fn set_verbose(v: bool) {
             std::env::set_var("RUST_LOG", level);
         }
     }
-    env_logger::init();
+    let _ = env_logger::try_init();
 }
 
 pub fn verbose() -> bool {
