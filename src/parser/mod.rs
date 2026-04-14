@@ -13,10 +13,10 @@
 //!
 //! // Parse and aggregate
 //! for ssl_event in ssl_events {
-//!     if let Some(msg) = http_parser.parse(rc_event.clone()) {
+//!     if let Some(msg) = http_parser.parse(ssl_event.clone()) {
 //!         // Handle HTTP message
 //!     } else {
-//!         let sse_events = sse_parser.parse(rc_event);
+//!         let sse_events = sse_parser.parse(ssl_event);
 //!         // Handle SSE events
 //!     }
 //! }
