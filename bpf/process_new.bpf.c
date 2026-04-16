@@ -175,8 +175,14 @@ int handle_exec(struct trace_event_raw_sched_process_exec *ctx)
 		/* Use bpf_probe_read_user (not _str) to read the entire argv block.
 		 * argv in memory: "chmod\0+x\0/path/file\0"
 		 * _str variant stops at first \0, losing all arguments after argv[0].
-		 * _user reads raw bytes so we get the full command line. */
-		long ret = bpf_probe_read_user(&e->full_command, arg_len, (void *)arg_start);
+		 * _user reads raw bytes so we get the full command line.
+		 *
+		 * The bitmask (& (MAX_COMMAND_LEN - 1)) is required to satisfy the
+		 * BPF verifier: it needs a provably bounded size for the read. The
+		 * clamp above already limits arg_len, but some kernel versions cannot
+		 * track the range of unsigned long through an if-statement alone. */
+		arg_len &= (MAX_COMMAND_LEN - 1);
+		long ret = bpf_probe_read_user(&e->full_command, arg_len + 1, (void *)arg_start);
 		if (ret < 0) {
 			bpf_probe_read_kernel_str(&e->full_command, sizeof(e->full_command), e->comm);
 		} else {
