@@ -110,8 +110,10 @@ int handle_exec(struct trace_event_raw_sched_process_exec *ctx)
 
 	/* Read command line from userspace memory */
 	if (arg_len > 0) {
-		/* Use bpf_probe_read_user to read full argv block (not _str which stops at first \0) */
-		long ret = bpf_probe_read_user(&e->full_command, arg_len, (void *)arg_start);
+		/* Use bpf_probe_read_user to read full argv block (not _str which stops at first \0)
+		 * Bitmask required for BPF verifier to prove bounded memory access. */
+		arg_len &= (MAX_COMMAND_LEN - 1);
+		long ret = bpf_probe_read_user(&e->full_command, arg_len + 1, (void *)arg_start);
 		if (ret < 0) {
 			/* Fallback to just comm if we can't read cmdline */
 			bpf_probe_read_kernel_str(&e->full_command, sizeof(e->full_command), e->comm);
