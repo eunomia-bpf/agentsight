@@ -722,7 +722,7 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
 				       "\"comm\":\"%s\",\"pid\":%d,\"ppid\":%d",
 				       (unsigned long long)timestamp_ns, e->comm, e->pid, e->ppid);
 				printf(",\"filename\":\"%s\"", e->filename);
-				printf(",\"full_command\":\"%s\"", e->full_command);
+				printf(",\"full_command\":\"%s\"", postprocess_full_command(e->full_command, MAX_COMMAND_LEN, e->exit_code));
 
 				/* Memory info at exec */
 				struct proc_mem_info mem;
@@ -745,7 +745,7 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
 				       "\"comm\":\"%s\",\"pid\":%d,\"ppid\":%d",
 				       (unsigned long long)timestamp_ns, e->comm, e->pid, e->ppid);
 				printf(",\"filename\":\"%s\"", e->filename);
-				printf(",\"full_command\":\"%s\"", e->full_command);
+				printf(",\"full_command\":\"%s\"", postprocess_full_command(e->full_command, MAX_COMMAND_LEN, e->exit_code));
 				print_container_fields(e->pid);
 				printf("}\n");
 				fflush(stdout);

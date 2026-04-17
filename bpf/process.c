@@ -534,7 +534,7 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
 					printf("\"pid\":%d,", e->pid);
 					printf("\"ppid\":%d", e->ppid);
 					printf(",\"filename\":\"%s\"", e->filename);
-					printf(",\"full_command\":\"%s\"", e->full_command);
+					printf(",\"full_command\":\"%s\"", postprocess_full_command(e->full_command, MAX_COMMAND_LEN, e->exit_code));
 					printf("}\n");
 					fflush(stdout);
 				} else if (tracker->filter_mode == FILTER_MODE_FILTER) {
@@ -553,7 +553,7 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
 					printf("\"pid\":%d,", e->pid);
 					printf("\"ppid\":%d", e->ppid);
 					printf(",\"filename\":\"%s\"", e->filename);
-					printf(",\"full_command\":\"%s\"", e->full_command);
+					printf(",\"full_command\":\"%s\"", postprocess_full_command(e->full_command, MAX_COMMAND_LEN, e->exit_code));
 					printf("}\n");
 					fflush(stdout);
 				}

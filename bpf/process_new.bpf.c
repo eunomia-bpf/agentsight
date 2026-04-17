@@ -162,7 +162,7 @@ int handle_exec(struct trace_event_raw_sched_process_exec *ctx)
 
 	fname_off = ctx->__data_loc_filename & 0xFFFF;
 	bpf_probe_read_str(&e->filename, sizeof(e->filename), (void *)ctx + fname_off);
-
+	/* Capture full command line with arguments from mm->arg_start */
 	struct mm_struct *mm = BPF_CORE_READ(task, mm);
 	unsigned long arg_start = BPF_CORE_READ(mm, arg_start);
 	unsigned long arg_end = BPF_CORE_READ(mm, arg_end);
@@ -172,22 +172,45 @@ int handle_exec(struct trace_event_raw_sched_process_exec *ctx)
 		arg_len = MAX_COMMAND_LEN - 1;
 
 	if (arg_len > 0) {
-		long ret = bpf_probe_read_user_str(&e->full_command, arg_len + 1, (void *)arg_start);
+		/*
+		 * Read the full argv block using bpf_probe_read_user (not _str).
+		 * _str stops at first \0 and only captures argv[0].
+		 * _user reads raw bytes: "chmod\0+x\0/path\0" -- we get all args.
+		 *
+		 * We always read exactly MAX_COMMAND_LEN-1 bytes (a compile-time
+		 * constant) so that BPF verifiers on all kernel versions can
+		 * prove the access is bounded.  This may read past arg_end into
+		 * environment variables, but userspace trims to arg_len.
+		 *
+		 * NO LOOPS in BPF -- all post-processing (\0->space, trimming)
+		 * is done in userspace to stay within the verifier instruction
+		 * limit on kernel 5.15 (1,000,000 insns).
+		 */
+		long ret = bpf_probe_read_user(e->full_command,
+					MAX_COMMAND_LEN - 1,
+					(void *)arg_start);
 		if (ret < 0) {
-			bpf_probe_read_kernel_str(&e->full_command, sizeof(e->full_command), e->comm);
+			bpf_probe_read_kernel_str(e->full_command,
+					  sizeof(e->full_command),
+					  e->comm);
+			e->full_command[MAX_COMMAND_LEN - 1] = '\0';
 		} else {
-			for (int i = 0; i < MAX_COMMAND_LEN - 1 && i < ret - 1; i++) {
-				if (e->full_command[i] == '\0')
-					e->full_command[i] = ' ';
-			}
+			e->full_command[MAX_COMMAND_LEN - 1] = '\0';
 		}
+		/* Store actual arg_len in exit_code for userspace trimming.
+		 * exec events don't use exit_code, so this field is free. */
+		arg_len &= (MAX_COMMAND_LEN - 1);
+		e->exit_code = (unsigned)arg_len;
 	} else {
-		bpf_probe_read_kernel_str(&e->full_command, sizeof(e->full_command), e->comm);
+		bpf_probe_read_kernel_str(e->full_command,
+				  sizeof(e->full_command), e->comm);
+		e->exit_code = 0;
 	}
 
 	bpf_ringbuf_submit(e, 0);
 	return 0;
 }
+
 
 SEC("tp/sched/sched_process_exit")
 int handle_exit(struct trace_event_raw_sched_process_template *ctx)
