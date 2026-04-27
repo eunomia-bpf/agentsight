@@ -450,7 +450,8 @@ export function adaptSSLEvent(event: ParsedEvent): UnifiedBlockData {
     const sslData = metadata.data || '';
 
     if (sslData && typeof sslData === 'string' && sslData.length > 0) {
-      const preview = sslData.replace(/\r\n/g, ' ').replace(/\n/g, ' ').substring(0, 120);
+      const previewSource = sslData.slice(0, 240);
+      const preview = previewSource.replace(/\r\n/g, ' ').replace(/\n/g, ' ').substring(0, 120);
       foldContent = preview + (sslData.length > 120 ? '...' : '');
     } else {
       foldContent = comm ? `${size} bytes - ${comm}` : `${size} bytes`;

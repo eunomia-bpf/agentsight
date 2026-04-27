@@ -142,13 +142,20 @@ static int find_pids_with_library(const char *libname,
     struct dirent *ent;
     int count = 0;
 
-    /* simple dedup by host path */
-    char seen[MAX_CONTAINER_LIBS][PATH_MAX];
+    /* Heap-allocated dedup array to avoid 256KB stack allocation */
+    char (*seen)[PATH_MAX] = calloc(MAX_CONTAINER_LIBS, PATH_MAX);
     int  seen_count = 0;
 
-    proc_dir = opendir("/proc");
-    if (!proc_dir)
+    if (!seen) {
+        fprintf(stderr, "Failed to allocate dedup buffer\n");
         return 0;
+    }
+
+    proc_dir = opendir("/proc");
+    if (!proc_dir) {
+        free(seen);
+        return 0;
+    }
 
     while ((ent = readdir(proc_dir)) && count < max_entries) {
         pid_t pid = atoi(ent->d_name);
@@ -170,11 +177,15 @@ static int find_pids_with_library(const char *libname,
         if (dup)
             continue;
 
-        if (seen_count < MAX_CONTAINER_LIBS)
-            strncpy(seen[seen_count++], path, PATH_MAX);
+        if (seen_count < MAX_CONTAINER_LIBS) {
+            strncpy(seen[seen_count], path, PATH_MAX - 1);
+            seen[seen_count][PATH_MAX - 1] = '\0';
+            seen_count++;
+        }
 
         entries[count].pid = pid;
-        strncpy(entries[count].lib_path, path, PATH_MAX);
+        strncpy(entries[count].lib_path, path, PATH_MAX - 1);
+        entries[count].lib_path[PATH_MAX - 1] = '\0';
         count++;
 
         if (verbose)
@@ -183,6 +194,7 @@ static int find_pids_with_library(const char *libname,
     }
 
     closedir(proc_dir);
+    free(seen);
     return count;
 }
 

@@ -22,6 +22,7 @@
 #include "process_ext/map_flush.h"
 #include "process_ext/mem_info.h"
 #include "process_ext/resource_sampler.h"
+#include "container_info.h"
 
 #define MAX_COMMAND_LIST 256
 #define FILE_DEDUP_WINDOW_NS 60000000000ULL  /* 60 seconds */
@@ -99,7 +100,6 @@ static int g_exit_mem_fd = -1;
 
 /* Page size for memory info */
 
-#include "container_info.h"
 
 static long page_size_kb;
 

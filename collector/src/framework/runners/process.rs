@@ -69,7 +69,13 @@ impl Runner for ProcessRunner {
             let pid = json_value.get("pid").and_then(|v| v.as_u64()).map(|p| p as u32)?;
             let timestamp = json_value.get("timestamp")
                 .and_then(|v| v.as_u64())
-                .unwrap_or(0);
+                .unwrap_or_else(|| {
+                    use std::time::{SystemTime, UNIX_EPOCH};
+                    SystemTime::now()
+                        .duration_since(UNIX_EPOCH)
+                        .map(|d| d.as_nanos() as u64)
+                        .unwrap_or(0)
+                });
             let comm = json_value.get("comm")
                 .and_then(|v| v.as_str())
                 .unwrap_or("unknown")

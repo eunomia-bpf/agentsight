@@ -421,16 +421,22 @@ int attach_openssl_container(struct sslsniff_bpf *skel, const char *lib) {
         opts.func_name = sym_names[i];
         opts.retprobe = false;
         link = bpf_program__attach_uprobe_opts(entry_progs[i], -1, lib, 0, &opts);
-        if (link) {
+        if (!libbpf_get_error(link)) {
             add_dynamic_link(link);
             attached++;
+        }
+        else {
+            link = NULL;
         }
         /* return */
         opts.retprobe = true;
         link = bpf_program__attach_uprobe_opts(exit_progs[i], -1, lib, 0, &opts);
-        if (link) {
+        if (!libbpf_get_error(link)) {
             add_dynamic_link(link);
             attached++;
+        }
+        else {
+            link = NULL;
         }
     }
 
@@ -449,15 +455,21 @@ int attach_openssl_container(struct sslsniff_bpf *skel, const char *lib) {
         opts.func_name = ex_sym_names[i];
         opts.retprobe = false;
         link = bpf_program__attach_uprobe_opts(ex_entry_progs[i], -1, lib, 0, &opts);
-        if (link) {
+        if (!libbpf_get_error(link)) {
             add_dynamic_link(link);
             attached++;
         }
+        else {
+            link = NULL;
+        }
         opts.retprobe = true;
         link = bpf_program__attach_uprobe_opts(ex_exit_progs[i], -1, lib, 0, &opts);
-        if (link) {
+        if (!libbpf_get_error(link)) {
             add_dynamic_link(link);
             attached++;
+        }
+        else {
+            link = NULL;
         }
     }
 
@@ -465,13 +477,16 @@ int attach_openssl_container(struct sslsniff_bpf *skel, const char *lib) {
     opts.func_name = "SSL_do_handshake";
     opts.retprobe = false;
     link = bpf_program__attach_uprobe_opts(skel->progs.probe_SSL_do_handshake_enter, -1, lib, 0, &opts);
-    if (link) { add_dynamic_link(link); attached++; }
+    if (!libbpf_get_error(link)) { add_dynamic_link(link); attached++; }
+    else { link = NULL; }
 
     opts.retprobe = true;
     link = bpf_program__attach_uprobe_opts(skel->progs.probe_SSL_do_handshake_exit, -1, lib, 0, &opts);
-    if (link) { add_dynamic_link(link); attached++; }
+    if (!libbpf_get_error(link)) { add_dynamic_link(link); attached++; }
+    else { link = NULL; }
 
-    fprintf(stderr, "Container uprobe: attached %d probes to %s\n", attached, lib);
+    if (verbose)
+        fprintf(stderr, "Container uprobe: attached %d probes to %s\n", attached, lib);
     return attached > 0 ? 0 : -1;
 }
 
