@@ -4,6 +4,7 @@
 'use client';
 
 import React from 'react';
+import { useTranslation } from '@/i18n';
 
 interface UploadPanelProps {
   logContent: string;
@@ -22,18 +23,19 @@ export function UploadPanel({
   onTextPaste,
   onParseLog
 }: UploadPanelProps) {
+  const { t } = useTranslation();
   const sampleLogPath = 'collector/ssl.log';
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-6">
       <h2 className="text-xl font-semibold text-gray-900 mb-4">
-        Upload Log File
+        {t('upload.title')}
       </h2>
       
       <div className="space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Choose log file
+            {t('upload.chooseFile')}
           </label>
           <input
             type="file"
@@ -44,15 +46,15 @@ export function UploadPanel({
         </div>
         
         <div className="text-center text-gray-500">
-          <span>or</span>
+          <span>{t('upload.or')}</span>
         </div>
         
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Paste log content
+            {t('upload.pasteContent')}
           </label>
           <textarea
-            placeholder={`Paste log content here (e.g., from ${sampleLogPath})`}
+            placeholder={t('upload.pastePlaceholder', { path: sampleLogPath })}
             className="w-full h-32 p-3 border border-gray-300 rounded-md font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             onChange={(e) => onTextPaste(e.target.value)}
             value={logContent}
@@ -67,7 +69,7 @@ export function UploadPanel({
             onClick={onParseLog}
             className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
-            Parse Log
+            {t('upload.parseLog')}
           </button>
         </div>
       )}
@@ -81,7 +83,7 @@ export function UploadPanel({
       {loading && (
         <div className="mt-4 flex items-center justify-center">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-          <span className="ml-2 text-gray-600">Parsing log content...</span>
+          <span className="ml-2 text-gray-600">{t('upload.parsing')}</span>
         </div>
       )}
     </div>

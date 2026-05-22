@@ -5,6 +5,7 @@
 
 import { useState, useMemo } from 'react';
 import { Event } from '@/types/event';
+import { useTranslation } from '@/i18n';
 
 interface ResourceMetrics {
   timestamp: number;
@@ -28,6 +29,7 @@ interface ResourceMetricsViewProps {
 export function ResourceMetricsView({ events }: ResourceMetricsViewProps) {
   const [selectedProcess, setSelectedProcess] = useState<string>('all');
   const [metricType, setMetricType] = useState<'cpu' | 'memory'>('cpu');
+  const { t } = useTranslation();
 
   // Extract system events and convert to metrics
   const metrics = useMemo(() => {
@@ -118,9 +120,9 @@ export function ResourceMetricsView({ events }: ResourceMetricsViewProps) {
   if (metrics.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow-md p-8 text-center">
-        <p className="text-gray-500">No system resource metrics available</p>
+        <p className="text-gray-500">{t('metrics.noData')}</p>
         <p className="text-sm text-gray-400 mt-2">
-          System metrics are captured when using --system flag or the record command
+          {t('metrics.noDataHint')}
         </p>
       </div>
     );
@@ -132,7 +134,7 @@ export function ResourceMetricsView({ events }: ResourceMetricsViewProps) {
       <div className="bg-white rounded-lg shadow-md p-4">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-gray-900">
-            Resource Metrics
+            {t('metrics.title')}
           </h2>
 
           <div className="flex items-center space-x-4">
@@ -146,7 +148,7 @@ export function ResourceMetricsView({ events }: ResourceMetricsViewProps) {
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
-                CPU
+                {t('metrics.cpu')}
               </button>
               <button
                 onClick={() => setMetricType('memory')}
@@ -156,7 +158,7 @@ export function ResourceMetricsView({ events }: ResourceMetricsViewProps) {
                     : 'text-gray-600 hover:bg-gray-100'
                 }`}
               >
-                Memory
+                {t('metrics.memory')}
               </button>
             </div>
 
@@ -166,10 +168,10 @@ export function ResourceMetricsView({ events }: ResourceMetricsViewProps) {
               onChange={(e) => setSelectedProcess(e.target.value)}
               className="px-3 py-1 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="all">All Processes ({metrics.length} samples)</option>
+              <option value="all">{t('metrics.allProcesses', { count: metrics.length })}</option>
               {processes.map(p => (
                 <option key={p.key} value={p.key}>
-                  {p.comm} (PID {p.pid}) - {p.count} samples
+                  {t('metrics.processOption', { comm: p.comm, pid: p.pid, count: p.count })}
                 </option>
               ))}
             </select>
@@ -182,31 +184,31 @@ export function ResourceMetricsView({ events }: ResourceMetricsViewProps) {
             <div className="text-2xl font-bold text-blue-600">
               {stats.avgCpu}%
             </div>
-            <div className="text-xs text-gray-500">Avg CPU</div>
+            <div className="text-xs text-gray-500">{t('metrics.avgCpu')}</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-red-600">
               {stats.maxCpu}%
             </div>
-            <div className="text-xs text-gray-500">Peak CPU</div>
+            <div className="text-xs text-gray-500">{t('metrics.peakCpu')}</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-green-600">
               {stats.avgMemory} MB
             </div>
-            <div className="text-xs text-gray-500">Avg Memory</div>
+            <div className="text-xs text-gray-500">{t('metrics.avgMemory')}</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-orange-600">
               {stats.maxMemory} MB
             </div>
-            <div className="text-xs text-gray-500">Peak Memory</div>
+            <div className="text-xs text-gray-500">{t('metrics.peakMemory')}</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-yellow-600">
               {stats.alertCount}
             </div>
-            <div className="text-xs text-gray-500">Alerts</div>
+            <div className="text-xs text-gray-500">{t('metrics.alerts')}</div>
           </div>
         </div>
       </div>
@@ -217,10 +219,10 @@ export function ResourceMetricsView({ events }: ResourceMetricsViewProps) {
           {/* Chart Header */}
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-medium text-gray-900">
-              {metricType === 'cpu' ? 'CPU Usage Over Time' : 'Memory Usage Over Time'}
+              {metricType === 'cpu' ? t('metrics.cpuOverTime') : t('metrics.memoryOverTime')}
             </h3>
             <div className="text-sm text-gray-500">
-              {filteredMetrics.length} data points
+              {t('metrics.dataPoints', { count: filteredMetrics.length })}
             </div>
           </div>
 
@@ -314,7 +316,7 @@ export function ResourceMetricsView({ events }: ResourceMetricsViewProps) {
       {/* Detailed Table */}
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-medium text-gray-900">Detailed Metrics</h3>
+          <h3 className="text-lg font-medium text-gray-900">{t('metrics.detailedMetrics')}</h3>
         </div>
 
         <div className="overflow-x-auto">
@@ -322,25 +324,25 @@ export function ResourceMetricsView({ events }: ResourceMetricsViewProps) {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Time
+                  {t('metrics.table.time')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Process
+                  {t('metrics.table.process')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  PID
+                  {t('metrics.table.pid')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  CPU %
+                  {t('metrics.table.cpuPercent')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Memory (RSS)
+                  {t('metrics.table.memoryRss')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Threads
+                  {t('metrics.table.threads')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Children
+                  {t('metrics.table.children')}
                 </th>
               </tr>
             </thead>

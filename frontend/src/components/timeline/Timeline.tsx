@@ -13,6 +13,7 @@ import { TimelineAxis } from './TimelineAxis';
 import { TimelineMinimap } from './TimelineMinimap';
 import { TimelineGroup } from './TimelineGroup';
 import { TimelineScrollBar } from './TimelineScrollBar';
+import { useTranslation } from '@/i18n';
 
 interface TimelineProps {
   events: Event[];
@@ -32,6 +33,7 @@ export function Timeline({ events }: TimelineProps) {
   const [selectedPid, setSelectedPid] = useState<string>('');
   const [zoomLevel, setZoomLevel] = useState<number>(1);
   const [scrollOffset, setScrollOffset] = useState<number>(0);
+  const { t } = useTranslation();
 
   // Process events with additional metadata
   const processedEvents = useMemo(() => processEvents(events), [events]);
@@ -208,7 +210,7 @@ export function Timeline({ events }: TimelineProps) {
       {/* Timeline Header */}
       <div className="border-b border-gray-200 p-4">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900">Timeline View</h2>
+          <h2 className="text-lg font-semibold text-gray-900">{t('timeline.title')}</h2>
           <div className="flex items-center gap-4">
             <ZoomControls
               zoomLevel={zoomLevel}
@@ -219,17 +221,17 @@ export function Timeline({ events }: TimelineProps) {
               onScrollRight={scrollRight}
             />
             <div className="text-sm text-gray-600">
-              Duration: {formatDuration(baseTimeSpan)} • {filteredEvents.length} events
+              {t('timeline.durationInfo', { duration: formatDuration(baseTimeSpan), count: filteredEvents.length })}
             </div>
           </div>
         </div>
         
         {/* Zoom Help Text */}
         <div className="text-xs text-gray-500 mb-2">
-          Use mouse wheel + Ctrl/Cmd to zoom, or Ctrl/Cmd + +/- keys. Press Ctrl/Cmd + 0 to reset.
+          {t('timeline.zoomHelp')}
           {zoomLevel > 1 && (
             <span className="ml-2 text-blue-600">
-              Scroll with mouse wheel or arrow keys when zoomed.
+              {t('timeline.scrollHelp')}
             </span>
           )}
         </div>
@@ -250,7 +252,7 @@ export function Timeline({ events }: TimelineProps) {
       <div className="p-4" onWheel={handleWheel}>
         {timelineGroups.length === 0 ? (
           <div className="text-center text-gray-500 py-8">
-            No events to display
+            {t('timeline.noEvents')}
           </div>
         ) : (
           <div className="space-y-6">
@@ -301,7 +303,7 @@ export function Timeline({ events }: TimelineProps) {
       <EventModal
         event={selectedEvent}
         onClose={() => setSelectedEvent(null)}
-        title="Timeline Event Details"
+        title={t('timeline.eventDetails')}
       />
     </div>
   );

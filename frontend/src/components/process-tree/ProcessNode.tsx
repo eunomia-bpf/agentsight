@@ -7,6 +7,7 @@ import { ChevronDownIcon, ChevronRightIcon, CpuChipIcon } from '@heroicons/react
 import { ProcessNode as ProcessNodeType, ParsedEvent, TimelineItem } from '@/utils/eventParsers';
 import { UnifiedBlock } from './UnifiedBlock';
 import { adaptEventToUnifiedBlock } from './BlockAdapters';
+import { useTranslation } from '@/i18n';
 
 interface ProcessNodeProps {
   process: ProcessNodeType;
@@ -25,6 +26,7 @@ export function ProcessNode({
   onToggleProcess,
   onToggleEvent
 }: ProcessNodeProps) {
+  const { t } = useTranslation();
   const isExpanded = expandedProcesses.has(process.pid);
   const hasChildren = process.children.length > 0;
   const hasEvents = process.events.length > 0;
@@ -42,42 +44,42 @@ export function ProcessNode({
     if (eventCounts.prompt) {
       badges.push(
         <span key="prompt" className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-semibold">
-          {eventCounts.prompt} prompt{eventCounts.prompt !== 1 ? 's' : ''}
+          {t(eventCounts.prompt === 1 ? 'badge.prompt_one' : 'badge.prompt_other', { count: eventCounts.prompt })}
         </span>
       );
     }
     if (eventCounts.response) {
       badges.push(
         <span key="response" className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full font-semibold">
-          {eventCounts.response} response{eventCounts.response !== 1 ? 's' : ''}
+          {t(eventCounts.response === 1 ? 'badge.response_one' : 'badge.response_other', { count: eventCounts.response })}
         </span>
       );
     }
     if (eventCounts.ssl) {
       badges.push(
         <span key="ssl" className="px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full">
-          {eventCounts.ssl} SSL
+          {t('badge.ssl', { count: eventCounts.ssl })}
         </span>
       );
     }
     if (eventCounts.file) {
       badges.push(
         <span key="file" className="px-2 py-1 bg-cyan-100 text-cyan-800 text-xs rounded-full">
-          {eventCounts.file} file{eventCounts.file !== 1 ? 's' : ''}
+          {t(eventCounts.file === 1 ? 'badge.file_one' : 'badge.file_other', { count: eventCounts.file })}
         </span>
       );
     }
     if (eventCounts.process) {
       badges.push(
         <span key="process" className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
-          {eventCounts.process} process
+          {t('badge.process', { count: eventCounts.process })}
         </span>
       );
     }
     if (eventCounts.stdio) {
       badges.push(
         <span key="stdio" className="px-2 py-1 bg-indigo-100 text-indigo-800 text-xs rounded-full">
-          {eventCounts.stdio} stdio
+          {t('badge.stdio', { count: eventCounts.stdio })}
         </span>
       );
     }

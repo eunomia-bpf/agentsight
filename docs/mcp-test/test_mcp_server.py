@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 eunomia-bpf org.
 """Minimal MCP test server supporting stdio and HTTP transports."""
 
 from __future__ import annotations
