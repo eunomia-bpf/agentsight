@@ -802,6 +802,26 @@ async fn run_trace(
     println!("Trace Monitoring");
     println!("{}", "=".repeat(60));
 
+    // When the user enabled SSL but didn't pin a --binary-path, try to discover
+    // one from --comm. This fixes the common "record -c node" case: Node (and
+    // gemini-cli, which runs on Node) statically links OpenSSL, so there is no
+    // system libssl.so to hook. Only adopt the resolved binary if it actually
+    // embeds SSL, so dynamically-linked runtimes like Python are left to
+    // sslsniff's system-libssl path with comm filtering intact.
+    let auto_resolved: Option<String> = if ssl_enabled && binary_path.is_none() {
+        comm.filter(|c| !c.contains(','))
+            .and_then(|c| resolve_binary_path(c).ok())
+            .filter(|p| binary_embeds_ssl(p))
+            .map(|p| {
+                println!("✓ Auto-discovered statically-linked SSL binary for --comm '{}': {}",
+                         comm.unwrap_or(""), p);
+                p
+            })
+    } else {
+        None
+    };
+    let binary_path = binary_path.or(auto_resolved.as_deref());
+
     // Set up event broadcasting for server if enabled
     let (event_sender, _event_receiver) = broadcast::channel(1000);
 
@@ -962,6 +982,42 @@ fn newest_nvm_bin(home: &std::path::Path) -> Option<std::path::PathBuf> {
         .collect();
     entries.sort();
     entries.last().map(|p| p.join("bin"))
+}
+
+/// Heuristic: does this ELF statically embed its own SSL implementation?
+///
+/// Node.js bundles OpenSSL directly into the `node` binary, so there is no
+/// system `libssl.so` for sslsniff to hook — it must attach to the binary
+/// itself. We detect this by scanning for the `SSL_write` symbol-name string
+/// in the file. Dynamically-linked runtimes like CPython call into a separate
+/// `libssl.so` (via `_ssl.so`) and do NOT contain this string, so they keep
+/// using sslsniff's system-libssl attachment with comm filtering intact.
+fn binary_embeds_ssl(path: &str) -> bool {
+    use std::io::Read;
+    const NEEDLE: &[u8] = b"SSL_write";
+    let mut f = match std::fs::File::open(path) {
+        Ok(f) => f,
+        Err(_) => return false,
+    };
+    let mut buf = vec![0u8; 1 << 20]; // 1 MiB chunks
+    // Carry the tail of each chunk so a match spanning a boundary isn't missed.
+    let mut carry: Vec<u8> = Vec::new();
+    loop {
+        let n = match f.read(&mut buf) {
+            Ok(0) => break,
+            Ok(n) => n,
+            Err(_) => return false,
+        };
+        carry.extend_from_slice(&buf[..n]);
+        if carry.windows(NEEDLE.len()).any(|w| w == NEEDLE) {
+            return true;
+        }
+        let keep = NEEDLE.len() - 1;
+        if carry.len() > keep {
+            carry.drain(..carry.len() - keep);
+        }
+    }
+    false
 }
 
 /// Launch a target command and automatically trace it with eBPF.

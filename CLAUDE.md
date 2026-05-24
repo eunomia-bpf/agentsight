@@ -120,9 +120,14 @@ This logic is in `run_trace()` in `collector/src/main.rs` (around line 485).
 - **`ssl`** — Raw SSL events only. Passes extra args directly to sslsniff after `--`.
 - **`process`** — Process events only.
 
+## SSL Binary Auto-Discovery (record/trace)
+
+In `run_trace()`, when SSL is enabled and `--binary-path` is absent, the binary is auto-discovered from `--comm`: `resolve_binary_path(comm)` resolves the binary, and it is adopted **only if `binary_embeds_ssl()` returns true** (the binary contains the `SSL_write` symbol-name string). This fixes `record -c node` (Node statically links OpenSSL — no system `libssl.so` to hook) while leaving dynamically-linked runtimes like Python on sslsniff's system-libssl + comm-filter path. `exec` resolves unconditionally (it targets one known program); `record`/`trace` gate on `binary_embeds_ssl()` to avoid over-capturing for Python.
+
 ## Common Issues
 
-- **No SSL capture from Claude/Bun**: Must use `--binary-path` pointing to the actual binary. BoringSSL is statically linked and stripped.
+- **No SSL capture from Claude/Bun**: Must use `--binary-path` pointing to the actual binary (or use `exec`). BoringSSL is statically linked and stripped.
+- **No SSL capture from Node.js / Gemini CLI**: All Node.js statically links OpenSSL. `record -c node` now auto-discovers the Node binary; `exec -- gemini` also works. An HTTP/HTTPS proxy does not affect capture (TLS still happens in-process at `SSL_*`).
 - **`--comm` filter drops all SSL events**: SSL runs on "HTTP Client" thread, not the process name thread. Fixed: `--comm` is auto-skipped for sslsniff when `--binary-path` is set.
 - **eBPF permission errors**: Requires `sudo` or `CAP_BPF` + `CAP_SYS_ADMIN`.
 - **Port 7395 conflict**: Default web server port. Change with `--server-port`.

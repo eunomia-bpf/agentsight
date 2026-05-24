@@ -267,16 +267,32 @@ sudo ./agentsight record -c "python" --server-port 8080 --log-file /tmp/agent.lo
 
 #### Monitoring Node.js AI Tools (Gemini CLI, etc.)
 
-For Node.js applications installed via NVM that statically link OpenSSL, use
-`--binary-path` to point to the actual Node.js binary:
+> **Important**: Node.js (both NVM and system installs) **statically links
+> OpenSSL into the `node` binary** — there is no system `libssl.so` to hook.
+> SSL capture therefore requires pointing sslsniff at the `node` binary itself.
+
+The easiest way is `exec`, which discovers the `node` binary automatically:
 
 ```bash
-# Monitor Gemini CLI or other Node.js AI tools
-sudo ./agentsight record -c node --binary-path ~/.nvm/versions/node/v20.0.0/bin/node
-
-# Or with system Node.js (uses dynamic libssl, no --binary-path needed)
-sudo ./agentsight record -c node
+# Gemini CLI runs on Node — exec finds the right binary and traces it
+sudo ./agentsight exec -- gemini
 ```
+
+With `record`, AgentSight now auto-discovers the Node binary from `-c node`
+(it detects that Node embeds OpenSSL and attaches to the binary instead of a
+system library), so this just works without `--binary-path`:
+
+```bash
+# Monitor Gemini CLI or other Node.js AI tools — binary auto-discovered
+sudo ./agentsight record -c node
+
+# Pin the binary explicitly if auto-discovery picks the wrong Node install
+sudo ./agentsight record -c node --binary-path ~/.nvm/versions/node/v20.0.0/bin/node
+```
+
+> **Behind an HTTP/HTTPS proxy?** Traffic is still TLS-encrypted inside the
+> Node process (the proxy only tunnels it), so AgentSight captures it the same
+> way — at the `SSL_read`/`SSL_write` calls before encryption.
 
 #### Advanced Monitoring
 
@@ -370,8 +386,8 @@ A: Yes, use combined monitoring modes for concurrent multi-agent observation wit
 **Q: How do I filter sensitive data?**  
 A: Built-in analyzers can remove authentication headers and filter specific content patterns.
 
-**Q: Why doesn't AgentSight capture traffic from Claude Code or NVM Node.js?**
-A: These applications statically link their SSL library (BoringSSL for Claude/Bun, OpenSSL for NVM Node.js) instead of using system `libssl.so`. Use `--binary-path` to point to the actual binary so AgentSight can auto-detect SSL functions via byte-pattern matching. See the "Monitoring Claude Code" and "Monitoring Node.js AI Tools" sections for examples.
+**Q: Why doesn't AgentSight capture traffic from Claude Code, Node.js, or Gemini CLI?**
+A: These applications statically link their SSL library (BoringSSL for Claude/Bun, OpenSSL for **all** Node.js — both NVM and system installs) into their own binary instead of using system `libssl.so`, so there's nothing for sslsniff to hook by default. AgentSight handles this for you: `exec` always discovers the binary, and `record -c node` now auto-discovers the Node binary too. For Claude, pass `--binary-path` (or use `exec`). See the "Zero-Config: exec" and "Monitoring Node.js AI Tools" sections.
 
 **Q: Why does `--comm claude` not capture SSL traffic?**
 A: Claude Code's SSL traffic runs on an internal "HTTP Client" thread, not the main "claude" thread. The `--comm` filter in sslsniff matches thread name (from `bpf_get_current_comm()`), not process name. When using `--binary-path`, the collector automatically skips the `--comm` filter for SSL monitoring.

@@ -257,15 +257,29 @@ sudo ./agentsight record -c "python" --server-port 8080 --log-file /tmp/agent.lo
 
 #### 监控 Node.js AI 工具（Gemini CLI 等）
 
-对于通过 NVM 安装的静态链接 OpenSSL 的 Node.js 应用，使用 `--binary-path` 指向实际的 Node.js 二进制文件：
+> **重要**：Node.js（NVM 和系统安装都一样）**将 OpenSSL 静态链接进了 `node` 二进制**——
+> 没有系统 `libssl.so` 可供 hook。因此 SSL 捕获需要让 sslsniff 指向 `node` 二进制本身。
+
+最简单的方式是 `exec`，它会自动发现 `node` 二进制：
 
 ```bash
-# 监控 Gemini CLI 或其他 Node.js AI 工具
-sudo ./agentsight record -c node --binary-path ~/.nvm/versions/node/v20.0.0/bin/node
-
-# 或使用系统 Node.js（使用动态 libssl，无需 --binary-path）
-sudo ./agentsight record -c node
+# Gemini CLI 基于 Node 运行 —— exec 会找到正确的二进制并追踪它
+sudo ./agentsight exec -- gemini
 ```
+
+使用 `record` 时，AgentSight 现在会从 `-c node` 自动发现 Node 二进制
+（检测到 Node 内嵌了 OpenSSL，于是附加到二进制而非系统库），因此无需 `--binary-path` 即可工作：
+
+```bash
+# 监控 Gemini CLI 或其他 Node.js AI 工具 —— 二进制自动发现
+sudo ./agentsight record -c node
+
+# 若自动发现选错了 Node 安装，可显式指定二进制
+sudo ./agentsight record -c node --binary-path ~/.nvm/versions/node/v20.0.0/bin/node
+```
+
+> **使用 HTTP/HTTPS 代理？** 流量在 Node 进程内仍是 TLS 加密的（代理只是隧道转发），
+> 因此 AgentSight 的捕获方式不变——在加密之前的 `SSL_read`/`SSL_write` 调用处捕获。
 
 #### 高级监控
 
@@ -353,8 +367,8 @@ sudo ./bpf/process -c python
 **问：如何过滤敏感数据？**
 答：内置 Analyzer 可以移除认证头信息并过滤特定内容模式。
 
-**问：为什么 AgentSight 无法捕获 Claude Code 或 NVM Node.js 的流量？**
-答：这些应用静态链接了 SSL 库（Claude/Bun 使用 BoringSSL，NVM Node.js 使用 OpenSSL），而非使用系统 `libssl.so`。请使用 `--binary-path` 指向实际的二进制文件，AgentSight 将通过字节模式匹配自动检测 SSL 函数。详见"监控 Claude Code"和"监控 Node.js AI 工具"章节。
+**问：为什么 AgentSight 无法捕获 Claude Code、Node.js 或 Gemini CLI 的流量？**
+答：这些应用把 SSL 库静态链接进了自己的二进制（Claude/Bun 使用 BoringSSL，**所有** Node.js——NVM 和系统安装都是——使用 OpenSSL），而非使用系统 `libssl.so`，所以默认没有可供 sslsniff hook 的目标。AgentSight 已为你处理：`exec` 总会自动发现二进制，`record -c node` 现在也会自动发现 Node 二进制。对于 Claude，请传 `--binary-path`（或使用 `exec`）。详见"零配置：exec"和"监控 Node.js AI 工具"章节。
 
 **问：为什么 `--comm claude` 无法捕获 SSL 流量？**
 答：Claude Code 的 SSL 流量运行在内部 "HTTP Client" 线程上，而非主 "claude" 线程。sslsniff 中的 `--comm` 过滤器匹配的是线程名（来自 `bpf_get_current_comm()`），而非进程名。使用 `--binary-path` 时，collector 会自动跳过 SSL 监控的 `--comm` 过滤。
