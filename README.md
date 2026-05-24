@@ -13,6 +13,24 @@ AgentSight is a observability tool designed specifically for monitoring LLM agen
 
 ```bash
 wget https://github.com/eunomia-bpf/agentsight/releases/latest/download/agentsight && chmod +x agentsight
+```
+
+```bash
+# Just put your agent command after `exec --`. AgentSight auto-discovers the
+# binary to hook (resolving symlinks/wrappers), derives the process filter,
+# launches the agent, and stops tracing when it exits.
+sudo ./agentsight exec -- claude
+sudo ./agentsight exec -- claude -p "summarize this repo"
+sudo ./agentsight exec -- python my_agent.py
+sudo ./agentsight exec -- gemini
+```
+
+The agent runs normally in your terminal; monitoring happens in the background.
+Visit [http://127.0.0.1:7395](http://127.0.0.1:7395) to view the captured data live.
+
+**The manual way — `record` attaches to a process filter (use when the agent is started elsewhere):**
+
+```bash
 # Record Claude Code activity (Bun-based, requires --binary-path for statically-linked BoringSSL)
 sudo ./agentsight record -c claude --binary-path ~/.local/share/claude/versions/$(claude --version | head -1)
 # Record agent behavior from claude (old version)
@@ -62,7 +80,7 @@ AgentSight captures critical interactions that application-level tools miss:
 - File operations and system resource access  
 - Cross-agent communications and coordination
 
-## 🏗️ Architecture
+## Architecture
 
 ```ascii
 ┌─────────────────────────────────────────────────┐
@@ -172,6 +190,41 @@ make build
 ```
 
 ### Usage Examples
+
+#### Zero-Config: `exec` (recommended)
+
+`exec` is the simplest way to trace an agent. Put the command you want to run
+after `exec --`; AgentSight handles everything else:
+
+```bash
+# Launch and trace Claude Code — no --binary-path or --comm needed
+sudo ./agentsight exec -- claude
+
+# Works for any agent: pass the command exactly as you'd normally run it
+sudo ./agentsight exec -- claude -p "review my last commit"
+sudo ./agentsight exec -- python my_agent.py
+sudo ./agentsight exec -- node ./cli.js
+```
+
+What `exec` does automatically:
+
+1. **Discovers the SSL binary** — resolves the command via `$PATH`, follows
+   symlinks (e.g. `claude` → `~/.local/share/claude/versions/2.1.150`), and
+   chases shebang wrappers (e.g. a `#!/usr/bin/env node` script → the real
+   `node` ELF) so uprobes attach to the correct executable.
+2. **Derives the `--comm` process filter** from the command name.
+3. **Launches the agent** with your terminal attached (its TUI/REPL works
+   normally) while SSL + process + system monitoring runs quietly in the
+   background.
+4. **Stops automatically** when the agent process exits.
+
+> **`sudo` note**: under `sudo`, `exec` still finds *your* user-local installs
+> (it reads `$SUDO_USER`'s home for `~/.local/bin`, `~/bin`, and `~/.nvm`), so
+> `sudo ./agentsight exec -- claude` traces the claude in your home directory,
+> not a different one on root's `$PATH`.
+
+Useful flags: `--binary-path <path>` to override auto-discovery, `--no-server`
+to disable the web UI, `--server-port <port>`, `-o <log-file>`.
 
 #### Monitoring Claude Code
 

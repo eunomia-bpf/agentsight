@@ -266,6 +266,31 @@ enum Commands {
         #[arg(long, default_value = "7395")]
         server_port: u16,
     },
+    /// Launch a command and automatically discover + trace it (zero config).
+    /// Example: agentsight exec -- claude     (or)  agentsight exec -- python my_agent.py
+    Exec {
+        /// Override the auto-discovered SSL binary path (rarely needed)
+        #[arg(long)]
+        binary_path: Option<String>,
+        /// Log file for output and server
+        #[arg(short = 'o', long, default_value = "record.log")]
+        log_file: String,
+        /// Disable log rotation
+        #[arg(long, default_value = "true")]
+        rotate_logs: bool,
+        /// Maximum log file size in MB (used with --rotate-logs)
+        #[arg(long, default_value = "10")]
+        max_log_size: u64,
+        /// Disable the web server (enabled by default on --server-port)
+        #[arg(long)]
+        no_server: bool,
+        /// Server port for the web UI
+        #[arg(long, default_value = "7395")]
+        server_port: u16,
+        /// The command (and its arguments) to launch and trace
+        #[arg(last = true, required = true)]
+        command: Vec<String>,
+    },
     /// Monitor system resources (CPU and memory)
     System {
         /// Monitoring interval in seconds
@@ -338,6 +363,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
             // Enable system monitoring by default for record command
             run_trace(&binary_extractor, true, None, None, Some(comm), &ssl_filter_patterns, false, true, false, true, false, None, None, false, 8192, None, None, true, 2, &http_filter_patterns, false, binary_path.as_deref(), log_file, true, *rotate_logs, *max_log_size, true, *server_port).await.map_err(convert_runner_error)?
+        },
+        Commands::Exec { binary_path, log_file, rotate_logs, max_log_size, no_server, server_port, command } => {
+            run_exec(&binary_extractor, command, binary_path.as_deref(), log_file, *rotate_logs, *max_log_size, !*no_server, *server_port).await.map_err(convert_runner_error)?
         },
         Commands::System { interval, pid, comm, no_children, cpu_threshold, memory_threshold, log_file, quiet, rotate_logs, max_log_size, server, server_port } => run_system(*interval, *pid, comm.as_deref(), !*no_children, *cpu_threshold, *memory_threshold, log_file, *quiet, *rotate_logs, *max_log_size, *server, *server_port).await.map_err(convert_runner_error)?,
     }
@@ -553,9 +581,11 @@ async fn run_raw_stdio(binary_extractor: &BinaryExtractor, pid: u32, uid: Option
     Ok(())
 }
 
-/// Trace monitoring with configurable runners and analyzers
-async fn run_trace(
+/// Build a configured AgentRunner from trace options without running it.
+/// Shared by `run_trace` and `run_exec` so they configure runners identically.
+fn build_trace_agent(
     binary_extractor: &BinaryExtractor,
+    name: &str,
     ssl_enabled: bool,
     pid: Option<u32>,
     ssl_uid: Option<u32>,
@@ -581,17 +611,9 @@ async fn run_trace(
     quiet: bool,
     rotate_logs: bool,
     max_log_size: u64,
-    enable_server: bool,
-    server_port: u16,
-) -> Result<(), RunnerError> {
-    println!("Trace Monitoring");
-    println!("{}", "=".repeat(60));
-    
-    // Set up event broadcasting for server if enabled
-    let (event_sender, _event_receiver) = broadcast::channel(1000);
-    
-    let mut agent = AgentRunner::new("trace");
-    
+) -> Result<AgentRunner, RunnerError> {
+    let mut agent = AgentRunner::new(name);
+
     // Add SSL runner if enabled
     if ssl_enabled {
         let mut ssl_runner = SslRunner::from_binary_extractor(binary_extractor.get_sslsniff_path());
@@ -742,7 +764,55 @@ async fn run_trace(
         agent = agent.add_global_analyzer(Box::new(OutputAnalyzer::new()));
         println!("✓ Console output enabled");
     }
-    
+
+    Ok(agent)
+}
+
+/// Trace monitoring with configurable runners and analyzers
+async fn run_trace(
+    binary_extractor: &BinaryExtractor,
+    ssl_enabled: bool,
+    pid: Option<u32>,
+    ssl_uid: Option<u32>,
+    comm: Option<&str>,
+    ssl_filter: &[String],
+    ssl_handshake: bool,
+    ssl_http: bool,
+    ssl_raw_data: bool,
+    process_enabled: bool,
+    stdio_enabled: bool,
+    stdio_uid: Option<u32>,
+    stdio_comm: Option<&str>,
+    stdio_all_fds: bool,
+    stdio_max_bytes: u32,
+    duration: Option<u32>,
+    mode: Option<u32>,
+    system_enabled: bool,
+    system_interval: u64,
+    http_filter: &[String],
+    disable_auth_removal: bool,
+    binary_path: Option<&str>,
+    log_file: &str,
+    quiet: bool,
+    rotate_logs: bool,
+    max_log_size: u64,
+    enable_server: bool,
+    server_port: u16,
+) -> Result<(), RunnerError> {
+    println!("Trace Monitoring");
+    println!("{}", "=".repeat(60));
+
+    // Set up event broadcasting for server if enabled
+    let (event_sender, _event_receiver) = broadcast::channel(1000);
+
+    let mut agent = build_trace_agent(
+        binary_extractor, "trace", ssl_enabled, pid, ssl_uid, comm, ssl_filter,
+        ssl_handshake, ssl_http, ssl_raw_data, process_enabled, stdio_enabled,
+        stdio_uid, stdio_comm, stdio_all_fds, stdio_max_bytes, duration, mode,
+        system_enabled, system_interval, http_filter, disable_auth_removal,
+        binary_path, log_file, quiet, rotate_logs, max_log_size,
+    )?;
+
     println!("{}", "=".repeat(60));
     println!("Starting flexible trace monitoring with {} runners and {} global analyzers...",
              agent.runner_count(), agent.analyzer_count());
@@ -751,9 +821,9 @@ async fn run_trace(
     // Start web server if enabled
     let _server_handle = start_web_server_if_enabled(enable_server, server_port, Some(log_file), event_sender.clone()).await
         .map_err(|e| RunnerError::from(format!("Failed to start server: {}", e)))?;
-    
+
     let mut stream = agent.run().await?;
-    
+
     // Consume the stream to actually process events
     while let Some(event) = stream.next().await {
         // Forward events to web server if enabled
@@ -761,10 +831,265 @@ async fn run_trace(
             let _ = event_sender.send(event);
         }
     }
-    
+
     Ok(())
 }
 
+
+/// Resolve a command name/path to the real ELF binary that should be passed
+/// to sslsniff as `--binary-path`.
+///
+/// Handles three cases automatically:
+///   1. A command on `$PATH` (e.g. `claude`, `node`) -> located via PATH search.
+///   2. A symlink (e.g. `~/.local/bin/claude` -> `.../versions/2.1.150`) -> followed.
+///   3. A shebang wrapper script (`#!/usr/bin/env node`) -> the interpreter ELF.
+///
+/// Returns the canonical path of the underlying ELF executable, or an error
+/// describing why discovery failed.
+fn resolve_binary_path(command: &str) -> Result<String, String> {
+    // Limit shebang chasing so a pathological wrapper chain cannot loop forever.
+    resolve_binary_path_inner(command, 0)
+}
+
+fn resolve_binary_path_inner(command: &str, depth: u8) -> Result<String, String> {
+    if depth > 5 {
+        return Err(format!("too many nested shebang wrappers resolving '{}'", command));
+    }
+
+    // 1. Locate the file: an explicit path is used as-is, otherwise search $PATH.
+    let candidate = if command.contains('/') {
+        std::path::PathBuf::from(command)
+    } else {
+        find_in_path(command)
+            .ok_or_else(|| format!("'{}' not found in $PATH", command))?
+    };
+
+    // 2. Follow symlinks to the real file (e.g. claude -> versions/2.1.150).
+    let resolved = std::fs::canonicalize(&candidate)
+        .map_err(|e| format!("cannot resolve '{}': {}", candidate.display(), e))?;
+
+    // 3. Inspect the file header: ELF magic vs. shebang.
+    let mut header = [0u8; 256];
+    let n = {
+        use std::io::Read;
+        let mut f = std::fs::File::open(&resolved)
+            .map_err(|e| format!("cannot open '{}': {}", resolved.display(), e))?;
+        f.read(&mut header).map_err(|e| format!("cannot read '{}': {}", resolved.display(), e))?
+    };
+    let header = &header[..n];
+
+    if header.starts_with(b"\x7fELF") {
+        return Ok(resolved.to_string_lossy().into_owned());
+    }
+
+    if header.starts_with(b"#!") {
+        // Parse the shebang line: `#!/usr/bin/env node` or `#!/usr/bin/python3`.
+        let line_end = header.iter().position(|&b| b == b'\n').unwrap_or(header.len());
+        let line = String::from_utf8_lossy(&header[2..line_end]);
+        let mut parts = line.split_whitespace();
+        let interp = parts.next()
+            .ok_or_else(|| format!("'{}' has an empty shebang", resolved.display()))?;
+        // `/usr/bin/env foo` -> resolve `foo` on PATH instead of `env` itself.
+        let next = if interp.ends_with("/env") || interp == "env" {
+            parts.next().ok_or_else(|| format!("'{}' uses env with no interpreter", resolved.display()))?
+        } else {
+            interp
+        };
+        return resolve_binary_path_inner(next, depth + 1);
+    }
+
+    Err(format!(
+        "'{}' is neither an ELF binary nor a shebang script; specify --binary-path explicitly",
+        resolved.display()
+    ))
+}
+
+/// Minimal `which`: find an executable file named `cmd` in the `$PATH` dirs.
+///
+/// When invoked under `sudo`, the inherited `$PATH` is root's secure path, which
+/// usually misses user-local installs like `~/.local/bin/claude`. To make
+/// `sudo agentsight exec -- claude` find the *invoking user's* tools, we search
+/// that user's common bin dirs first (derived from `$SUDO_USER`).
+fn find_in_path(cmd: &str) -> Option<std::path::PathBuf> {
+    let mut dirs: Vec<std::path::PathBuf> = Vec::new();
+
+    if let Some(user) = std::env::var_os("SUDO_USER") {
+        if let Some(home) = sudo_user_home(&user) {
+            dirs.push(home.join(".local/bin"));
+            dirs.push(home.join("bin"));
+            // NVM keeps node under ~/.nvm/versions/node/<ver>/bin; pick the newest.
+            if let Some(nvm_bin) = newest_nvm_bin(&home) {
+                dirs.push(nvm_bin);
+            }
+        }
+    }
+
+    if let Some(path) = std::env::var_os("PATH") {
+        dirs.extend(std::env::split_paths(&path));
+    }
+
+    for dir in dirs {
+        let full = dir.join(cmd);
+        if let Ok(meta) = std::fs::metadata(&full) {
+            if meta.is_file() {
+                return Some(full);
+            }
+        }
+    }
+    None
+}
+
+/// Resolve the home directory of the `$SUDO_USER` by reading `/etc/passwd`.
+fn sudo_user_home(user: &std::ffi::OsStr) -> Option<std::path::PathBuf> {
+    let user = user.to_str()?;
+    let passwd = std::fs::read_to_string("/etc/passwd").ok()?;
+    for line in passwd.lines() {
+        let mut fields = line.split(':');
+        if fields.next() == Some(user) {
+            // username:x:uid:gid:gecos:home:shell -> home is field index 5.
+            return fields.nth(4).map(std::path::PathBuf::from);
+        }
+    }
+    None
+}
+
+/// Find the newest NVM-installed node bin dir under a user's home, if any.
+fn newest_nvm_bin(home: &std::path::Path) -> Option<std::path::PathBuf> {
+    let versions = home.join(".nvm/versions/node");
+    let mut entries: Vec<_> = std::fs::read_dir(&versions).ok()?
+        .filter_map(|e| e.ok())
+        .map(|e| e.path())
+        .collect();
+    entries.sort();
+    entries.last().map(|p| p.join("bin"))
+}
+
+/// Launch a target command and automatically trace it with eBPF.
+///
+/// This is the zero-configuration entry point: it discovers the target's real
+/// ELF binary (for SSL uprobe attachment), derives the process `--comm` filter
+/// from the command name, starts SSL + process + system monitoring in the
+/// background (quiet, so the child owns the terminal), then spawns the child.
+/// Monitoring stops automatically when the child exits.
+async fn run_exec(
+    binary_extractor: &BinaryExtractor,
+    command: &[String],
+    binary_path_override: Option<&str>,
+    log_file: &str,
+    rotate_logs: bool,
+    max_log_size: u64,
+    enable_server: bool,
+    server_port: u16,
+) -> Result<(), RunnerError> {
+    let program = command.first()
+        .ok_or_else(|| RunnerError::from("exec requires a command to run, e.g. `agentsight exec -- claude`"))?;
+    let prog_args = &command[1..];
+
+    println!("AgentSight exec");
+    println!("{}", "=".repeat(60));
+
+    // Derive the process comm filter from the command's base name. The kernel
+    // truncates comm to 15 chars (TASK_COMM_LEN - 1), so match that here.
+    let base = std::path::Path::new(program)
+        .file_name()
+        .and_then(|s| s.to_str())
+        .unwrap_or(program);
+    let comm: String = base.chars().take(15).collect();
+
+    // Auto-discover the SSL binary unless the user pinned it explicitly.
+    let binary_path = match binary_path_override {
+        Some(p) => {
+            println!("→ Using provided binary path: {}", p);
+            Some(p.to_string())
+        }
+        None => match resolve_binary_path(program) {
+            Ok(p) => {
+                println!("✓ Auto-discovered binary: {}", p);
+                Some(p)
+            }
+            Err(e) => {
+                // Non-fatal: process/system monitoring still works without SSL.
+                println!("⚠ Could not auto-discover binary for SSL capture: {}", e);
+                println!("  SSL traffic may not be captured. Pass --binary-path to override.");
+                None
+            }
+        },
+    };
+    println!("✓ Process filter (--comm): {}", comm);
+
+    // Same optimized filters as the `record` command.
+    let http_filter_patterns = vec![
+        "request.path_prefix=/v1/rgstr | response.status_code=202 | request.method=HEAD | response.body=".to_string(),
+    ];
+    let ssl_filter_patterns = vec![
+        "data=0\\r\\n\\r\\n | data.type=binary".to_string(),
+    ];
+
+    let (event_sender, _event_receiver) = broadcast::channel(1000);
+
+    let mut agent = build_trace_agent(
+        binary_extractor, "exec",
+        /* ssl */ true, /* pid */ None, /* ssl_uid */ None, Some(&comm),
+        &ssl_filter_patterns, /* ssl_handshake */ false, /* ssl_http */ true,
+        /* ssl_raw_data */ false, /* process */ true, /* stdio */ false,
+        None, None, false, 8192, None, None,
+        /* system */ true, /* system_interval */ 2,
+        &http_filter_patterns, /* disable_auth_removal */ false,
+        binary_path.as_deref(), log_file,
+        /* quiet */ true, rotate_logs, max_log_size,
+    )?;
+
+    // Start web server before launching the child so the UI is ready immediately.
+    let _server_handle = start_web_server_if_enabled(enable_server, server_port, Some(log_file), event_sender.clone()).await
+        .map_err(|e| RunnerError::from(format!("Failed to start server: {}", e)))?;
+
+    // Attach eBPF first (uprobes bind to the binary file, so they catch the
+    // child even though it starts a moment later).
+    let mut stream = agent.run().await?;
+
+    if enable_server {
+        println!("🌐 Web UI: http://127.0.0.1:{}", server_port);
+    }
+    println!("▶ Launching: {}", command.join(" "));
+    println!("{}", "=".repeat(60));
+
+    // Spawn the target with inherited stdio so its TUI works normally.
+    let mut child = tokio::process::Command::new(program)
+        .args(prog_args)
+        .spawn()
+        .map_err(|e| RunnerError::from(format!("failed to launch '{}': {}", program, e)))?;
+
+    // Consume events and watch for the child to exit, whichever happens.
+    loop {
+        tokio::select! {
+            maybe_event = stream.next() => {
+                match maybe_event {
+                    Some(event) => {
+                        if enable_server {
+                            let _ = event_sender.send(event);
+                        }
+                    }
+                    None => break, // event stream ended
+                }
+            }
+            status = child.wait() => {
+                match status {
+                    Ok(s) => println!("\n{}\n✓ Target exited ({}). Stopping monitoring.", "=".repeat(60), s),
+                    Err(e) => println!("\n⚠ Error waiting on target: {}", e),
+                }
+                break;
+            }
+        }
+    }
+
+    print_global_http_filter_metrics();
+    print_global_ssl_filter_metrics();
+    if enable_server {
+        println!("Recorded data remains viewable at http://127.0.0.1:{} (log: {})", server_port, log_file);
+    }
+
+    Ok(())
+}
 
 // Shared server management function
 /// Monitor system resources (CPU and memory)

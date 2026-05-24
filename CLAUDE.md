@@ -114,6 +114,7 @@ This logic is in `run_trace()` in `collector/src/main.rs` (around line 485).
 
 ## CLI Subcommands
 
+- **`exec`** — Zero-config. Launches a command (`agentsight exec -- claude`) and auto-traces it: discovers the SSL binary via `resolve_binary_path()` (PATH search → symlink canonicalization → shebang interpreter resolution), derives `--comm` from the command basename, runs SSL + process + system monitoring quietly (child owns the terminal), and stops when the child exits. Uses the same filter patterns as `record`. `find_in_path()` is `$SUDO_USER`-aware so it locates user-local installs under sudo. Implemented in `run_exec()` in `collector/src/main.rs`.
 - **`record`** — Optimized agent recording with predefined filters. Always enables SSL + process + system monitoring and web server on port 7395. `--comm` is required.
 - **`trace`** — Most flexible. Toggle `--ssl`, `--process`, `--server` independently. Supports `--ssl-filter`, `--http-filter`, `--binary-path`.
 - **`ssl`** — Raw SSL events only. Passes extra args directly to sslsniff after `--`.
