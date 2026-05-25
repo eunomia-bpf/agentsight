@@ -325,6 +325,26 @@ sudo ./agentsight trace --ssl true --process true --server true
 sudo ./agentsight record -c "python" --server-port 8080 --log-file /tmp/agent.log
 ```
 
+#### Export to OpenTelemetry (GenAI semantic conventions)
+
+AgentSight can export captured LLM calls as OpenTelemetry **GenAI**
+(`gen_ai.*`) spans over OTLP/HTTP — standards-compliant agent telemetry for any
+agent, with zero in-process instrumentation. Send them to an OpenTelemetry
+Collector and on to Jaeger, Grafana Tempo, Datadog, Honeycomb, etc.
+
+```bash
+# Export gen_ai.* spans to a collector (defaults to http://localhost:4318)
+sudo ./agentsight trace --otel --otel-endpoint http://localhost:4318
+
+# Include prompt/completion content (opt-in; off by default for privacy)
+sudo ./agentsight trace --otel --otel-capture-content
+```
+
+Each LLM request/response pair becomes a `chat {model}` span with
+`gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.usage.{input,output}_tokens`,
+`gen_ai.response.finish_reasons`, and more. See [docs/otel.md](docs/otel.md) for
+collector setup and backend integration.
+
 #### Browser Plaintext Capture
 
 For browser-specific plaintext capture, use the standalone `browsertrace` BPF

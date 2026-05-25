@@ -13,10 +13,19 @@ mod server;
 use framework::{
     binary_extractor::BinaryExtractor,
     runners::{SslRunner, StdioRunner, ProcessRunner, AgentRunner, SystemRunner, RunnerError, Runner},
-    analyzers::{OutputAnalyzer, FileLogger, SSEProcessor, HTTPParser, HTTPFilter, AuthHeaderRemover, SSLFilter, TimestampNormalizer, print_global_http_filter_metrics, print_global_ssl_filter_metrics}
+    analyzers::{OutputAnalyzer, FileLogger, SSEProcessor, HTTPParser, HTTPFilter, AuthHeaderRemover, SSLFilter, TimestampNormalizer, OtelExporter, print_global_http_filter_metrics, print_global_ssl_filter_metrics}
 };
 
 use server::WebServer;
+
+/// Configuration for exporting GenAI spans to an OpenTelemetry Collector.
+#[derive(Clone)]
+struct OtelConfig {
+    /// OTLP/HTTP base endpoint; `None` falls back to env vars / localhost.
+    endpoint: Option<String>,
+    /// Opt-in: include prompt/completion content in spans.
+    capture_content: bool,
+}
 
 static SHUTDOWN_REQUESTED: AtomicBool = AtomicBool::new(false);
 
@@ -222,6 +231,15 @@ enum Commands {
         /// Disable authorization header removal from HTTP traffic
         #[arg(long)]
         disable_auth_removal: bool,
+        /// Export GenAI spans to an OpenTelemetry Collector via OTLP/HTTP
+        #[arg(long)]
+        otel: bool,
+        /// OTLP/HTTP endpoint for --otel (default: $OTEL_EXPORTER_OTLP_ENDPOINT or http://localhost:4318)
+        #[arg(long)]
+        otel_endpoint: Option<String>,
+        /// Include prompt/completion content in exported GenAI spans (opt-in; off by default for privacy)
+        #[arg(long)]
+        otel_capture_content: bool,
         /// Path to the binary executable to monitor (e.g., ~/.nvm/versions/node/v20.0.0/bin/node)
         #[arg(long)]
         binary_path: Option<String>,
@@ -351,7 +369,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         Commands::Ssl { sse_merge, http_parser, http_raw_data, http_filter, disable_auth_removal, ssl_filter, quiet, rotate_logs, max_log_size, server, server_port, log_file, binary_path, args } => run_raw_ssl(&binary_extractor, *sse_merge, *http_parser, *http_raw_data, http_filter, *disable_auth_removal, ssl_filter, *quiet, *rotate_logs, *max_log_size, *server, *server_port, log_file, binary_path.as_deref(), args).await.map_err(convert_runner_error)?,
         Commands::Process { quiet, rotate_logs, max_log_size, server, server_port, log_file, args } => run_raw_process(&binary_extractor, *quiet, *rotate_logs, *max_log_size, *server, *server_port, log_file, args).await.map_err(convert_runner_error)?,
         Commands::Stdio { pid, uid, comm, all_fds, max_bytes, quiet, rotate_logs, max_log_size, server, server_port, log_file } => run_raw_stdio(&binary_extractor, *pid, *uid, comm.as_deref(), *all_fds, *max_bytes, *quiet, *rotate_logs, *max_log_size, *server, *server_port, log_file).await.map_err(convert_runner_error)?,
-        Commands::Trace { ssl, ssl_uid, pid, comm, ssl_filter, ssl_handshake, ssl_http, ssl_raw_data, process, stdio, stdio_uid, stdio_comm, stdio_all_fds, stdio_max_bytes, duration, mode, system, system_interval, http_filter, disable_auth_removal, binary_path, log_file, quiet, rotate_logs, max_log_size, server, server_port } => run_trace(&binary_extractor, *ssl, *pid, *ssl_uid, comm.as_deref(), ssl_filter, *ssl_handshake, *ssl_http, *ssl_raw_data, *process, *stdio, *stdio_uid, stdio_comm.as_deref(), *stdio_all_fds, *stdio_max_bytes, *duration, *mode, *system, *system_interval, http_filter, *disable_auth_removal, binary_path.as_deref(), log_file, *quiet, *rotate_logs, *max_log_size, *server, *server_port).await.map_err(convert_runner_error)?,
+        Commands::Trace { ssl, ssl_uid, pid, comm, ssl_filter, ssl_handshake, ssl_http, ssl_raw_data, process, stdio, stdio_uid, stdio_comm, stdio_all_fds, stdio_max_bytes, duration, mode, system, system_interval, http_filter, disable_auth_removal, otel, otel_endpoint, otel_capture_content, binary_path, log_file, quiet, rotate_logs, max_log_size, server, server_port } => {
+            let otel_config = otel.then(|| OtelConfig { endpoint: otel_endpoint.clone(), capture_content: *otel_capture_content });
+            run_trace(&binary_extractor, *ssl, *pid, *ssl_uid, comm.as_deref(), ssl_filter, *ssl_handshake, *ssl_http, *ssl_raw_data, *process, *stdio, *stdio_uid, stdio_comm.as_deref(), *stdio_all_fds, *stdio_max_bytes, *duration, *mode, *system, *system_interval, http_filter, *disable_auth_removal, otel_config, binary_path.as_deref(), log_file, *quiet, *rotate_logs, *max_log_size, *server, *server_port).await.map_err(convert_runner_error)?
+        },
         Commands::Record { comm, binary_path, log_file, rotate_logs, max_log_size, server_port } => {
             // Predefined filter patterns optimized for agent monitoring
             let http_filter_patterns = vec![
@@ -362,7 +383,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             ];
 
             // Enable system monitoring by default for record command
-            run_trace(&binary_extractor, true, None, None, Some(comm), &ssl_filter_patterns, false, true, false, true, false, None, None, false, 8192, None, None, true, 2, &http_filter_patterns, false, binary_path.as_deref(), log_file, true, *rotate_logs, *max_log_size, true, *server_port).await.map_err(convert_runner_error)?
+            run_trace(&binary_extractor, true, None, None, Some(comm), &ssl_filter_patterns, false, true, false, true, false, None, None, false, 8192, None, None, true, 2, &http_filter_patterns, false, None, binary_path.as_deref(), log_file, true, *rotate_logs, *max_log_size, true, *server_port).await.map_err(convert_runner_error)?
         },
         Commands::Exec { binary_path, log_file, rotate_logs, max_log_size, no_server, server_port, command } => {
             run_exec(&binary_extractor, command, binary_path.as_deref(), log_file, *rotate_logs, *max_log_size, !*no_server, *server_port).await.map_err(convert_runner_error)?
@@ -614,6 +635,7 @@ fn build_trace_agent(
     system_interval: u64,
     http_filter: &[String],
     disable_auth_removal: bool,
+    otel: Option<OtelConfig>,
     binary_path: Option<&str>,
     log_file: &str,
     quiet: bool,
@@ -680,8 +702,18 @@ fn build_trace_agent(
             if !disable_auth_removal {
                 ssl_runner = ssl_runner.add_analyzer(Box::new(AuthHeaderRemover::new()));
             }
+
+            // Export GenAI spans to an OpenTelemetry Collector if requested.
+            // Placed last so it observes fully-parsed (and auth-scrubbed) events.
+            if let Some(otel_config) = &otel {
+                ssl_runner = ssl_runner.add_analyzer(Box::new(OtelExporter::new(
+                    otel_config.endpoint.clone(),
+                    otel_config.capture_content,
+                )));
+                println!("✓ OpenTelemetry GenAI export enabled");
+            }
         }
-        
+
         agent = agent.add_runner(Box::new(ssl_runner));
         let http_filter_info = if ssl_http && !http_filter.is_empty() { 
             format!(" with {} HTTP filter patterns", http_filter.len()) 
@@ -799,6 +831,7 @@ async fn run_trace(
     system_interval: u64,
     http_filter: &[String],
     disable_auth_removal: bool,
+    otel: Option<OtelConfig>,
     binary_path: Option<&str>,
     log_file: &str,
     quiet: bool,
@@ -849,7 +882,7 @@ async fn run_trace(
         binary_extractor, "trace", ssl_enabled, pid, ssl_uid, comm, ssl_filter,
         ssl_handshake, ssl_http, ssl_raw_data, process_enabled, stdio_enabled,
         stdio_uid, stdio_comm, stdio_all_fds, stdio_max_bytes, duration, mode,
-        system_enabled, system_interval, http_filter, disable_auth_removal,
+        system_enabled, system_interval, http_filter, disable_auth_removal, otel,
         binary_path, log_file, quiet, rotate_logs, max_log_size,
     )?;
 
@@ -1194,7 +1227,7 @@ async fn run_exec(
         /* ssl_raw_data */ false, /* process */ true, /* stdio */ false,
         None, None, false, 8192, None, None,
         /* system */ true, /* system_interval */ 2,
-        &http_filter_patterns, /* disable_auth_removal */ false,
+        &http_filter_patterns, /* disable_auth_removal */ false, /* otel */ None,
         binary_path.as_deref(), log_file,
         /* quiet */ true, rotate_logs, max_log_size,
     )?;

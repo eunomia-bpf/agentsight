@@ -63,7 +63,7 @@ eBPF Programs (kernel) → JSON stdout → Rust Runners → Analyzer Chain → O
 - **`bpf/`** — C eBPF programs. `sslsniff` hooks SSL_read/SSL_write via uprobes; `process` tracks process lifecycle via tracepoints. Both emit JSON to stdout.
 - **`collector/src/framework/`** — Rust streaming framework:
   - `runners/` — Execute eBPF binaries and parse their JSON output into event streams (SslRunner, ProcessRunner, SystemRunner, FakeRunner)
-  - `analyzers/` — Pluggable stream processors: ChunkMerger, SSEProcessor, HTTPParser, SSLFilter, HTTPFilter, FileLogger, AuthHeaderRemover
+  - `analyzers/` — Pluggable stream processors: ChunkMerger, SSEProcessor, HTTPParser, SSLFilter, HTTPFilter, FileLogger, AuthHeaderRemover, OtelExporter (maps LLM HTTP pairs to OpenTelemetry `gen_ai.*` spans, exported via OTLP/HTTP JSON; enabled by `trace --otel`, see `docs/otel.md`)
   - `core/events.rs` — Standardized `Event` struct with JSON payloads
   - `binary_extractor.rs` — Extracts embedded eBPF binaries to temp files at runtime
 - **`collector/src/main.rs`** — CLI entry point. Subcommands: `ssl`, `process`, `trace` (most flexible), `record` (optimized defaults)

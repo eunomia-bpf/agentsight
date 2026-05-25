@@ -28,6 +28,7 @@ pub mod ssl_filter;
 pub mod event;
 pub mod common;
 pub mod timestamp_normalizer;
+pub mod otel_exporter;
 
 #[cfg(test)]
 mod sse_processor_tests;
@@ -40,6 +41,7 @@ pub use http_filter::{HTTPFilter, print_global_http_filter_metrics};
 pub use auth_header_remover::AuthHeaderRemover;
 pub use ssl_filter::{SSLFilter, print_global_ssl_filter_metrics};
 pub use timestamp_normalizer::TimestampNormalizer;
+pub use otel_exporter::OtelExporter;
 
 #[cfg(test)]
 mod comprehensive_analyzer_chain_tests {
