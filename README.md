@@ -41,6 +41,8 @@ sudo ./agentsight record -c "node"
 sudo ./agentsight record -c "python"
 # For Node.js apps with NVM (statically-linked OpenSSL)
 sudo ./agentsight record -c node --binary-path ~/.nvm/versions/node/v20.0.0/bin/node
+# For an agent running in a Docker container (e.g. OpenClaw) — see docs/openclaw.md
+sudo ./agentsight record -c node --binary-path docker://openclaw
 ```
 
 Visit [http://127.0.0.1:7395](http://127.0.0.1:7395) to view the recorded data.
@@ -293,6 +295,25 @@ sudo ./agentsight record -c node --binary-path ~/.nvm/versions/node/v20.0.0/bin/
 > **Behind an HTTP/HTTPS proxy?** Traffic is still TLS-encrypted inside the
 > Node process (the proxy only tunnels it), so AgentSight captures it the same
 > way — at the `SSL_read`/`SSL_write` calls before encryption.
+
+#### Monitoring Agents in Docker Containers (OpenClaw, etc.)
+
+For an agent running inside a Docker container, pass the container to
+`--binary-path` with the `docker://` scheme. AgentSight resolves the container's
+process tree and attaches sslsniff to the right binary automatically:
+
+```bash
+# OpenClaw is a Node.js agent that runs in a container — works out of the box
+sudo ./agentsight record -c node --binary-path docker://openclaw
+
+# Accepts a container name or ID; supported by record / trace / ssl
+sudo ./agentsight trace --binary-path docker://openclaw --server
+```
+
+`docker inspect` reports the container's *init* process (often `tini`), which
+has no SSL code. AgentSight walks the descendant process tree and attaches to the
+first process whose binary actually embeds SSL (the `node` process). See
+[docs/openclaw.md](docs/openclaw.md) for the full walkthrough.
 
 #### Advanced Monitoring
 

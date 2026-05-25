@@ -124,6 +124,19 @@ This logic is in `run_trace()` in `collector/src/main.rs` (around line 485).
 
 In `run_trace()`, when SSL is enabled and `--binary-path` is absent, the binary is auto-discovered from `--comm`: `resolve_binary_path(comm)` resolves the binary, and it is adopted **only if `binary_embeds_ssl()` returns true** (the binary contains the `SSL_write` symbol-name string). This fixes `record -c node` (Node statically links OpenSSL — no system `libssl.so` to hook) while leaving dynamically-linked runtimes like Python on sslsniff's system-libssl + comm-filter path. `exec` resolves unconditionally (it targets one known program); `record`/`trace` gate on `binary_embeds_ssl()` to avoid over-capturing for Python.
 
+## Containerized Agents: `docker://` Binary Path
+
+`--binary-path docker://<name|id>` (or `docker:<name|id>`) targets an agent
+running in a Docker container. `resolve_container_binary_path()` in
+`collector/src/main.rs` runs `docker inspect --format '{{.State.Pid}}'` to get
+the container's init PID, then `find_ssl_pid_in_tree()` walks the descendant
+process tree (via `/proc/<pid>/task/<pid>/children`) and returns the first
+process whose `/proc/<pid>/exe` embeds SSL. This is needed because the init PID
+is often a wrapper like `tini` (OpenClaw runs `tini -s -- node openclaw.mjs
+gateway`) that contains no SSL code. The scheme is translated in `run_trace()`
+(covers `record`/`trace`) and `run_raw_ssl()` (covers `ssl`). See
+`docs/openclaw.md`. `parse_container_ref()` has unit tests in `main.rs`.
+
 ## Common Issues
 
 - **No SSL capture from Claude/Bun**: Must use `--binary-path` pointing to the actual binary (or use `exec`). BoringSSL is statically linked and stripped.

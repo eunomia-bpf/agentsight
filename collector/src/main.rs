@@ -384,6 +384,14 @@ async fn run_raw_ssl(binary_extractor: &BinaryExtractor, enable_chunk_merger: bo
     // Set up event broadcasting for server if enabled
     let (event_sender, _event_receiver) = broadcast::channel(1000);
 
+    // Translate a `docker://<container>` binary path to the host /proc/<pid>/exe
+    // of the container's SSL-embedding process (see resolve_container_binary_path).
+    let container_resolved: Option<String> = match binary_path.and_then(parse_container_ref) {
+        Some(reference) => Some(resolve_container_binary_path(reference).map_err(RunnerError::from)?),
+        None => None,
+    };
+    let binary_path = container_resolved.as_deref().or(binary_path);
+
     // Build arguments list with binary_path if provided
     let mut final_args = Vec::new();
     if let Some(path) = binary_path {
@@ -808,6 +816,18 @@ async fn run_trace(
     // system libssl.so to hook. Only adopt the resolved binary if it actually
     // embeds SSL, so dynamically-linked runtimes like Python are left to
     // sslsniff's system-libssl path with comm filtering intact.
+    // A `--binary-path docker://<container>` (or `docker:<container>`) reference
+    // is translated to the host-side /proc/<host-pid>/exe of the container's
+    // main process. This is the out-of-the-box path for containerized agents
+    // such as OpenClaw, which is Node.js with a statically-linked OpenSSL — so
+    // there is no in-container libssl.so to scan, and sslsniff must attach its
+    // uprobe directly to the node binary via /proc/<pid>/exe.
+    let container_resolved: Option<String> = match binary_path.and_then(parse_container_ref) {
+        Some(reference) => Some(resolve_container_binary_path(reference).map_err(RunnerError::from)?),
+        None => None,
+    };
+    let binary_path = container_resolved.as_deref().or(binary_path);
+
     let auto_resolved: Option<String> = if ssl_enabled && binary_path.is_none() {
         comm.filter(|c| !c.contains(','))
             .and_then(|c| resolve_binary_path(c).ok())
@@ -1018,6 +1038,90 @@ fn binary_embeds_ssl(path: &str) -> bool {
         }
     }
     false
+}
+
+/// Strip a `docker://<ref>` or `docker:<ref>` scheme from a `--binary-path`
+/// value, returning the container reference (name or id). Returns `None` for
+/// ordinary filesystem paths, which are passed through to sslsniff unchanged.
+fn parse_container_ref(binary_path: &str) -> Option<&str> {
+    binary_path
+        .strip_prefix("docker://")
+        .or_else(|| binary_path.strip_prefix("docker:"))
+        .filter(|r| !r.is_empty())
+}
+
+/// Resolve a Docker container reference to the host path of the executable
+/// that sslsniff should attach its SSL uprobe to (`/proc/<host-pid>/exe`).
+///
+/// This works for containerized runtimes that statically link their TLS
+/// library (Node.js / OpenClaw), where there is no in-container `libssl.so`
+/// to scan for. The host PID comes from `docker inspect`, so this requires the
+/// Docker CLI and (typically) root to read the target's `/proc` entries.
+///
+/// `docker inspect .State.Pid` returns the container's *init* process, which is
+/// often a wrapper such as `tini` (OpenClaw's image uses `tini -s -- node …`).
+/// That wrapper does not embed SSL, so we walk its descendant process tree and
+/// pick the first process whose `/proc/<pid>/exe` actually embeds SSL (the
+/// `node` process). If none is found we fall back to the init PID's executable.
+fn resolve_container_binary_path(reference: &str) -> Result<String, String> {
+    let output = std::process::Command::new("docker")
+        .args(["inspect", "--format", "{{.State.Pid}}", reference])
+        .output()
+        .map_err(|e| format!(
+            "failed to run `docker inspect` for container '{}': {} (is the Docker CLI installed and on $PATH?)",
+            reference, e
+        ))?;
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("`docker inspect {}` failed: {}", reference, stderr.trim()));
+    }
+
+    let init_pid: u32 = String::from_utf8_lossy(&output.stdout)
+        .trim()
+        .parse()
+        .map_err(|_| format!("could not determine host PID for container '{}'", reference))?;
+
+    if init_pid == 0 {
+        return Err(format!("container '{}' is not running (host PID 0)", reference));
+    }
+
+    let target_pid = find_ssl_pid_in_tree(init_pid).unwrap_or(init_pid);
+    let exe = format!("/proc/{}/exe", target_pid);
+    if target_pid == init_pid {
+        println!("✓ Resolved container '{}' to host PID {} → {}", reference, target_pid, exe);
+    } else {
+        println!("✓ Resolved container '{}' (init PID {}) to SSL-embedding host PID {} → {}",
+                 reference, init_pid, target_pid, exe);
+    }
+    Ok(exe)
+}
+
+/// Breadth-first search the descendant process tree rooted at `root_pid` for the
+/// first process whose `/proc/<pid>/exe` statically embeds SSL. Returns that
+/// PID, or `None` if no descendant (including the root) embeds SSL.
+///
+/// Children are read from `/proc/<pid>/task/<pid>/children`, which lists the
+/// immediate child PIDs of a process. Requires permission to read those entries
+/// (root in practice for containerized processes).
+fn find_ssl_pid_in_tree(root_pid: u32) -> Option<u32> {
+    let mut queue = std::collections::VecDeque::from([root_pid]);
+    let mut seen = std::collections::HashSet::new();
+    while let Some(pid) = queue.pop_front() {
+        if !seen.insert(pid) {
+            continue;
+        }
+        if binary_embeds_ssl(&format!("/proc/{}/exe", pid)) {
+            return Some(pid);
+        }
+        let children_path = format!("/proc/{}/task/{}/children", pid, pid);
+        if let Ok(children) = std::fs::read_to_string(&children_path) {
+            for child in children.split_whitespace().filter_map(|s| s.parse::<u32>().ok()) {
+                queue.push_back(child);
+            }
+        }
+    }
+    None
 }
 
 /// Launch a target command and automatically trace it with eBPF.
@@ -1269,4 +1373,35 @@ async fn start_web_server_if_enabled(
     tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
 
     Ok(Some(server_handle))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_container_ref;
+
+    #[test]
+    fn parses_docker_double_slash_scheme() {
+        assert_eq!(parse_container_ref("docker://openclaw"), Some("openclaw"));
+        assert_eq!(parse_container_ref("docker://my-agent-1"), Some("my-agent-1"));
+    }
+
+    #[test]
+    fn parses_docker_colon_scheme() {
+        assert_eq!(parse_container_ref("docker:openclaw"), Some("openclaw"));
+        // A 64-char container id is a valid reference too.
+        assert_eq!(parse_container_ref("docker:abc123def456"), Some("abc123def456"));
+    }
+
+    #[test]
+    fn ignores_plain_filesystem_paths() {
+        assert_eq!(parse_container_ref("/proc/1234/exe"), None);
+        assert_eq!(parse_container_ref("/usr/bin/node"), None);
+        assert_eq!(parse_container_ref("~/.nvm/versions/node/v20.0.0/bin/node"), None);
+    }
+
+    #[test]
+    fn rejects_empty_container_reference() {
+        assert_eq!(parse_container_ref("docker://"), None);
+        assert_eq!(parse_container_ref("docker:"), None);
+    }
 }
