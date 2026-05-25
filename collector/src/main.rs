@@ -402,7 +402,16 @@ enum Commands {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn main() {
+    // Print errors as a clean one-line `Error: <message>` (Display) and exit 1,
+    // instead of the default `-> Result` behavior which prints them via Debug.
+    if let Err(e) = run().await {
+        eprintln!("Error: {}", e);
+        std::process::exit(1);
+    }
+}
+
+async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Initialize env_logger with default log level of info
     env_logger::Builder::from_default_env()
         .filter_level(log::LevelFilter::Info)
@@ -545,13 +554,7 @@ async fn run_raw_ssl(binary_extractor: &BinaryExtractor, enable_chunk_merger: bo
     }
     
     ssl_runner = ssl_runner
-        .add_analyzer(Box::new(
-            if rotate_logs {
-                FileLogger::with_max_size(log_file, max_log_size).unwrap()
-            } else {
-                FileLogger::new(log_file).unwrap()
-            }
-        ));
+        .add_analyzer(Box::new(make_file_logger(log_file, rotate_logs, max_log_size)?));
     
     if !quiet {
         ssl_runner = ssl_runner.add_analyzer(Box::new(OutputAnalyzer::new()));
@@ -590,13 +593,7 @@ async fn run_raw_process(binary_extractor: &BinaryExtractor, quiet: bool, rotate
     }
 
     process_runner = process_runner
-        .add_analyzer(Box::new(
-            if rotate_logs {
-                FileLogger::with_max_size(log_file, max_log_size).unwrap()
-            } else {
-                FileLogger::new(log_file).unwrap()
-            }
-        ));
+        .add_analyzer(Box::new(make_file_logger(log_file, rotate_logs, max_log_size)?));
 
     // Start web server if enabled
     let _server_handle = start_web_server_if_enabled(enable_server, server_port, log_file).await
@@ -647,13 +644,7 @@ async fn run_raw_stdio(binary_extractor: &BinaryExtractor, pid: u32, uid: Option
     }
 
     stdio_runner = stdio_runner
-        .add_analyzer(Box::new(
-            if rotate_logs {
-                FileLogger::with_max_size(log_file, max_log_size).unwrap()
-            } else {
-                FileLogger::new(log_file).unwrap()
-            }
-        ));
+        .add_analyzer(Box::new(make_file_logger(log_file, rotate_logs, max_log_size)?));
 
     // Start web server if enabled
     let _server_handle = start_web_server_if_enabled(enable_server, server_port, log_file).await
@@ -670,6 +661,17 @@ async fn run_raw_stdio(binary_extractor: &BinaryExtractor, pid: u32, uid: Option
 
 /// Build a configured AgentRunner from trace options without running it.
 /// Shared by `run_trace` and `run_exec` so they configure runners identically.
+/// Build a FileLogger, turning an open failure (missing dir, no permission, …)
+/// into a clean RunnerError instead of an `.unwrap()` panic.
+fn make_file_logger(log_file: &str, rotate_logs: bool, max_log_size: u64) -> Result<FileLogger, RunnerError> {
+    let result = if rotate_logs {
+        FileLogger::with_max_size(log_file, max_log_size)
+    } else {
+        FileLogger::new(log_file)
+    };
+    result.map_err(|e| RunnerError::from(format!("failed to open log file '{}': {}", log_file, e)))
+}
+
 fn build_trace_agent(
     binary_extractor: &BinaryExtractor,
     cfg: &TraceConfig,
@@ -851,13 +853,7 @@ fn build_trace_agent(
     
     // Add global analyzers (HTTP filter is now added to SSL runner instead)
 
-    agent = agent.add_global_analyzer(Box::new(
-        if rotate_logs {
-            FileLogger::with_max_size(log_file, max_log_size).unwrap()
-        } else {
-            FileLogger::new(log_file).unwrap()
-        }
-    ));
+    agent = agent.add_global_analyzer(Box::new(make_file_logger(log_file, rotate_logs, max_log_size)?));
     println!("✓ Logging to file: {}", log_file);
     
     if !quiet {
@@ -1109,13 +1105,7 @@ async fn run_system(
 
     // Add file logger
     system_runner = system_runner
-        .add_analyzer(Box::new(
-            if rotate_logs {
-                FileLogger::with_max_size(log_file, max_log_size).unwrap()
-            } else {
-                FileLogger::new(log_file).unwrap()
-            }
-        ));
+        .add_analyzer(Box::new(make_file_logger(log_file, rotate_logs, max_log_size)?));
 
     // Add console output unless quiet
     if !quiet {

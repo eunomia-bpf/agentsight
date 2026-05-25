@@ -36,6 +36,10 @@ use std::sync::Arc;
 /// Default OTLP/HTTP receiver endpoint (OpenTelemetry Collector).
 const DEFAULT_OTLP_ENDPOINT: &str = "http://localhost:4318";
 
+/// Drop a pending request that never got a matching response after this long,
+/// bounding the correlation map for dropped/aborted/never-answered requests.
+const PENDING_REQUEST_TIMEOUT_NANOS: u128 = 5 * 60 * 1_000_000_000; // 5 minutes
+
 /// A request that is waiting for its matching response so a full span can be
 /// emitted. Keyed by `(pid, tid)` in the exporter's pending map.
 #[derive(Clone)]
@@ -298,6 +302,11 @@ impl Analyzer for OtelExporter {
             let key = (event.pid, tid);
             let msg_type = data.get("message_type").and_then(|v| v.as_str()).unwrap_or("");
             let unix_nano = (event.timestamp as u128) * 1_000_000; // ms -> ns
+
+            // Evict requests that never got a matching response so `pending`
+            // can't grow without bound (dropped connections, killed agents,
+            // responses on a different tid, …).
+            pending.retain(|_, req| unix_nano.saturating_sub(req.start_unix_nano) <= PENDING_REQUEST_TIMEOUT_NANOS);
 
             match msg_type {
                 "request" => {
