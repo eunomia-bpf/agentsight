@@ -93,15 +93,12 @@ fn test_process_discovery() {
     let mut found_processes = Vec::new();
     if let Ok(entries) = fs::read_dir("/proc") {
         for entry in entries.flatten() {
-            if let Ok(file_name) = entry.file_name().into_string() {
-                if let Ok(pid) = file_name.parse::<u32>() {
-                    if let Ok(comm) = fs::read_to_string(format!("/proc/{}/comm", pid)) {
-                        if comm.contains("test") || comm.contains("cargo") {
+            if let Ok(file_name) = entry.file_name().into_string()
+                && let Ok(pid) = file_name.parse::<u32>()
+                    && let Ok(comm) = fs::read_to_string(format!("/proc/{}/comm", pid))
+                        && (comm.contains("test") || comm.contains("cargo")) {
                             found_processes.push((pid, comm.trim().to_string()));
                         }
-                    }
-                }
-            }
         }
     }
 

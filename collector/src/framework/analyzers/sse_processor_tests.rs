@@ -2,6 +2,7 @@
 // Copyright (c) 2026 eunomia-bpf org.
 
 #[cfg(test)]
+#[allow(clippy::module_inception)]
 mod sse_processor_tests {
     use super::super::sse_processor::SSEProcessor;
     use super::super::Analyzer;

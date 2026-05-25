@@ -63,20 +63,17 @@ impl BinaryExecutor {
         }
         
         let mut child = cmd.spawn()
-            .map_err(|e| Box::new(std::io::Error::new(
-                std::io::ErrorKind::Other, 
+            .map_err(|e| Box::new(std::io::Error::other(
                 format!("Failed to start binary: {}", e)
             )) as RunnerError)?;
             
         let stdout = child.stdout.take()
-            .ok_or_else(|| Box::new(std::io::Error::new(
-                std::io::ErrorKind::Other, 
+            .ok_or_else(|| Box::new(std::io::Error::other(
                 "Failed to get stdout"
             )) as RunnerError)?;
         
         let stderr = child.stderr.take()
-            .ok_or_else(|| Box::new(std::io::Error::new(
-                std::io::ErrorKind::Other, 
+            .ok_or_else(|| Box::new(std::io::Error::other(
                 "Failed to get stderr"
             )) as RunnerError)?;
         
@@ -229,8 +226,8 @@ impl BinaryExecutor {
                                     }
                                 }
                                 
-                                if valid_len > 0 {
-                                    if let Ok(valid_str) = std::str::from_utf8(&raw_bytes[0..valid_len]) {
+                                if valid_len > 0
+                                    && let Ok(valid_str) = std::str::from_utf8(&raw_bytes[0..valid_len]) {
                                         log::debug!("Recovered {} valid UTF-8 bytes before error", valid_len);
                                         // Try to parse the valid portion
                                         if let Ok(json_value) = serde_json::from_str::<serde_json::Value>(valid_str.trim()) {
@@ -239,7 +236,6 @@ impl BinaryExecutor {
                                             continue;
                                         }
                                     }
-                                }
                             }
                             
                             // Log detailed error information

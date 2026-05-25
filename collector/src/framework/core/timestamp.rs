@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-/// Timestamp conversion utilities
-///
-/// All timestamps in the system are standardized to milliseconds since UNIX epoch
-/// for consistency and ease of use in the frontend.
+//! Timestamp conversion utilities
+//!
+//! All timestamps in the system are standardized to milliseconds since UNIX epoch
+//! for consistency and ease of use in the frontend.
 
 use std::fs;
 use std::sync::OnceLock;
@@ -22,28 +22,24 @@ pub fn get_boot_time_secs() -> i64 {
         // Try to read from /proc/stat (most reliable)
         if let Ok(content) = fs::read_to_string("/proc/stat") {
             for line in content.lines() {
-                if line.starts_with("btime ") {
-                    if let Some(btime_str) = line.split_whitespace().nth(1) {
-                        if let Ok(btime) = btime_str.parse::<i64>() {
+                if line.starts_with("btime ")
+                    && let Some(btime_str) = line.split_whitespace().nth(1)
+                        && let Ok(btime) = btime_str.parse::<i64>() {
                             return btime;
                         }
-                    }
-                }
             }
         }
 
         // Fallback: calculate from uptime
-        if let Ok(uptime_str) = fs::read_to_string("/proc/uptime") {
-            if let Some(uptime_secs_str) = uptime_str.split_whitespace().next() {
-                if let Ok(uptime_secs) = uptime_secs_str.parse::<f64>() {
+        if let Ok(uptime_str) = fs::read_to_string("/proc/uptime")
+            && let Some(uptime_secs_str) = uptime_str.split_whitespace().next()
+                && let Ok(uptime_secs) = uptime_secs_str.parse::<f64>() {
                     let now_secs = SystemTime::now()
                         .duration_since(UNIX_EPOCH)
                         .unwrap()
                         .as_secs() as i64;
                     return now_secs - uptime_secs as i64;
                 }
-            }
-        }
 
         // Last resort: return current time (will be incorrect but won't crash)
         SystemTime::now()
@@ -90,7 +86,7 @@ mod tests {
     #[test]
     fn test_boot_ns_to_epoch_ms_conversion() {
         // Test with a known timestamp: 1000 seconds after boot
-        let ns_since_boot = 1000_000_000_000u64; // 1000 seconds in nanoseconds
+        let ns_since_boot = 1_000_000_000_000u64; // 1000 seconds in nanoseconds
         let result_ms = boot_ns_to_epoch_ms(ns_since_boot);
 
         let boot_time = get_boot_time_secs();

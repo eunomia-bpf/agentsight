@@ -34,21 +34,16 @@ pub trait Runner: Send + Sync {
 
 /// Configuration for SSL/TLS monitoring
 #[derive(Debug, Clone)]
+#[derive(Default)]
 pub struct SslConfig {
     #[allow(dead_code)]
     pub tls_version: Option<String>,
 }
 
-impl Default for SslConfig {
-    fn default() -> Self {
-        Self {
-            tls_version: None,
-        }
-    }
-}
 
 /// Configuration for process monitoring
 #[derive(Debug, Clone)]
+#[derive(Default)]
 pub struct ProcessConfig {
     #[allow(dead_code)]
     pub pid: Option<u32>,
@@ -56,17 +51,10 @@ pub struct ProcessConfig {
     pub memory_threshold: Option<u64>,
 }
 
-impl Default for ProcessConfig {
-    fn default() -> Self {
-        Self {
-            pid: None,
-            memory_threshold: None,
-        }
-    }
-}
 
 /// Configuration for stdio payload monitoring
 #[derive(Debug, Clone)]
+#[derive(Default)]
 pub struct StdioConfig {
     #[allow(dead_code)]
     pub pid: Option<u32>,
@@ -78,16 +66,6 @@ pub struct StdioConfig {
     pub max_bytes: Option<u32>,
 }
 
-impl Default for StdioConfig {
-    fn default() -> Self {
-        Self {
-            pid: None,
-            uid: None,
-            all_fds: false,
-            max_bytes: None,
-        }
-    }
-}
 
 pub mod common;
 pub mod ssl;

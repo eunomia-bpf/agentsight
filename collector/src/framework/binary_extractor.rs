@@ -85,8 +85,7 @@ impl BinaryExtractor {
         }
 
         let _guard = self.stdiocap_init_lock.lock().map_err(|_| {
-            std::io::Error::new(
-                std::io::ErrorKind::Other,
+            std::io::Error::other(
                 "stdiocap extraction lock poisoned",
             )
         })?;
@@ -108,8 +107,7 @@ impl BinaryExtractor {
         println!("Extracted stdiocap binary to: {}", stdiocap_path.display());
 
         self.stdiocap_path.set(stdiocap_path).map_err(|_| {
-            std::io::Error::new(
-                std::io::ErrorKind::Other,
+            std::io::Error::other(
                 "stdiocap path initialized concurrently",
             )
         })?;

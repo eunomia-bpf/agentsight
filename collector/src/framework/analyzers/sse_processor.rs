@@ -116,12 +116,12 @@ impl SSEProcessor {
             
             for line in block.split('\n') {
                 let line = line.trim();
-                if line.starts_with("event:") {
-                    event.event = Some(line[6..].trim().to_string());
-                } else if line.starts_with("data:") {
-                    data_lines.push(line[5..].trim());
-                } else if line.starts_with("id:") {
-                    event.id = Some(line[3..].trim().to_string());
+                if let Some(rest) = line.strip_prefix("event:") {
+                    event.event = Some(rest.trim().to_string());
+                } else if let Some(rest) = line.strip_prefix("data:") {
+                    data_lines.push(rest.trim());
+                } else if let Some(rest) = line.strip_prefix("id:") {
+                    event.id = Some(rest.trim().to_string());
                 }
             }
             
@@ -207,19 +207,14 @@ impl SSEProcessor {
     /// Extract message ID from SSE events - matches ssl_log_analyzer.py logic
     fn extract_message_id(events: &[SSEEvent]) -> Option<String> {
         for event in events {
-            if let Some(event_type) = &event.event {
-                if event_type == "message_start" {
-                    if let Some(parsed_data) = &event.parsed_data {
-                        if let Some(message) = parsed_data.get("message") {
-                            if let Some(id) = message.get("id") {
-                                if let Some(id_str) = id.as_str() {
+            if let Some(event_type) = &event.event
+                && event_type == "message_start"
+                    && let Some(parsed_data) = &event.parsed_data
+                        && let Some(message) = parsed_data.get("message")
+                            && let Some(id) = message.get("id")
+                                && let Some(id_str) = id.as_str() {
                                     return Some(id_str.to_string());
                                 }
-                            }
-                        }
-                    }
-                }
-            }
         }
         None
     }
@@ -246,10 +241,10 @@ impl SSEProcessor {
         
         // Fallback: check for very large buffer size as safety measure
         // Use much larger buffer limit to avoid cutting off long responses  
-        let size_timeout = accumulator.accumulated_text.len() > 50000 || 
-                          accumulator.accumulated_json.len() > 50000;
         
-        size_timeout
+        
+        accumulator.accumulated_text.len() > 50000 || 
+                          accumulator.accumulated_json.len() > 50000
     }
 
     /// Check if SSE stream contains meaningful content worth creating an event for
@@ -307,7 +302,7 @@ impl SSEProcessor {
                         accumulator.has_message_start = true;
                         // Extract message ID
                         if accumulator.message_id.is_none() {
-                            accumulator.message_id = Self::extract_message_id(&[event.clone()]);
+                            accumulator.message_id = Self::extract_message_id(std::slice::from_ref(event));
                         }
                         if debug {
                             eprintln!("[DEBUG]     Found message_start, has_message_start=true");
@@ -315,8 +310,8 @@ impl SSEProcessor {
                     }
                     "content_block_delta" => {
                         // Handle deltas - matches ssl_log_analyzer.py logic
-                        if let Some(parsed_data) = &event.parsed_data {
-                            if let Some(delta) = parsed_data.get("delta") {
+                        if let Some(parsed_data) = &event.parsed_data
+                            && let Some(delta) = parsed_data.get("delta") {
                                 let mut text = String::new();
                                 
                                 // Handle text delta
@@ -329,14 +324,13 @@ impl SSEProcessor {
                                     }
                                 }
                                 // Handle thinking delta
-                                else if delta.get("type").and_then(|v| v.as_str()) == Some("thinking_delta") {
-                                    if let Some(thinking_value) = delta.get("thinking").and_then(|v| v.as_str()) {
+                                else if delta.get("type").and_then(|v| v.as_str()) == Some("thinking_delta")
+                                    && let Some(thinking_value) = delta.get("thinking").and_then(|v| v.as_str()) {
                                         text = thinking_value.to_string();
                                         if debug {
                                             eprintln!("[DEBUG]     Extracted thinking_delta: '{}'", text);
                                         }
                                     }
-                                }
                                 
                                 if !text.is_empty() {
                                     chunk_text_parts.push(text.clone());
@@ -351,7 +345,6 @@ impl SSEProcessor {
                                     }
                                 }
                             }
-                        }
                     }
                     _ => {
                         if debug {

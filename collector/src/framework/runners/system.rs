@@ -136,13 +136,11 @@ impl Runner for SystemRunner {
 /// Get nanoseconds since boot (matching bpf_ktime_get_ns() behavior)
 fn get_boot_time_ns() -> u64 {
     // Read /proc/uptime to get seconds since boot
-    if let Ok(uptime_str) = fs::read_to_string("/proc/uptime") {
-        if let Some(uptime_secs) = uptime_str.split_whitespace().next() {
-            if let Ok(secs) = uptime_secs.parse::<f64>() {
+    if let Ok(uptime_str) = fs::read_to_string("/proc/uptime")
+        && let Some(uptime_secs) = uptime_str.split_whitespace().next()
+            && let Ok(secs) = uptime_secs.parse::<f64>() {
                 return (secs * 1_000_000_000.0) as u64;
             }
-        }
-    }
     0
 }
 
@@ -237,15 +235,12 @@ fn find_pids_by_name(pattern: &str) -> Vec<u32> {
 
     if let Ok(entries) = fs::read_dir("/proc") {
         for entry in entries.flatten() {
-            if let Ok(file_name) = entry.file_name().into_string() {
-                if let Ok(pid) = file_name.parse::<u32>() {
-                    if let Ok(comm) = fs::read_to_string(format!("/proc/{}/comm", pid)) {
-                        if comm.trim().contains(pattern) {
+            if let Ok(file_name) = entry.file_name().into_string()
+                && let Ok(pid) = file_name.parse::<u32>()
+                    && let Ok(comm) = fs::read_to_string(format!("/proc/{}/comm", pid))
+                        && comm.trim().contains(pattern) {
                             matching_pids.push(pid);
                         }
-                    }
-                }
-            }
         }
     }
 
@@ -258,23 +253,19 @@ fn get_all_children(parent_pid: u32) -> Vec<u32> {
 
     if let Ok(entries) = fs::read_dir("/proc") {
         for entry in entries.flatten() {
-            if let Ok(file_name) = entry.file_name().into_string() {
-                if let Ok(pid) = file_name.parse::<u32>() {
-                    if let Ok(stat) = fs::read_to_string(format!("/proc/{}/stat", pid)) {
+            if let Ok(file_name) = entry.file_name().into_string()
+                && let Ok(pid) = file_name.parse::<u32>()
+                    && let Ok(stat) = fs::read_to_string(format!("/proc/{}/stat", pid)) {
                         // Extract PPID from stat file
                         let fields: Vec<&str> = stat.split_whitespace().collect();
-                        if fields.len() > 3 {
-                            if let Ok(ppid) = fields[3].parse::<u32>() {
-                                if ppid == parent_pid {
+                        if fields.len() > 3
+                            && let Ok(ppid) = fields[3].parse::<u32>()
+                                && ppid == parent_pid {
                                     children.push(pid);
                                     // Recursively get grandchildren
                                     children.extend(get_all_children(pid));
                                 }
-                            }
-                        }
                     }
-                }
-            }
         }
     }
 
@@ -333,16 +324,14 @@ fn collect_process_metrics(
 
     // Check thresholds for alerts
     let mut alert = false;
-    if let Some(cpu_threshold) = config.cpu_threshold {
-        if total_cpu_percent >= cpu_threshold {
+    if let Some(cpu_threshold) = config.cpu_threshold
+        && total_cpu_percent >= cpu_threshold {
             alert = true;
         }
-    }
-    if let Some(memory_threshold) = config.memory_threshold {
-        if total_rss_kb / 1024 >= memory_threshold {
+    if let Some(memory_threshold) = config.memory_threshold
+        && total_rss_kb / 1024 >= memory_threshold {
             alert = true;
         }
-    }
 
     // Build JSON payload
     let payload = json!({

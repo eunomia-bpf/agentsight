@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-/// Timestamp Normalizer Analyzer
-///
-/// Converts all timestamps from nanoseconds since boot to milliseconds since UNIX epoch.
-/// This ensures timestamps are standardized for frontend consumption.
+//! Timestamp Normalizer Analyzer
+//!
+//! Converts all timestamps from nanoseconds since boot to milliseconds since UNIX epoch.
+//! This ensures timestamps are standardized for frontend consumption.
 
 use super::Analyzer;
 use crate::framework::core::Event;

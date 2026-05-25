@@ -179,7 +179,7 @@ mod tests {
         
         // Check for events from different sources (SSL from FakeRunner, potentially processed by analyzers)
         let sources: std::collections::HashSet<_> = events.iter().map(|e| &e.source).collect();
-        assert!(sources.len() >= 1, "Should have events from at least one source");
+        assert!(!sources.is_empty(), "Should have events from at least one source");
     }
     
     #[tokio::test]

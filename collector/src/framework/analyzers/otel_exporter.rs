@@ -233,11 +233,10 @@ fn build_otlp_payload(
         }
     }
 
-    if capture_content {
-        if let Some(msgs) = &req.input_messages {
+    if capture_content
+        && let Some(msgs) = &req.input_messages {
             attributes.push(attr_str("gen_ai.input.messages", msgs));
         }
-    }
 
     json!({
         "resourceSpans": [{

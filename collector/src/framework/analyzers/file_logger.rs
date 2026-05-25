@@ -136,11 +136,10 @@ impl FileLogger {
                 let old_path = format!("{}.{}", file_path, i);
                 let new_path = format!("{}.{}", file_path, i + 1);
                 
-                if std::path::Path::new(&old_path).exists() {
-                    if let Err(e) = std::fs::rename(&old_path, &new_path) {
+                if std::path::Path::new(&old_path).exists()
+                    && let Err(e) = std::fs::rename(&old_path, &new_path) {
                         eprintln!("FileLogger: Failed to rotate {} to {}: {}", old_path, new_path, e);
                     }
-                }
             }
             
             // Move current file to .1
@@ -166,11 +165,10 @@ impl FileLogger {
             
             // Cleanup old files beyond max_files limit
             let cleanup_path = format!("{}.{}", file_path, config.max_files + 1);
-            if std::path::Path::new(&cleanup_path).exists() {
-                if let Err(e) = std::fs::remove_file(&cleanup_path) {
+            if std::path::Path::new(&cleanup_path).exists()
+                && let Err(e) = std::fs::remove_file(&cleanup_path) {
                     eprintln!("FileLogger: Failed to cleanup old log file {}: {}", cleanup_path, e);
                 }
-            }
         }
     }
 }
@@ -194,14 +192,12 @@ impl Analyzer for FileLogger {
                 *count += 1;
                 
                 // Check rotation at intervals
-                if *count % config.size_check_interval == 0 {
-                    if let Ok(metadata) = std::fs::metadata(&file_path) {
-                        if metadata.len() > config.max_file_size {
+                if (*count).is_multiple_of(config.size_check_interval)
+                    && let Ok(metadata) = std::fs::metadata(&file_path)
+                        && metadata.len() > config.max_file_size {
                             // Perform rotation
                             Self::perform_rotation(&file_handle, &file_path, config);
                         }
-                    }
-                }
             }
             
             // Log the event to file
@@ -211,12 +207,11 @@ impl Analyzer for FileLogger {
                     Ok(json_str) => {
                         // Parse and fix data field if it contains binary
                         if let Ok(mut parsed) = serde_json::from_str::<serde_json::Value>(&json_str) {
-                            if let Some(data_obj) = parsed.get_mut("data") {
-                                if let Some(data_field) = data_obj.get_mut("data") {
+                            if let Some(data_obj) = parsed.get_mut("data")
+                                && let Some(data_field) = data_obj.get_mut("data") {
                                     let data_str = Self::data_to_string(data_field);
                                     *data_field = serde_json::Value::String(data_str);
                                 }
-                            }
                             serde_json::to_string(&parsed).unwrap_or(json_str)
                         } else {
                             json_str

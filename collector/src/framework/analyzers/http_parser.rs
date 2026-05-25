@@ -226,12 +226,11 @@ impl HTTPParser {
         };
 
         // Only process if it's HTTP data AND can be parsed as a complete HTTP message
-        if Self::is_http_data(data_str) {
-            if let Some(parsed_message) = Self::parse_http_message(data_str) {
+        if Self::is_http_data(data_str)
+            && let Some(parsed_message) = Self::parse_http_message(data_str) {
                 let tid = ssl_data.get("tid").and_then(|v| v.as_u64()).unwrap_or(0);
                 return Some(Self::create_http_event(tid, parsed_message, &event, include_raw_data));
             }
-        }
 
         // If not parseable as HTTP, pass through original event
         Some(event)

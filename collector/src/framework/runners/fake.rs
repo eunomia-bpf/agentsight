@@ -503,7 +503,7 @@ mod tests {
                     max_events.fetch_max(current, Ordering::SeqCst);
                     
                     // Simulate processing and cleanup
-                    if current % 10 == 0 {
+                    if current.is_multiple_of(10) {
                         // Simulate periodic cleanup
                         event_count.store(0, Ordering::SeqCst);
                     }

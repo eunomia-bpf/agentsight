@@ -40,12 +40,11 @@ impl Analyzer for OutputAnalyzer {
                 Ok(json_str) => {
                     // Parse and fix data field if it contains binary
                     if let Ok(mut parsed) = serde_json::from_str::<serde_json::Value>(&json_str) {
-                        if let Some(data_obj) = parsed.get_mut("data") {
-                            if let Some(data_field) = data_obj.get_mut("data") {
+                        if let Some(data_obj) = parsed.get_mut("data")
+                            && let Some(data_field) = data_obj.get_mut("data") {
                                 let data_str = Self::data_to_string(data_field);
                                 *data_field = serde_json::Value::String(data_str);
                             }
-                        }
                         serde_json::to_string(&parsed).unwrap_or(json_str)
                     } else {
                         json_str

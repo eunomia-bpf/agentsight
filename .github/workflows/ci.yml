@@ -22,6 +22,7 @@ jobs:
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
         toolchain: stable
+        components: clippy
 
     - name: Setup Node.js
       uses: actions/setup-node@v3
@@ -56,10 +57,24 @@ jobs:
         cd collector
         cargo build --verbose
 
+    - name: Run clippy (deny warnings)
+      run: |
+        cd collector
+        cargo clippy --all-targets -- -D warnings
+
     - name: Run Rust tests
       run: |
         cd collector
         cargo test --verbose
+
+    # Rebuild the C unit tests under AddressSanitizer and run them. Done last and
+    # after `make clean` so the ASan objects don't replace the BPF binaries that
+    # the Rust collector build embeds above.
+    - name: Run C unit tests with AddressSanitizer
+      run: |
+        cd bpf
+        make clean
+        make ASAN=1 test
 
   docker:
     name: Build and Push Docker Image

@@ -27,13 +27,12 @@ pub fn print_global_http_filter_metrics() {
 
 /// Update global metrics with current filter metrics
 fn update_global_metrics(total: u64, filtered: u64, passed: u64) {
-    if let Some(metrics_ref) = HTTP_FILTER_GLOBAL_METRICS.get() {
-        if let Ok(mut metrics) = metrics_ref.lock() {
+    if let Some(metrics_ref) = HTTP_FILTER_GLOBAL_METRICS.get()
+        && let Ok(mut metrics) = metrics_ref.lock() {
             metrics.total_events_processed = total;
             metrics.filtered_events_count = filtered;
             metrics.passed_events_count = passed;
         }
-    }
 }
 
 /// HTTP Filter Analyzer that filters HTTP parser events based on configurable expressions
@@ -151,7 +150,7 @@ impl FilterExpression {
         
         if or_parts.len() > 1 {
             let conditions: Vec<FilterNode> = or_parts.into_iter()
-                .map(|part| Self::parse_and_expression(part))
+                .map(Self::parse_and_expression)
                 .collect();
             FilterNode::Or(conditions)
         } else {
@@ -165,7 +164,7 @@ impl FilterExpression {
         
         if and_parts.len() > 1 {
             let conditions: Vec<FilterNode> = and_parts.into_iter()
-                .map(|part| Self::parse_condition(part))
+                .map(Self::parse_condition)
                 .collect();
             FilterNode::And(conditions)
         } else {
@@ -298,7 +297,8 @@ impl FilterExpression {
                 match operator {
                     "prefix" => path.starts_with(value),
                     "contains" => path.contains(value),
-                    "exact" | _ => path == value,
+                    // "exact" and any unknown operator default to exact match
+                    _ => path == value,
                 }
             }
             "path_prefix" | "path_starts_with" => {
@@ -397,9 +397,7 @@ impl Analyzer for HTTPFilter {
                 total_counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                 
                 // Check if this is an HTTP parser event and should be filtered
-                let should_filter = if filters.is_empty() {
-                    false
-                } else if event.source != "http_parser" {
+                let should_filter = if filters.is_empty() || event.source != "http_parser" {
                     false
                 } else {
                     // Evaluate each filter expression

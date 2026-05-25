@@ -184,7 +184,7 @@ mod comprehensive_analyzer_chain_tests {
         println!("Total events: {}", events.len());
         
         // Verify events passed through all analyzers
-        assert!(events.len() > 0, "Should have events");
+        assert!(!events.is_empty(), "Should have events");
         
         // All remaining events should be SSL (due to filter)
         let non_ssl_events = events.iter().filter(|e| e.source != "ssl" && e.source != "sse_processor").count();

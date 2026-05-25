@@ -350,9 +350,7 @@ impl Analyzer for SSLFilter {
                 total_counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                 
                 // Check if this is an SSL event and should be filtered
-                let should_filter = if filters.is_empty() {
-                    false
-                } else if event.source != "ssl" {
+                let should_filter = if filters.is_empty() || event.source != "ssl" {
                     false
                 } else {
                     // Evaluate each filter expression

@@ -1,6 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
+// The trace/record CLI handlers (run_trace, build_trace_agent, run_raw_ssl, …)
+// thread many positional arguments through. Collapsing them into a TraceConfig
+// struct is a tracked follow-up refactor; until then, allow the lint crate-wide.
+#![allow(clippy::too_many_arguments)]
+
 use clap::{Parser, Subcommand};
 use futures::stream::StreamExt;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -30,7 +35,7 @@ struct OtelConfig {
 static SHUTDOWN_REQUESTED: AtomicBool = AtomicBool::new(false);
 
 fn convert_runner_error(e: RunnerError) -> Box<dyn std::error::Error + Send + Sync> {
-    Box::new(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
+    Box::new(std::io::Error::other(e.to_string()))
 }
 
 async fn setup_signal_handler() {
@@ -396,7 +401,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
 
 /// Show raw SSL events as JSON with optional chunk merging and HTTP parsing
-async fn run_raw_ssl(binary_extractor: &BinaryExtractor, enable_chunk_merger: bool, enable_http_parser: bool, include_raw_data: bool, http_filter_patterns: &Vec<String>, disable_auth_removal: bool, ssl_filter_patterns: &Vec<String>, quiet: bool, rotate_logs: bool, max_log_size: u64, enable_server: bool, server_port: u16, log_file: &str, binary_path: Option<&str>, args: &Vec<String>) -> Result<(), RunnerError> {
+async fn run_raw_ssl(binary_extractor: &BinaryExtractor, enable_chunk_merger: bool, enable_http_parser: bool, include_raw_data: bool, http_filter_patterns: &[String], disable_auth_removal: bool, ssl_filter_patterns: &[String], quiet: bool, rotate_logs: bool, max_log_size: u64, enable_server: bool, server_port: u16, log_file: &str, binary_path: Option<&str>, args: &[String]) -> Result<(), RunnerError> {
     println!("Raw SSL Events");
     println!("{}", "=".repeat(60));
     
@@ -431,7 +436,7 @@ async fn run_raw_ssl(binary_extractor: &BinaryExtractor, enable_chunk_merger: bo
 
     // Add SSL filter if patterns are provided
     if !ssl_filter_patterns.is_empty() {
-        ssl_runner = ssl_runner.add_analyzer(Box::new(SSLFilter::with_patterns(ssl_filter_patterns.clone())));
+        ssl_runner = ssl_runner.add_analyzer(Box::new(SSLFilter::with_patterns(ssl_filter_patterns.to_vec())));
     }
     
     // Add analyzers based on flags - when HTTP parser is enabled, always enable SSE merge first
@@ -448,7 +453,7 @@ async fn run_raw_ssl(binary_extractor: &BinaryExtractor, enable_chunk_merger: bo
         
         // Add HTTP filter if patterns are provided
         if !http_filter_patterns.is_empty() {
-            ssl_runner = ssl_runner.add_analyzer(Box::new(HTTPFilter::with_patterns(http_filter_patterns.clone())));
+            ssl_runner = ssl_runner.add_analyzer(Box::new(HTTPFilter::with_patterns(http_filter_patterns.to_vec())));
         }
         
         // Add authorization header remover by default (unless disabled)
@@ -660,11 +665,10 @@ fn build_trace_agent(
         // because SSL traffic comes from "HTTP Client" thread (not the process name).
         // bpf_get_current_comm() returns thread name, so -c <process-name> would filter
         // out all SSL traffic. Instead, --binary-path alone provides sufficient targeting.
-        if binary_path.is_none() {
-            if let Some(comm_filter) = comm {
+        if binary_path.is_none()
+            && let Some(comm_filter) = comm {
                 ssl_args.extend(["-c".to_string(), comm_filter.to_string()]);
             }
-        }
         if ssl_handshake {
             ssl_args.push("--handshake".to_string());
         }
@@ -986,8 +990,8 @@ fn resolve_binary_path_inner(command: &str, depth: u8) -> Result<String, String>
 fn find_in_path(cmd: &str) -> Option<std::path::PathBuf> {
     let mut dirs: Vec<std::path::PathBuf> = Vec::new();
 
-    if let Some(user) = std::env::var_os("SUDO_USER") {
-        if let Some(home) = sudo_user_home(&user) {
+    if let Some(user) = std::env::var_os("SUDO_USER")
+        && let Some(home) = sudo_user_home(&user) {
             dirs.push(home.join(".local/bin"));
             dirs.push(home.join("bin"));
             // NVM keeps node under ~/.nvm/versions/node/<ver>/bin; pick the newest.
@@ -995,7 +999,6 @@ fn find_in_path(cmd: &str) -> Option<std::path::PathBuf> {
                 dirs.push(nvm_bin);
             }
         }
-    }
 
     if let Some(path) = std::env::var_os("PATH") {
         dirs.extend(std::env::split_paths(&path));
@@ -1003,11 +1006,10 @@ fn find_in_path(cmd: &str) -> Option<std::path::PathBuf> {
 
     for dir in dirs {
         let full = dir.join(cmd);
-        if let Ok(meta) = std::fs::metadata(&full) {
-            if meta.is_file() {
+        if let Ok(meta) = std::fs::metadata(&full)
+            && meta.is_file() {
                 return Some(full);
             }
-        }
     }
     None
 }
