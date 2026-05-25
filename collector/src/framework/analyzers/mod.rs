@@ -25,6 +25,7 @@ pub mod http_parser;
 pub mod http_filter;
 pub mod auth_header_remover;
 pub mod ssl_filter;
+mod filter_metrics;
 pub mod event;
 pub mod common;
 pub mod timestamp_normalizer;

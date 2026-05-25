@@ -7,6 +7,19 @@ use async_trait::async_trait;
 use futures::stream::StreamExt;
 use serde_json::Value;
 
+// Global metrics storage for SSL filter (shared machinery in filter_metrics).
+static SSL_FILTER_GLOBAL_METRICS: super::filter_metrics::MetricsSlot = std::sync::OnceLock::new();
+
+/// Print global SSL filter metrics
+pub fn print_global_ssl_filter_metrics() {
+    super::filter_metrics::print("SSLFilter", &SSL_FILTER_GLOBAL_METRICS);
+}
+
+/// Accumulate this filter's totals into the global counts (called once on Drop).
+fn update_global_ssl_metrics(total: u64, filtered: u64, passed: u64) {
+    super::filter_metrics::add(&SSL_FILTER_GLOBAL_METRICS, total, filtered, passed);
+}
+
 /// SSL Filter Analyzer that filters SSL events based on configurable expressions
 /// Filters SSL events based on data content, function, latency, etc.
 pub struct SSLFilter {
@@ -537,45 +550,3 @@ mod tests {
     }
 }
 
-// Global metrics storage for SSL filter
-use std::sync::{Arc, Mutex, OnceLock};
-
-#[derive(Debug, Clone)]
-struct SSLFilterMetrics {
-    total_events_processed: u64,
-    filtered_events_count: u64, 
-    passed_events_count: u64,
-}
-
-static SSL_FILTER_GLOBAL_METRICS: OnceLock<Arc<Mutex<SSLFilterMetrics>>> = OnceLock::new();
-
-/// Print global SSL filter metrics
-pub fn print_global_ssl_filter_metrics() {
-    if let Some(metrics_ref) = SSL_FILTER_GLOBAL_METRICS.get() {
-        if let Ok(metrics) = metrics_ref.lock() {
-            println!("[SSLFilter Global Metrics] Total: {}, Filtered: {}, Passed: {}", 
-                     metrics.total_events_processed, 
-                     metrics.filtered_events_count, 
-                     metrics.passed_events_count);
-        }
-    } else {
-        println!("[SSLFilter Global Metrics] No metrics available");
-    }
-}
-
-/// Update global SSL filter metrics
-fn update_global_ssl_metrics(total: u64, filtered: u64, passed: u64) {
-    let metrics = SSL_FILTER_GLOBAL_METRICS.get_or_init(|| {
-        Arc::new(Mutex::new(SSLFilterMetrics {
-            total_events_processed: 0,
-            filtered_events_count: 0,
-            passed_events_count: 0,
-        }))
-    });
-    
-    if let Ok(mut m) = metrics.lock() {
-        m.total_events_processed += total;
-        m.filtered_events_count += filtered;
-        m.passed_events_count += passed;
-    }
-}

@@ -6,33 +6,18 @@ use crate::framework::runners::EventStream;
 use async_trait::async_trait;
 use futures::stream::StreamExt;
 use serde_json::Value;
-use std::sync::{Arc, Mutex};
 
-// Global metrics storage for HTTP filter
-static HTTP_FILTER_GLOBAL_METRICS: std::sync::OnceLock<Arc<Mutex<FilterMetrics>>> = std::sync::OnceLock::new();
+// Global metrics storage for HTTP filter (shared machinery in filter_metrics).
+static HTTP_FILTER_GLOBAL_METRICS: super::filter_metrics::MetricsSlot = std::sync::OnceLock::new();
 
 /// Print global HTTP filter metrics
 pub fn print_global_http_filter_metrics() {
-    if let Some(metrics_ref) = HTTP_FILTER_GLOBAL_METRICS.get() {
-        if let Ok(metrics) = metrics_ref.lock() {
-            println!("[HTTPFilter Global Metrics] Total: {}, Filtered: {}, Passed: {}", 
-                     metrics.total_events_processed, 
-                     metrics.filtered_events_count, 
-                     metrics.passed_events_count);
-        }
-    } else {
-        println!("[HTTPFilter Global Metrics] No metrics available");
-    }
+    super::filter_metrics::print("HTTPFilter", &HTTP_FILTER_GLOBAL_METRICS);
 }
 
-/// Update global metrics with current filter metrics
+/// Publish the latest cumulative counts (HTTP filter overwrites inline per event).
 fn update_global_metrics(total: u64, filtered: u64, passed: u64) {
-    if let Some(metrics_ref) = HTTP_FILTER_GLOBAL_METRICS.get()
-        && let Ok(mut metrics) = metrics_ref.lock() {
-            metrics.total_events_processed = total;
-            metrics.filtered_events_count = filtered;
-            metrics.passed_events_count = passed;
-        }
+    super::filter_metrics::set(&HTTP_FILTER_GLOBAL_METRICS, total, filtered, passed);
 }
 
 /// HTTP Filter Analyzer that filters HTTP parser events based on configurable expressions
@@ -81,12 +66,8 @@ pub enum FilterNode {
 impl HTTPFilter {
     /// Create a new HTTP filter with no patterns (passes everything through)
     pub fn new() -> Self {
-        // Initialize global metrics if not already done
-        let _ = HTTP_FILTER_GLOBAL_METRICS.set(Arc::new(Mutex::new(FilterMetrics {
-            total_events_processed: 0,
-            filtered_events_count: 0,
-            passed_events_count: 0,
-        })));
+        // Initialize global metrics so a filter that never runs still prints zeros.
+        update_global_metrics(0, 0, 0);
 
         HTTPFilter {
             exclude_patterns: Vec::new(),
@@ -113,17 +94,6 @@ impl HTTPFilter {
 
 
 
-}
-
-/// Metrics for HTTP filtering
-#[derive(Debug, Clone)]
-pub struct FilterMetrics {
-    pub total_events_processed: u64,
-    pub filtered_events_count: u64,
-    pub passed_events_count: u64,
-}
-
-impl FilterMetrics {
 }
 
 impl FilterExpression {
