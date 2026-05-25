@@ -92,16 +92,6 @@ impl FileLogger {
         Self::with_rotation(file_path, config)
     }
 
-    /// Create a new FileLogger with custom options (for backward compatibility)
-    #[cfg(test)]
-    pub fn new_with_options<P: AsRef<Path>>(
-        file_path: P,
-        _pretty_print: bool,  // Ignored - we always use raw JSON
-        _log_all_events: bool, // Ignored - we always log all events
-    ) -> Result<Self, std::io::Error> {
-        Self::new(file_path)
-    }
-
     /// Convert binary data to hex string
     fn data_to_string(data: &serde_json::Value) -> String {
         match data {
@@ -262,7 +252,7 @@ mod tests {
     #[tokio::test]
     async fn test_file_logger_with_options() {
         let temp_file = NamedTempFile::new().unwrap();
-        let logger = FileLogger::new_with_options(temp_file.path(), false, false).unwrap();
+        let logger = FileLogger::new(temp_file.path()).unwrap();
         assert_eq!(logger.name(), "FileLogger");
     }
 

@@ -11,7 +11,6 @@ use clap::{Parser, Subcommand};
 use futures::stream::StreamExt;
 use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::signal;
-use tokio::sync::broadcast;
 
 mod framework;
 mod server;
@@ -480,8 +479,6 @@ async fn run_raw_ssl(binary_extractor: &BinaryExtractor, enable_chunk_merger: bo
     
     let mut ssl_runner = SslRunner::from_binary_extractor(binary_extractor.get_sslsniff_path());
 
-    // Set up event broadcasting for server if enabled
-    let (event_sender, _event_receiver) = broadcast::channel(1000);
 
     // Translate a `docker://<container>` binary path to the host /proc/<pid>/exe
     // of the container's SSL-embedding process (see resolve_container_binary_path).
@@ -561,18 +558,13 @@ async fn run_raw_ssl(binary_extractor: &BinaryExtractor, enable_chunk_merger: bo
     }
     
     // Start web server if enabled
-    let _server_handle = start_web_server_if_enabled(enable_server, server_port, Some(log_file), event_sender.clone()).await
+    let _server_handle = start_web_server_if_enabled(enable_server, server_port, log_file).await
         .map_err(|e| RunnerError::from(format!("Failed to start server: {}", e)))?;
 
     let mut stream = ssl_runner.run().await?;
     
-    // Consume the stream to actually process events
-    while let Some(event) = stream.next().await {
-        // Forward events to web server if enabled
-        if enable_server {
-            let _ = event_sender.send(event);
-        }
-    }
+    // Drive the stream so the analyzer chain (file logging, etc.) runs.
+    while stream.next().await.is_some() {}
     
     Ok(())
 }
@@ -584,8 +576,6 @@ async fn run_raw_process(binary_extractor: &BinaryExtractor, quiet: bool, rotate
     
     let mut process_runner = ProcessRunner::from_binary_extractor(binary_extractor.get_process_path());
 
-    // Set up event broadcasting for server if enabled
-    let (event_sender, _event_receiver) = broadcast::channel(1000);
 
     // Add additional arguments if provided
     if !args.is_empty() {
@@ -609,19 +599,14 @@ async fn run_raw_process(binary_extractor: &BinaryExtractor, quiet: bool, rotate
         ));
 
     // Start web server if enabled
-    let _server_handle = start_web_server_if_enabled(enable_server, server_port, Some(log_file), event_sender.clone()).await
+    let _server_handle = start_web_server_if_enabled(enable_server, server_port, log_file).await
         .map_err(|e| RunnerError::from(format!("Failed to start server: {}", e)))?;
     
     println!("Starting process event stream with raw JSON output (press Ctrl+C to stop):");
     let mut stream = process_runner.run().await?;
 
-    // Consume the stream to actually process events
-    while let Some(event) = stream.next().await {
-        // Forward events to web server if enabled
-        if enable_server {
-            let _ = event_sender.send(event);
-        }
-    }
+    // Drive the stream so the analyzer chain (file logging, etc.) runs.
+    while stream.next().await.is_some() {}
 
     Ok(())
 }
@@ -650,8 +635,6 @@ async fn run_raw_stdio(binary_extractor: &BinaryExtractor, pid: u32, uid: Option
 
     let mut stdio_runner = StdioRunner::from_binary_extractor(binary_extractor.get_stdiocap_path()?);
 
-    // Set up event broadcasting for server if enabled
-    let (event_sender, _event_receiver) = broadcast::channel(1000);
 
     let stdio_args = build_stdio_args(pid, uid, comm, all_fds, max_bytes);
     stdio_runner = stdio_runner.with_args(&stdio_args);
@@ -673,17 +656,14 @@ async fn run_raw_stdio(binary_extractor: &BinaryExtractor, pid: u32, uid: Option
         ));
 
     // Start web server if enabled
-    let _server_handle = start_web_server_if_enabled(enable_server, server_port, Some(log_file), event_sender.clone()).await
+    let _server_handle = start_web_server_if_enabled(enable_server, server_port, log_file).await
         .map_err(|e| RunnerError::from(format!("Failed to start server: {}", e)))?;
 
     println!("Starting stdio event stream for PID {} (press Ctrl+C to stop):", pid);
     let mut stream = stdio_runner.run().await?;
 
-    while let Some(event) = stream.next().await {
-        if enable_server {
-            let _ = event_sender.send(event);
-        }
-    }
+    // Drive the stream so the analyzer chain (file logging, etc.) runs.
+    while stream.next().await.is_some() {}
 
     Ok(())
 }
@@ -928,8 +908,6 @@ async fn run_trace(
     let server_port = cfg.server_port;
     let log_file = cfg.log_file.clone();
 
-    // Set up event broadcasting for server if enabled
-    let (event_sender, _event_receiver) = broadcast::channel(1000);
 
     let mut agent = build_trace_agent(binary_extractor, &cfg)?;
 
@@ -939,18 +917,13 @@ async fn run_trace(
     println!("Press Ctrl+C to stop");
 
     // Start web server if enabled
-    let _server_handle = start_web_server_if_enabled(enable_server, server_port, Some(&log_file), event_sender.clone()).await
+    let _server_handle = start_web_server_if_enabled(enable_server, server_port, &log_file).await
         .map_err(|e| RunnerError::from(format!("Failed to start server: {}", e)))?;
 
     let mut stream = agent.run().await?;
 
-    // Consume the stream to actually process events
-    while let Some(event) = stream.next().await {
-        // Forward events to web server if enabled
-        if enable_server {
-            let _ = event_sender.send(event);
-        }
-    }
+    // Drive the stream so the analyzer chain (file logging, etc.) runs.
+    while stream.next().await.is_some() {}
 
     Ok(())
 }
@@ -1008,7 +981,6 @@ async fn run_exec(
     };
     println!("✓ Process filter (--comm): {}", comm);
 
-    let (event_sender, _event_receiver) = broadcast::channel(1000);
 
     // Same optimized filters as the `record` command.
     let cfg = TraceConfig {
@@ -1033,7 +1005,7 @@ async fn run_exec(
     let mut agent = build_trace_agent(binary_extractor, &cfg)?;
 
     // Start web server before launching the child so the UI is ready immediately.
-    let _server_handle = start_web_server_if_enabled(enable_server, server_port, Some(log_file), event_sender.clone()).await
+    let _server_handle = start_web_server_if_enabled(enable_server, server_port, log_file).await
         .map_err(|e| RunnerError::from(format!("Failed to start server: {}", e)))?;
 
     // Attach eBPF first (uprobes bind to the binary file, so they catch the
@@ -1057,11 +1029,7 @@ async fn run_exec(
         tokio::select! {
             maybe_event = stream.next() => {
                 match maybe_event {
-                    Some(event) => {
-                        if enable_server {
-                            let _ = event_sender.send(event);
-                        }
-                    }
+                    Some(_event) => {} // drive the stream; events are persisted via the file logger
                     None => break, // event stream ended
                 }
             }
@@ -1135,8 +1103,6 @@ async fn run_system(
     println!("{}", "=".repeat(60));
     println!("Starting system monitoring (press Ctrl+C to stop):");
 
-    // Set up event broadcasting for server if enabled
-    let (event_sender, _event_receiver) = broadcast::channel(1000);
 
     // Add TimestampNormalizer first
     system_runner = system_runner.add_analyzer(Box::new(TimestampNormalizer::new()));
@@ -1157,23 +1123,13 @@ async fn run_system(
     }
 
     // Start web server if enabled
-    let _server_handle = start_web_server_if_enabled(
-        enable_server,
-        server_port,
-        Some(log_file),
-        event_sender.clone()
-    ).await
+    let _server_handle = start_web_server_if_enabled(enable_server, server_port, log_file).await
         .map_err(|e| RunnerError::from(format!("Failed to start server: {}", e)))?;
 
     let mut stream = system_runner.run().await?;
 
-    // Consume the stream to actually process events
-    while let Some(event) = stream.next().await {
-        // Forward events to web server if enabled
-        if enable_server {
-            let _ = event_sender.send(event);
-        }
-    }
+    // Drive the stream so the analyzer chain (file logging, etc.) runs.
+    while stream.next().await.is_some() {}
 
     Ok(())
 }
@@ -1181,8 +1137,7 @@ async fn run_system(
 async fn start_web_server_if_enabled(
     enable_server: bool,
     port: u16,
-    log_file: Option<&str>,
-    event_sender: broadcast::Sender<crate::framework::core::Event>,
+    log_file: &str,
 ) -> Result<Option<tokio::task::JoinHandle<()>>, Box<dyn std::error::Error>> {
     if !enable_server {
         return Ok(None);
@@ -1191,7 +1146,7 @@ async fn start_web_server_if_enabled(
     let addr = format!("0.0.0.0:{}", port).parse()
         .map_err(|e| format!("Invalid server address: {}", e))?;
 
-    let web_server = WebServer::new(event_sender, log_file).map_err(|e| format!("Failed to create web server: {}", e))?;
+    let web_server = WebServer::new(log_file).map_err(|e| format!("Failed to create web server: {}", e))?;
 
     println!("🌐 Starting web server on http://{}", addr);
     println!("   Frontend will be available once the server starts");

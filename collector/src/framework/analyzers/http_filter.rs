@@ -249,7 +249,9 @@ impl FilterExpression {
         if target == "request" {
             self.evaluate_request_condition(field, operator, value, data)
         } else if target == "response" {
-            self.evaluate_response_condition(field, operator, value, data)
+            // Response conditions match by equality (status_code) or substring
+            // (text/header/body) only; operators are not supported here.
+            self.evaluate_response_condition(field, value, data)
         } else {
             false
         }
@@ -304,7 +306,7 @@ impl FilterExpression {
     }
 
     /// Evaluate response conditions
-    fn evaluate_response_condition(&self, field: &str, _operator: &str, value: &str, data: &Value) -> bool {
+    fn evaluate_response_condition(&self, field: &str, value: &str, data: &Value) -> bool {
         match field {
             "status_code" | "status" | "code" => {
                 let status_code = data.get("status_code").and_then(|v| v.as_u64()).unwrap_or(0);

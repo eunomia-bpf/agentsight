@@ -280,7 +280,7 @@ mod tests {
         let mut runner = FakeRunner::new()
             .event_count(2)
             .delay_ms(10)
-            .add_analyzer(Box::new(FileLogger::new_with_options(test_log_file, true, true).unwrap()));
+            .add_analyzer(Box::new(FileLogger::new(test_log_file).unwrap()));
 
         let stream = runner.run().await.unwrap();
         let events: Vec<_> = stream.collect().await;
@@ -343,8 +343,8 @@ mod tests {
             .event_count(2)
             .delay_ms(10)
             .add_analyzer(Box::new(SSEProcessor::new_with_timeout(5000)))
-            .add_analyzer(Box::new(FileLogger::new_with_options(test_log_file1, true, true).unwrap()))
-            .add_analyzer(Box::new(FileLogger::new_with_options(test_log_file2, false, false).unwrap())) // Different settings
+            .add_analyzer(Box::new(FileLogger::new(test_log_file1).unwrap()))
+            .add_analyzer(Box::new(FileLogger::new(test_log_file2).unwrap())) // Different settings
             .add_analyzer(Box::new(OutputAnalyzer::new()))
             .add_analyzer(Box::new(OutputAnalyzer::new())); // Different settings
 
@@ -576,7 +576,7 @@ mod tests {
             .event_count(10) // 20 events total
             .delay_ms(25) // Realistic timing
             .add_analyzer(Box::new(SSEProcessor::new_with_timeout(10000))) // 10 second timeout
-            .add_analyzer(Box::new(FileLogger::new_with_options(test_log_file, true, true).unwrap()))
+            .add_analyzer(Box::new(FileLogger::new(test_log_file).unwrap()))
             .add_analyzer(Box::new(OutputAnalyzer::new())); // Silent for test
 
         let start_time = Instant::now();

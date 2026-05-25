@@ -215,7 +215,6 @@ async fn test_concurrent_rotation()
 
 ### Existing API Unchanged
 - `FileLogger::new()` continues to work without rotation
-- `FileLogger::new_with_options()` remains deprecated but functional
 - All existing tests pass without modification
 
 ### Migration Path
