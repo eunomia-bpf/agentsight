@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-use super::{Runner, SslConfig, EventStream, RunnerError};
+use super::{Runner, EventStream, RunnerError};
+#[cfg(test)]
+use super::SslConfig;
 use super::common::{BinaryExecutor, AnalyzerProcessor};
 use crate::framework::core::Event;
 use crate::framework::analyzers::Analyzer;
@@ -11,6 +13,8 @@ use futures::stream::StreamExt;
 
 /// Runner for collecting SSL/TLS events
 pub struct SslRunner {
+    // Config is only exercised by the builder/tests; excluded from prod builds.
+    #[cfg(test)]
     config: SslConfig,
     analyzers: Vec<Box<dyn Analyzer>>,
     executor: BinaryExecutor,
@@ -22,6 +26,7 @@ impl SslRunner {
     pub fn from_binary_extractor(binary_path: impl AsRef<Path>) -> Self {
         let path_str = binary_path.as_ref().to_string_lossy().to_string();
         Self {
+            #[cfg(test)]
             config: SslConfig::default(),
             analyzers: Vec::new(),
             executor: BinaryExecutor::new(path_str).with_runner_name("SSL".to_string()),
@@ -43,7 +48,7 @@ impl SslRunner {
     }
 
     /// Set the TLS version filter
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn tls_version(mut self, version: String) -> Self {
         self.config.tls_version = Some(version);
         self

@@ -28,14 +28,12 @@ impl FakeRunner {
     }
 
     /// Set custom event count (this will generate 2x events - request + response pairs)
-    #[allow(dead_code)]
     pub fn event_count(mut self, count: usize) -> Self {
         self.event_count = count;
         self
     }
     
     /// Set delay between events in milliseconds  
-    #[allow(dead_code)]
     pub fn delay_ms(mut self, delay: u64) -> Self {
         self.delay_ms = delay;
         self
@@ -43,7 +41,6 @@ impl FakeRunner {
 
 
     /// Add an analyzer to the chain
-    #[allow(dead_code)]
     pub fn add_analyzer(mut self, analyzer: Box<dyn Analyzer>) -> Self {
         self.analyzers.push(analyzer);
         self

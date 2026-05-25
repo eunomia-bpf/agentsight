@@ -16,7 +16,7 @@ pub struct Event {
 
 impl Event {
     /// Create a new event with current timestamp
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn new(source: String, pid: u32, comm: String, data: serde_json::Value) -> Self {
         Self {
             timestamp: std::time::SystemTime::now()
@@ -58,14 +58,8 @@ impl Event {
         serde_json::to_string(self)
     }
 
-    /// Serialize this event to pretty-printed JSON
-    #[allow(dead_code)]
-    pub fn to_json_pretty(&self) -> Result<String, serde_json::Error> {
-        serde_json::to_string_pretty(self)
-    }
-
     /// Deserialize an event from JSON string
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn from_json(json: &str) -> Result<Self, serde_json::Error> {
         serde_json::from_str(json)
     }

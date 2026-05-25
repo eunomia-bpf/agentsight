@@ -32,37 +32,27 @@ pub trait Runner: Send + Sync {
     fn id(&self) -> String;
 }
 
-/// Configuration for SSL/TLS monitoring
-#[derive(Debug, Clone)]
-#[derive(Default)]
+/// Configuration for SSL/TLS monitoring (only exercised by builder/tests).
+#[cfg(test)]
+#[derive(Debug, Clone, Default)]
 pub struct SslConfig {
-    #[allow(dead_code)]
     pub tls_version: Option<String>,
 }
 
-
-/// Configuration for process monitoring
-#[derive(Debug, Clone)]
-#[derive(Default)]
+/// Configuration for process monitoring (only exercised by builder/tests).
+#[cfg(test)]
+#[derive(Debug, Clone, Default)]
 pub struct ProcessConfig {
-    #[allow(dead_code)]
     pub pid: Option<u32>,
-    #[allow(dead_code)]
-    pub memory_threshold: Option<u64>,
 }
 
 
 /// Configuration for stdio payload monitoring
-#[derive(Debug, Clone)]
-#[derive(Default)]
+#[derive(Debug, Clone, Default)]
 pub struct StdioConfig {
-    #[allow(dead_code)]
     pub pid: Option<u32>,
-    #[allow(dead_code)]
     pub uid: Option<u32>,
-    #[allow(dead_code)]
     pub all_fds: bool,
-    #[allow(dead_code)]
     pub max_bytes: Option<u32>,
 }
 
@@ -70,7 +60,8 @@ pub struct StdioConfig {
 pub mod common;
 pub mod ssl;
 pub mod process;
-pub mod fake; // Add fake runner for testing
+#[cfg(test)]
+pub mod fake; // Test-only fake runner (compiled only for tests)
 pub mod agent; // Add agent runner for flexible composition
 pub mod stdio;
 pub mod system; // Add system runner for CPU and memory monitoring
@@ -78,6 +69,7 @@ pub mod system; // Add system runner for CPU and memory monitoring
 pub use ssl::SslRunner;
 pub use stdio::StdioRunner;
 pub use process::ProcessRunner;
-pub use fake::FakeRunner; // Export FakeRunner
+#[cfg(test)]
+pub use fake::FakeRunner; // Export FakeRunner (tests only)
 pub use agent::AgentRunner; // Export AgentRunner
 pub use system::SystemRunner; // Export SystemRunner

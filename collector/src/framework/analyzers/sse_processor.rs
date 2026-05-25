@@ -52,7 +52,7 @@ pub struct SSEEvent {
 
 impl SSEProcessor {
     /// Create a new SSEProcessor with default timeout (30 seconds)
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn new() -> Self {
         Self::new_with_timeout(30_000)
     }

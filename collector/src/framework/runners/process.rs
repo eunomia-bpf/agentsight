@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-use super::{Runner, ProcessConfig, EventStream, RunnerError};
+use super::{Runner, EventStream, RunnerError};
+#[cfg(test)]
+use super::ProcessConfig;
 use super::common::{BinaryExecutor, AnalyzerProcessor};
 use crate::framework::core::Event;
 use crate::framework::analyzers::Analyzer;
@@ -11,6 +13,8 @@ use futures::stream::StreamExt;
 
 /// Runner for collecting process/system events
 pub struct ProcessRunner {
+    // Config is only exercised by the builder/tests; excluded from prod builds.
+    #[cfg(test)]
     config: ProcessConfig,
     analyzers: Vec<Box<dyn Analyzer>>,
     executor: BinaryExecutor,
@@ -22,6 +26,7 @@ impl ProcessRunner {
     pub fn from_binary_extractor(binary_path: impl AsRef<Path>) -> Self {
         let path_str = binary_path.as_ref().to_string_lossy().to_string();
         Self {
+            #[cfg(test)]
             config: ProcessConfig::default(),
             analyzers: Vec::new(),
             executor: BinaryExecutor::new(path_str).with_runner_name("Process".to_string()),
@@ -43,16 +48,9 @@ impl ProcessRunner {
     }
 
     /// Set the PID to monitor
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn pid(mut self, pid: u32) -> Self {
         self.config.pid = Some(pid);
-        self
-    }
-
-    /// Set the memory threshold for filtering
-    #[allow(dead_code)]
-    pub fn memory_threshold(mut self, threshold: u64) -> Self {
-        self.config.memory_threshold = Some(threshold);
         self
     }
 }

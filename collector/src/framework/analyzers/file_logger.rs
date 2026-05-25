@@ -93,7 +93,7 @@ impl FileLogger {
     }
 
     /// Create a new FileLogger with custom options (for backward compatibility)
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn new_with_options<P: AsRef<Path>>(
         file_path: P,
         _pretty_print: bool,  // Ignored - we always use raw JSON

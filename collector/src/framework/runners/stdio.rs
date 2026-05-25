@@ -41,28 +41,28 @@ impl StdioRunner {
     }
 
     /// Set the PID to monitor
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn pid(mut self, pid: u32) -> Self {
         self.config.pid = Some(pid);
         self
     }
 
     /// Set the UID to monitor
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn uid(mut self, uid: u32) -> Self {
         self.config.uid = Some(uid);
         self
     }
 
     /// Capture all file descriptors instead of only 0/1/2
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn all_fds(mut self, enabled: bool) -> Self {
         self.config.all_fds = enabled;
         self
     }
 
     /// Limit captured payload bytes per event
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub fn max_bytes(mut self, max_bytes: u32) -> Self {
         self.config.max_bytes = Some(max_bytes);
         self
