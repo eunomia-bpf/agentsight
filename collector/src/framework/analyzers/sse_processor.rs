@@ -17,8 +17,8 @@ use super::event::SSEProcessorEvent;
 pub struct SSEProcessor {
     /// Store accumulated SSE content by connection + message ID
     sse_buffers: Arc<Mutex<HashMap<String, SSEAccumulator>>>,
-    /// Timeout for incomplete SSE streams (in milliseconds)
-    #[allow(dead_code)]
+    /// Evict SSE accumulators idle longer than this (milliseconds), bounding
+    /// memory for streams that never send a terminating chunk.
     timeout_ms: u64,
     /// Enable debug output (matches Python quiet flag)
     debug: bool,
@@ -425,6 +425,7 @@ impl Analyzer for SSEProcessor {
         self.debug_print("[DEBUG] SSEProcessor: Starting SSE event processing");
         
         let debug = self.debug;
+        let timeout_ms = self.timeout_ms;
         let processed_stream = stream.filter_map(move |event| {
             let buffers = Arc::clone(&sse_buffers);
             
@@ -509,7 +510,11 @@ impl Analyzer for SSEProcessor {
                 
                 // Store/accumulate SSE events for this connection
                 let mut buffers_lock = buffers.lock().unwrap();
-                
+
+                // Evict accumulators idle past the timeout (streams that never
+                // sent a terminating chunk) so the buffer map can't grow forever.
+                buffers_lock.retain(|_, acc| event.timestamp.saturating_sub(acc.last_update) <= timeout_ms);
+
                 // Improve message ID matching - use the first available message ID as connection ID
                 let mut final_connection_id = connection_id.clone();
                 
