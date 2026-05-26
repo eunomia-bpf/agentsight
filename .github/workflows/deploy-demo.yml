@@ -1,0 +1,60 @@
+name: Deploy Live Demo
+
+# Builds the Next.js frontend as a static site and publishes it to the
+# `gh-pages` branch, which GitHub Pages serves at https://agentsight.us
+# (custom domain set via the CNAME below). The public demo auto-loads a real
+# recorded Claude session trace so visitors see data on first visit.
+
+on:
+  push:
+    branches: [ "master", "feat/live-demo" ]   # drop feat/live-demo after merging
+    paths:
+      - "frontend/**"
+      - "docs/example_record_ claude_init.log"
+      - ".github/workflows/deploy-demo.yml"
+  workflow_dispatch:
+
+# Allow the action to push to the gh-pages branch.
+permissions:
+  contents: write
+
+# Only one demo deploy at a time; cancel superseded runs.
+concurrency:
+  group: deploy-demo
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build and Publish Demo
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Bundle sample trace into the static site
+        # The frontend auto-loads /sample-trace.log on first visit. We copy the
+        # recorded Claude session from docs/ rather than committing a second
+        # 6 MB copy under frontend/public/ (it is gitignored there).
+        run: cp "docs/example_record_ claude_init.log" frontend/public/sample-trace.log
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build static export
+        working-directory: frontend
+        # Served at the domain root (custom domain), so no basePath is needed.
+        run: npm run build
+
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./frontend/dist
+          publish_branch: gh-pages
+          cname: agentsight.us

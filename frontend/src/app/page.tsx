@@ -126,17 +126,40 @@ export default function Home() {
     }
   };
 
-  // Load data from localStorage on component mount
+  // Load data from localStorage on component mount; if none, fall back to the
+  // bundled sample trace so the public demo shows real data on first visit.
   useEffect(() => {
     const savedContent = localStorage.getItem('agent-tracer-log');
     const savedEvents = localStorage.getItem('agent-tracer-events');
-    
+
     if (savedContent && savedEvents) {
       setLogContent(savedContent);
       setEvents(JSON.parse(savedEvents));
       setIsParsed(true);
+      return;
     }
-    // Auto-sync disabled - user must manually sync data
+
+    // No saved data: try to auto-load the bundled sample trace so the public
+    // demo isn't empty on first visit. The file is copied into the static
+    // export at build time (see the Pages deploy workflow). basePath-aware so
+    // it works both at the domain root and under a project sub-path.
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? '';
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${basePath}/sample-trace.log`);
+        if (!res.ok) return; // No sample available (e.g. local dev) - keep empty state.
+        const content = await res.text();
+        if (cancelled || !content.trim()) return;
+        setLogContent(content);
+        parseLogContent(content);
+      } catch {
+        // Network / static-host hiccup: silently keep the empty state.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
