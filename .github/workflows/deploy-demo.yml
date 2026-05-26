@@ -40,7 +40,9 @@ jobs:
         # The frontend auto-loads /sample-trace.log on first visit. We copy the
         # recorded Claude session from docs/ rather than committing a second
         # 6 MB copy under frontend/public/ (it is gitignored there).
-        run: cp "docs/example_record_ claude_init.log" frontend/public/sample-trace.log
+        run: |
+          mkdir -p frontend/public
+          cp "docs/example_record_ claude_init.log" frontend/public/sample-trace.log
 
       - name: Install dependencies
         working-directory: frontend
