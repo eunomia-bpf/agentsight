@@ -1,9 +1,11 @@
 name: Deploy Live Demo
 
 # Builds the Next.js frontend as a static site and publishes it to the
-# `gh-pages` branch, which GitHub Pages serves at https://agentsight.us
-# (custom domain set via the CNAME below). The public demo auto-loads a real
-# recorded Claude session trace so visitors see data on first visit.
+# `gh-pages` branch. Cloudflare Pages is connected to this branch (via the
+# Cloudflare dashboard Git integration) and serves it at the custom domain
+# agentsight.us. The site is built for the domain ROOT (empty basePath), so
+# Cloudflare can serve it directly with no rebuild. The demo auto-loads a real
+# recorded Claude session trace on first visit.
 
 on:
   push:
@@ -50,7 +52,7 @@ jobs:
 
       - name: Build static export
         working-directory: frontend
-        # Served at the domain root (custom domain), so no basePath is needed.
+        # Cloudflare Pages serves agentsight.us at the root, so no basePath.
         run: npm run build
 
       - name: Publish to gh-pages
@@ -59,4 +61,3 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./frontend/dist
           publish_branch: gh-pages
-          cname: agentsight.us
