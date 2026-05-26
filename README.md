@@ -62,6 +62,10 @@ Visit [http://127.0.0.1:7395](http://127.0.0.1:7395) to view the recorded data.
   <p><em>Real-time metrics visualization showing AI agent memory and CPU usage</em></p>
 </div>
 
+<div align="center">
+  <p>👉 <strong>Try the <a href="https://agentsight.us">live demo</a></strong> — explore a real recorded Claude Code session right in your browser.</p>
+</div>
+
 ## 🚀 Why AgentSight?
 
 ### Traditional Observability vs. System-Level Monitoring
