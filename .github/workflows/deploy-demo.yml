@@ -39,12 +39,11 @@ jobs:
           node-version: "20"
 
       - name: Bundle sample trace into the static site
-        # The frontend auto-loads /sample-trace.log on first visit. We copy the
-        # recorded Claude session from docs/ rather than committing a second
-        # 6 MB copy under frontend/public/ (it is gitignored there).
-        run: |
-          mkdir -p frontend/public
-          cp "docs/example_record_ claude_init.log" frontend/public/sample-trace.log
+        # The frontend auto-loads /sample-trace.log on first visit. This script
+        # normalizes the raw recorded session (monotonic ns) to epoch ms and
+        # writes it to frontend/public/, rather than committing a second 6 MB
+        # copy there (it is gitignored).
+        run: node frontend/scripts/prepare-sample.mjs
 
       - name: Install dependencies
         working-directory: frontend

@@ -28,7 +28,11 @@ export function TimelineAxis({ startTime, endTime, timeSpan }: TimelineAxisProps
             className="absolute top-4 w-px h-4 bg-gray-200"
             style={{ left: `${position}%` }}
           >
-            <div className="absolute top-5 text-xs text-gray-400 transform -translate-x-1/2">
+            <div
+              className={`absolute top-5 text-xs text-gray-400 whitespace-nowrap ${
+                i === 0 ? '' : i === 4 ? '-translate-x-full' : '-translate-x-1/2'
+              }`}
+            >
               {new Date(time).toLocaleTimeString('en-US', {
                 hour12: false,
                 hour: '2-digit',

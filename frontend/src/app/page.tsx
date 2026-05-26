@@ -226,10 +226,10 @@ export default function Home() {
         <div className="space-y-6">
           {/* Controls */}
           <div className="bg-white rounded-lg shadow-md p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
                 <div className="text-sm text-gray-600">
-                  <span className="font-medium">{events.length}</span> {t('app.eventsLoaded', { count: events.length })}
+                  <span className="font-medium">{t('app.eventsLoaded', { count: events.length })}</span>
                 </div>
                 
                 {file && (
@@ -246,9 +246,9 @@ export default function Home() {
                 )}
               </div>
               
-              <div className="flex items-center space-x-4">
+              <div className="flex flex-wrap items-center gap-2 lg:gap-4">
                 {/* View Mode Toggle */}
-                <div className="flex rounded-lg border border-gray-200 p-1">
+                <div className="flex flex-wrap rounded-lg border border-gray-200 p-1">
                   <button
                     onClick={() => setViewMode('log')}
                     className={`px-3 py-1 text-sm rounded-md transition-colors ${

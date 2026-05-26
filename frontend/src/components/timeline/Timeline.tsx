@@ -248,8 +248,9 @@ export function Timeline({ events }: TimelineProps) {
         />
       </div>
 
-      {/* Timeline */}
-      <div className="p-4" onWheel={handleWheel}>
+      {/* Timeline (clip horizontal overflow from edge axis labels and hover
+          tooltips; zoom is wheel-driven, not native scroll, so this is safe) */}
+      <div className="p-4 overflow-x-clip" onWheel={handleWheel}>
         {timelineGroups.length === 0 ? (
           <div className="text-center text-gray-500 py-8">
             {t('timeline.noEvents')}
