@@ -47,6 +47,23 @@ sudo ./agentsight record -c node --binary-path docker://openclaw
 
 Visit [http://127.0.0.1:7395](http://127.0.0.1:7395) to view the recorded data.
 
+**SQLite snapshots and agent adapters:**
+
+```bash
+# Find supported local tools and suggested capture commands
+./agentsight discover
+
+# Persist normalized LLM calls, token usage, sessions, and audit events
+sudo ./agentsight exec --db record.db --adapter auto -- claude -p "summarize this repo"
+
+# Query or export the capture for the dashboard/static demo
+./agentsight token --db record.db --group-by model
+./agentsight audit --db record.db --json
+./agentsight export --db record.db --output trace.agentsight.json
+```
+
+Built-in SQL adapters currently cover Anthropic, Claude Code, Gemini CLI, and OpenClaw-style sessions. Use `--no-adapters` for generic SQLite projections only, or `agentsight adapters list --json` to inspect available adapters.
+
 <div align="center">
   <img src="https://github.com/eunomia-bpf/agentsight/raw/master/docs/demo-tree.png" alt="AgentSight Demo - Process Tree Visualization" width="800">
   <p><em>Real-time process tree visualization showing AI agent interactions and file operations</em></p>

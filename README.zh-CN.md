@@ -46,6 +46,23 @@ sudo ./agentsight record -c node --binary-path ~/.nvm/versions/node/v20.0.0/bin/
 
 访问 [http://127.0.0.1:7395](http://127.0.0.1:7395) 查看记录的数据。
 
+**SQLite 快照和智能体适配器：**
+
+```bash
+# 发现本机支持的工具，并查看推荐的捕获命令
+./agentsight discover
+
+# 持久化标准化后的 LLM 调用、token 用量、会话和审计事件
+sudo ./agentsight exec --db record.db --adapter auto -- claude -p "总结这个仓库"
+
+# 查询或导出捕获结果，供 Dashboard / 静态 demo 使用
+./agentsight token --db record.db --group-by model
+./agentsight audit --db record.db --json
+./agentsight export --db record.db --output trace.agentsight.json
+```
+
+内置 SQL adapter 目前覆盖 Anthropic、Claude Code、Gemini CLI 和 OpenClaw 风格会话。使用 `--no-adapters` 可以只保留通用 SQLite 投影；使用 `agentsight adapters list --json` 可以查看可用 adapter。
+
 <div align="center">
   <img src="https://github.com/eunomia-bpf/agentsight/raw/master/docs/demo-tree.png" alt="AgentSight 演示 - 进程树可视化" width="800">
   <p><em>实时进程树可视化，展示 AI 智能体交互和文件操作</em></p>
