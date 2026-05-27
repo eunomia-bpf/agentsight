@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "agentsight",
+  "compatibility_date": "2026-05-27",
+  "observability": {
+    "enabled": true
+  },
+  "build": {
+    "command": "npm ci && npm run build",
+    "cwd": "frontend",
+    "watch_dir": "frontend"
+  },
+  "assets": {
+    "directory": "./frontend/dist",
+    "html_handling": "force-trailing-slash",
+    "not_found_handling": "404-page"
+  }
+}
