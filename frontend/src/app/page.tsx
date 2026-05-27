@@ -15,6 +15,88 @@ import { Event } from '@/types/event';
 
 type ViewMode = 'log' | 'timeline' | 'process-tree' | 'metrics';
 
+interface SnapshotEvent {
+  id: string;
+  timestamp_ms: number;
+  source: string;
+  kind: string;
+  severity: string;
+  summary?: string | null;
+  pid?: number | null;
+  comm?: string | null;
+  host?: string | null;
+  method?: string | null;
+  path?: string | null;
+  status_code?: number | null;
+  provider?: string | null;
+  model?: string | null;
+  session_id?: string | null;
+  conversation_id?: string | null;
+  adapter_id?: string | null;
+  confidence?: number | null;
+}
+
+interface AgentSightSnapshot {
+  schema_version?: number;
+  generated_at?: string;
+  summary?: Record<string, unknown>;
+  events?: SnapshotEvent[];
+  audit_events?: unknown[];
+  sessions?: unknown[];
+  agents?: unknown[];
+  interruptions?: unknown[];
+}
+
+function snapshotToEvents(snapshot: AgentSightSnapshot): Event[] {
+  if (!Array.isArray(snapshot.events)) {
+    return [];
+  }
+
+  return snapshot.events
+    .filter(event => event && typeof event.timestamp_ms === 'number' && event.source)
+    .map((event, index) => ({
+      id: event.id || `${event.source}-${event.timestamp_ms}-${index}`,
+      timestamp: event.timestamp_ms,
+      source: event.source,
+      pid: event.pid ?? 0,
+      comm: event.comm ?? '',
+      data: {
+        event: 'SQLITE_CANONICAL_EVENT',
+        kind: event.kind,
+        severity: event.severity,
+        summary: event.summary,
+        host: event.host,
+        method: event.method,
+        path: event.path,
+        status_code: event.status_code,
+        provider: event.provider,
+        model: event.model,
+        session_id: event.session_id,
+        conversation_id: event.conversation_id,
+        adapter_id: event.adapter_id,
+        confidence: event.confidence,
+      },
+    }))
+    .sort((a, b) => a.timestamp - b.timestamp);
+}
+
+function parseSnapshotContent(content: string): Event[] | null {
+  const trimmed = content.trim();
+  if (!trimmed.startsWith('{')) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed) as AgentSightSnapshot;
+    if (!parsed || parsed.schema_version !== 1 || !Array.isArray(parsed.events)) {
+      return null;
+    }
+    return snapshotToEvents(parsed);
+  } catch {
+    return null;
+  }
+}
+
 export default function Home() {
   const { t } = useTranslation();
   const [file, setFile] = useState<File | null>(null);
@@ -37,6 +119,20 @@ export default function Home() {
     setError('');
 
     try {
+      const snapshotEvents = parseSnapshotContent(content);
+      if (snapshotEvents) {
+        if (snapshotEvents.length === 0) {
+          setError('Snapshot contains no events');
+          return;
+        }
+        setEvents(snapshotEvents);
+        setIsParsed(true);
+        setShowUploadPanel(false);
+        localStorage.setItem('agent-tracer-log', content);
+        localStorage.setItem('agent-tracer-events', JSON.stringify(snapshotEvents));
+        return;
+      }
+
       const lines = content.split('\n').filter(line => line.trim());
       const parsedEvents: Event[] = [];
       const errors: string[] = [];
@@ -103,10 +199,32 @@ export default function Home() {
     setError('');
 
     try {
+      const snapshotResponse = await fetch('/api/v1/snapshot?event_limit=50000&audit_limit=50000');
+      if (snapshotResponse.ok) {
+        const snapshot = await snapshotResponse.json() as AgentSightSnapshot;
+        const snapshotEvents = snapshotToEvents(snapshot);
+        if (snapshotEvents.length === 0) {
+          setError('No SQLite events received from server');
+          return;
+        }
+
+        const content = JSON.stringify(snapshot, null, 2);
+        setLogContent(content);
+        setEvents(snapshotEvents);
+        setIsParsed(true);
+        setShowUploadPanel(false);
+        localStorage.setItem('agent-tracer-log', content);
+        localStorage.setItem('agent-tracer-events', JSON.stringify(snapshotEvents));
+        return;
+      }
+
       const response = await fetch('/api/events');
       
       if (!response.ok) {
-        throw new Error(`Failed to fetch data: ${response.status} ${response.statusText}`);
+        throw new Error(
+          `Failed to fetch data: /api/v1/snapshot ${snapshotResponse.status} ${snapshotResponse.statusText}; ` +
+          `/api/events ${response.status} ${response.statusText}`
+        );
       }
 
       const content = await response.text();

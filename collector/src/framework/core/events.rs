@@ -49,8 +49,7 @@ impl Event {
 
     /// Get the event timestamp as a DateTime<Utc>
     pub fn datetime(&self) -> DateTime<Utc> {
-        DateTime::from_timestamp_millis(self.timestamp as i64)
-            .unwrap_or_else(Utc::now)
+        DateTime::from_timestamp_millis(self.timestamp as i64).unwrap_or_else(Utc::now)
     }
 
     /// Convert to JSON string
@@ -87,7 +86,12 @@ mod tests {
     #[test]
     fn test_event_creation() {
         let data = json!({"key": "value", "number": 42});
-        let event = Event::new("test-source".to_string(), 1234, "test-comm".to_string(), data.clone());
+        let event = Event::new(
+            "test-source".to_string(),
+            1234,
+            "test-comm".to_string(),
+            data.clone(),
+        );
 
         assert!(event.timestamp > 0);
         assert_eq!(event.source, "test-source");
@@ -150,4 +154,4 @@ mod tests {
         assert!(display_str.contains("display-comm"));
         assert!(display_str.contains("777"));
     }
-} 
+}

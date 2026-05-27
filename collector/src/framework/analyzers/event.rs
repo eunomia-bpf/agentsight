@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
+use crate::framework::core::Event;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
-use crate::framework::core::Event;
 
 /// SSE Processor Event - represents a complete SSE interaction with timing information
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -42,7 +42,7 @@ impl SSEProcessorEvent {
         sse_events: Vec<Value>,
     ) -> Self {
         let duration_ns = end_time.saturating_sub(start_time);
-        
+
         SSEProcessorEvent {
             connection_id,
             message_id,
@@ -74,10 +74,10 @@ impl SSEProcessorEvent {
 
         Event::new_with_timestamp(
             timestamp,
-            "sse_processor".to_string(), 
-            original_event.pid, 
-            original_event.comm.clone(), 
-            data
+            "sse_processor".to_string(),
+            original_event.pid,
+            original_event.comm.clone(),
+            data,
         )
     }
 }
@@ -151,12 +151,11 @@ impl HTTPEvent {
         let data = serde_json::to_value(self).unwrap_or_else(|_| serde_json::json!({}));
 
         Event::new_with_timestamp(
-            original_event.timestamp,  // Use original event timestamp directly
-            "http_parser".to_string(), 
-            original_event.pid, 
-            original_event.comm.clone(), 
-            data
+            original_event.timestamp, // Use original event timestamp directly
+            "http_parser".to_string(),
+            original_event.pid,
+            original_event.comm.clone(),
+            data,
         )
     }
-
 }

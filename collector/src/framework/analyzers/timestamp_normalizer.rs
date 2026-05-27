@@ -16,13 +16,11 @@ use std::pin::Pin;
 type EventStream = Pin<Box<dyn Stream<Item = Event> + Send>>;
 
 #[derive(Debug)]
-pub struct TimestampNormalizer {
-}
+pub struct TimestampNormalizer {}
 
 impl TimestampNormalizer {
     pub fn new() -> Self {
-        Self {
-        }
+        Self {}
     }
 }
 
@@ -34,7 +32,10 @@ impl Default for TimestampNormalizer {
 
 #[async_trait]
 impl Analyzer for TimestampNormalizer {
-    async fn process(&mut self, stream: EventStream) -> Result<EventStream, Box<dyn std::error::Error + Send + Sync>> {
+    async fn process(
+        &mut self,
+        stream: EventStream,
+    ) -> Result<EventStream, Box<dyn std::error::Error + Send + Sync>> {
         let normalized_stream = stream.map(|mut event| {
             // Convert timestamp from nanoseconds since boot to milliseconds since UNIX epoch
             let timestamp_ms = boot_ns_to_epoch_ms(event.timestamp);
@@ -53,8 +54,8 @@ impl Analyzer for TimestampNormalizer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serde_json::json;
     use futures::stream;
+    use serde_json::json;
 
     #[tokio::test]
     async fn test_timestamp_normalizer() {

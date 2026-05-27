@@ -15,20 +15,29 @@ fn test_proc_parsing() {
     let stat_path = format!("/proc/{}/stat", current_pid);
     if let Ok(stat_content) = fs::read_to_string(&stat_path) {
         let fields: Vec<&str> = stat_content.split_whitespace().collect();
-        assert!(fields.len() >= 15, "Stat file should have at least 15 fields");
+        assert!(
+            fields.len() >= 15,
+            "Stat file should have at least 15 fields"
+        );
 
         // Parse utime and stime
         let utime: u64 = fields[13].parse().expect("Failed to parse utime");
         let stime: u64 = fields[14].parse().expect("Failed to parse stime");
 
-        println!("✓ Successfully parsed CPU stats for PID {}: utime={}, stime={}", current_pid, utime, stime);
+        println!(
+            "✓ Successfully parsed CPU stats for PID {}: utime={}, stime={}",
+            current_pid, utime, stime
+        );
     }
 
     // Check if we can read memory stats
     let statm_path = format!("/proc/{}/statm", current_pid);
     if let Ok(statm_content) = fs::read_to_string(&statm_path) {
         let fields: Vec<&str> = statm_content.split_whitespace().collect();
-        assert!(fields.len() >= 2, "Statm file should have at least 2 fields");
+        assert!(
+            fields.len() >= 2,
+            "Statm file should have at least 2 fields"
+        );
 
         let vsz_pages: u64 = fields[0].parse().expect("Failed to parse VSZ");
         let rss_pages: u64 = fields[1].parse().expect("Failed to parse RSS");
@@ -37,7 +46,10 @@ fn test_proc_parsing() {
         let vsz_kb = vsz_pages * page_size;
         let rss_kb = rss_pages * page_size;
 
-        println!("✓ Successfully parsed memory stats for PID {}: VSZ={}KB, RSS={}KB", current_pid, vsz_kb, rss_kb);
+        println!(
+            "✓ Successfully parsed memory stats for PID {}: VSZ={}KB, RSS={}KB",
+            current_pid, vsz_kb, rss_kb
+        );
     }
 
     // Check system-wide metrics
@@ -55,21 +67,33 @@ fn test_proc_parsing() {
             }
         }
 
-        assert!(total_kb.is_some() && free_kb.is_some(), "Should parse memory info");
-        println!("✓ Successfully parsed system memory: Total={}MB, Free={}MB",
-                 total_kb.unwrap() / 1024, free_kb.unwrap() / 1024);
+        assert!(
+            total_kb.is_some() && free_kb.is_some(),
+            "Should parse memory info"
+        );
+        println!(
+            "✓ Successfully parsed system memory: Total={}MB, Free={}MB",
+            total_kb.unwrap() / 1024,
+            free_kb.unwrap() / 1024
+        );
     }
 
     // Check load average
     if let Ok(loadavg) = fs::read_to_string("/proc/loadavg") {
         let fields: Vec<&str> = loadavg.split_whitespace().collect();
-        assert!(fields.len() >= 3, "Load average should have at least 3 fields");
+        assert!(
+            fields.len() >= 3,
+            "Load average should have at least 3 fields"
+        );
 
         let load1: f64 = fields[0].parse().expect("Failed to parse load1");
         let load5: f64 = fields[1].parse().expect("Failed to parse load5");
         let load15: f64 = fields[2].parse().expect("Failed to parse load15");
 
-        println!("✓ Successfully parsed load average: {}, {}, {}", load1, load5, load15);
+        println!(
+            "✓ Successfully parsed load average: {}, {}, {}",
+            load1, load5, load15
+        );
     }
 
     println!("\n✅ All /proc parsing tests passed!");
@@ -86,7 +110,11 @@ fn test_process_discovery() {
     // Test reading comm
     let comm_path = format!("/proc/{}/comm", current_pid);
     if let Ok(comm) = fs::read_to_string(&comm_path) {
-        println!("✓ Found own process: {} (PID: {})", comm.trim(), current_pid);
+        println!(
+            "✓ Found own process: {} (PID: {})",
+            comm.trim(),
+            current_pid
+        );
     }
 
     // Test finding processes by name pattern
@@ -95,14 +123,18 @@ fn test_process_discovery() {
         for entry in entries.flatten() {
             if let Ok(file_name) = entry.file_name().into_string()
                 && let Ok(pid) = file_name.parse::<u32>()
-                    && let Ok(comm) = fs::read_to_string(format!("/proc/{}/comm", pid))
-                        && (comm.contains("test") || comm.contains("cargo")) {
-                            found_processes.push((pid, comm.trim().to_string()));
-                        }
+                && let Ok(comm) = fs::read_to_string(format!("/proc/{}/comm", pid))
+                && (comm.contains("test") || comm.contains("cargo"))
+            {
+                found_processes.push((pid, comm.trim().to_string()));
+            }
         }
     }
 
-    println!("✓ Found {} test/cargo-related processes", found_processes.len());
+    println!(
+        "✓ Found {} test/cargo-related processes",
+        found_processes.len()
+    );
     for (pid, comm) in found_processes.iter().take(5) {
         println!("  - PID {} : {}", pid, comm);
     }

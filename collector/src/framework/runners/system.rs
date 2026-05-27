@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-use super::{Runner, EventStream, RunnerError};
-use crate::framework::core::Event;
+use super::{EventStream, Runner, RunnerError};
 use crate::framework::analyzers::Analyzer;
+use crate::framework::core::Event;
 use async_trait::async_trait;
 use futures::stream::Stream;
 use serde_json::json;
@@ -138,16 +138,15 @@ fn get_boot_time_ns() -> u64 {
     // Read /proc/uptime to get seconds since boot
     if let Ok(uptime_str) = fs::read_to_string("/proc/uptime")
         && let Some(uptime_secs) = uptime_str.split_whitespace().next()
-            && let Ok(secs) = uptime_secs.parse::<f64>() {
-                return (secs * 1_000_000_000.0) as u64;
-            }
+        && let Ok(secs) = uptime_secs.parse::<f64>()
+    {
+        return (secs * 1_000_000_000.0) as u64;
+    }
     0
 }
 
 /// Create a stream of system monitoring events
-fn create_system_event_stream(
-    config: SystemConfig,
-) -> Pin<Box<dyn Stream<Item = Event> + Send>> {
+fn create_system_event_stream(config: SystemConfig) -> Pin<Box<dyn Stream<Item = Event> + Send>> {
     Box::pin(async_stream::stream! {
         let mut interval = time::interval(Duration::from_secs(config.interval_secs));
         let mut previous_stats: HashMap<u32, ProcessStats> = HashMap::new();
@@ -237,10 +236,11 @@ fn find_pids_by_name(pattern: &str) -> Vec<u32> {
         for entry in entries.flatten() {
             if let Ok(file_name) = entry.file_name().into_string()
                 && let Ok(pid) = file_name.parse::<u32>()
-                    && let Ok(comm) = fs::read_to_string(format!("/proc/{}/comm", pid))
-                        && comm.trim().contains(pattern) {
-                            matching_pids.push(pid);
-                        }
+                && let Ok(comm) = fs::read_to_string(format!("/proc/{}/comm", pid))
+                && comm.trim().contains(pattern)
+            {
+                matching_pids.push(pid);
+            }
         }
     }
 
@@ -255,17 +255,19 @@ fn get_all_children(parent_pid: u32) -> Vec<u32> {
         for entry in entries.flatten() {
             if let Ok(file_name) = entry.file_name().into_string()
                 && let Ok(pid) = file_name.parse::<u32>()
-                    && let Ok(stat) = fs::read_to_string(format!("/proc/{}/stat", pid)) {
-                        // Extract PPID from stat file
-                        let fields: Vec<&str> = stat.split_whitespace().collect();
-                        if fields.len() > 3
-                            && let Ok(ppid) = fields[3].parse::<u32>()
-                                && ppid == parent_pid {
-                                    children.push(pid);
-                                    // Recursively get grandchildren
-                                    children.extend(get_all_children(pid));
-                                }
-                    }
+                && let Ok(stat) = fs::read_to_string(format!("/proc/{}/stat", pid))
+            {
+                // Extract PPID from stat file
+                let fields: Vec<&str> = stat.split_whitespace().collect();
+                if fields.len() > 3
+                    && let Ok(ppid) = fields[3].parse::<u32>()
+                    && ppid == parent_pid
+                {
+                    children.push(pid);
+                    // Recursively get grandchildren
+                    children.extend(get_all_children(pid));
+                }
+            }
         }
     }
 
@@ -305,12 +307,7 @@ fn collect_process_metrics(
 
         // Get CPU usage
         if let Ok(stats) = get_process_cpu_stats(pid) {
-            let cpu_percent = calculate_cpu_percentage(
-                pid,
-                &stats,
-                previous_stats,
-                timestamp,
-            );
+            let cpu_percent = calculate_cpu_percentage(pid, &stats, previous_stats, timestamp);
             total_cpu_percent += cpu_percent;
         }
 
@@ -325,13 +322,15 @@ fn collect_process_metrics(
     // Check thresholds for alerts
     let mut alert = false;
     if let Some(cpu_threshold) = config.cpu_threshold
-        && total_cpu_percent >= cpu_threshold {
-            alert = true;
-        }
+        && total_cpu_percent >= cpu_threshold
+    {
+        alert = true;
+    }
     if let Some(memory_threshold) = config.memory_threshold
-        && total_rss_kb / 1024 >= memory_threshold {
-            alert = true;
-        }
+        && total_rss_kb / 1024 >= memory_threshold
+    {
+        alert = true;
+    }
 
     // Build JSON payload
     let payload = json!({
@@ -366,7 +365,9 @@ fn collect_process_metrics(
 }
 
 /// Get system-wide metrics when no specific process is targeted
-fn get_system_wide_metrics(timestamp: u64) -> Result<Event, Box<dyn std::error::Error + Send + Sync>> {
+fn get_system_wide_metrics(
+    timestamp: u64,
+) -> Result<Event, Box<dyn std::error::Error + Send + Sync>> {
     // Read system-wide CPU and memory info
     let cpu_cores = num_cpus::get();
 
@@ -425,7 +426,9 @@ fn get_process_memory(pid: u32) -> Result<(u64, u64), Box<dyn std::error::Error 
 }
 
 /// Get process CPU statistics from /proc/[pid]/stat
-fn get_process_cpu_stats(pid: u32) -> Result<ProcessStats, Box<dyn std::error::Error + Send + Sync>> {
+fn get_process_cpu_stats(
+    pid: u32,
+) -> Result<ProcessStats, Box<dyn std::error::Error + Send + Sync>> {
     let stat = fs::read_to_string(format!("/proc/{}/stat", pid))?;
     let fields: Vec<&str> = stat.split_whitespace().collect();
 
@@ -452,8 +455,10 @@ fn calculate_cpu_percentage(
     timestamp: u64,
 ) -> f64 {
     let cpu_percent = if let Some(prev) = previous_stats.get(&pid) {
-        let time_delta = (timestamp - prev.timestamp) as f64 / 1_000_000_000.0; // Convert nanoseconds to seconds
-        let cpu_delta = (current.utime + current.stime) - (prev.utime + prev.stime);
+        let time_delta = timestamp.saturating_sub(prev.timestamp) as f64 / 1_000_000_000.0; // Convert nanoseconds to seconds
+        let current_ticks = current.utime.saturating_add(current.stime);
+        let previous_ticks = prev.utime.saturating_add(prev.stime);
+        let cpu_delta = current_ticks.saturating_sub(previous_ticks);
 
         // CPU ticks to percentage (assumes USER_HZ = 100)
         let user_hz = 100.0;
@@ -488,11 +493,7 @@ fn get_load_average() -> Result<(f64, f64, f64), Box<dyn std::error::Error + Sen
         return Err("Invalid loadavg format".into());
     }
 
-    Ok((
-        fields[0].parse()?,
-        fields[1].parse()?,
-        fields[2].parse()?,
-    ))
+    Ok((fields[0].parse()?, fields[1].parse()?, fields[2].parse()?))
 }
 
 /// Get system memory information from /proc/meminfo
@@ -555,7 +556,7 @@ mod tests {
     #[tokio::test]
     async fn test_system_runner_stream() {
         use futures::StreamExt;
-        use tokio::time::{timeout, Duration};
+        use tokio::time::{Duration, timeout};
 
         // Create a runner that monitors the test process itself
         let current_pid = std::process::id();
@@ -585,7 +586,8 @@ mod tests {
                         }
                     }
                     count
-                }).await;
+                })
+                .await;
 
                 match result {
                     Ok(count) => assert!(count >= 2, "Should collect at least 2 events"),

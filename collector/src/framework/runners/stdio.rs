@@ -132,9 +132,8 @@ impl Runner for StdioRunner {
             .with_runner_name("Stdio".to_string());
         let json_stream = executor.get_json_stream().await?;
 
-        let event_stream = json_stream.filter_map(|json_value| {
-            future::ready(Self::parse_stdio_event(json_value))
-        });
+        let event_stream =
+            json_stream.filter_map(|json_value| future::ready(Self::parse_stdio_event(json_value)));
 
         AnalyzerProcessor::process_through_analyzers(Box::pin(event_stream), &mut self.analyzers)
             .await

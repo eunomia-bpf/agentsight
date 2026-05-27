@@ -1,16 +1,14 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-use crate::framework::analyzers::Analyzer;
 use super::{EventStream, RunnerError};
+use crate::framework::analyzers::Analyzer;
+use futures::stream::Stream;
+use log::debug;
+use std::pin::Pin;
 use std::process::Stdio;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command as TokioCommand;
-use log::debug;
-use futures::stream::Stream;
-use std::pin::Pin;
-
-
 
 /// Type alias for JSON stream
 pub type JsonStream = Pin<Box<dyn Stream<Item = serde_json::Value> + Send>>;
@@ -24,7 +22,7 @@ pub struct BinaryExecutor {
 
 impl BinaryExecutor {
     pub fn new(binary_path: String) -> Self {
-        Self { 
+        Self {
             binary_path,
             additional_args: Vec::new(),
             runner_name: None,
@@ -49,49 +47,53 @@ impl BinaryExecutor {
         if self.additional_args.is_empty() {
             log::info!("Executing binary: {}", self.binary_path);
         } else {
-            log::info!("Executing binary: {} {}", self.binary_path, self.additional_args.join(" "));
+            log::info!(
+                "Executing binary: {} {}",
+                self.binary_path,
+                self.additional_args.join(" ")
+            );
         }
-        
+
         let mut cmd = TokioCommand::new(&self.binary_path);
-        cmd.stdout(Stdio::piped())
-           .stderr(Stdio::piped());
-        
+        cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+        cmd.kill_on_drop(true);
+
         // Add additional arguments if any
         if !self.additional_args.is_empty() {
             cmd.args(&self.additional_args);
             debug!("Added arguments: {:?}", self.additional_args);
         }
-        
-        let mut child = cmd.spawn()
-            .map_err(|e| Box::new(std::io::Error::other(
-                format!("Failed to start binary: {}", e)
-            )) as RunnerError)?;
-            
-        let stdout = child.stdout.take()
-            .ok_or_else(|| Box::new(std::io::Error::other(
-                "Failed to get stdout"
-            )) as RunnerError)?;
-        
-        let stderr = child.stderr.take()
-            .ok_or_else(|| Box::new(std::io::Error::other(
-                "Failed to get stderr"
-            )) as RunnerError)?;
-        
+
+        let mut child = cmd.spawn().map_err(|e| {
+            Box::new(std::io::Error::other(format!(
+                "Failed to start binary: {}",
+                e
+            ))) as RunnerError
+        })?;
+
+        let stdout = child.stdout.take().ok_or_else(|| {
+            Box::new(std::io::Error::other("Failed to get stdout")) as RunnerError
+        })?;
+
+        let stderr = child.stderr.take().ok_or_else(|| {
+            Box::new(std::io::Error::other("Failed to get stderr")) as RunnerError
+        })?;
+
         if let Some(pid) = child.id() {
             debug!("Binary started with PID: Some({})", pid);
         }
-        
+
         // Clone needed data for the stream
         let runner_name = self.runner_name.clone();
         let binary_path = self.binary_path.clone();
-        
+
         // Spawn a task to read and log stderr
         let stderr_runner_name = runner_name.clone();
         let stderr_binary_path = binary_path.clone();
         tokio::spawn(async move {
             let mut stderr_reader = BufReader::new(stderr);
             let mut stderr_line = String::new();
-            
+
             loop {
                 stderr_line.clear();
                 match stderr_reader.read_line(&mut stderr_line).await {
@@ -103,18 +105,25 @@ impl BinaryExecutor {
                         let trimmed = stderr_line.trim();
                         if !trimmed.is_empty() {
                             // Log stderr output as ERROR for visibility
-                            let runner_info = stderr_runner_name.as_ref()
+                            let runner_info = stderr_runner_name
+                                .as_ref()
                                 .map(|name| format!("[{}] ", name))
-                                .unwrap_or_else(|| format!("[{}] ", 
-                                    std::path::Path::new(&stderr_binary_path)
-                                        .file_name()
-                                        .and_then(|n| n.to_str())
-                                        .unwrap_or("unknown")
-                                ));
-                            
+                                .unwrap_or_else(|| {
+                                    format!(
+                                        "[{}] ",
+                                        std::path::Path::new(&stderr_binary_path)
+                                            .file_name()
+                                            .and_then(|n| n.to_str())
+                                            .unwrap_or("unknown")
+                                    )
+                                });
+
                             // Check severity of the message
-                            if trimmed.contains("Failed") || trimmed.contains("Error") || 
-                               trimmed.contains("cannot") || trimmed.contains("permission denied") {
+                            if trimmed.contains("Failed")
+                                || trimmed.contains("Error")
+                                || trimmed.contains("cannot")
+                                || trimmed.contains("permission denied")
+                            {
                                 log::error!("{}STDERR: {}", runner_info, trimmed);
                             } else if trimmed.contains("warn") || trimmed.contains("Warning") {
                                 log::warn!("{}STDERR: {}", runner_info, trimmed);
@@ -137,12 +146,12 @@ impl BinaryExecutor {
             let mut reader = BufReader::new(stdout);
             let mut line = String::new();
             let mut line_count = 0;
-            
+
             debug!("Reading from binary stdout");
-            
+
             loop {
                 line.clear();
-                
+
                 match reader.read_line(&mut line).await {
                     Ok(0) => {
                         debug!("Binary stdout closed (EOF)");
@@ -151,16 +160,16 @@ impl BinaryExecutor {
                     Ok(_) => {
                         line_count += 1;
                         let trimmed = line.trim();
-                        
+
                         if !trimmed.is_empty() {
-                            debug!("Line {}: {}", line_count, 
-                                if trimmed.len() > 100 { 
-                                    format!("{}...", &trimmed[..100]) 
-                                } else { 
-                                    trimmed.to_string() 
+                            debug!("Line {}: {}", line_count,
+                                if trimmed.len() > 100 {
+                                    format!("{}...", &trimmed[..100])
+                                } else {
+                                    trimmed.to_string()
                                 }
                             );
-                            
+
                             // Try to parse as JSON
                             if trimmed.starts_with('{') && trimmed.ends_with('}') {
                                 match serde_json::from_str::<serde_json::Value>(trimmed) {
@@ -169,29 +178,29 @@ impl BinaryExecutor {
                                         yield json_value;
                                     }
                                     Err(e) => {
-                                        log::warn!("Failed to parse JSON from line {}: {} - Line: {}", 
+                                        log::warn!("Failed to parse JSON from line {}: {} - Line: {}",
                                             line_count, e,
-                                            if trimmed.len() > 200 { 
-                                                format!("{}...", &trimmed[..200]) 
-                                            } else { 
-                                                trimmed.to_string() 
+                                            if trimmed.len() > 200 {
+                                                format!("{}...", &trimmed[..200])
+                                            } else {
+                                                trimmed.to_string()
                                             }
                                         );
                                     }
                                 }
                             } else {
                                 // Check if this might be a stderr message or debug output
-                                if trimmed.contains("error") || trimmed.contains("warn") || 
+                                if trimmed.contains("error") || trimmed.contains("warn") ||
                                    trimmed.contains("failed") || trimmed.contains("Error:") {
-                                    log::warn!("Possible error message from binary at line {}: {}", 
+                                    log::warn!("Possible error message from binary at line {}: {}",
                                         line_count, trimmed);
                                 } else {
-                                    log::warn!("Skipping non-JSON line {} from binary: {}", 
-                                        line_count, 
-                                        if trimmed.len() > 100 { 
-                                            format!("{}...", &trimmed[..100]) 
-                                        } else { 
-                                            trimmed.to_string() 
+                                    log::warn!("Skipping non-JSON line {} from binary: {}",
+                                        line_count,
+                                        if trimmed.len() > 100 {
+                                            format!("{}...", &trimmed[..100])
+                                        } else {
+                                            trimmed.to_string()
                                         }
                                     );
                                 }
@@ -203,17 +212,17 @@ impl BinaryExecutor {
                         if e.kind() == std::io::ErrorKind::InvalidData {
                             let runner_info = runner_name.as_ref()
                                 .map(|name| format!("[{}] ", name))
-                                .unwrap_or_else(|| format!("[{}] ", 
+                                .unwrap_or_else(|| format!("[{}] ",
                                     std::path::Path::new(&binary_path)
                                         .file_name()
                                         .and_then(|n| n.to_str())
                                         .unwrap_or("unknown")
                                 ));
-                            
+
                             // Try to recover partial data up to the invalid UTF-8 sequence
                             let raw_bytes = line.as_bytes();
                             let valid_up_to = String::from_utf8_lossy(raw_bytes);
-                            
+
                             // If we have a partial JSON object, try to parse it
                             if valid_up_to.trim_start().starts_with('{') {
                                 // Find the position of the invalid UTF-8
@@ -225,7 +234,7 @@ impl BinaryExecutor {
                                         break;
                                     }
                                 }
-                                
+
                                 if valid_len > 0
                                     && let Ok(valid_str) = std::str::from_utf8(&raw_bytes[0..valid_len]) {
                                         log::debug!("Recovered {} valid UTF-8 bytes before error", valid_len);
@@ -237,19 +246,19 @@ impl BinaryExecutor {
                                         }
                                     }
                             }
-                            
+
                             // Log detailed error information
                             let hex_preview = raw_bytes.iter()
                                 .take(64) // Show more context
                                 .map(|b| format!("{:02x}", b))
                                 .collect::<Vec<_>>()
                                 .join(" ");
-                            
+
                             log::warn!(
                                 "{}Invalid UTF-8 at line {} (attempted recovery failed). Hex preview: {}",
                                 runner_info, line_count + 1, hex_preview
                             );
-                            
+
                             // Clear the line buffer and continue
                             line.clear();
                             continue;
@@ -283,14 +292,14 @@ impl BinaryExecutor {
                     }
                 }
             }
-            
+
             log::info!("Terminating binary process");
-            
+
             // Terminate the child process
             if let Err(e) = child.kill().await {
                 log::warn!("Failed to kill binary process: {}", e);
             }
-            
+
             // Wait for process to finish
             match child.wait().await {
                 Ok(status) => {
@@ -301,12 +310,9 @@ impl BinaryExecutor {
                 }
             }
         };
-        
+
         Ok(Box::pin(stream))
     }
-
-
-
 }
 
 /// Common analyzer processor for runners
@@ -315,14 +321,14 @@ pub struct AnalyzerProcessor;
 impl AnalyzerProcessor {
     /// Process events through a chain of analyzers
     pub async fn process_through_analyzers(
-        mut stream: EventStream, 
-        analyzers: &mut [Box<dyn Analyzer>]
+        mut stream: EventStream,
+        analyzers: &mut [Box<dyn Analyzer>],
     ) -> Result<EventStream, RunnerError> {
         // Process through each analyzer in sequence
         for analyzer in analyzers.iter_mut() {
             stream = analyzer.process(stream).await?;
         }
-        
+
         Ok(stream)
     }
-} 
+}

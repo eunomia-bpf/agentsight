@@ -54,10 +54,10 @@ pub enum FilterNode {
     Or(Vec<FilterNode>),
     /// Single condition
     Condition {
-        target: String,      // "request" or "response"
-        field: String,       // "method", "path", "status_code", etc.
-        operator: String,    // "=", "contains", "prefix", etc.
-        value: String,       // Expected value
+        target: String,   // "request" or "response"
+        field: String,    // "method", "path", "status_code", etc.
+        operator: String, // "=", "contains", "prefix", etc.
+        value: String,    // Expected value
     },
     /// Empty filter (matches nothing)
     Empty,
@@ -83,17 +83,12 @@ impl HTTPFilter {
     pub fn with_patterns(patterns: Vec<String>) -> Self {
         let mut filter = HTTPFilter::new();
         filter.exclude_patterns = patterns.clone();
-        filter.filters = patterns.into_iter()
+        filter.filters = patterns
+            .into_iter()
             .map(|p| FilterExpression::parse(&p))
             .collect();
         filter
     }
-
-
-
-
-
-
 }
 
 impl FilterExpression {
@@ -117,9 +112,10 @@ impl FilterExpression {
     /// Parse OR expressions (lowest precedence)
     fn parse_or_expression(expr: &str) -> FilterNode {
         let or_parts: Vec<&str> = expr.split('|').map(|s| s.trim()).collect();
-        
+
         if or_parts.len() > 1 {
-            let conditions: Vec<FilterNode> = or_parts.into_iter()
+            let conditions: Vec<FilterNode> = or_parts
+                .into_iter()
                 .map(Self::parse_and_expression)
                 .collect();
             FilterNode::Or(conditions)
@@ -131,11 +127,10 @@ impl FilterExpression {
     /// Parse AND expressions (higher precedence)
     fn parse_and_expression(expr: &str) -> FilterNode {
         let and_parts: Vec<&str> = expr.split('&').map(|s| s.trim()).collect();
-        
+
         if and_parts.len() > 1 {
-            let conditions: Vec<FilterNode> = and_parts.into_iter()
-                .map(Self::parse_condition)
-                .collect();
+            let conditions: Vec<FilterNode> =
+                and_parts.into_iter().map(Self::parse_condition).collect();
             FilterNode::And(conditions)
         } else {
             Self::parse_condition(expr)
@@ -145,7 +140,7 @@ impl FilterExpression {
     /// Parse a single condition
     fn parse_condition(condition: &str) -> FilterNode {
         let condition = condition.trim();
-        
+
         if !condition.contains('=') {
             // Simple path containment (legacy)
             return FilterNode::Condition {
@@ -170,7 +165,7 @@ impl FilterExpression {
             if key_parts.len() == 2 {
                 let target = key_parts[0].trim();
                 let field = key_parts[1].trim();
-                
+
                 let (target, operator) = if target == "request" || target == "req" {
                     let op = match field {
                         "path_prefix" | "path_starts_with" => "prefix",
@@ -219,22 +214,31 @@ impl FilterExpression {
     fn evaluate_node(&self, node: &FilterNode, data: &Value) -> bool {
         match node {
             FilterNode::Empty => false,
-            FilterNode::And(conditions) => {
-                conditions.iter().all(|c| self.evaluate_node(c, data))
-            }
-            FilterNode::Or(conditions) => {
-                conditions.iter().any(|c| self.evaluate_node(c, data))
-            }
-            FilterNode::Condition { target, field, operator, value } => {
-                self.evaluate_condition(target, field, operator, value, data)
-            }
+            FilterNode::And(conditions) => conditions.iter().all(|c| self.evaluate_node(c, data)),
+            FilterNode::Or(conditions) => conditions.iter().any(|c| self.evaluate_node(c, data)),
+            FilterNode::Condition {
+                target,
+                field,
+                operator,
+                value,
+            } => self.evaluate_condition(target, field, operator, value, data),
         }
     }
 
     /// Evaluate a single condition
-    fn evaluate_condition(&self, target: &str, field: &str, operator: &str, value: &str, data: &Value) -> bool {
-        let message_type = data.get("message_type").and_then(|v| v.as_str()).unwrap_or("");
-        
+    fn evaluate_condition(
+        &self,
+        target: &str,
+        field: &str,
+        operator: &str,
+        value: &str,
+        data: &Value,
+    ) -> bool {
+        let message_type = data
+            .get("message_type")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
+
         // Check if the data type matches the target
         let matches_target = match target {
             "request" => message_type == "request",
@@ -258,7 +262,13 @@ impl FilterExpression {
     }
 
     /// Evaluate request conditions
-    fn evaluate_request_condition(&self, field: &str, operator: &str, value: &str, data: &Value) -> bool {
+    fn evaluate_request_condition(
+        &self,
+        field: &str,
+        operator: &str,
+        value: &str,
+        data: &Value,
+    ) -> bool {
         match field {
             "method" | "verb" => {
                 let method = data.get("method").and_then(|v| v.as_str()).unwrap_or("");
@@ -283,7 +293,10 @@ impl FilterExpression {
             }
             "host" | "hostname" => {
                 let empty_map = serde_json::Map::new();
-                let headers = data.get("headers").and_then(|v| v.as_object()).unwrap_or(&empty_map);
+                let headers = data
+                    .get("headers")
+                    .and_then(|v| v.as_object())
+                    .unwrap_or(&empty_map);
                 let host = headers.get("host").and_then(|v| v.as_str()).unwrap_or("");
                 host == value
             }
@@ -309,7 +322,10 @@ impl FilterExpression {
     fn evaluate_response_condition(&self, field: &str, value: &str, data: &Value) -> bool {
         match field {
             "status_code" | "status" | "code" => {
-                let status_code = data.get("status_code").and_then(|v| v.as_u64()).unwrap_or(0);
+                let status_code = data
+                    .get("status_code")
+                    .and_then(|v| v.as_u64())
+                    .unwrap_or(0);
                 if let Ok(target_code) = value.parse::<u64>() {
                     status_code == target_code
                 } else {
@@ -317,18 +333,30 @@ impl FilterExpression {
                 }
             }
             "status_text" | "status_message" => {
-                let status_text = data.get("status_text").and_then(|v| v.as_str()).unwrap_or("");
+                let status_text = data
+                    .get("status_text")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
                 status_text.to_lowercase().contains(&value.to_lowercase())
             }
             "content_type" | "content-type" => {
                 let empty_map = serde_json::Map::new();
-                let headers = data.get("headers").and_then(|v| v.as_object()).unwrap_or(&empty_map);
-                let content_type = headers.get("content-type").and_then(|v| v.as_str()).unwrap_or("");
+                let headers = data
+                    .get("headers")
+                    .and_then(|v| v.as_object())
+                    .unwrap_or(&empty_map);
+                let content_type = headers
+                    .get("content-type")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
                 content_type.contains(value)
             }
             "server" => {
                 let empty_map = serde_json::Map::new();
-                let headers = data.get("headers").and_then(|v| v.as_object()).unwrap_or(&empty_map);
+                let headers = data
+                    .get("headers")
+                    .and_then(|v| v.as_object())
+                    .unwrap_or(&empty_map);
                 let server = headers.get("server").and_then(|v| v.as_str()).unwrap_or("");
                 server.contains(value)
             }
@@ -339,7 +367,10 @@ impl FilterExpression {
             _ => {
                 // Try as response header
                 let empty_map = serde_json::Map::new();
-                let headers = data.get("headers").and_then(|v| v.as_object()).unwrap_or(&empty_map);
+                let headers = data
+                    .get("headers")
+                    .and_then(|v| v.as_object())
+                    .unwrap_or(&empty_map);
                 let header_value = headers.get(field).and_then(|v| v.as_str()).unwrap_or("");
                 header_value.contains(value)
             }
@@ -352,22 +383,22 @@ impl Analyzer for HTTPFilter {
     async fn process(&mut self, stream: EventStream) -> Result<EventStream, AnalyzerError> {
         let filters = self.filters.clone();
         let debug = self.debug;
-        
+
         // Clone the shared atomic counters for use in the stream
         let total_counter = self.total_events_processed.clone();
         let filtered_counter = self.filtered_events_count.clone();
         let passed_counter = self.passed_events_count.clone();
-        
+
         let filtered_stream = stream.filter_map(move |event| {
             let filters = filters.clone();
             let total_counter = total_counter.clone();
             let filtered_counter = filtered_counter.clone();
             let passed_counter = passed_counter.clone();
-            
+
             async move {
                 // Increment total events processed
                 total_counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                
+
                 // Check if this is an HTTP parser event and should be filtered
                 let should_filter = if filters.is_empty() || event.source != "http_parser" {
                     false
@@ -377,7 +408,10 @@ impl Analyzer for HTTPFilter {
                     for filter in &filters {
                         if filter.evaluate(&event.data) {
                             if debug {
-                                eprintln!("[HTTPFilter DEBUG] Event filtered by: {}", filter.expression);
+                                eprintln!(
+                                    "[HTTPFilter DEBUG] Event filtered by: {}",
+                                    filter.expression
+                                );
                             }
                             filtered = true;
                             break;
@@ -396,7 +430,7 @@ impl Analyzer for HTTPFilter {
                     update_global_metrics(total, filtered, passed);
                     None // Filter out
                 } else {
-                    // Increment passed counter  
+                    // Increment passed counter
                     passed_counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                     // Update global metrics
                     let total = total_counter.load(std::sync::atomic::Ordering::Relaxed);
@@ -425,7 +459,12 @@ mod tests {
     fn test_filter_expression_parsing() {
         let expr = FilterExpression::parse("request.path=/health");
         match expr.parsed {
-            FilterNode::Condition { target, field, operator, value } => {
+            FilterNode::Condition {
+                target,
+                field,
+                operator,
+                value,
+            } => {
                 assert_eq!(target, "request");
                 assert_eq!(field, "path");
                 assert_eq!(operator, "exact");
@@ -438,73 +477,72 @@ mod tests {
     #[test]
     fn test_request_filtering() {
         let filter = FilterExpression::parse("request.method=GET");
-        
+
         let request_data = json!({
             "message_type": "request",
             "method": "GET",
             "path": "/api/test",
             "headers": {}
         });
-        
+
         assert!(filter.evaluate(&request_data));
-        
+
         let post_data = json!({
             "message_type": "request",
             "method": "POST",
             "path": "/api/test",
             "headers": {}
         });
-        
+
         assert!(!filter.evaluate(&post_data));
     }
 
     #[test]
     fn test_response_filtering() {
         let filter = FilterExpression::parse("response.status_code=404");
-        
+
         let response_data = json!({
             "message_type": "response",
             "status_code": 404,
             "status_text": "Not Found",
             "headers": {}
         });
-        
+
         assert!(filter.evaluate(&response_data));
-        
+
         let ok_data = json!({
             "message_type": "response",
             "status_code": 200,
             "status_text": "OK",
             "headers": {}
         });
-        
+
         assert!(!filter.evaluate(&ok_data));
     }
 
     #[test]
     fn test_complex_expressions() {
         let filter = FilterExpression::parse("request.method=GET | response.status_code=404");
-        
+
         let get_request = json!({
             "message_type": "request",
             "method": "GET",
             "path": "/api/test"
         });
-        
+
         let not_found_response = json!({
             "message_type": "response",
             "status_code": 404
         });
-        
+
         let post_request = json!({
-            "message_type": "request", 
+            "message_type": "request",
             "method": "POST",
             "path": "/api/test"
         });
-        
+
         assert!(filter.evaluate(&get_request));
         assert!(filter.evaluate(&not_found_response));
         assert!(!filter.evaluate(&post_request));
     }
-
 }

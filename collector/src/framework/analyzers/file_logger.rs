@@ -6,7 +6,7 @@ use crate::framework::runners::EventStream;
 use async_trait::async_trait;
 use futures::stream::StreamExt;
 use log::debug;
-use std::fs::{OpenOptions, File};
+use std::fs::{File, OpenOptions};
 use std::io::Write;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
@@ -60,11 +60,11 @@ impl FileLogger {
             event_count: Arc::new(Mutex::new(0)),
         })
     }
-    
+
     /// Create FileLogger with rotation configuration
     pub fn with_rotation<P: AsRef<Path>>(
         file_path: P,
-        config: LogRotationConfig
+        config: LogRotationConfig,
     ) -> Result<Self, std::io::Error> {
         let path_str = file_path.as_ref().to_string_lossy().to_string();
         let file = OpenOptions::new()
@@ -79,11 +79,11 @@ impl FileLogger {
             event_count: Arc::new(Mutex::new(0)),
         })
     }
-    
+
     /// Convenience method for simple size-based rotation
     pub fn with_max_size<P: AsRef<Path>>(
-        file_path: P, 
-        max_size_mb: u64
+        file_path: P,
+        max_size_mb: u64,
     ) -> Result<Self, std::io::Error> {
         let config = LogRotationConfig {
             max_file_size: max_size_mb * 1_000_000,
@@ -97,7 +97,9 @@ impl FileLogger {
         match data {
             serde_json::Value::String(s) => {
                 // Check if string contains valid UTF-8
-                if s.chars().all(|c| !c.is_control() || c == '\n' || c == '\r' || c == '\t') {
+                if s.chars()
+                    .all(|c| !c.is_control() || c == '\n' || c == '\r' || c == '\t')
+                {
                     s.clone()
                 } else {
                     // Convert to hex if it contains control characters (likely binary)
@@ -105,10 +107,10 @@ impl FileLogger {
                 }
             }
             serde_json::Value::Null => "null".to_string(),
-            _ => data.to_string()
+            _ => data.to_string(),
         }
     }
-    
+
     /// Perform log rotation (static method for use in closures)
     fn perform_rotation(
         file_handle: &Arc<Mutex<File>>,
@@ -120,24 +122,31 @@ impl FileLogger {
             // Flush and drop the current file handle
             let _ = file.flush();
             drop(file);
-            
+
             // Rotate files in reverse order (app.log.2 -> app.log.3, etc.)
             for i in (1..config.max_files).rev() {
                 let old_path = format!("{}.{}", file_path, i);
                 let new_path = format!("{}.{}", file_path, i + 1);
-                
+
                 if std::path::Path::new(&old_path).exists()
-                    && let Err(e) = std::fs::rename(&old_path, &new_path) {
-                        eprintln!("FileLogger: Failed to rotate {} to {}: {}", old_path, new_path, e);
-                    }
+                    && let Err(e) = std::fs::rename(&old_path, &new_path)
+                {
+                    eprintln!(
+                        "FileLogger: Failed to rotate {} to {}: {}",
+                        old_path, new_path, e
+                    );
+                }
             }
-            
+
             // Move current file to .1
             let rotated_path = format!("{}.1", file_path);
             if let Err(e) = std::fs::rename(file_path, &rotated_path) {
-                eprintln!("FileLogger: Failed to rotate current file to {}: {}", rotated_path, e);
+                eprintln!(
+                    "FileLogger: Failed to rotate current file to {}: {}",
+                    rotated_path, e
+                );
             }
-            
+
             // Create new current file
             match OpenOptions::new()
                 .create(true)
@@ -149,16 +158,23 @@ impl FileLogger {
                     *file_handle.lock().unwrap() = new_file;
                 }
                 Err(e) => {
-                    eprintln!("FileLogger: Failed to create new log file after rotation: {}", e);
+                    eprintln!(
+                        "FileLogger: Failed to create new log file after rotation: {}",
+                        e
+                    );
                 }
             }
-            
+
             // Cleanup old files beyond max_files limit
             let cleanup_path = format!("{}.{}", file_path, config.max_files + 1);
             if std::path::Path::new(&cleanup_path).exists()
-                && let Err(e) = std::fs::remove_file(&cleanup_path) {
-                    eprintln!("FileLogger: Failed to cleanup old log file {}: {}", cleanup_path, e);
-                }
+                && let Err(e) = std::fs::remove_file(&cleanup_path)
+            {
+                eprintln!(
+                    "FileLogger: Failed to cleanup old log file {}: {}",
+                    cleanup_path, e
+                );
+            }
         }
     }
 }
@@ -166,42 +182,44 @@ impl FileLogger {
 #[async_trait]
 impl Analyzer for FileLogger {
     async fn process(&mut self, stream: EventStream) -> Result<EventStream, AnalyzerError> {
-        
         let file_handle = Arc::clone(&self.file_handle);
         let file_path = self.file_path.clone();
         let rotation_config = self.rotation_config.clone();
         let event_count = Arc::clone(&self.event_count);
-        
+
         // Process events using map instead of consuming the stream
         let processed_stream = stream.map(move |event| {
             debug!("FileLogger: Processing event: {:?}", event);
-            
+
             // Check if we need to rotate logs before processing this event
             if let Some(config) = &rotation_config {
                 let mut count = event_count.lock().unwrap();
                 *count += 1;
-                
+
                 // Check rotation at intervals
                 if (*count).is_multiple_of(config.size_check_interval)
                     && let Ok(metadata) = std::fs::metadata(&file_path)
-                        && metadata.len() > config.max_file_size {
-                            // Perform rotation
-                            Self::perform_rotation(&file_handle, &file_path, config);
-                        }
+                    && metadata.len() > config.max_file_size
+                {
+                    // Perform rotation
+                    Self::perform_rotation(&file_handle, &file_path, config);
+                }
             }
-            
+
             // Log the event to file
             if let Ok(mut file) = file_handle.lock() {
                 // Convert event to JSON, handling binary data in the "data" field
                 let event_json = match event.to_json() {
                     Ok(json_str) => {
                         // Parse and fix data field if it contains binary
-                        if let Ok(mut parsed) = serde_json::from_str::<serde_json::Value>(&json_str) {
+                        if let Ok(mut parsed) = serde_json::from_str::<serde_json::Value>(&json_str)
+                        {
                             if let Some(data_obj) = parsed.get_mut("data")
-                                && let Some(data_field) = data_obj.get_mut("data") {
-                                    let data_str = Self::data_to_string(data_field);
-                                    *data_field = serde_json::Value::String(data_str);
-                                }
+                                && let Some(data_field) = data_obj.get_mut("data")
+                            {
+                                let data_str = Self::data_to_string(data_field);
+                                *data_field = serde_json::Value::String(data_str);
+                            }
                             serde_json::to_string(&parsed).unwrap_or(json_str)
                         } else {
                             json_str
@@ -211,7 +229,7 @@ impl Analyzer for FileLogger {
                         format!("{{\"error\":\"Failed to serialize event: {}\"}}", e)
                     }
                 };
-                
+
                 // Write just the JSON without timestamp
                 let log_entry = format!("{}\n", event_json);
 
@@ -221,7 +239,7 @@ impl Analyzer for FileLogger {
                     eprintln!("FileLogger: Failed to flush {}: {}", file_path, e);
                 }
             }
-            
+
             // Pass the event through unchanged
             event
         });
@@ -260,22 +278,27 @@ mod tests {
     async fn test_file_logger_processes_events() {
         let temp_file = NamedTempFile::new().unwrap();
         let mut logger = FileLogger::new(temp_file.path()).unwrap();
-        
-        let test_event = Event::new("test".to_string(), 1234, "test".to_string(), json!({
-            "message": "test event",
-            "value": 42
-        }));
-        
+
+        let test_event = Event::new(
+            "test".to_string(),
+            1234,
+            "test".to_string(),
+            json!({
+                "message": "test event",
+                "value": 42
+            }),
+        );
+
         let events = vec![test_event];
         let input_stream: EventStream = Box::pin(stream::iter(events));
         let output_stream = logger.process(input_stream).await.unwrap();
-        
+
         let collected: Vec<_> = output_stream.collect().await;
-        
+
         // Should have one event passed through
         assert_eq!(collected.len(), 1);
         assert_eq!(collected[0].source, "test");
-        
+
         // Check that file was written to
         let file_contents = std::fs::read_to_string(temp_file.path()).unwrap();
         assert!(file_contents.contains("test event"));
@@ -285,21 +308,26 @@ mod tests {
     async fn test_file_logger_with_binary_data() {
         let temp_file = NamedTempFile::new().unwrap();
         let mut logger = FileLogger::new(temp_file.path()).unwrap();
-        
+
         // Create an event with binary data
         let binary_data = String::from_utf8_lossy(&[0x00, 0x01, 0x02, 0xFF, 0xFE]).to_string();
-        let test_event = Event::new("ssl".to_string(), 1234, "ssl".to_string(), json!({
-            "data": binary_data,
-            "len": 5
-        }));
-        
+        let test_event = Event::new(
+            "ssl".to_string(),
+            1234,
+            "ssl".to_string(),
+            json!({
+                "data": binary_data,
+                "len": 5
+            }),
+        );
+
         let events = vec![test_event];
         let input_stream: EventStream = Box::pin(stream::iter(events));
         let output_stream = logger.process(input_stream).await.unwrap();
-        
+
         let collected: Vec<_> = output_stream.collect().await;
         assert_eq!(collected.len(), 1);
-        
+
         // Check that file was written with hex encoding
         let file_contents = std::fs::read_to_string(temp_file.path()).unwrap();
         assert!(file_contents.contains("HEX:"));
@@ -317,13 +345,13 @@ mod tests {
     async fn test_file_logger_with_rotation() {
         let temp_dir = tempfile::tempdir().unwrap();
         let log_path = temp_dir.path().join("test.log");
-        
+
         let config = LogRotationConfig {
             max_file_size: 100, // Very small for testing
             max_files: 3,
             size_check_interval: 1, // Check every event
         };
-        
+
         let logger = FileLogger::with_rotation(&log_path, config).unwrap();
         assert_eq!(logger.name(), "FileLogger");
         assert!(logger.rotation_config.is_some());
@@ -333,39 +361,47 @@ mod tests {
     async fn test_file_logger_with_max_size() {
         let temp_dir = tempfile::tempdir().unwrap();
         let log_path = temp_dir.path().join("test.log");
-        
+
         let logger = FileLogger::with_max_size(&log_path, 5).unwrap(); // 5MB
         assert_eq!(logger.name(), "FileLogger");
         assert!(logger.rotation_config.is_some());
-        assert_eq!(logger.rotation_config.as_ref().unwrap().max_file_size, 5_000_000);
+        assert_eq!(
+            logger.rotation_config.as_ref().unwrap().max_file_size,
+            5_000_000
+        );
     }
 
     #[tokio::test]
     async fn test_rotation_on_size_limit() {
         let temp_dir = tempfile::tempdir().unwrap();
         let log_path = temp_dir.path().join("test.log");
-        
+
         let config = LogRotationConfig {
             max_file_size: 50, // Very small for testing
             max_files: 2,
             size_check_interval: 1, // Check every event
         };
-        
+
         let mut logger = FileLogger::with_rotation(&log_path, config).unwrap();
-        
+
         // Create events that will exceed the size limit
-        let large_event = Event::new("test".to_string(), 1234, "test".to_string(), json!({
-            "message": "This is a large message that should trigger rotation when written multiple times",
-            "value": 42
-        }));
-        
+        let large_event = Event::new(
+            "test".to_string(),
+            1234,
+            "test".to_string(),
+            json!({
+                "message": "This is a large message that should trigger rotation when written multiple times",
+                "value": 42
+            }),
+        );
+
         let events = vec![large_event.clone(), large_event.clone(), large_event];
         let input_stream: EventStream = Box::pin(stream::iter(events));
         let output_stream = logger.process(input_stream).await.unwrap();
-        
+
         let collected: Vec<_> = output_stream.collect().await;
         assert_eq!(collected.len(), 3);
-        
+
         // Check that rotation occurred - rotated file should exist
         let rotated_path = format!("{}.1", log_path.to_string_lossy());
         assert!(std::path::Path::new(&rotated_path).exists() || log_path.exists());
@@ -375,20 +411,25 @@ mod tests {
     async fn test_max_files_cleanup() {
         let temp_dir = tempfile::tempdir().unwrap();
         let log_path = temp_dir.path().join("test.log");
-        
+
         let config = LogRotationConfig {
             max_file_size: 30,
             max_files: 2, // Only keep 2 rotated files
             size_check_interval: 1,
         };
-        
+
         let mut logger = FileLogger::with_rotation(&log_path, config).unwrap();
-        
+
         // Create many events to trigger multiple rotations
-        let large_event = Event::new("test".to_string(), 1234, "test".to_string(), json!({
-            "data": "Large event data that will cause rotation",
-        }));
-        
+        let large_event = Event::new(
+            "test".to_string(),
+            1234,
+            "test".to_string(),
+            json!({
+                "data": "Large event data that will cause rotation",
+            }),
+        );
+
         // Process enough events to trigger multiple rotations
         for _ in 0..5 {
             let events = vec![large_event.clone(); 10];
@@ -396,14 +437,14 @@ mod tests {
             let output_stream = logger.process(input_stream).await.unwrap();
             let _: Vec<_> = output_stream.collect().await;
         }
-        
+
         // Check that we don't have too many rotated files
         let log_1 = format!("{}.1", log_path.to_string_lossy());
         let log_4 = format!("{}.4", log_path.to_string_lossy());
-        
+
         // Should have at most max_files rotated files
         assert!(!std::path::Path::new(&log_4).exists()); // Should be cleaned up
-        
+
         // The log file or rotated files should exist
         assert!(log_path.exists() || std::path::Path::new(&log_1).exists());
     }
@@ -412,27 +453,32 @@ mod tests {
     async fn test_rotation_failure_graceful_degradation() {
         let temp_dir = tempfile::tempdir().unwrap();
         let log_path = temp_dir.path().join("test.log");
-        
+
         let config = LogRotationConfig {
             max_file_size: 50,
             max_files: 2,
             size_check_interval: 1,
         };
-        
+
         let mut logger = FileLogger::with_rotation(&log_path, config).unwrap();
-        
+
         // Create a large event
-        let large_event = Event::new("test".to_string(), 1234, "test".to_string(), json!({
-            "message": "Large message that should trigger rotation",
-            "data": "x".repeat(100),
-        }));
-        
+        let large_event = Event::new(
+            "test".to_string(),
+            1234,
+            "test".to_string(),
+            json!({
+                "message": "Large message that should trigger rotation",
+                "data": "x".repeat(100),
+            }),
+        );
+
         let events = vec![large_event];
         let input_stream: EventStream = Box::pin(stream::iter(events));
         let output_stream = logger.process(input_stream).await.unwrap();
-        
+
         let collected: Vec<_> = output_stream.collect().await;
-        
+
         // Even if rotation fails, events should still be processed
         assert_eq!(collected.len(), 1);
         assert_eq!(collected[0].source, "test");
@@ -442,20 +488,25 @@ mod tests {
     async fn test_no_rotation_when_disabled() {
         let temp_file = NamedTempFile::new().unwrap();
         let mut logger = FileLogger::new(temp_file.path()).unwrap();
-        
+
         // Create many large events - should not trigger rotation
-        let large_event = Event::new("test".to_string(), 1234, "test".to_string(), json!({
-            "message": "Large message",
-            "data": "x".repeat(1000),
-        }));
-        
+        let large_event = Event::new(
+            "test".to_string(),
+            1234,
+            "test".to_string(),
+            json!({
+                "message": "Large message",
+                "data": "x".repeat(1000),
+            }),
+        );
+
         let events = vec![large_event; 100];
         let input_stream: EventStream = Box::pin(stream::iter(events));
         let output_stream = logger.process(input_stream).await.unwrap();
-        
+
         let collected: Vec<_> = output_stream.collect().await;
         assert_eq!(collected.len(), 100);
-        
+
         // No rotated files should exist
         let rotated_path = format!("{}.1", temp_file.path().to_string_lossy());
         assert!(!std::path::Path::new(&rotated_path).exists());
@@ -465,26 +516,31 @@ mod tests {
     async fn test_size_check_interval_optimization() {
         let temp_dir = tempfile::tempdir().unwrap();
         let log_path = temp_dir.path().join("test.log");
-        
+
         let config = LogRotationConfig {
             max_file_size: 50,
             max_files: 2,
             size_check_interval: 10, // Only check every 10 events
         };
-        
+
         let mut logger = FileLogger::with_rotation(&log_path, config).unwrap();
-        
+
         // Process fewer events than the check interval
-        let event = Event::new("test".to_string(), 1234, "test".to_string(), json!({"msg": "test"}));
+        let event = Event::new(
+            "test".to_string(),
+            1234,
+            "test".to_string(),
+            json!({"msg": "test"}),
+        );
         let events = vec![event; 5];
         let input_stream: EventStream = Box::pin(stream::iter(events));
         let output_stream = logger.process(input_stream).await.unwrap();
-        
+
         let collected: Vec<_> = output_stream.collect().await;
         assert_eq!(collected.len(), 5);
-        
+
         // Should not have rotated yet due to interval optimization
         let rotated_path = format!("{}.1", log_path.to_string_lossy());
         assert!(!std::path::Path::new(&rotated_path).exists());
     }
-} 
+}

@@ -53,9 +53,9 @@ pub enum FilterNode {
     Or(Box<FilterNode>, Box<FilterNode>),
     /// Single condition check
     Condition {
-        field: String,        // Field name (e.g., "data", "function", "latency_ms")
-        operator: String,     // Operator (exact, prefix, suffix, contains, gt, lt, gte, lte)
-        value: String,        // Expected value
+        field: String,    // Field name (e.g., "data", "function", "latency_ms")
+        operator: String, // Operator (exact, prefix, suffix, contains, gt, lt, gte, lte)
+        value: String,    // Expected value
     },
     /// Empty filter (matches nothing)
     Empty,
@@ -78,18 +78,13 @@ impl SSLFilter {
     pub fn with_patterns(patterns: Vec<String>) -> Self {
         let mut filter = SSLFilter::new();
         filter.exclude_patterns = patterns.clone();
-        filter.filters = patterns.into_iter()
+        filter.filters = patterns
+            .into_iter()
             .map(|p| FilterExpression::parse(&p))
             .collect();
         filter
     }
-
-
-
-
-
 }
-
 
 impl FilterExpression {
     /// Parse a filter expression string
@@ -104,7 +99,7 @@ impl FilterExpression {
     /// Parse an expression string into a FilterNode tree
     fn parse_expression(expr: &str) -> FilterNode {
         let expr = expr.trim();
-        
+
         if expr.is_empty() {
             return FilterNode::Empty;
         }
@@ -131,7 +126,7 @@ impl FilterExpression {
     fn find_operator(expr: &str, op: char) -> Option<usize> {
         let mut paren_depth = 0;
         let chars: Vec<char> = expr.chars().collect();
-        
+
         for (i, &c) in chars.iter().enumerate() {
             match c {
                 '(' => paren_depth += 1,
@@ -146,34 +141,39 @@ impl FilterExpression {
     /// Parse a single condition like "data=0\r\n\r\n" or "function=READ/RECV"
     fn parse_condition(expr: &str) -> FilterNode {
         let expr = expr.trim();
-        
+
         // Handle parentheses
         if expr.starts_with('(') && expr.ends_with(')') {
-            return Self::parse_expression(&expr[1..expr.len()-1]);
+            return Self::parse_expression(&expr[1..expr.len() - 1]);
         }
 
         // Find the operator
         let operators = [">=", "<=", "!=", "=", ">", "<", "~"];
-        
+
         for &op in &operators {
             if let Some(pos) = expr.find(op) {
                 let field = expr[..pos].trim().to_string();
                 let value = expr[pos + op.len()..].trim().to_string();
-                
+
                 let operator = match op {
                     "=" => "exact",
                     "!=" => "not_equal",
                     ">" => "gt",
-                    "<" => "lt", 
+                    "<" => "lt",
                     ">=" => "gte",
                     "<=" => "lte",
                     "~" => "contains",
                     _ => "exact",
-                }.to_string();
+                }
+                .to_string();
 
                 // Process escape sequences in the value
                 let processed_value = Self::process_escape_sequences(&value);
-                return FilterNode::Condition { field, operator, value: processed_value };
+                return FilterNode::Condition {
+                    field,
+                    operator,
+                    value: processed_value,
+                };
             }
         }
 
@@ -184,7 +184,7 @@ impl FilterExpression {
     fn process_escape_sequences(value: &str) -> String {
         let mut result = String::new();
         let mut chars = value.chars().peekable();
-        
+
         while let Some(ch) = chars.next() {
             if ch == '\\' {
                 if let Some(&next_ch) = chars.peek() {
@@ -222,7 +222,7 @@ impl FilterExpression {
                 result.push(ch);
             }
         }
-        
+
         result
     }
 
@@ -240,16 +240,23 @@ impl FilterExpression {
             FilterNode::Or(left, right) => {
                 self.evaluate_node(left, data) || self.evaluate_node(right, data)
             }
-            FilterNode::Condition { field, operator, value } => {
-                self.evaluate_condition(field, operator, value, data)
-            }
+            FilterNode::Condition {
+                field,
+                operator,
+                value,
+            } => self.evaluate_condition(field, operator, value, data),
             FilterNode::Empty => false,
         }
     }
 
-
     /// Evaluate a single condition against SSL event data
-    fn evaluate_condition(&self, field: &str, operator: &str, expected: &str, data: &Value) -> bool {
+    fn evaluate_condition(
+        &self,
+        field: &str,
+        operator: &str,
+        expected: &str,
+        data: &Value,
+    ) -> bool {
         // Handle special data.type field
         if field == "data.type" {
             if let Some(data_value) = data.get("data").and_then(|v| v.as_str()) {
@@ -264,8 +271,20 @@ impl FilterExpression {
             "data" => data.get("data").and_then(|v| v.as_str()),
             "function" => data.get("function").and_then(|v| v.as_str()),
             "comm" => data.get("comm").and_then(|v| v.as_str()),
-            "is_handshake" => return data.get("is_handshake").and_then(|v| v.as_bool()).unwrap_or(false) == (expected == "true"),
-            "truncated" => return data.get("truncated").and_then(|v| v.as_bool()).unwrap_or(false) == (expected == "true"),
+            "is_handshake" => {
+                return data
+                    .get("is_handshake")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false)
+                    == (expected == "true");
+            }
+            "truncated" => {
+                return data
+                    .get("truncated")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false)
+                    == (expected == "true");
+            }
             "len" | "pid" | "tid" | "uid" => {
                 if let Some(num_val) = data.get(field).and_then(|v| v.as_u64()) {
                     return self.compare_numbers(num_val, operator, expected);
@@ -346,22 +365,22 @@ impl Analyzer for SSLFilter {
     async fn process(&mut self, stream: EventStream) -> Result<EventStream, AnalyzerError> {
         let filters = self.filters.clone();
         let debug = self.debug;
-        
+
         // Clone the shared atomic counters for use in the stream
         let total_counter = self.total_events_processed.clone();
         let filtered_counter = self.filtered_events_count.clone();
         let passed_counter = self.passed_events_count.clone();
-        
+
         let filtered_stream = stream.filter_map(move |event| {
             let filters = filters.clone();
             let total_counter = total_counter.clone();
             let filtered_counter = filtered_counter.clone();
             let passed_counter = passed_counter.clone();
-            
+
             async move {
                 // Increment total events processed
                 total_counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-                
+
                 // Check if this is an SSL event and should be filtered
                 let should_filter = if filters.is_empty() || event.source != "ssl" {
                     false
@@ -371,7 +390,10 @@ impl Analyzer for SSLFilter {
                     for filter in &filters {
                         if filter.evaluate(&event.data) {
                             if debug {
-                                eprintln!("[SSLFilter DEBUG] Event filtered by: {}", filter.expression);
+                                eprintln!(
+                                    "[SSLFilter DEBUG] Event filtered by: {}",
+                                    filter.expression
+                                );
                             }
                             filtered = true;
                             break;
@@ -385,7 +407,7 @@ impl Analyzer for SSLFilter {
                     filtered_counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                     None // Filter out
                 } else {
-                    // Increment passed counter  
+                    // Increment passed counter
                     passed_counter.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                     Some(event) // Pass through
                 }
@@ -403,10 +425,16 @@ impl Analyzer for SSLFilter {
 impl Drop for SSLFilter {
     fn drop(&mut self) {
         // Update global metrics when filter is dropped
-        let total = self.total_events_processed.load(std::sync::atomic::Ordering::Relaxed);
-        let filtered = self.filtered_events_count.load(std::sync::atomic::Ordering::Relaxed);
-        let passed = self.passed_events_count.load(std::sync::atomic::Ordering::Relaxed);
-        
+        let total = self
+            .total_events_processed
+            .load(std::sync::atomic::Ordering::Relaxed);
+        let filtered = self
+            .filtered_events_count
+            .load(std::sync::atomic::Ordering::Relaxed);
+        let passed = self
+            .passed_events_count
+            .load(std::sync::atomic::Ordering::Relaxed);
+
         update_global_ssl_metrics(total, filtered, passed);
     }
 }
@@ -420,7 +448,11 @@ mod tests {
     fn test_ssl_filter_expression_parsing() {
         let expr = FilterExpression::parse("function=READ/RECV");
         match expr.parsed {
-            FilterNode::Condition { field, operator, value } => {
+            FilterNode::Condition {
+                field,
+                operator,
+                value,
+            } => {
                 assert_eq!(field, "function");
                 assert_eq!(operator, "exact");
                 assert_eq!(value, "READ/RECV");
@@ -433,19 +465,19 @@ mod tests {
     fn test_ssl_data_filtering() {
         // Use 'contains' operator for pattern matching
         let filter = FilterExpression::parse("data~chunked");
-        
+
         let matching_event = json!({
             "data": "chunked data here",
             "function": "READ/RECV",
             "len": 5
         });
-        
+
         let non_matching_event = json!({
             "data": "plain text response",
-            "function": "READ/RECV", 
+            "function": "READ/RECV",
             "len": 15
         });
-        
+
         assert!(filter.evaluate(&matching_event));
         assert!(!filter.evaluate(&non_matching_event));
     }
@@ -453,19 +485,19 @@ mod tests {
     #[test]
     fn test_ssl_function_filtering() {
         let filter = FilterExpression::parse("function=READ/RECV");
-        
+
         let read_event = json!({
             "data": "some data",
             "function": "READ/RECV",
             "len": 10
         });
-        
+
         let write_event = json!({
             "data": "some data",
             "function": "WRITE/SEND",
             "len": 10
         });
-        
+
         assert!(filter.evaluate(&read_event));
         assert!(!filter.evaluate(&write_event));
     }
@@ -473,19 +505,19 @@ mod tests {
     #[test]
     fn test_ssl_numeric_filtering() {
         let filter = FilterExpression::parse("len<10");
-        
+
         let small_event = json!({
             "data": "small",
             "function": "READ/RECV",
             "len": 5
         });
-        
+
         let large_event = json!({
             "data": "much larger data",
             "function": "READ/RECV",
             "len": 15
         });
-        
+
         assert!(filter.evaluate(&small_event));
         assert!(!filter.evaluate(&large_event));
     }
@@ -493,60 +525,58 @@ mod tests {
     #[test]
     fn test_ssl_complex_expressions() {
         let filter = FilterExpression::parse("data~chunked&function=READ/RECV");
-        
+
         let matching_event = json!({
             "data": "chunked data here",
             "function": "READ/RECV",
             "len": 5
         });
-        
+
         let partial_match = json!({
-            "data": "chunked data here", 
+            "data": "chunked data here",
             "function": "WRITE/SEND",
             "len": 5
         });
-        
+
         let no_match = json!({
             "data": "plain text response",
             "function": "WRITE/SEND",
             "len": 15
         });
-        
+
         assert!(filter.evaluate(&matching_event));
         assert!(!filter.evaluate(&partial_match));
         assert!(!filter.evaluate(&no_match));
     }
-
 
     #[test]
     fn test_escape_sequence_processing() {
         // Test escape sequence processing
         let processed = FilterExpression::process_escape_sequences("0\\r\\n\\r\\n");
         assert_eq!(processed, "0\r\n\r\n");
-        
+
         let processed2 = FilterExpression::process_escape_sequences("hello\\tworld\\n");
         assert_eq!(processed2, "hello\tworld\n");
-        
+
         let processed3 = FilterExpression::process_escape_sequences("quote\\\"test\\\\");
         assert_eq!(processed3, "quote\"test\\");
-        
+
         // Test with actual SSL data pattern
         let filter = FilterExpression::parse("data=0\\r\\n\\r\\n");
-        
+
         let matching_event = json!({
             "data": "0\r\n\r\n",
             "function": "READ/RECV",
             "len": 5
         });
-        
+
         let non_matching_event = json!({
             "data": "HTTP/1.1 200 OK",
             "function": "READ/RECV",
             "len": 15
         });
-        
+
         assert!(filter.evaluate(&matching_event));
         assert!(!filter.evaluate(&non_matching_event));
     }
 }
-

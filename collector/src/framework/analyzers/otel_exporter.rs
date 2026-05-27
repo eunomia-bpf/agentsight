@@ -29,7 +29,7 @@ use http_body_util::{BodyExt, Full};
 use hyper::body::Bytes;
 use hyper_util::client::legacy::Client;
 use hyper_util::rt::TokioExecutor;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -83,7 +83,11 @@ impl OtelExporter {
         let service_name =
             std::env::var("OTEL_SERVICE_NAME").unwrap_or_else(|_| "agentsight".to_string());
 
-        Self { traces_url, service_name, capture_content }
+        Self {
+            traces_url,
+            service_name,
+            capture_content,
+        }
     }
 }
 
@@ -122,7 +126,9 @@ fn is_llm_path(path: &str) -> bool {
 /// OpenAI (`prompt_tokens`/`completion_tokens`) and Anthropic/Responses
 /// (`input_tokens`/`output_tokens`) field names.
 fn usage_int(usage: &Value, names: &[&str]) -> Option<i64> {
-    names.iter().find_map(|n| usage.get(*n).and_then(|v| v.as_i64()))
+    names
+        .iter()
+        .find_map(|n| usage.get(*n).and_then(|v| v.as_i64()))
 }
 
 /// Extract finish/stop reasons from a response body across provider shapes.
@@ -131,7 +137,11 @@ fn finish_reasons(body: &Value) -> Vec<String> {
     if let Some(choices) = body.get("choices").and_then(|c| c.as_array()) {
         let reasons: Vec<String> = choices
             .iter()
-            .filter_map(|c| c.get("finish_reason").and_then(|r| r.as_str()).map(String::from))
+            .filter_map(|c| {
+                c.get("finish_reason")
+                    .and_then(|r| r.as_str())
+                    .map(String::from)
+            })
             .collect();
         if !reasons.is_empty() {
             return reasons;
@@ -237,10 +247,9 @@ fn build_otlp_payload(
         }
     }
 
-    if capture_content
-        && let Some(msgs) = &req.input_messages {
-            attributes.push(attr_str("gen_ai.input.messages", msgs));
-        }
+    if capture_content && let Some(msgs) = &req.input_messages {
+        attributes.push(attr_str("gen_ai.input.messages", msgs));
+    }
 
     json!({
         "resourceSpans": [{
@@ -300,13 +309,18 @@ impl Analyzer for OtelExporter {
             let data = &event.data;
             let tid = data.get("tid").and_then(|v| v.as_u64()).unwrap_or(0);
             let key = (event.pid, tid);
-            let msg_type = data.get("message_type").and_then(|v| v.as_str()).unwrap_or("");
+            let msg_type = data
+                .get("message_type")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
             let unix_nano = (event.timestamp as u128) * 1_000_000; // ms -> ns
 
             // Evict requests that never got a matching response so `pending`
             // can't grow without bound (dropped connections, killed agents,
             // responses on a different tid, …).
-            pending.retain(|_, req| unix_nano.saturating_sub(req.start_unix_nano) <= PENDING_REQUEST_TIMEOUT_NANOS);
+            pending.retain(|_, req| {
+                unix_nano.saturating_sub(req.start_unix_nano) <= PENDING_REQUEST_TIMEOUT_NANOS
+            });
 
             match msg_type {
                 "request" => {
@@ -325,7 +339,9 @@ impl Analyzer for OtelExporter {
                             .map(String::from);
                         let max_tokens = body
                             .as_ref()
-                            .and_then(|b| b.get("max_tokens").or_else(|| b.get("max_output_tokens")))
+                            .and_then(|b| {
+                                b.get("max_tokens").or_else(|| b.get("max_output_tokens"))
+                            })
                             .and_then(|v| v.as_i64());
                         let temperature = body
                             .as_ref()
@@ -361,8 +377,10 @@ impl Analyzer for OtelExporter {
                 }
                 "response" => {
                     if let Some(req) = pending.remove(&key) {
-                        let status_code =
-                            data.get("status_code").and_then(|v| v.as_u64()).map(|c| c as u16);
+                        let status_code = data
+                            .get("status_code")
+                            .and_then(|v| v.as_u64())
+                            .map(|c| c as u16);
                         let response_body = parse_body(data);
                         let (trace_id, span_id) = new_ids();
                         let payload = build_otlp_payload(
@@ -441,8 +459,14 @@ mod tests {
     fn maps_providers() {
         assert_eq!(provider_from_host("api.openai.com"), "openai");
         assert_eq!(provider_from_host("api.anthropic.com"), "anthropic");
-        assert_eq!(provider_from_host("generativelanguage.googleapis.com"), "gcp.gen_ai");
-        assert_eq!(provider_from_host("my-resource.openai.azure.com"), "azure.ai.openai");
+        assert_eq!(
+            provider_from_host("generativelanguage.googleapis.com"),
+            "gcp.gen_ai"
+        );
+        assert_eq!(
+            provider_from_host("my-resource.openai.azure.com"),
+            "azure.ai.openai"
+        );
         // Unknown OpenAI-compatible host falls back to the host itself.
         assert_eq!(provider_from_host("localhost:8443"), "localhost:8443");
     }
@@ -450,11 +474,20 @@ mod tests {
     #[test]
     fn parses_usage_both_shapes() {
         let openai = json!({ "usage": { "prompt_tokens": 12, "completion_tokens": 7 } });
-        assert_eq!(usage_int(&openai["usage"], &["input_tokens", "prompt_tokens"]), Some(12));
-        assert_eq!(usage_int(&openai["usage"], &["output_tokens", "completion_tokens"]), Some(7));
+        assert_eq!(
+            usage_int(&openai["usage"], &["input_tokens", "prompt_tokens"]),
+            Some(12)
+        );
+        assert_eq!(
+            usage_int(&openai["usage"], &["output_tokens", "completion_tokens"]),
+            Some(7)
+        );
 
         let anthropic = json!({ "usage": { "input_tokens": 30, "output_tokens": 15 } });
-        assert_eq!(usage_int(&anthropic["usage"], &["input_tokens", "prompt_tokens"]), Some(30));
+        assert_eq!(
+            usage_int(&anthropic["usage"], &["input_tokens", "prompt_tokens"]),
+            Some(30)
+        );
     }
 
     #[test]
@@ -485,8 +518,14 @@ mod tests {
             "choices": [{ "finish_reason": "stop" }]
         });
         let payload = build_otlp_payload(
-            "agentsight", "0123456789abcdef0123456789abcdef", "0123456789abcdef",
-            &req, 2_000_000_000, Some(200), Some(&response), false,
+            "agentsight",
+            "0123456789abcdef0123456789abcdef",
+            "0123456789abcdef",
+            &req,
+            2_000_000_000,
+            Some(200),
+            Some(&response),
+            false,
         );
 
         let span = &payload["resourceSpans"][0]["scopeSpans"][0]["spans"][0];
@@ -497,12 +536,30 @@ mod tests {
 
         let attrs = span["attributes"].as_array().unwrap();
         let find = |k: &str| attrs.iter().find(|a| a["key"] == k).cloned();
-        assert_eq!(find("gen_ai.operation.name").unwrap()["value"]["stringValue"], "chat");
-        assert_eq!(find("gen_ai.provider.name").unwrap()["value"]["stringValue"], "openai");
-        assert_eq!(find("gen_ai.request.model").unwrap()["value"]["stringValue"], "gpt-4o");
-        assert_eq!(find("gen_ai.request.max_tokens").unwrap()["value"]["intValue"], "256");
-        assert_eq!(find("gen_ai.usage.input_tokens").unwrap()["value"]["intValue"], "10");
-        assert_eq!(find("gen_ai.usage.output_tokens").unwrap()["value"]["intValue"], "5");
+        assert_eq!(
+            find("gen_ai.operation.name").unwrap()["value"]["stringValue"],
+            "chat"
+        );
+        assert_eq!(
+            find("gen_ai.provider.name").unwrap()["value"]["stringValue"],
+            "openai"
+        );
+        assert_eq!(
+            find("gen_ai.request.model").unwrap()["value"]["stringValue"],
+            "gpt-4o"
+        );
+        assert_eq!(
+            find("gen_ai.request.max_tokens").unwrap()["value"]["intValue"],
+            "256"
+        );
+        assert_eq!(
+            find("gen_ai.usage.input_tokens").unwrap()["value"]["intValue"],
+            "10"
+        );
+        assert_eq!(
+            find("gen_ai.usage.output_tokens").unwrap()["value"]["intValue"],
+            "5"
+        );
         assert_eq!(span["status"]["code"], 1);
         // Content not captured by default.
         assert!(find("gen_ai.input.messages").is_none());
@@ -520,9 +577,7 @@ mod tests {
             top_p: None,
             input_messages: None,
         };
-        let payload = build_otlp_payload(
-            "agentsight", "t", "s", &req, 2, Some(429), None, false,
-        );
+        let payload = build_otlp_payload("agentsight", "t", "s", &req, 2, Some(429), None, false);
         let span = &payload["resourceSpans"][0]["scopeSpans"][0]["spans"][0];
         assert_eq!(span["status"]["code"], 2);
     }

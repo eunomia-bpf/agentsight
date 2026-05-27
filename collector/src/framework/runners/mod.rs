@@ -17,16 +17,16 @@ pub type RunnerError = Box<dyn std::error::Error + Send + Sync>;
 pub trait Runner: Send + Sync {
     /// Run the data collection and return a stream of events
     async fn run(&mut self) -> Result<EventStream, RunnerError>;
-    
+
     /// Add an analyzer to this runner's processing chain
     fn add_analyzer(self, analyzer: Box<dyn crate::framework::analyzers::Analyzer>) -> Self
     where
         Self: Sized;
-    
+
     /// Get the name of this runner
     #[allow(dead_code)]
     fn name(&self) -> &str;
-    
+
     /// Get a unique identifier for this runner instance
     #[allow(dead_code)]
     fn id(&self) -> String;
@@ -46,7 +46,6 @@ pub struct ProcessConfig {
     pub pid: Option<u32>,
 }
 
-
 /// Configuration for stdio payload monitoring
 #[derive(Debug, Clone, Default)]
 pub struct StdioConfig {
@@ -56,20 +55,19 @@ pub struct StdioConfig {
     pub max_bytes: Option<u32>,
 }
 
-
+pub mod agent; // Add agent runner for flexible composition
 pub mod common;
-pub mod ssl;
-pub mod process;
 #[cfg(test)]
 pub mod fake; // Test-only fake runner (compiled only for tests)
-pub mod agent; // Add agent runner for flexible composition
+pub mod process;
+pub mod ssl;
 pub mod stdio;
 pub mod system; // Add system runner for CPU and memory monitoring
 
-pub use ssl::SslRunner;
-pub use stdio::StdioRunner;
-pub use process::ProcessRunner;
+pub use agent::AgentRunner; // Export AgentRunner
 #[cfg(test)]
 pub use fake::FakeRunner; // Export FakeRunner (tests only)
-pub use agent::AgentRunner; // Export AgentRunner
+pub use process::ProcessRunner;
+pub use ssl::SslRunner;
+pub use stdio::StdioRunner;
 pub use system::SystemRunner; // Export SystemRunner

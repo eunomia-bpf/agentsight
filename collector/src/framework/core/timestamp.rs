@@ -24,22 +24,24 @@ pub fn get_boot_time_secs() -> i64 {
             for line in content.lines() {
                 if line.starts_with("btime ")
                     && let Some(btime_str) = line.split_whitespace().nth(1)
-                        && let Ok(btime) = btime_str.parse::<i64>() {
-                            return btime;
-                        }
+                    && let Ok(btime) = btime_str.parse::<i64>()
+                {
+                    return btime;
+                }
             }
         }
 
         // Fallback: calculate from uptime
         if let Ok(uptime_str) = fs::read_to_string("/proc/uptime")
             && let Some(uptime_secs_str) = uptime_str.split_whitespace().next()
-                && let Ok(uptime_secs) = uptime_secs_str.parse::<f64>() {
-                    let now_secs = SystemTime::now()
-                        .duration_since(UNIX_EPOCH)
-                        .unwrap()
-                        .as_secs() as i64;
-                    return now_secs - uptime_secs as i64;
-                }
+            && let Ok(uptime_secs) = uptime_secs_str.parse::<f64>()
+        {
+            let now_secs = SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .unwrap()
+                .as_secs() as i64;
+            return now_secs - uptime_secs as i64;
+        }
 
         // Last resort: return current time (will be incorrect but won't crash)
         SystemTime::now()
@@ -64,7 +66,6 @@ pub fn boot_ns_to_epoch_ms(ns_since_boot: u64) -> u64 {
     let offset_ms = (ns_since_boot / 1_000_000) as i64;
     (boot_time_ms + offset_ms) as u64
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -94,5 +95,4 @@ mod tests {
 
         assert_eq!(result_ms, expected_ms as u64);
     }
-
 }

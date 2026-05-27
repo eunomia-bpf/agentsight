@@ -36,25 +36,31 @@ impl AuthHeaderRemover {
         }
     }
 
-
     /// Remove authorization headers from HTTP event data
     fn remove_auth_headers(&self, mut event_data: Value) -> Value {
         // Only process HTTP parser events
-        if event_data.get("message_type").and_then(|v| v.as_str()).is_none() {
+        if event_data
+            .get("message_type")
+            .and_then(|v| v.as_str())
+            .is_none()
+        {
             return event_data;
         }
 
         let mut headers_removed = Vec::new();
 
         // Process headers if they exist
-        if let Some(headers_obj) = event_data.get_mut("headers").and_then(|v| v.as_object_mut()) {
+        if let Some(headers_obj) = event_data
+            .get_mut("headers")
+            .and_then(|v| v.as_object_mut())
+        {
             // Collect keys to remove (case-insensitive matching)
             let keys_to_remove: Vec<String> = headers_obj
                 .keys()
                 .filter(|key| {
-                    self.auth_headers.iter().any(|auth_header| {
-                        key.to_lowercase() == auth_header.to_lowercase()
-                    })
+                    self.auth_headers
+                        .iter()
+                        .any(|auth_header| key.to_lowercase() == auth_header.to_lowercase())
                 })
                 .cloned()
                 .collect();
@@ -69,7 +75,10 @@ impl AuthHeaderRemover {
 
         // Log removed headers if debug is enabled
         if self.debug && !headers_removed.is_empty() {
-            eprintln!("[AuthHeaderRemover DEBUG] Removed headers: {:?}", headers_removed);
+            eprintln!(
+                "[AuthHeaderRemover DEBUG] Removed headers: {:?}",
+                headers_removed
+            );
         }
 
         event_data
@@ -94,7 +103,8 @@ impl Analyzer for AuthHeaderRemover {
                 event.data = AuthHeaderRemover {
                     auth_headers: auth_headers.clone(),
                     debug,
-                }.remove_auth_headers(event.data);
+                }
+                .remove_auth_headers(event.data);
             }
             event
         });
@@ -117,7 +127,7 @@ mod tests {
     #[tokio::test]
     async fn test_auth_header_removal() {
         let mut analyzer = AuthHeaderRemover::new();
-        
+
         let event_data = json!({
             "message_type": "request",
             "method": "GET",
@@ -129,22 +139,31 @@ mod tests {
                 "user-agent": "test-client"
             }
         });
-        
-        let test_event = Event::new("http_parser".to_string(), 1234, "http_parser".to_string(), event_data);
+
+        let test_event = Event::new(
+            "http_parser".to_string(),
+            1234,
+            "http_parser".to_string(),
+            event_data,
+        );
         let events = vec![test_event];
-        
+
         let input_stream: EventStream = Box::pin(stream::iter(events));
         let output_stream = analyzer.process(input_stream).await.unwrap();
-        
+
         let collected: Vec<_> = output_stream.collect().await;
-        
+
         assert_eq!(collected.len(), 1);
-        let headers = collected[0].data.get("headers").and_then(|v| v.as_object()).unwrap();
-        
+        let headers = collected[0]
+            .data
+            .get("headers")
+            .and_then(|v| v.as_object())
+            .unwrap();
+
         // Authorization headers should be removed
         assert!(!headers.contains_key("authorization"));
         assert!(!headers.contains_key("x-api-key"));
-        
+
         // Other headers should remain
         assert!(headers.contains_key("content-type"));
         assert!(headers.contains_key("user-agent"));
@@ -153,30 +172,34 @@ mod tests {
     #[tokio::test]
     async fn test_non_http_events_passthrough() {
         let mut analyzer = AuthHeaderRemover::new();
-        
+
         let event_data = json!({
             "type": "process",
             "pid": 1234,
             "command": "test"
         });
-        
-        let test_event = Event::new("process".to_string(), 1234, "process".to_string(), event_data.clone());
+
+        let test_event = Event::new(
+            "process".to_string(),
+            1234,
+            "process".to_string(),
+            event_data.clone(),
+        );
         let events = vec![test_event];
-        
+
         let input_stream: EventStream = Box::pin(stream::iter(events));
         let output_stream = analyzer.process(input_stream).await.unwrap();
-        
+
         let collected: Vec<_> = output_stream.collect().await;
-        
+
         assert_eq!(collected.len(), 1);
         assert_eq!(collected[0].data, event_data);
     }
 
-
     #[tokio::test]
     async fn test_case_insensitive_matching() {
         let mut analyzer = AuthHeaderRemover::new();
-        
+
         let event_data = json!({
             "message_type": "request",
             "headers": {
@@ -185,21 +208,30 @@ mod tests {
                 "Content-Type": "application/json"
             }
         });
-        
-        let test_event = Event::new("http_parser".to_string(), 1234, "http_parser".to_string(), event_data);
+
+        let test_event = Event::new(
+            "http_parser".to_string(),
+            1234,
+            "http_parser".to_string(),
+            event_data,
+        );
         let events = vec![test_event];
-        
+
         let input_stream: EventStream = Box::pin(stream::iter(events));
         let output_stream = analyzer.process(input_stream).await.unwrap();
-        
+
         let collected: Vec<_> = output_stream.collect().await;
-        
-        let headers = collected[0].data.get("headers").and_then(|v| v.as_object()).unwrap();
-        
+
+        let headers = collected[0]
+            .data
+            .get("headers")
+            .and_then(|v| v.as_object())
+            .unwrap();
+
         // Authorization headers should be removed regardless of case
         assert!(!headers.contains_key("Authorization"));
         assert!(!headers.contains_key("X-API-KEY"));
-        
+
         // Other headers should remain
         assert!(headers.contains_key("Content-Type"));
     }
@@ -207,21 +239,26 @@ mod tests {
     #[tokio::test]
     async fn test_no_headers_field() {
         let mut analyzer = AuthHeaderRemover::new();
-        
+
         let event_data = json!({
             "message_type": "request",
             "method": "GET",
             "path": "/api/test"
         });
-        
-        let test_event = Event::new("http_parser".to_string(), 1234, "http_parser".to_string(), event_data.clone());
+
+        let test_event = Event::new(
+            "http_parser".to_string(),
+            1234,
+            "http_parser".to_string(),
+            event_data.clone(),
+        );
         let events = vec![test_event];
-        
+
         let input_stream: EventStream = Box::pin(stream::iter(events));
         let output_stream = analyzer.process(input_stream).await.unwrap();
-        
+
         let collected: Vec<_> = output_stream.collect().await;
-        
+
         // Should not crash and should pass through unchanged
         assert_eq!(collected.len(), 1);
         assert_eq!(collected[0].data, event_data);
