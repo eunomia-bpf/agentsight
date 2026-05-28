@@ -506,13 +506,12 @@ docker run -d --name openclaw-smoke \
 
 cd collector
 sudo -n rm -f /tmp/agentsight-openclaw-real.*
-sudo -n env PATH="$PATH" HOME="$HOME" \
+timeout -s INT 18s sudo -n env PATH="$PATH" HOME="$HOME" \
   ./target/debug/agentsight record \
   -c node \
   --binary-path docker://openclaw-smoke \
   --db /tmp/agentsight-openclaw-real.db \
   --adapter auto \
-  --capture-seconds 18 \
   -o /tmp/agentsight-openclaw-real.log \
   --server-port 7396
 ```

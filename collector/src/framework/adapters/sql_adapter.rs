@@ -69,35 +69,25 @@ impl SqlAdapter {
         self.detect_sql.is_some()
     }
 
-    pub fn detect_score(&self, store: &mut SqliteStore) -> AdapterResult<f64> {
+    pub fn detects(&self, store: &mut SqliteStore) -> AdapterResult<bool> {
         let Some(sql) = self.detect_sql else {
-            return Ok(1.0);
+            return Ok(true);
         };
-        let score: f64 = store
+        let detected: i64 = store
             .connection_mut()
             .query_row(sql, [], |row| row.get(0))?;
-        Ok(score.clamp(0.0, 1.0))
+        Ok(detected != 0)
     }
 }
 
-#[cfg(test)]
-fn run_sql_adapters(store: &mut SqliteStore, adapter: &str) -> AdapterResult<()> {
-    run_sql_adapters_with_threshold(store, adapter, 0.60)
-}
-
-pub fn run_sql_adapters_with_threshold(
-    store: &mut SqliteStore,
-    adapter: &str,
-    threshold: f64,
-) -> AdapterResult<()> {
+pub fn run_sql_adapters(store: &mut SqliteStore, adapter: &str) -> AdapterResult<()> {
     let adapters = builtin_adapters();
     let selected: Vec<_> = if adapter == "auto" {
-        let threshold = threshold.clamp(0.0, 1.0);
         adapters
             .into_iter()
-            .filter_map(|adapter| match adapter.detect_score(store) {
-                Ok(score) if score >= threshold => Some(Ok(adapter)),
-                Ok(_) => None,
+            .filter_map(|adapter| match adapter.detects(store) {
+                Ok(true) => Some(Ok(adapter)),
+                Ok(false) => None,
                 Err(e) => Some(Err(e)),
             })
             .collect::<AdapterResult<Vec<_>>>()?
@@ -130,7 +120,7 @@ pub fn builtin_adapters() -> Vec<SqlAdapter> {
                    SELECT 1 FROM llm_calls
                    WHERE provider = 'anthropic'
                       OR host LIKE '%anthropic%'
-                 ) THEN 0.95 ELSE 0.0 END",
+                 ) THEN 1 ELSE 0 END",
             ),
             sql_files: &[(
                 "project_token_usage.sql",
@@ -147,13 +137,13 @@ pub fn builtin_adapters() -> Vec<SqlAdapter> {
                      SELECT 1 FROM canonical_events
                      WHERE comm LIKE 'claude%'
                         OR json_extract(attributes_json, '$.program') = 'claude'
-                   ) THEN 0.95
+                   ) THEN 1
                    WHEN EXISTS (
                      SELECT 1 FROM canonical_events
                      WHERE host LIKE '%datadoghq.com'
                        AND attributes_json LIKE '%tengu_api_success%'
-                   ) THEN 0.80
-                   ELSE 0.0
+                   ) THEN 1
+                   ELSE 0
                  END",
             ),
             sql_files: &[
@@ -186,7 +176,7 @@ pub fn builtin_adapters() -> Vec<SqlAdapter> {
                       OR instr(COALESCE(request_body_json, ''), 'openclaw.mjs') > 0
                       OR instr(COALESCE(response_body_json, ''), 'OpenClaw gateway') > 0
                       OR instr(COALESCE(response_body_json, ''), 'openclaw.mjs') > 0
-                 ) THEN 0.90 ELSE 0.0 END",
+                 ) THEN 1 ELSE 0 END",
             ),
             sql_files: &[(
                 "project_sessions.sql",
@@ -204,13 +194,13 @@ pub fn builtin_adapters() -> Vec<SqlAdapter> {
                      WHERE json_extract(attributes_json, '$.program') = 'gemini'
                         OR host LIKE '%cloudcode-pa.googleapis.com%'
                         OR LOWER(attributes_json) LIKE '%geminicli/%'
-                   ) THEN 0.95
+                   ) THEN 1
                    WHEN EXISTS (
                      SELECT 1 FROM llm_calls
                      WHERE host LIKE '%cloudcode-pa.googleapis.com%'
                         OR LOWER(COALESCE(request_body_json, '')) LIKE '%geminicli/%'
-                   ) THEN 0.90
-                   ELSE 0.0
+                   ) THEN 1
+                   ELSE 0
                  END",
             ),
             sql_files: &[
@@ -314,7 +304,7 @@ mod tests {
     }
 
     #[test]
-    fn auto_adapter_threshold_runs_only_detected_adapter() {
+    fn auto_adapter_runs_only_detected_adapter() {
         let mut store = SqliteStore::open_in_memory().unwrap();
         let mut projector = GenericProjector::new();
         let output = Event::new_with_timestamp(
@@ -346,7 +336,7 @@ mod tests {
         );
         store.insert_event(&output, &mut projector).unwrap();
 
-        run_sql_adapters_with_threshold(&mut store, "auto", 0.60).unwrap();
+        run_sql_adapters(&mut store, "auto").unwrap();
 
         let adapter_ids: Vec<String> = {
             let mut stmt = store
@@ -377,10 +367,10 @@ mod tests {
     }
 
     #[test]
-    fn auto_adapter_threshold_skips_undetected_adapters() {
+    fn auto_adapter_skips_undetected_adapters() {
         let mut store = SqliteStore::open_in_memory().unwrap();
 
-        run_sql_adapters_with_threshold(&mut store, "auto", 0.60).unwrap();
+        run_sql_adapters(&mut store, "auto").unwrap();
 
         let runs: i64 = store
             .connection()

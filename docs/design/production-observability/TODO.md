@@ -43,13 +43,11 @@ Claude/Gemini smoke path. Keep items small enough to finish and test in one PR.
   - Done when: `exec`, `record`, `trace`, and `replay` accept the flag and
     tests prove `adapter_runs` stays empty.
 
-- [x] Adapter auto detection threshold
-  - Scope: add optional detect scoring for built-in SQL adapters and only run
-    adapters over threshold when `--adapter auto`.
-  - Done when: `--adapter-threshold 0.6` and `adapters list --json` expose
-    detection support.
-  - Note: this is lower priority if `--no-adapters` and explicit adapter
-    selection cover production workflows.
+- [x] Adapter auto detection
+  - Scope: add boolean detection for built-in SQL adapters and only run
+    adapters with matching DB evidence when `--adapter auto`.
+  - Done when: `adapters list --json` exposes detection support and auto mode
+    skips adapters with no evidence.
 
 - [x] `/api/v1/*` SQLite HTTP API
   - Scope: serve events, token summary, audit events, sessions, agents, and

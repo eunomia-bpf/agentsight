@@ -3,4 +3,4 @@
 
 pub mod sql_adapter;
 
-pub use sql_adapter::{builtin_adapters, run_sql_adapters_with_threshold};
+pub use sql_adapter::{builtin_adapters, run_sql_adapters};

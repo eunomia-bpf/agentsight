@@ -305,13 +305,12 @@ fn real_openclaw_provider_smoke_captures_http_tokens() {
             db.to_str().expect("db path"),
             "--adapter",
             "auto",
-            "--capture-seconds",
-            "35",
             "-o",
             log.to_str().expect("log path"),
         ])
         .spawn()
         .expect("agentsight trace should spawn");
+    let trace_pid = trace.id();
 
     std::thread::sleep(Duration::from_secs(6));
     let trigger = Command::new("timeout")
@@ -335,6 +334,9 @@ fn real_openclaw_provider_smoke_captures_http_tokens() {
         .output()
         .expect("docker exec should run");
 
+    let _ = Command::new("sudo")
+        .args(["-n", "kill", "-INT", &trace_pid.to_string()])
+        .output();
     let trace_status = trace.wait().expect("trace should finish");
     let _ = Command::new("docker")
         .args(["rm", "-f", &container])

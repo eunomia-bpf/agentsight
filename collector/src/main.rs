@@ -85,7 +85,6 @@ struct TraceConfig {
     stdio_all_fds: bool,
     stdio_max_bytes: u32,
     duration: Option<u32>,
-    capture_seconds: Option<u64>,
     mode: Option<u32>,
     system: bool,
     system_interval: u64,
@@ -97,7 +96,6 @@ struct TraceConfig {
     log_file: String,
     db_path: Option<String>,
     adapter: Option<String>,
-    adapter_threshold: f64,
     quiet: bool,
     rotate_logs: bool,
     max_log_size: u64,
@@ -299,9 +297,6 @@ enum Commands {
         /// Process duration filter (minimum duration in ms)
         #[arg(long)]
         duration: Option<u32>,
-        /// Stop capture after this many seconds and run shutdown projections
-        #[arg(long)]
-        capture_seconds: Option<u64>,
         /// Process filtering mode (0=all, 1=proc, 2=filter)
         #[arg(long)]
         mode: Option<u32>,
@@ -343,9 +338,6 @@ enum Commands {
         /// Do not run SQL adapters after capture
         #[arg(long)]
         no_adapters: bool,
-        /// Minimum detection score for --adapter auto
-        #[arg(long, default_value_t = 0.60)]
-        adapter_threshold: f64,
         /// Suppress console output
         #[arg(short, long)]
         quiet: bool,
@@ -383,12 +375,6 @@ enum Commands {
         /// Do not run SQL adapters after capture
         #[arg(long)]
         no_adapters: bool,
-        /// Minimum detection score for --adapter auto
-        #[arg(long, default_value_t = 0.60)]
-        adapter_threshold: f64,
-        /// Stop capture after this many seconds and run shutdown projections
-        #[arg(long)]
-        capture_seconds: Option<u64>,
         /// Enable log rotation
         #[arg(long, default_value = "true")]
         rotate_logs: bool,
@@ -417,9 +403,6 @@ enum Commands {
         /// Do not run SQL adapters after capture
         #[arg(long)]
         no_adapters: bool,
-        /// Minimum detection score for --adapter auto
-        #[arg(long, default_value_t = 0.60)]
-        adapter_threshold: f64,
         /// Enable log rotation
         #[arg(long, default_value = "true")]
         rotate_logs: bool,
@@ -489,9 +472,6 @@ enum Commands {
         /// Do not run SQL adapters after replay
         #[arg(long)]
         no_adapters: bool,
-        /// Minimum detection score for --adapter auto
-        #[arg(long, default_value_t = 0.60)]
-        adapter_threshold: f64,
     },
     /// Query token usage from a SQLite database
     Token {
@@ -578,14 +558,8 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             db,
             adapter,
             no_adapters,
-            adapter_threshold,
         } => {
-            run_replay(
-                input,
-                db,
-                (!*no_adapters).then_some(adapter.as_str()),
-                *adapter_threshold,
-            )?;
+            run_replay(input, db, (!*no_adapters).then_some(adapter.as_str()))?;
             return Ok(());
         }
         Commands::Token { db, group_by, json } => {
@@ -723,7 +697,6 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             stdio_all_fds,
             stdio_max_bytes,
             duration,
-            capture_seconds,
             mode,
             system,
             system_interval,
@@ -737,7 +710,6 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             db,
             adapter,
             no_adapters,
-            adapter_threshold,
             quiet,
             rotate_logs,
             max_log_size,
@@ -761,7 +733,6 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 stdio_all_fds: *stdio_all_fds,
                 stdio_max_bytes: *stdio_max_bytes,
                 duration: *duration,
-                capture_seconds: *capture_seconds,
                 mode: *mode,
                 system: *system,
                 system_interval: *system_interval,
@@ -775,7 +746,6 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 log_file: log_file.clone(),
                 db_path: configured_db_path(db),
                 adapter: (!*no_adapters).then_some(adapter.clone()),
-                adapter_threshold: *adapter_threshold,
                 quiet: *quiet,
                 rotate_logs: *rotate_logs,
                 max_log_size: *max_log_size,
@@ -793,8 +763,6 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             db,
             adapter,
             no_adapters,
-            adapter_threshold,
-            capture_seconds,
             rotate_logs,
             max_log_size,
             server_port,
@@ -816,8 +784,6 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 log_file: log_file.clone(),
                 db_path: configured_db_path(db),
                 adapter: (!*no_adapters).then_some(adapter.clone()),
-                adapter_threshold: *adapter_threshold,
-                capture_seconds: *capture_seconds,
                 quiet: true,
                 rotate_logs: *rotate_logs,
                 max_log_size: *max_log_size,
@@ -835,7 +801,6 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             db,
             adapter,
             no_adapters,
-            adapter_threshold,
             rotate_logs,
             max_log_size,
             no_server,
@@ -848,7 +813,6 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             log_file,
             configured_db_path(db),
             (!*no_adapters).then_some(adapter.as_str()),
-            *adapter_threshold,
             *rotate_logs,
             *max_log_size,
             !*no_server,
@@ -890,13 +854,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             db,
             adapter,
             no_adapters,
-            adapter_threshold,
-        } => run_replay(
-            input,
-            db,
-            (!*no_adapters).then_some(adapter.as_str()),
-            *adapter_threshold,
-        )?,
+        } => run_replay(input, db, (!*no_adapters).then_some(adapter.as_str()))?,
         Commands::Token { db, group_by, json } => run_token_query(db, group_by, *json)?,
         Commands::Audit {
             db,
@@ -1506,9 +1464,6 @@ async fn run_trace(
     let log_file = cfg.log_file.clone();
     let db_path = cfg.db_path.clone();
     let adapter = cfg.adapter.clone();
-    let adapter_threshold = cfg.adapter_threshold;
-    let capture_seconds = cfg.capture_seconds;
-    let shutdown = shutdown_notify();
 
     let mut agent = build_trace_agent(binary_extractor, &cfg)?;
 
@@ -1529,45 +1484,11 @@ async fn run_trace(
     let mut stream = agent.run().await?;
 
     // Drive the stream so the analyzer chain (file logging, storage, etc.) runs.
-    if let Some(seconds) = capture_seconds {
-        let deadline = tokio::time::sleep(tokio::time::Duration::from_secs(seconds));
-        tokio::pin!(deadline);
-        loop {
-            tokio::select! {
-                maybe_event = stream.next() => {
-                    if maybe_event.is_none() {
-                        break;
-                    }
-                }
-                _ = &mut deadline => {
-                    println!("✓ Capture duration reached ({}s). Stopping monitoring.", seconds);
-                    break;
-                }
-                _ = shutdown.notified() => {
-                    println!("✓ Shutdown requested. Stopping monitoring.");
-                    break;
-                }
-            }
-        }
-    } else {
-        loop {
-            tokio::select! {
-                maybe_event = stream.next() => {
-                    if maybe_event.is_none() {
-                        break;
-                    }
-                }
-                _ = shutdown.notified() => {
-                    println!("✓ Shutdown requested. Stopping monitoring.");
-                    break;
-                }
-            }
-        }
-    }
+    drive_stream_until_shutdown(&mut stream).await;
     drop(stream);
     drop(agent);
 
-    run_capture_adapters(db_path.as_deref(), adapter.as_deref(), adapter_threshold)?;
+    run_capture_adapters(db_path.as_deref(), adapter.as_deref())?;
 
     Ok(())
 }
@@ -1586,7 +1507,6 @@ async fn run_exec(
     log_file: &str,
     db_path: Option<String>,
     adapter: Option<&str>,
-    adapter_threshold: f64,
     rotate_logs: bool,
     max_log_size: u64,
     enable_server: bool,
@@ -1646,7 +1566,6 @@ async fn run_exec(
         log_file: log_file.to_string(),
         db_path,
         adapter: adapter.map(str::to_string),
-        adapter_threshold,
         quiet: true,
         rotate_logs,
         max_log_size,
@@ -1800,7 +1719,7 @@ async fn run_exec(
 
     print_global_http_filter_metrics();
     print_global_ssl_filter_metrics();
-    run_capture_adapters(db_path_for_adapters.as_deref(), adapter, adapter_threshold)?;
+    run_capture_adapters(db_path_for_adapters.as_deref(), adapter)?;
     if enable_server {
         println!(
             "Recorded data remains viewable at http://127.0.0.1:{} (log: {})",

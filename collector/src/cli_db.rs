@@ -2,7 +2,7 @@
 // Copyright (c) 2026 eunomia-bpf org.
 
 use crate::framework::{
-    adapters::{builtin_adapters, run_sql_adapters_with_threshold},
+    adapters::{builtin_adapters, run_sql_adapters},
     core::Event,
     runners::RunnerError,
     storage::{GenericProjector, SnapshotOptions, SqliteStore},
@@ -26,9 +26,6 @@ pub(crate) enum AdapterCommand {
         /// SQL adapter to run: auto, anthropic, claude-code, openclaw, gemini-cli
         #[arg(long, default_value = "auto")]
         adapter: String,
-        /// Minimum detection score for --adapter auto
-        #[arg(long, default_value_t = 0.60)]
-        adapter_threshold: f64,
     },
 }
 
@@ -42,7 +39,6 @@ pub(crate) fn run_replay(
     input: &str,
     db: &str,
     adapter: Option<&str>,
-    adapter_threshold: f64,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let content = std::fs::read_to_string(input)?;
     let mut store = SqliteStore::open(db)?;
@@ -61,7 +57,7 @@ pub(crate) fn run_replay(
     }
 
     if let Some(adapter) = adapter {
-        run_sql_adapters_with_threshold(&mut store, adapter, adapter_threshold)?;
+        run_sql_adapters(&mut store, adapter)?;
         println!(
             "Replayed {} events into {} and ran adapter '{}'",
             inserted, db, adapter
@@ -169,11 +165,7 @@ pub(crate) fn run_adapters_command(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     match command {
         Some(AdapterCommand::List { json }) => run_adapters_list(parent_json || *json),
-        Some(AdapterCommand::Run {
-            db,
-            adapter,
-            adapter_threshold,
-        }) => run_adapters_on_db(db, adapter, *adapter_threshold),
+        Some(AdapterCommand::Run { db, adapter }) => run_adapters_on_db(db, adapter),
         None => run_adapters_list(parent_json),
     }
 }
@@ -181,7 +173,6 @@ pub(crate) fn run_adapters_command(
 pub(crate) fn run_capture_adapters(
     db_path: Option<&str>,
     adapter: Option<&str>,
-    adapter_threshold: f64,
 ) -> Result<(), RunnerError> {
     let Some(db_path) = db_path else {
         return Ok(());
@@ -195,7 +186,7 @@ pub(crate) fn run_capture_adapters(
             db_path, e
         ))
     })?;
-    run_sql_adapters_with_threshold(&mut store, adapter, adapter_threshold).map_err(|e| {
+    run_sql_adapters(&mut store, adapter).map_err(|e| {
         RunnerError::from(format!("failed to run SQL adapter '{}': {}", adapter, e))
     })?;
     println!("✓ SQL adapters projected: {} ({})", adapter, db_path);
@@ -205,10 +196,9 @@ pub(crate) fn run_capture_adapters(
 fn run_adapters_on_db(
     db: &str,
     adapter: &str,
-    adapter_threshold: f64,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let mut store = SqliteStore::open(db)?;
-    run_sql_adapters_with_threshold(&mut store, adapter, adapter_threshold)?;
+    run_sql_adapters(&mut store, adapter)?;
     println!("Ran SQL adapter '{}' on {}", adapter, db);
     Ok(())
 }

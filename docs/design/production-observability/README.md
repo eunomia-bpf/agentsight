@@ -545,14 +545,13 @@ agentsight adapters list
 agentsight adapters run --db record.db --adapter claude-code
 agentsight discover --json
 --no-adapters
---adapter-threshold 0.6
 ```
 
 Selection rules:
 
-1. `--adapter auto` runs built-in SQL adapters whose DB evidence score is at or
-   above `--adapter-threshold` (default `0.6`). The adapter SQL is idempotent,
-   so reruns are safe for replay and backfill.
+1. `--adapter auto` runs built-in SQL adapters when their DB evidence is
+   present. The adapter SQL is idempotent, so reruns are safe for replay and
+   backfill.
 2. Explicit adapters run only the named adapter.
 3. Adapter output records `adapter_id` and `confidence`; the query layer can use
    those fields to prefer more specific rows.
@@ -573,7 +572,7 @@ agentsight token --db record.db --group-by comm --json
 agentsight audit --db record.db --audit-type llm --json
 agentsight export --db record.db --output trace.agentsight.json
 agentsight adapters list
-agentsight adapters run --db record.db --adapter auto --adapter-threshold 0.6
+agentsight adapters run --db record.db --adapter auto
 agentsight discover --json
 ```
 
