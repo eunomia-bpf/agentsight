@@ -13,81 +13,26 @@ AgentSight is a observability tool designed specifically for monitoring LLM agen
 
 ```bash
 wget https://github.com/eunomia-bpf/agentsight/releases/latest/download/agentsight && chmod +x agentsight
-```
-
-```bash
-# Just put your agent command after `exec --`. That's it — no sudo needed.
 ./agentsight exec -- claude
-./agentsight exec -- python my_agent.py
-./agentsight exec -- gemini
 ```
 
-No `sudo` required — AgentSight automatically elevates only the eBPF probes while your agent runs as your normal user. When running under `sudo`, the child process is dropped back to `$SUDO_UID`/`$SUDO_GID` so your agent never has root privileges.
-
-The agent runs normally in your terminal; monitoring happens in the background.
-When the session ends, AgentSight prints a summary automatically:
+No sudo needed. When the session ends you get:
 
 ```
-────────────────────────────────────────────────────────────
 📊 Session Summary
-────────────────────────────────────────────────────────────
-  🤖 claude-opus-4-6 — 1 calls, 50131 tokens (in: 4, out: 173)
-  🤖 claude-haiku-4-5-20251001 — 1 calls, 459 tokens (in: 444, out: 15)
-     Total: 2 API calls, 50590 tokens
-  🔍 23 processes spawned: 2.1.159, bash, cut, env, git, grep, ... (12 total)
+  🤖 claude-opus-4-6 — 2 API calls, 50590 tokens
+  🔍 23 processes spawned: bash, git, cat, sed, grep, ...
   📋 44 system events captured
-
   Database: ~/.local/share/agentsight/sessions/20260601-005033.db
-  Token details:  agentsight db token --db ~/.local/share/agentsight/sessions/...
-  Full audit:     agentsight db audit --db ~/.local/share/agentsight/sessions/...
-────────────────────────────────────────────────────────────
 ```
 
-The summary shows not just token usage, but **what the agent actually did at the system level** — every subprocess it spawned, every binary it executed. This is what application-level tools like Langfuse or LangSmith can't see.
-
-Every `exec` session is automatically saved to a SQLite database — no `--db` flag needed. You can query any past session afterward:
+Not just token counts — **what the agent actually did to your system**. This is what Langfuse and LangSmith can't see.
 
 ```bash
-# How many tokens did that session use? (auto-finds latest session if no --db)
-agentsight db token
-
-# What API calls and process events happened?
-agentsight db audit --json
-
-# List all recorded sessions
-agentsight db list
-
-# Export a snapshot for the web dashboard
-agentsight db export -o snapshot.json
+agentsight db token              # token usage (auto-finds latest session)
+agentsight db audit --json       # every process spawn, file open, API call
+agentsight db list               # all recorded sessions
 ```
-
-During the session, visit [http://127.0.0.1:7395](http://127.0.0.1:7395) to view live traffic, process trees, and metrics in the web UI.
-
-> **Note:** The eBPF probes require `sudo` (or `CAP_BPF` + `CAP_SYS_ADMIN`) — AgentSight will prompt for your password via `sudo` when launching the kernel probes. If you prefer, you can also run the whole command under sudo: `sudo -E ./agentsight exec -- claude` (the child is still dropped to your user).
-
-**Discover what agents are installed locally:**
-
-```bash
-./agentsight discover
-# id             adapter      command    available  recommended
-# claude-code    claude-code  claude     yes        agentsight exec --db record.db -- claude -p 'hello'
-# gemini-cli     gemini-cli   gemini     yes        agentsight exec --db record.db -- gemini --prompt 'hello'
-```
-
-**The manual way — `record` attaches to a running agent (use when the agent is started elsewhere):**
-
-```bash
-# Record Claude Code activity
-./agentsight record -c claude --binary-path ~/.local/share/claude/versions/$(claude --version | head -1)
-# For Python AI tools (e.g. aider, open-interpreter)
-./agentsight record -c "python"
-# For Node.js apps with NVM (statically-linked OpenSSL)
-./agentsight record -c node --binary-path ~/.nvm/versions/node/v20.0.0/bin/node
-# For an agent running in a Docker container (e.g. OpenClaw) — see docs/openclaw.md
-./agentsight record -c node --binary-path docker://openclaw
-```
-
-Built-in SQL adapters currently cover Anthropic, Claude Code, Gemini CLI, and OpenClaw-style sessions. Use `--no-adapters` to disable, or `agentsight db adapters list --json` to inspect available adapters.
 
 <div align="center">
   <img src="https://github.com/eunomia-bpf/agentsight/raw/master/docs/demo-tree.png" alt="AgentSight Demo - Process Tree Visualization" width="800">
@@ -236,6 +181,37 @@ make build
 # make build-rust      # Build Rust collector
 
 ```
+
+### Querying Past Sessions
+
+Every `exec` session is automatically saved to SQLite. Query with `agentsight db`:
+
+```bash
+agentsight db token                   # token usage (auto-finds latest session)
+agentsight db audit --json            # process spawns, file opens, API calls
+agentsight db list                    # all recorded sessions
+agentsight db export -o snapshot.json # export for web dashboard
+```
+
+During a session, visit [http://127.0.0.1:7395](http://127.0.0.1:7395) for live traffic, process trees, and metrics.
+
+> **Privileges:** eBPF probes need root. AgentSight auto-elevates them via `sudo` (you may be prompted once). Your agent always runs as your normal user. If you prefer explicit sudo: `sudo -E ./agentsight exec -- claude` — the child is still dropped to your user.
+
+**Discover what agents are installed locally:**
+
+```bash
+./agentsight discover
+```
+
+**Attach to a running agent with `record`:**
+
+```bash
+./agentsight record -c claude
+./agentsight record -c python
+./agentsight record -c node --binary-path docker://openclaw
+```
+
+Built-in SQL adapters cover Anthropic, Claude Code, Gemini CLI, and OpenClaw sessions. Use `--no-adapters` to disable, or `agentsight db adapters list --json` to inspect.
 
 ### Usage Examples
 
