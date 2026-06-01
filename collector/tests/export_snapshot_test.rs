@@ -27,7 +27,8 @@ fn replay_no_adapters_skips_adapter_runs() {
         .join("../docs/fixtures/sql-adapters/gemini-cli-basic/input.jsonl");
 
     run_agentsight(&[
-        "replay",
+        "db",
+        "import",
         "--input",
         fixture.to_str().expect("fixture path"),
         "--db",
@@ -60,7 +61,8 @@ fn replay_then_export_snapshot_for_static_web() {
         .join("../docs/fixtures/sql-adapters/gemini-cli-basic/input.jsonl");
 
     run_agentsight(&[
-        "replay",
+        "db",
+        "import",
         "--input",
         fixture.to_str().expect("fixture path"),
         "--db",
@@ -69,6 +71,7 @@ fn replay_then_export_snapshot_for_static_web() {
         "auto",
     ]);
     run_agentsight(&[
+        "db",
         "export",
         "--db",
         db.to_str().expect("db path"),

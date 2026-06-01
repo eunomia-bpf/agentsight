@@ -136,7 +136,12 @@ async fn setup_signal_handler() {
 }
 
 #[derive(Parser)]
-#[command(author, version, about, long_about = None)]
+#[command(
+    author, version,
+    about = "AgentSight: See what your AI agents actually do.\n\n\
+             eBPF probes require root — AgentSight auto-elevates them via sudo\n\
+             while your agent runs as your normal user."
+)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,
@@ -144,6 +149,157 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Launch a command and automatically discover + trace it (zero config).
+    /// Example: agentsight exec -- claude     (or)  agentsight exec -- python my_agent.py
+    Exec {
+        /// Override the auto-discovered SSL binary path (rarely needed)
+        #[arg(long)]
+        binary_path: Option<String>,
+        /// Log file for output and server
+        #[arg(short = 'o', long, default_value = "record.log")]
+        log_file: String,
+        /// SQLite database path for production queries and adapters
+        #[arg(long)]
+        db: Option<String>,
+        /// SQL adapter to run after capture when --db is set: auto, anthropic, claude-code, openclaw, gemini-cli
+        #[arg(long, default_value = "auto")]
+        adapter: String,
+        /// Do not run SQL adapters after capture
+        #[arg(long)]
+        no_adapters: bool,
+        /// Enable log rotation
+        #[arg(long, default_value = "true")]
+        rotate_logs: bool,
+        /// Maximum log file size in MB (used with --rotate-logs)
+        #[arg(long, default_value = "10")]
+        max_log_size: u64,
+        /// Disable the web server (enabled by default on --server-port)
+        #[arg(long)]
+        no_server: bool,
+        /// Server port for the web UI
+        #[arg(long, default_value = "7395")]
+        server_port: u16,
+        /// The command (and its arguments) to launch and trace
+        #[arg(last = true, required = true)]
+        command: Vec<String>,
+    },
+    /// Record agent activity with optimized filters and settings
+    Record {
+        /// Process command filter (defaults to "claude")
+        #[arg(short = 'c', long)]
+        comm: String,
+        /// Path to the binary executable to monitor (e.g., ~/.nvm/versions/node/v20.0.0/bin/node)
+        #[arg(long)]
+        binary_path: Option<String>,
+        /// Log file for output and server
+        #[arg(short = 'o', long, default_value = "record.log")]
+        log_file: String,
+        /// SQLite database path for production queries and adapters
+        #[arg(long)]
+        db: Option<String>,
+        /// SQL adapter to run after capture when --db is set: auto, anthropic, claude-code, openclaw, gemini-cli
+        #[arg(long, default_value = "auto")]
+        adapter: String,
+        /// Do not run SQL adapters after capture
+        #[arg(long)]
+        no_adapters: bool,
+        /// Enable log rotation
+        #[arg(long, default_value = "true")]
+        rotate_logs: bool,
+        /// Maximum log file size in MB (used with --rotate-logs)
+        #[arg(long, default_value = "10")]
+        max_log_size: u64,
+        /// Server port (used with --server, always enabled)
+        #[arg(long, default_value = "7395")]
+        server_port: u16,
+    },
+    /// Discover supported local agent CLIs and recommended capture settings
+    Discover {
+        /// Emit JSON output
+        #[arg(long)]
+        json: bool,
+    },
+    /// Database operations: query tokens, audit events, import/export, adapters
+    #[command(subcommand)]
+    Db(DbCommands),
+    /// Low-level debugging tools: raw SSL/process/stdio/system/trace monitors
+    #[command(subcommand)]
+    Debug(DebugCommands),
+}
+
+#[derive(Subcommand)]
+enum DbCommands {
+    /// Query token usage from a SQLite database
+    Token {
+        /// SQLite database path (defaults to latest session)
+        #[arg(long)]
+        db: Option<String>,
+        /// Grouping key: model, provider, comm, pid
+        #[arg(long, default_value = "model")]
+        group_by: String,
+        /// Emit JSON output
+        #[arg(long)]
+        json: bool,
+    },
+    /// Query audit events from a SQLite database
+    Audit {
+        /// SQLite database path (defaults to latest session)
+        #[arg(long)]
+        db: Option<String>,
+        /// Audit type: llm, process, file
+        #[arg(long)]
+        audit_type: Option<String>,
+        /// Maximum rows
+        #[arg(long, default_value = "100")]
+        limit: usize,
+        /// Emit JSON output
+        #[arg(long)]
+        json: bool,
+    },
+    /// Export a web/demo snapshot from a SQLite database
+    Export {
+        /// SQLite database path (defaults to latest session)
+        #[arg(long)]
+        db: Option<String>,
+        /// Output snapshot path, or '-' for stdout
+        #[arg(short, long)]
+        output: String,
+        /// Maximum canonical events to include
+        #[arg(long, default_value = "10000")]
+        event_limit: usize,
+        /// Maximum audit events to include
+        #[arg(long, default_value = "10000")]
+        audit_limit: usize,
+    },
+    /// Import a JSONL capture into SQLite and run generic projections/adapters
+    Import {
+        /// Input JSONL log file
+        #[arg(short, long)]
+        input: String,
+        /// SQLite database path
+        #[arg(long)]
+        db: String,
+        /// SQL adapter to run after import: auto, anthropic, claude-code, openclaw, gemini-cli
+        #[arg(long, default_value = "auto")]
+        adapter: String,
+        /// Do not run SQL adapters after import
+        #[arg(long)]
+        no_adapters: bool,
+    },
+    /// List or run built-in SQL adapters
+    Adapters {
+        /// Emit JSON output when listing adapters
+        #[arg(long)]
+        json: bool,
+        #[command(subcommand)]
+        command: Option<AdapterCommand>,
+    },
+    /// List session databases
+    List,
+}
+
+#[derive(Subcommand)]
+enum DebugCommands {
     /// Analyze SSL traffic with raw JSON output
     Ssl {
         /// Enable SSE processing for SSL traffic
@@ -269,7 +425,6 @@ enum Commands {
         /// Include raw SSL data in HTTP parser events
         #[arg(long)]
         ssl_raw_data: bool,
-
         /// Enable process monitoring
         #[arg(long, action = clap::ArgAction::Set, default_value = "true")]
         process: bool,
@@ -300,14 +455,12 @@ enum Commands {
         /// Process filtering mode (0=all, 1=proc, 2=filter)
         #[arg(long)]
         mode: Option<u32>,
-
         /// Enable system resource monitoring (CPU and memory)
         #[arg(long)]
         system: bool,
         /// System monitoring interval in seconds
         #[arg(long, default_value = "2")]
         system_interval: u64,
-
         /// HTTP filters (applied to SSL runner after HTTP parsing)
         #[arg(long)]
         http_filter: Vec<String>,
@@ -354,71 +507,6 @@ enum Commands {
         #[arg(long, default_value = "7395")]
         server_port: u16,
     },
-    /// Record agent activity with optimized filters and settings
-    /// Equivalent to: trace -c claude --http-filter "request.path_prefix=/v1/rgstr | response.status_code=202 | request.method=HEAD | response.body=" --ssl-filter "data=0\\r\\n\\r\\n" -q --server-port 7395 --server -o record.log
-    Record {
-        /// Process command filter (defaults to "claude")
-        #[arg(short = 'c', long)]
-        comm: String,
-        /// Path to the binary executable to monitor (e.g., ~/.nvm/versions/node/v20.0.0/bin/node)
-        #[arg(long)]
-        binary_path: Option<String>,
-        /// Log file for output and server
-        #[arg(short = 'o', long, default_value = "record.log")]
-        log_file: String,
-        /// SQLite database path for production queries and adapters
-        #[arg(long)]
-        db: Option<String>,
-        /// SQL adapter to run after capture when --db is set: auto, anthropic, claude-code, openclaw, gemini-cli
-        #[arg(long, default_value = "auto")]
-        adapter: String,
-        /// Do not run SQL adapters after capture
-        #[arg(long)]
-        no_adapters: bool,
-        /// Enable log rotation
-        #[arg(long, default_value = "true")]
-        rotate_logs: bool,
-        /// Maximum log file size in MB (used with --rotate-logs)
-        #[arg(long, default_value = "10")]
-        max_log_size: u64,
-        /// Server port (used with --server, always enabled)
-        #[arg(long, default_value = "7395")]
-        server_port: u16,
-    },
-    /// Launch a command and automatically discover + trace it (zero config).
-    /// Example: agentsight exec -- claude     (or)  agentsight exec -- python my_agent.py
-    Exec {
-        /// Override the auto-discovered SSL binary path (rarely needed)
-        #[arg(long)]
-        binary_path: Option<String>,
-        /// Log file for output and server
-        #[arg(short = 'o', long, default_value = "record.log")]
-        log_file: String,
-        /// SQLite database path for production queries and adapters
-        #[arg(long)]
-        db: Option<String>,
-        /// SQL adapter to run after capture when --db is set: auto, anthropic, claude-code, openclaw, gemini-cli
-        #[arg(long, default_value = "auto")]
-        adapter: String,
-        /// Do not run SQL adapters after capture
-        #[arg(long)]
-        no_adapters: bool,
-        /// Enable log rotation
-        #[arg(long, default_value = "true")]
-        rotate_logs: bool,
-        /// Maximum log file size in MB (used with --rotate-logs)
-        #[arg(long, default_value = "10")]
-        max_log_size: u64,
-        /// Disable the web server (enabled by default on --server-port)
-        #[arg(long)]
-        no_server: bool,
-        /// Server port for the web UI
-        #[arg(long, default_value = "7395")]
-        server_port: u16,
-        /// The command (and its arguments) to launch and trace
-        #[arg(last = true, required = true)]
-        command: Vec<String>,
-    },
     /// Monitor system resources (CPU and memory)
     System {
         /// Monitoring interval in seconds
@@ -458,77 +546,6 @@ enum Commands {
         #[arg(long, default_value = "7395")]
         server_port: u16,
     },
-    /// Replay a JSONL capture into SQLite and run generic projections/adapters
-    Replay {
-        /// Input JSONL log file
-        #[arg(short, long)]
-        input: String,
-        /// SQLite database path
-        #[arg(long)]
-        db: String,
-        /// SQL adapter to run after replay: auto, anthropic, claude-code, openclaw, gemini-cli
-        #[arg(long, default_value = "auto")]
-        adapter: String,
-        /// Do not run SQL adapters after replay
-        #[arg(long)]
-        no_adapters: bool,
-    },
-    /// Query token usage from a SQLite database
-    Token {
-        /// SQLite database path
-        #[arg(long)]
-        db: String,
-        /// Grouping key: model, provider, comm, pid
-        #[arg(long, default_value = "model")]
-        group_by: String,
-        /// Emit JSON output
-        #[arg(long)]
-        json: bool,
-    },
-    /// Query audit events from a SQLite database
-    Audit {
-        /// SQLite database path
-        #[arg(long)]
-        db: String,
-        /// Audit type: llm, process, file
-        #[arg(long)]
-        audit_type: Option<String>,
-        /// Maximum rows
-        #[arg(long, default_value = "100")]
-        limit: usize,
-        /// Emit JSON output
-        #[arg(long)]
-        json: bool,
-    },
-    /// Export a web/demo snapshot from a SQLite database
-    Export {
-        /// SQLite database path
-        #[arg(long)]
-        db: String,
-        /// Output snapshot path, or '-' for stdout
-        #[arg(short, long)]
-        output: String,
-        /// Maximum canonical events to include
-        #[arg(long, default_value = "10000")]
-        event_limit: usize,
-        /// Maximum audit events to include
-        #[arg(long, default_value = "10000")]
-        audit_limit: usize,
-    },
-    /// List or run built-in SQL adapters
-    Adapters {
-        /// Emit JSON output when listing adapters
-        #[arg(long)]
-        json: bool,
-        #[command(subcommand)]
-        command: Option<AdapterCommand>,
-    },
-    /// Discover supported local agent CLIs and recommended capture settings
-    Discover {
-        /// Emit JSON output
-        #[arg(long)]
-        json: bool,
-    },
 }
 
 #[tokio::main]
@@ -552,40 +569,41 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Setup signal handler for graceful shutdown
     setup_signal_handler().await;
 
+    // Handle commands that don't need the binary extractor first.
     match &cli.command {
-        Commands::Replay {
-            input,
-            db,
-            adapter,
-            no_adapters,
-        } => {
-            run_replay(input, db, (!*no_adapters).then_some(adapter.as_str()))?;
-            return Ok(());
-        }
-        Commands::Token { db, group_by, json } => {
-            run_token_query(db, group_by, *json)?;
-            return Ok(());
-        }
-        Commands::Audit {
-            db,
-            audit_type,
-            limit,
-            json,
-        } => {
-            run_audit_query(db, audit_type.as_deref(), *limit, *json)?;
-            return Ok(());
-        }
-        Commands::Export {
-            db,
-            output,
-            event_limit,
-            audit_limit,
-        } => {
-            run_export(db, output, *event_limit, *audit_limit)?;
-            return Ok(());
-        }
-        Commands::Adapters { json, command } => {
-            run_adapters_command(*json, command)?;
+        Commands::Db(cmd) => {
+            match cmd {
+                DbCommands::Import {
+                    input,
+                    db,
+                    adapter,
+                    no_adapters,
+                } => run_replay(input, db, (!*no_adapters).then_some(adapter.as_str()))?,
+                DbCommands::Token { db, group_by, json } => {
+                    let db = resolve_db_or_latest(db)?;
+                    run_token_query(&db, group_by, *json)?;
+                }
+                DbCommands::Audit {
+                    db,
+                    audit_type,
+                    limit,
+                    json,
+                } => {
+                    let db = resolve_db_or_latest(db)?;
+                    run_audit_query(&db, audit_type.as_deref(), *limit, *json)?;
+                }
+                DbCommands::Export {
+                    db,
+                    output,
+                    event_limit,
+                    audit_limit,
+                } => {
+                    let db = resolve_db_or_latest(db)?;
+                    run_export(&db, output, *event_limit, *audit_limit)?;
+                }
+                DbCommands::Adapters { json, command } => run_adapters_command(*json, command)?,
+                DbCommands::List => run_db_list()?,
+            }
             return Ok(());
         }
         Commands::Discover { json } => {
@@ -599,163 +617,31 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let binary_extractor = BinaryExtractor::new().await?;
 
     match &cli.command {
-        Commands::Ssl {
-            sse_merge,
-            http_parser,
-            http_raw_data,
-            http_filter,
-            disable_auth_removal,
-            ssl_filter,
-            quiet,
-            rotate_logs,
-            max_log_size,
-            server,
-            server_port,
-            log_file,
-            binary_path,
-            args,
-        } => run_raw_ssl(
-            &binary_extractor,
-            *sse_merge,
-            *http_parser,
-            *http_raw_data,
-            http_filter,
-            *disable_auth_removal,
-            ssl_filter,
-            *quiet,
-            *rotate_logs,
-            *max_log_size,
-            *server,
-            *server_port,
-            log_file,
-            binary_path.as_deref(),
-            args,
-        )
-        .await
-        .map_err(convert_runner_error)?,
-        Commands::Process {
-            quiet,
-            rotate_logs,
-            max_log_size,
-            server,
-            server_port,
-            log_file,
-            args,
-        } => run_raw_process(
-            &binary_extractor,
-            *quiet,
-            *rotate_logs,
-            *max_log_size,
-            *server,
-            *server_port,
-            log_file,
-            args,
-        )
-        .await
-        .map_err(convert_runner_error)?,
-        Commands::Stdio {
-            pid,
-            uid,
-            comm,
-            all_fds,
-            max_bytes,
-            quiet,
-            rotate_logs,
-            max_log_size,
-            server,
-            server_port,
-            log_file,
-        } => run_raw_stdio(
-            &binary_extractor,
-            *pid,
-            *uid,
-            comm.as_deref(),
-            *all_fds,
-            *max_bytes,
-            *quiet,
-            *rotate_logs,
-            *max_log_size,
-            *server,
-            *server_port,
-            log_file,
-        )
-        .await
-        .map_err(convert_runner_error)?,
-        Commands::Trace {
-            ssl,
-            ssl_uid,
-            pid,
-            comm,
-            ssl_filter,
-            ssl_handshake,
-            ssl_http,
-            ssl_raw_data,
-            process,
-            stdio,
-            stdio_uid,
-            stdio_comm,
-            stdio_all_fds,
-            stdio_max_bytes,
-            duration,
-            mode,
-            system,
-            system_interval,
-            http_filter,
-            disable_auth_removal,
-            otel,
-            otel_endpoint,
-            otel_capture_content,
+        Commands::Exec {
             binary_path,
             log_file,
             db,
             adapter,
             no_adapters,
-            quiet,
             rotate_logs,
             max_log_size,
-            server,
+            no_server,
             server_port,
-        } => {
-            let cfg = TraceConfig {
-                name: "trace",
-                ssl: *ssl,
-                pid: *pid,
-                ssl_uid: *ssl_uid,
-                comm: comm.clone(),
-                ssl_filter: ssl_filter.clone(),
-                ssl_handshake: *ssl_handshake,
-                ssl_http: *ssl_http,
-                ssl_raw_data: *ssl_raw_data,
-                process: *process,
-                stdio: *stdio,
-                stdio_uid: *stdio_uid,
-                stdio_comm: stdio_comm.clone(),
-                stdio_all_fds: *stdio_all_fds,
-                stdio_max_bytes: *stdio_max_bytes,
-                duration: *duration,
-                mode: *mode,
-                system: *system,
-                system_interval: *system_interval,
-                http_filter: http_filter.clone(),
-                disable_auth_removal: *disable_auth_removal,
-                otel: otel.then(|| OtelConfig {
-                    endpoint: otel_endpoint.clone(),
-                    capture_content: *otel_capture_content,
-                }),
-                binary_path: binary_path.clone(),
-                log_file: log_file.clone(),
-                db_path: configured_db_path(db),
-                adapter: (!*no_adapters).then_some(adapter.clone()),
-                quiet: *quiet,
-                rotate_logs: *rotate_logs,
-                max_log_size: *max_log_size,
-                server: *server,
-                server_port: *server_port,
-            };
-            run_trace(&binary_extractor, cfg)
-                .await
-                .map_err(convert_runner_error)?
-        }
+            command,
+        } => run_exec(
+            &binary_extractor,
+            command,
+            binary_path.as_deref(),
+            log_file,
+            configured_db_path(db),
+            (!*no_adapters).then_some(adapter.as_str()),
+            *rotate_logs,
+            *max_log_size,
+            !*no_server,
+            *server_port,
+        )
+        .await
+        .map_err(convert_runner_error)?,
         Commands::Record {
             comm,
             binary_path,
@@ -795,83 +681,262 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 .await
                 .map_err(convert_runner_error)?
         }
-        Commands::Exec {
-            binary_path,
-            log_file,
-            db,
-            adapter,
-            no_adapters,
-            rotate_logs,
-            max_log_size,
-            no_server,
-            server_port,
-            command,
-        } => run_exec(
-            &binary_extractor,
-            command,
-            binary_path.as_deref(),
-            log_file,
-            configured_db_path(db),
-            (!*no_adapters).then_some(adapter.as_str()),
-            *rotate_logs,
-            *max_log_size,
-            !*no_server,
-            *server_port,
-        )
-        .await
-        .map_err(convert_runner_error)?,
-        Commands::System {
-            interval,
-            pid,
-            comm,
-            no_children,
-            cpu_threshold,
-            memory_threshold,
-            log_file,
-            quiet,
-            rotate_logs,
-            max_log_size,
-            server,
-            server_port,
-        } => run_system(
-            *interval,
-            *pid,
-            comm.as_deref(),
-            !*no_children,
-            *cpu_threshold,
-            *memory_threshold,
-            log_file,
-            *quiet,
-            *rotate_logs,
-            *max_log_size,
-            *server,
-            *server_port,
-        )
-        .await
-        .map_err(convert_runner_error)?,
-        Commands::Replay {
-            input,
-            db,
-            adapter,
-            no_adapters,
-        } => run_replay(input, db, (!*no_adapters).then_some(adapter.as_str()))?,
-        Commands::Token { db, group_by, json } => run_token_query(db, group_by, *json)?,
-        Commands::Audit {
-            db,
-            audit_type,
-            limit,
-            json,
-        } => run_audit_query(db, audit_type.as_deref(), *limit, *json)?,
-        Commands::Export {
-            db,
-            output,
-            event_limit,
-            audit_limit,
-        } => run_export(db, output, *event_limit, *audit_limit)?,
-        Commands::Adapters { json, command } => run_adapters_command(*json, command)?,
-        Commands::Discover { json } => run_discover(*json)?,
+        Commands::Debug(cmd) => match cmd {
+            DebugCommands::Ssl {
+                sse_merge,
+                http_parser,
+                http_raw_data,
+                http_filter,
+                disable_auth_removal,
+                ssl_filter,
+                quiet,
+                rotate_logs,
+                max_log_size,
+                server,
+                server_port,
+                log_file,
+                binary_path,
+                args,
+            } => run_raw_ssl(
+                &binary_extractor,
+                *sse_merge,
+                *http_parser,
+                *http_raw_data,
+                http_filter,
+                *disable_auth_removal,
+                ssl_filter,
+                *quiet,
+                *rotate_logs,
+                *max_log_size,
+                *server,
+                *server_port,
+                log_file,
+                binary_path.as_deref(),
+                args,
+            )
+            .await
+            .map_err(convert_runner_error)?,
+            DebugCommands::Process {
+                quiet,
+                rotate_logs,
+                max_log_size,
+                server,
+                server_port,
+                log_file,
+                args,
+            } => run_raw_process(
+                &binary_extractor,
+                *quiet,
+                *rotate_logs,
+                *max_log_size,
+                *server,
+                *server_port,
+                log_file,
+                args,
+            )
+            .await
+            .map_err(convert_runner_error)?,
+            DebugCommands::Stdio {
+                pid,
+                uid,
+                comm,
+                all_fds,
+                max_bytes,
+                quiet,
+                rotate_logs,
+                max_log_size,
+                server,
+                server_port,
+                log_file,
+            } => run_raw_stdio(
+                &binary_extractor,
+                *pid,
+                *uid,
+                comm.as_deref(),
+                *all_fds,
+                *max_bytes,
+                *quiet,
+                *rotate_logs,
+                *max_log_size,
+                *server,
+                *server_port,
+                log_file,
+            )
+            .await
+            .map_err(convert_runner_error)?,
+            DebugCommands::Trace {
+                ssl,
+                ssl_uid,
+                pid,
+                comm,
+                ssl_filter,
+                ssl_handshake,
+                ssl_http,
+                ssl_raw_data,
+                process,
+                stdio,
+                stdio_uid,
+                stdio_comm,
+                stdio_all_fds,
+                stdio_max_bytes,
+                duration,
+                mode,
+                system,
+                system_interval,
+                http_filter,
+                disable_auth_removal,
+                otel,
+                otel_endpoint,
+                otel_capture_content,
+                binary_path,
+                log_file,
+                db,
+                adapter,
+                no_adapters,
+                quiet,
+                rotate_logs,
+                max_log_size,
+                server,
+                server_port,
+            } => {
+                let cfg = TraceConfig {
+                    name: "trace",
+                    ssl: *ssl,
+                    pid: *pid,
+                    ssl_uid: *ssl_uid,
+                    comm: comm.clone(),
+                    ssl_filter: ssl_filter.clone(),
+                    ssl_handshake: *ssl_handshake,
+                    ssl_http: *ssl_http,
+                    ssl_raw_data: *ssl_raw_data,
+                    process: *process,
+                    stdio: *stdio,
+                    stdio_uid: *stdio_uid,
+                    stdio_comm: stdio_comm.clone(),
+                    stdio_all_fds: *stdio_all_fds,
+                    stdio_max_bytes: *stdio_max_bytes,
+                    duration: *duration,
+                    mode: *mode,
+                    system: *system,
+                    system_interval: *system_interval,
+                    http_filter: http_filter.clone(),
+                    disable_auth_removal: *disable_auth_removal,
+                    otel: otel.then(|| OtelConfig {
+                        endpoint: otel_endpoint.clone(),
+                        capture_content: *otel_capture_content,
+                    }),
+                    binary_path: binary_path.clone(),
+                    log_file: log_file.clone(),
+                    db_path: configured_db_path(db),
+                    adapter: (!*no_adapters).then_some(adapter.clone()),
+                    quiet: *quiet,
+                    rotate_logs: *rotate_logs,
+                    max_log_size: *max_log_size,
+                    server: *server,
+                    server_port: *server_port,
+                };
+                run_trace(&binary_extractor, cfg)
+                    .await
+                    .map_err(convert_runner_error)?
+            }
+            DebugCommands::System {
+                interval,
+                pid,
+                comm,
+                no_children,
+                cpu_threshold,
+                memory_threshold,
+                log_file,
+                quiet,
+                rotate_logs,
+                max_log_size,
+                server,
+                server_port,
+            } => run_system(
+                *interval,
+                *pid,
+                comm.as_deref(),
+                !*no_children,
+                *cpu_threshold,
+                *memory_threshold,
+                log_file,
+                *quiet,
+                *rotate_logs,
+                *max_log_size,
+                *server,
+                *server_port,
+            )
+            .await
+            .map_err(convert_runner_error)?,
+        },
+        // Already handled above; unreachable but needed for exhaustive match.
+        Commands::Db(_) | Commands::Discover { .. } => unreachable!(),
     }
 
+    Ok(())
+}
+
+/// Resolve the user's data-local base directory, respecting SUDO_USER.
+fn data_local_base() -> Option<std::path::PathBuf> {
+    std::env::var("SUDO_USER")
+        .ok()
+        .and_then(|user| {
+            std::fs::read_to_string("/etc/passwd").ok().and_then(|p| {
+                p.lines()
+                    .find(|l| l.starts_with(&format!("{}:", user)))
+                    .and_then(|l| l.split(':').nth(5))
+                    .map(|h| std::path::PathBuf::from(h).join(".local/share"))
+            })
+        })
+        .or_else(dirs::data_local_dir)
+        .or_else(|| dirs::home_dir().map(|h| h.join(".local/share")))
+}
+
+fn sessions_dir() -> Option<std::path::PathBuf> {
+    data_local_base().map(|b| b.join("agentsight").join("sessions"))
+}
+
+/// List .db files in the sessions dir, sorted newest-first.
+fn sorted_session_dbs(dir: &std::path::Path) -> Vec<std::fs::DirEntry> {
+    let mut entries: Vec<_> = std::fs::read_dir(dir)
+        .into_iter()
+        .flatten()
+        .filter_map(|e| e.ok())
+        .filter(|e| e.path().extension().is_some_and(|ext| ext == "db"))
+        .collect();
+    entries.sort_by_key(|e| std::cmp::Reverse(e.metadata().ok().and_then(|m| m.modified().ok())));
+    entries
+}
+
+fn resolve_db_or_latest(db: &Option<String>) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    if let Some(db) = db {
+        return Ok(db.clone());
+    }
+    latest_session_db()
+        .ok_or_else(|| "No session database found. Run `agentsight exec` first or pass --db.".into())
+}
+
+fn latest_session_db() -> Option<String> {
+    let dir = sessions_dir()?;
+    sorted_session_dbs(&dir).first().map(|e| e.path().to_string_lossy().to_string())
+}
+
+fn run_db_list() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let dir = sessions_dir().ok_or("cannot determine data directory")?;
+    let entries = sorted_session_dbs(&dir);
+    if entries.is_empty() {
+        println!("No session databases found in {}", dir.display());
+        return Ok(());
+    }
+    println!("Session databases in {}:", dir.display());
+    for entry in &entries {
+        let modified = entry.metadata().ok()
+            .and_then(|m| m.modified().ok())
+            .map(|t| chrono::DateTime::<chrono::Local>::from(t).format("%Y-%m-%d %H:%M:%S").to_string())
+            .unwrap_or_default();
+        let size = entry.metadata().ok().map(|m| m.len()).unwrap_or(0);
+        println!("  {} ({} KB, {})", entry.path().display(), size / 1024, modified);
+    }
     Ok(())
 }
 
@@ -972,67 +1037,20 @@ async fn run_raw_ssl(
     // Add analyzers based on flags - when HTTP parser is enabled, always enable SSE merge first
     if enable_http_parser {
         ssl_runner = ssl_runner.add_analyzer(Box::new(SSEProcessor::new_with_timeout(30000)));
-
-        // Create HTTP parser with appropriate configuration
-        let http_parser = if include_raw_data {
-            HTTPParser::new()
-        } else {
-            HTTPParser::new().disable_raw_data()
-        };
-        ssl_runner = ssl_runner.add_analyzer(Box::new(http_parser));
-
-        // Add HTTP filter if patterns are provided
+        let parser = if include_raw_data { HTTPParser::new() } else { HTTPParser::new().disable_raw_data() };
+        ssl_runner = ssl_runner.add_analyzer(Box::new(parser));
         if !http_filter_patterns.is_empty() {
-            ssl_runner = ssl_runner.add_analyzer(Box::new(HTTPFilter::with_patterns(
-                http_filter_patterns.to_vec(),
-            )));
+            ssl_runner = ssl_runner.add_analyzer(Box::new(HTTPFilter::with_patterns(http_filter_patterns.to_vec())));
         }
-
-        // Add authorization header remover by default (unless disabled)
         if !disable_auth_removal {
             ssl_runner = ssl_runner.add_analyzer(Box::new(AuthHeaderRemover::new()));
         }
-
-        let raw_data_info = if include_raw_data {
-            " (with raw data)"
-        } else {
-            ""
-        };
-        let ssl_filter_info = if !ssl_filter_patterns.is_empty() {
-            " with SSL filtering,"
-        } else {
-            ""
-        };
-        let http_filter_info = if !http_filter_patterns.is_empty() {
-            " and HTTP filtering"
-        } else {
-            ""
-        };
-        println!(
-            "Starting SSL event stream{} with SSE processing, HTTP parsing{}{} enabled (press Ctrl+C to stop):",
-            ssl_filter_info, raw_data_info, http_filter_info
-        );
+        println!("Starting SSL event stream with SSE processing + HTTP parsing (press Ctrl+C to stop):");
     } else if enable_chunk_merger {
         ssl_runner = ssl_runner.add_analyzer(Box::new(SSEProcessor::new_with_timeout(30000)));
-        let ssl_filter_info = if !ssl_filter_patterns.is_empty() {
-            " with SSL filtering and"
-        } else {
-            " with"
-        };
-        println!(
-            "Starting SSL event stream{} SSE processing enabled (press Ctrl+C to stop):",
-            ssl_filter_info
-        );
+        println!("Starting SSL event stream with SSE processing (press Ctrl+C to stop):");
     } else {
-        let ssl_filter_info = if !ssl_filter_patterns.is_empty() {
-            " with SSL filtering and"
-        } else {
-            " with"
-        };
-        println!(
-            "Starting SSL event stream{} raw JSON output (press Ctrl+C to stop):",
-            ssl_filter_info
-        );
+        println!("Starting SSL event stream with raw JSON output (press Ctrl+C to stop):");
     }
 
     ssl_runner = ssl_runner.add_analyzer(Box::new(make_file_logger(
@@ -1510,29 +1528,10 @@ fn target_user_ids() -> Option<(libc::uid_t, libc::gid_t)> {
 }
 
 fn default_session_db_path() -> Result<String, RunnerError> {
-    // Under sudo, resolve the real user's home directory so the DB is
-    // accessible without sudo afterward. Falls back to dirs::data_local_dir.
-    let base = std::env::var("SUDO_USER")
-        .ok()
-        .and_then(|user| {
-            std::fs::read_to_string("/etc/passwd").ok().and_then(|passwd| {
-                passwd
-                    .lines()
-                    .find(|l| l.starts_with(&format!("{}:", user)))
-                    .and_then(|l| l.split(':').nth(5))
-                    .map(|home| std::path::PathBuf::from(home).join(".local/share"))
-            })
-        })
-        .or_else(dirs::data_local_dir)
-        .or_else(|| dirs::home_dir().map(|h| h.join(".local/share")))
+    let dir = sessions_dir()
         .ok_or_else(|| RunnerError::from("cannot determine home directory for session DB"))?;
-    let dir = base.join("agentsight").join("sessions");
     std::fs::create_dir_all(&dir).map_err(|e| {
-        RunnerError::from(format!(
-            "failed to create session directory {}: {}",
-            dir.display(),
-            e
-        ))
+        RunnerError::from(format!("failed to create session directory {}: {}", dir.display(), e))
     })?;
     let ts = chrono::Local::now().format("%Y%m%d-%H%M%S");
     Ok(dir.join(format!("{}.db", ts)).to_string_lossy().to_string())
@@ -1603,8 +1602,8 @@ fn print_session_summary(db_path: &str) {
 
     println!();
     println!("  Database: {}", db_path);
-    println!("  Token details:  agentsight token --db {}", db_path);
-    println!("  Full audit:     agentsight audit --db {}", db_path);
+    println!("  Token details:  agentsight db token --db {}", db_path);
+    println!("  Full audit:     agentsight db audit --db {}", db_path);
     println!("{}", "─".repeat(60));
 }
 

@@ -38,8 +38,8 @@ When the session ends, AgentSight prints a summary automatically:
   📋 44 system events captured
 
   Database: ~/.local/share/agentsight/sessions/20260601-005033.db
-  Token details:  agentsight token --db ~/.local/share/agentsight/sessions/...
-  Full audit:     agentsight audit --db ~/.local/share/agentsight/sessions/...
+  Token details:  agentsight db token --db ~/.local/share/agentsight/sessions/...
+  Full audit:     agentsight db audit --db ~/.local/share/agentsight/sessions/...
 ────────────────────────────────────────────────────────────
 ```
 
@@ -48,14 +48,17 @@ The summary shows not just token usage, but **what the agent actually did at the
 Every `exec` session is automatically saved to a SQLite database — no `--db` flag needed. You can query any past session afterward:
 
 ```bash
-# How many tokens did that session use?
-agentsight token --db ~/.local/share/agentsight/sessions/20260601-004150.db
+# How many tokens did that session use? (auto-finds latest session if no --db)
+agentsight db token
 
 # What API calls and process events happened?
-agentsight audit --db ~/.local/share/agentsight/sessions/20260601-004150.db --json
+agentsight db audit --json
+
+# List all recorded sessions
+agentsight db list
 
 # Export a snapshot for the web dashboard
-agentsight export --db ~/.local/share/agentsight/sessions/20260601-004150.db -o snapshot.json
+agentsight db export -o snapshot.json
 ```
 
 During the session, visit [http://127.0.0.1:7395](http://127.0.0.1:7395) to view live traffic, process trees, and metrics in the web UI.
