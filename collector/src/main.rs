@@ -1500,6 +1500,87 @@ async fn run_trace(
 /// from the command name, starts SSL + process + system monitoring in the
 /// background (quiet, so the child owns the terminal), then spawns the child.
 /// Monitoring stops automatically when the child exits.
+fn default_session_db_path() -> Result<String, RunnerError> {
+    // Under sudo, resolve the real user's home directory so the DB is
+    // accessible without sudo afterward. Falls back to dirs::data_local_dir.
+    let base = std::env::var("SUDO_USER")
+        .ok()
+        .and_then(|user| {
+            std::fs::read_to_string("/etc/passwd").ok().and_then(|passwd| {
+                passwd
+                    .lines()
+                    .find(|l| l.starts_with(&format!("{}:", user)))
+                    .and_then(|l| l.split(':').nth(5))
+                    .map(|home| std::path::PathBuf::from(home).join(".local/share"))
+            })
+        })
+        .or_else(dirs::data_local_dir)
+        .or_else(|| dirs::home_dir().map(|h| h.join(".local/share")))
+        .ok_or_else(|| RunnerError::from("cannot determine home directory for session DB"))?;
+    let dir = base.join("agentsight").join("sessions");
+    std::fs::create_dir_all(&dir).map_err(|e| {
+        RunnerError::from(format!(
+            "failed to create session directory {}: {}",
+            dir.display(),
+            e
+        ))
+    })?;
+    let ts = chrono::Local::now().format("%Y%m%d-%H%M%S");
+    Ok(dir.join(format!("{}.db", ts)).to_string_lossy().to_string())
+}
+
+fn print_session_summary(db_path: &str) {
+    let store = match framework::storage::SqliteStore::open(db_path) {
+        Ok(s) => s,
+        Err(_) => return,
+    };
+    let summaries = match store.token_summary("model") {
+        Ok(s) => s,
+        Err(_) => return,
+    };
+    if summaries.is_empty() {
+        return;
+    }
+
+    println!("\n{}", "─".repeat(60));
+    println!("📊 Session Summary");
+    println!("{}", "─".repeat(60));
+
+    let mut total_calls: i64 = 0;
+    let mut total_input: i64 = 0;
+    let mut total_output: i64 = 0;
+    let mut total_all: i64 = 0;
+
+    for row in &summaries {
+        total_calls += row.calls;
+        total_input += row.input_tokens;
+        total_output += row.output_tokens;
+        total_all += row.total_tokens;
+        println!(
+            "  {} — {} calls, {} tokens (in: {}, out: {})",
+            row.group, row.calls, row.total_tokens, row.input_tokens, row.output_tokens
+        );
+    }
+
+    if summaries.len() > 1 {
+        println!(
+            "  Total — {} calls, {} tokens (in: {}, out: {})",
+            total_calls, total_all, total_input, total_output
+        );
+    }
+
+    println!("  Database: {}", db_path);
+    println!(
+        "  Details:  agentsight token --db {}",
+        db_path
+    );
+    println!(
+        "  Audit:    agentsight audit --db {}",
+        db_path
+    );
+    println!("{}", "─".repeat(60));
+}
+
 async fn run_exec(
     binary_extractor: &BinaryExtractor,
     command: &[String],
@@ -1516,6 +1597,19 @@ async fn run_exec(
         RunnerError::from("exec requires a command to run, e.g. `agentsight exec -- claude`")
     })?;
     let prog_args = &command[1..];
+
+    // Auto-create a session database when the user didn't specify --db.
+    let (db_path, adapter) = if db_path.is_some() {
+        (db_path, adapter)
+    } else {
+        match default_session_db_path() {
+            Ok(p) => (Some(p), Some(adapter.unwrap_or("auto"))),
+            Err(e) => {
+                eprintln!("⚠ Could not create session DB ({}), continuing without it.", e);
+                (None, adapter)
+            }
+        }
+    };
 
     println!("AgentSight exec");
     println!("{}", "=".repeat(60));
@@ -1720,6 +1814,11 @@ async fn run_exec(
     print_global_http_filter_metrics();
     print_global_ssl_filter_metrics();
     run_capture_adapters(db_path_for_adapters.as_deref(), adapter)?;
+
+    if let Some(ref db) = db_path_for_adapters {
+        print_session_summary(db);
+    }
+
     if enable_server {
         println!(
             "Recorded data remains viewable at http://127.0.0.1:{} (log: {})",

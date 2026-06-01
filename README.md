@@ -16,27 +16,55 @@ wget https://github.com/eunomia-bpf/agentsight/releases/latest/download/agentsig
 ```
 
 ```bash
-# Just put your agent command after `exec --`. AgentSight auto-discovers the
-# binary to hook (resolving symlinks/wrappers), derives the process filter,
-# launches the agent, and stops tracing when it exits.
+# Just put your agent command after `exec --`. That's it.
 sudo ./agentsight exec -- claude
-sudo ./agentsight exec -- claude -p "summarize this repo"
 sudo ./agentsight exec -- python my_agent.py
 sudo ./agentsight exec -- gemini
 ```
 
 The agent runs normally in your terminal; monitoring happens in the background.
-Visit [http://127.0.0.1:7395](http://127.0.0.1:7395) to view the captured data live.
+When the session ends, AgentSight prints a summary automatically:
 
-**The manual way — `record` attaches to a process filter (use when the agent is started elsewhere):**
+```
+──────────────────────────────────────────────────────────────
+📊 Session Summary
+──────────────────────────────────────────────────────────────
+  claude-sonnet-4-20250514 — 12 calls, 45231 tokens (in: 38402, out: 6829)
+  Database: ~/.local/share/agentsight/sessions/20260601-143022.db
+  Details:  agentsight token --db ~/.local/share/agentsight/sessions/20260601-143022.db
+  Audit:    agentsight audit --db ~/.local/share/agentsight/sessions/20260601-143022.db
+──────────────────────────────────────────────────────────────
+```
+
+Every `exec` session is automatically saved to a SQLite database — no `--db` flag needed. You can query any past session afterward:
 
 ```bash
-# Record Claude Code activity (Bun-based, requires --binary-path for statically-linked BoringSSL)
+# How many tokens did that session use?
+agentsight token --db ~/.local/share/agentsight/sessions/20260601-143022.db
+
+# What API calls and process events happened?
+agentsight audit --db ~/.local/share/agentsight/sessions/20260601-143022.db --json
+
+# Export a snapshot for the web dashboard
+agentsight export --db ~/.local/share/agentsight/sessions/20260601-143022.db -o snapshot.json
+```
+
+During the session, visit [http://127.0.0.1:7395](http://127.0.0.1:7395) to view live traffic, process trees, and metrics in the web UI.
+
+**Discover what agents are installed locally:**
+
+```bash
+./agentsight discover
+# id             adapter      command    available  recommended
+# claude-code    claude-code  claude     yes        agentsight exec --db record.db -- claude -p 'hello'
+# gemini-cli     gemini-cli   gemini     yes        agentsight exec --db record.db -- gemini --prompt 'hello'
+```
+
+**The manual way — `record` attaches to a running agent (use when the agent is started elsewhere):**
+
+```bash
+# Record Claude Code activity
 sudo ./agentsight record -c claude --binary-path ~/.local/share/claude/versions/$(claude --version | head -1)
-# Record agent behavior from claude (old version)
-sudo ./agentsight record -c "claude"
-# Record agent behavior from gemini-cli (comm is "node")
-sudo ./agentsight record -c "node"
 # For Python AI tools (e.g. aider, open-interpreter)
 sudo ./agentsight record -c "python"
 # For Node.js apps with NVM (statically-linked OpenSSL)
@@ -45,24 +73,7 @@ sudo ./agentsight record -c node --binary-path ~/.nvm/versions/node/v20.0.0/bin/
 sudo ./agentsight record -c node --binary-path docker://openclaw
 ```
 
-Visit [http://127.0.0.1:7395](http://127.0.0.1:7395) to view the recorded data.
-
-**SQLite snapshots and agent adapters:**
-
-```bash
-# Find supported local tools and suggested capture commands
-./agentsight discover
-
-# Persist normalized LLM calls, token usage, sessions, and audit events
-sudo ./agentsight exec --db record.db --adapter auto -- claude -p "summarize this repo"
-
-# Query or export the capture for the dashboard/static demo
-./agentsight token --db record.db --group-by model
-./agentsight audit --db record.db --json
-./agentsight export --db record.db --output trace.agentsight.json
-```
-
-Built-in SQL adapters currently cover Anthropic, Claude Code, Gemini CLI, and OpenClaw-style sessions. Use `--no-adapters` for generic SQLite projections only, or `agentsight adapters list --json` to inspect available adapters.
+Built-in SQL adapters currently cover Anthropic, Claude Code, Gemini CLI, and OpenClaw-style sessions. Use `--no-adapters` to disable, or `agentsight adapters list --json` to inspect available adapters.
 
 <div align="center">
   <img src="https://github.com/eunomia-bpf/agentsight/raw/master/docs/demo-tree.png" alt="AgentSight Demo - Process Tree Visualization" width="800">
