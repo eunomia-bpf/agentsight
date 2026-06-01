@@ -31,14 +31,19 @@ When the session ends, AgentSight prints a summary automatically:
 ────────────────────────────────────────────────────────────
 📊 Session Summary
 ────────────────────────────────────────────────────────────
-  claude-opus-4-6 — 1 calls, 24646 tokens (in: 3, out: 5)
-  claude-haiku-4-5-20251001 — 1 calls, 459 tokens (in: 447, out: 12)
-  Total — 2 calls, 25105 tokens (in: 450, out: 17)
-  Database: ~/.local/share/agentsight/sessions/20260601-004150.db
-  Details:  agentsight token --db ~/.local/share/agentsight/sessions/...
-  Audit:    agentsight audit --db ~/.local/share/agentsight/sessions/...
+  🤖 claude-opus-4-6 — 1 calls, 50131 tokens (in: 4, out: 173)
+  🤖 claude-haiku-4-5-20251001 — 1 calls, 459 tokens (in: 444, out: 15)
+     Total: 2 API calls, 50590 tokens
+  🔍 23 processes spawned: 2.1.159, bash, cut, env, git, grep, ... (12 total)
+  📋 44 system events captured
+
+  Database: ~/.local/share/agentsight/sessions/20260601-005033.db
+  Token details:  agentsight token --db ~/.local/share/agentsight/sessions/...
+  Full audit:     agentsight audit --db ~/.local/share/agentsight/sessions/...
 ────────────────────────────────────────────────────────────
 ```
+
+The summary shows not just token usage, but **what the agent actually did at the system level** — every subprocess it spawned, every binary it executed. This is what application-level tools like Langfuse or LangSmith can't see.
 
 Every `exec` session is automatically saved to a SQLite database — no `--db` flag needed. You can query any past session afterward:
 

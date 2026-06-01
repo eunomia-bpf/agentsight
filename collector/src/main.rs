@@ -1543,11 +1543,10 @@ fn print_session_summary(db_path: &str) {
         Ok(s) => s,
         Err(_) => return,
     };
-    let summaries = match store.token_summary("model") {
-        Ok(s) => s,
-        Err(_) => return,
-    };
-    if summaries.is_empty() {
+    let token_rows = store.token_summary("model").unwrap_or_default();
+    let audit_rows = store.audit_rows(None, 10_000).unwrap_or_default();
+
+    if token_rows.is_empty() && audit_rows.is_empty() {
         return;
     }
 
@@ -1555,38 +1554,57 @@ fn print_session_summary(db_path: &str) {
     println!("📊 Session Summary");
     println!("{}", "─".repeat(60));
 
-    let mut total_calls: i64 = 0;
-    let mut total_input: i64 = 0;
-    let mut total_output: i64 = 0;
-    let mut total_all: i64 = 0;
-
-    for row in &summaries {
-        total_calls += row.calls;
-        total_input += row.input_tokens;
-        total_output += row.output_tokens;
-        total_all += row.total_tokens;
-        println!(
-            "  {} — {} calls, {} tokens (in: {}, out: {})",
-            row.group, row.calls, row.total_tokens, row.input_tokens, row.output_tokens
-        );
+    // --- Token usage (LLM calls) ---
+    if !token_rows.is_empty() {
+        let mut total_calls: i64 = 0;
+        let mut total_tokens: i64 = 0;
+        for row in &token_rows {
+            total_calls += row.calls;
+            total_tokens += row.total_tokens;
+            println!(
+                "  🤖 {} — {} calls, {} tokens (in: {}, out: {})",
+                row.group, row.calls, row.total_tokens, row.input_tokens, row.output_tokens
+            );
+        }
+        if token_rows.len() > 1 {
+            println!(
+                "     Total: {} API calls, {} tokens",
+                total_calls, total_tokens
+            );
+        }
     }
 
-    if summaries.len() > 1 {
-        println!(
-            "  Total — {} calls, {} tokens (in: {}, out: {})",
-            total_calls, total_all, total_input, total_output
-        );
+    // --- System behavior (what the agent actually did) ---
+    if !audit_rows.is_empty() {
+        let mut exec_count: usize = 0;
+        let mut programs: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+        for row in &audit_rows {
+            if row.action.as_deref() == Some("exec") {
+                exec_count += 1;
+                if let Some(comm) = &row.comm {
+                    programs.insert(comm.clone());
+                }
+            }
+        }
+        if exec_count > 0 {
+            let progs: Vec<&str> = programs.iter().map(|s| s.as_str()).collect();
+            println!(
+                "  🔍 {} processes spawned: {}",
+                exec_count,
+                if progs.len() <= 8 {
+                    progs.join(", ")
+                } else {
+                    format!("{}, ... ({} total)", progs[..6].join(", "), progs.len())
+                }
+            );
+        }
+        println!("  📋 {} system events captured", audit_rows.len());
     }
 
+    println!();
     println!("  Database: {}", db_path);
-    println!(
-        "  Details:  agentsight token --db {}",
-        db_path
-    );
-    println!(
-        "  Audit:    agentsight audit --db {}",
-        db_path
-    );
+    println!("  Token details:  agentsight token --db {}", db_path);
+    println!("  Full audit:     agentsight audit --db {}", db_path);
     println!("{}", "─".repeat(60));
 }
 
@@ -1674,6 +1692,33 @@ async fn run_exec(
         max_log_size,
         ..Default::default()
     };
+
+    // When not running as root, warm the sudo credential cache so the
+    // user is prompted once (with a visible terminal) before eBPF binaries
+    // are spawned with piped stdio.  Skip if passwordless sudo already works.
+    if unsafe { libc::geteuid() } != 0 {
+        let has_cached = std::process::Command::new("sudo")
+            .args(["-n", "true"])
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false);
+        if !has_cached {
+            println!("🔑 eBPF probes require root. Requesting sudo access...");
+            let ok = std::process::Command::new("sudo")
+                .arg("true")
+                .status()
+                .map(|s| s.success())
+                .unwrap_or(false);
+            if !ok {
+                return Err(RunnerError::from(
+                    "sudo authentication failed. Either run as root (`sudo -E agentsight exec -- ...`) \
+                     or grant your user passwordless sudo for the eBPF binaries."
+                ));
+            }
+        }
+    }
 
     let mut agent = build_trace_agent(binary_extractor, &cfg)?;
 
