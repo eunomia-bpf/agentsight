@@ -78,16 +78,16 @@ During the session, visit [http://127.0.0.1:7395](http://127.0.0.1:7395) to view
 
 ```bash
 # Record Claude Code activity
-sudo ./agentsight record -c claude --binary-path ~/.local/share/claude/versions/$(claude --version | head -1)
+./agentsight record -c claude --binary-path ~/.local/share/claude/versions/$(claude --version | head -1)
 # For Python AI tools (e.g. aider, open-interpreter)
-sudo ./agentsight record -c "python"
+./agentsight record -c "python"
 # For Node.js apps with NVM (statically-linked OpenSSL)
-sudo ./agentsight record -c node --binary-path ~/.nvm/versions/node/v20.0.0/bin/node
+./agentsight record -c node --binary-path ~/.nvm/versions/node/v20.0.0/bin/node
 # For an agent running in a Docker container (e.g. OpenClaw) — see docs/openclaw.md
-sudo ./agentsight record -c node --binary-path docker://openclaw
+./agentsight record -c node --binary-path docker://openclaw
 ```
 
-Built-in SQL adapters currently cover Anthropic, Claude Code, Gemini CLI, and OpenClaw-style sessions. Use `--no-adapters` to disable, or `agentsight adapters list --json` to inspect available adapters.
+Built-in SQL adapters currently cover Anthropic, Claude Code, Gemini CLI, and OpenClaw-style sessions. Use `--no-adapters` to disable, or `agentsight db adapters list --json` to inspect available adapters.
 
 <div align="center">
   <img src="https://github.com/eunomia-bpf/agentsight/raw/master/docs/demo-tree.png" alt="AgentSight Demo - Process Tree Visualization" width="800">
@@ -189,7 +189,7 @@ eBPF Programs → JSON Events → Runners → Analyzer Chain → Frontend/Storag
 ### Prerequisites
 
 - **Linux kernel**: 4.1+ with eBPF support (5.0+ recommended)
-- **Root privileges**: Required for eBPF program loading
+- **sudo access**: eBPF probes are auto-elevated; your agent stays unprivileged
 - **Rust toolchain**: 1.88.0+ (for building collector)
 - **Node.js**: 18+ (for frontend development)
 - **Build tools**: clang, llvm, libelf-dev
@@ -246,12 +246,12 @@ after `exec --`; AgentSight handles everything else:
 
 ```bash
 # Launch and trace Claude Code — no --binary-path or --comm needed
-sudo ./agentsight exec -- claude
+./agentsight exec -- claude
 
 # Works for any agent: pass the command exactly as you'd normally run it
-sudo ./agentsight exec -- claude -p "review my last commit"
-sudo ./agentsight exec -- python my_agent.py
-sudo ./agentsight exec -- node ./cli.js
+./agentsight exec -- claude -p "review my last commit"
+./agentsight exec -- python my_agent.py
+./agentsight exec -- node ./cli.js
 ```
 
 What `exec` does automatically:
@@ -268,7 +268,7 @@ What `exec` does automatically:
 
 > **`sudo` note**: under `sudo`, `exec` still finds *your* user-local installs
 > (it reads `$SUDO_USER`'s home for `~/.local/bin`, `~/bin`, and `~/.nvm`), so
-> `sudo ./agentsight exec -- claude` traces the claude in your home directory,
+> `./agentsight exec -- claude` traces the claude in your home directory,
 > not a different one on root's `$PATH`.
 
 Useful flags: `--binary-path <path>` to override auto-discovery, `--no-server`
@@ -285,11 +285,11 @@ matching when `--binary-path` is provided:
 CLAUDE_BIN=~/.local/share/claude/versions/$(claude --version | head -1)
 
 # Record all Claude activity with web UI
-sudo ./agentsight record -c claude --binary-path "$CLAUDE_BIN"
+./agentsight record -c claude --binary-path "$CLAUDE_BIN"
 # Open http://127.0.0.1:7395 to view timeline
 
 # Advanced: full trace with custom filters
-sudo ./agentsight trace --ssl true --process true --comm claude \
+./agentsight debug trace --ssl true --process true --comm claude \
   --binary-path "$CLAUDE_BIN" --server true --server-port 8080
 ```
 
@@ -307,10 +307,10 @@ This captures:
 
 ```bash
 # Monitor aider, open-interpreter, or any Python-based AI tool
-sudo ./agentsight record -c "python"
+./agentsight record -c "python"
 
 # Custom port and log file
-sudo ./agentsight record -c "python" --server-port 8080 --log-file /tmp/agent.log
+./agentsight record -c "python" --server-port 8080 --log-file /tmp/agent.log
 ```
 
 #### Monitoring Node.js AI Tools (Gemini CLI, etc.)
@@ -323,7 +323,7 @@ The easiest way is `exec`, which discovers the `node` binary automatically:
 
 ```bash
 # Gemini CLI runs on Node — exec finds the right binary and traces it
-sudo ./agentsight exec -- gemini
+./agentsight exec -- gemini
 ```
 
 With `record`, AgentSight now auto-discovers the Node binary from `-c node`
@@ -332,10 +332,10 @@ system library), so this just works without `--binary-path`:
 
 ```bash
 # Monitor Gemini CLI or other Node.js AI tools — binary auto-discovered
-sudo ./agentsight record -c node
+./agentsight record -c node
 
 # Pin the binary explicitly if auto-discovery picks the wrong Node install
-sudo ./agentsight record -c node --binary-path ~/.nvm/versions/node/v20.0.0/bin/node
+./agentsight record -c node --binary-path ~/.nvm/versions/node/v20.0.0/bin/node
 ```
 
 > **Behind an HTTP/HTTPS proxy?** Traffic is still TLS-encrypted inside the
@@ -350,10 +350,10 @@ process tree and attaches sslsniff to the right binary automatically:
 
 ```bash
 # OpenClaw is a Node.js agent that runs in a container — works out of the box
-sudo ./agentsight record -c node --binary-path docker://openclaw
+./agentsight record -c node --binary-path docker://openclaw
 
 # Accepts a container name or ID; supported by record / trace / ssl
-sudo ./agentsight trace --binary-path docker://openclaw --server
+./agentsight debug trace --binary-path docker://openclaw --server
 ```
 
 `docker inspect` reports the container's *init* process (often `tini`), which
@@ -365,10 +365,10 @@ first process whose binary actually embeds SSL (the `node` process). See
 
 ```bash
 # Combined SSL and process monitoring with web interface
-sudo ./agentsight trace --ssl true --process true --server true
+./agentsight debug trace --ssl true --process true --server true
 
 # Custom port and log file
-sudo ./agentsight record -c "python" --server-port 8080 --log-file /tmp/agent.log
+./agentsight record -c "python" --server-port 8080 --log-file /tmp/agent.log
 ```
 
 #### Export to OpenTelemetry (GenAI semantic conventions)
@@ -380,10 +380,10 @@ Collector and on to Jaeger, Grafana Tempo, Datadog, Honeycomb, etc.
 
 ```bash
 # Export gen_ai.* spans to a collector (defaults to http://localhost:4318)
-sudo ./agentsight trace --otel --otel-endpoint http://localhost:4318
+./agentsight debug trace --otel --otel-endpoint http://localhost:4318
 
 # Include prompt/completion content (opt-in; off by default for privacy)
-sudo ./agentsight trace --otel --otel-capture-content
+./agentsight debug trace --otel --otel-capture-content
 ```
 
 Each LLM request/response pair becomes a `chat {model}` span with
