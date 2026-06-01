@@ -1500,6 +1500,15 @@ async fn run_trace(
 /// from the command name, starts SSL + process + system monitoring in the
 /// background (quiet, so the child owns the terminal), then spawns the child.
 /// Monitoring stops automatically when the child exits.
+fn target_user_ids() -> Option<(libc::uid_t, libc::gid_t)> {
+    if unsafe { libc::geteuid() } != 0 {
+        return None;
+    }
+    let uid = std::env::var("SUDO_UID").ok()?.parse().ok()?;
+    let gid = std::env::var("SUDO_GID").ok()?.parse().ok()?;
+    Some((uid, gid))
+}
+
 fn default_session_db_path() -> Result<String, RunnerError> {
     // Under sudo, resolve the real user's home directory so the DB is
     // accessible without sudo afterward. Falls back to dirs::data_local_dir.
@@ -1702,6 +1711,22 @@ async fn run_exec(
         command_builder
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped());
+    }
+    // When running as root (via sudo), drop the child back to the real user
+    // so the agent doesn't have elevated privileges.
+    if let Some((uid, gid)) = target_user_ids() {
+        println!("✓ Dropping child to uid={} gid={}", uid, gid);
+        unsafe {
+            command_builder.pre_exec(move || {
+                if libc::setgid(gid) != 0 {
+                    return Err(std::io::Error::last_os_error());
+                }
+                if libc::setuid(uid) != 0 {
+                    return Err(std::io::Error::last_os_error());
+                }
+                Ok(())
+            });
+        }
     }
     let mut child = command_builder
         .spawn()

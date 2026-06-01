@@ -41,10 +41,20 @@ impl BinaryExecutor {
         self
     }
 
-    /// Execute binary and get raw JSON stream
+    /// Execute binary and get raw JSON stream.
+    /// When not running as root, automatically wraps the command with `sudo` so
+    /// eBPF programs get the privileges they need while the parent process
+    /// (and the user's agent) stay unprivileged.
     pub async fn get_json_stream(&self) -> Result<JsonStream, RunnerError> {
-        // Log the actual exec command with all arguments
-        if self.additional_args.is_empty() {
+        let needs_sudo = unsafe { libc::geteuid() } != 0;
+
+        if needs_sudo {
+            log::info!(
+                "Executing binary (via sudo): {} {}",
+                self.binary_path,
+                self.additional_args.join(" ")
+            );
+        } else if self.additional_args.is_empty() {
             log::info!("Executing binary: {}", self.binary_path);
         } else {
             log::info!(
@@ -54,7 +64,13 @@ impl BinaryExecutor {
             );
         }
 
-        let mut cmd = TokioCommand::new(&self.binary_path);
+        let mut cmd = if needs_sudo {
+            let mut c = TokioCommand::new("sudo");
+            c.arg(&self.binary_path);
+            c
+        } else {
+            TokioCommand::new(&self.binary_path)
+        };
         cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
         cmd.kill_on_drop(true);
 

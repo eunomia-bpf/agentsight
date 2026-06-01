@@ -16,40 +16,46 @@ wget https://github.com/eunomia-bpf/agentsight/releases/latest/download/agentsig
 ```
 
 ```bash
-# Just put your agent command after `exec --`. That's it.
-sudo ./agentsight exec -- claude
-sudo ./agentsight exec -- python my_agent.py
-sudo ./agentsight exec -- gemini
+# Just put your agent command after `exec --`. That's it — no sudo needed.
+./agentsight exec -- claude
+./agentsight exec -- python my_agent.py
+./agentsight exec -- gemini
 ```
+
+No `sudo` required — AgentSight automatically elevates only the eBPF probes while your agent runs as your normal user. When running under `sudo`, the child process is dropped back to `$SUDO_UID`/`$SUDO_GID` so your agent never has root privileges.
 
 The agent runs normally in your terminal; monitoring happens in the background.
 When the session ends, AgentSight prints a summary automatically:
 
 ```
-──────────────────────────────────────────────────────────────
+────────────────────────────────────────────────────────────
 📊 Session Summary
-──────────────────────────────────────────────────────────────
-  claude-sonnet-4-20250514 — 12 calls, 45231 tokens (in: 38402, out: 6829)
-  Database: ~/.local/share/agentsight/sessions/20260601-143022.db
-  Details:  agentsight token --db ~/.local/share/agentsight/sessions/20260601-143022.db
-  Audit:    agentsight audit --db ~/.local/share/agentsight/sessions/20260601-143022.db
-──────────────────────────────────────────────────────────────
+────────────────────────────────────────────────────────────
+  claude-opus-4-6 — 1 calls, 24646 tokens (in: 3, out: 5)
+  claude-haiku-4-5-20251001 — 1 calls, 459 tokens (in: 447, out: 12)
+  Total — 2 calls, 25105 tokens (in: 450, out: 17)
+  Database: ~/.local/share/agentsight/sessions/20260601-004150.db
+  Details:  agentsight token --db ~/.local/share/agentsight/sessions/...
+  Audit:    agentsight audit --db ~/.local/share/agentsight/sessions/...
+────────────────────────────────────────────────────────────
 ```
 
 Every `exec` session is automatically saved to a SQLite database — no `--db` flag needed. You can query any past session afterward:
 
 ```bash
 # How many tokens did that session use?
-agentsight token --db ~/.local/share/agentsight/sessions/20260601-143022.db
+agentsight token --db ~/.local/share/agentsight/sessions/20260601-004150.db
 
 # What API calls and process events happened?
-agentsight audit --db ~/.local/share/agentsight/sessions/20260601-143022.db --json
+agentsight audit --db ~/.local/share/agentsight/sessions/20260601-004150.db --json
 
 # Export a snapshot for the web dashboard
-agentsight export --db ~/.local/share/agentsight/sessions/20260601-143022.db -o snapshot.json
+agentsight export --db ~/.local/share/agentsight/sessions/20260601-004150.db -o snapshot.json
 ```
 
 During the session, visit [http://127.0.0.1:7395](http://127.0.0.1:7395) to view live traffic, process trees, and metrics in the web UI.
+
+> **Note:** The eBPF probes require `sudo` (or `CAP_BPF` + `CAP_SYS_ADMIN`) — AgentSight will prompt for your password via `sudo` when launching the kernel probes. If you prefer, you can also run the whole command under sudo: `sudo -E ./agentsight exec -- claude` (the child is still dropped to your user).
 
 **Discover what agents are installed locally:**
 
