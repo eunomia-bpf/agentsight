@@ -246,7 +246,7 @@ fn query_param_usize(query: Option<&str>, name: &str) -> Option<usize> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::model::{ProcessNodeRow, ViewSink};
+    use crate::model::{LlmCallRow, ProcessNodeRow, ViewSink};
     use crate::sinks::sqlite::SqliteStore;
     use crate::view::MaterializedView;
 
@@ -256,6 +256,31 @@ mod tests {
 
         assert_eq!(query_param_usize(query, "audit_limit"), Some(9));
         assert_eq!(query_param_usize(query, "missing"), None);
+    }
+
+    fn llm_call(id: &str, pid: u32, comm: &str, timestamp_ms: u64, text: &str) -> LlmCallRow {
+        LlmCallRow {
+            id: id.to_string(),
+            start_timestamp_ms: timestamp_ms,
+            end_timestamp_ms: None,
+            pid: Some(pid),
+            comm: Some(comm.to_string()),
+            provider: Some("anthropic".to_string()),
+            model: Some("claude-opus-4-6".to_string()),
+            host: Some("api.anthropic.com".to_string()),
+            path: Some("/v1/messages".to_string()),
+            status_code: None,
+            input_tokens: 0,
+            output_tokens: 0,
+            total_tokens: 0,
+            request: serde_json::json!({
+                "model": "claude-opus-4-6",
+                "messages": [
+                    {"role": "user", "content": [{"type": "text", "text": text}]}
+                ]
+            }),
+            response: serde_json::json!({}),
+        }
     }
 
     #[test]
@@ -280,6 +305,18 @@ mod tests {
                 view_source: "view".to_string(),
                 confidence: Some(1.0),
             })
+            .unwrap();
+        store
+            .llm_call(&llm_call("db-llm", 42, "claude", 1_100, "db prompt"))
+            .unwrap();
+        store
+            .llm_call(&llm_call(
+                "ssl-only-llm",
+                84,
+                "HTTP Client",
+                1_200,
+                "ssl prompt",
+            ))
             .unwrap();
 
         let live_view = MaterializedView::shared_bounded();
@@ -308,7 +345,22 @@ mod tests {
             snapshot_from_sources(&live_view, &sessions, Some(db.to_str().unwrap()), 100).unwrap();
 
         assert_eq!(snapshot.summary.source, "sqlite");
-        assert_eq!(snapshot.process_nodes.len(), 1);
+        assert_eq!(snapshot.process_nodes.len(), 2);
         assert_eq!(snapshot.process_nodes[0].id, "db-process");
+        assert_eq!(snapshot.process_nodes[1].id, "process-84-observed");
+        let prompt = snapshot
+            .audit_events
+            .iter()
+            .find(|row| row.id == "audit-db-llm-request")
+            .expect("projected llm prompt audit");
+        assert_eq!(prompt.audit_type, "llm");
+        assert_eq!(prompt.action.as_deref(), Some("request"));
+        assert_eq!(
+            prompt
+                .details
+                .pointer("/messages/0/content/0/text")
+                .and_then(|value| value.as_str()),
+            Some("db prompt")
+        );
     }
 }
