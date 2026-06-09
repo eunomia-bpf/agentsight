@@ -3,10 +3,24 @@
 
 use crate::model::ViewResult;
 use crate::sinks::sqlite::SqliteStore;
+use crate::sources::agent_native;
 use crate::view::MaterializedView;
 use std::path::Path;
 
 pub(crate) fn load_view(path: impl AsRef<Path>) -> ViewResult<MaterializedView> {
+    load_view_inner(path, false)
+}
+
+pub(crate) fn load_view_with_observed_session_prompts(
+    path: impl AsRef<Path>,
+) -> ViewResult<MaterializedView> {
+    load_view_inner(path, true)
+}
+
+fn load_view_inner(
+    path: impl AsRef<Path>,
+    include_observed_session_prompts: bool,
+) -> ViewResult<MaterializedView> {
     let store = SqliteStore::open_readonly(path)?;
     let mut view = MaterializedView::new();
     view.set_source("sqlite");
@@ -21,10 +35,12 @@ pub(crate) fn load_view(path: impl AsRef<Path>) -> ViewResult<MaterializedView> 
             view.apply_token_usage(&row);
         }
     }
+    let mut audit_rows = Vec::new();
     if let Ok(rows) = store.all_audit_event_rows() {
-        for row in rows {
-            view.apply_audit_event(&row);
+        for row in &rows {
+            view.apply_audit_event(row);
         }
+        audit_rows = rows;
     }
     if let Ok(rows) = store.process_node_rows() {
         for row in rows {
@@ -45,6 +61,9 @@ pub(crate) fn load_view(path: impl AsRef<Path>) -> ViewResult<MaterializedView> 
         for row in rows {
             view.apply_resource_sample(&row);
         }
+    }
+    if include_observed_session_prompts {
+        agent_native::import_observed_session_prompts(&mut view, &audit_rows);
     }
 
     Ok(view)

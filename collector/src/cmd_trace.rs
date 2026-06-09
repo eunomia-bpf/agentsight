@@ -410,6 +410,11 @@ pub(crate) async fn start_web_server_if_enabled(
 
     // Give the server a moment to start
     tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+    if server_handle.is_finished() {
+        return Err(Box::new(std::io::Error::other(
+            "web server exited during startup",
+        )));
+    }
 
     Ok(Some(StartedWebServer {
         url,

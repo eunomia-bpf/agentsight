@@ -9,7 +9,8 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use crate::json::i64_field as json_i64;
 use crate::model::{
-    AGENT_NATIVE_SOURCE, SessionRow, Snapshot, SnapshotOptions, TokenUsageRow, ToolCallRow,
+    AGENT_NATIVE_SOURCE, AuditEventRow, SessionRow, Snapshot, SnapshotOptions, TokenUsageRow,
+    ToolCallRow,
 };
 use crate::text::{sanitize_ascii_identifier as sanitize_id, short_session_id, truncate_text};
 use crate::view::MaterializedView;
@@ -161,6 +162,81 @@ pub(crate) fn import_into_view(view: &mut MaterializedView, sessions: &[LocalSes
             view.apply_tool_call(&row);
         }
     }
+}
+
+pub(crate) fn import_observed_session_prompts(
+    view: &mut MaterializedView,
+    audit_rows: &[AuditEventRow],
+) {
+    let mut seen = HashSet::new();
+    for row in audit_rows {
+        if row.audit_type != "file" {
+            continue;
+        }
+        let Some(pid) = row.pid else {
+            continue;
+        };
+        let Some(path) = audit_session_path(row) else {
+            continue;
+        };
+        if !seen.insert((path.clone(), pid)) {
+            continue;
+        }
+        let Some(agent) = local_session_source(&path) else {
+            continue;
+        };
+        let updated = fs::metadata(&path)
+            .and_then(|metadata| metadata.modified())
+            .unwrap_or(UNIX_EPOCH);
+        let Some(session) = read_session_path_with_source(agent, &path, updated) else {
+            continue;
+        };
+        let Some(prompt) = session.prompt_preview.as_ref() else {
+            continue;
+        };
+
+        view.apply_audit_event(&AuditEventRow {
+            id: format!(
+                "audit-agent-native-prompt-{}-{pid}",
+                sanitize_id(&session.display_id)
+            ),
+            timestamp_ms: row.timestamp_ms,
+            audit_type: "llm".to_string(),
+            pid: Some(pid),
+            comm: row.comm.clone().or_else(|| Some(session.agent.clone())),
+            subject: session.model.clone(),
+            action: Some("request".to_string()),
+            target: Some(path.to_string_lossy().to_string()),
+            status: Some("observed".to_string()),
+            summary: Some(truncate_text(prompt, 160)),
+            details: serde_json::json!({
+                "text_content": prompt,
+                "prompt_source": "local",
+                "path": path.to_string_lossy(),
+                "session_id": view_id(&session),
+                "agent": session.agent,
+                "source": AGENT_NATIVE_SOURCE,
+            }),
+        });
+    }
+}
+
+fn audit_session_path(row: &AuditEventRow) -> Option<PathBuf> {
+    row.target
+        .as_deref()
+        .and_then(session_log_path_from_str)
+        .or_else(|| {
+            row.details
+                .get("filepath")
+                .and_then(Value::as_str)
+                .and_then(session_log_path_from_str)
+        })
+        .or_else(|| {
+            row.details
+                .get("path")
+                .and_then(Value::as_str)
+                .and_then(session_log_path_from_str)
+        })
 }
 
 fn session_row(session: &LocalSession) -> SessionRow {

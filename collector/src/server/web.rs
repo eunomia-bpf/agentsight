@@ -199,7 +199,7 @@ fn snapshot_from_sources(
     audit_limit: usize,
 ) -> Result<Snapshot, Box<dyn std::error::Error + Send + Sync>> {
     if let Some(db_path) = db_path {
-        let view = sqlite_source::load_view(db_path)?;
+        let view = sqlite_source::load_view_with_observed_session_prompts(db_path)?;
         return Ok(view.export_snapshot(SnapshotOptions { audit_limit }));
     }
 
