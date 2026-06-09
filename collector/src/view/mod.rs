@@ -11,7 +11,8 @@ pub(crate) mod top;
 
 pub(crate) use canonical::{CanonicalEvent, EventKind, normalize_event};
 pub(crate) use llm::{
-    body_json, extract_model, extract_token_usage, extract_token_usage_from_sse, provider_from_host,
+    body_json, extract_model, extract_prompt_text, extract_token_usage,
+    extract_token_usage_from_sse, provider_from_host,
 };
 
 use crate::model::{

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
+use chrono::DateTime;
 use serde_json::Value;
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
@@ -14,8 +15,10 @@ use crate::model::{
 };
 use crate::text::{sanitize_ascii_identifier as sanitize_id, short_session_id, truncate_text};
 use crate::view::MaterializedView;
+use crate::view::llm::{extract_model, extract_prompt_text};
 
 const MAX_PROMPT_TEXT_CHARS: usize = 4096;
+const SSL_LOCAL_DEDUP_WINDOW_MS: u64 = 5 * 60 * 1000;
 
 pub(crate) struct SessionCache {
     entries: HashMap<PathBuf, CacheEntry>,
@@ -133,9 +136,17 @@ pub(crate) struct LocalSession {
     tools: BTreeMap<String, usize>,
     pub(crate) files: BTreeMap<String, usize>,
     prompt_preview: Option<String>,
+    prompts: Vec<LocalPrompt>,
     duration_ms: u64,
     cwd: Option<String>,
     last_message_at: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+struct LocalPrompt {
+    text: String,
+    timestamp_ms: Option<u64>,
+    sequence: usize,
 }
 
 fn view_id(session: &LocalSession) -> String {
@@ -170,11 +181,7 @@ pub(crate) fn import_observed_session_logs(
     view: &mut MaterializedView,
     audit_rows: &[AuditEventRow],
 ) {
-    let existing_prompt_pids = audit_rows
-        .iter()
-        .filter(|row| row.audit_type == "llm" && row.action.as_deref() == Some("request"))
-        .filter_map(|row| row.pid)
-        .collect::<HashSet<_>>();
+    let ssl_prompts = existing_ssl_prompts(audit_rows);
     let mut imported_paths = HashSet::new();
     let mut emitted_prompts = HashSet::new();
 
@@ -196,12 +203,13 @@ pub(crate) fn import_observed_session_logs(
         let Some(pid) = trace.pid else {
             continue;
         };
-        if existing_prompt_pids.contains(&pid) || !emitted_prompts.insert((trace.path.clone(), pid))
-        {
-            continue;
-        }
-        if let Some(row) = prompt_audit_row(&session, &trace) {
-            view.apply_audit_event(&row);
+        for row in prompt_audit_rows(&session, &trace) {
+            if local_prompt_covered_by_ssl(&row, &ssl_prompts) {
+                continue;
+            }
+            if emitted_prompts.insert((trace.path.clone(), pid, row.id.clone())) {
+                view.apply_audit_event(&row);
+            }
         }
     }
 }
@@ -254,38 +262,133 @@ fn audit_session_path(row: &AuditEventRow) -> Option<PathBuf> {
         })
 }
 
-fn prompt_audit_row(
-    session: &LocalSession,
-    trace: &ObservedSessionTrace,
-) -> Option<AuditEventRow> {
-    let prompt = session.prompt_preview.as_ref()?;
-    let pid = trace.pid?;
+fn prompt_audit_rows(session: &LocalSession, trace: &ObservedSessionTrace) -> Vec<AuditEventRow> {
+    let Some(pid) = trace.pid else {
+        return Vec::new();
+    };
     let session_id = view_id(session);
-    Some(AuditEventRow {
-        id: format!(
-            "audit-agent-native-prompt-{}-{}",
-            sanitize_id(&session.display_id),
-            pid
-        ),
-        timestamp_ms: trace.timestamp_ms,
-        audit_type: "llm".to_string(),
-        pid: Some(pid),
-        comm: trace.comm.clone().or_else(|| Some(session.agent.clone())),
-        subject: session.model.clone(),
-        action: Some("request".to_string()),
-        target: Some(trace.path.to_string_lossy().to_string()),
-        status: Some("observed".to_string()),
-        summary: Some(truncate_text(prompt, 160)),
-        details: serde_json::json!({
-            "text_content": prompt,
-            "path": trace.path.to_string_lossy(),
-            "session_id": session_id,
-            "agent": session.agent.clone(),
-            "model": session.model.clone(),
-            "cwd": session.cwd.clone(),
-            "source": AGENT_NATIVE_SOURCE,
-        }),
+    let fallback;
+    let prompts = if session.prompts.is_empty() {
+        let Some(prompt) = session.prompt_preview.as_ref() else {
+            return Vec::new();
+        };
+        fallback = vec![LocalPrompt {
+            text: prompt.clone(),
+            timestamp_ms: None,
+            sequence: 0,
+        }];
+        fallback.as_slice()
+    } else {
+        session.prompts.as_slice()
+    };
+
+    prompts
+        .iter()
+        .enumerate()
+        .map(|(index, prompt)| AuditEventRow {
+            id: format!(
+                "audit-agent-native-prompt-{}-{}-{}",
+                sanitize_id(&session.display_id),
+                pid,
+                prompt.sequence
+            ),
+            timestamp_ms: prompt
+                .timestamp_ms
+                .unwrap_or_else(|| trace.timestamp_ms.saturating_add(index as u64)),
+            audit_type: "llm".to_string(),
+            pid: Some(pid),
+            comm: trace.comm.clone().or_else(|| Some(session.agent.clone())),
+            subject: session.model.clone(),
+            action: Some("request".to_string()),
+            target: Some(trace.path.to_string_lossy().to_string()),
+            status: Some("observed".to_string()),
+            summary: Some(truncate_text(&prompt.text, 160)),
+            details: serde_json::json!({
+                "text_content": prompt.text,
+                "prompt_source": "local",
+                "path": trace.path.to_string_lossy(),
+                "session_id": session_id,
+                "agent": session.agent.clone(),
+                "model": session.model.clone(),
+                "cwd": session.cwd.clone(),
+                "source": AGENT_NATIVE_SOURCE,
+                "prompt_index": index,
+                "prompt_sequence": prompt.sequence,
+            }),
+        })
+        .collect()
+}
+
+#[derive(Debug)]
+struct ObservedSslPrompt {
+    timestamp_ms: u64,
+    pid: Option<u32>,
+    model: Option<String>,
+    text: String,
+}
+
+fn existing_ssl_prompts(audit_rows: &[AuditEventRow]) -> Vec<ObservedSslPrompt> {
+    audit_rows
+        .iter()
+        .filter(|row| row.audit_type == "llm" && row.action.as_deref() == Some("request"))
+        .filter(|row| {
+            row.details
+                .get("prompt_source")
+                .and_then(Value::as_str)
+                .map(|source| source == "ssl")
+                .unwrap_or_else(|| {
+                    row.details.get("source").and_then(Value::as_str) != Some(AGENT_NATIVE_SOURCE)
+                })
+        })
+        .filter_map(|row| {
+            let text = row
+                .details
+                .get("text_content")
+                .and_then(Value::as_str)
+                .map(str::to_string)
+                .or_else(|| extract_prompt_text(&row.details))?;
+            Some(ObservedSslPrompt {
+                timestamp_ms: row.timestamp_ms,
+                pid: row.pid,
+                model: row.subject.clone().or_else(|| extract_model(&row.details)),
+                text,
+            })
+        })
+        .collect()
+}
+
+fn local_prompt_covered_by_ssl(row: &AuditEventRow, ssl_prompts: &[ObservedSslPrompt]) -> bool {
+    let local_text = row
+        .details
+        .get("text_content")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    let local_text = normalize_prompt_text(local_text);
+    if local_text.is_empty() {
+        return false;
+    }
+    let local_model = normalized_model(row.subject.as_deref());
+    let Some(local_model) = local_model.as_deref() else {
+        return false;
+    };
+
+    ssl_prompts.iter().any(|ssl| {
+        ssl.pid == row.pid
+            && ssl.timestamp_ms.abs_diff(row.timestamp_ms) <= SSL_LOCAL_DEDUP_WINDOW_MS
+            && normalized_model(ssl.model.as_deref()).as_deref() == Some(local_model)
+            && normalize_prompt_text(&ssl.text).contains(&local_text)
     })
+}
+
+fn normalized_model(model: Option<&str>) -> Option<String> {
+    model
+        .map(str::trim)
+        .filter(|model| !model.is_empty() && *model != "unknown")
+        .map(|model| model.to_ascii_lowercase())
+}
+
+fn normalize_prompt_text(text: &str) -> String {
+    text.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
 fn session_row(session: &LocalSession) -> SessionRow {
@@ -305,6 +408,11 @@ fn session_row(session: &LocalSession) -> SessionRow {
             "path": session.path.to_string_lossy(),
             "display_id": session.display_id,
             "prompt_preview": session.prompt_preview.clone(),
+            "prompt_count": if session.prompts.is_empty() && session.prompt_preview.is_some() {
+                1
+            } else {
+                session.prompts.len()
+            },
             "cwd": session.cwd.clone(),
             "last_message_at": session.last_message_at.clone(),
             "files": session.files,
@@ -499,15 +607,18 @@ fn parse_content(
     let mut tools = BTreeMap::new();
     let mut files = BTreeMap::<String, usize>::new();
     let mut prompt_preview = None;
+    let mut prompts = Vec::new();
     let mut cwd: Option<String> = None;
     let mut last_message_at: Option<String> = None;
     let mut duration_ms = 0;
     let mut codex_model = String::new();
 
-    for line in content.lines() {
+    for (line_index, line) in content.lines().enumerate() {
         let Ok(obj) = serde_json::from_str::<Value>(line) else {
             continue;
         };
+        let timestamp_ms = local_timestamp_ms(&obj);
+        let sequence = line_index + 1;
         if let Some(id) = local_session_id(&obj) {
             session_id = id;
         }
@@ -594,12 +705,18 @@ fn parse_content(
                 }
             }
             ("claude", "user") => {
-                if prompt_preview.is_none()
-                    && !is_claude_tool_result(&obj)
+                if !is_claude_tool_result(&obj)
                     && let Some(text) =
                         local_message_preview(obj.pointer("/message/content").unwrap_or(&obj))
                 {
-                    prompt_preview = Some(text);
+                    if prompt_preview.is_none() {
+                        prompt_preview = Some(text.clone());
+                    }
+                    prompts.push(LocalPrompt {
+                        text,
+                        timestamp_ms,
+                        sequence,
+                    });
                 }
             }
             ("claude", "queue-operation") if prompt_preview.is_none() => {
@@ -659,12 +776,22 @@ fn parse_content(
             }
             ("codex", "message") | ("codex", "input") | ("codex", "user") => {
                 if let Some(text) = local_message_preview(&obj) {
-                    prompt_preview = Some(text);
+                    prompt_preview = Some(text.clone());
+                    prompts.push(LocalPrompt {
+                        text,
+                        timestamp_ms,
+                        sequence,
+                    });
                 }
             }
             _ if prompt_preview.is_none() && typ.contains("user") => {
                 if let Some(text) = local_message_preview(&obj) {
-                    prompt_preview = Some(text);
+                    prompt_preview = Some(text.clone());
+                    prompts.push(LocalPrompt {
+                        text,
+                        timestamp_ms,
+                        sequence,
+                    });
                 }
             }
             _ => {}
@@ -694,6 +821,7 @@ fn parse_content(
         tools,
         files,
         prompt_preview,
+        prompts,
         duration_ms,
         cwd,
         last_message_at,
@@ -775,6 +903,30 @@ fn local_session_id(obj: &Value) -> Option<String> {
     None
 }
 
+fn local_timestamp_ms(obj: &Value) -> Option<u64> {
+    for key in ["timestamp", "created_at", "time"] {
+        let Some(value) = obj.get(key) else {
+            continue;
+        };
+        if let Some(raw) = value.as_u64() {
+            return Some(if raw < 10_000_000_000 {
+                raw.saturating_mul(1000)
+            } else {
+                raw
+            });
+        }
+        if let Some(raw) = value.as_str()
+            && let Ok(parsed) = DateTime::parse_from_rfc3339(raw)
+        {
+            let millis = parsed.timestamp_millis();
+            if millis >= 0 {
+                return Some(millis as u64);
+            }
+        }
+    }
+    None
+}
+
 fn is_noise_path(path: &str) -> bool {
     const NOISE: &[&str] = &[
         "/.claude/",
@@ -805,9 +957,9 @@ fn is_claude_tool_result(obj: &Value) -> bool {
             .pointer("/message/content")
             .and_then(Value::as_array)
             .is_some_and(|items| {
-                items.iter().any(|item| {
-                    item.get("type").and_then(Value::as_str) == Some("tool_result")
-                })
+                items
+                    .iter()
+                    .any(|item| item.get("type").and_then(Value::as_str) == Some("tool_result"))
             })
 }
 
