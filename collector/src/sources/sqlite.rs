@@ -49,7 +49,7 @@ fn load_view_inner(
     if let Ok(rows) = store.process_node_rows() {
         for row in &rows {
             process_pids.insert(row.pid);
-            view.upsert_process_node(&row);
+            view.upsert_process_node(row);
         }
     }
     if let Ok(rows) = store.tool_call_rows() {
