@@ -181,47 +181,6 @@ pub fn extract_token_usage_from_sse(data: &Value) -> TokenUsage {
     usage
 }
 
-pub fn extract_prompt_text(value: &Value) -> Option<String> {
-    if let Some(prompt) = value.get("prompt").and_then(|v| v.as_str()) {
-        return Some(prompt.to_string());
-    }
-    let mut parts = Vec::new();
-    for key in ["messages", "contents", "input"] {
-        if let Some(items) = value.get(key).and_then(|v| v.as_array()) {
-            for item in items {
-                collect_prompt_text(item.get("content").unwrap_or(item), &mut parts);
-            }
-        }
-    }
-    (!parts.is_empty()).then(|| parts.join(" "))
-}
-
-fn collect_prompt_text(value: &Value, out: &mut Vec<String>) {
-    match value {
-        Value::String(text) => out.push(text.clone()),
-        Value::Array(items) => {
-            for item in items {
-                collect_prompt_text(item, out);
-            }
-        }
-        Value::Object(obj) => {
-            if obj
-                .get("type")
-                .and_then(Value::as_str)
-                .is_some_and(|typ| typ == "tool_use" || typ == "function_call")
-            {
-                return;
-            }
-            for key in ["text", "content", "parts", "input", "prompt"] {
-                if let Some(value) = obj.get(key) {
-                    collect_prompt_text(value, out);
-                }
-            }
-        }
-        _ => {}
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -263,17 +222,5 @@ mod tests {
             extract_model_from_path("/v1beta/models/gemini-2.5-pro:generateContent").as_deref(),
             Some("gemini-2.5-pro")
         );
-    }
-
-    #[test]
-    fn extracts_prompt_text_from_message_bodies() {
-        let anthropic = json!({
-            "model": "claude-sonnet",
-            "messages": [
-                {"role": "user", "content": [{"type": "text", "text": "hello"}]},
-                {"role": "assistant", "content": [{"type": "tool_use", "name": "Bash"}]}
-            ]
-        });
-        assert_eq!(extract_prompt_text(&anthropic).as_deref(), Some("hello"));
     }
 }

@@ -532,109 +532,13 @@ mod tests {
             .expect("agent-native prompt audit");
         assert_eq!(prompt.pid, Some(42));
         assert_eq!(
-            prompt
-                .details
-                .get("text_content")
-                .and_then(|value| value.as_str()),
+            prompt.details.get("text_content").and_then(|value| value.as_str()),
             Some("local prompt only")
         );
 
         let summary = SessionSummary::from_view(&view).unwrap();
         assert_eq!(summary.models, vec![("ssl-model".to_string(), 8, 5, 13, 1)]);
         assert_eq!(summary.prompt_chars.total, 0);
-    }
-
-    #[test]
-    fn sqlite_loader_merges_db_llm_and_observed_session_prompts() {
-        let temp = tempfile::tempdir().unwrap();
-        let db = temp.path().join("merged-prompts.db");
-        let session_dir = temp.path().join(".claude/projects/test");
-        std::fs::create_dir_all(&session_dir).unwrap();
-        let session_path = session_dir.join("session-1.jsonl");
-        std::fs::write(
-            &session_path,
-            concat!(
-                "{\"type\":\"user\",\"timestamp\":\"1970-01-01T00:00:01Z\",\"message\":{\"content\":\"first local prompt\"}}\n",
-                "{\"type\":\"assistant\",\"message\":{\"model\":\"claude-opus-4-6\",\"content\":[{\"type\":\"text\",\"text\":\"ok\"}]}}\n",
-                "{\"type\":\"user\",\"timestamp\":\"1970-01-01T00:00:02Z\",\"message\":{\"content\":[{\"type\":\"tool_result\",\"content\":\"ignore tool result\"}]}}\n",
-                "{\"type\":\"user\",\"timestamp\":\"1970-01-01T00:00:03Z\",\"message\":{\"content\":\"second local prompt\"}}\n",
-            ),
-        )
-        .unwrap();
-
-        let store = SqliteStore::open(&db).unwrap();
-        let session_path_string = session_path.to_string_lossy().to_string();
-        let ssl_details = serde_json::json!({
-            "model": "claude-opus-4-6",
-            "messages": [
-                {"role": "user", "content": [{"type": "text", "text": "prefix first local prompt suffix"}]}
-            ]
-        })
-        .to_string();
-        store
-            .connection()
-            .execute(
-                "INSERT INTO audit_events (
-                    id, timestamp_ms, audit_type, pid, comm, action, target, status, summary, details_json
-                 ) VALUES
-                    ('audit-ssl-prompt', 900, 'llm', 42, 'claude', 'request', 'api.anthropic.com', 'observed', 'LLM request', ?1),
-                    ('audit-file', 1000, 'file', 42, 'claude', 'write', ?2, 'observed', NULL, '{}')",
-                rusqlite::params![ssl_details, session_path_string],
-            )
-            .unwrap();
-
-        let view = load_sqlite_view(&db).unwrap();
-        let snapshot = view.export_snapshot(SnapshotOptions { audit_limit: 100 });
-        let prompts = snapshot
-            .audit_events
-            .iter()
-            .filter(|row| row.audit_type == "llm" && row.action.as_deref() == Some("request"))
-            .collect::<Vec<_>>();
-        assert_eq!(prompts.len(), 2);
-        let ssl_prompt = prompts
-            .iter()
-            .find(|row| row.id == "audit-ssl-prompt")
-            .expect("ssl prompt");
-        assert_eq!(
-            ssl_prompt
-                .details
-                .get("prompt_source")
-                .and_then(|value| value.as_str()),
-            Some("ssl")
-        );
-        assert!(
-            ssl_prompt
-                .details
-                .get("text_content")
-                .and_then(|value| value.as_str())
-                .is_some_and(|text| text.contains("first local prompt"))
-        );
-        let local_prompt_texts = prompts
-            .iter()
-            .filter_map(|row| {
-                row.details
-                    .get("text_content")
-                    .and_then(|value| value.as_str())
-            })
-            .filter(|text| *text != "prefix first local prompt suffix")
-            .collect::<Vec<_>>();
-        assert_eq!(local_prompt_texts, vec!["second local prompt"]);
-        let local_prompt = prompts
-            .iter()
-            .find(|row| {
-                row.details
-                    .get("text_content")
-                    .and_then(|value| value.as_str())
-                    == Some("second local prompt")
-            })
-            .expect("local prompt");
-        assert_eq!(
-            local_prompt
-                .details
-                .get("prompt_source")
-                .and_then(|value| value.as_str()),
-            Some("local")
-        );
     }
 
     #[test]

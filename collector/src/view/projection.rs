@@ -10,7 +10,7 @@ use crate::model::{
 use crate::text::sanitize_ascii_identifier as sanitize_id;
 use crate::view::llm::TokenUsage;
 use crate::view::{
-    CanonicalEvent, EventKind, body_json, extract_model, extract_prompt_text, extract_token_usage,
+    CanonicalEvent, EventKind, body_json, extract_model, extract_token_usage,
     extract_token_usage_from_sse, normalize_event, provider_from_host,
 };
 use crate::view::{MaterializedView, PendingRequest};
@@ -605,7 +605,6 @@ fn emit_llm_audit(
     summary: &str,
     details: Option<&Value>,
 ) -> ViewResult<()> {
-    let details = llm_audit_details(action, details);
     view.emit_audit_event(AuditEventRow {
         id: format!("audit-{llm_call_id}-{action}"),
         timestamp_ms,
@@ -617,32 +616,8 @@ fn emit_llm_audit(
         target: target.map(str::to_string),
         status: Some(status.to_string()),
         summary: Some(summary.to_string()),
-        details,
+        details: details.cloned().unwrap_or_else(|| serde_json::json!({})),
     })
-}
-
-fn llm_audit_details(action: &str, details: Option<&Value>) -> Value {
-    let Some(details) = details else {
-        return serde_json::json!({});
-    };
-    if action != "request" {
-        return details.clone();
-    }
-
-    let mut out = match details {
-        Value::Object(map) => Value::Object(map.clone()),
-        other => serde_json::json!({ "body": other }),
-    };
-    if let Value::Object(map) = &mut out {
-        map.insert(
-            "prompt_source".to_string(),
-            Value::String("ssl".to_string()),
-        );
-        if let Some(text) = extract_prompt_text(details) {
-            map.insert("text_content".to_string(), Value::String(text));
-        }
-    }
-    out
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -937,7 +912,7 @@ mod tests {
                 "method": "POST",
                 "path": "/v1/messages",
                 "headers": { "host": "api.anthropic.com" },
-                "body": "{\"model\":\"claude-sonnet\",\"messages\":[{\"role\":\"user\",\"content\":[{\"type\":\"text\",\"text\":\"hello\"}]}]}"
+                "body": "{\"model\":\"claude-sonnet\"}"
             }),
         );
         let resp = Event::new_with_timestamp(
@@ -966,24 +941,5 @@ mod tests {
             .collect::<Vec<_>>();
         assert!(llm_actions.contains(&"request"));
         assert!(llm_actions.contains(&"call"));
-        let prompt = snapshot
-            .audit_events
-            .iter()
-            .find(|row| row.audit_type == "llm" && row.action.as_deref() == Some("request"))
-            .expect("prompt audit");
-        assert_eq!(
-            prompt
-                .details
-                .get("prompt_source")
-                .and_then(|value| value.as_str()),
-            Some("ssl")
-        );
-        assert_eq!(
-            prompt
-                .details
-                .get("text_content")
-                .and_then(|value| value.as_str()),
-            Some("hello")
-        );
     }
 }
