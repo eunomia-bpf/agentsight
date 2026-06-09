@@ -448,7 +448,7 @@ mod tests {
     }
 
     #[test]
-    fn sqlite_summary_reads_observed_local_claude_log_projection() {
+    fn sqlite_summary_does_not_read_touched_local_claude_log_without_projection() {
         let temp = tempfile::tempdir().unwrap();
         let db = temp.path().join("local-log.db");
         let session_dir = temp.path().join(".claude/projects/test");
@@ -476,11 +476,8 @@ mod tests {
             .unwrap();
 
         let summary = sqlite_summary(&db);
-        assert_eq!(
-            summary.models,
-            vec![("claude-opus-4-6".to_string(), 3, 11, 26, 1)]
-        );
-        assert_eq!(summary.tool_calls.get("Bash"), Some(&1));
+        assert!(summary.models.is_empty());
+        assert!(summary.tool_calls.is_empty());
 
         let token_rows: i64 = store
             .connection()
@@ -523,20 +520,7 @@ mod tests {
             )
             .unwrap();
 
-        let view = load_sqlite_view(&db).unwrap();
-        let snapshot = view.export_snapshot(SnapshotOptions { audit_limit: 100 });
-        let prompt = snapshot
-            .audit_events
-            .iter()
-            .find(|row| row.audit_type == "llm" && row.action.as_deref() == Some("request"))
-            .expect("agent-native prompt audit");
-        assert_eq!(prompt.pid, Some(42));
-        assert_eq!(
-            prompt.details.get("text_content").and_then(|value| value.as_str()),
-            Some("local prompt only")
-        );
-
-        let summary = SessionSummary::from_view(&view).unwrap();
+        let summary = sqlite_summary(&db);
         assert_eq!(summary.models, vec![("ssl-model".to_string(), 8, 5, 13, 1)]);
         assert_eq!(summary.prompt_chars.total, 0);
     }

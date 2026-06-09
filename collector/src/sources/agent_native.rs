@@ -9,13 +9,10 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use crate::json::i64_field as json_i64;
 use crate::model::{
-    AGENT_NATIVE_SOURCE, AuditEventRow, SessionRow, Snapshot, SnapshotOptions, TokenUsageRow,
-    ToolCallRow,
+    AGENT_NATIVE_SOURCE, SessionRow, Snapshot, SnapshotOptions, TokenUsageRow, ToolCallRow,
 };
 use crate::text::{sanitize_ascii_identifier as sanitize_id, short_session_id, truncate_text};
 use crate::view::MaterializedView;
-
-const MAX_PROMPT_TEXT_CHARS: usize = 4096;
 
 pub(crate) struct SessionCache {
     entries: HashMap<PathBuf, CacheEntry>,
@@ -164,128 +161,6 @@ pub(crate) fn import_into_view(view: &mut MaterializedView, sessions: &[LocalSes
             view.apply_tool_call(&row);
         }
     }
-}
-
-pub(crate) fn import_observed_session_logs(
-    view: &mut MaterializedView,
-    audit_rows: &[AuditEventRow],
-) {
-    let existing_prompt_pids = audit_rows
-        .iter()
-        .filter(|row| row.audit_type == "llm" && row.action.as_deref() == Some("request"))
-        .filter_map(|row| row.pid)
-        .collect::<HashSet<_>>();
-    let mut imported_paths = HashSet::new();
-    let mut emitted_prompts = HashSet::new();
-
-    for trace in observed_session_log_traces(audit_rows) {
-        let Some(source) = local_session_source(&trace.path) else {
-            continue;
-        };
-        let updated = fs::metadata(&trace.path)
-            .and_then(|metadata| metadata.modified())
-            .unwrap_or(UNIX_EPOCH);
-        let Some(session) = read_session_path_with_source(source, &trace.path, updated) else {
-            continue;
-        };
-
-        if imported_paths.insert(trace.path.clone()) {
-            import_into_view(view, std::slice::from_ref(&session));
-        }
-
-        let Some(pid) = trace.pid else {
-            continue;
-        };
-        if existing_prompt_pids.contains(&pid) || !emitted_prompts.insert((trace.path.clone(), pid))
-        {
-            continue;
-        }
-        if let Some(row) = prompt_audit_row(&session, &trace) {
-            view.apply_audit_event(&row);
-        }
-    }
-}
-
-struct ObservedSessionTrace {
-    path: PathBuf,
-    timestamp_ms: u64,
-    pid: Option<u32>,
-    comm: Option<String>,
-}
-
-fn observed_session_log_traces(audit_rows: &[AuditEventRow]) -> Vec<ObservedSessionTrace> {
-    let mut seen = HashSet::new();
-    let mut traces = Vec::new();
-    for row in audit_rows {
-        if row.audit_type != "file" {
-            continue;
-        }
-        let Some(path) = audit_session_path(row) else {
-            continue;
-        };
-        if !seen.insert((path.clone(), row.pid)) {
-            continue;
-        }
-        traces.push(ObservedSessionTrace {
-            path,
-            timestamp_ms: row.timestamp_ms,
-            pid: row.pid,
-            comm: row.comm.clone(),
-        });
-    }
-    traces
-}
-
-fn audit_session_path(row: &AuditEventRow) -> Option<PathBuf> {
-    row.target
-        .as_deref()
-        .and_then(session_log_path_from_str)
-        .or_else(|| {
-            row.details
-                .get("filepath")
-                .and_then(Value::as_str)
-                .and_then(session_log_path_from_str)
-        })
-        .or_else(|| {
-            row.details
-                .get("path")
-                .and_then(Value::as_str)
-                .and_then(session_log_path_from_str)
-        })
-}
-
-fn prompt_audit_row(
-    session: &LocalSession,
-    trace: &ObservedSessionTrace,
-) -> Option<AuditEventRow> {
-    let prompt = session.prompt_preview.as_ref()?;
-    let pid = trace.pid?;
-    let session_id = view_id(session);
-    Some(AuditEventRow {
-        id: format!(
-            "audit-agent-native-prompt-{}-{}",
-            sanitize_id(&session.display_id),
-            pid
-        ),
-        timestamp_ms: trace.timestamp_ms,
-        audit_type: "llm".to_string(),
-        pid: Some(pid),
-        comm: trace.comm.clone().or_else(|| Some(session.agent.clone())),
-        subject: session.model.clone(),
-        action: Some("request".to_string()),
-        target: Some(trace.path.to_string_lossy().to_string()),
-        status: Some("observed".to_string()),
-        summary: Some(truncate_text(prompt, 160)),
-        details: serde_json::json!({
-            "text_content": prompt,
-            "path": trace.path.to_string_lossy(),
-            "session_id": session_id,
-            "agent": session.agent.clone(),
-            "model": session.model.clone(),
-            "cwd": session.cwd.clone(),
-            "source": AGENT_NATIVE_SOURCE,
-        }),
-    })
 }
 
 fn session_row(session: &LocalSession) -> SessionRow {
@@ -594,24 +469,10 @@ fn parse_content(
                 }
             }
             ("claude", "user") => {
-                if prompt_preview.is_none()
-                    && !is_claude_tool_result(&obj)
-                    && let Some(text) =
-                        local_message_preview(obj.pointer("/message/content").unwrap_or(&obj))
+                if let Some(text) =
+                    local_message_preview(obj.pointer("/message/content").unwrap_or(&obj))
                 {
                     prompt_preview = Some(text);
-                }
-            }
-            ("claude", "queue-operation") if prompt_preview.is_none() => {
-                if obj.get("operation").and_then(Value::as_str) == Some("enqueue")
-                    && let Some(text) = obj.get("content").and_then(Value::as_str)
-                {
-                    prompt_preview = Some(truncate_text(text, MAX_PROMPT_TEXT_CHARS));
-                }
-            }
-            ("claude", "last-prompt") if prompt_preview.is_none() => {
-                if let Some(text) = obj.get("lastPrompt").and_then(Value::as_str) {
-                    prompt_preview = Some(truncate_text(text, MAX_PROMPT_TEXT_CHARS));
                 }
             }
             ("codex", "turn_context") => {
@@ -799,18 +660,6 @@ fn claude_usage_key(obj: &Value) -> String {
         .to_string()
 }
 
-fn is_claude_tool_result(obj: &Value) -> bool {
-    obj.get("toolUseResult").is_some()
-        || obj
-            .pointer("/message/content")
-            .and_then(Value::as_array)
-            .is_some_and(|items| {
-                items.iter().any(|item| {
-                    item.get("type").and_then(Value::as_str) == Some("tool_result")
-                })
-            })
-}
-
 fn local_message_preview(value: &Value) -> Option<String> {
     let mut parts = Vec::new();
     collect_local_text(value, &mut parts);
@@ -819,7 +668,7 @@ fn local_message_preview(value: &Value) -> Option<String> {
         .split_whitespace()
         .collect::<Vec<_>>()
         .join(" ");
-    (!text.is_empty()).then(|| truncate_text(&text, MAX_PROMPT_TEXT_CHARS))
+    (!text.is_empty()).then(|| truncate_text(&text, 80))
 }
 
 fn collect_local_text(value: &Value, out: &mut Vec<String>) {

@@ -3,7 +3,6 @@
 
 use crate::model::ViewResult;
 use crate::sinks::sqlite::SqliteStore;
-use crate::sources::agent_native;
 use crate::view::MaterializedView;
 use std::path::Path;
 
@@ -22,12 +21,10 @@ pub(crate) fn load_view(path: impl AsRef<Path>) -> ViewResult<MaterializedView> 
             view.apply_token_usage(&row);
         }
     }
-    let mut audit_rows = Vec::new();
     if let Ok(rows) = store.all_audit_event_rows() {
-        for row in &rows {
-            view.apply_audit_event(row);
+        for row in rows {
+            view.apply_audit_event(&row);
         }
-        audit_rows = rows;
     }
     if let Ok(rows) = store.process_node_rows() {
         for row in rows {
@@ -49,7 +46,6 @@ pub(crate) fn load_view(path: impl AsRef<Path>) -> ViewResult<MaterializedView> 
             view.apply_resource_sample(&row);
         }
     }
-    agent_native::import_observed_session_logs(&mut view, &audit_rows);
 
     Ok(view)
 }
