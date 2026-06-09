@@ -103,6 +103,7 @@ agentsight report list                       # all recorded sessions
 agentsight report prompts --json             # full LLM request/response JSON
 agentsight report token                      # token usage (auto-finds latest session)
 agentsight report audit --json               # process spawns, file opens, API calls
+agentsight report serve --db run.db          # open the web UI for a saved session
 agentsight report export -o snapshot.json    # export for web dashboard
 ```
 
@@ -113,6 +114,8 @@ During a session, visit [http://127.0.0.1:7395](http://127.0.0.1:7395) for live 
 - **Process Tree**: http://127.0.0.1:7395/tree
 - **Event Log**: http://127.0.0.1:7395/logs
 - **Metrics View**: http://127.0.0.1:7395/metrics
+
+For a saved SQLite session, run `agentsight report serve --db run.db` and open the same routes.
 
 <div align="center">
   <img src="https://github.com/eunomia-bpf/agentsight/raw/master/docs/demo-tree.png" alt="AgentSight Demo - Process Tree Visualization" width="800">

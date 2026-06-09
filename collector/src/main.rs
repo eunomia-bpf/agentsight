@@ -52,7 +52,9 @@ use cmd_exec::{default_session_db_path, print_session_summary, run_exec};
 use cmd_perf::{run_stat_query, run_top_query};
 use cmd_perf_live::run_live_top_query;
 use cmd_perf_tui::run_live_top_tui;
-use cmd_trace::{OtelConfig, TraceConfig, convert_runner_error, run_trace};
+use cmd_trace::{
+    OtelConfig, TraceConfig, convert_runner_error, run_trace, start_web_server_if_enabled,
+};
 use output::TopOptions;
 use output::print_record_session_db_error;
 use sources::session_db::{resolve_db_or_latest, run_db_list};
@@ -357,6 +359,15 @@ enum ReportCommands {
         #[arg(long, default_value = "10000")]
         audit_limit: usize,
     },
+    /// Serve the web UI for a saved SQLite session
+    Serve {
+        /// SQLite database path (defaults to latest session)
+        #[arg(long)]
+        db: Option<String>,
+        /// Server port for the web UI
+        #[arg(long, default_value = "7395")]
+        server_port: u16,
+    },
     /// List session databases
     List,
 }
@@ -614,11 +625,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                     cli_db::run_agent_native_audit(*json)?;
                 }
             }
-            Some(ReportCommands::Prompts {
-                db: d,
-                limit,
-                json,
-            }) => {
+            Some(ReportCommands::Prompts { db: d, limit, json }) => {
                 let effective = d.as_ref().or(db.as_ref()).cloned();
                 let db = resolve_db_or_latest(&effective)?;
                 run_prompts_query(&db, *limit, *json)?;
@@ -631,6 +638,11 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 let effective = d.as_ref().or(db.as_ref()).cloned();
                 let db = resolve_db_or_latest(&effective)?;
                 run_export(&db, output, *audit_limit)?;
+            }
+            Some(ReportCommands::Serve { db: d, server_port }) => {
+                let effective = d.as_ref().or(db.as_ref()).cloned();
+                let db = resolve_db_or_latest(&effective)?;
+                run_report_serve(&db, &cli.listen, *server_port).await?;
             }
             Some(ReportCommands::List) => run_db_list()?,
         },
@@ -671,6 +683,21 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         }
     }
 
+    Ok(())
+}
+
+async fn run_report_serve(
+    db: &str,
+    listen: &str,
+    server_port: u16,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let view = view::MaterializedView::shared_bounded();
+    let _server_handle =
+        start_web_server_if_enabled(true, listen, server_port, view, Some(db.to_string()))
+            .await
+            .map_err(|e| std::io::Error::other(e.to_string()))?;
+
+    shutdown_notify().notified().await;
     Ok(())
 }
 

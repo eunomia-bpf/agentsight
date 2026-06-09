@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
+use crate::model::{Snapshot, SnapshotOptions};
 use crate::server::assets::FrontendAssets;
 use crate::sources::agent_native::{self as agent_native_sessions, SessionCache};
+use crate::sources::sqlite as sqlite_source;
 use crate::view::SharedMaterializedView;
-use crate::model::SnapshotOptions;
 use http_body_util::Full;
 use hyper::server::conn::http1;
 use hyper::service::service_fn;
@@ -22,17 +23,20 @@ pub struct WebServer {
     assets: Arc<FrontendAssets>,
     view: SharedMaterializedView,
     agent_native_sessions: Arc<Mutex<SessionCache>>,
+    db_path: Option<String>,
 }
 
 impl WebServer {
-    pub fn new(
+    pub fn new_with_db_path(
         view: SharedMaterializedView,
+        db_path: Option<String>,
     ) -> Result<Self, Box<dyn std::error::Error + Send + Sync>> {
         let assets = FrontendAssets::new()?;
         Ok(Self {
             assets: Arc::new(assets),
             view,
             agent_native_sessions: Arc::new(Mutex::new(SessionCache::new())),
+            db_path,
         })
     }
 
@@ -66,6 +70,7 @@ impl WebServer {
             let assets = Arc::clone(&self.assets);
             let view = Arc::clone(&self.view);
             let agent_native_sessions = Arc::clone(&self.agent_native_sessions);
+            let db_path = self.db_path.clone();
 
             tokio::spawn(async move {
                 let io = TokioIo::new(stream);
@@ -75,6 +80,7 @@ impl WebServer {
                         assets.clone(),
                         view.clone(),
                         agent_native_sessions.clone(),
+                        db_path.clone(),
                     )
                 });
 
@@ -91,6 +97,7 @@ async fn handle_request(
     assets: Arc<FrontendAssets>,
     view: SharedMaterializedView,
     agent_native_sessions: Arc<Mutex<SessionCache>>,
+    db_path: Option<String>,
 ) -> std::result::Result<Response<Full<Bytes>>, Infallible> {
     let path = req.uri().path();
     let query = req.uri().query().map(str::to_string);
@@ -99,7 +106,7 @@ async fn handle_request(
 
     let response = match (req.method(), path) {
         (&Method::GET, "/api/v1/snapshot") => {
-            serve_snapshot_api(view, agent_native_sessions, query.as_deref()).await?
+            serve_snapshot_api(view, agent_native_sessions, db_path, query.as_deref()).await?
         }
         (&Method::GET, _) => serve_asset(assets, path).await?,
         _ => {
@@ -154,23 +161,19 @@ fn is_frontend_route(path: &str) -> bool {
 async fn serve_snapshot_api(
     view: SharedMaterializedView,
     agent_native_sessions: Arc<Mutex<SessionCache>>,
+    db_path: Option<String>,
     query: Option<&str>,
 ) -> std::result::Result<Response<Full<Bytes>>, Infallible> {
     let audit_limit = query_param_usize(query, "audit_limit").unwrap_or(10_000);
 
     let result = tokio::task::spawn_blocking(
         move || -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
-            let agent_native_rows = agent_native_sessions
-                .lock()
-                .map_err(|_| std::io::Error::other("agent-native session cache lock poisoned"))?
-                .discover_cached(25, Duration::from_secs(2));
-            let snapshot = {
-                let mut view = view
-                    .lock()
-                    .map_err(|_| std::io::Error::other("live view lock poisoned"))?;
-                agent_native_sessions::import_into_view(&mut view, &agent_native_rows);
-                view.export_snapshot(SnapshotOptions { audit_limit })
-            };
+            let snapshot = snapshot_from_sources(
+                &view,
+                &agent_native_sessions,
+                db_path.as_deref(),
+                audit_limit,
+            )?;
             Ok(serde_json::to_value(snapshot)?)
         },
     )
@@ -187,6 +190,28 @@ async fn serve_snapshot_api(
             &format!("view query task failed: {}", e),
         )),
     }
+}
+
+fn snapshot_from_sources(
+    view: &SharedMaterializedView,
+    agent_native_sessions: &Arc<Mutex<SessionCache>>,
+    db_path: Option<&str>,
+    audit_limit: usize,
+) -> Result<Snapshot, Box<dyn std::error::Error + Send + Sync>> {
+    if let Some(db_path) = db_path {
+        let view = sqlite_source::load_view(db_path)?;
+        return Ok(view.export_snapshot(SnapshotOptions { audit_limit }));
+    }
+
+    let agent_native_rows = agent_native_sessions
+        .lock()
+        .map_err(|_| std::io::Error::other("agent-native session cache lock poisoned"))?
+        .discover_cached(25, Duration::from_secs(2));
+    let mut view = view
+        .lock()
+        .map_err(|_| std::io::Error::other("live view lock poisoned"))?;
+    agent_native_sessions::import_into_view(&mut view, &agent_native_rows);
+    Ok(view.export_snapshot(SnapshotOptions { audit_limit }))
 }
 
 fn plain_response(status: StatusCode, content_type: &str, body: Vec<u8>) -> Response<Full<Bytes>> {
@@ -221,6 +246,9 @@ fn query_param_usize(query: Option<&str>, name: &str) -> Option<usize> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::model::{ProcessNodeRow, ViewSink};
+    use crate::sinks::sqlite::SqliteStore;
+    use crate::view::MaterializedView;
 
     #[test]
     fn parses_api_query_parameters() {
@@ -228,5 +256,59 @@ mod tests {
 
         assert_eq!(query_param_usize(query, "audit_limit"), Some(9));
         assert_eq!(query_param_usize(query, "missing"), None);
+    }
+
+    #[test]
+    fn snapshot_uses_sqlite_when_db_path_is_configured() {
+        let temp = tempfile::tempdir().unwrap();
+        let db = temp.path().join("session.db");
+        let mut store = SqliteStore::open(&db).unwrap();
+        store
+            .process_node(&ProcessNodeRow {
+                id: "db-process".to_string(),
+                pid: 42,
+                ppid: None,
+                root_pid: None,
+                start_timestamp_ms: Some(1_000),
+                end_timestamp_ms: None,
+                comm: Some("claude".to_string()),
+                command: Some("claude".to_string()),
+                argv: Vec::new(),
+                cwd: None,
+                exit_code: None,
+                status: Some("observed".to_string()),
+                view_source: "view".to_string(),
+                confidence: Some(1.0),
+            })
+            .unwrap();
+
+        let live_view = MaterializedView::shared_bounded();
+        {
+            let mut view = live_view.lock().unwrap();
+            view.upsert_process_node(&ProcessNodeRow {
+                id: "live-process".to_string(),
+                pid: 7,
+                ppid: None,
+                root_pid: None,
+                start_timestamp_ms: Some(2_000),
+                end_timestamp_ms: None,
+                comm: Some("live".to_string()),
+                command: Some("live".to_string()),
+                argv: Vec::new(),
+                cwd: None,
+                exit_code: None,
+                status: Some("observed".to_string()),
+                view_source: "view".to_string(),
+                confidence: Some(1.0),
+            });
+        }
+        let sessions = Arc::new(Mutex::new(SessionCache::new()));
+
+        let snapshot =
+            snapshot_from_sources(&live_view, &sessions, Some(db.to_str().unwrap()), 100).unwrap();
+
+        assert_eq!(snapshot.summary.source, "sqlite");
+        assert_eq!(snapshot.process_nodes.len(), 1);
+        assert_eq!(snapshot.process_nodes[0].id, "db-process");
     }
 }

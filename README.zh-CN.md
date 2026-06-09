@@ -113,6 +113,8 @@ make build
 - **进程树**：http://127.0.0.1:7395/tree
 - **原始日志**：http://127.0.0.1:7395/logs
 
+查看已保存的 SQLite 会话可以运行 `agentsight report serve --db run.db`，然后打开同样的 Web 路由。
+
 <div align="center">
   <img src="https://github.com/eunomia-bpf/agentsight/raw/master/docs/demo-tree.png" alt="AgentSight 演示 - 进程树可视化" width="800">
   <p><em>进程树视图，展示智能体子进程和文件活动</em></p>

@@ -193,10 +193,15 @@ pub(crate) async fn run_exec(
     let live_view = MaterializedView::shared_bounded();
     let mut agent = build_trace_agent_with_view(binary_extractor, &cfg, live_view.clone())?;
 
-    let server_handle =
-        start_web_server_if_enabled(enable_server, server_listen, server_port, live_view)
-            .await
-            .map_err(|e| RunnerError::from(format!("Failed to start server: {}", e)))?;
+    let server_handle = start_web_server_if_enabled(
+        enable_server,
+        server_listen,
+        server_port,
+        live_view,
+        cfg.db_path.clone(),
+    )
+    .await
+    .map_err(|e| RunnerError::from(format!("Failed to start server: {}", e)))?;
 
     let mut stream = match agent.run().await {
         Ok(stream) => stream,

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
+use crate::model::{AGENT_NATIVE_SOURCE, SnapshotOptions, TokenSummary};
 use crate::output::{
     FileAccessSummary, SessionSummary, SummaryStats, print_audit_rows, print_exported_snapshot,
     print_json, print_llm_prompts, print_session_summary, print_token_summary, prompt_text_chars,
@@ -9,7 +10,6 @@ use crate::output::{
 use crate::sources::agent_native as agent_native_sessions;
 use crate::sources::sqlite::load_view as load_sqlite_view;
 use crate::view::MaterializedView;
-use crate::model::{AGENT_NATIVE_SOURCE, SnapshotOptions, TokenSummary};
 
 #[cfg(test)]
 use crate::sinks::sqlite::SqliteStore;
@@ -25,16 +25,15 @@ pub(crate) fn configured_db_path(cli_value: &Option<String>) -> Option<String> {
 pub(crate) fn load_agentsight_view(
     db: Option<&str>,
 ) -> Result<MaterializedView, Box<dyn std::error::Error + Send + Sync>> {
-    let mut view = match db {
-        Some(db) => load_sqlite_view(db)?,
+    match db {
+        Some(db) => load_sqlite_view(db),
         None => {
             let mut view = MaterializedView::new();
             view.set_source(AGENT_NATIVE_SOURCE);
-            view
+            agent_native_sessions::import_recent(&mut view, 25);
+            Ok(view)
         }
-    };
-    agent_native_sessions::import_recent(&mut view, 25);
-    Ok(view)
+    }
 }
 
 pub(crate) fn run_token_query(
