@@ -357,15 +357,10 @@ pub(crate) async fn run_trace(
     print_trace_start(agent.runner_count(), agent.analyzer_count());
 
     // Start web server if enabled
-    let _server_handle = start_web_server_if_enabled(
-        enable_server,
-        &server_listen,
-        server_port,
-        live_view,
-        cfg.db_path.clone(),
-    )
-    .await
-    .map_err(|e| RunnerError::from(format!("Failed to start server: {}", e)))?;
+    let _server_handle =
+        start_web_server_if_enabled(enable_server, &server_listen, server_port, live_view, None)
+            .await
+            .map_err(|e| RunnerError::from(format!("Failed to start server: {}", e)))?;
 
     let mut stream = agent.run().await?;
 
