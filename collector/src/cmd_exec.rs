@@ -11,14 +11,7 @@ use crate::cmd_trace::{
     TraceConfig, build_trace_agent_with_view, drain_stream_for, prepare_process_seeds,
     start_web_server_if_enabled,
 };
-use crate::output::{
-    SessionSummary, print_record_attribution_session, print_record_auto_binary_path,
-    print_record_drop_user, print_record_header, print_record_kill_error, print_record_launch,
-    print_record_monitoring_stream_ended, print_record_provided_binary_path,
-    print_record_session_db_error, print_record_session_summary, print_record_shutdown,
-    print_record_sudo_prompt, print_record_target_exited, print_record_target_shutdown_error,
-    print_record_target_status_error, print_record_target_wait_error, print_record_web_ui,
-};
+use crate::output::{SessionSummary, print_record_session_db_error};
 use crate::runners::{Runner, RunnerError};
 use crate::sources::session_db::sessions_dir;
 use crate::view::MaterializedView;
@@ -68,7 +61,8 @@ pub(crate) fn print_session_summary(db_path: &str) {
         return;
     };
     if let Ok(summary) = SessionSummary::from_view(&view) {
-        print_record_session_summary(&summary);
+        println!();
+        crate::output::print_session_summary(&summary);
     }
 }
 
@@ -103,18 +97,18 @@ pub(crate) async fn run_exec(
         }
     };
 
-    print_record_header();
+    println!("AgentSight record\n{}", crate::output::separator_line());
 
     let binary_path = match binary_path_override {
         Some(p) => {
-            print_record_provided_binary_path(p);
+            println!("→ Using provided binary path: {p}");
             p.to_string()
         }
         None => {
             let p = resolve_binary_path(program).map_err(|e| {
                 RunnerError::from(format!("failed to resolve '{}': {}", program, e))
             })?;
-            print_record_auto_binary_path(&p);
+            println!("✓ Auto-discovered binary: {p}");
             p
         }
     };
@@ -128,7 +122,7 @@ pub(crate) async fn run_exec(
     // user is prompted once (with a visible terminal) before eBPF binaries
     // are spawned with piped stdio.  Skip if passwordless sudo already works.
     if unsafe { libc::geteuid() } != 0 && !sudo_cached() {
-        print_record_sudo_prompt();
+        println!("🔑 eBPF probes require root. Requesting sudo access...");
         let ok = std::process::Command::new("sudo")
             .arg("true")
             .status()
@@ -151,7 +145,7 @@ pub(crate) async fn run_exec(
         .args(prog_args);
     let target_ids = target_user_ids();
     if let Some((uid, gid)) = target_ids {
-        print_record_drop_user(uid, gid);
+        println!("✓ Dropping child to uid={uid} gid={gid}");
     }
     unsafe {
         command_builder.pre_exec(move || {
@@ -176,7 +170,7 @@ pub(crate) async fn run_exec(
     let child_pid = child
         .id()
         .ok_or_else(|| RunnerError::from("failed to get target child PID"))?;
-    print_record_attribution_session(child_pid);
+    println!("✓ Run attribution session: {child_pid}");
 
     let db_path_for_summary = db_path.clone();
     let mut cfg = TraceConfig {
@@ -207,9 +201,10 @@ pub(crate) async fn run_exec(
     };
 
     if let Some(server) = &server_handle {
-        print_record_web_ui(&server.url);
+        println!("Web UI: {}", server.url);
     }
-    print_record_launch(command);
+    println!("▶ Launching: {}", command.join(" "));
+    println!("{}", crate::output::separator_line());
 
     tokio::time::sleep(tokio::time::Duration::from_millis(250)).await;
     if let Err(e) = continue_child(child_pid) {
@@ -226,7 +221,7 @@ pub(crate) async fn run_exec(
                 match maybe_event {
                     Some(_event) => {}
                     None => {
-                        print_record_monitoring_stream_ended();
+                        println!("\n⚠ Monitoring stream ended before target exited. Stopping target.");
                         break;
                     }
                 }
@@ -234,16 +229,20 @@ pub(crate) async fn run_exec(
             status = child.wait() => {
                 match status {
                     Ok(s) => {
-                        print_record_target_exited(s);
+                        println!(
+                            "\n{}\n✓ Target exited ({}). Stopping monitoring.",
+                            crate::output::separator_line(),
+                            s
+                        );
                     }
-                    Err(e) => print_record_target_wait_error(e),
+                    Err(e) => println!("\n⚠ Error waiting on target: {e}"),
                 }
                 target_exited = true;
                 drain_stream_for(&mut stream, tokio::time::Duration::from_millis(5000)).await;
                 break;
             }
             _ = shutdown.notified() => {
-                print_record_shutdown();
+                println!("\n✓ Shutdown requested. Stopping target and monitoring.");
                 break;
             }
         }
@@ -281,7 +280,7 @@ pub(crate) async fn stop_child(child: &mut tokio::process::Child) {
         Ok(Some(_)) => return,
         Ok(None) => {}
         Err(e) => {
-            print_record_target_status_error(e);
+            println!("⚠ Error checking target status: {e}");
             return;
         }
     }
@@ -289,13 +288,13 @@ pub(crate) async fn stop_child(child: &mut tokio::process::Child) {
     match tokio::time::timeout(tokio::time::Duration::from_secs(2), child.wait()).await {
         Ok(Ok(_)) => return,
         Ok(Err(e)) => {
-            print_record_target_shutdown_error(e);
+            println!("⚠ Error waiting for target shutdown: {e}");
             return;
         }
         Err(_) => {}
     }
 
     if let Err(e) = child.kill().await {
-        print_record_kill_error(e);
+        println!("⚠ Failed to kill target process: {e}");
     }
 }

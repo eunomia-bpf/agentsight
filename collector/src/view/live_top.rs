@@ -233,10 +233,13 @@ impl LiveView {
             .any(|row| row.evidence().has_session_path_link());
         let mut notes = Vec::new();
         if has_agent_native {
-            notes.push(
-                "agent-native sessions are the primary token/tool source (~/.claude, ~/.codex)"
-                    .to_string(),
-            );
+            let native_dirs = crate::agents::native_session_agents()
+                .map(|(_, dir_parts)| format!("~/{}", dir_parts[0]))
+                .collect::<Vec<_>>()
+                .join(", ");
+            notes.push(format!(
+                "agent-native sessions are the primary token/tool source ({native_dirs})"
+            ));
         }
         if has_proc {
             notes.push("proc evidence uses /proc for CPU/RSS/process families".to_string());
@@ -513,7 +516,7 @@ fn live_process_rows(
             .sum();
         let agent = root
             .map(|proc_info| {
-                process_select::agent_label_from_command(&proc_info.comm, &proc_info.command)
+                crate::agents::agent_label_from_command(&proc_info.comm, &proc_info.command)
             })
             .unwrap_or_else(|| "agent".to_string());
 

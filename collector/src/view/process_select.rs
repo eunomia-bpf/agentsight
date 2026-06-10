@@ -1,9 +1,12 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
+//! Process selection for top/record: choose root pids and seed families from
+//! a `/proc` snapshot. Agent identity comes from `crate::agents`.
+
+use crate::agents::{known_agent_label, label_from_exec_token, looks_like_exec_path};
 use crate::sources::proc::{PidSeed, ProcInfo, ProcSnapshot};
 use std::collections::HashSet;
-use std::path::Path;
 
 pub(crate) fn live_root_pids(
     snapshot: &ProcSnapshot,
@@ -56,26 +59,6 @@ pub(crate) fn pids_matching_comm(snapshot: &ProcSnapshot, comm: &str) -> Vec<u32
         .filter(|proc_info| process_matches_comm(proc_info, comm))
         .map(|proc_info| proc_info.pid)
         .collect()
-}
-
-pub(crate) fn agent_label_from_command(comm: &str, command: &str) -> String {
-    known_agent_label(comm, command)
-        .map(str::to_string)
-        .unwrap_or_else(|| {
-            if !comm.is_empty() && comm != "unknown" {
-                comm.to_string()
-            } else {
-                command
-                    .split_whitespace()
-                    .next()
-                    .unwrap_or("agent")
-                    .to_string()
-            }
-        })
-}
-
-pub(crate) fn known_agent_label(comm: &str, command: &str) -> Option<&'static str> {
-    label_from_exec_token(comm).or_else(|| label_from_command_argv(command))
 }
 
 fn root_pids_matching_comm(snapshot: &ProcSnapshot, comm: &str) -> Vec<u32> {
@@ -158,17 +141,6 @@ fn process_matches_comm(proc_info: &ProcInfo, wanted: &str) -> bool {
     executable_tokens(&proc_info.command).any(|token| executable_token_matches(token, &wanted))
 }
 
-fn label_from_command_argv(command: &str) -> Option<&'static str> {
-    let mut args = command.split_whitespace();
-    let argv0 = args.next()?;
-    if let Some(label) = label_from_exec_token(argv0) {
-        return Some(label);
-    }
-
-    args.filter(|arg| looks_like_exec_path(arg))
-        .find_map(label_from_exec_token)
-}
-
 fn executable_tokens(command: &str) -> impl Iterator<Item = &str> {
     let mut first = true;
     command.split_whitespace().filter(move |arg| {
@@ -176,11 +148,6 @@ fn executable_tokens(command: &str) -> impl Iterator<Item = &str> {
         first = false;
         keep
     })
-}
-
-fn looks_like_exec_path(token: &str) -> bool {
-    let token = token.trim_matches(|ch| matches!(ch, '"' | '\''));
-    token.contains('/')
 }
 
 fn executable_token_matches(token: &str, wanted: &str) -> bool {
@@ -193,92 +160,16 @@ fn executable_token_matches(token: &str, wanted: &str) -> bool {
     if label_from_exec_token(&lower).is_some_and(|label| label.contains(wanted)) {
         return true;
     }
-    let basename = Path::new(&lower)
+    let basename = std::path::Path::new(&lower)
         .file_name()
         .and_then(|name| name.to_str())
         .unwrap_or(lower.as_str());
     !basename.contains('.') && basename.contains(wanted)
 }
 
-fn label_from_exec_token(token: &str) -> Option<&'static str> {
-    let token = token.trim_matches(|ch| matches!(ch, '"' | '\''));
-    if token.is_empty() {
-        return None;
-    }
-
-    let lower = token.to_ascii_lowercase();
-    let basename = Path::new(&lower)
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or(lower.as_str());
-
-    label_from_exec_name(basename).or_else(|| label_from_known_package_path(&lower))
-}
-
-fn label_from_exec_name(name: &str) -> Option<&'static str> {
-    match name {
-        "claude" | "claude-code" => Some("claude"),
-        "codex" | "codex-cli" => Some("codex"),
-        "gemini" | "gemini-cli" => Some("gemini"),
-        "opencode" => Some("opencode"),
-        "aider" => Some("aider"),
-        "goose" => Some("goose"),
-        "openclaw" => Some("openclaw"),
-        name if name.starts_with("openclaw-") => Some("openclaw"),
-        _ => None,
-    }
-}
-
-fn label_from_known_package_path(path: &str) -> Option<&'static str> {
-    if path.contains("@anthropic-ai/claude-code") || path.contains("/claude-code/") {
-        Some("claude")
-    } else if path.contains("@openai/codex") || path.contains("/codex-linux-") {
-        Some("codex")
-    } else if path.contains("@google/gemini-cli") || path.contains("/gemini-cli/") {
-        Some("gemini")
-    } else {
-        None
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn known_agent_label_uses_executable_not_model_argument() {
-        assert_eq!(
-            known_agent_label(
-                "agentsight",
-                "agentsight top -s tokens -v all -c claude --model claude-sonnet"
-            ),
-            None
-        );
-        assert_eq!(
-            known_agent_label(
-                "python",
-                "python benchmark_runner.py --model claude-sonnet-4-5-20250929"
-            ),
-            None
-        );
-        assert_eq!(
-            known_agent_label(
-                "docker",
-                "docker run image bash -c claude --model claude-sonnet-4"
-            ),
-            None
-        );
-        assert_eq!(
-            known_agent_label("node", "node /opt/npm/bin/codex --model gpt-5"),
-            Some("codex")
-        );
-        assert_eq!(
-            known_agent_label("node", "node /home/user/.local/bin/claude"),
-            Some("claude")
-        );
-        assert_eq!(known_agent_label("claude", "claude"), Some("claude"));
-        assert_eq!(known_agent_label("openclaw-gatewa", ""), Some("openclaw"));
-    }
 
     #[test]
     fn process_comm_matching_uses_comm_and_executable_tokens_only() {

@@ -1,8 +1,11 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
+//! SSL event filter. DSL: `field op value` conditions combined with `&`/`|`
+//! and parentheses; operators `=`, `!=`, `>`, `<`, `>=`, `<=`, `~` (contains).
+
 use super::common;
-use super::filter_base::{FilterBase, FilterExpr, MetricsStrategy};
+use super::filter_base::{ExprNode, FilterBase, FilterExpr, MetricsStrategy, cmp_float, cmp_num, cmp_str};
 use super::{Analyzer, AnalyzerError};
 use crate::runners::EventStream;
 use async_trait::async_trait;
@@ -20,24 +23,20 @@ pub struct SSLFilter {
 
 #[derive(Debug, Clone)]
 pub struct SslFilterExpr {
-    parsed: FilterNode,
+    parsed: ExprNode<Condition>,
 }
 
 #[derive(Debug, Clone)]
-enum FilterNode {
-    And(Box<FilterNode>, Box<FilterNode>),
-    Or(Box<FilterNode>, Box<FilterNode>),
-    Condition {
-        field: String,
-        operator: String,
-        value: String,
-    },
-    Empty,
+struct Condition {
+    field: String,
+    operator: String,
+    value: String,
 }
 
 impl FilterExpr for SslFilterExpr {
     fn evaluate(&self, data: &Value) -> bool {
-        evaluate_node(&self.parsed, data)
+        self.parsed
+            .evaluate(&|condition| eval_condition(condition, data))
     }
 }
 
@@ -102,22 +101,22 @@ impl SslFilterExpr {
     }
 }
 
-fn parse_expression(expr: &str) -> FilterNode {
+fn parse_expression(expr: &str) -> ExprNode<Condition> {
     let expr = expr.trim();
     if expr.is_empty() {
-        return FilterNode::Empty;
+        return ExprNode::Empty;
     }
     if let Some(pos) = find_operator(expr, '|') {
-        return FilterNode::Or(
-            Box::new(parse_expression(&expr[..pos])),
-            Box::new(parse_expression(&expr[pos + 1..])),
-        );
+        return ExprNode::Or(vec![
+            parse_expression(&expr[..pos]),
+            parse_expression(&expr[pos + 1..]),
+        ]);
     }
     if let Some(pos) = find_operator(expr, '&') {
-        return FilterNode::And(
-            Box::new(parse_expression(&expr[..pos])),
-            Box::new(parse_expression(&expr[pos + 1..])),
-        );
+        return ExprNode::And(vec![
+            parse_expression(&expr[..pos]),
+            parse_expression(&expr[pos + 1..]),
+        ]);
     }
     parse_condition(expr)
 }
@@ -135,7 +134,7 @@ fn find_operator(expr: &str, op: char) -> Option<usize> {
     None
 }
 
-fn parse_condition(expr: &str) -> FilterNode {
+fn parse_condition(expr: &str) -> ExprNode<Condition> {
     let expr = expr.trim();
     if expr.starts_with('(') && expr.ends_with(')') {
         return parse_expression(&expr[1..expr.len() - 1]);
@@ -155,39 +154,31 @@ fn parse_condition(expr: &str) -> FilterNode {
                 _ => "exact",
             }
             .to_string();
-            return FilterNode::Condition {
+            return ExprNode::Condition(Condition {
                 field,
                 operator,
                 value: SslFilterExpr::process_escape_sequences(raw_value),
-            };
+            });
         }
     }
-    FilterNode::Empty
+    ExprNode::Empty
 }
 
 // --- Evaluation ---
 
-fn evaluate_node(node: &FilterNode, data: &Value) -> bool {
-    match node {
-        FilterNode::And(l, r) => evaluate_node(l, data) && evaluate_node(r, data),
-        FilterNode::Or(l, r) => evaluate_node(l, data) || evaluate_node(r, data),
-        FilterNode::Condition {
-            field,
-            operator,
-            value,
-        } => eval_condition(field, operator, value, data),
-        FilterNode::Empty => false,
-    }
-}
-
-fn eval_condition(field: &str, operator: &str, expected: &str, data: &Value) -> bool {
+fn eval_condition(condition: &Condition, data: &Value) -> bool {
+    let Condition {
+        field,
+        operator,
+        value: expected,
+    } = condition;
     if field == "data.type" {
         if let Some(v) = data.get("data").and_then(|v| v.as_str()) {
             return cmp_str(common::detect_data_type(v), operator, expected);
         }
         return false;
     }
-    match field {
+    match field.as_str() {
         "is_handshake" | "truncated" => {
             data.get(field).and_then(|v| v.as_bool()).unwrap_or(false) == (expected == "true")
         }
@@ -206,47 +197,6 @@ fn eval_condition(field: &str, operator: &str, expected: &str, data: &Value) -> 
             .and_then(|v| v.as_str())
             .map(|v| cmp_str(v, operator, expected))
             .unwrap_or(false),
-    }
-}
-
-fn cmp_str(actual: &str, op: &str, expected: &str) -> bool {
-    match op {
-        "exact" => actual == expected,
-        "not_equal" => actual != expected,
-        "contains" => actual.contains(expected),
-        "prefix" => actual.starts_with(expected),
-        "suffix" => actual.ends_with(expected),
-        _ => false,
-    }
-}
-
-fn cmp_num(actual: u64, op: &str, expected: &str) -> bool {
-    let Ok(e) = expected.parse::<u64>() else {
-        return false;
-    };
-    match op {
-        "exact" => actual == e,
-        "not_equal" => actual != e,
-        "gt" => actual > e,
-        "lt" => actual < e,
-        "gte" => actual >= e,
-        "lte" => actual <= e,
-        _ => false,
-    }
-}
-
-fn cmp_float(actual: f64, op: &str, expected: &str) -> bool {
-    let Ok(e) = expected.parse::<f64>() else {
-        return false;
-    };
-    match op {
-        "exact" => (actual - e).abs() < f64::EPSILON,
-        "not_equal" => (actual - e).abs() >= f64::EPSILON,
-        "gt" => actual > e,
-        "lt" => actual < e,
-        "gte" => actual >= e,
-        "lte" => actual <= e,
-        _ => false,
     }
 }
 

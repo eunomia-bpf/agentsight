@@ -256,7 +256,7 @@ Responsibilities:
 - Renderer: print text, JSON, Markdown, or other formats from those typed query
   models.
 
-`cmd_perf.rs` can remain a thin orchestration entry point, but the printing
+`cmd_top.rs` can remain a thin orchestration entry point, but the printing
 logic should move toward a dedicated module such as:
 
 ```text

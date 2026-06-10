@@ -8,7 +8,7 @@ use std::path::Path;
 
 use crate::analyzers::common;
 use crate::event::Event;
-use crate::model::{AuditEventRow, LlmCallRow, TokenSummary};
+use crate::model::{AuditEventRow, LlmCallRow, ResourceSampleRow, TokenSummary};
 use crate::text::{extract_prompt_text, truncate_with_ellipsis as truncate};
 
 #[derive(Debug, Default, Serialize)]
@@ -18,25 +18,24 @@ pub(crate) struct ResourcePeaks {
     pub(crate) samples: usize,
 }
 
-#[derive(Debug, Serialize)]
-pub(crate) struct StatOutput {
-    pub(crate) db: String,
-    pub(crate) duration_s: f64,
-    pub(crate) view_events: i64,
-    pub(crate) llm_calls: i64,
-    pub(crate) input_tokens: i64,
-    pub(crate) output_tokens: i64,
-    pub(crate) total_tokens: i64,
-    pub(crate) process_execs: usize,
-    pub(crate) process_exits: usize,
-    pub(crate) process_exit_success: usize,
-    pub(crate) process_exit_failure: usize,
-    pub(crate) file_events: usize,
-    pub(crate) unique_files: usize,
-    pub(crate) network_hosts: usize,
-    pub(crate) http_errors: usize,
-    pub(crate) tool_calls: i64,
-    pub(crate) resources: ResourcePeaks,
+impl ResourcePeaks {
+    pub(crate) fn from_samples(samples: &[ResourceSampleRow]) -> Self {
+        let mut peaks = Self::default();
+        for sample in samples {
+            if let Some(cpu) = sample.cpu_percent
+                && cpu >= peaks.max_cpu_percent
+            {
+                peaks.max_cpu_percent = cpu;
+            }
+            if let Some(rss_mb) = sample.rss_mb.map(|v| v.max(0) as u64)
+                && rss_mb >= peaks.max_rss_mb
+            {
+                peaks.max_rss_mb = rss_mb;
+            }
+            peaks.samples += 1;
+        }
+        peaks
+    }
 }
 
 pub(crate) type TopSection = (&'static str, &'static str, Vec<(String, i64)>);
@@ -314,25 +313,39 @@ pub(crate) struct AgentTopOutput<'a> {
     pub(crate) notes: Vec<String>,
 }
 
+#[derive(Serialize)]
 pub(crate) struct SessionSummary {
     pub(crate) source: String,
+    pub(crate) db: Option<String>,
     pub(crate) duration_s: f64,
+    pub(crate) view_events: i64,
+    pub(crate) llm_calls: i64,
+    pub(crate) input_tokens: i64,
+    pub(crate) output_tokens: i64,
+    pub(crate) total_tokens: i64,
     pub(crate) first_llm_after_ms: Option<u64>,
     pub(crate) first_tool_after_ms: Option<u64>,
     pub(crate) prompt_chars: SummaryStats,
     pub(crate) llm_latency_ms: SummaryStats,
     pub(crate) models: Vec<(String, i64, i64, i64, i64)>,
     pub(crate) processes: BTreeMap<String, usize>,
+    pub(crate) process_execs: usize,
     pub(crate) process_exits: BTreeMap<String, usize>,
+    pub(crate) process_exit_success: usize,
+    pub(crate) process_exit_failure: usize,
     pub(crate) tool_calls: BTreeMap<String, usize>,
+    pub(crate) tool_call_total: usize,
     pub(crate) tool_duration_ms: SummaryStats,
     pub(crate) files: Vec<String>,
     pub(crate) file_access: FileAccessSummary,
     pub(crate) network_events: usize,
+    pub(crate) network_hosts: usize,
+    pub(crate) http_errors: usize,
     pub(crate) endpoints: Vec<String>,
+    pub(crate) resources: ResourcePeaks,
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize)]
 pub(crate) struct SummaryStats {
     pub(crate) count: usize,
     pub(crate) total: u64,
@@ -351,7 +364,7 @@ impl SummaryStats {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize)]
 pub(crate) struct FileAccessSummary {
     pub(crate) events: usize,
     pub(crate) first_after_ms: Option<u64>,
@@ -392,118 +405,8 @@ pub(crate) fn separator_line() -> &'static str {
     "============================================================"
 }
 
-pub(crate) fn print_trace_header() {
-    println!("Trace Monitoring\n{}", separator_line());
-}
-
-pub(crate) fn print_trace_ssl_binary_discovered(comm: &str, path: &str) {
-    println!("✓ Auto-discovered statically-linked SSL binary for --comm '{comm}': {path}");
-}
-
-pub(crate) fn print_trace_container_binary_resolved(reference: &str, path: &str) {
-    println!("✓ Resolved container '{reference}' to SSL attach target: {path}");
-}
-
-pub(crate) fn print_trace_start(runners: usize, analyzers: usize) {
-    println!("{}", separator_line());
-    println!(
-        "Starting flexible trace monitoring with {runners} runners and {analyzers} global analyzers..."
-    );
-    println!("Press Ctrl+C to stop");
-}
-
-pub(crate) fn print_trace_shutdown() {
-    println!("✓ Shutdown requested. Stopping monitoring.");
-}
-
-pub(crate) fn print_web_server_start(url: &str) {
-    println!("Starting web server on {url}");
-}
-
-pub(crate) fn print_web_server_error(error: impl std::fmt::Display) {
-    eprintln!("Web server error: {error}");
-}
-
-pub(crate) fn print_record_header() {
-    println!("AgentSight record\n{}", separator_line());
-}
-
 pub(crate) fn print_record_session_db_error(error: impl std::fmt::Display) {
     eprintln!("⚠ Could not create session DB ({error}), continuing without it.");
-}
-
-pub(crate) fn print_record_provided_binary_path(path: &str) {
-    println!("→ Using provided binary path: {path}");
-}
-
-pub(crate) fn print_record_auto_binary_path(path: &str) {
-    println!("✓ Auto-discovered binary: {path}");
-}
-
-pub(crate) fn print_record_sudo_prompt() {
-    println!("🔑 eBPF probes require root. Requesting sudo access...");
-}
-
-pub(crate) fn print_top_sudo_prompt() {
-    eprintln!("top live eBPF capture requires sudo. Requesting sudo access...");
-}
-
-pub(crate) fn print_record_drop_user(uid: libc::uid_t, gid: libc::gid_t) {
-    println!("✓ Dropping child to uid={uid} gid={gid}");
-}
-
-pub(crate) fn print_record_attribution_session(pid: u32) {
-    println!("✓ Run attribution session: {pid}");
-}
-
-pub(crate) fn print_record_web_ui(url: &str) {
-    println!("Web UI: {url}");
-}
-
-pub(crate) fn print_record_launch(command: &[String]) {
-    println!("▶ Launching: {}", command.join(" "));
-    println!("{}", separator_line());
-}
-
-pub(crate) fn print_record_monitoring_stream_ended() {
-    println!("\n⚠ Monitoring stream ended before target exited. Stopping target.");
-}
-
-pub(crate) fn print_record_target_exited(status: impl std::fmt::Display) {
-    println!(
-        "\n{}\n✓ Target exited ({}). Stopping monitoring.",
-        separator_line(),
-        status
-    );
-}
-
-pub(crate) fn print_record_target_wait_error(error: impl std::fmt::Display) {
-    println!("\n⚠ Error waiting on target: {error}");
-}
-
-pub(crate) fn print_record_shutdown() {
-    println!("\n✓ Shutdown requested. Stopping target and monitoring.");
-}
-
-pub(crate) fn print_record_session_summary(summary: &SessionSummary) {
-    println!();
-    print_session_summary(summary);
-}
-
-pub(crate) fn print_record_target_status_error(error: impl std::fmt::Display) {
-    println!("⚠ Error checking target status: {error}");
-}
-
-pub(crate) fn print_record_target_shutdown_error(error: impl std::fmt::Display) {
-    println!("⚠ Error waiting for target shutdown: {error}");
-}
-
-pub(crate) fn print_record_kill_error(error: impl std::fmt::Display) {
-    println!("⚠ Failed to kill target process: {error}");
-}
-
-pub(crate) fn print_exported_snapshot(output: &str) {
-    println!("Exported snapshot to {output}");
 }
 
 pub(crate) fn print_token_summary(group_by: &str, rows: &[TokenSummary]) {
@@ -563,40 +466,6 @@ pub(crate) fn print_llm_prompts(rows: &[LlmCallRow]) {
             row.total_tokens,
             prompt_preview(&row.request, 96)
         );
-    }
-}
-
-pub(crate) fn print_stat(stat: &StatOutput) {
-    println!("AgentSight stat");
-    field("db", &stat.db);
-    field("elapsed time", format!("{:.3} s", stat.duration_s));
-    field("view events", stat.view_events);
-    field("LLM calls", stat.llm_calls);
-    field(
-        "tokens",
-        format!(
-            "{} total (in: {}, out: {})",
-            stat.total_tokens, stat.input_tokens, stat.output_tokens
-        ),
-    );
-    field("tool calls", stat.tool_calls);
-    field("process execs", stat.process_execs);
-    field(
-        "process exits",
-        format!(
-            "{} (success: {}, failure: {})",
-            stat.process_exits, stat.process_exit_success, stat.process_exit_failure
-        ),
-    );
-    field(
-        "file events",
-        format!("{} (unique files: {})", stat.file_events, stat.unique_files),
-    );
-    field("network hosts", stat.network_hosts);
-    field("HTTP/LLM errors", stat.http_errors);
-    if stat.resources.samples > 0 {
-        field("max CPU", format!("{:.2}%", stat.resources.max_cpu_percent));
-        field("max RSS", format!("{} MB", stat.resources.max_rss_mb));
     }
 }
 
@@ -684,6 +553,9 @@ pub(crate) fn print_session_summary(summary: &SessionSummary) {
         .any(|(_, input, output, total, _)| *input > 0 || *output > 0 || *total > 0);
 
     print!("{} session", summary.source);
+    if let Some(db) = &summary.db {
+        print!(" · {db}");
+    }
     if summary.duration_s > 0.0 {
         print!(" · {:.0}s", summary.duration_s);
     }
@@ -695,6 +567,7 @@ pub(crate) fn print_session_summary(summary: &SessionSummary) {
     }
     println!("\n");
 
+    print_session_counters(summary);
     print_session_timeline(summary);
 
     for (name, inp, out, total, calls) in &summary.models {
@@ -767,6 +640,48 @@ pub(crate) fn print_session_summary(summary: &SessionSummary) {
             summary.endpoints.join(", ")
         );
     }
+}
+
+fn print_session_counters(summary: &SessionSummary) {
+    println!("Counters");
+    field("view events", summary.view_events);
+    field("LLM calls", summary.llm_calls);
+    field(
+        "tokens",
+        format!(
+            "{} total (in: {}, out: {})",
+            summary.total_tokens, summary.input_tokens, summary.output_tokens
+        ),
+    );
+    field("tool calls", summary.tool_call_total);
+    field("process execs", summary.process_execs);
+    field(
+        "process exits",
+        format!(
+            "{} (success: {}, failure: {})",
+            summary.process_exits.values().sum::<usize>(),
+            summary.process_exit_success,
+            summary.process_exit_failure
+        ),
+    );
+    field(
+        "file events",
+        format!(
+            "{} (unique files: {})",
+            summary.file_access.events,
+            summary.files.len()
+        ),
+    );
+    field("network hosts", summary.network_hosts);
+    field("HTTP/LLM errors", summary.http_errors);
+    if summary.resources.samples > 0 {
+        field(
+            "max CPU",
+            format!("{:.2}%", summary.resources.max_cpu_percent),
+        );
+        field("max RSS", format!("{} MB", summary.resources.max_rss_mb));
+    }
+    println!();
 }
 
 fn print_session_timeline(summary: &SessionSummary) {

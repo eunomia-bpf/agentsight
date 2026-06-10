@@ -11,11 +11,7 @@ use crate::binary_extractor::BinaryExtractor;
 use crate::binary_resolver::{
     binary_embeds_ssl, resolve_binary_path, resolve_container_binary_arg,
 };
-use crate::output::{
-    print_event_json, print_trace_container_binary_resolved, print_trace_header,
-    print_trace_shutdown, print_trace_ssl_binary_discovered, print_trace_start,
-    print_web_server_error, print_web_server_start,
-};
+use crate::output::print_event_json;
 use crate::runners::{
     AgentRunner, BinaryRunner, EventStream, ProcessRunner, Runner, RunnerError, SystemRunner,
 };
@@ -310,7 +306,7 @@ pub(crate) async fn run_trace(
     binary_extractor: &BinaryExtractor,
     mut cfg: TraceConfig,
 ) -> Result<(), RunnerError> {
-    print_trace_header();
+    println!("Trace Monitoring\n{}", crate::output::separator_line());
 
     // A `--binary-path docker://<container>` (or `docker:<container>`) reference
     // is translated in Rust to an explicit host-side SSL attach target. The C
@@ -319,7 +315,7 @@ pub(crate) async fn run_trace(
     if let Some((reference, resolved)) =
         resolve_container_binary_arg(cfg.binary_path.as_deref()).map_err(RunnerError::from)?
     {
-        print_trace_container_binary_resolved(&reference, &resolved);
+        println!("✓ Resolved container '{reference}' to SSL attach target: {resolved}");
         cfg.binary_path = Some(resolved);
     }
 
@@ -337,7 +333,11 @@ pub(crate) async fn run_trace(
             .and_then(|c| resolve_binary_path(c).ok())
             .filter(|p| binary_embeds_ssl(p));
         if let Some(p) = resolved {
-            print_trace_ssl_binary_discovered(cfg.comm.as_deref().unwrap_or(""), &p);
+            println!(
+                "✓ Auto-discovered statically-linked SSL binary for --comm '{}': {}",
+                cfg.comm.as_deref().unwrap_or(""),
+                p
+            );
             cfg.binary_path = Some(p);
         }
     }
@@ -354,7 +354,13 @@ pub(crate) async fn run_trace(
     let live_view = MaterializedView::shared_bounded();
     let mut agent = build_trace_agent_with_view(binary_extractor, &cfg, live_view.clone())?;
 
-    print_trace_start(agent.runner_count(), agent.analyzer_count());
+    println!("{}", crate::output::separator_line());
+    println!(
+        "Starting flexible trace monitoring with {} runners and {} global analyzers...",
+        agent.runner_count(),
+        agent.analyzer_count()
+    );
+    println!("Press Ctrl+C to stop");
 
     // Start web server if enabled
     let _server_handle =
@@ -400,11 +406,11 @@ pub(crate) async fn start_web_server_if_enabled(
         listen
     };
     let url = format!("http://{}:{}/", host, port);
-    print_web_server_start(&url);
+    println!("Starting web server on {url}");
 
     let server_handle = tokio::spawn(async move {
         if let Err(e) = web_server.start(addr).await {
-            print_web_server_error(e);
+            eprintln!("Web server error: {e}");
         }
     });
 
@@ -437,7 +443,7 @@ pub(crate) async fn drive_stream_until_shutdown(stream: &mut EventStream, print_
                 }
             }
             _ = shutdown.notified() => {
-                print_trace_shutdown();
+                println!("✓ Shutdown requested. Stopping monitoring.");
                 break;
             }
         }

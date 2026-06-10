@@ -10,6 +10,7 @@
 #include <bpf/libbpf.h>
 #include <bpf/bpf.h>
 #include "process_ext/types.h"
+#include "jsonl.h"
 
 static const char *event_type_name(unsigned int type)
 {
@@ -31,22 +32,6 @@ static const char *event_type_name(unsigned int type)
 	case EVENT_TYPE_COW_FAULT:     return "COW_FAULT";
 	default:                       return "UNKNOWN";
 	}
-}
-
-/* Escape a string for JSON output (minimal: handle \, ", \n, \t, \0) */
-static void json_escape(const char *src, char *dst, size_t dst_size)
-{
-	size_t j = 0;
-	for (size_t i = 0; src[i] && j < dst_size - 2; i++) {
-		switch (src[i]) {
-		case '\\': if (j + 2 < dst_size) { dst[j++] = '\\'; dst[j++] = '\\'; } break;
-		case '"':  if (j + 2 < dst_size) { dst[j++] = '\\'; dst[j++] = '"'; } break;
-		case '\n': if (j + 2 < dst_size) { dst[j++] = '\\'; dst[j++] = 'n'; } break;
-		case '\t': if (j + 2 < dst_size) { dst[j++] = '\\'; dst[j++] = 't'; } break;
-		default:   dst[j++] = src[i]; break;
-		}
-	}
-	dst[j] = '\0';
 }
 
 static bool parse_fd_detail(const char *detail, int *fd_out)

@@ -94,7 +94,7 @@ Build requirements and source build commands live in [docs/build.md](https://git
 Every `stat -- <command>` or `record` session is automatically saved to SQLite. Start with the perf-style commands, then use `agentsight report` for structured queries:
 
 ```bash
-agentsight stat                              # counters for the latest saved session
+agentsight stat                              # alias of `report summary` for the latest saved session
 sudo agentsight top                          # live ranked view of current agent sessions
 agentsight top --db run.db --once            # ranked view of a saved session
 sudo agentsight record -- claude             # record a command

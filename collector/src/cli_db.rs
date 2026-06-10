@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-use crate::model::{AGENT_NATIVE_SOURCE, SnapshotOptions, TokenSummary};
+use crate::model::{AGENT_NATIVE_SOURCE, AuditCounters, SnapshotOptions, TokenSummary};
 use crate::output::{
-    FileAccessSummary, SessionSummary, SummaryStats, print_audit_rows, print_exported_snapshot,
-    print_json, print_llm_prompts, print_session_summary, print_token_summary, prompt_text_chars,
+    FileAccessSummary, ResourcePeaks, SessionSummary, SummaryStats, print_audit_rows, print_json,
+    print_llm_prompts, print_session_summary, print_token_summary, prompt_text_chars,
     sorted_top_counts,
 };
 use crate::sources::agent_native as agent_native_sessions;
@@ -96,7 +96,7 @@ pub(crate) fn run_export(
         stdout.write_all(b"\n")?;
     } else {
         std::fs::write(output, json)?;
-        print_exported_snapshot(output);
+        println!("Exported snapshot to {output}");
     }
     Ok(())
 }
@@ -131,6 +131,19 @@ impl SessionSummary {
             }
         }
         let models = token_summary_tuples(&snap.token_summary);
+        let audit = AuditCounters::from_rows(&snap.audit_events);
+        let network_hosts = snap
+            .network_targets
+            .iter()
+            .map(|target| target.host.clone())
+            .collect::<BTreeSet<_>>()
+            .len();
+        let http_errors = snap
+            .network_targets
+            .iter()
+            .map(|target| target.error_count.max(0) as usize)
+            .sum();
+        let resources = ResourcePeaks::from_samples(&snap.resource_samples);
         let mut processes = BTreeMap::new();
         let mut process_exits = BTreeMap::new();
         for row in snap
@@ -217,20 +230,33 @@ impl SessionSummary {
         }
         Ok(Self {
             source: s.source.clone(),
+            db: None,
             duration_s: s.duration_s(),
+            view_events: s.view_events,
+            llm_calls: s.llm_calls,
+            input_tokens: s.input_tokens,
+            output_tokens: s.output_tokens,
+            total_tokens: s.total_tokens,
             first_llm_after_ms,
             first_tool_after_ms,
             prompt_chars,
             llm_latency_ms,
             models,
+            process_execs: audit.process_execs,
             processes,
             process_exits,
+            process_exit_success: audit.process_exit_success,
+            process_exit_failure: audit.process_exit_failure,
+            tool_call_total: snap.tool_calls.len(),
             tool_calls,
             tool_duration_ms,
             files,
             file_access,
             network_events,
+            network_hosts,
+            http_errors,
             endpoints,
+            resources,
         })
     }
 }
@@ -264,9 +290,16 @@ fn file_directory(path: &str) -> String {
 
 pub(crate) fn run_db_summary(
     db: Option<&str>,
+    json: bool,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let view = load_agentsight_view(db)?;
-    print_session_summary(&SessionSummary::from_view(&view)?);
+    let mut summary = SessionSummary::from_view(&view)?;
+    summary.db = db.map(ToString::to_string);
+    if json {
+        print_json(&summary)?;
+    } else {
+        print_session_summary(&summary);
+    }
     Ok(())
 }
 

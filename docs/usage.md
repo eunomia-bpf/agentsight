@@ -57,7 +57,7 @@ sudo ./collector/target/release/agentsight record -- claude
 
 # Inspect the latest saved run
 ./collector/target/release/agentsight report
-./collector/target/release/agentsight stat
+./collector/target/release/agentsight stat   # alias of `report summary`
 
 # Attach to an already-running process family
 sudo ./collector/target/release/agentsight record -c claude

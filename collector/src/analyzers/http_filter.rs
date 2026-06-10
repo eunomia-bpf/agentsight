@@ -1,7 +1,10 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-use super::filter_base::{FilterBase, FilterExpr, MetricsStrategy};
+//! HTTP event filter. DSL: `request.<field>=<value>` / `response.<field>=<value>`
+//! conditions combined with `&`/`|`; bare words match request paths.
+
+use super::filter_base::{ExprNode, FilterBase, FilterExpr, MetricsStrategy};
 use super::{Analyzer, AnalyzerError};
 use crate::runners::EventStream;
 use async_trait::async_trait;
@@ -19,25 +22,21 @@ pub struct HTTPFilter {
 
 #[derive(Debug, Clone)]
 pub struct HttpFilterExpr {
-    parsed: FilterNode,
+    parsed: ExprNode<Condition>,
 }
 
 #[derive(Debug, Clone)]
-enum FilterNode {
-    And(Vec<FilterNode>),
-    Or(Vec<FilterNode>),
-    Condition {
-        target: String,
-        field: String,
-        operator: String,
-        value: String,
-    },
-    Empty,
+struct Condition {
+    target: String,
+    field: String,
+    operator: String,
+    value: String,
 }
 
 impl FilterExpr for HttpFilterExpr {
     fn evaluate(&self, data: &Value) -> bool {
-        evaluate_node(&self.parsed, data)
+        self.parsed
+            .evaluate(&|condition| eval_condition(condition, data))
     }
 }
 
@@ -64,7 +63,7 @@ impl HttpFilterExpr {
         let trimmed = expression.trim();
         if trimmed.is_empty() {
             return Self {
-                parsed: FilterNode::Empty,
+                parsed: ExprNode::Empty,
             };
         }
         Self {
@@ -73,36 +72,36 @@ impl HttpFilterExpr {
     }
 }
 
-fn parse_or(expr: &str) -> FilterNode {
+fn parse_or(expr: &str) -> ExprNode<Condition> {
     let parts: Vec<&str> = expr.split('|').map(str::trim).collect();
     if parts.len() > 1 {
-        FilterNode::Or(parts.into_iter().map(parse_and).collect())
+        ExprNode::Or(parts.into_iter().map(parse_and).collect())
     } else {
         parse_and(expr)
     }
 }
 
-fn parse_and(expr: &str) -> FilterNode {
+fn parse_and(expr: &str) -> ExprNode<Condition> {
     let parts: Vec<&str> = expr.split('&').map(str::trim).collect();
     if parts.len() > 1 {
-        FilterNode::And(parts.into_iter().map(parse_single).collect())
+        ExprNode::And(parts.into_iter().map(parse_single).collect())
     } else {
         parse_single(expr)
     }
 }
 
-fn parse_single(cond: &str) -> FilterNode {
+fn parse_single(cond: &str) -> ExprNode<Condition> {
     let cond = cond.trim();
     if !cond.contains('=') {
-        return FilterNode::Condition {
+        return ExprNode::Condition(Condition {
             target: "request".into(),
             field: "path".into(),
             operator: "contains".into(),
             value: cond.into(),
-        };
+        });
     }
     let Some((key, value)) = cond.split_once('=') else {
-        return FilterNode::Empty;
+        return ExprNode::Empty;
     };
     let (key, value) = (key.trim(), value.trim());
 
@@ -119,58 +118,46 @@ fn parse_single(cond: &str) -> FilterNode {
             "response" | "resp" | "res" => ("response", "exact"),
             _ => ("request", "exact"),
         };
-        FilterNode::Condition {
+        ExprNode::Condition(Condition {
             target: target.into(),
             field: field.trim().into(),
             operator: operator.into(),
             value: value.into(),
-        }
+        })
     } else {
         let operator = match key {
             "path_prefix" | "path_starts_with" => "prefix",
             "path_contains" | "path_includes" => "contains",
             _ => "exact",
         };
-        FilterNode::Condition {
+        ExprNode::Condition(Condition {
             target: "request".into(),
             field: key.into(),
             operator: operator.into(),
             value: value.into(),
-        }
+        })
     }
 }
 
 // --- Evaluation ---
 
-fn evaluate_node(node: &FilterNode, data: &Value) -> bool {
-    match node {
-        FilterNode::Empty => false,
-        FilterNode::And(cs) => cs.iter().all(|c| evaluate_node(c, data)),
-        FilterNode::Or(cs) => cs.iter().any(|c| evaluate_node(c, data)),
-        FilterNode::Condition {
-            target,
-            field,
-            operator,
-            value,
-        } => {
-            let msg_type = data
-                .get("message_type")
-                .and_then(|v| v.as_str())
-                .unwrap_or("");
-            let matches_target = match target.as_str() {
-                "request" => msg_type == "request",
-                "response" => msg_type == "response",
-                _ => false,
-            };
-            if !matches_target {
-                return false;
-            }
-            if target == "request" {
-                eval_request(field, operator, value, data)
-            } else {
-                eval_response(field, value, data)
-            }
-        }
+fn eval_condition(condition: &Condition, data: &Value) -> bool {
+    let msg_type = data
+        .get("message_type")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let matches_target = match condition.target.as_str() {
+        "request" => msg_type == "request",
+        "response" => msg_type == "response",
+        _ => false,
+    };
+    if !matches_target {
+        return false;
+    }
+    if condition.target == "request" {
+        eval_request(&condition.field, &condition.operator, &condition.value, data)
+    } else {
+        eval_response(&condition.field, &condition.value, data)
     }
 }
 

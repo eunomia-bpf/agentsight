@@ -18,8 +18,8 @@ cd collector && cargo build --release   # Rust collector only
 cd frontend && npm install && npm run build  # Frontend only
 
 # Tests
-cd bpf && make test              # 60 C unit tests
-cd collector && cargo test       # 89+ Rust tests
+cd bpf && make test              # C unit + runtime tests
+cd collector && cargo test       # Rust tests
 cd frontend && npm run lint      # Frontend linting
 
 # Run a single Rust test
@@ -67,11 +67,18 @@ eBPF Programs (kernel) → JSON stdout → Rust Runners → Analyzer Chain → O
 
 ### Key Components
 
-- **`bpf/`** — C eBPF programs. `sslsniff` hooks SSL_read/SSL_write via uprobes; `process` tracks process lifecycle via tracepoints. Both emit JSON to stdout.
-- **`collector/src/framework/`** — Rust streaming framework:
-  - `runners/` — Execute eBPF binaries and parse their JSON output into event streams (SslRunner, ProcessRunner, SystemRunner, FakeRunner)
-  - `analyzers/` — Pluggable stream processors: SSEProcessor, HTTPParser, SSLFilter, HTTPFilter, AuthHeaderRemover, TimestampNormalizer, OtelExporter (maps LLM HTTP pairs to OpenTelemetry `gen_ai.*` spans, exported via OTLP/HTTP JSON; enabled by `debug trace --otel`, see `docs/otel.md`)
-  - `core/events.rs` — Standardized `Event` struct with JSON payloads
+- **`bpf/`** — C eBPF programs. `sslsniff` hooks SSL_read/SSL_write via uprobes; `process` tracks process lifecycle via tracepoints; `stdiocap` captures stdio payloads. All emit JSONL to stdout via the shared `bpf/jsonl.h` helpers. `browsertrace` is experimental (`make experimental`) and not embedded in the collector.
+- **`collector/src/`** — Rust streaming pipeline (flat module layout):
+  - `runners/` — Execute eBPF binaries and parse their JSON output into event streams (BinaryRunner, ProcessRunner, SystemRunner, AgentRunner; FakeRunner is test-only)
+  - `analyzers/` — Pluggable stream processors: SSEProcessor, HTTPParser, SSLFilter, HTTPFilter (both built on a shared `ExprNode` filter core), AuthHeaderRemover, TimestampNormalizer, MaterializingAnalyzer (feeds the materialized view)
+  - `decode.rs` + `semantic.rs` — The decode stage: the **single owner of raw event JSON navigation**. Converts untyped runner events into typed `SemanticEvent`s (LlmRequest/LlmResponse/ProcessExec/FileWrite/...) exactly once; everything downstream consumes typed fields
+  - `providers/` — LLM provider adapters (anthropic, openai, gemini): one module per wire protocol owning host labels, LLM endpoint paths, and token-usage extraction. Adding a provider = one module + one registry entry
+  - `agents/` — Agent adapter registry (claude, codex, gemini, openclaw, ...): one module per agent CLI owning exec-name/package-path identification, `discover` entries, and native session locations. Adding an agent = one module + one registry entry
+  - `sources/` — Non-eBPF inputs: agent-native session files (locations come from `agents/`), `/proc` snapshots, saved SQLite databases
+  - `view/` — MaterializedView: pure fold of `SemanticEvent`s into rows (llm_calls, audit_events, process_nodes, ...) plus snapshot export. Two write paths only: `ingest_event` (live, via decode) and row loads (replay/import)
+  - `sinks/` — ViewSink implementations: SQLite row store, OTel exporter (maps LLM call rows to OpenTelemetry `gen_ai.*` spans via OTLP/HTTP JSON; enabled by `debug trace --otel`, see `docs/otel.md`)
+  - `output/` — CLI/TUI rendering of snapshots; `cmd_top.rs` — all `top` render modes (saved-DB, live table, live TUI). The session summary used by `report summary` (and its `stat` alias) lives in `cli_db.rs` (`SessionSummary::from_view`) and `output/format.rs` (`print_session_summary`).
+  - `event.rs` — Standardized `Event` struct with JSON payloads; `model.rs` — view row types + ViewSink trait
   - `binary_extractor.rs` — Extracts embedded eBPF binaries to temp files at runtime
 - **`collector/src/main.rs`** — CLI entry point. Main subcommands: `stat`, `top`, `record`, `report` (`summary`, `token`, `audit`, `prompts`, `export`, `list`), `discover`, and `debug` (`ssl`, `process`, `stdio`, `trace`, `system`).
 - **`collector/src/server/`** — Hyper-based embedded web server serving frontend assets and `/api/events`
@@ -123,7 +130,7 @@ This logic is in `build_trace_agent()` in `collector/src/cmd_trace.rs`.
 
 - **`top`** — Primary live view. Run as `sudo ./agentsight top`; it loads eBPF probes and also reads agent-native sessions when present.
 - **`record`** — Optimized recording. Use `sudo ./agentsight record -- <command>` to launch and trace a command, or `sudo ./agentsight record -c <comm>` / `-p <pid>` to attach. It enables SSL, process, stdio when applicable, system monitoring, materialized view sinks, and the web UI by default.
-- **`stat`** — Query the latest saved session, or run `sudo ./agentsight stat -- <command>` and print counters when the command exits.
+- **`stat`** — Alias of `report summary`. `agentsight stat [--db X] [--json]` runs the exact same code path as `report summary`; `sudo ./agentsight stat -- <command>` launches the command (like `record`) and prints the merged session summary when it exits.
 - **`report [summary|token|audit|prompts|export|list]`** — Query saved local SQLite sessions; these usually do not need sudo. `report` with no subcommand defaults to `summary`.
 - **`debug trace`** — Most flexible live capture. Toggle `--ssl`, `--process`, `--stdio`, `--system`, and `--server` independently. Supports `--ssl-filter`, `--http-filter`, `--binary-path`, and `--otel`.
 - **`debug ssl` / `debug process` / `debug stdio` / `debug system`** — Raw component-level debug entrypoints. Use `sudo` because they load eBPF probes or inspect privileged process state.

@@ -237,7 +237,7 @@ Identity and attribution are currently spread across:
 - `sources/proc.rs`: process discovery and process-tree heuristics
 - `sources/session.rs`: local transcript discovery and parsing
 - `view/projection.rs`: LLM correlation and row projection on MaterializedView
-- `cmd_perf/live.rs`: proc fd scans, eBPF file evidence, sticky live bindings
+- `cmd_top.rs` (live capture half): proc fd scans, eBPF file evidence, sticky live bindings
 - frontend rendering: process trees are built from snapshot `process_nodes` and
   timestamp-matched `audit_events`
 

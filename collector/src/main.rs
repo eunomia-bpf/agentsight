@@ -17,6 +17,7 @@ use std::sync::{
 use tokio::signal;
 use tokio::sync::Notify;
 
+mod agents;
 mod analyzers;
 mod binary_extractor;
 mod binary_resolver;
@@ -24,11 +25,12 @@ mod cli_db;
 mod cli_discover;
 mod cmd_debug;
 mod cmd_exec;
-mod cmd_perf;
-mod cmd_perf_live;
-mod cmd_perf_tui;
+mod cmd_top;
 mod cmd_trace;
 mod event;
+mod decode;
+mod providers;
+mod semantic;
 mod json;
 mod model;
 mod output;
@@ -49,9 +51,7 @@ use cli_db::{
 use cli_discover::run_discover;
 use cmd_debug::{run_raw_process, run_raw_ssl, run_raw_stdio, run_system};
 use cmd_exec::{default_session_db_path, print_session_summary, run_exec};
-use cmd_perf::{run_stat_query, run_top_query};
-use cmd_perf_live::run_live_top_query;
-use cmd_perf_tui::run_live_top_tui;
+use cmd_top::{run_live_top_query, run_live_top_tui, run_top_query};
 use cmd_trace::{
     OtelConfig, TraceConfig, convert_runner_error, run_trace, start_web_server_if_enabled,
 };
@@ -173,13 +173,13 @@ async fn setup_signal_handler(suppress_terminal_output: bool) {
 #[command(
     author,
     version,
-    about = "AgentSight: stat/top/record/report for AI agent runs.\n\n\
+    about = "AgentSight: top/record/report for AI agent runs.\n\n\
              Common flow:\n\
-               sudo agentsight stat -- claude\n\
                sudo agentsight record -- claude\n\
                sudo agentsight top\n\
                agentsight report\n\
                agentsight report prompts --json\n\n\
+             (`stat` is an alias of `report summary`; `stat -- <cmd>` records like `record`.)\n\n\
              eBPF probes require root. Use sudo for live capture commands;\n\
              AgentSight can auto-elevate if you forget, while your agent still\n\
              runs as your normal user."
@@ -194,7 +194,8 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Print counters for a recorded session, or run a command and print counters when it exits.
+    /// Alias of `report summary`: print a recorded session's summary, or run a command and
+    /// print its summary when it exits.
     /// Examples: agentsight stat --db run.db     (or)  sudo agentsight stat -- claude
     Stat {
         /// SQLite database path (defaults to latest session when no command is passed)
@@ -307,6 +308,9 @@ enum ReportCommands {
         /// Read agent-native Claude/Codex sessions
         #[arg(long)]
         local: bool,
+        /// Emit JSON output
+        #[arg(long)]
+        json: bool,
     },
     /// Query token usage from a SQLite database
     Token {
@@ -592,16 +596,20 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     match &cli.command {
         Commands::Report { db, local, sub } => match sub {
             None | Some(ReportCommands::Summary { .. }) => {
-                let (db_ref, local_ref) = match sub {
-                    Some(ReportCommands::Summary { db: d, local: l }) => (d, l),
-                    _ => (db, local),
+                let (db_ref, local_ref, json) = match sub {
+                    Some(ReportCommands::Summary {
+                        db: d,
+                        local: l,
+                        json,
+                    }) => (d, l, *json),
+                    _ => (db, local, false),
                 };
                 let resolved = if *local_ref {
                     None
                 } else {
                     resolve_db_or_latest(db_ref).ok()
                 };
-                run_db_summary(resolved.as_deref())?;
+                run_db_summary(resolved.as_deref(), json)?;
             }
             Some(ReportCommands::Token {
                 db: d,
@@ -650,7 +658,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             db, json, command, ..
         } if command.is_empty() => {
             let db = resolve_db_or_latest(db)?;
-            run_stat_query(&db, *json)?;
+            run_db_summary(Some(&db), *json)?;
         }
         Commands::Top {
             db: Some(db),
@@ -718,7 +726,9 @@ async fn run_with_extractor(
                 unreachable!("stat without a command is handled before binary extraction");
             }
             if *json {
-                return Err("stat --json currently requires --db for clean JSON output".into());
+                return Err(
+                    "stat --json currently requires --db for clean JSON output (this is an alias of report summary --json)".into(),
+                );
             }
             let recorded_db = run_exec(
                 binary_extractor,
@@ -735,7 +745,7 @@ async fn run_with_extractor(
             let db = recorded_db
                 .as_deref()
                 .ok_or("stat command did not produce a SQLite session database")?;
-            run_stat_query(db, false)?;
+            run_db_summary(Some(db), false)?;
         }
         Commands::Record {
             comm,

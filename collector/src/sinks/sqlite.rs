@@ -44,203 +44,6 @@ impl SqliteStore {
         Ok(())
     }
 
-    fn upsert_network_target(&self, target: &NetworkTargetRow) -> ViewResult<()> {
-        let id = network_target_id(target);
-        self.conn.execute(
-            "INSERT INTO network_targets (
-                id, pid, comm, host, path, count, error_count, first_timestamp_ms, last_timestamp_ms
-             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
-             ON CONFLICT(id) DO UPDATE SET
-                count = count + excluded.count,
-                error_count = error_count + excluded.error_count,
-                first_timestamp_ms = MIN(first_timestamp_ms, excluded.first_timestamp_ms),
-                last_timestamp_ms = MAX(last_timestamp_ms, excluded.last_timestamp_ms)",
-            params![
-                id,
-                target.pid.map(|v| v as i64),
-                target.comm.as_deref(),
-                target.host.as_str(),
-                target.path.as_deref(),
-                target.count,
-                target.error_count,
-                target.first_timestamp_ms.map(|v| v as i64),
-                target.last_timestamp_ms.map(|v| v as i64),
-            ],
-        )?;
-        Ok(())
-    }
-
-    fn insert_resource_sample(&self, sample: &ResourceSampleRow) -> ViewResult<()> {
-        self.conn.execute(
-            "INSERT INTO resource_samples (timestamp_ms, pid, comm, cpu_percent, rss_mb)
-             VALUES (?1, ?2, ?3, ?4, ?5)",
-            params![
-                sample.timestamp_ms as i64,
-                sample.pid.map(|v| v as i64),
-                sample.comm.as_deref(),
-                sample.cpu_percent,
-                sample.rss_mb,
-            ],
-        )?;
-        Ok(())
-    }
-
-    fn insert_llm_call(&self, call: &LlmCallRow) -> ViewResult<()> {
-        self.conn.execute(
-            "INSERT OR REPLACE INTO llm_calls (
-                id, start_timestamp_ms, end_timestamp_ms, pid, comm, provider, model,
-                host, path, status_code, request_body_json, response_body_json,
-                view_source, confidence
-             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
-            params![
-                call.id,
-                call.start_timestamp_ms as i64,
-                call.end_timestamp_ms.map(|v| v as i64),
-                call.pid.map(|v| v as i64),
-                call.comm.as_deref(),
-                call.provider.as_deref(),
-                call.model.as_deref(),
-                call.host.as_deref(),
-                call.path.as_deref(),
-                call.status_code.map(|v| v as i64),
-                call.request.to_string(),
-                call.response.to_string(),
-                "live_view",
-                1.0f32,
-            ],
-        )?;
-        Ok(())
-    }
-
-    fn insert_token_usage(&self, token: &TokenUsageRow) -> ViewResult<()> {
-        self.conn.execute(
-            "INSERT OR REPLACE INTO token_usage (
-                id, llm_call_id, timestamp_ms, pid, comm, provider, model,
-                input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens,
-                total_tokens, source, view_source, confidence
-             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
-            params![
-                token.id,
-                token.llm_call_id,
-                token.timestamp_ms as i64,
-                token.pid.map(|v| v as i64),
-                token.comm.as_deref(),
-                token.provider.as_deref(),
-                token.model.as_deref(),
-                token.input_tokens,
-                token.output_tokens,
-                token.cache_creation_tokens,
-                token.cache_read_tokens,
-                token.total_tokens,
-                token.source,
-                token.view_source,
-                token.confidence.unwrap_or(1.0),
-            ],
-        )?;
-        Ok(())
-    }
-
-    fn insert_audit_event(&self, audit: &AuditEventRow) -> ViewResult<()> {
-        self.conn.execute(
-            "INSERT OR REPLACE INTO audit_events (
-                id, timestamp_ms, audit_type, pid, comm, subject,
-                action, target, status, summary, details_json
-             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
-            params![
-                audit.id,
-                audit.timestamp_ms as i64,
-                audit.audit_type,
-                audit.pid.map(|v| v as i64),
-                audit.comm.as_deref(),
-                audit.subject.as_deref(),
-                audit.action.as_deref(),
-                audit.target.as_deref(),
-                audit.status.as_deref(),
-                audit.summary.as_deref(),
-                audit.details.to_string(),
-            ],
-        )?;
-        Ok(())
-    }
-
-    fn upsert_process_node(&self, process: &ProcessNodeRow) -> ViewResult<()> {
-        self.conn.execute(
-            "INSERT INTO process_nodes (
-                id, pid, ppid, root_pid, start_timestamp_ms, end_timestamp_ms,
-                comm, command, argv_json, cwd, exit_code, status, view_source, confidence
-             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
-             ON CONFLICT(id) DO UPDATE SET
-                ppid = COALESCE(excluded.ppid, ppid),
-                root_pid = COALESCE(excluded.root_pid, root_pid),
-                start_timestamp_ms = CASE
-                    WHEN start_timestamp_ms IS NULL THEN excluded.start_timestamp_ms
-                    WHEN excluded.start_timestamp_ms IS NULL THEN start_timestamp_ms
-                    ELSE MIN(start_timestamp_ms, excluded.start_timestamp_ms)
-                END,
-                end_timestamp_ms = CASE
-                    WHEN end_timestamp_ms IS NULL THEN excluded.end_timestamp_ms
-                    WHEN excluded.end_timestamp_ms IS NULL THEN end_timestamp_ms
-                    ELSE MAX(end_timestamp_ms, excluded.end_timestamp_ms)
-                END,
-                comm = COALESCE(excluded.comm, comm),
-                command = COALESCE(excluded.command, command),
-                argv_json = CASE
-                    WHEN excluded.argv_json != '[]' THEN excluded.argv_json
-                    ELSE argv_json
-                END,
-                cwd = COALESCE(excluded.cwd, cwd),
-                exit_code = COALESCE(excluded.exit_code, exit_code),
-                status = COALESCE(excluded.status, status),
-                confidence = MAX(COALESCE(confidence, 0), COALESCE(excluded.confidence, 0))",
-            params![
-                process.id,
-                process.pid as i64,
-                process.ppid.map(|v| v as i64),
-                process.root_pid.map(|v| v as i64),
-                process.start_timestamp_ms.map(|v| v as i64),
-                process.end_timestamp_ms.map(|v| v as i64),
-                process.comm.as_deref(),
-                process.command.as_deref(),
-                serde_json::to_string(&process.argv)?,
-                process.cwd.as_deref(),
-                process.exit_code.map(|v| v as i64),
-                process.status.as_deref(),
-                process.view_source,
-                process.confidence.unwrap_or(1.0),
-            ],
-        )?;
-        Ok(())
-    }
-
-    fn insert_tool_call(&self, tool: &ToolCallRow) -> ViewResult<()> {
-        self.conn.execute(
-            "INSERT OR REPLACE INTO tool_calls (
-                id, session_id, conversation_id, timestamp_ms, tool_name, tool_call_id,
-                start_timestamp_ms, end_timestamp_ms, duration_ms, status, input_json,
-                output_json, related_pid, related_event_id, view_source, confidence
-             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
-            params![
-                tool.id,
-                tool.session_id.as_deref(),
-                tool.conversation_id.as_deref(),
-                tool.timestamp_ms as i64,
-                tool.tool_name.as_deref(),
-                tool.tool_call_id.as_deref(),
-                tool.start_timestamp_ms.map(|v| v as i64),
-                tool.end_timestamp_ms.map(|v| v as i64),
-                tool.duration_ms.map(|v| v as i64),
-                tool.status.as_deref(),
-                tool.input.to_string(),
-                tool.output.to_string(),
-                tool.related_pid.map(|v| v as i64),
-                tool.related_event_id.as_deref(),
-                tool.view_source,
-                tool.confidence.unwrap_or(1.0),
-            ],
-        )?;
-        Ok(())
-    }
-
     pub(crate) fn all_llm_call_rows(&self) -> ViewResult<Vec<LlmCallRow>> {
         let mut stmt = self.conn.prepare(
             "SELECT id, start_timestamp_ms, end_timestamp_ms, pid, comm,
@@ -448,31 +251,200 @@ impl SqliteStore {
 
 impl ViewSink for SqliteStore {
     fn llm_call(&mut self, row: &LlmCallRow) -> ViewResult<()> {
-        self.insert_llm_call(row)
+        self.conn.execute(
+            "INSERT OR REPLACE INTO llm_calls (
+                id, start_timestamp_ms, end_timestamp_ms, pid, comm, provider, model,
+                host, path, status_code, request_body_json, response_body_json,
+                view_source, confidence
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
+            params![
+                row.id,
+                row.start_timestamp_ms as i64,
+                row.end_timestamp_ms.map(|v| v as i64),
+                row.pid.map(|v| v as i64),
+                row.comm.as_deref(),
+                row.provider.as_deref(),
+                row.model.as_deref(),
+                row.host.as_deref(),
+                row.path.as_deref(),
+                row.status_code.map(|v| v as i64),
+                row.request.to_string(),
+                row.response.to_string(),
+                "live_view",
+                1.0f32,
+            ],
+        )?;
+        Ok(())
     }
 
     fn token_usage(&mut self, row: &TokenUsageRow) -> ViewResult<()> {
-        self.insert_token_usage(row)
+        self.conn.execute(
+            "INSERT OR REPLACE INTO token_usage (
+                id, llm_call_id, timestamp_ms, pid, comm, provider, model,
+                input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens,
+                total_tokens, source, view_source, confidence
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
+            params![
+                row.id,
+                row.llm_call_id,
+                row.timestamp_ms as i64,
+                row.pid.map(|v| v as i64),
+                row.comm.as_deref(),
+                row.provider.as_deref(),
+                row.model.as_deref(),
+                row.input_tokens,
+                row.output_tokens,
+                row.cache_creation_tokens,
+                row.cache_read_tokens,
+                row.total_tokens,
+                row.source,
+                row.view_source,
+                row.confidence.unwrap_or(1.0),
+            ],
+        )?;
+        Ok(())
     }
 
     fn audit_event(&mut self, row: &AuditEventRow) -> ViewResult<()> {
-        self.insert_audit_event(row)
+        self.conn.execute(
+            "INSERT OR REPLACE INTO audit_events (
+                id, timestamp_ms, audit_type, pid, comm, subject,
+                action, target, status, summary, details_json
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            params![
+                row.id,
+                row.timestamp_ms as i64,
+                row.audit_type,
+                row.pid.map(|v| v as i64),
+                row.comm.as_deref(),
+                row.subject.as_deref(),
+                row.action.as_deref(),
+                row.target.as_deref(),
+                row.status.as_deref(),
+                row.summary.as_deref(),
+                row.details.to_string(),
+            ],
+        )?;
+        Ok(())
     }
 
     fn process_node(&mut self, row: &ProcessNodeRow) -> ViewResult<()> {
-        self.upsert_process_node(row)
+        self.conn.execute(
+            "INSERT INTO process_nodes (
+                id, pid, ppid, root_pid, start_timestamp_ms, end_timestamp_ms,
+                comm, command, argv_json, cwd, exit_code, status, view_source, confidence
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)
+             ON CONFLICT(id) DO UPDATE SET
+                ppid = COALESCE(excluded.ppid, ppid),
+                root_pid = COALESCE(excluded.root_pid, root_pid),
+                start_timestamp_ms = CASE
+                    WHEN start_timestamp_ms IS NULL THEN excluded.start_timestamp_ms
+                    WHEN excluded.start_timestamp_ms IS NULL THEN start_timestamp_ms
+                    ELSE MIN(start_timestamp_ms, excluded.start_timestamp_ms)
+                END,
+                end_timestamp_ms = CASE
+                    WHEN end_timestamp_ms IS NULL THEN excluded.end_timestamp_ms
+                    WHEN excluded.end_timestamp_ms IS NULL THEN end_timestamp_ms
+                    ELSE MAX(end_timestamp_ms, excluded.end_timestamp_ms)
+                END,
+                comm = COALESCE(excluded.comm, comm),
+                command = COALESCE(excluded.command, command),
+                argv_json = CASE
+                    WHEN excluded.argv_json != '[]' THEN excluded.argv_json
+                    ELSE argv_json
+                END,
+                cwd = COALESCE(excluded.cwd, cwd),
+                exit_code = COALESCE(excluded.exit_code, exit_code),
+                status = COALESCE(excluded.status, status),
+                confidence = MAX(COALESCE(confidence, 0), COALESCE(excluded.confidence, 0))",
+            params![
+                row.id,
+                row.pid as i64,
+                row.ppid.map(|v| v as i64),
+                row.root_pid.map(|v| v as i64),
+                row.start_timestamp_ms.map(|v| v as i64),
+                row.end_timestamp_ms.map(|v| v as i64),
+                row.comm.as_deref(),
+                row.command.as_deref(),
+                serde_json::to_string(&row.argv)?,
+                row.cwd.as_deref(),
+                row.exit_code.map(|v| v as i64),
+                row.status.as_deref(),
+                row.view_source,
+                row.confidence.unwrap_or(1.0),
+            ],
+        )?;
+        Ok(())
     }
 
     fn tool_call(&mut self, row: &ToolCallRow) -> ViewResult<()> {
-        self.insert_tool_call(row)
+        self.conn.execute(
+            "INSERT OR REPLACE INTO tool_calls (
+                id, session_id, conversation_id, timestamp_ms, tool_name, tool_call_id,
+                start_timestamp_ms, end_timestamp_ms, duration_ms, status, input_json,
+                output_json, related_pid, related_event_id, view_source, confidence
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
+            params![
+                row.id,
+                row.session_id.as_deref(),
+                row.conversation_id.as_deref(),
+                row.timestamp_ms as i64,
+                row.tool_name.as_deref(),
+                row.tool_call_id.as_deref(),
+                row.start_timestamp_ms.map(|v| v as i64),
+                row.end_timestamp_ms.map(|v| v as i64),
+                row.duration_ms.map(|v| v as i64),
+                row.status.as_deref(),
+                row.input.to_string(),
+                row.output.to_string(),
+                row.related_pid.map(|v| v as i64),
+                row.related_event_id.as_deref(),
+                row.view_source,
+                row.confidence.unwrap_or(1.0),
+            ],
+        )?;
+        Ok(())
     }
 
     fn network_target(&mut self, row: &NetworkTargetRow) -> ViewResult<()> {
-        self.upsert_network_target(row)
+        let id = network_target_id(row);
+        self.conn.execute(
+            "INSERT INTO network_targets (
+                id, pid, comm, host, path, count, error_count, first_timestamp_ms, last_timestamp_ms
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+             ON CONFLICT(id) DO UPDATE SET
+                count = count + excluded.count,
+                error_count = error_count + excluded.error_count,
+                first_timestamp_ms = MIN(first_timestamp_ms, excluded.first_timestamp_ms),
+                last_timestamp_ms = MAX(last_timestamp_ms, excluded.last_timestamp_ms)",
+            params![
+                id,
+                row.pid.map(|v| v as i64),
+                row.comm.as_deref(),
+                row.host.as_str(),
+                row.path.as_deref(),
+                row.count,
+                row.error_count,
+                row.first_timestamp_ms.map(|v| v as i64),
+                row.last_timestamp_ms.map(|v| v as i64),
+            ],
+        )?;
+        Ok(())
     }
 
     fn resource_sample(&mut self, row: &ResourceSampleRow) -> ViewResult<()> {
-        self.insert_resource_sample(row)
+        self.conn.execute(
+            "INSERT INTO resource_samples (timestamp_ms, pid, comm, cpu_percent, rss_mb)
+             VALUES (?1, ?2, ?3, ?4, ?5)",
+            params![
+                row.timestamp_ms as i64,
+                row.pid.map(|v| v as i64),
+                row.comm.as_deref(),
+                row.cpu_percent,
+                row.rss_mb,
+            ],
+        )?;
+        Ok(())
     }
 }
 

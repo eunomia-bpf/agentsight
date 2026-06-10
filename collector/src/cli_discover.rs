@@ -28,43 +28,21 @@ pub(crate) fn run_discover(json: bool) -> Result<(), Box<dyn std::error::Error +
 }
 
 fn discover_rows() -> Vec<DiscoveryRow> {
-    vec![
-        row(
-            "claude-code",
-            "Claude Code",
-            "claude",
-            "agentsight record --db record.db -- claude -p 'hello' --output-format json",
-        ),
-        row(
-            "gemini-cli",
-            "Gemini CLI",
-            "gemini",
-            "agentsight record --db record.db -- gemini --prompt 'hello' --json",
-        ),
-        row(
-            "openclaw",
-            "OpenClaw",
-            "docker",
-            "agentsight record -c node --db record.db --binary-path docker://<container>",
-        ),
-    ]
-}
-
-fn row(
-    id: &'static str,
-    name: &'static str,
-    command: &'static str,
-    recommended_capture: &'static str,
-) -> DiscoveryRow {
-    let path = find_on_path(command);
-    DiscoveryRow {
-        id,
-        name,
-        command,
-        available: path.is_some(),
-        path: path.map(|p| p.display().to_string()),
-        recommended_capture,
-    }
+    crate::agents::AGENTS
+        .iter()
+        .filter_map(|agent| agent.discover.as_ref())
+        .map(|discover| {
+            let path = find_on_path(discover.command);
+            DiscoveryRow {
+                id: discover.id,
+                name: discover.display_name,
+                command: discover.command,
+                available: path.is_some(),
+                path: path.map(|p| p.display().to_string()),
+                recommended_capture: discover.recommended_capture,
+            }
+        })
+        .collect()
 }
 
 fn find_on_path(command: &str) -> Option<PathBuf> {

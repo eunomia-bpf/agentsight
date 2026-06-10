@@ -1,18 +1,27 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-mod canonical;
+//! Materialized view: the boundary between capture and consumption.
+//!
+//! The view has exactly two write paths:
+//!
+//! 1. **Event ingestion** (`ingest_event`): live capture. Raw runner events
+//!    are decoded once into typed [`crate::semantic::SemanticEvent`]s by
+//!    [`crate::decode`], then folded into rows by `projection`. Rows created
+//!    this way carry `view_source = "view"`.
+//! 2. **Row loads** (`apply_*` / `upsert_*` / `load_*`): replay and import of
+//!    already-aggregated rows — saved SQLite databases and agent-native
+//!    session files. These rows keep their original `view_source`
+//!    (e.g. `agent_native`), which also drives token source priority.
+//!
+//! Consumers (CLI, TUI, web snapshot, sinks) only read rows; they never see
+//! raw events.
+
 pub(crate) mod live_top;
-pub(crate) mod llm;
 pub(crate) mod process_select;
 mod projection;
 pub(crate) mod session_process_match;
 pub(crate) mod top;
-
-pub(crate) use canonical::{CanonicalEvent, EventKind, normalize_event};
-pub(crate) use llm::{
-    body_json, extract_model, extract_token_usage, extract_token_usage_from_sse, provider_from_host,
-};
 
 use crate::model::{
     AGENT_NATIVE_SOURCE, AuditEventRow, LlmCallRow, NetworkTargetRow, ProcessNodeRow,
@@ -25,6 +34,18 @@ use std::collections::{BTreeMap, HashMap, VecDeque};
 use std::sync::{Arc, Mutex};
 
 pub(crate) type SharedMaterializedView = Arc<Mutex<MaterializedView>>;
+
+/// Each emit_* applies the row to in-memory state, then publishes it to the
+/// registered sinks. Generated here so the row-type fan-out stays one line
+/// per row type.
+macro_rules! emit_rows {
+    ($($emit:ident($row:ty) => $apply:ident, $sink:ident;)+) => {$(
+        pub(crate) fn $emit(&mut self, row: $row) -> ViewResult<()> {
+            self.$apply(&row);
+            self.publish(|s| s.$sink(&row))
+        }
+    )+};
+}
 
 const MAX_AUDIT_EVENTS_IN_MEMORY: usize = 20_000;
 const MAX_RESOURCE_SAMPLES_IN_MEMORY: usize = 10_000;
@@ -121,39 +142,14 @@ impl MaterializedView {
         self.source = source.into();
     }
 
-    pub(crate) fn emit_llm_call(&mut self, row: LlmCallRow) -> ViewResult<()> {
-        self.apply_llm_call(&row);
-        self.publish(|sink| sink.llm_call(&row))
-    }
-
-    pub(crate) fn emit_token_usage(&mut self, row: TokenUsageRow) -> ViewResult<()> {
-        self.apply_token_usage(&row);
-        self.publish(|sink| sink.token_usage(&row))
-    }
-
-    pub(crate) fn emit_audit_event(&mut self, row: AuditEventRow) -> ViewResult<()> {
-        self.apply_audit_event(&row);
-        self.publish(|sink| sink.audit_event(&row))
-    }
-
-    pub(crate) fn emit_process_node(&mut self, row: ProcessNodeRow) -> ViewResult<()> {
-        self.upsert_process_node(&row);
-        self.publish(|sink| sink.process_node(&row))
-    }
-
-    pub(crate) fn emit_tool_call(&mut self, row: ToolCallRow) -> ViewResult<()> {
-        self.apply_tool_call(&row);
-        self.publish(|sink| sink.tool_call(&row))
-    }
-
-    pub(crate) fn emit_network_target(&mut self, row: NetworkTargetRow) -> ViewResult<()> {
-        self.upsert_network_target(&row);
-        self.publish(|sink| sink.network_target(&row))
-    }
-
-    pub(crate) fn emit_resource_sample(&mut self, row: ResourceSampleRow) -> ViewResult<()> {
-        self.apply_resource_sample(&row);
-        self.publish(|sink| sink.resource_sample(&row))
+    emit_rows! {
+        emit_llm_call(LlmCallRow) => apply_llm_call, llm_call;
+        emit_token_usage(TokenUsageRow) => apply_token_usage, token_usage;
+        emit_audit_event(AuditEventRow) => apply_audit_event, audit_event;
+        emit_process_node(ProcessNodeRow) => upsert_process_node, process_node;
+        emit_tool_call(ToolCallRow) => apply_tool_call, tool_call;
+        emit_network_target(NetworkTargetRow) => upsert_network_target, network_target;
+        emit_resource_sample(ResourceSampleRow) => apply_resource_sample, resource_sample;
     }
 
     fn publish<F>(&mut self, mut publish: F) -> ViewResult<()>

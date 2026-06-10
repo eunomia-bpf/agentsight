@@ -14,6 +14,70 @@ pub(super) trait FilterExpr: Clone + Send + Sync + 'static {
     fn evaluate(&self, data: &Value) -> bool;
 }
 
+/// Shared boolean expression tree for filter DSLs. The condition type `C`
+/// carries each filter's field/operator semantics; And/Or/Empty behavior is
+/// identical across filters and lives here once.
+#[derive(Debug, Clone)]
+pub(super) enum ExprNode<C> {
+    And(Vec<ExprNode<C>>),
+    Or(Vec<ExprNode<C>>),
+    Condition(C),
+    Empty,
+}
+
+impl<C> ExprNode<C> {
+    pub(super) fn evaluate(&self, eval: &impl Fn(&C) -> bool) -> bool {
+        match self {
+            ExprNode::And(nodes) => nodes.iter().all(|node| node.evaluate(eval)),
+            ExprNode::Or(nodes) => nodes.iter().any(|node| node.evaluate(eval)),
+            ExprNode::Condition(condition) => eval(condition),
+            ExprNode::Empty => false,
+        }
+    }
+}
+
+/// String comparison shared by filter condition evaluators.
+pub(super) fn cmp_str(actual: &str, op: &str, expected: &str) -> bool {
+    match op {
+        "exact" => actual == expected,
+        "not_equal" => actual != expected,
+        "contains" => actual.contains(expected),
+        "prefix" => actual.starts_with(expected),
+        "suffix" => actual.ends_with(expected),
+        _ => false,
+    }
+}
+
+pub(super) fn cmp_num(actual: u64, op: &str, expected: &str) -> bool {
+    let Ok(e) = expected.parse::<u64>() else {
+        return false;
+    };
+    match op {
+        "exact" => actual == e,
+        "not_equal" => actual != e,
+        "gt" => actual > e,
+        "lt" => actual < e,
+        "gte" => actual >= e,
+        "lte" => actual <= e,
+        _ => false,
+    }
+}
+
+pub(super) fn cmp_float(actual: f64, op: &str, expected: &str) -> bool {
+    let Ok(e) = expected.parse::<f64>() else {
+        return false;
+    };
+    match op {
+        "exact" => (actual - e).abs() < f64::EPSILON,
+        "not_equal" => (actual - e).abs() >= f64::EPSILON,
+        "gt" => actual > e,
+        "lt" => actual < e,
+        "gte" => actual >= e,
+        "lte" => actual <= e,
+        _ => false,
+    }
+}
+
 pub(super) enum MetricsStrategy {
     AddOnDrop,
     SetPerEvent,

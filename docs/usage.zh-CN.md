@@ -57,7 +57,7 @@ sudo ./collector/target/release/agentsight record -- claude
 
 # 查看最近保存的运行
 ./collector/target/release/agentsight report
-./collector/target/release/agentsight stat
+./collector/target/release/agentsight stat   # `report summary` 的别名
 
 # 附加到已经运行的进程族
 sudo ./collector/target/release/agentsight record -c claude

@@ -447,24 +447,13 @@ pub(crate) fn normalize_session_log_path(path: &Path) -> PathBuf {
 }
 
 pub(crate) fn local_session_source(path: &Path) -> Option<&'static str> {
-    let path = path.to_string_lossy();
-    if path.contains("/.claude/") {
-        Some("claude")
-    } else if path.contains("/.codex/") {
-        Some("codex")
-    } else {
-        None
-    }
+    crate::agents::native_session_source(path)
 }
 
 #[cfg(test)]
 pub(crate) fn create_temp_session_path(agent: &str) -> (tempfile::TempDir, PathBuf) {
     let temp = tempfile::tempdir().unwrap();
-    let base = match agent {
-        "claude" => [".claude", "projects"],
-        "codex" => [".codex", "sessions"],
-        _ => unreachable!("test agent"),
-    };
+    let base = crate::agents::native_session_dir_parts(agent).expect("test agent");
     let path = temp
         .path()
         .join(base[0])
@@ -720,13 +709,10 @@ fn local_session_dirs() -> Vec<(&'static str, PathBuf)> {
     let Some(home) = user_home_dir() else {
         return Vec::new();
     };
-    [
-        ("claude", home.join(".claude/projects")),
-        ("codex", home.join(".codex/sessions")),
-    ]
-    .into_iter()
-    .filter(|(_, path)| path.is_dir())
-    .collect()
+    crate::agents::native_session_agents()
+        .map(|(agent, dir_parts)| (agent, home.join(dir_parts[0]).join(dir_parts[1])))
+        .filter(|(_, path)| path.is_dir())
+        .collect()
 }
 
 fn user_home_dir() -> Option<PathBuf> {

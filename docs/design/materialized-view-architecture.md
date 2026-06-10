@@ -85,7 +85,7 @@ instead.
 ## Code Layout
 
 ```text
-collector/src/framework/analyzers/materializing.rs
+collector/src/analyzers/materializing.rs
   Event-stream analyzer that drives the shared view.
 
 collector/src/view/mod.rs
@@ -95,10 +95,10 @@ collector/src/view/projection.rs
   Event normalization, LLM request/response matching, audit/process/resource
   row projection implemented directly on MaterializedView.
 
-collector/src/view/types.rs
+collector/src/model.rs
   Snapshot, row types, ViewSink.
 
-collector/src/stores/sqlite.rs
+collector/src/sinks/sqlite.rs
   SQLite row store and ViewSink implementation.
 
 collector/src/sinks/otel.rs

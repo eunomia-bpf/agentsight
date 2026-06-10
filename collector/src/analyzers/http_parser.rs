@@ -254,30 +254,25 @@ impl HTTPParser {
             parsed_message.body.as_ref().map(|b| b.len()).unwrap_or(0) +
             4; // +4 for \r\n\r\n separator
 
-        let mut http_event = HTTPEvent::new(
+        HTTPEvent {
             tid,
-            message_type_str.to_string(),
-            parsed_message.first_line,
-            parsed_message.method,
-            parsed_message.path,
-            parsed_message.protocol,
-            parsed_message.status_code,
-            parsed_message.status_text,
-            parsed_message.headers,
-            parsed_message.body,
+            message_type: message_type_str.to_string(),
+            first_line: parsed_message.first_line,
+            method: parsed_message.method,
+            path: parsed_message.path,
+            protocol: parsed_message.protocol,
+            status_code: parsed_message.status_code,
+            status_text: parsed_message.status_text,
+            headers: parsed_message.headers,
+            body: parsed_message.body,
             total_size,
             has_body,
             is_chunked,
             content_length,
-            "ssl".to_string(),
-        );
-
-        // Include raw data if requested
-        if include_raw_data {
-            http_event = http_event.with_raw_data(parsed_message.raw_data);
+            original_source: "ssl".to_string(),
+            raw_data: include_raw_data.then_some(parsed_message.raw_data),
         }
-
-        http_event.to_event(original_event)
+        .to_event(original_event)
     }
 
     /// Handle SSL events (HTTP request/response data)
@@ -616,27 +611,26 @@ fn create_http2_request_event(
     );
     let body = body_string(&state.request_body);
     let total_size = headers_size(&state.request_headers) + state.request_body.len();
-    let mut event = HTTPEvent::new(
-        synthetic_http2_tid(tid, stream_id),
-        "request".to_string(),
+    HTTPEvent {
+        tid: synthetic_http2_tid(tid, stream_id),
+        message_type: "request".to_string(),
         first_line,
         method,
         path,
-        Some("HTTP/2".to_string()),
-        None,
-        None,
-        state.request_headers.clone(),
-        body.clone(),
+        protocol: Some("HTTP/2".to_string()),
+        status_code: None,
+        status_text: None,
+        headers: state.request_headers.clone(),
+        content_length: body.as_ref().map(String::len),
+        has_body: body.is_some(),
+        is_chunked: false,
+        body,
         total_size,
-        body.is_some(),
-        false,
-        body.as_ref().map(String::len),
-        "ssl.http2".to_string(),
-    );
-    if include_raw_data {
-        event = event.with_raw_data(String::from_utf8_lossy(&state.request_body).to_string());
+        original_source: "ssl.http2".to_string(),
+        raw_data: include_raw_data
+            .then(|| String::from_utf8_lossy(&state.request_body).to_string()),
     }
-    event.to_event(original_event)
+    .to_event(original_event)
 }
 
 fn create_http2_response_event(
@@ -654,27 +648,26 @@ fn create_http2_response_event(
     let first_line = format!("HTTP/2 {}", status_code.unwrap_or(200));
     let body = body_string(&state.response_body);
     let total_size = headers_size(&state.response_headers) + state.response_body.len();
-    let mut event = HTTPEvent::new(
-        synthetic_http2_tid(tid, stream_id),
-        "response".to_string(),
+    HTTPEvent {
+        tid: synthetic_http2_tid(tid, stream_id),
+        message_type: "response".to_string(),
         first_line,
-        None,
-        None,
-        Some("HTTP/2".to_string()),
+        method: None,
+        path: None,
+        protocol: Some("HTTP/2".to_string()),
         status_code,
-        None,
-        state.response_headers.clone(),
-        body.clone(),
+        status_text: None,
+        headers: state.response_headers.clone(),
+        content_length: body.as_ref().map(String::len),
+        has_body: body.is_some(),
+        is_chunked: false,
+        body,
         total_size,
-        body.is_some(),
-        false,
-        body.as_ref().map(String::len),
-        "ssl.http2".to_string(),
-    );
-    if include_raw_data {
-        event = event.with_raw_data(String::from_utf8_lossy(&state.response_body).to_string());
+        original_source: "ssl.http2".to_string(),
+        raw_data: include_raw_data
+            .then(|| String::from_utf8_lossy(&state.response_body).to_string()),
     }
-    event.to_event(original_event)
+    .to_event(original_event)
 }
 
 fn synthetic_http2_tid(tid: u64, stream_id: u32) -> u64 {

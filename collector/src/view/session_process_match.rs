@@ -66,6 +66,14 @@ impl SessionProcessMatcher {
 
         let mut out = SessionProcessMatches::default();
         for session in sessions {
+            // Only agents whose attribution story is session-file based are
+            // eligible for path-evidence matching; self-reported agents
+            // (e.g. Gemini stdout stats) already carry live pids.
+            if crate::agents::attribution(&session.agent_type)
+                != crate::agents::Attribution::NativeSessionFiles
+            {
+                continue;
+            }
             let Some(session_path) = session_path(session) else {
                 continue;
             };
@@ -87,7 +95,10 @@ impl SessionProcessMatcher {
 
         let mut cwd_candidates = Vec::new();
         for (session_index, session) in sessions.iter().enumerate() {
-            if out.by_session_id.contains_key(&session.id) {
+            if out.by_session_id.contains_key(&session.id)
+                || crate::agents::attribution(&session.agent_type)
+                    != crate::agents::Attribution::NativeSessionFiles
+            {
                 continue;
             }
             let Some(session_path) = session_path(session) else {
