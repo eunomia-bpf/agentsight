@@ -12,10 +12,11 @@ use crate::model::{
     AGENT_NATIVE_SOURCE, AuditEventRow, SessionRow, Snapshot, SnapshotOptions, TokenUsageRow,
     ToolCallRow,
 };
-use crate::text::{sanitize_ascii_identifier as sanitize_id, short_session_id, truncate_text};
+use crate::text::{
+    MAX_PROMPT_TEXT_CHARS, sanitize_ascii_identifier as sanitize_id, short_session_id,
+    truncate_text,
+};
 use crate::view::MaterializedView;
-
-const MAX_PROMPT_TEXT_CHARS: usize = 4096;
 
 pub(crate) struct SessionCache {
     entries: HashMap<PathBuf, CacheEntry>,

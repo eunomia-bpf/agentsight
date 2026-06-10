@@ -4,15 +4,13 @@
 use crate::model::{AuditEventRow, LlmCallRow, ProcessNodeRow, ViewResult};
 use crate::sinks::sqlite::SqliteStore;
 use crate::sources::agent_native;
-use crate::text::truncate_text;
+use crate::text::{MAX_PROMPT_TEXT_CHARS, truncate_text};
 use crate::view::MaterializedView;
 use serde_json::{Value, json};
 use std::collections::BTreeSet;
 use std::path::Path;
 
 const PROMPT_DEDUP_WINDOW_MS: u64 = 10_000;
-const MAX_PROMPT_TEXT_CHARS: usize = 4096;
-
 pub(crate) fn load_view(path: impl AsRef<Path>) -> ViewResult<MaterializedView> {
     load_view_inner(path, false)
 }
@@ -203,10 +201,7 @@ fn local_prompt_duplicates_ssl(local: &AuditEventRow, ssl: &AuditEventRow) -> bo
 }
 
 fn models_match(local: Option<&str>, ssl: Option<&str>) -> bool {
-    match (local, ssl) {
-        (Some(local), Some(ssl)) => local == ssl,
-        _ => true,
-    }
+    matches!((local, ssl), (Some(local), Some(ssl)) if local == ssl)
 }
 
 fn prompt_source(row: &AuditEventRow) -> Option<&str> {
@@ -339,6 +334,17 @@ mod tests {
                 .and_then(Value::as_str),
             Some("ssl")
         );
+    }
+
+    #[test]
+    fn keeps_local_prompt_when_either_model_is_missing() {
+        let ssl_rows = [ssl_call_row("claude-opus-4-6", "Run the command.")];
+        let mut prompt_rows = llm_call_prompt_rows(&ssl_rows);
+        let local = local_prompt_row("local-prompt", 1_500, None, "Run the command.");
+
+        append_deduped_local_session_prompt_rows(&mut prompt_rows, vec![local]);
+
+        assert_eq!(prompt_rows.len(), 2);
     }
 
     fn ssl_call_row(model: &str, text: &str) -> LlmCallRow {
