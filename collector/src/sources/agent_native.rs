@@ -12,10 +12,7 @@ use crate::model::{
     AGENT_NATIVE_SOURCE, AuditEventRow, SessionRow, Snapshot, SnapshotOptions, TokenUsageRow,
     ToolCallRow,
 };
-use crate::text::{
-    MAX_PROMPT_TEXT_CHARS, sanitize_ascii_identifier as sanitize_id, short_session_id,
-    truncate_text,
-};
+use crate::text::{sanitize_ascii_identifier as sanitize_id, short_session_id, truncate_text};
 use crate::view::MaterializedView;
 
 pub(crate) struct SessionCache {
@@ -765,7 +762,7 @@ fn local_message_preview(value: &Value) -> Option<String> {
 
 fn cleaned_prompt_text(text: &str) -> Option<String> {
     let text = text.split_whitespace().collect::<Vec<_>>().join(" ");
-    (!text.is_empty()).then(|| truncate_text(&text, MAX_PROMPT_TEXT_CHARS))
+    (!text.is_empty()).then_some(text)
 }
 
 fn collect_local_text(value: &Value, out: &mut Vec<String>) {

@@ -4,7 +4,7 @@
 use crate::model::{AuditEventRow, LlmCallRow, ProcessNodeRow, ViewResult};
 use crate::sinks::sqlite::SqliteStore;
 use crate::sources::agent_native;
-use crate::text::{MAX_PROMPT_TEXT_CHARS, truncate_text};
+use crate::text::truncate_text;
 use crate::view::MaterializedView;
 use serde_json::{Value, json};
 use std::collections::BTreeSet;
@@ -265,7 +265,7 @@ fn clean_prompt_text(text: &str) -> Option<String> {
     {
         text = inner.trim().to_string();
     }
-    (!text.is_empty()).then(|| truncate_text(&text, MAX_PROMPT_TEXT_CHARS))
+    (!text.is_empty()).then_some(text)
 }
 
 #[cfg(test)]

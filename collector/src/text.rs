@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-pub(crate) const MAX_PROMPT_TEXT_CHARS: usize = 4096;
-
 pub(crate) fn short_session_id(id: &str) -> String {
     let id = id.trim();
     if id.is_empty() {
