@@ -31,7 +31,11 @@ CFLAGS += $(ASAN_FLAGS)
 ALL_LDFLAGS += $(ASAN_FLAGS)
 endif
 
-APPS = sslsniff browsertrace stdiocap process test_process_utils test_process_filter test_process_ext_map_flush test_process_ext_types # minimal minimal_legacy uprobe kprobe fentry usdt sockfilter tc ksyscall
+APPS = sslsniff stdiocap process test_process_utils test_process_filter test_process_ext_map_flush test_process_ext_types # minimal minimal_legacy uprobe kprobe fentry usdt sockfilter tc ksyscall
+
+# Experimental programs: built only via `make experimental` (or by name), not
+# shipped in the default build or embedded into the collector.
+EXPERIMENTAL_APPS = browsertrace
 
 # All test programs (no BPF skeleton needed)
 TEST_APPS = test_process_utils test_process_filter test_process_ext_map_flush test_process_ext_types
@@ -81,6 +85,9 @@ $(call allow-override,LD,$(CROSS_COMPILE)ld)
 .PHONY: all
 all: $(APPS)
 
+.PHONY: experimental
+experimental: $(EXPERIMENTAL_APPS)
+
 .PHONY: debug
 debug:
 	$(MAKE) ASAN=1 all
@@ -92,14 +99,15 @@ sslsniff-debug:
 .PHONY: clean
 clean:
 	$(call msg,CLEAN)
-	$(Q)rm -rf $(OUTPUT) $(APPS)
+	$(Q)rm -rf $(OUTPUT) $(APPS) $(EXPERIMENTAL_APPS)
 
 .PHONY: help
 help:
 	@echo "Available targets:"
 	@echo "  all          - Build all applications"
+	@echo "  experimental - Build experimental programs (browsertrace)"
 	@echo "  sslsniff     - Build sslsniff only"
-	@echo "  browsertrace - Build browsertrace only"
+	@echo "  browsertrace - Build browsertrace only (experimental)"
 	@echo "  stdiocap     - Build stdiocap only"
 	@echo "  process      - Build process tracer only"
 	@echo "  test         - Build and run tests"
@@ -198,7 +206,10 @@ $(OUTPUT)/%.skel.h: $(OUTPUT)/%.bpf.o | $(OUTPUT) $(BPFTOOL)
 	$(Q)$(BPFTOOL) gen skeleton $< > $@
 
 # Build user-space code (exclude all test programs from the skel.h requirement)
-$(patsubst %,$(OUTPUT)/%.o,$(filter-out $(TEST_APPS),$(APPS))): %.o: %.skel.h
+$(patsubst %,$(OUTPUT)/%.o,$(filter-out $(TEST_APPS),$(APPS) $(EXPERIMENTAL_APPS))): %.o: %.skel.h
+
+# Shared JSONL emit helpers used by all userspace loaders
+$(patsubst %,$(OUTPUT)/%.o,$(filter-out $(TEST_APPS),$(APPS))): jsonl.h
 
 # Special rule for test programs (no BPF skeleton needed)
 $(OUTPUT)/test_process_utils.o: test_process_utils.c $(wildcard *.h) | $(OUTPUT)
@@ -226,7 +237,7 @@ $(patsubst %,$(OUTPUT)/%.o,$(BZS_APPS)): $(LIBBLAZESYM_HEADER)
 $(BZS_APPS): $(LIBBLAZESYM_OBJ)
 
 # Build application binary (exclude all test programs)
-$(filter-out $(TEST_APPS),$(APPS)): %: $(OUTPUT)/%.o $(LIBBPF_OBJ) | $(OUTPUT)
+$(filter-out $(TEST_APPS),$(APPS) $(EXPERIMENTAL_APPS)): %: $(OUTPUT)/%.o $(LIBBPF_OBJ) | $(OUTPUT)
 	$(call msg,BINARY,$@)
 	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -lelf -lz -o $@
 

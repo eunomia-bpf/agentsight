@@ -26,41 +26,6 @@ pub struct SSEProcessorEvent {
 }
 
 impl SSEProcessorEvent {
-    pub fn new(
-        connection_id: String,
-        message_id: Option<String>,
-        start_time: u64,
-        end_time: u64,
-        original_source: String,
-        function: String,
-        tid: u64,
-        json_content: String,
-        text_content: String,
-        total_size: usize,
-        event_count: usize,
-        has_message_start: bool,
-        sse_events: Vec<Value>,
-    ) -> Self {
-        let duration_ns = end_time.saturating_sub(start_time);
-
-        SSEProcessorEvent {
-            connection_id,
-            message_id,
-            start_time,
-            end_time,
-            duration_ns,
-            original_source,
-            function,
-            tid,
-            json_content,
-            text_content,
-            total_size,
-            event_count,
-            has_message_start,
-            sse_events,
-        }
-    }
-
     pub fn to_event(&self, original_event: &Event) -> Event {
         // Serialize struct to JSON Value to ensure exact match with struct fields
         let data = serde_json::to_value(self).unwrap_or_else(|_| serde_json::json!({}));
@@ -104,48 +69,6 @@ pub struct HTTPEvent {
 }
 
 impl HTTPEvent {
-    pub fn new(
-        tid: u64,
-        message_type: String,
-        first_line: String,
-        method: Option<String>,
-        path: Option<String>,
-        protocol: Option<String>,
-        status_code: Option<u16>,
-        status_text: Option<String>,
-        headers: HashMap<String, String>,
-        body: Option<String>,
-        total_size: usize,
-        has_body: bool,
-        is_chunked: bool,
-        content_length: Option<usize>,
-        original_source: String,
-    ) -> Self {
-        HTTPEvent {
-            tid,
-            message_type,
-            first_line,
-            method,
-            path,
-            protocol,
-            status_code,
-            status_text,
-            headers,
-            body,
-            total_size,
-            has_body,
-            is_chunked,
-            content_length,
-            original_source,
-            raw_data: None,
-        }
-    }
-
-    pub fn with_raw_data(mut self, raw_data: String) -> Self {
-        self.raw_data = Some(raw_data);
-        self
-    }
-
     pub fn to_event(&self, original_event: &Event) -> Event {
         // Serialize struct to JSON Value to ensure exact match with struct fields
         let data = serde_json::to_value(self).unwrap_or_else(|_| serde_json::json!({}));

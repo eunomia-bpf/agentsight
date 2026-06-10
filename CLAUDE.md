@@ -18,8 +18,8 @@ cd collector && cargo build --release   # Rust collector only
 cd frontend && npm install && npm run build  # Frontend only
 
 # Tests
-cd bpf && make test              # 60 C unit tests
-cd collector && cargo test       # 89+ Rust tests
+cd bpf && make test              # C unit + runtime tests
+cd collector && cargo test       # Rust tests
 cd frontend && npm run lint      # Frontend linting
 
 # Run a single Rust test
@@ -67,11 +67,15 @@ eBPF Programs (kernel) → JSON stdout → Rust Runners → Analyzer Chain → O
 
 ### Key Components
 
-- **`bpf/`** — C eBPF programs. `sslsniff` hooks SSL_read/SSL_write via uprobes; `process` tracks process lifecycle via tracepoints. Both emit JSON to stdout.
-- **`collector/src/framework/`** — Rust streaming framework:
-  - `runners/` — Execute eBPF binaries and parse their JSON output into event streams (SslRunner, ProcessRunner, SystemRunner, FakeRunner)
-  - `analyzers/` — Pluggable stream processors: SSEProcessor, HTTPParser, SSLFilter, HTTPFilter, AuthHeaderRemover, TimestampNormalizer, OtelExporter (maps LLM HTTP pairs to OpenTelemetry `gen_ai.*` spans, exported via OTLP/HTTP JSON; enabled by `debug trace --otel`, see `docs/otel.md`)
-  - `core/events.rs` — Standardized `Event` struct with JSON payloads
+- **`bpf/`** — C eBPF programs. `sslsniff` hooks SSL_read/SSL_write via uprobes; `process` tracks process lifecycle via tracepoints; `stdiocap` captures stdio payloads. All emit JSONL to stdout via the shared `bpf/jsonl.h` helpers. `browsertrace` is experimental (`make experimental`) and not embedded in the collector.
+- **`collector/src/`** — Rust streaming pipeline (flat module layout):
+  - `runners/` — Execute eBPF binaries and parse their JSON output into event streams (BinaryRunner, ProcessRunner, SystemRunner, AgentRunner, FakeRunner for tests)
+  - `analyzers/` — Pluggable stream processors: SSEProcessor, HTTPParser, SSLFilter, HTTPFilter, AuthHeaderRemover, TimestampNormalizer, MaterializingAnalyzer (feeds the materialized view)
+  - `sources/` — Non-eBPF inputs: agent-native session files (`~/.claude`, `~/.codex`), `/proc` snapshots, saved SQLite databases
+  - `view/` — MaterializedView: projects events into rows (llm_calls, audit_events, process_nodes, ...) and serves snapshots
+  - `sinks/` — ViewSink implementations: SQLite row store, OTel exporter (maps LLM call rows to OpenTelemetry `gen_ai.*` spans via OTLP/HTTP JSON; enabled by `debug trace --otel`, see `docs/otel.md`)
+  - `output/` — CLI/TUI rendering of snapshots
+  - `event.rs` — Standardized `Event` struct with JSON payloads; `model.rs` — view row types + ViewSink trait
   - `binary_extractor.rs` — Extracts embedded eBPF binaries to temp files at runtime
 - **`collector/src/main.rs`** — CLI entry point. Main subcommands: `stat`, `top`, `record`, `report` (`summary`, `token`, `audit`, `prompts`, `export`, `list`), `discover`, and `debug` (`ssl`, `process`, `stdio`, `trace`, `system`).
 - **`collector/src/server/`** — Hyper-based embedded web server serving frontend assets and `/api/events`

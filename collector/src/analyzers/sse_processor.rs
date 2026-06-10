@@ -337,34 +337,32 @@ impl SSEProcessor {
 
         let total_size = json_content.len() + text_content.len();
 
-        let sse_processor_event = SSEProcessorEvent::new(
+        SSEProcessorEvent {
             connection_id,
-            accumulator.message_id.clone(),
-            accumulator.start_time,
-            accumulator.end_time,
-            "ssl".to_string(),
-            original_event
+            message_id: accumulator.message_id.clone(),
+            start_time: accumulator.start_time,
+            end_time: accumulator.end_time,
+            duration_ns: accumulator.end_time.saturating_sub(accumulator.start_time),
+            original_source: "ssl".to_string(),
+            function: original_event
                 .data
                 .get("function")
-                .unwrap_or(&json!("unknown"))
-                .as_str()
+                .and_then(|v| v.as_str())
                 .unwrap_or("unknown")
                 .to_string(),
-            original_event
+            tid: original_event
                 .data
                 .get("tid")
-                .unwrap_or(&json!(0))
-                .as_u64()
+                .and_then(|v| v.as_u64())
                 .unwrap_or(0),
             json_content,
             text_content,
             total_size,
-            accumulator.events.len(),
-            accumulator.has_message_start,
-            sse_events_json,
-        );
-
-        sse_processor_event.to_event(original_event)
+            event_count: accumulator.events.len(),
+            has_message_start: accumulator.has_message_start,
+            sse_events: sse_events_json,
+        }
+        .to_event(original_event)
     }
 
     fn evict_over_capacity(buffers: &mut HashMap<String, SSEAccumulator>, max: usize) {

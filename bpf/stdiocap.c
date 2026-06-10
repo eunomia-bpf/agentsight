@@ -16,6 +16,7 @@
 
 #include "stdiocap.skel.h"
 #include "stdiocap.h"
+#include "jsonl.h"
 
 #define INVALID_UID -1
 #define INVALID_PID -1
@@ -133,43 +134,6 @@ static void sig_int(int signo)
 	exiting = 1;
 }
 
-static int validate_utf8_char(const unsigned char *str, size_t remaining)
-{
-	unsigned char c;
-	int expected_len = 0;
-	char temp[5] = {0};
-	wchar_t wc;
-	mbstate_t state;
-	size_t result;
-
-	if (!str || remaining == 0)
-		return 0;
-
-	c = str[0];
-	if (c < 0x80)
-		return 1;
-
-	if ((c & 0xE0) == 0xC0)
-		expected_len = 2;
-	else if ((c & 0xF0) == 0xE0)
-		expected_len = 3;
-	else if ((c & 0xF8) == 0xF0)
-		expected_len = 4;
-	else
-		return 0;
-
-	if (remaining < (size_t)expected_len)
-		return 0;
-
-	memcpy(temp, str, expected_len > 4 ? 4 : expected_len);
-	memset(&state, 0, sizeof(state));
-	result = mbrtowc(&wc, temp, expected_len, &state);
-	if (result == (size_t)-1 || result == (size_t)-2 || result == 0)
-		return 0;
-
-	return expected_len;
-}
-
 static const char *fd_role(int fd)
 {
 	switch (fd) {
@@ -245,46 +209,6 @@ static int refresh_session_pids(int map_fd, pid_t session_id)
 	return count;
 }
 
-static void print_json_escaped(const char *buf, unsigned int len)
-{
-	unsigned int i;
-
-	printf("\"");
-	for (i = 0; i < len; i++) {
-		unsigned char c = buf[i];
-
-		if (c == '"' || c == '\\')
-			printf("\\%c", c);
-		else if (c == '\n')
-			printf("\\n");
-		else if (c == '\r')
-			printf("\\r");
-		else if (c == '\t')
-			printf("\\t");
-		else if (c == '\b')
-			printf("\\b");
-		else if (c == '\f')
-			printf("\\f");
-		else if (c >= 32 && c <= 126)
-			printf("%c", c);
-		else if (c >= 128) {
-			int utf8_len = validate_utf8_char((const unsigned char *)&buf[i], len - i);
-			if (utf8_len > 0) {
-				int j;
-
-				for (j = 0; j < utf8_len; j++)
-					printf("%c", buf[i + j]);
-				i += utf8_len - 1;
-			} else {
-				printf("\\u%04x", c);
-			}
-		} else {
-			printf("\\u%04x", c);
-		}
-	}
-	printf("\"");
-}
-
 static void print_event(const struct stdiocap_event_t *event)
 {
 	unsigned int buf_size = event->buf_size;
@@ -317,7 +241,7 @@ static void print_event(const struct stdiocap_event_t *event)
 	printf("\"fd_role\":\"%s\",", fd_role(event->fd));
 	if (have_fd_target) {
 		printf("\"fd_target\":");
-		print_json_escaped(fd_target, strlen(fd_target));
+		json_print_escaped_quoted(fd_target, strlen(fd_target));
 		printf(",");
 	} else {
 		printf("\"fd_target\":null,");
@@ -332,7 +256,7 @@ static void print_event(const struct stdiocap_event_t *event)
 		return;
 	}
 
-	print_json_escaped(event_buf, buf_size);
+	json_print_escaped_quoted(event_buf, buf_size);
 	if (buf_size < event->len)
 		printf(",\"truncated\":true,\"bytes_lost\":%u}\n", event->len - buf_size);
 	else
