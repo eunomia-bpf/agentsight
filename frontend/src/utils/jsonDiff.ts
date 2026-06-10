@@ -55,6 +55,7 @@ function extractPrompt(data: any): any | null {
       return null;
     }
   }
+  if (typeof data?.text_content === 'string') return { prompt: data.text_content };
   return data?.messages || data?.prompt ? data : null;
 }
 

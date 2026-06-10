@@ -358,7 +358,14 @@ mod tests {
         assert_eq!(
             prompt
                 .details
-                .pointer("/messages/0/content/0/text")
+                .get("text_content")
+                .and_then(|value| value.as_str()),
+            Some("db prompt")
+        );
+        assert_eq!(
+            prompt
+                .details
+                .pointer("/request/messages/0/content/0/text")
                 .and_then(|value| value.as_str()),
             Some("db prompt")
         );

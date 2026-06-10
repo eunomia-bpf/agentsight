@@ -152,13 +152,14 @@ fn newest_nvm_bin(home: &std::path::Path) -> Option<std::path::PathBuf> {
 ///
 /// Node.js bundles OpenSSL directly into the `node` binary, so there is no
 /// system `libssl.so` for sslsniff to hook — it must attach to the binary
-/// itself. We detect this by scanning for the `SSL_write` symbol-name string
-/// in the file. Dynamically-linked runtimes like CPython call into a separate
-/// `libssl.so` (via `_ssl.so`) and do NOT contain this string, so they keep
-/// using sslsniff's system-libssl attachment with comm filtering intact.
+/// itself. We detect this by scanning for static OpenSSL/BoringSSL marker
+/// strings in the file. Dynamically-linked runtimes like CPython call into a
+/// separate `libssl.so` (via `_ssl.so`) and do NOT contain these markers in the
+/// executable, so they keep using sslsniff's system-libssl attachment with comm
+/// filtering intact.
 pub(crate) fn binary_embeds_ssl(path: &str) -> bool {
     use std::io::Read;
-    const NEEDLE: &[u8] = b"SSL_write";
+    const NEEDLES: &[&[u8]] = &[b"SSL_write", b"BoringSSLError", b"OPENSSL_internal"];
     let mut f = match std::fs::File::open(path) {
         Ok(f) => f,
         Err(_) => return false,
@@ -166,6 +167,12 @@ pub(crate) fn binary_embeds_ssl(path: &str) -> bool {
     let mut buf = vec![0u8; 1 << 20]; // 1 MiB chunks
     // Carry the tail of each chunk so a match spanning a boundary isn't missed.
     let mut carry: Vec<u8> = Vec::new();
+    let keep = NEEDLES
+        .iter()
+        .map(|needle| needle.len())
+        .max()
+        .unwrap_or(1)
+        .saturating_sub(1);
     loop {
         let n = match f.read(&mut buf) {
             Ok(0) => break,
@@ -173,10 +180,12 @@ pub(crate) fn binary_embeds_ssl(path: &str) -> bool {
             Err(_) => return false,
         };
         carry.extend_from_slice(&buf[..n]);
-        if carry.windows(NEEDLE.len()).any(|w| w == NEEDLE) {
+        if NEEDLES
+            .iter()
+            .any(|needle| carry.windows(needle.len()).any(|w| w == *needle))
+        {
             return true;
         }
-        let keep = NEEDLE.len() - 1;
         if carry.len() > keep {
             carry.drain(..carry.len() - keep);
         }
@@ -305,7 +314,7 @@ fn find_loaded_ssl_library(pid: u32) -> Option<String> {
 
 #[cfg(test)]
 mod tests {
-    use super::parse_container_ref;
+    use super::{binary_embeds_ssl, parse_container_ref};
 
     #[test]
     fn parses_docker_double_slash_scheme() {
@@ -340,5 +349,23 @@ mod tests {
     fn rejects_empty_container_reference() {
         assert_eq!(parse_container_ref("docker://"), None);
         assert_eq!(parse_container_ref("docker:"), None);
+    }
+
+    #[test]
+    fn detects_boringssl_marker_in_static_binary() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("claude-like");
+        std::fs::write(&path, b"prefix BoringSSLError suffix").unwrap();
+
+        assert!(binary_embeds_ssl(path.to_str().unwrap()));
+    }
+
+    #[test]
+    fn ignores_binary_without_static_ssl_markers() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("plain");
+        std::fs::write(&path, b"no tls marker here").unwrap();
+
+        assert!(!binary_embeds_ssl(path.to_str().unwrap()));
     }
 }

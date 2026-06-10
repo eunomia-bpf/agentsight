@@ -50,12 +50,7 @@ export function UnifiedBlock({ data, isExpanded, onToggle }: UnifiedBlockProps) 
     });
   };
 
-  const shouldShowExpandButton = data.expandedContent.length > 300;
   const handleToggle = () => {
-    if (!shouldShowExpandButton) {
-      return;
-    }
-
     const selection = window.getSelection();
     if (selection && selection.toString().length > 0) {
       return;
@@ -123,15 +118,13 @@ export function UnifiedBlock({ data, isExpanded, onToggle }: UnifiedBlockProps) 
                 <span className="text-xs text-gray-500">
                   {formatTimestamp(data.timestamp)}
                 </span>
-                {shouldShowExpandButton && (
-                  <div className="flex-shrink-0">
-                    {isExpanded ? (
-                      <ChevronDownIcon className={`h-4 w-4 ${data.iconColor}`} />
-                    ) : (
-                      <ChevronRightIcon className={`h-4 w-4 ${data.iconColor}`} />
-                    )}
-                  </div>
-                )}
+                <div className="flex-shrink-0">
+                  {isExpanded ? (
+                    <ChevronDownIcon className={`h-4 w-4 ${data.iconColor}`} />
+                  ) : (
+                    <ChevronRightIcon className={`h-4 w-4 ${data.iconColor}`} />
+                  )}
+                </div>
               </div>
             </div>
           </div>

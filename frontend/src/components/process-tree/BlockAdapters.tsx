@@ -87,6 +87,7 @@ export function adaptEventToUnifiedBlock(event: TreeAuditEvent): UnifiedBlockDat
   const expandedContent = expandedEventContent(event, type);
   const tags = [
     style.tag,
+    promptSourceTag(event, type),
     eventModel(event),
     event.action?.toUpperCase(),
     event.status,
@@ -105,6 +106,11 @@ export function adaptEventToUnifiedBlock(event: TreeAuditEvent): UnifiedBlockDat
     foldContent: foldedEventContent(event, expandedContent),
     expandedContent,
   };
+}
+
+function promptSourceTag(event: TreeAuditEvent, type: TreeEventType): string {
+  const source = eventDetails(event).prompt_source;
+  return type === 'prompt' && typeof source === 'string' ? source.toUpperCase() : '';
 }
 
 function styleForEvent(type: TreeEventType, event: TreeAuditEvent) {
@@ -128,7 +134,9 @@ function styleForEvent(type: TreeEventType, event: TreeAuditEvent) {
 }
 
 function foldedEventContent(event: TreeAuditEvent, expandedContent: string): string {
-  if (event.promptDiff?.summary) return `Changed: ${event.promptDiff.summary}`;
+  if (event.promptDiff?.hasChanges && event.promptDiff.summary) {
+    return `Changed: ${event.promptDiff.summary}`;
+  }
   return event.summary
     || eventTarget(event)
     || preview(expandedContent, 120)
@@ -141,6 +149,8 @@ function expandedEventContent(event: TreeAuditEvent, type: TreeEventType): strin
 
   if (type === 'stdio') {
     content = formatStdio(details);
+  } else if (type === 'prompt' && typeof details.text_content === 'string' && details.text_content.trim()) {
+    content = formatPromptDetails(details);
   } else if (typeof details.json_content === 'string' && details.json_content.trim()) {
     content = formatJsonish(details.json_content);
   } else if (typeof details.text_content === 'string' && details.text_content.trim()) {
@@ -151,7 +161,7 @@ function expandedEventContent(event: TreeAuditEvent, type: TreeEventType): strin
     content = JSON.stringify(event.details ?? event, null, 2);
   }
 
-  if (event.promptDiff?.diff) {
+  if (event.promptDiff?.hasChanges && event.promptDiff.diff) {
     return [
       '=== CHANGES FROM PREVIOUS PROMPT ===',
       event.promptDiff.diff,
@@ -162,6 +172,16 @@ function expandedEventContent(event: TreeAuditEvent, type: TreeEventType): strin
   }
 
   return content;
+}
+
+function formatPromptDetails(details: Record<string, any>): string {
+  const text = details.text_content.trim();
+  const meta = Object.fromEntries(
+    Object.entries(details).filter(([key]) => !['text_content', 'prompt'].includes(key)),
+  );
+  return Object.keys(meta).length > 0
+    ? `${text}\n\n${JSON.stringify(meta, null, 2)}`
+    : text;
 }
 
 function formatStdio(details: Record<string, any>): string {

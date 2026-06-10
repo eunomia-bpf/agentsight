@@ -15,6 +15,8 @@ use crate::model::{
 use crate::text::{sanitize_ascii_identifier as sanitize_id, short_session_id, truncate_text};
 use crate::view::MaterializedView;
 
+const MAX_PROMPT_TEXT_CHARS: usize = 4096;
+
 pub(crate) struct SessionCache {
     entries: HashMap<PathBuf, CacheEntry>,
     cached_sessions: Vec<LocalSession>,
@@ -164,10 +166,8 @@ pub(crate) fn import_into_view(view: &mut MaterializedView, sessions: &[LocalSes
     }
 }
 
-pub(crate) fn import_observed_session_prompts(
-    view: &mut MaterializedView,
-    audit_rows: &[AuditEventRow],
-) {
+pub(crate) fn observed_session_prompt_rows(audit_rows: &[AuditEventRow]) -> Vec<AuditEventRow> {
+    let mut rows = Vec::new();
     let mut seen = HashSet::new();
     for row in audit_rows {
         if row.audit_type != "file" {
@@ -195,7 +195,7 @@ pub(crate) fn import_observed_session_prompts(
             continue;
         };
 
-        view.apply_audit_event(&AuditEventRow {
+        rows.push(AuditEventRow {
             id: format!(
                 "audit-agent-native-prompt-{}-{pid}",
                 sanitize_id(&session.display_id)
@@ -211,7 +211,9 @@ pub(crate) fn import_observed_session_prompts(
             summary: Some(truncate_text(prompt, 160)),
             details: serde_json::json!({
                 "text_content": prompt,
+                "prompt": prompt,
                 "prompt_source": "local",
+                "prompt_sources": ["local"],
                 "path": path.to_string_lossy(),
                 "session_id": view_id(&session),
                 "agent": session.agent,
@@ -219,6 +221,7 @@ pub(crate) fn import_observed_session_prompts(
             }),
         });
     }
+    rows
 }
 
 fn audit_session_path(row: &AuditEventRow) -> Option<PathBuf> {
@@ -544,9 +547,26 @@ fn parse_content(
                     }
                 }
             }
+            ("claude", "queue-operation") if prompt_preview.is_none() => {
+                if obj.get("operation").and_then(Value::as_str) == Some("enqueue")
+                    && let Some(text) = obj.get("content").and_then(Value::as_str)
+                    && let Some(text) = cleaned_prompt_text(text)
+                {
+                    prompt_preview = Some(text);
+                }
+            }
+            ("claude", "last-prompt") if prompt_preview.is_none() => {
+                if let Some(text) = obj.get("lastPrompt").and_then(Value::as_str)
+                    && let Some(text) = cleaned_prompt_text(text)
+                {
+                    prompt_preview = Some(text);
+                }
+            }
             ("claude", "user") => {
-                if let Some(text) =
-                    local_message_preview(obj.pointer("/message/content").unwrap_or(&obj))
+                if prompt_preview.is_none()
+                    && !is_claude_tool_result(&obj)
+                    && let Some(text) =
+                        local_message_preview(obj.pointer("/message/content").unwrap_or(&obj))
                 {
                     prompt_preview = Some(text);
                 }
@@ -739,12 +759,12 @@ fn claude_usage_key(obj: &Value) -> String {
 fn local_message_preview(value: &Value) -> Option<String> {
     let mut parts = Vec::new();
     collect_local_text(value, &mut parts);
-    let text = parts
-        .join(" ")
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ");
-    (!text.is_empty()).then(|| truncate_text(&text, 80))
+    cleaned_prompt_text(&parts.join(" "))
+}
+
+fn cleaned_prompt_text(text: &str) -> Option<String> {
+    let text = text.split_whitespace().collect::<Vec<_>>().join(" ");
+    (!text.is_empty()).then(|| truncate_text(&text, MAX_PROMPT_TEXT_CHARS))
 }
 
 fn collect_local_text(value: &Value, out: &mut Vec<String>) {
@@ -759,7 +779,9 @@ fn collect_local_text(value: &Value, out: &mut Vec<String>) {
             if obj
                 .get("type")
                 .and_then(|value| value.as_str())
-                .is_some_and(|typ| typ == "tool_use" || typ == "function_call")
+                .is_some_and(|typ| {
+                    typ == "tool_use" || typ == "function_call" || typ == "tool_result"
+                })
             {
                 return;
             }
@@ -773,6 +795,48 @@ fn collect_local_text(value: &Value, out: &mut Vec<String>) {
     }
 }
 
+fn is_claude_tool_result(obj: &Value) -> bool {
+    obj.get("toolUseResult").is_some()
+        || obj.get("tool_use_result").is_some()
+        || obj
+            .pointer("/message/content")
+            .and_then(Value::as_array)
+            .is_some_and(|items| {
+                items
+                    .iter()
+                    .any(|item| item.get("type").and_then(Value::as_str) == Some("tool_result"))
+            })
+}
+
 fn json_u64(value: &Value, key: &str) -> u64 {
     value.get(key).and_then(|value| value.as_u64()).unwrap_or(0)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn claude_prompt_preview_keeps_user_prompt_when_tool_result_follows() {
+        let (_temp, path) = create_temp_session_path("claude");
+        let content = concat!(
+            r#"{"type":"queue-operation","operation":"enqueue","sessionId":"session-1","content":"Run the command and summarize it."}"#,
+            "\n",
+            r#"{"type":"user","message":{"role":"user","content":"Run the command and summarize it."},"sessionId":"session-1"}"#,
+            "\n",
+            r#"{"type":"assistant","message":{"model":"claude-opus-4-6","content":[{"type":"tool_use","name":"Bash","input":{"command":"printf tool-output"}}],"usage":{"input_tokens":1,"output_tokens":1}},"requestId":"req-1","sessionId":"session-1"}"#,
+            "\n",
+            r#"{"type":"user","message":{"role":"user","content":[{"type":"tool_result","content":"tool-output","is_error":false}]},"toolUseResult":{"stdout":"tool-output"},"sessionId":"session-1"}"#,
+            "\n",
+            r#"{"type":"last-prompt","lastPrompt":"Run the command and summarize it.","sessionId":"session-1"}"#,
+            "\n",
+        );
+
+        let session = parse_content_for_test("claude", &path, UNIX_EPOCH, content).unwrap();
+
+        assert_eq!(
+            session.prompt_preview.as_deref(),
+            Some("Run the command and summarize it.")
+        );
+    }
 }
