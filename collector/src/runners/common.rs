@@ -287,7 +287,7 @@ impl BinaryExecutor {
             .any(|arg| arg == "--binary-path")
         {
             tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
-            if let Some(status) = child.try_wait()?.filter(|status| !status.success()) {
+            if let Some(status) = child.try_wait()? {
                 let label = runner_name.as_deref().unwrap_or("binary");
                 return Err(RunnerError::from(format!(
                     "{label} exited during startup with {status}"
