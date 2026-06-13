@@ -281,6 +281,20 @@ impl BinaryExecutor {
             }
         });
 
+        if self
+            .additional_args
+            .iter()
+            .any(|arg| arg == "--binary-path")
+        {
+            tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
+            if let Some(status) = child.try_wait()?.filter(|status| !status.success()) {
+                let label = runner_name.as_deref().unwrap_or("binary");
+                return Err(RunnerError::from(format!(
+                    "{label} exited during startup with {status}"
+                )));
+            }
+        }
+
         let stream = async_stream::stream! {
             let mut guard = ProbeProcessGuard::new(child_pid, needs_sudo);
             let mut reader = BufReader::new(stdout);

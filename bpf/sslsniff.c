@@ -39,9 +39,14 @@
 
 #define __CHECK_PROGRAM(skel, prog_name)               \
 	do {                                               \
+	  long __err = libbpf_get_error(skel->links.prog_name); \
+	  if (__err) {                                     \
+		skel->links.prog_name = NULL;                  \
+		return (int)__err;                             \
+	  }                                                \
 	  if (!skel->links.prog_name) {                    \
 		perror("no program attached for " #prog_name); \
-		return -errno;                                 \
+		return -(errno ? errno : ENOENT);              \
 	  }                                                \
 	} while (false)
 
@@ -628,6 +633,8 @@ int main(int argc, char **argv) {
 
 	// Handle custom binary path for statically-linked SSL (e.g., NVM Node.js, Bun apps)
 	if (env.extra_lib) {
+		err = -ENOENT;
+
 		if (verbose) {
 			fprintf(stderr, "Attaching to binary: %s\n", env.extra_lib);
 		}
@@ -636,12 +643,12 @@ int main(int argc, char **argv) {
 					.retprobe = false);
 		struct bpf_link *test_link = bpf_program__attach_uprobe_opts(
 			obj->progs.probe_SSL_rw_enter, env.pid, env.extra_lib, 0, &test_opts);
-		if (test_link) {
+		if (test_link && !libbpf_get_error(test_link)) {
 			// Symbol found - use standard symbol-based attachment
 			bpf_link__destroy(test_link);
 			if (verbose)
 				fprintf(stderr, "Using symbol-based attachment for %s\n", env.extra_lib);
-			attach_openssl(obj, env.extra_lib);
+			err = attach_openssl(obj, env.extra_lib);
 		} else {
 			// Symbol not found - try BoringSSL pattern detection
 			if (verbose)
@@ -649,11 +656,17 @@ int main(int argc, char **argv) {
 			struct boringssl_offsets offsets = find_boringssl_offsets(env.extra_lib);
 			if (offsets.found) {
 				fprintf(stderr, "BoringSSL detected! Attaching by offset...\n");
-				attach_openssl_by_offset(obj, env.extra_lib, &offsets);
+				err = attach_openssl_by_offset(obj, env.extra_lib, &offsets);
 			} else {
 				warn("Failed to attach to %s: no SSL symbols or BoringSSL patterns found\n",
 					 env.extra_lib);
 			}
+		}
+
+		if (err) {
+			warn("binary-path attach failed for %s; refusing to continue with partial SSL capture\n",
+				 env.extra_lib);
+			goto cleanup;
 		}
 	}
 
