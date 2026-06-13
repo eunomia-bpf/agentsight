@@ -206,7 +206,7 @@ impl SSEProcessor {
 
     fn is_sse_complete(accumulator: &SSEAccumulator) -> bool {
         for event in &accumulator.events {
-            if Self::sse_event_has_usage_metadata(event) {
+            if Self::sse_event_completes_stream(event) {
                 return true;
             }
             if let Some(event_type) = &event.event {
@@ -230,7 +230,7 @@ impl SSEProcessor {
         let mut metadata_only_count = 0;
 
         for event in &accumulator.events {
-            if Self::sse_event_has_usage_metadata(event) {
+            if Self::sse_event_has_usage(event) {
                 return true;
             }
             if let Some(event_type) = &event.event {
@@ -255,12 +255,19 @@ impl SSEProcessor {
                 && metadata_only_count < accumulator.events.len())
     }
 
-    fn sse_event_has_usage_metadata(event: &SSEEvent) -> bool {
-        event
-            .parsed_data
-            .as_ref()
-            .and_then(|data| data.get("usageMetadata"))
-            .is_some()
+    fn sse_event_has_usage(event: &SSEEvent) -> bool {
+        event.parsed_data.as_ref().is_some_and(|data| {
+            data.get("usageMetadata").is_some()
+                || data.get("usage").is_some()
+                || data.get("message").and_then(|m| m.get("usage")).is_some()
+        })
+    }
+
+    fn sse_event_completes_stream(event: &SSEEvent) -> bool {
+        event.data.as_deref() == Some("[DONE]")
+            || event.parsed_data.as_ref().is_some_and(|data| {
+                data.get("usageMetadata").is_some() || data.get("usage").is_some()
+            })
     }
 
     fn accumulate_content(accumulator: &mut SSEAccumulator, events: &[SSEEvent]) {

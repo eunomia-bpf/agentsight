@@ -92,6 +92,78 @@ mod sse_processor_tests {
     }
 
     #[tokio::test]
+    async fn test_openai_compatible_usage_completes_sse_stream() {
+        let mut processor = SSEProcessor::new();
+        let chunks = [
+            "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\n\r\ndata: {\"message\":{\"usage\":{\"input_tokens\":5,\"cache_read_input_tokens\":2}}}\r\n\r\n",
+            "data: {\"usage\":{\"output_tokens\":3}}\r\n\r\n",
+            "data: [DONE]\r\n\r\n",
+        ];
+        let input_stream: EventStream = Box::pin(stream::iter(chunks.into_iter().enumerate().map(
+            |(idx, data)| {
+                Event::new_with_timestamp(
+                    (idx + 2) as u64,
+                    "ssl".to_string(),
+                    1234,
+                    "node".to_string(),
+                    json!({
+                        "data": data,
+                        "function": "READ/RECV",
+                        "pid": 1234,
+                        "tid": 99,
+                        "timestamp_ns": idx + 2
+                    }),
+                )
+            },
+        )));
+        let output_stream = processor.process(input_stream).await.unwrap();
+        let collected: Vec<_> = output_stream.collect().await;
+
+        assert_eq!(collected.len(), 1);
+        assert_eq!(collected[0].source, "sse_processor");
+
+        let mut view = MaterializedView::new();
+        let req = Event::new_with_timestamp(
+            1,
+            "http_parser".to_string(),
+            1234,
+            "node".to_string(),
+            json!({
+                "tid": 99,
+                "message_type": "request",
+                "method": "POST",
+                "path": "/v1/chat/completions",
+                "headers": { "host": "api.example.test" },
+                "body": "{\"model\":\"example-model\"}"
+            }),
+        );
+        let empty_req = Event::new_with_timestamp(
+            1,
+            "http_parser".to_string(),
+            1234,
+            "node".to_string(),
+            json!({
+                "tid": 99,
+                "message_type": "request",
+                "method": "POST",
+                "path": "/v1/chat/completions",
+                "headers": { "host": "api.example.test" }
+            }),
+        );
+        view.ingest_event(&req).unwrap();
+        view.ingest_event(&empty_req).unwrap();
+        view.ingest_event(&collected[0]).unwrap();
+
+        let snapshot = view.export_snapshot(crate::model::SnapshotOptions { audit_limit: 0 });
+        assert_eq!(snapshot.summary.llm_calls, 1);
+        assert_eq!(snapshot.summary.token_usage_rows, 1);
+        assert_eq!(snapshot.summary.input_tokens, 5);
+        assert_eq!(snapshot.summary.output_tokens, 3);
+        assert_eq!(snapshot.summary.total_tokens, 10);
+        assert_eq!(snapshot.token_summary[0].group, "example-model");
+    }
+
+    #[tokio::test]
     async fn test_gemini_usage_metadata_fragment_completes_sse_stream() {
         let mut processor = SSEProcessor::new();
         let test_data = r#""text": ""}]},"finishReason":"STOP"}],"usageMetadata":{"promptTokenCount":11,"candidatesTokenCount":4,"totalTokenCount":15},"modelVersion":"gemini-3-flash-preview","responseId":"abc"}"#;

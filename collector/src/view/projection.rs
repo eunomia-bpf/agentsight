@@ -75,6 +75,9 @@ impl MaterializedView {
             request_id: event.request_id.clone(),
             body_json: body_json(&event.attributes),
         };
+        if req.body_json.is_none() && req.model.is_none() {
+            return Ok(());
+        }
         self.insert_orphan_llm_request(&req)?;
         let requests = self.pending.entry((pid, tid)).or_default();
         requests.push_back(req);
@@ -111,7 +114,19 @@ impl MaterializedView {
         } else if requests.len() == 1 {
             (requests.pop_front()?, 0.75)
         } else {
-            return None;
+            let pos = {
+                let mut candidates = requests
+                    .iter()
+                    .enumerate()
+                    .filter(|(_, req)| req.body_json.is_some() || req.model.is_some())
+                    .map(|(idx, _)| idx);
+                let pos = candidates.next()?;
+                if candidates.next().is_some() {
+                    return None;
+                }
+                pos
+            };
+            (requests.remove(pos)?, 0.7)
         };
         if requests.is_empty() {
             self.pending.remove(&(pid, tid));
