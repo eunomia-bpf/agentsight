@@ -224,7 +224,12 @@ pub(crate) async fn run_exec(
         tokio::select! {
             maybe_event = stream.next() => {
                 match maybe_event {
-                    Some(_event) => {}
+                    Some(event) => {
+                        if let Some(error) = crate::runners::common::runner_error_from_event(&event) {
+                            stop_child(&mut child).await;
+                            return Err(error);
+                        }
+                    }
                     None => {
                         print_record_monitoring_stream_ended();
                         break;
@@ -239,7 +244,7 @@ pub(crate) async fn run_exec(
                     Err(e) => print_record_target_wait_error(e),
                 }
                 target_exited = true;
-                drain_stream_for(&mut stream, tokio::time::Duration::from_millis(5000)).await;
+                drain_stream_for(&mut stream, tokio::time::Duration::from_millis(5000)).await?;
                 break;
             }
             _ = shutdown.notified() => {

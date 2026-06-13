@@ -17,6 +17,7 @@ use tokio::process::Command as TokioCommand;
 
 /// Type alias for JSON stream
 pub type JsonStream = Pin<Box<dyn Stream<Item = serde_json::Value> + Send>>;
+const RUNNER_ERROR_TYPE: &str = "runner_error";
 
 fn preview_line(line: &str, max_chars: usize) -> String {
     let mut chars = line.chars();
@@ -26,6 +27,41 @@ fn preview_line(line: &str, max_chars: usize) -> String {
     } else {
         preview
     }
+}
+
+fn runner_label(runner_name: Option<&str>, binary_path: &str) -> String {
+    runner_name.map(str::to_string).unwrap_or_else(|| {
+        Path::new(binary_path)
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("binary")
+            .to_string()
+    })
+}
+
+fn runner_error_json(runner: &str, message: String) -> serde_json::Value {
+    let timestamp = current_boot_time_ns();
+    serde_json::json!({
+        "timestamp": timestamp,
+        "timestamp_ns": timestamp,
+        "pid": 0,
+        "comm": runner,
+        "type": RUNNER_ERROR_TYPE,
+        "message": message,
+    })
+}
+
+pub fn runner_error_from_event(event: &Event) -> Option<RunnerError> {
+    (event.data.get("type").and_then(|v| v.as_str()) == Some(RUNNER_ERROR_TYPE)).then(|| {
+        RunnerError::from(
+            event
+                .data
+                .get("message")
+                .and_then(|v| v.as_str())
+                .unwrap_or("runner failed")
+                .to_string(),
+        )
+    })
 }
 
 struct ProbeProcessGuard {
@@ -225,10 +261,10 @@ impl BinaryExecutor {
         // Clone needed data for the stream
         let runner_name = self.runner_name.clone();
         let binary_path = self.binary_path.clone();
+        let label = runner_label(runner_name.as_deref(), &binary_path);
 
         // Spawn a task to read and log stderr
-        let stderr_runner_name = runner_name.clone();
-        let stderr_binary_path = binary_path.clone();
+        let stderr_label = label.clone();
         tokio::spawn(async move {
             let mut stderr_reader = BufReader::new(stderr);
             let mut stderr_line = String::new();
@@ -243,32 +279,7 @@ impl BinaryExecutor {
                     Ok(_) => {
                         let trimmed = stderr_line.trim();
                         if !trimmed.is_empty() {
-                            // Log stderr output as ERROR for visibility
-                            let runner_info = stderr_runner_name
-                                .as_ref()
-                                .map(|name| format!("[{}] ", name))
-                                .unwrap_or_else(|| {
-                                    format!(
-                                        "[{}] ",
-                                        std::path::Path::new(&stderr_binary_path)
-                                            .file_name()
-                                            .and_then(|n| n.to_str())
-                                            .unwrap_or("unknown")
-                                    )
-                                });
-
-                            // Check severity of the message
-                            if trimmed.contains("Failed")
-                                || trimmed.contains("Error")
-                                || trimmed.contains("cannot")
-                                || trimmed.contains("permission denied")
-                            {
-                                log::error!("{}STDERR: {}", runner_info, trimmed);
-                            } else if trimmed.contains("warn") || trimmed.contains("Warning") {
-                                log::warn!("{}STDERR: {}", runner_info, trimmed);
-                            } else {
-                                log::info!("{}STDERR: {}", runner_info, trimmed);
-                            }
+                            log::warn!("[{}] STDERR: {}", stderr_label, trimmed);
                         }
                     }
                     Err(e) => {
@@ -360,9 +371,12 @@ impl BinaryExecutor {
                 Ok(status) => {
                     debug!("Binary process terminated with status: {}", status);
                     guard.disarm();
+                    if !status.success() {
+                        yield runner_error_json(&label, format!("{label} exited with {status}"));
+                    }
                 }
                 Err(e) => {
-                    log::warn!("Error waiting for binary process: {}", e);
+                    yield runner_error_json(&label, format!("failed to wait for {label}: {e}"));
                 }
             }
         };

@@ -16,6 +16,7 @@ use crate::output::{
     print_trace_shutdown, print_trace_ssl_binary_discovered, print_trace_start,
     print_web_server_error, print_web_server_start,
 };
+use crate::runners::common::runner_error_from_event;
 use crate::runners::{
     AgentRunner, BinaryRunner, EventStream, ProcessRunner, Runner, RunnerError, SystemRunner,
 };
@@ -365,7 +366,7 @@ pub(crate) async fn run_trace(
     let mut stream = agent.run().await?;
 
     // Drive the stream so the analyzer chain (file logging, storage, etc.) runs.
-    drive_stream_until_shutdown(&mut stream, !cfg.quiet).await;
+    drive_stream_until_shutdown(&mut stream, !cfg.quiet).await?;
     drop(stream);
     drop(agent);
 
@@ -422,13 +423,19 @@ pub(crate) async fn start_web_server_if_enabled(
     }))
 }
 
-pub(crate) async fn drive_stream_until_shutdown(stream: &mut EventStream, print_events: bool) {
+pub(crate) async fn drive_stream_until_shutdown(
+    stream: &mut EventStream,
+    print_events: bool,
+) -> Result<(), RunnerError> {
     let shutdown = crate::shutdown_notify();
     loop {
         tokio::select! {
             maybe_event = stream.next() => {
                 match maybe_event {
                     Some(event) => {
+                        if let Some(error) = runner_error_from_event(&event) {
+                            return Err(error);
+                        }
                         if print_events {
                             print_event_json(&event);
                         }
@@ -442,17 +449,26 @@ pub(crate) async fn drive_stream_until_shutdown(stream: &mut EventStream, print_
             }
         }
     }
+    Ok(())
 }
 
-pub(crate) async fn drain_stream_for(stream: &mut EventStream, duration: tokio::time::Duration) {
+pub(crate) async fn drain_stream_for(
+    stream: &mut EventStream,
+    duration: tokio::time::Duration,
+) -> Result<(), RunnerError> {
     let shutdown = crate::shutdown_notify();
     let deadline = tokio::time::sleep(duration);
     tokio::pin!(deadline);
     loop {
         tokio::select! {
             maybe_event = stream.next() => {
-                if maybe_event.is_none() {
-                    break;
+                match maybe_event {
+                    Some(event) => {
+                        if let Some(error) = runner_error_from_event(&event) {
+                            return Err(error);
+                        }
+                    }
+                    None => break,
                 }
             }
             _ = &mut deadline => {
@@ -463,6 +479,7 @@ pub(crate) async fn drain_stream_for(stream: &mut EventStream, duration: tokio::
             }
         }
     }
+    Ok(())
 }
 
 pub(crate) fn convert_runner_error(e: RunnerError) -> Box<dyn std::error::Error + Send + Sync> {
@@ -507,6 +524,6 @@ pub(crate) async fn run_debug_runner<R: Runner>(
             .await
             .map_err(|e| RunnerError::from(format!("Failed to start server: {}", e)))?;
     let mut stream = runner.run().await?;
-    drive_stream_until_shutdown(&mut stream, !quiet).await;
+    drive_stream_until_shutdown(&mut stream, !quiet).await?;
     Ok(())
 }
