@@ -11,6 +11,7 @@ export const en = {
   'app.timelineView': 'Timeline View',
   'app.processTree': 'Process Tree',
   'app.metrics': 'Metrics',
+  'app.agentFlame': 'AgentFlame',
   'app.syncData': 'Sync Data',
   'app.clearData': 'Clear Data',
   'app.loadingEvents': 'Loading events from server...',

@@ -15,6 +15,7 @@ export const zh: Record<TranslationKey, string> = {
   'app.timelineView': '时间线视图',
   'app.processTree': '进程树',
   'app.metrics': '性能指标',
+  'app.agentFlame': 'AgentFlame',
   'app.syncData': '同步数据',
   'app.clearData': '清除数据',
   'app.loadingEvents': '正在从服务器加载事件...',
