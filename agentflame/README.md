@@ -2,10 +2,10 @@
 
 AgentFlame is a local, LLM-only tagger and visualization tool for AI coding
 agent session history. It reads local Codex and Claude JSONL sessions, asks a
-local llama.cpp server for one lowercase word per session and prompt, then
-writes reusable JSON plus semantic flamegraphs and dashboard charts. Token views
-inherit prompt tags by default; pass `--tag-llm-calls` to ask the LLM for one
-word per LLM call too.
+local llama.cpp server for one lowercase word per session, prompt, and LLM call,
+then writes reusable JSON plus semantic flamegraphs and dashboard charts. Pass
+`--no-tag-llm-calls` only when you intentionally want token views to inherit
+prompt tags for a faster exploratory run.
 
 It is intentionally separate from the AgentSight collector. The first mode is
 zero-instrumentation history analysis. AgentSight can later reuse
@@ -44,7 +44,8 @@ PYTHONPATH=agentflame python3 -m agentflame run \
 AgentFlame does **not** fall back to regex labels. If the LLM server is missing,
 or if the model does not return one valid lowercase word, the run fails.
 This applies to every enabled tag scope. The default scope is session+prompt for
-speed; `--tag-llm-calls` enables full LLM-call tagging.
+system-effect views, plus per-LLM-call tags for token views. `--no-tag-llm-calls`
+disables only the LLM-call scope.
 
 ## AgentSight Web
 

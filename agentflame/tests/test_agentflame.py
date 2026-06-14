@@ -68,6 +68,15 @@ class AgentFlameTests(unittest.TestCase):
                     "timestamp": "2026-06-14T00:00:03Z",
                     "payload": {"type": "function_call_output", "call_id": "c1", "output": "Process exited with code 0"},
                 },
+                {
+                    "type": "response_item",
+                    "timestamp": "2026-06-14T00:00:04Z",
+                    "payload": {
+                        "type": "message",
+                        "role": "assistant",
+                        "content": [{"type": "output_text", "text": "The tests now pass."}],
+                    },
+                },
             ]
             session_path.write_text("\n".join(json.dumps(row) for row in rows), encoding="utf-8")
             parsed = parse_codex_session(session_path, root)
@@ -84,6 +93,7 @@ class AgentFlameTests(unittest.TestCase):
             self.assertTrue((out / "tags.json").exists() is False)
             self.assertTrue((out / "index.html").exists())
             self.assertEqual(payload["sessions"][0]["agent_sight_session_id"], "local:codex:codex:s1")
+            self.assertTrue(any("llm:response" in row["stack"] for row in payload["summary"]["token"]["top"]))
             self.assertGreater(payload["summary"]["system"]["unique_stacks"], 0)
 
     def test_llm_tagger_rejects_invalid_without_regex_fallback(self) -> None:

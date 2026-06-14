@@ -32,7 +32,7 @@ class AnalysisConfig:
     scan_files: int = 160
     max_sessions: int = 36
     include_previews: bool = False
-    tag_llm_calls: bool = False
+    tag_llm_calls: bool = True
 
 
 DIMENSION_SPECS: dict[str, dict[str, Any]] = {
@@ -64,7 +64,7 @@ DIMENSION_SPECS: dict[str, dict[str, Any]] = {
 }
 
 
-def annotate_sessions(sessions: list[SessionRecord], tagger: Tagger, tag_llm_calls: bool = False) -> None:
+def annotate_sessions(sessions: list[SessionRecord], tagger: Tagger, tag_llm_calls: bool = True) -> None:
     for session in sessions:
         prompt_text = " ".join(req.preview for req in session.user_requests[:8])
         session.session_tag = tagger.tag(
@@ -78,9 +78,6 @@ def annotate_sessions(sessions: list[SessionRecord], tagger: Tagger, tag_llm_cal
             if tag_llm_calls:
                 llm.tag = tagger.tag("llm", llm.preview, hints=[session.session_tag, session.source, llm.model])
             else:
-                # Default token views inherit prompt semantics to avoid one LLM
-                # request per assistant event. Explicit --tag-llm-calls enables
-                # fully LLM-tagged call frames.
                 llm.tag = session.request_by_index(llm.request_index).tag
 
 
