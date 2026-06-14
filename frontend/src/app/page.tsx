@@ -8,12 +8,13 @@ import { LogView } from '@/components/log/LogView';
 import { Timeline as TimelineView } from '@/components/timeline/Timeline';
 import { ProcessTreeView } from '@/components/ProcessTreeView';
 import { ResourceMetricsView } from '@/components/ResourceMetricsView';
+import { AgentFlameView } from '@/components/AgentFlameView';
 import { LanguageSwitcher } from '@/components/common/LanguageSwitcher';
 import { useTranslation } from '@/i18n';
 import { AgentSightSnapshot } from '@/types/event';
 import { displayEventsFromSnapshot } from '@/utils/eventProcessing';
 
-type ViewMode = 'log' | 'timeline' | 'process-tree' | 'metrics';
+type ViewMode = 'log' | 'timeline' | 'process-tree' | 'metrics' | 'agentflame';
 type AppMode = 'loading' | 'live' | 'demo';
 
 function viewModeFromPath(pathname: string): ViewMode {
@@ -21,6 +22,7 @@ function viewModeFromPath(pathname: string): ViewMode {
   if (path === '/logs') return 'log';
   if (path === '/tree') return 'process-tree';
   if (path === '/metrics') return 'metrics';
+  if (path === '/agentflame') return 'agentflame';
   return 'timeline';
 }
 
@@ -28,6 +30,7 @@ function pathForViewMode(mode: ViewMode): string {
   if (mode === 'log') return '/logs';
   if (mode === 'process-tree') return '/tree';
   if (mode === 'metrics') return '/metrics';
+  if (mode === 'agentflame') return '/agentflame';
   return '/timeline';
 }
 
@@ -198,7 +201,7 @@ export default function Home() {
 
               <div className="flex flex-wrap items-center gap-2 lg:gap-4">
                 <div className="flex flex-wrap rounded-lg border border-gray-200 p-1">
-                  {(['log', 'timeline', 'process-tree', 'metrics'] as ViewMode[]).map(m => (
+                  {(['log', 'timeline', 'process-tree', 'metrics', 'agentflame'] as ViewMode[]).map(m => (
                     <button key={m} onClick={() => selectViewMode(m)}
                       className={`px-3 py-1 text-sm rounded-md transition-colors ${
                         viewMode === m ? 'bg-blue-600 text-white' : 'text-gray-600 hover:bg-gray-100'
@@ -206,7 +209,8 @@ export default function Home() {
                       {m === 'log' ? t('app.logView')
                         : m === 'timeline' ? t('app.timelineView')
                         : m === 'process-tree' ? t('app.processTree')
-                        : t('app.metrics')}
+                        : m === 'metrics' ? t('app.metrics')
+                        : t('app.agentFlame')}
                     </button>
                   ))}
                 </div>
@@ -233,7 +237,9 @@ export default function Home() {
             )}
           </div>
 
-          {eventCount > 0 ? (
+          {viewMode === 'agentflame' ? (
+            <AgentFlameView basePath={basePath} />
+          ) : eventCount > 0 ? (
             viewMode === 'log' ? (
               <LogView events={displayEvents} />
             ) : viewMode === 'timeline' ? (

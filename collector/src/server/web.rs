@@ -15,6 +15,7 @@ use serde::Serialize;
 use serde_json::Value;
 use std::convert::Infallible;
 use std::net::SocketAddr;
+use std::path::{Component, Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 use tokio::net::TcpListener;
@@ -104,18 +105,136 @@ async fn handle_request(
 
     log::info!("📨 {} {}", req.method(), path);
 
-    let response = match (req.method(), path) {
-        (&Method::GET, "/api/v1/snapshot") => {
-            serve_snapshot_api(view, agent_native_sessions, db_path, query.as_deref()).await?
-        }
-        (&Method::GET, _) => serve_asset(assets, path).await?,
-        _ => {
-            log::info!("❌ 404 Not Found: {} {}", req.method(), path);
-            plain_response(StatusCode::NOT_FOUND, "text/plain", b"Not Found".to_vec())
+    let response = if req.method() == Method::GET
+        && path.starts_with("/api/v1/agentflame/artifacts/")
+    {
+        serve_agentflame_artifact(path).await?
+    } else {
+        match (req.method(), path) {
+            (&Method::GET, "/api/v1/snapshot") => {
+                serve_snapshot_api(view, agent_native_sessions, db_path, query.as_deref()).await?
+            }
+            (&Method::GET, "/api/v1/agentflame") => serve_agentflame_api().await?,
+            (&Method::GET, _) => serve_asset(assets, path).await?,
+            _ => {
+                log::info!("❌ 404 Not Found: {} {}", req.method(), path);
+                plain_response(StatusCode::NOT_FOUND, "text/plain", b"Not Found".to_vec())
+            }
         }
     };
 
     Ok(response)
+}
+
+async fn serve_agentflame_api() -> std::result::Result<Response<Full<Bytes>>, Infallible> {
+    let result = tokio::task::spawn_blocking(
+        move || -> Result<Value, Box<dyn std::error::Error + Send + Sync>> {
+            let path = agentflame_report_dir()?.join("agentflame.json");
+            let text = std::fs::read_to_string(&path).map_err(|error| {
+                std::io::Error::new(
+                    error.kind(),
+                    format!(
+                        "failed to read {}: {}. Run `agentflame run` first.",
+                        path.display(),
+                        error
+                    ),
+                )
+            })?;
+            let mut value: Value = serde_json::from_str(&text)?;
+            if let Some(object) = value.as_object_mut() {
+                object.insert(
+                    "served_from".to_string(),
+                    Value::String(path.display().to_string()),
+                );
+            }
+            Ok(value)
+        },
+    )
+    .await;
+
+    match result {
+        Ok(Ok(value)) => Ok(json_response(StatusCode::OK, &value)),
+        Ok(Err(e)) => Ok(json_error(
+            StatusCode::NOT_FOUND,
+            &format!("agentflame report unavailable: {}", e),
+        )),
+        Err(e) => Ok(json_error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("agentflame query task failed: {}", e),
+        )),
+    }
+}
+
+async fn serve_agentflame_artifact(
+    path: &str,
+) -> std::result::Result<Response<Full<Bytes>>, Infallible> {
+    let relative = path
+        .strip_prefix("/api/v1/agentflame/artifacts/")
+        .unwrap_or_default()
+        .to_string();
+    let result = tokio::task::spawn_blocking(
+        move || -> Result<(String, Vec<u8>), Box<dyn std::error::Error + Send + Sync>> {
+            let relative = agentflame_artifact_relative_path(&relative).ok_or_else(|| {
+                std::io::Error::new(std::io::ErrorKind::InvalidInput, "unsafe artifact path")
+            })?;
+            let path = agentflame_report_dir()?.join(relative);
+            let body = std::fs::read(&path).map_err(|error| {
+                std::io::Error::new(
+                    error.kind(),
+                    format!(
+                        "failed to read {}: {}. Run `agentflame run` first.",
+                        path.display(),
+                        error
+                    ),
+                )
+            })?;
+            Ok((agentflame_artifact_content_type(&path).to_string(), body))
+        },
+    )
+    .await;
+
+    match result {
+        Ok(Ok((content_type, body))) => Ok(plain_response(StatusCode::OK, &content_type, body)),
+        Ok(Err(e)) => Ok(json_error(
+            StatusCode::NOT_FOUND,
+            &format!("agentflame artifact unavailable: {}", e),
+        )),
+        Err(e) => Ok(json_error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("agentflame artifact task failed: {}", e),
+        )),
+    }
+}
+
+fn agentflame_report_dir() -> std::io::Result<PathBuf> {
+    Ok(std::env::current_dir()?
+        .join(".agentsight")
+        .join("agentflame")
+        .join("latest"))
+}
+
+fn agentflame_artifact_relative_path(path: &str) -> Option<PathBuf> {
+    if path.is_empty() {
+        return None;
+    }
+    let mut safe = PathBuf::new();
+    for component in Path::new(path).components() {
+        match component {
+            Component::Normal(part) => safe.push(part),
+            _ => return None,
+        }
+    }
+    (!safe.as_os_str().is_empty()).then_some(safe)
+}
+
+fn agentflame_artifact_content_type(path: &Path) -> &'static str {
+    match path.extension().and_then(|ext| ext.to_str()) {
+        Some("html") => "text/html; charset=utf-8",
+        Some("json") => "application/json",
+        Some("svg") => "image/svg+xml",
+        Some("txt") => "text/plain; charset=utf-8",
+        _ => "application/octet-stream",
+    }
 }
 
 async fn serve_asset(
@@ -256,6 +375,22 @@ mod tests {
 
         assert_eq!(query_param_usize(query, "audit_limit"), Some(9));
         assert_eq!(query_param_usize(query, "missing"), None);
+    }
+
+    #[test]
+    fn validates_agentflame_artifact_paths() {
+        assert_eq!(
+            agentflame_artifact_relative_path("system-flamegraph.svg"),
+            Some(PathBuf::from("system-flamegraph.svg"))
+        );
+        assert_eq!(
+            agentflame_artifact_relative_path("nested/chart.svg"),
+            Some(PathBuf::from("nested").join("chart.svg"))
+        );
+        assert!(agentflame_artifact_relative_path("").is_none());
+        assert!(agentflame_artifact_relative_path("../agentflame.json").is_none());
+        assert!(agentflame_artifact_relative_path("/tmp/agentflame.json").is_none());
+        assert!(agentflame_artifact_relative_path("nested/../chart.svg").is_none());
     }
 
     fn llm_call(id: &str, pid: u32, comm: &str, timestamp_ms: u64, text: &str) -> LlmCallRow {
