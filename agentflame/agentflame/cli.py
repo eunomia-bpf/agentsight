@@ -36,7 +36,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="-1 means no limit. Any exhausted budget fails the run rather than using non-LLM fallback.",
     )
     run.add_argument("--include-previews", action="store_true", help="Store prompt previews in agentflame.json. Off by default.")
-    run.add_argument("--tag-llm-calls", action="store_true", help="Use the LLM to tag each LLM call. Default token views inherit prompt tags for speed.")
+    run.set_defaults(tag_llm_calls=True)
+    run.add_argument("--tag-llm-calls", dest="tag_llm_calls", action="store_true", help=argparse.SUPPRESS)
+    run.add_argument("--no-tag-llm-calls", dest="tag_llm_calls", action="store_false", help="Disable per-LLM-call tagging and inherit prompt tags in token views.")
     run.add_argument("--open", action="store_true", help="Open the generated dashboard in a browser.")
 
     render = sub.add_parser("render", help="Re-render dashboard from an existing agentflame.json and folded files.")

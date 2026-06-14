@@ -340,7 +340,7 @@ export function AgentFlameView({ basePath = '', snapshot = null }: AgentFlameVie
             <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500">
               <span>{report.project.name}</span>
               <span>{new Date(report.generated_at).toLocaleString()}</span>
-              <span>{report.inputs.tag_llm_calls ? 'LLM-call tags enabled' : 'Prompt tags inherited by LLM calls'}</span>
+              <span>{report.inputs.tag_llm_calls ? 'LLM-call tags enabled' : 'LLM calls inherit prompt tags'}</span>
             </div>
           </div>
           {dashboard && (
