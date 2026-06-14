@@ -1,34 +1,53 @@
 # Review Response
 
-Reviewer: OSDI/SOSP-style subagent review, 2026-06-14.
+Last updated: 2026-06-14
+Stage at update: paper-integration
+Source/command: full Rust AgentFlame run and OSDI-style internal review
+Completeness: partial
 
-## Main Criticism
+## Main Criticism Addressed
 
-The previous draft was too broad for the evidence. It sounded like the artifact
-proved live exact AgentSight file/network/process lineage and user utility. The
-actual evidence supports a narrower artifact-level result over one local
-AgentSight repository history.
+The earlier draft over-centered "agent flamegraph" as the novelty and used a
+36-session Python prototype as the headline evidence. That framing is weak
+because span-duration flamegraphs already exist for distributed traces and have
+been shown for multi-agent workflows.
 
-## Revision
+The current revision reframes the paper as:
 
-- Reframed the thesis as semantic partitioning of agent-native session/tool
-  histories, not proven user utility.
-- Updated all current metrics to the latest one-command pipeline run:
-  36 sessions, 4031 raw tool events, 5312 expanded system observations, 2270
-  semantic system stacks, 2.34x compression.
-- Changed C3 wording from broad information gain to baseline-bucket
-  partitioning: 392 nonsemantic mixed buckets covering 68.505% of observation
-  weight, and 397 flat mixed buckets covering 74.473%.
-- Marked C6 as fixture-only checker evidence. The paper no longer treats the
-  100% fixture join rate as a live-workload metric.
-- Marked C2 as grammar/provenance evidence only and C7 as partial because
-  35.987% of prompt rows still use generic tags and no manual adequacy labels
-  exist.
-- Added a case study from the current `semantic-mixing.csv` showing how the
-  largest `git read` baseline bucket mixes 27 session/prompt regions.
+> semantic attribution of AI-agent system effects.
+
+The model is now explicitly:
+
+```text
+sessionTag;promptTag;llmcall/tool;process*;effect
+```
+
+## Evidence Updated
+
+- Replaced the old 36-session headline with the Rust full local-history run.
+- Current run: 205 readable sessions, 130,632 raw tool events, 90,930 raw LLM
+  events, 167,005 system observations, 24,295 unique semantic system stacks.
+- Current tagger: 93,598 tag requests, 64,297 cache hits, 29,302 llama.cpp HTTP
+  calls, 0 final tag failures.
+- Current semantic partitioning: nonsemantic mixed weight 90.219%; flat mixed
+  weight 90.770%.
+- Current warning: one root-owned Claude JSONL was unreadable and is explicitly
+  recorded in the report.
+
+## Claims Weakened
+
+- User utility is still unsupported: no participant responses exist.
+- Live exact AgentSight file/network lineage is still unsupported beyond the
+  fixture checker.
+- One-word tags are treated as lossy navigation frames, not a semantic ontology.
+- Token flamegraphs are source-local accounting, not cross-agent cost evidence.
 
 ## Remaining Weak-Accept Gap
 
-The revised paper is honest as an artifact/evaluation prototype. It still needs
-live C6 AgentSight snapshots or a scored C5 user study to become a strong OSDI
-systems paper.
+The revised paper is more honest and more interesting, but still not OSDI weak
+accept. The shortest path is:
+
+1. Live AgentSight exact-effect lineage with join/orphan metrics.
+2. Small user/task benchmark against trace tree, span-duration flamegraph, flat
+   summary, nonsemantic stack, and semantic stack.
+3. 0.6B/1B/3B tagger cost/stability and human adequacy labels.

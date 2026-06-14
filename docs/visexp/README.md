@@ -1,14 +1,15 @@
 # Semantic Tag Flamegraph Experiment
 
-This directory contains a runnable experiment for the one-word semantic tag
-design. It reads real local Codex and Claude JSONL sessions for this repository,
-assigns one lowercase word to each session, user prompt, and LLM call, then emits
-folded stacks and static SVG flamegraphs.
+This directory contains the research artifacts for AgentFlame, a semantic
+system-effect profiler for AI coding agents. The current implementation lives in
+`agentflame/`: it reads real local Codex and Claude JSONL sessions for this
+repository, asks a real llama.cpp-compatible server for one lowercase word per
+session, user prompt, and LLM call, then emits folded stacks, SVG flamegraphs,
+and a static dashboard.
 
-See [DESIGN.md](DESIGN.md) for the experiment contract, stack grammar, and
-OSDI-facing interpretation. See [CLAIMS.md](CLAIMS.md) for which claims are
-currently supported and which still require paired workloads or user studies.
-See [EXPERIMENT_PLAN.md](EXPERIMENT_PLAN.md) and
+Start with [RESEARCH_PLAN.md](RESEARCH_PLAN.md) for the thesis and RQs. See
+[CLAIMS.md](CLAIMS.md) and [CLAIM_VERDICT.md](CLAIM_VERDICT.md) for the current
+evidence gate, and [EXPERIMENT_PLAN.md](EXPERIMENT_PLAN.md) plus
 [EXPERIMENT_TRACKER.md](EXPERIMENT_TRACKER.md) for the OSDI-facing evaluation
 plan.
 
@@ -21,38 +22,51 @@ project:agentsight;agent:codex;session:design;prompt:flamegraph;tool:shell;cmd:r
 The line above means seven raw tool/effect observations collapsed into one stack.
 The SVG is a rendering of the folded stack file, not a per-session trace tree.
 
-## Run
+## Current Rust Run
 
-One-command local reproduction, using a local GGUF automatically if the default
-`../llama.cpp-latest` paths exist and otherwise falling back to deterministic
-tags:
+Start a local llama.cpp server with a real GGUF model:
+
+```bash
+/home/yunwei37/workspace/llama.cpp-latest/build/bin/llama-server \
+  -m /home/yunwei37/workspace/llama.cpp-latest/models/qwen2.5-3b-instruct-q4_k_m.gguf \
+  --host 127.0.0.1 --port 18080 --reasoning off
+```
+
+Generate the current full local-history report:
+
+```bash
+cargo run --manifest-path agentflame/Cargo.toml -- run \
+  --project-root . \
+  --scan-files 10000 \
+  --max-sessions 10000 \
+  --llama-url http://127.0.0.1:18080 \
+  --model local \
+  --timeout 60 \
+  --out .agentsight/agentflame/latest
+```
+
+The Rust path has no heuristic fallback. If the LLM server is unavailable, or
+if the model cannot return one valid lowercase word after retry, the run fails.
+
+Legacy Python prototype pipeline:
 
 ```bash
 python3 docs/visexp/run_pipeline.py --out docs/visexp/out
 ```
 
-Fallback tagger, no model calls:
-
-```bash
-python3 docs/visexp/semantic_tag_flamegraph.py --out docs/visexp/out
-```
-
-llama.cpp annotation with a local GGUF:
-
-```bash
-python3 docs/visexp/semantic_tag_flamegraph.py \
-  --model /path/to/model.Q4_K_M.gguf \
-  --llama-cli ../llama.cpp-latest/build/bin/llama-cli \
-  --llama-limit 200 \
-  --out docs/visexp/out
-```
-
-The model prompt has a strict contract: return exactly one lowercase English
-word. Invalid model output falls back to the deterministic local tagger.
+The legacy output is useful for older fixture/user-task scripts, but the current
+headline results come from `.agentsight/agentflame/latest`.
 
 ## Outputs
 
-- `out/index.html`: static report page.
+- `.agentsight/agentflame/latest/index.html`: current Rust static report page.
+- `.agentsight/agentflame/latest/agentflame.json`: current redacted
+  machine-readable report.
+- `.agentsight/agentflame/latest/tags.json`: current local tag cache with LLM
+  provenance and no raw prompt text.
+- `.agentsight/agentflame/latest/*.folded.txt`: current folded stacks.
+- `.agentsight/agentflame/latest/*.svg`: current dashboard figures.
+- `out/index.html`: legacy Python report page.
 - `out/visual-summary.html`: compact visual progress gallery.
 - `out/system-flamegraph.svg`: system/tool footprint flamegraph.
 - `out/token-flamegraph.svg`: token footprint flamegraph.
@@ -63,7 +77,7 @@ word. Invalid model output falls back to the deterministic local tagger.
 - `out/llm-token.svg`: token footprint projected by LLM-call tag.
 - `out/claim-gates.svg`: current claim-readiness chart.
 - `out/semantic-mixing.svg`: semantic aggregation and baseline-mixing chart.
-- `out/effect-lineage.svg`: C6 exact-effect lineage readiness chart.
+- `out/effect-lineage.svg`: legacy C4 exact-effect lineage readiness chart.
 - `out/semantic-system.folded.txt`: collapsed system stacks.
 - `out/nonsemantic-system.folded.txt`: baseline folded stacks with session and
   prompt tags removed.
@@ -87,17 +101,17 @@ word. Invalid model output falls back to the deterministic local tagger.
   multiple session/prompt tags that semantic stacks separate.
 - `out/claim-gates.csv`: machine-readable claim verdicts for current artifacts.
 - `out/evaluation-summary.md`: human-readable artifact audit.
-- `out/effect-lineage-smoke.json`: fixture-backed C6 checker summary for
+- `out/effect-lineage-smoke.json`: fixture-backed C4 checker summary for
   joining process/file/network events to session/tool/prompt ancestry.
 - `out/effect-lineage.csv`: per-event exact-effect lineage rows, including
   orphan reasons for failed joins.
 - `out/effect-lineage.folded.txt`: exact-effect folded stack output from the
   lineage checker.
-- `out/effect-lineage-summary.md`: human-readable C6 smoke summary.
+- `out/effect-lineage-summary.md`: human-readable C4 smoke summary.
 - `out/tag-stability-smoke.json`: local-only repeated-run tag stability smoke
   summary over hashed session/prompt/LLM fragments.
 - `out/tag-stability-smoke.csv`: sanitized per-fragment tag outputs.
-- `out/tag-stability-summary.md`: human-readable C7 smoke summary.
+- `out/tag-stability-summary.md`: human-readable C6 smoke summary.
 - `out/user-task-benchmark.json`: C5 user-task benchmark bundle with sanitized
   tasks and source-view references.
 - `out/user-task-answer-key.csv`: machine-readable answer key for the C5 tasks.
@@ -125,7 +139,7 @@ behavior diagnostics.
 It cannot yet prove live precise file/network side effects from real sessions.
 `effect_lineage_smoke.py` proves the checker and folded-stack grammar over an
 AgentSight-shaped fixture, where every in-scope system event must inherit a
-session/tool/prompt tag. C6 still requires live AgentSight
+session/tool/prompt tag. C4 still requires live AgentSight
 tool -> shell -> child process -> file/network events from real sessions.
 
 ## Test

@@ -13,7 +13,8 @@ from matplotlib.patches import Rectangle
 
 PAPER_DIR = Path(__file__).resolve().parent
 VIS_DIR = PAPER_DIR.parent
-OUT_DIR = VIS_DIR / "out"
+PROJECT_ROOT = PAPER_DIR.parents[2]
+AGENTFLAME_DIR = PROJECT_ROOT / ".agentsight" / "agentflame" / "latest"
 FIG_DIR = PAPER_DIR / "figures"
 
 
@@ -67,21 +68,29 @@ def draw_model() -> None:
 
 
 def draw_results() -> None:
-    evaluation = read_json(OUT_DIR / "evaluation.json")
-    compression = evaluation["aggregation_strength"]["semantic_system"]
-    nonsemantic = evaluation["semantic_information_gain"]["nonsemantic_stack_mixing"]
-    flat = evaluation["semantic_information_gain"]["flat_effect_mixing"]
-    lineage = evaluation["effect_lineage_smoke"]
-    quality = evaluation["tag_quality"]
-    values = [
-        compression["collapsed_observation_share_pct"],
-        nonsemantic["mixed_weight_share_pct"],
-        flat["mixed_weight_share_pct"],
-        lineage["join_rate_pct"],
-        quality["generic_prompt_row_share_pct"],
+    payload = read_json(AGENTFLAME_DIR / "agentflame.json")
+    nonsemantic = payload["summary"]["semantic_mixing"]["nonsemantic"]
+    flat = payload["summary"]["semantic_mixing"]["flat"]
+    prompt_rows = payload["prompt_tags"]
+    invalid_prompt = sum(
+        1
+        for row in prompt_rows
+        if not row["prompt_tag"].isalnum() or not row["prompt_tag"].islower()
+    )
+    llm_tags = [
+        event["llm_tag"]
+        for session in payload["sessions"]
+        for event in session.get("llm_events", [])
     ]
-    labels = ["Collapsed", "Nonsem. mix", "Flat mix", "C6 fixture", "Generic tags"]
-    colors = ["#2f855a", "#2b6cb0", "#b7791f", "#2f855a", "#c53030"]
+    invalid_llm = sum(1 for tag in llm_tags if not tag.isalnum() or not tag.islower())
+    values = [
+        nonsemantic["mixed_weight_pct"],
+        flat["mixed_weight_pct"],
+        100.0 * (1 - invalid_prompt / max(1, len(prompt_rows))),
+        100.0 * (1 - invalid_llm / max(1, len(llm_tags))),
+    ]
+    labels = ["Nonsem.\nmix", "Flat\nmix", "Prompt tag\nvalid", "LLM tag\nvalid"]
+    colors = ["#2b6cb0", "#b7791f", "#2f855a", "#2f855a"]
     fig, ax = plt.subplots(figsize=(7.1, 2.6))
     ax.bar(labels, values, color=colors)
     ax.set_ylim(0, 105)
@@ -93,10 +102,11 @@ def draw_results() -> None:
 
 
 def draw_dimensions() -> None:
-    dims = read_json(OUT_DIR / "tag-dimensions.json")["views"]
-    labels = [row["view"].replace("-", "\n") for row in dims]
-    values = [row["compression_ratio"] for row in dims]
-    colors = ["#2b6cb0" if row["source"] == "system" else "#805ad5" for row in dims]
+    dims = read_json(AGENTFLAME_DIR / "agentflame.json")["summary"]["dimensions"]
+    order = ["session-system", "prompt-system", "session-token", "prompt-token", "llm-token"]
+    labels = [name.replace("-", "\n") for name in order]
+    values = [dims[name]["compression_ratio"] for name in order]
+    colors = ["#2b6cb0" if name.endswith("system") else "#805ad5" for name in order]
     fig, ax = plt.subplots(figsize=(7.1, 2.8))
     ax.bar(labels, values, color=colors)
     ax.set_yscale("log")
@@ -126,7 +136,7 @@ def build_tree(stacks: Counter[str], limit: int = 80) -> Node:
 
 
 def draw_flame_excerpt() -> None:
-    root = build_tree(read_folded(OUT_DIR / "semantic-system.folded.txt"))
+    root = build_tree(read_folded(AGENTFLAME_DIR / "semantic-system.folded.txt"))
     fig, ax = plt.subplots(figsize=(7.2, 2.8))
     ax.axis("off")
     colors = ["#68d391", "#63b3ed", "#f6ad55", "#fc8181", "#b794f4", "#4fd1c5", "#f687b3"]
@@ -145,7 +155,12 @@ def draw_flame_excerpt() -> None:
             cur += cw
 
     draw(root, 0.02, 0.88, 0.96, 0)
-    ax.text(0.02, 0.04, "excerpt of top 80 semantic system stacks; width = aggregated observations", fontsize=9)
+    ax.text(
+        0.02,
+        0.04,
+        "excerpt of top 80 full-run semantic system stacks; width = aggregated observations",
+        fontsize=9,
+    )
     save(fig, "fig-flame-excerpt.pdf")
 
 

@@ -18,13 +18,13 @@ It is an artifact audit, not a substitute for the planned human and paired-agent
 | C1 folded aggregation | supported | compression=2.34 repeated=921 |
 | C2 one-word tags in stack grammar | supported | invalid=0 unique_prompt_tags=38 |
 | C3 semantic stacks add information beyond flat/nonsemantic baselines | supported | nonsemantic_mixed=392 nonsemantic_weight_pct=68.505 flat_mixed=397 flat_weight_pct=74.473 |
-| C4 normalized agent differences | diagnostic | sources={'codex-subagent': 13, 'codex': 6, 'claude': 12, 'claude-subagent': 5} |
+| D1 normalized agent differences | diagnostic | sources={'codex-subagent': 13, 'codex': 6, 'claude': 12, 'claude-subagent': 5} |
 | C5 user utility over trace tree/process logs | unsupported | task_bundle=pilot_packet_ready_no_participants task_count=6 scorer=ready response_template=present participant_results=missing |
-| C6 exact AgentSight effect stream preserves value | unsupported | effect_lineage_smoke=fixture_lineage_smoke_passed source=fixture effect_events=4 join_rate_pct=100.0 orphans=0 orphan_reasons={} live_exact_capture=missing |
-| C7 tag stability and adequacy | partial | same_hash_multi_tag_count=0 smoke_verdict=smoke_supported fallback_stable_pct=100.0 fallback_generic_pct=8.333 llama_stable_pct=100.0 llama_generic_pct=16.667 fallback_vs_llama_exact_pct=0.0 |
+| C4 exact AgentSight effect stream preserves value | unsupported | effect_lineage_smoke=fixture_lineage_smoke_passed source=fixture effect_events=4 join_rate_pct=100.0 orphans=0 orphan_reasons={} live_exact_capture=missing |
+| C6 tag stability and adequacy | partial | same_hash_multi_tag_count=0 smoke_verdict=smoke_supported fallback_stable_pct=100.0 fallback_generic_pct=8.333 llama_stable_pct=100.0 llama_generic_pct=16.667 fallback_vs_llama_exact_pct=0.0 |
 
 ## Highest-Value Next Runs
 
-1. Collect a B3 response CSV and score it with `score_user_task_results.py` to test C5.
-2. Expand B4 with manual adequacy labels and a larger multi-model tag stability run.
-3. Run the B6 lineage checker on live exact AgentSight effects from real sessions to test C6.
+1. Collect a B4 response CSV and score it with `score_user_task_results.py` to test C5.
+2. Expand B5 with manual adequacy labels and a larger multi-model tag stability run for C6.
+3. Run the B3 lineage checker on live exact AgentSight effects from real sessions to test C4.

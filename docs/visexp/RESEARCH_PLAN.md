@@ -1,0 +1,267 @@
+# AgentFlame Research Plan
+
+Last updated: 2026-06-14
+Stage at update: experiment-design plus completed full local-session characterization
+Source/command: `cargo run --manifest-path agentflame/Cargo.toml -- run --project-root . --scan-files 10000 --max-sessions 10000 --llama-url http://127.0.0.1:18080 --model local --timeout 60 --out .agentsight/agentflame/latest`
+Completeness: partial
+
+## Thesis
+
+AgentFlame is better for forensic debugging and audit of AI coding agents in a
+local developer repository because it joins user-level semantic intent with
+system-level provenance and flamegraph-style aggregation:
+
+```text
+sessionTag;promptTag;llmcall/tool;process*;effect
+```
+
+The paper should not claim novelty as "flamegraphs for agents." Span-duration
+flamegraphs already exist for ordinary distributed traces and have been shown
+for multi-agent workflows. The claim must be narrower and stronger:
+
+> Existing agent observability shows spans, tools, duration, prompts, costs, or
+> logs. It does not directly answer which user-level intent caused which
+> process/file/network effects, nor which repeated or heavy effects are
+> semantically the same or different across sessions.
+
+## Paper Type
+
+- Type: systems-for-ML observability and measurement tooling.
+- Target venue: OSDI/SOSP-style systems venue.
+- Artifact status: Rust CLI prototype over real local Codex/Claude session
+  histories; AgentSight exact-effect integration is designed but not yet the
+  primary full-run input.
+- Current maturity: stronger than a workshop demo for characterization and
+  artifact-internal claims, but not OSDI weak-accept until live exact lineage and
+  user/task benchmarks exist.
+- Main reviewer risk: reviewers may see the work as a restyled trace UI unless
+  the paper proves semantic attribution plus system provenance answers questions
+  that span flamegraphs and flat process summaries cannot answer.
+
+## Closest Baselines And Same-Claim Risk
+
+The related-work risk is real:
+
+- Datadog, SigNoz, New Relic, Honeycomb, Coralogix, Grafana/Pyroscope, and
+  Sentry already visualize spans, traces, profiles, and duration-oriented
+  flamegraphs.
+- Inkeep + SigNoz publicly describes "Flamegraph for Debugging" for multi-agent
+  workflows, where each horizontal bar is a span and width is proportional to
+  duration. That view exposes sequential/parallel execution, error cascades,
+  tool overhead, and sub-agent boundaries.
+- LangSmith, Langfuse, Phoenix, and AgentOps expose agent/LLM/tool traces,
+  trees, timelines, analytics, prompts, completions, and costs.
+
+Therefore the novelty is not the visual idiom. The defensible novelty is the
+specific attribution model and aggregation target:
+
+- Small LLM labels only the semantic control plane: session, prompt, LLM call.
+- Deterministic lineage supplies the system plane: tool call, shell, child
+  process, file/network effect.
+- Folded stacks aggregate repeated task-effect paths across sessions, rather
+  than drawing one duration timeline per trace.
+
+Same-claim risk: medium. The individual pieces exist; the combined
+`semantic intent -> exact system effect -> aggregated folded stack` model appears
+less common and is the paper's best contribution.
+
+## Research Questions
+
+### RQ1. Feasibility And Cost
+
+Can a local small LLM tag all session, prompt, and LLM-call contexts for real
+AI coding-agent histories with acceptable syntax validity, runtime, and cache
+behavior?
+
+Required evidence:
+
+- Full local history run, not a cherry-picked sample.
+- Session, prompt, and LLM-call tag counts.
+- Invalid-output count and retry/failure behavior.
+- Cache hit rate and uncached local llama.cpp calls.
+- Model-size comparison for 0.6B, 1B, and 3B models.
+
+Current evidence:
+
+- Completed full local run on `.agentsight/agentflame/latest`.
+- 205 readable repo-related sessions analyzed: `codex=78`, `claude=50`,
+  `claude-subagent=77`.
+- One unreadable root-owned Claude JSONL was skipped and recorded in
+  `warnings`.
+- 2,463 prompt rows, 303 unique prompt tags, 0 invalid prompt tags.
+- 90,930 LLM events, 1,250 unique LLM-call tags, 0 invalid LLM-call tags.
+- 93,598 tag requests, 64,297 cache hits, 29,302 llama.cpp HTTP calls, 29,301
+  successful final tags, no final tag failures. The one-call difference is
+  consistent with a retry that recovered before final failure.
+
+Remaining gap:
+
+- The full run used the 3B local model. The existing small-model benchmark must
+  be incorporated into the plan and re-run after the latest Rust changes for
+  0.6B/1B/3B comparability.
+
+### RQ2. Semantic Partitioning Beyond Traditional Tools
+
+Does adding session/prompt/LLM semantic frames separate system-effect buckets
+that duration trace trees, span flamegraphs, or flat process/file summaries
+would merge?
+
+Required evidence:
+
+- Semantic folded stacks and nonsemantic/flat baselines from the same input.
+- Mixed-bucket metrics: count, weight, percent of observation weight, examples.
+- Disaggregation examples that answer real developer questions such as "which
+  semantic task caused repeated cargo test runs?"
+
+Current evidence:
+
+- 130,632 raw tool events and 90,930 raw LLM events.
+- 167,005 system-effect observations collapsed into 24,295 unique semantic
+  system stacks; compression ratio 6.874x; max stack reuse 6,004.
+- Removing session/prompt frames yields 4,209 mixed nonsemantic buckets covering
+  150,670 observations, 90.219% of system weight.
+- Flat effect grouping yields 4,051 mixed buckets covering 151,590 observations,
+  90.770% of system weight.
+- Example mixed baselines include `git read`, `cargo test`, `python3 process`,
+  `docker process`, and high-volume `tool write/process` stacks that split into
+  different `refactor`, `review`, `design`, `research`, and `analyze` regions.
+
+Remaining gap:
+
+- Current metrics prove partitioning, not user benefit. They should support a
+  mechanism claim, not the full usability claim.
+
+### RQ3. Exact Semantic-Effect Lineage
+
+Can AgentSight's exact provenance chain preserve ancestry from user intent to
+tool calls, child processes, and file/network effects with low in-scope orphan
+rate?
+
+Required evidence:
+
+- Live AgentSight capture, not only Codex/Claude session history.
+- `tool_call -> shell -> process* -> effect` join coverage.
+- In-scope orphan rate, path/domain specificity, and redaction checks.
+- Comparison of agent-native proxy stacks versus exact-effect stacks.
+
+Current evidence:
+
+- The model and fixture checker exist in `docs/visexp/effect_lineage_smoke.py`.
+- Current full run is still agent-native session-history input. It extracts
+  commands, status, path groups, and effect classes, but it is not a kernel-level
+  exact file/network stream.
+
+Remaining gap:
+
+- This is the highest-value systems contribution and must be upgraded from
+  fixture to live runs before claiming OSDI-level novelty.
+
+### RQ4. Developer Utility
+
+Do developers answer forensic questions faster or more accurately with semantic
+effect flamegraphs than with trace trees, span-duration flamegraphs, or flat
+process/file/network summaries?
+
+Required evidence:
+
+- Task benchmark with preregistered answer key.
+- Baselines: raw trace/tree, span-duration flamegraph or comparable trace UI,
+  flat process/file/network summary, nonsemantic folded stack, semantic folded
+  stack.
+- Metrics: accuracy, time, confidence, false positives, repeated-effect recall.
+
+Current evidence:
+
+- Old `docs/visexp/out` contains task packet and scorer prototypes.
+- No real participant responses are available.
+
+Remaining gap:
+
+- Without this, the paper can claim improved information organization but not
+  improved user outcomes.
+
+### RQ5. Robustness Of One-Word Tags
+
+Are one-word semantic tags stable and adequate enough for navigation across
+models, sessions, and prompt distributions?
+
+Required evidence:
+
+- 0.6B/1B/3B local model comparison.
+- Repeated-run stability at temperature 0 and at a small nonzero temperature.
+- Human adequacy labels over session/prompt/LLM-call fragments.
+- Generic-tag and malformed-tag rates.
+
+Current evidence:
+
+- The full 3B run has 0 malformed prompt and LLM-call tags.
+- Some tags are clearly useful (`refactor`, `review`, `test`, `analyze`,
+  `design`, `research`), but some are noisy or over-specific
+  (`agentsightsm`, `testcodex`, `designcodex`, `bashoutput`).
+
+Remaining gap:
+
+- The one-word grammar is solved; semantic adequacy is not solved.
+
+## Claim Ledger Snapshot
+
+| ID | Claim | Current Status | Evidence Needed For OSDI |
+|----|-------|----------------|--------------------------|
+| C1 | AgentFlame can generate semantic folded stacks and dashboards over real local agent histories. | supported | verifier for full run and reproducibility script |
+| C2 | Local one-word LLM tagging is feasible for session/prompt/LLM-call contexts. | supported for 3B syntax; partial for cost/stability | 0.6B/1B/3B cost table and adequacy labels |
+| C3 | Semantic frames expose task-effect mixtures hidden by nonsemantic and flat summaries. | supported as mechanism | stronger examples and task benchmark |
+| C4 | Exact AgentSight lineage connects semantic intent to process/file/network effects. | unsupported beyond fixture | live snapshot join coverage and orphan analysis |
+| C5 | Developers answer debugging/audit questions better with semantic effect flamegraphs. | unsupported | user/task benchmark |
+| C6 | One-word tags are stable and adequate enough for navigation. | partial | 0.6B/1B/3B cost table, repeated-run stability, human adequacy labels |
+| C7 | The approach is practical as an open-source developer tool. | partial | one-command install/run, runtime/cost, docs, artifact hygiene |
+
+## Experiment Matrix
+
+| Block | RQ | Experiment | Baselines/Variants | Metrics | Oracle | Priority |
+|-------|----|------------|--------------------|---------|--------|----------|
+| B1 | RQ1 | Full local-session characterization | 3B local llama.cpp, cache on/off where feasible | sessions, tags, invalids, runtime, cache hit rate | tag grammar checker and complete report | done, must repeat after changes |
+| B2 | RQ2 | Semantic partitioning audit | semantic, nonsemantic, flat process/effect summary | mixed buckets, mixed weight, entropy, examples | deterministic stack comparison | done |
+| B3 | RQ3 | Live exact AgentSight lineage | agent-native proxy vs exact effect stream | join coverage, orphan rate, path/domain specificity | lineage checker | must |
+| B4 | RQ4 | Developer task benchmark | trace tree, span flamegraph, flat summary, nonsemantic stack, semantic stack | time, accuracy, false positives, confidence | hidden answer key | must |
+| B5 | RQ5 | Small-model and tag-stability benchmark | 0.6B, 1B, 3B, optional larger reference | latency, invalid rate, stability, adequacy | repeated run + human labels | must |
+| B6 | RQ2/RQ3 | Ablations | session-only, prompt-only, prompt+LLM-call, no process nesting | information gain, stack explosion, task answerability | same query set | must |
+| B7 | RQ6 | Open-source usability smoke | fresh clone, install, run, view dashboard | setup time, commands, failure modes | artifact checklist | should |
+
+## Baseline Fairness
+
+- Span-duration flamegraph baseline should be represented by an OpenTelemetry
+  trace flamegraph or faithful local reconstruction: bars/spans ordered by
+  timing, width by duration, no semantic inheritance into file/network effects.
+- Trace tree baseline should show the same session/tool/LLM-call sequence but no
+  cross-session folded aggregation.
+- Flat summary baseline should show process/effect/path/domain counts without
+  session or prompt tags.
+- Nonsemantic folded baseline should preserve stack aggregation but remove
+  session/prompt frames. This isolates the contribution of semantic frames from
+  flamegraph folding itself.
+
+## Figure Plan
+
+1. Attribution Model: `sessionTag/promptTag/llmcall` generated by small LLM;
+   `tool -> process* -> effect` inherited deterministically.
+2. Semantic Flamegraph: same `cargo`, `git`, `rg`, or `docker` effects split by
+   `refactor`, `review`, `design`, `research`, and `analyze`.
+3. Baseline Failure: span-duration trace shows order/duration; flat process
+   summary shows heavy commands; neither answers which semantic task caused the
+   repeated side effects.
+4. Evaluation Table: full-run scale, tag validity, mixing, live lineage join
+   coverage, user-task results.
+
+## Next Gate
+
+Current OSDI review posture: weak reject / promising measurement-tooling idea.
+
+The fastest route to weak accept is:
+
+1. Run live AgentSight exact-effect sessions and report join/orphan metrics.
+2. Add a small but real user/task benchmark with at least developer-authored
+   answer keys and blinded condition packets.
+3. Re-run 0.6B/1B/3B tagger benchmarks on the same fragments and include tag
+   adequacy labels.
+4. Rewrite the paper around "semantic attribution of agent system effects," not
+   around "agent flamegraph UI."
