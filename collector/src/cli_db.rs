@@ -1,18 +1,22 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-use crate::model::{AGENT_NATIVE_SOURCE, SnapshotOptions, TokenSummary};
+use crate::model::{AGENT_NATIVE_SOURCE, AuditEventRow, LlmCallRow, SnapshotOptions, TokenSummary};
 use crate::output::{
-    FileAccessSummary, SessionSummary, SummaryStats, print_audit_rows, print_exported_snapshot,
-    print_json, print_llm_prompts, print_session_summary, print_token_summary, prompt_text_chars,
-    sorted_top_counts,
+    FileAccessSummary, PromptReportRow, SessionSummary, SummaryStats, print_audit_rows,
+    print_exported_snapshot, print_json, print_prompt_report_rows, print_session_summary,
+    print_token_summary, prompt_text_chars, sorted_top_counts,
 };
 use crate::sources::agent_native as agent_native_sessions;
-use crate::sources::sqlite::load_view as load_sqlite_view;
+use crate::sources::sqlite::{
+    load_view as load_sqlite_view, load_view_with_observed_session_prompts,
+};
+use crate::text::{clean_prompt_text, extract_prompt_text};
 use crate::view::MaterializedView;
 
 #[cfg(test)]
 use crate::sinks::sqlite::SqliteStore;
+use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::Write;
 
@@ -72,12 +76,12 @@ pub(crate) fn run_prompts_query(
     limit: usize,
     json: bool,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let view = load_agentsight_view(db)?;
-    let rows = view.llm_call_rows(limit);
+    let view = load_view_with_observed_session_prompts(db)?;
+    let rows = prompt_report_rows(&view, limit);
     if json {
         print_json(&rows)?;
     } else {
-        print_llm_prompts(&rows);
+        print_prompt_report_rows(&rows);
     }
     Ok(())
 }
@@ -87,7 +91,7 @@ pub(crate) fn run_export(
     output: &str,
     audit_limit: usize,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let view = load_agentsight_view(db)?;
+    let view = load_view_with_observed_session_prompts(db)?;
     let snapshot = view.export_snapshot(SnapshotOptions { audit_limit });
     let json = serde_json::to_vec_pretty(&snapshot)?;
     if output == "-" {
@@ -101,6 +105,139 @@ pub(crate) fn run_export(
     Ok(())
 }
 
+fn prompt_report_rows(view: &MaterializedView, limit: usize) -> Vec<PromptReportRow> {
+    let limit = limit.clamp(1, 10_000);
+    let mut rows = Vec::new();
+    let mut seen = BTreeSet::new();
+
+    for row in view.llm_call_rows(10_000) {
+        if is_noise_llm_call(&row) {
+            continue;
+        }
+        let Some(prompt) = extract_prompt_text(&row.request) else {
+            continue;
+        };
+        if !seen.insert(prompt_key(row.model.as_deref(), &prompt)) {
+            continue;
+        }
+        rows.push(PromptReportRow {
+            timestamp_ms: row.start_timestamp_ms,
+            comm: row.comm.clone(),
+            model: row.model.clone(),
+            tokens: row.total_tokens,
+            source: "http".to_string(),
+            prompt,
+            request: row.request.clone(),
+            response: row.response.clone(),
+        });
+    }
+
+    let model_tokens = single_call_model_tokens(view);
+    for row in local_prompt_audit_rows(view) {
+        let Some(prompt) = prompt_text_from_audit(&row) else {
+            continue;
+        };
+        if !seen.insert(prompt_key(row.subject.as_deref(), &prompt)) {
+            continue;
+        }
+        rows.push(PromptReportRow {
+            timestamp_ms: row.timestamp_ms,
+            comm: row.comm.clone(),
+            model: row.subject.clone(),
+            tokens: row
+                .subject
+                .as_deref()
+                .and_then(|model| model_tokens.get(model))
+                .copied()
+                .unwrap_or(0),
+            source: prompt_source(&row).unwrap_or("local").to_string(),
+            prompt,
+            request: Value::Null,
+            response: Value::Null,
+        });
+    }
+
+    rows.sort_by_key(|row| std::cmp::Reverse(row.timestamp_ms));
+    rows.truncate(limit);
+    rows
+}
+
+fn single_call_model_tokens(view: &MaterializedView) -> BTreeMap<String, i64> {
+    view.token_summary("model")
+        .into_iter()
+        .filter(|row| row.calls == 1 && row.total_tokens > 0)
+        .map(|row| (row.group, row.total_tokens))
+        .collect()
+}
+
+fn local_prompt_audit_rows(view: &MaterializedView) -> Vec<AuditEventRow> {
+    view.audit_rows(Some("llm"), 10_000)
+        .into_iter()
+        .filter(is_local_prompt_audit)
+        .filter(|row| !is_noise_prompt_audit(row))
+        .collect()
+}
+
+fn is_local_prompt_audit(row: &AuditEventRow) -> bool {
+    is_prompt_audit(row) && prompt_source(row) == Some("local")
+}
+
+fn is_prompt_audit(row: &AuditEventRow) -> bool {
+    row.audit_type == "llm"
+        && row.action.as_deref() == Some("request")
+        && prompt_text_from_audit(row).is_some()
+}
+
+fn prompt_source(row: &AuditEventRow) -> Option<&str> {
+    row.details.get("prompt_source").and_then(Value::as_str)
+}
+
+fn prompt_text_from_audit(row: &AuditEventRow) -> Option<String> {
+    row.details
+        .get("text_content")
+        .and_then(Value::as_str)
+        .or_else(|| row.details.get("prompt").and_then(Value::as_str))
+        .or(row.summary.as_deref())
+        .and_then(clean_prompt_text)
+}
+
+fn prompt_key(model: Option<&str>, prompt: &str) -> (String, String) {
+    (
+        model.unwrap_or_default().to_ascii_lowercase(),
+        prompt.to_ascii_lowercase(),
+    )
+}
+
+fn is_noise_llm_call(row: &LlmCallRow) -> bool {
+    if row.total_tokens > 0 {
+        return false;
+    }
+    let Some(prompt) = extract_prompt_text(&row.request) else {
+        return false;
+    };
+    let is_quota_prompt = prompt.trim().eq_ignore_ascii_case("quota");
+    let max_tokens_one = row
+        .request
+        .get("max_tokens")
+        .and_then(Value::as_i64)
+        .is_some_and(|value| value <= 1);
+    is_quota_prompt && max_tokens_one
+}
+
+fn is_noise_prompt_audit(row: &AuditEventRow) -> bool {
+    let Some(prompt) = prompt_text_from_audit(row) else {
+        return false;
+    };
+    if !prompt.trim().eq_ignore_ascii_case("quota") {
+        return false;
+    }
+    let request = row.details.get("request").unwrap_or(&row.details);
+    request
+        .get("max_tokens")
+        .and_then(Value::as_i64)
+        .is_some_and(|value| value <= 1)
+}
+
 impl SessionSummary {
     pub(crate) fn from_view(
         view: &MaterializedView,
@@ -109,11 +246,18 @@ impl SessionSummary {
             audit_limit: 50_000,
         });
         let s = &snap.summary;
-        let llm_rows = view.llm_call_rows(50_000);
+        let llm_rows = view
+            .llm_call_rows(50_000)
+            .into_iter()
+            .filter(|row| !is_noise_llm_call(row))
+            .collect::<Vec<_>>();
+        let token_rows = view.token_usage_rows(50_000);
+        let local_prompt_rows = local_prompt_audit_rows(view);
         let first_llm_after_ms = s.start_timestamp_ms.and_then(|start| {
             llm_rows
                 .iter()
                 .map(|row| row.start_timestamp_ms)
+                .chain(token_rows.iter().map(|row| row.timestamp_ms))
                 .min()
                 .and_then(|ts| ts.checked_sub(start))
         });
@@ -128,6 +272,21 @@ impl SessionSummary {
                 .and_then(|end| end.checked_sub(row.start_timestamp_ms))
             {
                 llm_latency_ms.add(delta);
+            }
+        }
+        let mut seen_prompts = llm_rows
+            .iter()
+            .filter_map(|row| {
+                extract_prompt_text(&row.request)
+                    .map(|prompt| prompt_key(row.model.as_deref(), &prompt))
+            })
+            .collect::<BTreeSet<_>>();
+        for row in &local_prompt_rows {
+            let Some(prompt) = prompt_text_from_audit(row) else {
+                continue;
+            };
+            if seen_prompts.insert(prompt_key(row.subject.as_deref(), &prompt)) {
+                prompt_chars.add(prompt.chars().count() as u64);
             }
         }
         let models = token_summary_tuples(&snap.token_summary);
@@ -265,7 +424,10 @@ fn file_directory(path: &str) -> String {
 pub(crate) fn run_db_summary(
     db: Option<&str>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let view = load_agentsight_view(db)?;
+    let view = match db {
+        Some(db) => load_view_with_observed_session_prompts(db)?,
+        None => load_agentsight_view(None)?,
+    };
     print_session_summary(&SessionSummary::from_view(&view)?);
     Ok(())
 }
@@ -328,6 +490,112 @@ mod tests {
 
         let calls = view.llm_call_rows(10);
         assert_eq!(calls[0].total_tokens, 15);
+    }
+
+    #[test]
+    fn prompts_hide_quota_probe_when_tokens_come_from_telemetry() {
+        let temp = tempfile::tempdir().unwrap();
+        let db = temp.path().join("quota-probe.db");
+        let store = SqliteStore::open(&db).unwrap();
+        store
+            .connection()
+            .execute(
+                "INSERT INTO llm_calls (
+                    id, start_timestamp_ms, pid, comm, provider, model, host, path,
+                    request_body_json, response_body_json, view_source, confidence
+                 ) VALUES (
+                    'llm-quota', 1000, 42, 'HTTP Client', 'anthropic',
+                    'claude-haiku-4-5-20251001', 'api.anthropic.com',
+                    '/v1/messages?beta=true',
+                    '{\"model\":\"claude-haiku-4-5-20251001\",\"max_tokens\":1,\"messages\":[{\"role\":\"user\",\"content\":\"quota\"}]}',
+                    'null', 'view', 1.0
+                 )",
+                [],
+            )
+            .unwrap();
+        store
+            .connection()
+            .execute(
+                "INSERT INTO token_usage (
+                    id, llm_call_id, timestamp_ms, pid, comm, provider, model,
+                    input_tokens, output_tokens, total_tokens, source
+                 ) VALUES (
+                    'token-telemetry', 'claude-telemetry-1', 1500, 42,
+                    'HTTP Client', 'anthropic', 'claude-opus-4-6',
+                    3, 25, 28, 'claude_telemetry'
+                 )",
+                [],
+            )
+            .unwrap();
+
+        let view = load_view_with_observed_session_prompts(&db).unwrap();
+        assert!(prompt_report_rows(&view, 10).is_empty());
+
+        let summary = SessionSummary::from_view(&view).unwrap();
+        assert_eq!(
+            summary.models,
+            vec![("claude-opus-4-6".to_string(), 3, 25, 28, 1)]
+        );
+        assert_eq!(summary.first_llm_after_ms, Some(500));
+        assert_eq!(summary.prompt_chars.count, 0);
+    }
+
+    #[test]
+    fn prompts_include_observed_local_session_prompt() {
+        let temp = tempfile::tempdir().unwrap();
+        let db = temp.path().join("local-prompt.db");
+        let store = SqliteStore::open(&db).unwrap();
+        let (_session_temp, session_path) =
+            agent_native_sessions::create_temp_session_path("claude");
+        std::fs::write(
+            &session_path,
+            concat!(
+                r#"{"type":"user","message":{"role":"user","content":"Run regression test."},"sessionId":"session-1"}"#,
+                "\n",
+                r#"{"type":"assistant","message":{"model":"claude-opus-4-6","content":[{"type":"text","text":"ok"}],"usage":{"input_tokens":3,"output_tokens":25}},"requestId":"req-1","sessionId":"session-1"}"#,
+                "\n",
+            ),
+        )
+        .unwrap();
+        let session_path_string = session_path.to_string_lossy().to_string();
+        store
+            .connection()
+            .execute(
+                "INSERT INTO audit_events (
+                    id, timestamp_ms, audit_type, pid, comm, action, target, status, details_json
+                 ) VALUES ('audit-file', 1000, 'file', 42, 'claude', 'write', ?1, 'observed', '{}')",
+                [session_path_string.as_str()],
+            )
+            .unwrap();
+        store
+            .connection()
+            .execute(
+                "INSERT INTO token_usage (
+                    id, llm_call_id, timestamp_ms, pid, comm, provider, model,
+                    input_tokens, output_tokens, total_tokens, source
+                 ) VALUES (
+                    'token-telemetry', 'claude-telemetry-1', 1300, 42,
+                    'HTTP Client', 'anthropic', 'claude-opus-4-6',
+                    3, 25, 28, 'claude_telemetry'
+                 )",
+                [],
+            )
+            .unwrap();
+
+        let view = load_view_with_observed_session_prompts(&db).unwrap();
+        let rows = prompt_report_rows(&view, 10);
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].model.as_deref(), Some("claude-opus-4-6"));
+        assert_eq!(rows[0].tokens, 28);
+        assert_eq!(rows[0].source, "local");
+        assert_eq!(rows[0].prompt, "Run regression test.");
+
+        let summary = SessionSummary::from_view(&view).unwrap();
+        assert_eq!(summary.prompt_chars.count, 1);
+        assert_eq!(
+            summary.prompt_chars.total,
+            "Run regression test.".chars().count() as u64
+        );
     }
 
     #[test]
