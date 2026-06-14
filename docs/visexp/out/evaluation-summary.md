@@ -20,7 +20,7 @@ It is an artifact audit, not a substitute for the planned human and paired-agent
 | C3 semantic stacks add information beyond flat/nonsemantic baselines | supported | nonsemantic_mixed=458 nonsemantic_weight_pct=68.656 flat_mixed=453 flat_weight_pct=74.083 |
 | D1 normalized agent differences | diagnostic | sources={'codex-subagent': 14, 'codex': 5, 'claude': 12, 'claude-subagent': 5} |
 | C5 user utility over trace tree/process logs | unsupported | task_bundle=pilot_packet_ready_no_participants task_count=6 scorer=ready response_template=present participant_results=missing |
-| C4 exact AgentSight effect stream preserves value | partial | effect_lineage_smoke=fixture_lineage_smoke_passed source=fixture effect_events=4 join_rate_pct=100.0 orphans=0 orphan_reasons={} live_lineage=partial_supported_for_in_scope_live_smoke runs=3 in_scope_effects=182 joined=182 orphans=0 join_rate_pct=100.0 out_of_scope=136 native_export=pending |
+| C4 exact AgentSight effect stream preserves value | partial | effect_lineage_smoke=fixture_lineage_smoke_passed source=fixture effect_events=4 join_rate_pct=100.0 orphans=0 orphan_reasons={} live_lineage=partial_supported_for_in_scope_live_smoke runs=3 synthetic_sessions=8 synthetic_tool_calls=8 raw_effects=318 in_scope_effects=182 raw_coverage_pct=57.233 joined=182 orphans=0 in_scope_join_rate_pct=100.0 join_methods={'related_event_id': 8, 'pid_family_time_window': 174} out_of_scope=136 native_export=pending |
 | C6 tag stability and adequacy | partial | same_hash_multi_tag_count=0 smoke_verdict=smoke_supported fallback_stable_pct=100.0 fallback_generic_pct=4.167 llama_stable_pct=100.0 llama_generic_pct=12.5 fallback_vs_llama_exact_pct=0.0 |
 
 ## Highest-Value Next Runs

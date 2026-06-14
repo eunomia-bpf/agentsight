@@ -114,9 +114,11 @@ deterministic system-effect provenance and folded-stack aggregation.
 - Compared systems: agent-native proxy extraction vs exact AgentSight stream.
 - Metrics: in-scope join coverage, orphan rate, child-process depth, path/domain
   specificity, redaction failures.
-- Current result: R110 validates 182/182 in-scope effects across three real DB
-  exports after adding a harness-synthesized agent-run envelope with llama.cpp
-  root tags. Current DB export without that envelope has no session/tool rows.
+- Current result: R110 covers and joins 182/318 raw effects across three real DB
+  exports, for 57.233% raw coverage. Within the covered scope it validates
+  182/182 effects with 0 orphans after adding a harness-synthesized agent-run
+  envelope with llama.cpp root tags. Current DB export without that envelope has
+  no session/tool rows.
 - Setup/config: run selected Codex/Claude tasks with AgentSight collector;
   export sanitized snapshot; join tags by session/tool/prompt IDs.
 - Run budget: smoke 3 tasks; paper 10-20 tasks.
@@ -181,7 +183,7 @@ deterministic system-effect provenance and folded-stack aggregation.
 | Run ID | Stage | Purpose | Config | Seed/reps | Decision gate | Cost | Risk |
 |--------|-------|---------|--------|-----------|---------------|------|------|
 | R100 | sanity | full local-history run | 3B llama.cpp, `tag_llm_calls=true` | one full run plus cached rerun | report exists and parses | completed | done |
-| R110 | decision | exact lineage smoke | 3 live tasks under AgentSight | 3 tasks | join coverage and orphan report | low | high value |
+| R110 | decision | exact lineage smoke | 3 live tasks under AgentSight | 3 tasks | raw coverage, in-scope join coverage, orphan report | low | high value |
 | R120 | decision | small-model comparison | 0.6B/1B/3B | 3 repeats per fragment | invalid/stability/latency table | medium | prompt drift |
 | R130 | decision | semantic ablation | session-only/prompt-only/full | one deterministic rerun | mixed-weight delta | low | noisy labels |
 | R140 | main | user task pilot | 4 developers | counterbalanced | task protocol works | medium | recruiting |

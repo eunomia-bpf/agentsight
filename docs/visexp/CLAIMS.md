@@ -121,9 +121,10 @@ Current evidence:
   `docs/visexp/live_lineage_harness.py` adds a minimal agent-run envelope around
   detected Codex/Claude root processes. The low-level process/file/network
   effects are not synthesized.
-- R110 validates 182/182 in-scope effects with 0 orphans and 100.0% in-scope
-  join rate. It also records 136 out-of-scope raw effects outside detected agent
-  roots.
+- R110 covers and joins 182/318 raw effects, for 57.233% raw coverage. Within
+  the covered scope it validates 182/182 effects with 0 orphans and 100.0%
+  in-scope join rate. It also records 136 out-of-scope raw effects outside
+  detected agent roots.
 - The full Rust AgentFlame run still uses agent-native session histories, and
   current DB export does not natively materialize session/tool rows.
 
@@ -175,8 +176,9 @@ Allowed current wording:
 - "In our local full-history run, removing semantic frames causes more than 90%
   of system observation weight to fall into mixed semantic buckets."
 - "Local one-word tagging is syntactically feasible with a 3B llama.cpp model."
-- "On three real AgentSight DB exports, the C4 checker joins all 182 in-scope
-  effects after a harness-synthesized agent-run envelope is added."
+- "On three real AgentSight DB exports, the C4 checker covers and joins 182/318
+  raw effects; within that covered scope it joins 182/182 effects after a
+  harness-synthesized agent-run envelope is added."
 
 Disallowed current wording:
 

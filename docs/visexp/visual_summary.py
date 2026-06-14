@@ -254,6 +254,7 @@ def write_effect_lineage_svg(
     live_color = UNSUPPORTED
     if live_total:
         live_note = (
+            f"{live_aggregate.get('raw_coverage_pct', 0)}% raw coverage; "
             f"{live_aggregate.get('join_rate_pct', 0)}% in-scope joined; "
             "session/tool envelope is harness-synthesized"
         )

@@ -141,11 +141,12 @@ behavior diagnostics.
 
 It cannot yet prove native full-run precise file/network side effects from real
 sessions. `effect_lineage_smoke.py` proves the checker and folded-stack grammar
-over an AgentSight-shaped fixture, and R110 shows the same checker joining all
-182 in-scope effects from three real AgentSight DB exports after
-`live_lineage_harness.py` adds a minimal agent-run envelope. C4 still requires a
-native AgentSight export that directly persists
-session -> tool_call -> shell -> child process -> file/network ancestry.
+over an AgentSight-shaped fixture, and R110 shows the same checker covering and
+joining 182/318 raw effects from three real AgentSight DB exports after
+`live_lineage_harness.py` adds a minimal agent-run envelope. Within that covered
+scope, 182/182 effects join with 0 orphans. C4 still requires a native
+AgentSight export that directly persists session -> tool_call -> shell -> child
+process -> file/network ancestry.
 
 ## Test
 

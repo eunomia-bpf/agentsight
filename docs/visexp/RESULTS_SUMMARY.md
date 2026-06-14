@@ -137,15 +137,19 @@ agent-run envelope around detected Codex/Claude root processes and tags those
 roots with the local llama.cpp 3B model. It does not synthesize low-level
 effects.
 
-Across three real AgentSight DB exports, the checker validated 182 in-scope
-effects with 0 orphans:
+Across three real AgentSight DB exports, the checker covered and joined 182 of
+318 raw effects. This is 57.233% raw coverage and 100.0% join within the covered
+scope, not 100.0% coverage of all raw effects:
 
-| Run | Roots | Raw effects | In-scope effects | Joined | Orphans | Join rate |
-|-----|------:|------------:|-----------------:|-------:|--------:|----------:|
-| codex-local | 2 | 90 | 48 | 48 | 0 | 100.0% |
-| codex-attach | 2 | 168 | 86 | 86 | 0 | 100.0% |
-| debug-ssl-auto | 4 | 60 | 48 | 48 | 0 | 100.0% |
-| aggregate | 8 | 318 | 182 | 182 | 0 | 100.0% |
+| Run | Roots | Synthetic sessions/tools | Raw effects | In-scope effects | Raw coverage | Joined | Orphans | In-scope join |
+|-----|------:|------------------------:|------------:|-----------------:|-------------:|-------:|--------:|--------------:|
+| codex-local | 2 | 2 / 2 | 90 | 48 | 53.333% | 48 | 0 | 100.0% |
+| codex-attach | 2 | 2 / 2 | 168 | 86 | 51.190% | 86 | 0 | 100.0% |
+| debug-ssl-auto | 4 | 4 / 4 | 60 | 48 | 80.000% | 48 | 0 | 100.0% |
+| aggregate | 8 | 8 / 8 | 318 | 182 | 57.233% | 182 | 0 | 100.0% |
+
+The aggregate join methods are `related_event_id=8` for root effects and
+`pid_family_time_window=174` for descendant process-family effects.
 
 This supports the lineage checker and process-family attribution path for
 in-scope live effects. It does not yet prove native AgentSight export because
@@ -168,8 +172,9 @@ cross-agent cost claims until token normalization is audited.
 
 ## Negative And Mixed Evidence
 
-- C4 exact AgentSight lineage is partial. R110 validates in-scope live effects,
-  but not native collector export of session/tool ancestry.
+- C4 exact AgentSight lineage is partial. R110 covers 57.233% of raw live
+  effects and validates 100.0% join only within that covered scope; it does not
+  prove native collector export of session/tool ancestry.
 - C5 user utility remains unsupported. Task packets and scoring scripts exist,
   but no real participant responses have been collected.
 - C6 semantic adequacy is partial. The grammar is strong, but labels such as
