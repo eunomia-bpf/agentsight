@@ -463,7 +463,7 @@ fn command_run(args: RunArgs) -> Result<()> {
     } else {
         default_claude_root(&project_root)?
     };
-    let mut sessions = discover_sessions(
+    let discovery = discover_sessions(
         &project_root,
         &codex_root,
         &claude_root,
@@ -471,6 +471,7 @@ fn command_run(args: RunArgs) -> Result<()> {
         args.scan_files,
         args.max_sessions,
     )?;
+    let mut sessions = discovery.sessions;
     if sessions.is_empty() {
         bail!(
             "no local Codex or Claude sessions found for {}",
@@ -501,6 +502,7 @@ fn command_run(args: RunArgs) -> Result<()> {
         },
         &sessions,
         &tagger.stats,
+        &discovery.warnings,
     )?;
     write_dashboard(&out_dir, &payload)?;
     println!(
@@ -536,6 +538,11 @@ fn command_render(args: RenderArgs) -> Result<()> {
     Ok(())
 }
 
+struct DiscoveryResult {
+    sessions: Vec<SessionRecord>,
+    warnings: Vec<String>,
+}
+
 fn discover_sessions(
     project_root: &Path,
     codex_root: &Path,
@@ -543,7 +550,7 @@ fn discover_sessions(
     session_files: &[PathBuf],
     scan_files: usize,
     max_sessions: usize,
-) -> Result<Vec<SessionRecord>> {
+) -> Result<DiscoveryResult> {
     let explicit_files = !session_files.is_empty();
     let mut candidates = if explicit_files {
         session_files.to_vec()
@@ -565,6 +572,7 @@ fn discover_sessions(
     };
     candidates.truncate(scan_files);
     let mut out = Vec::new();
+    let mut warnings = Vec::new();
     for path in candidates {
         let Some(source) = source_from_path(&path) else {
             continue;
@@ -581,7 +589,13 @@ fn discover_sessions(
         } else {
             continue;
         };
-        enrich_from_raw(&mut session, project_root)?;
+        if let Err(error) = enrich_from_raw(&mut session, project_root) {
+            warnings.push(format!(
+                "skipped_session path={} error={error}",
+                path.display()
+            ));
+            continue;
+        }
         session.ensure_prompt();
         if !session.user_requests.is_empty()
             || !session.tools.is_empty()
@@ -593,7 +607,10 @@ fn discover_sessions(
             break;
         }
     }
-    Ok(out)
+    Ok(DiscoveryResult {
+        sessions: out,
+        warnings,
+    })
 }
 
 fn find_jsonl(root: &Path, max_files: usize) -> Vec<PathBuf> {
@@ -1182,6 +1199,7 @@ fn build_report(
     config: ReportConfig<'_>,
     sessions: &[SessionRecord],
     tag_stats: &TagStats,
+    warnings: &[String],
 ) -> Result<Value> {
     let (system, token, prompt_rows) = build_folded_stacks(sessions, config.project_name);
     let nonsemantic = build_nonsemantic_system(&system);
@@ -1226,7 +1244,7 @@ fn build_report(
             "session_files": config.session_files,
         },
         "llm_tagger": tag_stats,
-        "warnings": [],
+        "warnings": warnings,
         "sessions": sessions.iter().map(|s| session_to_json(s, config.include_previews)).collect::<Vec<_>>(),
         "summary": {
             "session_count": sessions.len(),
