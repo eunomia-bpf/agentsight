@@ -350,7 +350,7 @@ def write_summary(path: Path, result: dict[str, Any]) -> None:
         "# Tag Stability Smoke",
         "",
         "This smoke test uses raw session fragments locally but commits only hashes, tags, and counts.",
-        "It is evidence for C7 syntax/repeated-run stability, not human semantic adequacy.",
+        "It is evidence for C6 syntax/repeated-run stability, not human semantic adequacy.",
         "",
         "## Metrics",
         "",
@@ -374,7 +374,7 @@ def write_summary(path: Path, result: dict[str, Any]) -> None:
             "## Claim Gate",
             "",
             f"- Smoke verdict: {result['smoke_verdict']}.",
-            "- C7 remains partial until manual adequacy labels and larger repeated-model runs exist.",
+            "- C6 remains partial until manual adequacy labels and larger repeated-model runs exist.",
         ]
     )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")

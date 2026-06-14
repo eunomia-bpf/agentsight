@@ -377,7 +377,7 @@ def build_claim_gates(
             ),
         },
         {
-            "claim": "C4 normalized agent differences",
+            "claim": "D1 normalized agent differences",
             "verdict": "diagnostic" if agent_diff_exists else "unsupported",
             "oracle": "observational, unpaired source cohorts exist; no causal benchmark claim",
             "evidence": f"sources={aggregation.get('source_counts', {})}",
@@ -389,13 +389,13 @@ def build_claim_gates(
             "evidence": user_task_evidence(user_tasks, user_task_results, response_template_exists),
         },
         {
-            "claim": "C6 exact AgentSight effect stream preserves value",
+            "claim": "C4 exact AgentSight effect stream preserves value",
             "verdict": "unsupported",
             "oracle": "requires live AgentSight exact effects from real sessions to pass lineage checker",
             "evidence": effect_lineage_evidence(effect_lineage),
         },
         {
-            "claim": "C7 tag stability and adequacy",
+            "claim": "C6 tag stability and adequacy",
             "verdict": "partial" if quality["same_hash_multi_tag_count"] == 0 else "unsupported",
             "oracle": "smoke checks repeated-run syntax/stability; human adequacy remains required",
             "evidence": (
@@ -484,9 +484,9 @@ def write_summary_md(path: Path, result: dict[str, Any]) -> None:
             "",
             "## Highest-Value Next Runs",
             "",
-            "1. Collect a B3 response CSV and score it with `score_user_task_results.py` to test C5.",
-            "2. Expand B4 with manual adequacy labels and a larger multi-model tag stability run.",
-            "3. Run the B6 lineage checker on live exact AgentSight effects from real sessions to test C6.",
+            "1. Collect a B4 response CSV and score it with `score_user_task_results.py` to test C5.",
+            "2. Expand B5 with manual adequacy labels and a larger multi-model tag stability run for C6.",
+            "3. Run the B3 lineage checker on live exact AgentSight effects from real sessions to test C4.",
         ]
     )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")

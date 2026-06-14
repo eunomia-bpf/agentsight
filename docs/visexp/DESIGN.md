@@ -1,12 +1,12 @@
-# Semantic Tag Flamegraph Experiment Design
+# AgentFlame Design
 
 ## Question
 
 The experiment asks a narrower question than general agent observability:
 
-> Can one-word semantic labels turn raw agent session history into aggregated
-> system-behavior views that ordinary process logs, token dashboards, and trace
-> trees do not provide?
+> Can one-word semantic labels connect AI-agent session intent to aggregated
+> process/file/network behavior that ordinary traces, span flamegraphs, process
+> logs, and token dashboards do not connect?
 
 The intended user is not trying to replay a session line by line. They want to
 see where an agent is heavy, repetitive, divergent from another agent, or
@@ -14,7 +14,8 @@ semantically concentrated.
 
 ## Input
 
-The prototype reads local Codex and Claude JSONL sessions for this repository.
+The current Rust prototype reads local Codex and Claude JSONL sessions for this
+repository.
 It extracts:
 
 - session metadata: source, model, cwd, subagent status;
@@ -23,11 +24,11 @@ It extracts:
 - tool calls: shell/read/edit/network/subagent categories, command basename,
   effect class, status, path/domain group when safely inferable.
 
-The current input is agent-native history, not the full AgentSight
+The current full run is agent-native history, not yet the full live AgentSight
 tool -> shell -> child process -> file/network stream. The stack grammar already
-has slots for those lower-level effects. `effect_lineage_smoke.py` exercises the
-expected AgentSight materialized-view shape with sessions, tool calls, process
-nodes, and audit events.
+has slots for those lower-level effects, and `effect_lineage_smoke.py` exercises
+the expected AgentSight materialized-view shape with sessions, tool calls,
+process nodes, and audit events.
 
 ## Semantic Contract
 
@@ -35,13 +36,14 @@ The semantic layer is deliberately small:
 
 - one lowercase ASCII word per session, prompt, and LLM call;
 - no fixed ontology;
-- invalid model output is rejected and replaced by deterministic fallback;
+- invalid model output is rejected; the Rust run fails if retry cannot produce a
+  valid one-word tag;
 - committed artifacts store only tags, hashes, counts, and redacted prompt rows.
 
-The demo uses `llama.cpp` with `qwen2.5-3b-instruct-q4_k_m.gguf` for up to the
-first 60 uncached tag requests, then reuses the tag cache and falls back only for
-invalid or failed model output. This keeps the run bounded while showing that
-the local-small-model path works.
+The current full run uses a resident `llama.cpp` HTTP server with
+`qwen2.5-3b-instruct-q4_k_m.gguf`. It does not use the legacy deterministic
+fallback path. The completed run issued 93,598 tag requests, including 29,302
+real llama.cpp HTTP calls and 64,297 cache hits, with 0 final tag failures.
 
 The model does not classify file or network events. The model only names the
 session/prompt/LLM context. Exact system events inherit that one-word tag through
@@ -54,16 +56,16 @@ not sufficient because live traces can reuse process IDs.
 The system footprint stack is:
 
 ```text
-project;agent;session-tag;prompt-tag;tool;cmd;effect;path/domain/status
+project;agent;session;prompt;call:tool/<kind>;process*;effect;path/domain;status
 ```
 
 The token footprint stack is:
 
 ```text
-project;agent;session-tag;prompt-tag;llm-tag;model;tokens
+project;agent;session;prompt;call:llm/<tag>;model;kind
 ```
 
-The exact-effect footprint stack used by the C6 checker is:
+The exact-effect footprint stack used by the C4 checker is:
 
 ```text
 project;session-tag;prompt-tag;tool;process;effect;target;status
@@ -92,21 +94,24 @@ summary show?
 `agent-diff.csv` answers: after removing the agent frame and normalizing by
 cohort totals, which system stacks are Codex-heavy or Claude-heavy diagnostics?
 
-`aggregation.json` is the audit receipt. It separates raw tool events from
-expanded stack observations because one tool event may produce multiple
-path/domain observations.
+`agentflame.json` is the current Rust audit receipt. It records input roots,
+tagger stats, warnings, per-session redacted summaries, folded-stack summaries,
+command/effect summaries, and baseline-mixing examples.
 
-`verify_artifacts.py` checks that folded line counts and summed weights match
-`aggregation.json`, prompt previews are redacted, tag contracts pass, and diff
-columns use normalized rates.
+Legacy `docs/visexp/out/aggregation.json` remains useful for the older Python
+prototype, but it is no longer the headline evidence.
+
+The Rust full run is checked by parsing `agentflame.json` and verifying folded
+totals against `.agentsight/agentflame/latest/*.folded.txt`. The legacy
+`verify_artifacts.py` still checks the Python artifact package.
 
 `input-manifest.json` records exact argv, selected session content hashes, script
 hash, model checksum, and local llama.cpp provenance where available.
 
-`evaluate_artifacts.py` is the current OSDI-facing artifact audit. It asks
+The current OSDI-facing audit is recorded in `RESEARCH_PLAN.md`,
+`RESULTS_SUMMARY.md`, `CLAIMS.md`, and `CLAIM_VERDICT.md`. The core metric is
 whether nonsemantic or flat baselines merge multiple prompt/session regions that
-the semantic stack separates, then writes `evaluation.json`,
-`semantic-mixing.csv`, `claim-gates.csv`, and `evaluation-summary.md`.
+the semantic stack separates.
 
 `effect_lineage_smoke.py` is the exact-effect join checker. On the committed
 fixture it joins every process/file/network event to a process node, tool call,
@@ -145,12 +150,12 @@ an unjoined process/file/network effect is a collector or join bug, not an
 acceptable "unknown prompt" category.
 
 The local model is invoked once per uncached tag, so this is a reproducible
-offline experiment, not the production architecture. A production path should use
-a resident `llama-server` or batch annotation.
+offline experiment, not a collector hot-path architecture. The current full run
+already uses a resident `llama-server`; a production path should add batching and
+periodic cache flush for recovery.
 
-Some fallback tags remain generic because the experiment enforces a fixed runtime
-budget for model calls. The research claim should evaluate tag stability and
-adequacy separately from flamegraph aggregation.
+Some one-word tags remain noisy or over-specific. The research claim should
+evaluate tag stability and adequacy separately from flamegraph aggregation.
 
 The behavior diff is a first-order comparison, not a causal claim. It reports
 that two agents differ on normalized stack-observation rate; it does not prove

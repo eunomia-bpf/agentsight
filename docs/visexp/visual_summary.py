@@ -288,7 +288,7 @@ def write_effect_lineage_svg(out_dir: Path, lineage: dict[str, Any]) -> Path:
     path.write_text(
         svg_page(
             "Exact Effect Lineage",
-            "Fixture checker passes; live exact capture remains the key missing C6 evidence.",
+            "Fixture checker passes; live exact capture remains the key missing C4 evidence.",
             1120,
             390,
             "\n".join(parts),
