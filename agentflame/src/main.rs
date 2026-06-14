@@ -2428,8 +2428,8 @@ fn path_group(path: &str, project_root: &Path) -> String {
         .into_iter()
         .filter(|part| part != "." && !part.is_empty())
         .map(|part| {
-            if part.len() > 48 {
-                format!("{}...", &part[..45])
+            if part.chars().count() > 48 {
+                format!("{}...", part.chars().take(45).collect::<String>())
             } else {
                 part
             }
