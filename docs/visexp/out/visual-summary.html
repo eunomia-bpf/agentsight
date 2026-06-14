@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AgentSight Visual Progress Summary</title>
+  <style>
+    :root {
+      --bg: #fbfcf8;
+      --ink: #1f2933;
+      --muted: #5f6b76;
+      --line: #d9e0d2;
+      --panel: #ffffff;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+    main { max-width: 1200px; margin: 0 auto; padding: 24px; }
+    h1 { font-size: 24px; margin: 0 0 8px; letter-spacing: 0; }
+    h2 { font-size: 16px; margin: 24px 0 10px; letter-spacing: 0; }
+    p { color: var(--muted); margin: 0 0 14px; max-width: 980px; }
+    .figure {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      overflow-x: auto;
+    }
+    img { display: block; max-width: none; }
+    a { color: #0f766e; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>AgentSight Visual Progress Summary</h1>
+  <p>These charts summarize current artifact state. They do not replace the full semantic flamegraph report or the planned live-capture and user-study runs.</p>
+  <p>Full report: <a href="index.html">index.html</a>. Artifact audit: <a href="evaluation-summary.md">evaluation-summary.md</a>.</p>
+
+    <section>
+      <h2>Claim Gate Progress</h2>
+      <div class="figure"><img src="claim-gates.svg" alt="Claim Gate Progress"></div>
+    </section>
+
+    <section>
+      <h2>Semantic Aggregation Value</h2>
+      <div class="figure"><img src="semantic-mixing.svg" alt="Semantic Aggregation Value"></div>
+    </section>
+
+    <section>
+      <h2>Exact Effect Lineage</h2>
+      <div class="figure"><img src="effect-lineage.svg" alt="Exact Effect Lineage"></div>
+    </section>
+
+    <section>
+      <h2>System Footprint Flamegraph</h2>
+      <div class="figure"><img src="system-flamegraph.svg" alt="System Footprint Flamegraph"></div>
+    </section>
+
+    <section>
+      <h2>Token Footprint Flamegraph</h2>
+      <div class="figure"><img src="token-flamegraph.svg" alt="Token Footprint Flamegraph"></div>
+    </section>
+</main>
+</body>
+</html>
