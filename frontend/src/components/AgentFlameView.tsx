@@ -5,10 +5,12 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import type { AgentFlameReport, AgentFlameWeightedStack } from '@/types/agentflame';
+import type { AgentSightSnapshot, SnapshotAuditEvent, SnapshotToolCall } from '@/types/event';
 import { fetchAgentFlameReport } from '@/utils/agentflame';
 
 interface AgentFlameViewProps {
   basePath?: string;
+  snapshot?: AgentSightSnapshot | null;
 }
 
 const ARTIFACTS = [
@@ -39,6 +41,179 @@ function artifactUrl(basePath: string, relative: string): string {
 
 function stackLabel(stack: string): string {
   return stack.split(';').join(' / ');
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function detailString(row: SnapshotAuditEvent, key: string): string | undefined {
+  if (!isRecord(row.details)) return undefined;
+  const value = row.details[key];
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function toolSessionId(row: SnapshotToolCall): string | undefined {
+  return row.session_id ?? undefined;
+}
+
+interface CorrelationRow {
+  tag: string;
+  sessions: number;
+  toolCalls: number;
+  auditEvents: number;
+  processEvents: number;
+  fileEvents: number;
+  networkEvents: number;
+  llmEvents: number;
+  pids: number;
+}
+
+interface CorrelationSummary {
+  matchedSessions: number;
+  matchedToolCalls: number;
+  matchedAuditEvents: number;
+  matchedNetworkTargets: number;
+  rows: CorrelationRow[];
+}
+
+function promptTagAt(reportSession: AgentFlameReport['sessions'][number], timestampMs: number | null | undefined): string {
+  const fallback = reportSession.session_tag || 'session';
+  if (!timestampMs || reportSession.prompts.length === 0) return fallback;
+  let tag = reportSession.prompts[0]?.tag || fallback;
+  for (const prompt of reportSession.prompts) {
+    if (prompt.ts_ms && prompt.ts_ms <= timestampMs) {
+      tag = prompt.tag || tag;
+    } else if (prompt.ts_ms && prompt.ts_ms > timestampMs) {
+      break;
+    }
+  }
+  return tag || fallback;
+}
+
+function buildCorrelation(report: AgentFlameReport, snapshot: AgentSightSnapshot | null | undefined): CorrelationSummary | null {
+  if (!snapshot) return null;
+
+  const sessionById = new Map<string, AgentFlameReport['sessions'][number]>();
+  for (const session of report.sessions) {
+    sessionById.set(session.session_id, session);
+    if (session.agent_sight_session_id) {
+      sessionById.set(session.agent_sight_session_id, session);
+    }
+  }
+
+  const mutable = new Map<string, {
+    sessionIds: Set<string>;
+    toolCalls: number;
+    auditEvents: number;
+    processEvents: number;
+    fileEvents: number;
+    networkEvents: number;
+    llmEvents: number;
+    pids: Set<number>;
+  }>();
+
+  const ensure = (tag: string) => {
+    const key = tag || 'session';
+    let row = mutable.get(key);
+    if (!row) {
+      row = {
+        sessionIds: new Set<string>(),
+        toolCalls: 0,
+        auditEvents: 0,
+        processEvents: 0,
+        fileEvents: 0,
+        networkEvents: 0,
+        llmEvents: 0,
+        pids: new Set<number>(),
+      };
+      mutable.set(key, row);
+    }
+    return row;
+  };
+
+  const pidToTag = new Map<number, string>();
+  const eventIdToTag = new Map<string, string>();
+  const matchedSessionIds = new Set<string>();
+  let matchedToolCalls = 0;
+
+  for (const row of snapshot.sessions ?? []) {
+    const reportSession = sessionById.get(row.id);
+    if (!reportSession) continue;
+    ensure(reportSession.session_tag).sessionIds.add(reportSession.session_id);
+    matchedSessionIds.add(reportSession.session_id);
+  }
+
+  for (const tool of snapshot.tool_calls ?? []) {
+    const sessionId = toolSessionId(tool);
+    const reportSession = sessionId ? sessionById.get(sessionId) : undefined;
+    if (!reportSession) continue;
+    const tag = promptTagAt(reportSession, tool.start_timestamp_ms ?? tool.timestamp_ms);
+    const bucket = ensure(tag);
+    bucket.sessionIds.add(reportSession.session_id);
+    matchedSessionIds.add(reportSession.session_id);
+    bucket.toolCalls += 1;
+    matchedToolCalls += 1;
+    if (tool.related_pid) {
+      bucket.pids.add(tool.related_pid);
+      pidToTag.set(tool.related_pid, tag);
+    }
+    if (tool.related_event_id) {
+      eventIdToTag.set(tool.related_event_id, tag);
+    }
+  }
+
+  let matchedAuditEvents = 0;
+  for (const audit of snapshot.audit_events ?? []) {
+    const sessionId = detailString(audit, 'session_id');
+    const session = sessionId ? sessionById.get(sessionId) : undefined;
+    const tag = session
+      ? promptTagAt(session, audit.timestamp_ms)
+      : eventIdToTag.get(audit.id) ?? (audit.pid ? pidToTag.get(audit.pid) : undefined);
+    if (!tag) continue;
+    const bucket = ensure(tag);
+    matchedAuditEvents += 1;
+    bucket.auditEvents += 1;
+    if (audit.pid) bucket.pids.add(audit.pid);
+    if (audit.audit_type === 'process') bucket.processEvents += 1;
+    if (audit.audit_type === 'file') bucket.fileEvents += 1;
+    if (audit.audit_type === 'network') bucket.networkEvents += 1;
+    if (audit.audit_type === 'llm') bucket.llmEvents += 1;
+  }
+
+  let matchedNetworkTargets = 0;
+  for (const target of snapshot.network_targets ?? []) {
+    if (!target.pid) continue;
+    const tag = pidToTag.get(target.pid);
+    if (!tag) continue;
+    const bucket = ensure(tag);
+    bucket.networkEvents += target.count ?? 1;
+    bucket.pids.add(target.pid);
+    matchedNetworkTargets += 1;
+  }
+
+  const rows = Array.from(mutable.entries()).map(([tag, row]) => ({
+    tag,
+    sessions: row.sessionIds.size,
+    toolCalls: row.toolCalls,
+    auditEvents: row.auditEvents,
+    processEvents: row.processEvents,
+    fileEvents: row.fileEvents,
+    networkEvents: row.networkEvents,
+    llmEvents: row.llmEvents,
+    pids: row.pids.size,
+  })).sort((a, b) => (
+    (b.auditEvents + b.toolCalls + b.networkEvents)
+    - (a.auditEvents + a.toolCalls + a.networkEvents)
+  ));
+
+  return {
+    matchedSessions: matchedSessionIds.size,
+    matchedToolCalls,
+    matchedAuditEvents,
+    matchedNetworkTargets,
+    rows,
+  };
 }
 
 function StatCard({ label, value, hint }: { label: string; value: string; hint?: string }) {
@@ -87,7 +262,7 @@ function StackList({ rows }: { rows: AgentFlameWeightedStack[] }) {
   );
 }
 
-export function AgentFlameView({ basePath = '' }: AgentFlameViewProps) {
+export function AgentFlameView({ basePath = '', snapshot = null }: AgentFlameViewProps) {
   const [report, setReport] = useState<AgentFlameReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedArtifact, setSelectedArtifact] = useState<string>('system_flamegraph');
@@ -123,6 +298,10 @@ export function AgentFlameView({ basePath = '' }: AgentFlameViewProps) {
       path: report.artifacts[choice.key],
     };
   }, [artifactChoices, report, selectedArtifact]);
+
+  const correlation = useMemo(() => {
+    return report ? buildCorrelation(report, snapshot) : null;
+  }, [report, snapshot]);
 
   if (loading) {
     return (
@@ -187,6 +366,55 @@ export function AgentFlameView({ basePath = '' }: AgentFlameViewProps) {
         <StatCard label="Tag LLM calls" value={formatNumber(report.llm_tagger.llm_calls)} hint={`${formatNumber(report.llm_tagger.cache_hits)} cache hits`} />
         <StatCard label="Mixed baseline" value={formatPct(mixing.mixed_weight_pct)} hint={`${formatNumber(mixing.mixed_buckets)} buckets`} />
       </div>
+
+      {correlation && (
+        <div className="bg-white rounded-lg shadow-md p-4">
+          <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Snapshot correlation</h3>
+              <div className="mt-1 text-sm text-gray-500">
+                {formatNumber(correlation.matchedSessions)} sessions, {formatNumber(correlation.matchedToolCalls)} tool calls, {formatNumber(correlation.matchedAuditEvents)} audit events, {formatNumber(correlation.matchedNetworkTargets)} network targets matched
+              </div>
+            </div>
+          </div>
+          {correlation.rows.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 text-sm">
+                <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
+                  <tr>
+                    <th className="px-3 py-2">Tag</th>
+                    <th className="px-3 py-2 text-right">Tools</th>
+                    <th className="px-3 py-2 text-right">Audit</th>
+                    <th className="px-3 py-2 text-right">Process</th>
+                    <th className="px-3 py-2 text-right">Files</th>
+                    <th className="px-3 py-2 text-right">Network</th>
+                    <th className="px-3 py-2 text-right">LLM</th>
+                    <th className="px-3 py-2 text-right">PIDs</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {correlation.rows.slice(0, 12).map(row => (
+                    <tr key={row.tag}>
+                      <td className="px-3 py-2 font-medium text-gray-900">{row.tag}</td>
+                      <td className="px-3 py-2 text-right text-gray-700">{row.toolCalls}</td>
+                      <td className="px-3 py-2 text-right text-gray-700">{row.auditEvents}</td>
+                      <td className="px-3 py-2 text-right text-gray-700">{row.processEvents}</td>
+                      <td className="px-3 py-2 text-right text-gray-700">{row.fileEvents}</td>
+                      <td className="px-3 py-2 text-right text-gray-700">{row.networkEvents}</td>
+                      <td className="px-3 py-2 text-right text-gray-700">{row.llmEvents}</td>
+                      <td className="px-3 py-2 text-right text-gray-700">{row.pids}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500">
+              No snapshot events matched the AgentFlame session ids in this report.
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="bg-white rounded-lg shadow-md p-4">
         <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
