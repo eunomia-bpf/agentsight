@@ -20,8 +20,9 @@ semantic regions for 90.219% of observation weight, and flat effect buckets mix
 90.770%.
 
 This supports the mechanism claim that semantic frames separate system-effect
-regions that ordinary process summaries or nonsemantic folded stacks merge. It
-does not yet prove user utility or live exact file/network lineage.
+regions that ordinary process summaries or nonsemantic folded stacks merge. R110
+adds a live in-scope exact-lineage smoke, but the project does not yet prove
+native full-run exact file/network lineage or user utility.
 
 ## Completed Runs
 
@@ -29,6 +30,7 @@ does not yet prove user utility or live exact file/network lineage.
 |-----|----------------|-------------|--------|
 | R100 | Rust AgentFlame full local repo-related scan, 3B llama.cpp server, `tag_llm_calls=true` | `.agentsight/agentflame/latest/agentflame.json` | done |
 | R101 | Rust unit/clippy verification after Unicode and unreadable-session fixes | `cargo test --manifest-path agentflame/Cargo.toml`; `cargo clippy --manifest-path agentflame/Cargo.toml -- -D warnings` | done |
+| R110 | Live exact-lineage smoke over real AgentSight DB exports with harness-synthesized agent-run envelopes and llama.cpp root tags | `docs/visexp/out/live-lineage-r110.json` | partial |
 | R060 | legacy Python prototype pipeline over sampled sessions | `docs/visexp/out/pipeline-report.json` | legacy, superseded for headline scale |
 | R020a | fixture exact-effect lineage checker | `docs/visexp/out/effect-lineage-smoke.json` | partial, fixture only |
 | R025 | user-task benchmark packet generation | `docs/visexp/out/user-task-benchmark.json` | protocol only |
@@ -126,6 +128,30 @@ stacks split those rows by session and prompt labels, for example separating
 `cargo test` into `review`, `refactor`, `research`, `design`, and `test`
 regions.
 
+## Live Exact-Lineage Smoke
+
+R110 moves C4 beyond fixture-only evidence, but only as a scoped smoke. Current
+SQLite exports contain process/file/network effects but do not materialize
+session/tool ancestry, so `docs/visexp/live_lineage_harness.py` adds a minimal
+agent-run envelope around detected Codex/Claude root processes and tags those
+roots with the local llama.cpp 3B model. It does not synthesize low-level
+effects.
+
+Across three real AgentSight DB exports, the checker validated 182 in-scope
+effects with 0 orphans:
+
+| Run | Roots | Raw effects | In-scope effects | Joined | Orphans | Join rate |
+|-----|------:|------------:|-----------------:|-------:|--------:|----------:|
+| codex-local | 2 | 90 | 48 | 48 | 0 | 100.0% |
+| codex-attach | 2 | 168 | 86 | 86 | 0 | 100.0% |
+| debug-ssl-auto | 4 | 60 | 48 | 48 | 0 | 100.0% |
+| aggregate | 8 | 318 | 182 | 182 | 0 | 100.0% |
+
+This supports the lineage checker and process-family attribution path for
+in-scope live effects. It does not yet prove native AgentSight export because
+136 raw effects were outside detected agent roots and session/tool envelopes are
+harness-generated.
+
 ## Dimension Projection Results
 
 | View | Unique stacks | Total weight | Compression | Max reuse |
@@ -142,9 +168,8 @@ cross-agent cost claims until token normalization is audited.
 
 ## Negative And Mixed Evidence
 
-- C4 exact AgentSight lineage remains unsupported for live traces. The full run
-  uses agent-native session histories; the exact lineage checker is still
-  fixture-backed.
+- C4 exact AgentSight lineage is partial. R110 validates in-scope live effects,
+  but not native collector export of session/tool ancestry.
 - C5 user utility remains unsupported. Task packets and scoring scripts exist,
   but no real participant responses have been collected.
 - C6 semantic adequacy is partial. The grammar is strong, but labels such as
@@ -162,4 +187,5 @@ cross-agent cost claims until token normalization is audited.
 - `.agentsight/agentflame/latest/session-system.folded.txt`
 - `.agentsight/agentflame/latest/prompt-system.folded.txt`
 - `.agentsight/agentflame/latest/llm-token.folded.txt`
-- `docs/visexp/out/effect-lineage-smoke.json` for fixture-only C4 status
+- `docs/visexp/out/effect-lineage-smoke.json` for fixture checker status
+- `docs/visexp/out/live-lineage-r110.json` for live in-scope C4 smoke status

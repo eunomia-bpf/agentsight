@@ -26,9 +26,11 @@ It extracts:
 
 The current full run is agent-native history, not yet the full live AgentSight
 tool -> shell -> child process -> file/network stream. The stack grammar already
-has slots for those lower-level effects, and `effect_lineage_smoke.py` exercises
-the expected AgentSight materialized-view shape with sessions, tool calls,
-process nodes, and audit events.
+has slots for those lower-level effects. `effect_lineage_smoke.py` exercises the
+expected AgentSight materialized-view shape with sessions, tool calls, process
+nodes, and audit events, and R110 applies the same checker to live in-scope
+effects from real AgentSight DB exports after a harness adds the missing
+agent-run envelope.
 
 ## Semantic Contract
 
@@ -117,8 +119,10 @@ the semantic stack separates.
 fixture it joins every process/file/network event to a process node, tool call,
 session, and prompt tag, then writes `effect-lineage.csv` and
 `effect-lineage.folded.txt`. Failed joins remain visible with an
-`orphan_reason`; the checker does not fall back to out-of-window processes. This
-is checker evidence only; it is not a live AgentSight capture result.
+`orphan_reason`; the checker does not fall back to out-of-window processes.
+R110 adds live in-scope smoke evidence over three real DB exports, but still
+uses `live_lineage_harness.py` to synthesize the session/tool envelope because
+the current export does not materialize those rows natively.
 
 ## What Is New Here
 
@@ -143,11 +147,12 @@ The path/domain extraction from shell commands is conservative and lossy in the
 agent-native artifact. It is only a placeholder for AgentSight's precise
 system-effect stream.
 
-The exact-effect checker currently runs on a fixture. It proves that the join
-rules and stack grammar are executable, not that live real sessions already have
-complete process/file/network attribution. For in-scope live AgentSight events,
-an unjoined process/file/network effect is a collector or join bug, not an
-acceptable "unknown prompt" category.
+The exact-effect checker currently has fixture evidence plus R110 live in-scope
+smoke evidence. It proves that the join rules and stack grammar can connect
+detected agent-root process families to prompt/session tags, not that native
+collector export already preserves complete process/file/network attribution.
+For in-scope live AgentSight events, an unjoined process/file/network effect is a
+collector or join bug, not an acceptable "unknown prompt" category.
 
 The local model is invoked once per uncached tag, so this is a reproducible
 offline experiment, not a collector hot-path architecture. The current full run

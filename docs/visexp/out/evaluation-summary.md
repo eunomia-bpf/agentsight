@@ -5,26 +5,26 @@ It is an artifact audit, not a substitute for the planned human and paired-agent
 
 ## Current Artifact Metrics
 
-- Semantic system compression: 2.34x (5312 observations, 2270 stacks).
-- Collapsed observation share: 57.267%.
-- Non-semantic baseline mixed buckets: 392 (68.505% of observation weight).
-- Flat effect baseline mixed buckets: 397 (74.473% of observation weight).
-- Prompt tags: 38 unique, 35.987% generic rows, 0 same-hash tag conflicts.
+- Semantic system compression: 2.405x (6301 observations, 2620 stacks).
+- Collapsed observation share: 58.419%.
+- Non-semantic baseline mixed buckets: 458 (68.656% of observation weight).
+- Flat effect baseline mixed buckets: 453 (74.083% of observation weight).
+- Prompt tags: 46 unique, 35.494% generic rows, 0 same-hash tag conflicts.
 
 ## Claim Gates
 
 | Claim | Verdict | Evidence |
 |-------|---------|----------|
-| C1 folded aggregation | supported | compression=2.34 repeated=921 |
-| C2 one-word tags in stack grammar | supported | invalid=0 unique_prompt_tags=38 |
-| C3 semantic stacks add information beyond flat/nonsemantic baselines | supported | nonsemantic_mixed=392 nonsemantic_weight_pct=68.505 flat_mixed=397 flat_weight_pct=74.473 |
-| D1 normalized agent differences | diagnostic | sources={'codex-subagent': 13, 'codex': 6, 'claude': 12, 'claude-subagent': 5} |
+| C1 folded aggregation | supported | compression=2.405 repeated=1097 |
+| C2 one-word tags in stack grammar | supported | invalid=0 unique_prompt_tags=46 |
+| C3 semantic stacks add information beyond flat/nonsemantic baselines | supported | nonsemantic_mixed=458 nonsemantic_weight_pct=68.656 flat_mixed=453 flat_weight_pct=74.083 |
+| D1 normalized agent differences | diagnostic | sources={'codex-subagent': 14, 'codex': 5, 'claude': 12, 'claude-subagent': 5} |
 | C5 user utility over trace tree/process logs | unsupported | task_bundle=pilot_packet_ready_no_participants task_count=6 scorer=ready response_template=present participant_results=missing |
-| C4 exact AgentSight effect stream preserves value | unsupported | effect_lineage_smoke=fixture_lineage_smoke_passed source=fixture effect_events=4 join_rate_pct=100.0 orphans=0 orphan_reasons={} live_exact_capture=missing |
-| C6 tag stability and adequacy | partial | same_hash_multi_tag_count=0 smoke_verdict=smoke_supported fallback_stable_pct=100.0 fallback_generic_pct=8.333 llama_stable_pct=100.0 llama_generic_pct=16.667 fallback_vs_llama_exact_pct=0.0 |
+| C4 exact AgentSight effect stream preserves value | partial | effect_lineage_smoke=fixture_lineage_smoke_passed source=fixture effect_events=4 join_rate_pct=100.0 orphans=0 orphan_reasons={} live_lineage=partial_supported_for_in_scope_live_smoke runs=3 in_scope_effects=182 joined=182 orphans=0 join_rate_pct=100.0 out_of_scope=136 native_export=pending |
+| C6 tag stability and adequacy | partial | same_hash_multi_tag_count=0 smoke_verdict=smoke_supported fallback_stable_pct=100.0 fallback_generic_pct=4.167 llama_stable_pct=100.0 llama_generic_pct=12.5 fallback_vs_llama_exact_pct=0.0 |
 
 ## Highest-Value Next Runs
 
 1. Collect a B4 response CSV and score it with `score_user_task_results.py` to test C5.
 2. Expand B5 with manual adequacy labels and a larger multi-model tag stability run for C6.
-3. Run the B3 lineage checker on live exact AgentSight effects from real sessions to test C4.
+3. Move the R110 session/tool envelope into native AgentSight export, then repeat B3.

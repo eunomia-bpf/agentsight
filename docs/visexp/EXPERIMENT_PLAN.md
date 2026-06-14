@@ -16,7 +16,7 @@ deterministic system-effect provenance and folded-stack aggregation.
 - Type: systems-for-ML observability and measurement tooling.
 - Target venue: OSDI/SOSP-style systems venue.
 - Artifact status: Rust CLI prototype with a full local-history run; exact
-  AgentSight live lineage pending.
+  AgentSight live lineage has a scoped smoke, while native export is pending.
 - Main reviewer risk: the work will be rejected as "just another agent
   trace/flamegraph UI" unless the evaluation proves semantic attribution answers
   questions that span-duration traces and process summaries cannot.
@@ -28,7 +28,7 @@ deterministic system-effect provenance and folded-stack aggregation.
 | C1 | AgentFlame generates semantic folded stacks over real local agent histories. | This repository's readable Codex/Claude sessions. | Session/tool/LLM counts, folded totals, generated artifacts. | supported |
 | C2 | Local one-word LLM tagging is syntactically feasible. | 3B llama.cpp full run; later 0.6B/1B/3B. | Invalid rate, cache, latency, failures, tag coverage. | supported for 3B syntax |
 | C3 | Semantic frames expose task-effect mixtures hidden by nonsemantic/flat baselines. | Full local run. | Mixed-bucket count/weight, examples, ablations. | supported as mechanism |
-| C4 | Exact AgentSight lineage connects semantic intent to process/file/network effects. | Live AgentSight traces. | Join coverage, orphan rate, path/domain specificity. | unsupported |
+| C4 | Exact AgentSight lineage connects semantic intent to process/file/network effects. | Live AgentSight traces. | Join coverage, orphan rate, path/domain specificity. | partial live smoke |
 | C5 | Developers answer forensic questions better with semantic effect flamegraphs. | User/task benchmark. | Time, accuracy, false positives, confidence. | unsupported |
 | C6 | One-word tags are stable and adequate enough for navigation. | Multi-model repeated runs and human labels. | Invalid rate, stability, adequacy, noisy-tag rate. | partial |
 
@@ -39,7 +39,7 @@ deterministic system-effect provenance and folded-stack aggregation.
 | C1 | Full run with consistent folded outputs. | B1 | Folded totals mismatch or report cannot be regenerated. | Prototype supports only sampled/local histories. |
 | C2 | Low invalid/failure rate and practical local runtime. | B1, B5 | Small models fail often or latency is prohibitive. | 3B works; smaller models remain optional. |
 | C3 | Semantic frames split mixed nonsemantic/flat buckets. | B2, B6 | Mixed weight is negligible or examples are not useful. | Semantic frames are a label overlay, not strong information gain. |
-| C4 | Live exact effects inherit prompt/session ancestry. | B3 | In-scope orphan rate is high or lineage cannot cross process trees. | AgentFlame remains session-history-only. |
+| C4 | Live exact effects inherit prompt/session ancestry. | B3 | In-scope orphan rate is high or lineage cannot cross process trees. | Use harness-scoped live evidence only; native export remains future work. |
 | C5 | Users solve tasks better with semantic views. | B4 | No time/accuracy/confidence improvement. | Semantic flamegraphs are expert exploratory views. |
 | C6 | Tags are stable and adequate. | B5 | High instability, generic/noisy tags, poor adequacy. | Tags are lossy hints only. |
 
@@ -65,7 +65,7 @@ deterministic system-effect provenance and folded-stack aggregation.
 |-------|-------|------------|--------------------|---------|--------|--------------|----------|
 | B1 | C1,C2 | Full local-history characterization | 3B llama.cpp, cache enabled | sessions, events, tags, invalids, cache, unique stacks | JSON/folded consistency and tag grammar | Table 1 | done/must repeat |
 | B2 | C3 | Semantic information-gain audit | semantic, nonsemantic, flat summary | mixed buckets, mixed weight, examples | deterministic stack comparison | Fig. 2 | done |
-| B3 | C4 | Live exact-effect lineage | agent-native proxy vs AgentSight exact stream | join coverage, orphan rate, path/domain specificity | lineage checker | Fig. 3/Table 2 | must |
+| B3 | C4 | Live exact-effect lineage | agent-native proxy vs AgentSight exact stream | join coverage, orphan rate, path/domain specificity | lineage checker | Fig. 3/Table 2 | smoke done/native must |
 | B4 | C5 | Developer task benchmark | trace tree, span flamegraph, flat summary, nonsemantic stack, semantic stack | time, accuracy, confidence, false positives | hidden answer key | Table 3 | must |
 | B5 | C2,C6 | Small-model/stability/adequacy | 0.6B, 1B, 3B, repeated runs | latency, invalid rate, exact stability, adequacy | grammar + human labels | Table 4 | must |
 | B6 | C3,C6 | Semantic-axis ablation | no semantic, session-only, prompt-only, prompt+LLM-call | information gain, stack explosion, noisy tags | same queries/tasks | Fig. 4 | must |
@@ -114,13 +114,17 @@ deterministic system-effect provenance and folded-stack aggregation.
 - Compared systems: agent-native proxy extraction vs exact AgentSight stream.
 - Metrics: in-scope join coverage, orphan rate, child-process depth, path/domain
   specificity, redaction failures.
+- Current result: R110 validates 182/182 in-scope effects across three real DB
+  exports after adding a harness-synthesized agent-run envelope with llama.cpp
+  root tags. Current DB export without that envelope has no session/tool rows.
 - Setup/config: run selected Codex/Claude tasks with AgentSight collector;
   export sanitized snapshot; join tags by session/tool/prompt IDs.
 - Run budget: smoke 3 tasks; paper 10-20 tasks.
 - Oracle: lineage checker rejects any in-scope effect without tool/prompt
   ancestry unless explicitly out of scope.
-- Success criterion: high join coverage and concrete examples where exact
-  lineage adds path/network/process specificity beyond agent-native logs.
+- Success criterion: high join coverage in native export and concrete examples
+  where exact lineage adds path/network/process specificity beyond agent-native
+  logs.
 - Failure interpretation: paper becomes a local-history profiler, not an exact
   system-effect provenance system.
 
@@ -223,7 +227,9 @@ deterministic system-effect provenance and folded-stack aggregation.
 ## Residual Uncertainty
 
 - Current full run is single-repo and observational.
-- Current exact lineage evidence is fixture-only.
+- Current exact lineage evidence is a live in-scope smoke with
+  harness-synthesized session/tool envelopes; native collector export is not yet
+  proved.
 - Current user utility evidence is absent.
 - Current tag adequacy is unproven even though syntax validity is strong.
 - These limitations are acceptable for internal planning but not for OSDI final
@@ -236,6 +242,6 @@ deterministic system-effect provenance and folded-stack aggregation.
 | C1 | `.agentsight/agentflame/latest/agentflame.json` | supported | local-history semantic folded stacks |
 | C2 | `.agentsight/agentflame/latest/tags.json` | partial | 3B syntactic feasibility |
 | C3 | `.agentsight/agentflame/latest/agentflame.json` | supported | semantic partitioning in local workload |
-| C4 | exact lineage run path pending | unsupported | fixture-tested only |
+| C4 | `docs/visexp/out/live-lineage-r110.json` | partial | live in-scope smoke; native export pending |
 | C5 | user results pending | unsupported | no user outcome claim |
 | C6 | model benchmark and labels pending | partial | syntactic tags, adequacy unproven |

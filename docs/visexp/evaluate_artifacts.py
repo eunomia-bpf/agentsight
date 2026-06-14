@@ -306,9 +306,39 @@ def user_task_evidence(
     )
 
 
-def effect_lineage_evidence(lineage: dict[str, Any] | None) -> str:
+def live_lineage_supported(live_lineage: dict[str, Any] | None) -> bool:
+    if not live_lineage:
+        return False
+    aggregate = live_lineage.get("aggregate") or {}
+    joined = int(aggregate.get("joined_effect_events") or 0)
+    in_scope = int(aggregate.get("in_scope_effect_events") or 0)
+    orphans = int(aggregate.get("orphan_effect_events") or 0)
+    return in_scope > 0 and joined == in_scope and orphans == 0
+
+
+def live_lineage_evidence(live_lineage: dict[str, Any] | None) -> str:
+    if not live_lineage:
+        return "live_lineage=missing"
+    aggregate = live_lineage.get("aggregate") or {}
+    return (
+        f"live_lineage={live_lineage.get('status', 'unknown')} "
+        f"runs={aggregate.get('runs')} "
+        f"in_scope_effects={aggregate.get('in_scope_effect_events')} "
+        f"joined={aggregate.get('joined_effect_events')} "
+        f"orphans={aggregate.get('orphan_effect_events')} "
+        f"join_rate_pct={aggregate.get('join_rate_pct')} "
+        f"out_of_scope={aggregate.get('excluded_out_of_scope_effect_events')} "
+        "native_export=pending"
+    )
+
+
+def effect_lineage_evidence(
+    lineage: dict[str, Any] | None,
+    live_lineage: dict[str, Any] | None = None,
+) -> str:
+    live = live_lineage_evidence(live_lineage)
     if not lineage:
-        return "effect_lineage_smoke=missing live_exact_capture=missing"
+        return f"effect_lineage_smoke=missing {live}"
     return (
         f"effect_lineage_smoke={lineage.get('status', 'unknown')} "
         f"source={lineage.get('source', 'unknown')} "
@@ -316,7 +346,7 @@ def effect_lineage_evidence(lineage: dict[str, Any] | None) -> str:
         f"join_rate_pct={lineage.get('join_rate_pct')} "
         f"orphans={lineage.get('orphan_effect_events')} "
         f"orphan_reasons={lineage.get('orphan_reasons', {})} "
-        "live_exact_capture=missing"
+        f"{live}"
     )
 
 
@@ -331,6 +361,7 @@ def build_claim_gates(
     user_task_results: dict[str, Any] | None = None,
     response_template_exists: bool = False,
     effect_lineage: dict[str, Any] | None = None,
+    live_lineage: dict[str, Any] | None = None,
 ) -> list[dict[str, str]]:
     c1_ok = compression["compression_ratio"] > 1 and compression["repeated_stack_count"] > 0
     c2_ok = (
@@ -390,9 +421,9 @@ def build_claim_gates(
         },
         {
             "claim": "C4 exact AgentSight effect stream preserves value",
-            "verdict": "unsupported",
-            "oracle": "requires live AgentSight exact effects from real sessions to pass lineage checker",
-            "evidence": effect_lineage_evidence(effect_lineage),
+            "verdict": "partial" if live_lineage_supported(live_lineage) else "unsupported",
+            "oracle": "requires native AgentSight session/tool export, not only a harness envelope",
+            "evidence": effect_lineage_evidence(effect_lineage, live_lineage),
         },
         {
             "claim": "C6 tag stability and adequacy",
@@ -486,7 +517,7 @@ def write_summary_md(path: Path, result: dict[str, Any]) -> None:
             "",
             "1. Collect a B4 response CSV and score it with `score_user_task_results.py` to test C5.",
             "2. Expand B5 with manual adequacy labels and a larger multi-model tag stability run for C6.",
-            "3. Run the B3 lineage checker on live exact AgentSight effects from real sessions to test C4.",
+            "3. Move the R110 session/tool envelope into native AgentSight export, then repeat B3.",
         ]
     )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -524,6 +555,8 @@ def run(out_dir: Path, write_outputs: bool = True) -> dict[str, Any]:
     response_template_exists = (out_dir / "user-task-response-template.csv").exists()
     effect_lineage_path = out_dir / "effect-lineage-smoke.json"
     effect_lineage = read_json(effect_lineage_path) if effect_lineage_path.exists() else None
+    live_lineage_path = out_dir / "live-lineage-r110.json"
+    live_lineage = read_json(live_lineage_path) if live_lineage_path.exists() else None
     gates = build_claim_gates(
         aggregation,
         semantic_compression,
@@ -535,6 +568,7 @@ def run(out_dir: Path, write_outputs: bool = True) -> dict[str, Any]:
         user_task_results,
         response_template_exists,
         effect_lineage,
+        live_lineage,
     )
 
     result = {
@@ -563,6 +597,7 @@ def run(out_dir: Path, write_outputs: bool = True) -> dict[str, Any]:
         "user_task_benchmark": user_tasks,
         "user_task_results": user_task_results,
         "effect_lineage_smoke": effect_lineage,
+        "live_lineage_r110": live_lineage,
         "claim_gates": gates,
     }
 

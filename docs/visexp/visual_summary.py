@@ -239,10 +239,25 @@ def write_semantic_mixing_svg(out_dir: Path, evaluation: dict[str, Any]) -> Path
     return path
 
 
-def write_effect_lineage_svg(out_dir: Path, lineage: dict[str, Any]) -> Path:
+def write_effect_lineage_svg(
+    out_dir: Path,
+    lineage: dict[str, Any],
+    live_lineage: dict[str, Any] | None = None,
+) -> Path:
     total = int(lineage.get("effect_events") or 0)
     joined = int(lineage.get("joined_effect_events") or 0)
     orphan = int(lineage.get("orphan_effect_events") or 0)
+    live_aggregate = (live_lineage or {}).get("aggregate") or {}
+    live_total = int(live_aggregate.get("in_scope_effect_events") or 0)
+    live_joined = int(live_aggregate.get("joined_effect_events") or 0)
+    live_note = "native export still missing"
+    live_color = UNSUPPORTED
+    if live_total:
+        live_note = (
+            f"{live_aggregate.get('join_rate_pct', 0)}% in-scope joined; "
+            "session/tool envelope is harness-synthesized"
+        )
+        live_color = PARTIAL
     rows = [
         (
             "Fixture effects joined",
@@ -259,11 +274,11 @@ def write_effect_lineage_svg(out_dir: Path, lineage: dict[str, Any]) -> Path:
             f"orphan reasons: {lineage.get('orphan_reasons', {})}",
         ),
         (
-            "Live exact capture",
-            0,
-            1,
-            UNSUPPORTED,
-            "still missing: real AgentSight tool -> shell -> child process -> file/network sessions",
+            "R110 live in-scope",
+            live_joined,
+            max(live_total, 1),
+            live_color,
+            live_note,
         ),
     ]
     parts = [
@@ -271,7 +286,7 @@ def write_effect_lineage_svg(out_dir: Path, lineage: dict[str, Any]) -> Path:
         f'<text x="330" y="112" font-size="12" fill="{MUTED}">count or readiness</text>',
     ]
     for idx, (label, value, maximum, color, note) in enumerate(rows):
-        metric = f"{value}/{maximum}" if label != "Live exact capture" else "missing"
+        metric = f"{value}/{maximum}" if live_total or label != "R110 live in-scope" else "missing"
         parts.append(
             bar_row(
                 134 + idx * 78,
@@ -288,7 +303,7 @@ def write_effect_lineage_svg(out_dir: Path, lineage: dict[str, Any]) -> Path:
     path.write_text(
         svg_page(
             "Exact Effect Lineage",
-            "Fixture checker passes; live exact capture remains the key missing C4 evidence.",
+            "Fixture checker plus R110 live in-scope smoke; native export remains the key C4 gap.",
             1120,
             390,
             "\n".join(parts),
@@ -374,10 +389,12 @@ def run(out_dir: Path) -> list[Path]:
     evaluation = read_json(out_dir / "evaluation.json")
     gates = read_csv_rows(out_dir / "claim-gates.csv")
     lineage = read_json(out_dir / "effect-lineage-smoke.json")
+    live_path = out_dir / "live-lineage-r110.json"
+    live_lineage = read_json(live_path) if live_path.exists() else None
     return [
         write_claim_gates_svg(out_dir, gates),
         write_semantic_mixing_svg(out_dir, evaluation),
-        write_effect_lineage_svg(out_dir, lineage),
+        write_effect_lineage_svg(out_dir, lineage, live_lineage),
         write_visual_summary_html(out_dir),
     ]
 

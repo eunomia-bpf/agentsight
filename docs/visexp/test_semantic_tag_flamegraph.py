@@ -28,6 +28,7 @@ from tag_stability_smoke import (
 )
 from user_task_benchmark import parse_variants, participant_packets, stack_frame
 from effect_lineage_smoke import lineage_rows
+from live_lineage_harness import synthesize
 from score_user_task_results import is_placeholder_response, score_response, summarize
 from visual_summary import bar_width, label_lines, verdict_color, verdict_score
 
@@ -373,6 +374,75 @@ class AggregationTests(unittest.TestCase):
         self.assertEqual(rows[0]["process_id"], "new-child")
         self.assertEqual(rows[0]["orphan_reason"], "missing_tool_ancestry")
         self.assertEqual(sum(folded.values()), 0)
+
+    def test_live_lineage_harness_scopes_detected_agent_process_family(self) -> None:
+        snapshot = {
+            "project": "agentsight",
+            "sessions": [],
+            "tool_calls": [],
+            "process_nodes": [
+                {
+                    "id": "p10",
+                    "pid": 10,
+                    "start_timestamp_ms": 10,
+                    "end_timestamp_ms": 100,
+                    "comm": "codex",
+                },
+                {
+                    "id": "p11",
+                    "pid": 11,
+                    "ppid": 10,
+                    "start_timestamp_ms": 20,
+                    "end_timestamp_ms": 80,
+                    "comm": "cat",
+                },
+            ],
+            "audit_events": [
+                {
+                    "id": "root",
+                    "timestamp_ms": 10,
+                    "audit_type": "process",
+                    "pid": 10,
+                    "action": "exec",
+                    "comm": "codex",
+                    "target": "/usr/bin/codex",
+                    "summary": "codex exec --skip-git-repo-check fix prompt tags",
+                    "status": "ok",
+                    "details": {"full_command": "codex exec --skip-git-repo-check fix prompt tags"},
+                },
+                {
+                    "id": "child-read",
+                    "timestamp_ms": 30,
+                    "audit_type": "file",
+                    "pid": 11,
+                    "action": "read",
+                    "target": "docs/visexp/DESIGN.md",
+                    "status": "ok",
+                },
+                {
+                    "id": "unrelated",
+                    "timestamp_ms": 35,
+                    "audit_type": "network",
+                    "pid": 99,
+                    "action": "connect",
+                    "target": "example.com:443",
+                    "status": "ok",
+                },
+            ],
+        }
+
+        enriched, metrics = synthesize(snapshot, scope_covered_effects=True)
+        rows, orphans, folded = lineage_rows(enriched)
+
+        self.assertEqual(metrics["detected_agent_roots"], 1)
+        self.assertEqual(metrics["synthesized_sessions"], 1)
+        self.assertEqual(metrics["synthesized_tool_calls"], 1)
+        self.assertEqual(metrics["covered_effect_events"], 2)
+        self.assertEqual(metrics["excluded_out_of_scope_effect_events"], 1)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(orphans, [])
+        self.assertEqual({row["prompt_tag"] for row in rows}, {"prompt"})
+        self.assertEqual(sum(folded.values()), 2)
 
     def test_user_task_scoring_detects_exact_and_false_positive_fields(self) -> None:
         answer = {"weight": 7, "stack": "cmd:git", "semantic_adequacy_proven": False}
