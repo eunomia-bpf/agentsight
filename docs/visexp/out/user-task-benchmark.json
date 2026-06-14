@@ -1,0 +1,366 @@
+{
+  "schema_version": 1,
+  "claim": "C5",
+  "status": "pilot_packet_ready_no_participants",
+  "source_artifacts": [
+    "aggregation.json",
+    "evaluation.json",
+    "semantic-mixing.csv",
+    "agent-diff.csv",
+    "semantic-system.folded.txt",
+    "semantic-token.folded.txt",
+    "tag-stability-smoke.json"
+  ],
+  "participant_protocol": {
+    "design": "within-subject counterbalanced order across visualization families",
+    "metrics": [
+      "task_time_seconds",
+      "answer_accuracy",
+      "false_positive_count",
+      "confidence"
+    ],
+    "minimum_pilot_participants": 4,
+    "paper_run_participants": "12-20",
+    "oracle_visibility": "participants see only one assigned view condition; oracle_sources are for graders",
+    "claim_gate": "C5 can move beyond unsupported only after scored participant responses exist."
+  },
+  "participant_packet_files": [
+    "user-task-participant-packets.json",
+    "user-task-participant-packets.md",
+    "user-task-response-template.csv"
+  ],
+  "tasks": [
+    {
+      "task_id": "UT1",
+      "claim": "C5",
+      "skill": "find-hidden-semantic-mixing",
+      "title": "Nonsemantic Mixing",
+      "question": "Find the highest-weight nonsemantic folded bucket. Report the baseline stack, total weight, semantic variant count, and top semantic variant.",
+      "participant_view_conditions": [
+        {
+          "condition": "semantic",
+          "views": [
+            "system-flamegraph.svg",
+            "semantic-system.folded.txt"
+          ]
+        },
+        {
+          "condition": "nonsemantic",
+          "views": [
+            "nonsemantic-system.folded.txt"
+          ]
+        },
+        {
+          "condition": "flat",
+          "views": [
+            "command-summary.csv"
+          ]
+        }
+      ],
+      "oracle_sources": [
+        "semantic-mixing.csv",
+        "evaluation.json"
+      ],
+      "answer_format": {
+        "baseline_kind": "str",
+        "baseline_stack": "str",
+        "weight": "int",
+        "semantic_variant_count": "int",
+        "top_semantic_variant": "str",
+        "top_semantic_variant_weight": "int"
+      },
+      "oracle": {
+        "baseline_kind": "nonsemantic_without_session_prompt",
+        "baseline_stack": "project:agentsight;agent:codex;tool:shell;cmd:git;effect:read;status:ok",
+        "weight": 374,
+        "semantic_variant_count": 27,
+        "top_semantic_variant": "session:session/prompt:session",
+        "top_semantic_variant_weight": 75
+      },
+      "scoring": {
+        "method": "exact field match against oracle unless the field is marked explanatory",
+        "required_fields": [
+          "baseline_kind",
+          "baseline_stack",
+          "semantic_variant_count",
+          "top_semantic_variant",
+          "top_semantic_variant_weight",
+          "weight"
+        ]
+      },
+      "baseline_contrast": "A nonsemantic folded stack can show the combined bucket, but not which session/prompt regions produced it."
+    },
+    {
+      "task_id": "UT2",
+      "claim": "C5",
+      "skill": "compare-flat-vs-semantic",
+      "title": "Flat Effect Mixing",
+      "question": "Find the highest-weight flat effect bucket after removing project, agent, session, and prompt frames. Report its variant count and top semantic variant.",
+      "participant_view_conditions": [
+        {
+          "condition": "semantic",
+          "views": [
+            "system-flamegraph.svg",
+            "semantic-system.folded.txt"
+          ]
+        },
+        {
+          "condition": "flat",
+          "views": [
+            "command-summary.csv"
+          ]
+        },
+        {
+          "condition": "nonsemantic",
+          "views": [
+            "nonsemantic-system.folded.txt"
+          ]
+        }
+      ],
+      "oracle_sources": [
+        "semantic-mixing.csv",
+        "evaluation.json"
+      ],
+      "answer_format": {
+        "baseline_kind": "str",
+        "baseline_stack": "str",
+        "weight": "int",
+        "semantic_variant_count": "int",
+        "top_semantic_variant": "str",
+        "top_semantic_variant_weight": "int"
+      },
+      "oracle": {
+        "baseline_kind": "flat_effect_without_project_agent_session_prompt",
+        "baseline_stack": "tool:shell;cmd:git;effect:read;status:ok",
+        "weight": 403,
+        "semantic_variant_count": 33,
+        "top_semantic_variant": "session:session/prompt:session",
+        "top_semantic_variant_weight": 75
+      },
+      "scoring": {
+        "method": "exact field match against oracle unless the field is marked explanatory",
+        "required_fields": [
+          "baseline_kind",
+          "baseline_stack",
+          "semantic_variant_count",
+          "top_semantic_variant",
+          "top_semantic_variant_weight",
+          "weight"
+        ]
+      },
+      "baseline_contrast": "A flat process/effect summary can report the command/effect, but not the task regions hidden inside that bucket."
+    },
+    {
+      "task_id": "UT3",
+      "claim": "C5",
+      "skill": "find-repeated-heavy-behavior",
+      "title": "Heaviest Repeated Semantic Stack",
+      "question": "Identify the heaviest semantic system stack and report its session tag, prompt tag, command, effect, and weight.",
+      "participant_view_conditions": [
+        {
+          "condition": "semantic",
+          "views": [
+            "system-flamegraph.svg",
+            "semantic-system.folded.txt"
+          ]
+        },
+        {
+          "condition": "nonsemantic",
+          "views": [
+            "nonsemantic-system.folded.txt"
+          ]
+        },
+        {
+          "condition": "flat",
+          "views": [
+            "command-summary.csv"
+          ]
+        }
+      ],
+      "oracle_sources": [
+        "aggregation.json",
+        "semantic-system.folded.txt"
+      ],
+      "answer_format": {
+        "stack": "str",
+        "weight": "int",
+        "session": "str",
+        "prompt": "str",
+        "cmd": "str",
+        "effect": "str"
+      },
+      "oracle": {
+        "stack": "project:agentsight;agent:codex;session:session;prompt:session;tool:shell;cmd:git;effect:read;status:ok",
+        "weight": 75,
+        "session": "session",
+        "prompt": "session",
+        "cmd": "git",
+        "effect": "read"
+      },
+      "scoring": {
+        "method": "exact field match against oracle unless the field is marked explanatory",
+        "required_fields": [
+          "cmd",
+          "effect",
+          "prompt",
+          "session",
+          "stack",
+          "weight"
+        ]
+      },
+      "baseline_contrast": "A trace tree requires scanning many occurrences; the folded stack turns repeated behavior into one weighted answer."
+    },
+    {
+      "task_id": "UT4",
+      "claim": "C5",
+      "skill": "find-agent-divergence",
+      "title": "Top Agent-Difference Diagnostic",
+      "question": "In the top-level cohort, identify the largest normalized Codex-vs-Claude behavioral difference and report the winner, delta per 1000 observations, and normalized stack.",
+      "participant_view_conditions": [
+        {
+          "condition": "semantic-diff",
+          "views": [
+            "agent-diff.csv"
+          ]
+        },
+        {
+          "condition": "flat",
+          "views": [
+            "command-summary.csv"
+          ]
+        }
+      ],
+      "oracle_sources": [
+        "agent-diff.csv"
+      ],
+      "answer_format": {
+        "cohort": "str",
+        "winner": "str",
+        "rate_delta_per_1k": "float",
+        "codex_rate_per_1k": "float",
+        "claude_rate_per_1k": "float",
+        "stack": "str"
+      },
+      "oracle": {
+        "cohort": "top",
+        "winner": "claude",
+        "rate_delta_per_1k": -40.698,
+        "codex_rate_per_1k": 0.0,
+        "claude_rate_per_1k": 40.698,
+        "stack": "project:agentsight;session:model;prompt:work;tool:subagent;cmd:taskupdate;effect:process;status:ok"
+      },
+      "scoring": {
+        "method": "exact field match against oracle unless the field is marked explanatory",
+        "required_fields": [
+          "claude_rate_per_1k",
+          "codex_rate_per_1k",
+          "cohort",
+          "rate_delta_per_1k",
+          "stack",
+          "winner"
+        ]
+      },
+      "baseline_contrast": "Raw per-agent counts are confounded by total volume; this view normalizes stacks before presenting the diagnostic."
+    },
+    {
+      "task_id": "UT5",
+      "claim": "C5",
+      "skill": "find-token-hotspot",
+      "title": "Largest Token Region",
+      "question": "Identify the largest token stack and report the session tag, prompt tag, model, token kind, and weight.",
+      "participant_view_conditions": [
+        {
+          "condition": "semantic-token",
+          "views": [
+            "token-flamegraph.svg",
+            "semantic-token.folded.txt"
+          ]
+        },
+        {
+          "condition": "folded-token",
+          "views": [
+            "semantic-token.folded.txt"
+          ]
+        }
+      ],
+      "oracle_sources": [
+        "aggregation.json",
+        "semantic-token.folded.txt"
+      ],
+      "answer_format": {
+        "stack": "str",
+        "weight": "int",
+        "session": "str",
+        "prompt": "str",
+        "model": "str",
+        "kind": "str"
+      },
+      "oracle": {
+        "stack": "project:agentsight;agent:claude;session:model;prompt:work;llm:model;model:claude-fable-5;kind:cache",
+        "weight": 57503301,
+        "session": "model",
+        "prompt": "work",
+        "model": "claude-fable-5",
+        "kind": "cache"
+      },
+      "scoring": {
+        "method": "exact field match against oracle unless the field is marked explanatory",
+        "required_fields": [
+          "kind",
+          "model",
+          "prompt",
+          "session",
+          "stack",
+          "weight"
+        ]
+      },
+      "baseline_contrast": "A token dashboard can show aggregate cost, but this task asks for the semantic region and provenance kind of the largest token mass."
+    },
+    {
+      "task_id": "UT6",
+      "claim": "C5",
+      "skill": "avoid-overclaiming-tag-quality",
+      "title": "Tag Stability Boundary",
+      "question": "Decide whether the current tag stability smoke proves semantic adequacy. Report the smoke verdict, llama repeated-run stability, fallback-vs-llama exact match, and the correct conclusion.",
+      "participant_view_conditions": [
+        {
+          "condition": "summary",
+          "views": [
+            "tag-stability-summary.md"
+          ]
+        },
+        {
+          "condition": "json",
+          "views": [
+            "tag-stability-smoke.json"
+          ]
+        }
+      ],
+      "oracle_sources": [
+        "tag-stability-smoke.json"
+      ],
+      "answer_format": {
+        "smoke_verdict": "str",
+        "llama_stable_pct": "float",
+        "fallback_vs_llama_exact_pct": "float",
+        "semantic_adequacy_proven": "bool"
+      },
+      "oracle": {
+        "smoke_verdict": "smoke_supported",
+        "llama_stable_pct": 100.0,
+        "fallback_vs_llama_exact_pct": 0.0,
+        "semantic_adequacy_proven": false
+      },
+      "scoring": {
+        "method": "exact field match against oracle unless the field is marked explanatory",
+        "required_fields": [
+          "fallback_vs_llama_exact_pct",
+          "llama_stable_pct",
+          "semantic_adequacy_proven",
+          "smoke_verdict"
+        ]
+      },
+      "baseline_contrast": "This task checks that users do not over-read stability smoke as semantic adequacy evidence."
+    }
+  ]
+}

@@ -1,0 +1,207 @@
+{
+  "schema_version": 1,
+  "generated_from": "local raw session fragments; committed output is sanitized",
+  "config": {
+    "scan_files": 160,
+    "max_sessions": 36,
+    "fragments_requested": 24,
+    "fragments_selected": 24,
+    "repeats": 2,
+    "fragment_chars": 700,
+    "llama_limit": 60
+  },
+  "provenance": {
+    "repo_commit": "8ff0d9fd6f9483698f8f150f16ae62f1cfe47ef6",
+    "repo_dirty": true,
+    "script_sha256": "ce5a1054d2baa5434db876bba0fb7b659aead7fac86b2871d0b22bad5ed8e9af",
+    "session_fingerprint": "21c456cfe97ed6ba",
+    "model": "qwen2.5-3b-instruct-q4_k_m.gguf",
+    "model_sha256": "626b4a6678b86442240e33df819e00132d3ba7dddfe1cdc4fbb18e0a9615c62d",
+    "llama_cli": "llama-cli",
+    "llama_cli_sha256": "1e355b9508e25e0059149a36c7c20a5aaa9354d6c787284d64c6108517b9f6f7"
+  },
+  "fragment_counts": {
+    "prompt": 8,
+    "session": 8,
+    "llm": 8
+  },
+  "annotator_provenance": [
+    {
+      "annotator": "fallback",
+      "fragment_count": 24,
+      "repeats": 2,
+      "requests": 48,
+      "llama_calls": 0,
+      "llama_successes": 0,
+      "fallback_uses": 46,
+      "cache_hits": 2,
+      "llama_failures": []
+    },
+    {
+      "annotator": "llama",
+      "fragment_count": 24,
+      "repeats": 2,
+      "requests": 48,
+      "llama_calls": 46,
+      "llama_successes": 46,
+      "fallback_uses": 0,
+      "cache_hits": 2,
+      "llama_failures": []
+    }
+  ],
+  "warnings": [],
+  "annotator_metrics": {
+    "fallback": {
+      "outputs": 48,
+      "fragment_count": 24,
+      "invalid_count": 0,
+      "invalid_output_share_pct": 0.0,
+      "generic_output_share_pct": 8.333,
+      "unique_tags": 3,
+      "exact_stable_fragment_count": 24,
+      "exact_stable_fragment_share_pct": 100.0,
+      "mean_modal_share_pct": 100.0,
+      "top_tags": [
+        {
+          "tag": "paper",
+          "count": 30
+        },
+        {
+          "tag": "flamegraph",
+          "count": 14
+        },
+        {
+          "tag": "session",
+          "count": 4
+        }
+      ],
+      "unstable_examples": []
+    },
+    "llama": {
+      "outputs": 48,
+      "fragment_count": 24,
+      "invalid_count": 0,
+      "invalid_output_share_pct": 0.0,
+      "generic_output_share_pct": 16.667,
+      "unique_tags": 14,
+      "exact_stable_fragment_count": 24,
+      "exact_stable_fragment_share_pct": 100.0,
+      "mean_modal_share_pct": 100.0,
+      "top_tags": [
+        {
+          "tag": "reviewdoc",
+          "count": 10
+        },
+        {
+          "tag": "prompt",
+          "count": 8
+        },
+        {
+          "tag": "reviewing",
+          "count": 6
+        },
+        {
+          "tag": "evaluate",
+          "count": 4
+        },
+        {
+          "tag": "review",
+          "count": 2
+        },
+        {
+          "tag": "reviewtag",
+          "count": 2
+        },
+        {
+          "tag": "validate",
+          "count": 2
+        },
+        {
+          "tag": "verifydoc",
+          "count": 2
+        },
+        {
+          "tag": "llm",
+          "count": 2
+        },
+        {
+          "tag": "revise",
+          "count": 2
+        },
+        {
+          "tag": "reporting",
+          "count": 2
+        },
+        {
+          "tag": "codexeval",
+          "count": 2
+        }
+      ],
+      "unstable_examples": []
+    }
+  },
+  "cross_annotator_metrics": {
+    "pairs": [
+      {
+        "left": "fallback",
+        "right": "llama",
+        "common_fragments": 24,
+        "modal_exact_matches": 0,
+        "modal_exact_match_pct": 0.0,
+        "mismatch_examples": [
+          {
+            "fragment_id": "0cee5b2683769424",
+            "fallback": "flamegraph",
+            "llama": "reviewdoc"
+          },
+          {
+            "fragment_id": "103073913b173c6e",
+            "fallback": "flamegraph",
+            "llama": "prompt"
+          },
+          {
+            "fragment_id": "18a5868afc234061",
+            "fallback": "paper",
+            "llama": "verifydoc"
+          },
+          {
+            "fragment_id": "18fc80ae391c63cb",
+            "fallback": "paper",
+            "llama": "reviewing"
+          },
+          {
+            "fragment_id": "2df23e7b2b194ed5",
+            "fallback": "paper",
+            "llama": "evaluate"
+          },
+          {
+            "fragment_id": "397d72052517d166",
+            "fallback": "flamegraph",
+            "llama": "reviewdoc"
+          },
+          {
+            "fragment_id": "401e892797685de1",
+            "fallback": "paper",
+            "llama": "reviewing"
+          },
+          {
+            "fragment_id": "53f686e29762054b",
+            "fallback": "flamegraph",
+            "llama": "aianalysis"
+          },
+          {
+            "fragment_id": "58c9dbf92b7ca7ab",
+            "fallback": "paper",
+            "llama": "evaluate"
+          },
+          {
+            "fragment_id": "596abdc4f00f2187",
+            "fallback": "paper",
+            "llama": "validate"
+          }
+        ]
+      }
+    ]
+  },
+  "smoke_verdict": "smoke_supported"
+}

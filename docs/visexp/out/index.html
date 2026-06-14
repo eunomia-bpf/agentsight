@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AgentSight Semantic Flamegraph Experiment</title>
+  <style>
+    :root {
+      --bg: #f7f8f4;
+      --ink: #1d2329;
+      --muted: #59636e;
+      --line: #d8ded2;
+      --panel: #ffffff;
+      --accent: #0f766e;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.45;
+    }
+    main { max-width: 1440px; margin: 0 auto; padding: 24px; }
+    h1 { font-size: 24px; margin: 0 0 6px; letter-spacing: 0; }
+    h2 { font-size: 17px; margin: 28px 0 10px; letter-spacing: 0; }
+    p { color: var(--muted); margin: 0 0 14px; max-width: 960px; }
+    .stats { display: grid; grid-template-columns: repeat(6, minmax(120px, 1fr)); gap: 10px; margin: 18px 0; }
+    .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px; }
+    .stat b { display: block; font-size: 22px; }
+    .stat span { color: var(--muted); font-size: 12px; }
+    .figure { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px; overflow-x: auto; }
+    img { display: block; max-width: none; }
+    table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+    th, td { text-align: left; border-bottom: 1px solid var(--line); padding: 8px 10px; font-size: 13px; vertical-align: top; }
+    th { color: var(--muted); font-weight: 600; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    @media (max-width: 900px) {
+      main { padding: 14px; }
+      .stats { grid-template-columns: repeat(2, minmax(120px, 1fr)); }
+      .grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <h1>AgentSight Semantic Flamegraph Experiment</h1>
+  <p>Real local Codex and Claude sessions are reduced to one-word tags, then converted to folded stacks before rendering. The important artifact is the folded stack, not the tree drawing.</p>
+  <div class="stats">
+    <div class="stat"><b>36</b><span>sessions</span></div>
+    <div class="stat"><b>4031</b><span>tool events</span></div>
+    <div class="stat"><b>5312</b><span>stack observations</span></div>
+    <div class="stat"><b>2270</b><span>system stacks</span></div>
+    <div class="stat"><b>3042</b><span>collapsed observations</span></div>
+    <div class="stat"><b>75</b><span>max stack reuse</span></div>
+  </div>
+  <p>Tagger mode: <code>llama</code>. Model successes: <code>30</code>. Fallback tags: <code>0</code>. Generated at <code>2026-06-14T09:07:49+00:00</code>.</p>
+
+  <h2>System Footprint</h2>
+  <p>Width is aggregated stack-observation count. One tool event may expand to multiple path/domain observations. Stack grammar: <code>project;agent;session-tag;prompt-tag;tool;cmd;effect;path/domain/status</code>.</p>
+  <div class="figure"><img src="system-flamegraph.svg" width="1400" alt="System semantic flamegraph"></div>
+
+  <h2>Token Footprint</h2>
+  <p>Width is token count split by provenance kind: input, output, cache, or estimate. Treat this as source-local accounting, not a cross-agent cost benchmark. Stack grammar: <code>project;agent;session-tag;prompt-tag;llm-tag;model;kind</code>.</p>
+  <div class="figure"><img src="token-flamegraph.svg" width="1400" alt="Token semantic flamegraph"></div>
+
+  <h2>Dimension Flamegraphs</h2>
+  <p>These projections keep the same underlying observations but remove one semantic axis at a time. They test whether session, prompt, and LLM-call tags remain useful as independent aggregation keys.</p>
+    <section>
+      <h2>LLM-Call Token Footprint</h2>
+      <p>Session and prompt frames removed; width shows token mass aggregated by LLM-call tags.</p>
+      <div class="figure"><img src="llm-token.svg" width="1400" alt="LLM-Call Token Footprint"></div>
+    </section>
+    <section>
+      <h2>Prompt System Footprint</h2>
+      <p>Session frames removed; width shows repeated system behavior aggregated by prompt tags.</p>
+      <div class="figure"><img src="prompt-system.svg" width="1400" alt="Prompt System Footprint"></div>
+    </section>
+    <section>
+      <h2>Prompt Token Footprint</h2>
+      <p>Session and LLM-call frames removed; width shows token mass aggregated by prompt tags.</p>
+      <div class="figure"><img src="prompt-token.svg" width="1400" alt="Prompt Token Footprint"></div>
+    </section>
+    <section>
+      <h2>Session System Footprint</h2>
+      <p>Prompt frames removed; width shows system behavior aggregated by one-word session tags.</p>
+      <div class="figure"><img src="session-system.svg" width="1400" alt="Session System Footprint"></div>
+    </section>
+    <section>
+      <h2>Session Token Footprint</h2>
+      <p>Prompt and LLM-call frames removed; width shows token mass aggregated by session tags.</p>
+      <div class="figure"><img src="session-token.svg" width="1400" alt="Session Token Footprint"></div>
+    </section>
+
+  <div class="grid">
+    <section>
+      <h2>Top Prompt Tags</h2>
+      <table><thead><tr><th>tag</th><th>count</th></tr></thead><tbody><tr><td>session</td><td>56</td></tr>
+<tr><td>work</td><td>50</td></tr>
+<tr><td>tagging</td><td>30</td></tr>
+<tr><td>flamegraph</td><td>22</td></tr>
+<tr><td>paper</td><td>19</td></tr>
+<tr><td>model</td><td>15</td></tr>
+<tr><td>visual</td><td>12</td></tr>
+<tr><td>collector</td><td>11</td></tr>
+<tr><td>subagent</td><td>9</td></tr>
+<tr><td>implement</td><td>9</td></tr>
+<tr><td>test</td><td>7</td></tr>
+<tr><td>design</td><td>7</td></tr></tbody></table>
+    </section>
+    <section>
+      <h2>Repeated System Stacks</h2>
+      <table><thead><tr><th>stack</th><th>weight</th></tr></thead><tbody><tr><td>project:agentsight;agent:codex;session:session;prompt:session;tool:shell;cmd:git;effect:read;status:ok</td><td>75</td></tr>
+<tr><td>project:agentsight;agent:codex;session:flamegraph;prompt:design;tool:shell;cmd:git;effect:read;status:ok</td><td>56</td></tr>
+<tr><td>project:agentsight;agent:codex;session:paper;prompt:debug;tool:shell;cmd:git;effect:read;status:ok</td><td>38</td></tr>
+<tr><td>project:agentsight;agent:codex;session:session;prompt:session;tool:shell;cmd:sed;effect:read;path:collector/src/sources;status:ok</td><td>34</td></tr>
+<tr><td>project:agentsight;agent:codex;session:flamegraph;prompt:design;tool:shell;cmd:python3;effect:process;path:docs/visexp/test_semantic_tag_flamegraph.py;status:ok</td><td>32</td></tr>
+<tr><td>project:agentsight;agent:codex;session:flamegraph;prompt:design;tool:shell;cmd:python3;effect:process;path:docs/visexp/out;status:ok</td><td>31</td></tr>
+<tr><td>project:agentsight;agent:codex;session:session;prompt:session;tool:shell;cmd:cargo;effect:test;status:ok</td><td>30</td></tr>
+<tr><td>project:agentsight;agent:codex;session:paper;prompt:debug;tool:shell;cmd:cargo;effect:test;status:ok</td><td>27</td></tr>
+<tr><td>project:agentsight;agent:codex;session:session;prompt:session;tool:shell;cmd:agentsight;effect:process;path:collector/target/debug;status:ok</td><td>26</td></tr>
+<tr><td>project:agentsight;agent:codex;session:session;prompt:session;tool:shell;cmd:sed;effect:read;path:collector/src/view;status:ok</td><td>25</td></tr></tbody></table>
+    </section>
+  </div>
+
+  <h2>Nonsemantic Baseline</h2>
+  <p>The baseline removes session and prompt tags before folding. It shows what a process/tool summary can find without semantic attribution.</p>
+  <table><thead><tr><th>stack</th><th>weight</th></tr></thead><tbody><tr><td>project:agentsight;agent:codex;tool:shell;cmd:git;effect:read;status:ok</td><td>376</td></tr>
+<tr><td>project:agentsight;agent:codex;tool:shell;cmd:cargo;effect:test;status:ok</td><td>82</td></tr>
+<tr><td>project:agentsight;agent:codex;tool:shell;cmd:python3;effect:process;status:ok</td><td>76</td></tr>
+<tr><td>project:agentsight;agent:codex;tool:shell;cmd:sed;effect:read;path:collector/src/view;status:ok</td><td>70</td></tr>
+<tr><td>project:agentsight;agent:codex;tool:shell;cmd:gh;effect:process;status:ok</td><td>70</td></tr>
+<tr><td>project:agentsight;agent:codex;tool:shell;cmd:sed;effect:read;path:collector/src/sources;status:ok</td><td>65</td></tr>
+<tr><td>project:agentsight;agent:codex;tool:tool;cmd:write;effect:process;status:observed</td><td>57</td></tr>
+<tr><td>project:agentsight;agent:codex;tool:tool;cmd:write;effect:process;status:ok</td><td>56</td></tr>
+<tr><td>project:agentsight;agent:codex;tool:shell;cmd:rg;effect:read;path:collector/src;status:ok</td><td>52</td></tr>
+<tr><td>project:agentsight;agent:codex-subagent;tool:shell;cmd:nl;effect:read;path:docs/visexp/out;status:ok</td><td>45</td></tr></tbody></table>
+
+  <h2>Behavior Diff</h2>
+  <p>Normalized system stacks are compared after removing the agent frame and normalizing by each cohort's total observations. This is a diagnostic, not a causal claim.</p>
+  <table><thead><tr><th>cohort</th><th>winner</th><th>delta/1k</th><th>codex/1k</th><th>claude/1k</th><th>codex</th><th>claude</th><th>normalized stack</th></tr></thead><tbody><tr><td>subagent</td><td>claude</td><td>-42.373</td><td>0.0</td><td>42.373</td><td>0</td><td>15</td><td>project:agentsight;session:subagent;prompt:collector;tool:edit;cmd:edit;effect:write;path:collector/src/cmd_exec.rs;status:ok</td></tr>
+<tr><td>top</td><td>claude</td><td>-40.698</td><td>0.0</td><td>40.698</td><td>0</td><td>14</td><td>project:agentsight;session:model;prompt:work;tool:subagent;cmd:taskupdate;effect:process;status:ok</td></tr>
+<tr><td>subagent</td><td>claude</td><td>-39.548</td><td>0.0</td><td>39.548</td><td>0</td><td>14</td><td>project:agentsight;session:subagent;prompt:collector;tool:shell;cmd:cargo;effect:test;status:ok</td></tr>
+<tr><td>subagent</td><td>codex</td><td>29.197</td><td>29.197</td><td>0.0</td><td>16</td><td>0</td><td>project:agentsight;session:flamegraph;prompt:paper;tool:shell;cmd:nl;effect:read;path:docs/visexp/out;status:ok</td></tr>
+<tr><td>subagent</td><td>codex</td><td>29.197</td><td>29.197</td><td>0.0</td><td>16</td><td>0</td><td>project:agentsight;session:osdi;prompt:prompt;tool:shell;cmd:nl;effect:read;path:docs/visexp/semantic_tag_flamegraph.py;status:ok</td></tr>
+<tr><td>subagent</td><td>claude</td><td>-28.249</td><td>0.0</td><td>28.249</td><td>0</td><td>10</td><td>project:agentsight;session:model;prompt:collector;tool:shell;cmd:grep;effect:read;path:collector/src;status:ok</td></tr>
+<tr><td>subagent</td><td>claude</td><td>-28.249</td><td>0.0</td><td>28.249</td><td>0</td><td>10</td><td>project:agentsight;session:subagent;prompt:collector;tool:edit;cmd:edit;effect:write;path:collector/src/cmd_top.rs;status:ok</td></tr>
+<tr><td>subagent</td><td>claude</td><td>-28.249</td><td>0.0</td><td>28.249</td><td>0</td><td>10</td><td>project:agentsight;session:subagent;prompt:collector;tool:edit;cmd:edit;effect:write;path:collector/src/output;status:ok</td></tr>
+<tr><td>top</td><td>claude</td><td>-26.163</td><td>0.0</td><td>26.163</td><td>0</td><td>9</td><td>project:agentsight;session:model;prompt:work;tool:shell;cmd:cargo;effect:test;status:ok</td></tr>
+<tr><td>subagent</td><td>claude</td><td>-25.424</td><td>0.0</td><td>25.424</td><td>0</td><td>9</td><td>project:agentsight;session:model;prompt:collector;tool:shell;cmd:find;effect:read;path:.rs;status:ok</td></tr>
+<tr><td>top</td><td>claude</td><td>-23.256</td><td>0.0</td><td>23.256</td><td>0</td><td>8</td><td>project:agentsight;session:model;prompt:work;tool:edit;cmd:write;effect:write;path:collector/src/agents;status:ok</td></tr>
+<tr><td>subagent</td><td>claude</td><td>-22.599</td><td>0.0</td><td>22.599</td><td>0</td><td>8</td><td>project:agentsight;session:subagent;prompt:collector;tool:edit;cmd:edit;effect:write;path:collector/src/cmd_trace.rs;status:ok</td></tr></tbody></table>
+
+  <h2>Artifacts</h2>
+  <p><code>semantic-system.folded.txt</code>, <code>nonsemantic-system.folded.txt</code>, <code>semantic-token.folded.txt</code>, <code>tag-dimensions.json</code>, <code>aggregation.json</code>, <code>agent-diff.csv</code>, <code>command-summary.csv</code>, <code>prompt-tags.csv</code>, and <code>sessions.json</code> are generated by the flamegraph builder. <code>evaluate_artifacts.py</code> adds <code>evaluation.json</code>, <code>semantic-mixing.csv</code>, <code>claim-gates.csv</code>, and <code>evaluation-summary.md</code>.</p>
+</main>
+</body>
+</html>

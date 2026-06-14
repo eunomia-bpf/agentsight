@@ -23,6 +23,14 @@ The SVG is a rendering of the folded stack file, not a per-session trace tree.
 
 ## Run
 
+One-command local reproduction, using a local GGUF automatically if the default
+`../llama.cpp-latest` paths exist and otherwise falling back to deterministic
+tags:
+
+```bash
+python3 docs/visexp/run_pipeline.py --out docs/visexp/out
+```
+
 Fallback tagger, no model calls:
 
 ```bash
@@ -48,6 +56,11 @@ word. Invalid model output falls back to the deterministic local tagger.
 - `out/visual-summary.html`: compact visual progress gallery.
 - `out/system-flamegraph.svg`: system/tool footprint flamegraph.
 - `out/token-flamegraph.svg`: token footprint flamegraph.
+- `out/session-system.svg`: system footprint projected by session tag.
+- `out/prompt-system.svg`: system footprint projected by prompt tag.
+- `out/session-token.svg`: token footprint projected by session tag.
+- `out/prompt-token.svg`: token footprint projected by prompt tag.
+- `out/llm-token.svg`: token footprint projected by LLM-call tag.
 - `out/claim-gates.svg`: current claim-readiness chart.
 - `out/semantic-mixing.svg`: semantic aggregation and baseline-mixing chart.
 - `out/effect-lineage.svg`: C6 exact-effect lineage readiness chart.
@@ -55,6 +68,11 @@ word. Invalid model output falls back to the deterministic local tagger.
 - `out/nonsemantic-system.folded.txt`: baseline folded stacks with session and
   prompt tags removed.
 - `out/semantic-token.folded.txt`: collapsed token stacks.
+- `out/tag-dimensions.json`: machine-readable summaries for each dimension
+  projection.
+- `out/tag-dimensions.csv`: compact table for dimension projections.
+- `out/pipeline-report.json`: one-command pipeline step report.
+- `out/pipeline-summary.md`: human-readable one-command pipeline summary.
 - `out/aggregation.json`: proof that raw events were collapsed into fewer
   unique stacks, with repeated stack examples.
 - `out/input-manifest.json`: exact argv, selected session hashes, script hash,
@@ -113,6 +131,7 @@ tool -> shell -> child process -> file/network events from real sessions.
 ## Test
 
 ```bash
+python3 docs/visexp/run_pipeline.py --out docs/visexp/out
 python3 -m unittest docs/visexp/test_semantic_tag_flamegraph.py
 python3 docs/visexp/effect_lineage_smoke.py --fixture --out docs/visexp/out
 python3 docs/visexp/verify_artifacts.py --out docs/visexp/out
