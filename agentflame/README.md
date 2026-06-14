@@ -90,6 +90,25 @@ Important files:
   `session-token.folded.txt`, `prompt-token.folded.txt`, `llm-token.folded.txt`:
   dimension projections.
 
+## Folded Stack Shape
+
+System-effect stacks use:
+
+```text
+project:<repo>;agent:<agent>;session:<sessionTag>;prompt:<promptTag>;call:tool/<kind>;process:<p0>;process:<p1>;effect:<effect>;path:<group>;status:<status>
+```
+
+Token stacks use:
+
+```text
+project:<repo>;agent:<agent>;session:<sessionTag>;prompt:<promptTag>;call:llm/<llmCallTag>;model:<model>;kind:<tokenKind>
+```
+
+The `process:*` segment can repeat. Offline session-history mode derives the
+visible process entrypoint from shell commands, including simple shell wrappers
+such as `bash -lc`. Exact child-process nesting is supplied by AgentSight runtime
+trace data when the report is correlated with a captured snapshot.
+
 ## JSON Contract
 
 `agentflame.json` uses stable top-level sections:

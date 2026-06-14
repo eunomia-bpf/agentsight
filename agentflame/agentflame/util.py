@@ -96,6 +96,36 @@ def basename_from_command(command: str) -> str:
     return Path(first).name or first
 
 
+def command_process_chain(command: str) -> list[str]:
+    if not command:
+        return []
+    try:
+        parts = shlex.split(command, posix=True)
+    except ValueError:
+        parts = command.split()
+    return _process_chain_from_parts(parts)
+
+
+def _process_chain_from_parts(parts: list[str]) -> list[str]:
+    if not parts:
+        return []
+    idx = 0
+    wrappers = {"sudo", "env", "command", "time", "timeout", "nice", "nohup"}
+    while idx < len(parts) and Path(parts[idx]).name in wrappers:
+        idx += 1
+        if idx < len(parts) and parts[idx - 1] in {"timeout", "nice"} and parts[idx].startswith("-"):
+            idx += 1
+    if idx >= len(parts):
+        return []
+    proc = Path(parts[idx]).name or parts[idx]
+    chain = [proc]
+    if proc in {"bash", "sh", "zsh"}:
+        for flag_idx in range(idx + 1, len(parts) - 1):
+            if parts[flag_idx] in {"-c", "-lc", "-cl"}:
+                return chain + command_process_chain(parts[flag_idx + 1])
+    return chain[:6]
+
+
 def command_effect(command: str) -> str:
     cmd = basename_from_command(command)
     text = command.lower()

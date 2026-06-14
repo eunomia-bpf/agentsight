@@ -22,6 +22,7 @@ class ToolEvent:
     command: str
     command_name: str
     effect: str
+    process_chain: list[str] = dataclasses.field(default_factory=list)
     status: str = "observed"
     path_groups: list[str] = dataclasses.field(default_factory=list)
     domains: list[str] = dataclasses.field(default_factory=list)
