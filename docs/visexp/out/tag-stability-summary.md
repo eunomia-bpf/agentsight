@@ -5,8 +5,8 @@ It is evidence for C6 syntax/repeated-run stability, not human semantic adequacy
 
 ## Metrics
 
-- fallback: 24 fragments, 100.0% exact-stable, 4.167% generic outputs, 0 invalid outputs.
-- llama: 24 fragments, 100.0% exact-stable, 12.5% generic outputs, 0 invalid outputs.
+- fallback: 24 fragments, 100.0% exact-stable, 0.0% generic outputs, 0 invalid outputs.
+- llama: 24 fragments, 100.0% exact-stable, 16.667% generic outputs, 0 invalid outputs.
 - fallback vs llama: 0.0% modal exact match over 24 common fragments.
 
 ## Claim Gate

@@ -426,9 +426,12 @@ impl Analyzer for SSEProcessor {
                     }
                 });
 
-                let should_skip_chunk = !has_content_potential && sse_events.iter().all(|e| {
-                    e.event.as_deref().is_some_and(|t| matches!(t, "ping" | "message_delta"))
-                });
+                let should_skip_chunk = !has_content_potential
+                    && sse_events.iter().all(|e| {
+                        e.event
+                            .as_deref()
+                            .is_some_and(|t| matches!(t, "ping" | "message_delta"))
+                    });
 
                 if should_skip_chunk {
                     let connection_id = Self::generate_connection_id(&event, &sse_events);
@@ -444,7 +447,8 @@ impl Analyzer for SSEProcessor {
 
                 let mut buffers_lock = buffers.lock().unwrap();
 
-                buffers_lock.retain(|_, acc| event.timestamp.saturating_sub(acc.last_update) <= timeout_ms);
+                buffers_lock
+                    .retain(|_, acc| event.timestamp.saturating_sub(acc.last_update) <= timeout_ms);
                 Self::evict_over_capacity(&mut buffers_lock, max_buffers);
 
                 let mut final_connection_id = connection_id.clone();
@@ -460,9 +464,10 @@ impl Analyzer for SSEProcessor {
 
                     for (existing_id, accumulator) in buffers_lock.iter() {
                         if existing_id.starts_with(&conn_prefix) && !accumulator.is_complete {
-                            let has_message_stop = accumulator.events.iter().any(|e| {
-                                e.event.as_deref() == Some("message_stop")
-                            });
+                            let has_message_stop = accumulator
+                                .events
+                                .iter()
+                                .any(|e| e.event.as_deref() == Some("message_stop"));
                             if !has_message_stop {
                                 final_connection_id = existing_id.clone();
                                 break;
@@ -471,17 +476,19 @@ impl Analyzer for SSEProcessor {
                     }
                 }
 
-                let accumulator = buffers_lock.entry(final_connection_id.clone()).or_insert_with(|| SSEAccumulator {
-                    message_id: None,
-                    accumulated_text: String::new(),
-                    accumulated_json: String::new(),
-                    events: Vec::new(),
-                    is_complete: false,
-                    last_update: event.timestamp,
-                    has_message_start: false,
-                    start_time: event.timestamp,
-                    end_time: event.timestamp,
-                });
+                let accumulator = buffers_lock
+                    .entry(final_connection_id.clone())
+                    .or_insert_with(|| SSEAccumulator {
+                        message_id: None,
+                        accumulated_text: String::new(),
+                        accumulated_json: String::new(),
+                        events: Vec::new(),
+                        is_complete: false,
+                        last_update: event.timestamp,
+                        has_message_start: false,
+                        start_time: event.timestamp,
+                        end_time: event.timestamp,
+                    });
 
                 accumulator.last_update = event.timestamp;
                 accumulator.end_time = event.timestamp;

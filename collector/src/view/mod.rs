@@ -381,6 +381,17 @@ impl MaterializedView {
         rows
     }
 
+    pub(crate) fn token_usage_rows(&self, limit: usize) -> Vec<TokenUsageRow> {
+        let mut rows = self
+            .effective_tokens()
+            .into_iter()
+            .cloned()
+            .collect::<Vec<_>>();
+        rows.sort_by_key(|row| std::cmp::Reverse(row.timestamp_ms));
+        rows.truncate(limit.clamp(1, 10_000));
+        rows
+    }
+
     pub(crate) fn audit_rows(&self, audit_type: Option<&str>, limit: usize) -> Vec<AuditEventRow> {
         let mut rows = self
             .audit_events

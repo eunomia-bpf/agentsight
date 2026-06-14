@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "run_id": "R111",
+  "claim": "C4 exact AgentSight effect lineage",
+  "stage": "execute/analyze",
+  "date": "2026-06-14",
+  "status": "partial_supported_for_native_export_smoke",
+  "method": {
+    "snapshot_source": "real AgentSight SQLite DB exports",
+    "native_export": "collector report export after sqlite observed-agent envelope projection",
+    "lineage_checker": "docs/visexp/effect_lineage_smoke.py",
+    "scope": "all process/file/network effects in exported snapshots",
+    "important_boundary": "The collector export now emits session/tool envelope rows from observed local prompts and root process events. The envelope is export-derived, not yet persisted as first-class DB capture state."
+  },
+  "runs": [
+    {
+      "name": "codex-local",
+      "db": "collector/target/agentsight-runs/codex-local-prompt.db",
+      "sessions": 1,
+      "tool_calls": 1,
+      "raw_effect_events": 90,
+      "joined_effect_events": 48,
+      "orphan_effect_events": 42,
+      "raw_join_pct": 53.333,
+      "folded_stack_count": 20,
+      "join_methods": {
+        "related_event_id": 1,
+        "pid_family_time_window": 47,
+        "none": 42
+      },
+      "orphan_reasons": {
+        "missing_tool_ancestry": 42
+      }
+    },
+    {
+      "name": "codex-attach",
+      "db": "collector/target/agentsight-runs/codex-attach-prompt.db",
+      "sessions": 1,
+      "tool_calls": 1,
+      "raw_effect_events": 168,
+      "joined_effect_events": 86,
+      "orphan_effect_events": 82,
+      "raw_join_pct": 51.19,
+      "folded_stack_count": 23,
+      "join_methods": {
+        "none": 82,
+        "pid_family_time_window": 85,
+        "related_event_id": 1
+      },
+      "orphan_reasons": {
+        "missing_process_time_match": 61,
+        "missing_tool_ancestry": 21
+      }
+    },
+    {
+      "name": "debug-ssl-auto",
+      "db": "collector/target/agentsight-runs/debug-ssl-auto-fixed.db",
+      "sessions": 1,
+      "tool_calls": 1,
+      "raw_effect_events": 60,
+      "joined_effect_events": 48,
+      "orphan_effect_events": 12,
+      "raw_join_pct": 80.0,
+      "folded_stack_count": 33,
+      "join_methods": {
+        "pid_family_time_window": 47,
+        "related_event_id": 1,
+        "none": 12
+      },
+      "orphan_reasons": {
+        "missing_tool_ancestry": 12
+      }
+    }
+  ],
+  "aggregate": {
+    "runs": 3,
+    "sessions": 3,
+    "tool_calls": 3,
+    "raw_effect_events": 318,
+    "joined_effect_events": 182,
+    "orphan_effect_events": 136,
+    "raw_join_pct": 57.233,
+    "join_methods": {
+      "related_event_id": 3,
+      "pid_family_time_window": 179,
+      "none": 136
+    },
+    "orphan_reasons": {
+      "missing_tool_ancestry": 75,
+      "missing_process_time_match": 61
+    }
+  },
+  "claim_boundary": "R111 moves the R110 harness envelope into native collector report export. It still supports only a partial C4 claim: 182/318 raw effects joined (57.233%), with 136 orphan effects and export-derived rather than DB-persisted session/tool envelope rows."
+}

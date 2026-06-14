@@ -8,7 +8,7 @@ use std::path::Path;
 
 use crate::analyzers::common;
 use crate::event::Event;
-use crate::model::{AuditEventRow, LlmCallRow, TokenSummary};
+use crate::model::{AuditEventRow, TokenSummary};
 use crate::text::{extract_prompt_text, truncate_with_ellipsis as truncate};
 
 #[derive(Debug, Default, Serialize)]
@@ -311,6 +311,18 @@ pub(crate) struct SessionSummary {
     pub(crate) endpoints: Vec<String>,
 }
 
+#[derive(Debug, Clone, Serialize)]
+pub(crate) struct PromptReportRow {
+    pub(crate) timestamp_ms: u64,
+    pub(crate) comm: Option<String>,
+    pub(crate) model: Option<String>,
+    pub(crate) tokens: i64,
+    pub(crate) source: String,
+    pub(crate) prompt: String,
+    pub(crate) request: Value,
+    pub(crate) response: Value,
+}
+
 #[derive(Debug, Clone, Default)]
 pub(crate) struct SummaryStats {
     pub(crate) count: usize,
@@ -571,20 +583,21 @@ pub(crate) fn print_audit_rows(rows: &[AuditEventRow]) {
     }
 }
 
-pub(crate) fn print_llm_prompts(rows: &[LlmCallRow]) {
+pub(crate) fn print_prompt_report_rows(rows: &[PromptReportRow]) {
     println!("LLM prompts");
     println!(
-        "{:<15} {:<16} {:<28} {:>8} prompt",
-        "timestamp_ms", "comm", "model", "tokens"
+        "{:<15} {:<16} {:<28} {:>8} {:<10} prompt",
+        "timestamp_ms", "comm", "model", "tokens", "source"
     );
     for row in rows {
         println!(
-            "{:<15} {:<16} {:<28} {:>8} {}",
-            row.start_timestamp_ms,
+            "{:<15} {:<16} {:<28} {:>8} {:<10} {}",
+            row.timestamp_ms,
             truncate(row.comm.as_deref().unwrap_or("-"), 16),
             truncate(row.model.as_deref().unwrap_or("-"), 28),
-            row.total_tokens,
-            prompt_preview(&row.request, 96)
+            row.tokens,
+            truncate(&row.source, 10),
+            truncate(&row.prompt, 96)
         );
     }
 }
@@ -933,11 +946,6 @@ fn format_iso_time_compact(iso: &str) -> Option<String> {
     let dt = chrono::DateTime::parse_from_rfc3339(iso).ok()?;
     let local = dt.with_timezone(&chrono::Local);
     Some(local.format("%H:%M:%S").to_string())
-}
-
-fn prompt_preview(value: &Value, max: usize) -> String {
-    let text = extract_prompt_text(value).unwrap_or_else(|| value.to_string());
-    truncate(&text.split_whitespace().collect::<Vec<_>>().join(" "), max)
 }
 
 pub(crate) fn prompt_text_chars(value: &Value) -> Option<usize> {

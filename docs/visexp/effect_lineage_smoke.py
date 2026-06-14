@@ -399,7 +399,7 @@ def write_summary(path: Path, result: dict[str, Any]) -> None:
         if result["source"] == "fixture"
         else [
             "- This supports C4 for the in-scope effects present in this snapshot.",
-            "- Broader C4 still requires native session/tool export and more live tasks.",
+            "- Broader C4 still requires lower orphan rates, DB-persisted ancestry, and more live tasks.",
         ]
     )
     lines = [
@@ -448,7 +448,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "claim_boundary": (
             "checker evidence only; live exact capture over real sessions is still missing"
             if args.fixture
-            else "live snapshot evidence for in-scope effects; broader exact-lineage claim still needs native session/tool export and more tasks"
+            else "live snapshot evidence for joined effects; broader exact-lineage claim still needs lower orphan rates, DB-persisted ancestry, and more tasks"
         ),
     }
     (out_dir / "effect-lineage-smoke.json").write_text(json.dumps(result, indent=2), encoding="utf-8")

@@ -12,7 +12,7 @@ Completeness: partial
 | C3 semantic partitioning beyond baselines | supported | Nonsemantic mixed weight 90.219%; flat mixed weight 90.770%; examples include `git`, `cargo`, `python3`, `docker`, and tool write/process buckets split by semantic tags. | Semantic frames partition system-effect buckets that nonsemantic folded stacks and flat summaries merge in this local workload. | User-task benchmark and stronger case studies. |
 | D1 Codex/Claude behavior comparison | diagnostic | Cohort summaries exist for Codex, Claude, and Claude subagents. | The full run can characterize local histories by cohort. | Paired same-task benchmark before making comparative claims. |
 | D2 token flamegraphs | diagnostic | Token projections exist and preserve total token weights. | Token views provide source-local accounting. | Token normalization across agents/models. |
-| C4 exact AgentSight effect lineage | partial | R110 live smoke over 3 real AgentSight DB exports: 8 detected agent roots, 8 synthetic sessions/tools, 318 raw effects, 182 covered and joined, 136 out of scope, 57.233% raw coverage, 182/182 in-scope join, 0 orphans. Join methods: `related_event_id=8`, `pid_family_time_window=174`. The harness used llama.cpp tags but synthesized session/tool envelopes because current DB export lacks them. | AgentFlame's C4 checker can validate live in-scope AgentSight effects when an agent-run envelope links root processes to semantic tags. | Native collector export of `session -> tool_call -> process* -> effect`, more live tasks, and lower out-of-scope raw-effect share. |
+| C4 exact AgentSight effect lineage | partial | R110 live smoke over 3 real AgentSight DB exports: 8 detected agent roots, 8 synthetic sessions/tools, 318 raw effects, 182 covered and joined, 136 out of scope, 57.233% raw coverage, 182/182 in-scope join, 0 orphans. R111 moves the envelope into native `collector report export`: 3 exported sessions/tools, 182/318 raw effects joined, 136 orphans, 57.233% raw join. | AgentFlame's C4 checker can validate live AgentSight effects when an agent-run envelope links root processes to prompt ancestry; native export now emits that envelope. | DB-persisted session/tool capture, more live tasks, lower orphan share, child-depth/path/domain/redaction analysis. |
 | C5 developer utility | unsupported | Task packet/scorer prototypes exist; no participant responses. | No user-outcome claim should be made yet. | Scored task benchmark with time, accuracy, false positives, and confidence. |
 | C6 tag adequacy/stability | partial | 0 malformed tags in the full 3B run; noisy tags remain. | One-word tags are usable as syntactic navigation frames. | Human adequacy labels, repeated-run stability, and smaller-model comparison. |
 
@@ -23,9 +23,9 @@ Verdict: promising but not OSDI weak accept yet.
 The work has a credible mechanism and a real full-history characterization, but
 two central systems-paper gaps remain:
 
-1. The strongest system novelty, exact semantic-effect lineage, is only shown
-   as a live in-scope smoke with a harness-synthesized agent-run envelope, not as
-   native collector export.
+1. The strongest system novelty, exact semantic-effect lineage, is only shown as
+   a native-export smoke with export-derived envelope rows and 57.233% raw join,
+   not as DB-persisted complete provenance.
 2. The strongest user-value claim has no scored user/task benchmark.
 
 ## Paper Wording Rule

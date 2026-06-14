@@ -34,7 +34,7 @@ AI 编程 agent 的可观测性问题不只是 ``模型调用了哪个 tool''，
 在本机 AgentSight 仓库的 205 个可读 Codex/Claude 真实 session 上，AgentFlame 标注 2,463 个 prompt 和 90,930 个 LLM call，0 个最终标签失败；它把 167,005 个系统观测折叠成 24,295 条语义系统栈。
 去掉 session/prompt 语义后，nonsemantic baseline 有 90.219\% 的观测权重落入混合多个语义区域的 buckets；flat effect baseline 的混合权重为 90.770\%。
 这些结果支持一个机制性结论：语义帧能分开传统 trace 或 process summary 会合并的 task-effect 区域。
-本文也明确边界：当前 full run 仍基于 agent-native session 历史；R110 只覆盖并 join 了 182/318 个 live raw effects（57.233\% raw coverage），在 covered scope 内达到 182/182 join；native session/tool export 和用户任务实验尚未完成，因此不能声称用户效用或完整系统 provenance 已被证明。
+本文也明确边界：当前 full run 仍基于 agent-native session 历史；R111 的 native export smoke 只 join 了 182/318 个 live raw effects（57.233\% raw join），仍有 136 个 orphan effects；用户任务实验也尚未完成，因此不能声称用户效用或完整系统 provenance 已被证明。
 \end{abstract}
 
 \section{问题}
@@ -153,7 +153,7 @@ AgentFlame 没有 heuristic fallback：如果 LLM server 缺失，或模型重�
 AgentFlame 的第一模式是零 instrumentation 的历史分析。
 AgentSight 的独特点是运行时 exact provenance：\texttt{tool\_call -> shell -> child process -> file/network effect}。
 正确集成后，AgentFlame 负责语义帧，AgentSight 负责系统效应事实，两者通过 tool/session/prompt ancestry 连接。
-当前 full run 还不是 live exact-effect 结果。R110 增加了一个 live in-scope smoke，但它仍通过 harness 补 session/tool envelope；因此 C4 仍是 partial。
+当前 full run 还不是 live exact-effect 结果。R110 增加了一个 live in-scope smoke；R111 把最小 session/tool envelope 移入 native \texttt{collector report export}。但 raw join 仍只有 57.233\%，因此 C4 仍是 partial。
 
 \section{评估}
 
@@ -265,14 +265,13 @@ Trace tree 能回放某次调用，span flamegraph 能看 duration bottleneck，
 当前答案是：live in-scope smoke 部分成立，native export 仍不足。
 \texttt{docs/visexp/effect\_lineage\_smoke.py} 已经能在 AgentSight-shaped fixture 上把 process/file/network effects 连到 session/tool/prompt ancestry，并输出 exact-effect folded stacks。
 R110 进一步导出了 3 个真实 AgentSight SQLite DB，使用 \texttt{docs/visexp/live\_lineage\_harness.py} 给检测到的 Codex/Claude root processes 增加 agent-run session/tool envelope，并用本地 llama.cpp 3B 模型给 root prompt 打一个词标签。
-在这些被 root process family 覆盖的 effects 上，checker 验证 182/182 joined，0 orphans，in-scope join rate 为 100.0\%。
-但这不是 raw coverage 的 100.0\%：三个 DB 一共有 318 个 raw process/file/network effects，R110 只覆盖并 join 其中 182 个，raw coverage 为 57.233\%。
-aggregate join methods 是 \texttt{related\_event\_id=8} 和 \texttt{pid\_family\_time\_window=174}；harness 同时合成 8 个 session/tool envelopes。
+R111 将这个最小 envelope 移入 native \texttt{collector report export}：导出的 snapshots 自身包含 3 个 sessions 和 3 个 tool calls。
+在完整 raw snapshot 上，checker 验证 182/318 raw effects joined，raw join 为 57.233\%，仍有 136 个 orphans。
+aggregate join methods 是 \texttt{related\_event\_id=3}、\texttt{pid\_family\_time\_window=179} 和 \texttt{none=136}。
 
 这个结果比 fixture 强，但还不是完整 C4。
-原因是当前 DB export 本身没有 materialized session/tool rows；harness 只补上 envelope，不伪造底层 process/file/network events。
-同时 136 个 raw effects 不在检测到的 agent roots 范围内。
-OSDI 版本必须把 envelope 移入 collector native export，并在更多任务上报告 in-scope coverage、orphan rate、child-process depth、path/domain specificity 和 redaction failures。
+原因是 session/tool envelope 仍是 export-derived，而不是 DB capture 中 first-class persisted state；同时 136 个 raw effects 仍然无法 join。
+OSDI 版本必须继续降低 orphan rate，并在更多任务上报告 raw coverage、orphan reason、child-process depth、path/domain specificity 和 redaction failures。
 
 \subsection{RQ4：用户效用是否成立？}
 
@@ -309,7 +308,7 @@ AgentFlame 包含 token flamegraph，但当前只作为 source-local accounting�
 \section{局限与下一步}
 
 当前版本仍不到 OSDI weak accept。
-第一，exact lineage 是最强系统贡献，但当前只有 live in-scope smoke，还没有 native AgentSight full-run export 证据。
+第一，exact lineage 是最强系统贡献，但当前只有 native-export smoke，raw join 仍是 57.233\%，还没有完整 AgentSight full-run provenance 证据。
 第二，用户效用没有实验。
 第三，标签 adequacy 没有人工评估。
 第四，当前结果来自一个本机仓库，且历史是 observational，不是 paired benchmark。

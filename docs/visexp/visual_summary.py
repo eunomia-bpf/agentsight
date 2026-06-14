@@ -243,6 +243,7 @@ def write_effect_lineage_svg(
     out_dir: Path,
     lineage: dict[str, Any],
     live_lineage: dict[str, Any] | None = None,
+    native_lineage: dict[str, Any] | None = None,
 ) -> Path:
     total = int(lineage.get("effect_events") or 0)
     joined = int(lineage.get("joined_effect_events") or 0)
@@ -250,7 +251,7 @@ def write_effect_lineage_svg(
     live_aggregate = (live_lineage or {}).get("aggregate") or {}
     live_total = int(live_aggregate.get("in_scope_effect_events") or 0)
     live_joined = int(live_aggregate.get("joined_effect_events") or 0)
-    live_note = "native export still missing"
+    live_note = "R110 harness smoke missing"
     live_color = UNSUPPORTED
     if live_total:
         live_note = (
@@ -259,6 +260,20 @@ def write_effect_lineage_svg(
             "session/tool envelope is harness-synthesized"
         )
         live_color = PARTIAL
+    native_aggregate = (native_lineage or {}).get("aggregate") or {}
+    native_total = int(native_aggregate.get("raw_effect_events") or 0)
+    native_joined = int(native_aggregate.get("joined_effect_events") or 0)
+    native_orphan = int(native_aggregate.get("orphan_effect_events") or 0)
+    native_note = "native export missing"
+    native_color = UNSUPPORTED
+    if native_total:
+        native_note = (
+            f"{native_aggregate.get('raw_join_pct', 0)}% raw joined; "
+            f"{native_orphan} orphan effects; "
+            f"sessions={native_aggregate.get('sessions')}, "
+            f"tool_calls={native_aggregate.get('tool_calls')}"
+        )
+        native_color = PARTIAL if native_orphan else SUPPORTED
     rows = [
         (
             "Fixture effects joined",
@@ -281,13 +296,25 @@ def write_effect_lineage_svg(
             live_color,
             live_note,
         ),
+        (
+            "R111 native raw effects",
+            native_joined,
+            max(native_total, 1),
+            native_color,
+            native_note,
+        ),
     ]
     parts = [
         f'<line x1="36" y1="96" x2="1084" y2="96" stroke="{GRID}"/>',
         f'<text x="330" y="112" font-size="12" fill="{MUTED}">count or readiness</text>',
     ]
     for idx, (label, value, maximum, color, note) in enumerate(rows):
-        metric = f"{value}/{maximum}" if live_total or label != "R110 live in-scope" else "missing"
+        if label == "R110 live in-scope" and not live_total:
+            metric = "missing"
+        elif label == "R111 native raw effects" and not native_total:
+            metric = "missing"
+        else:
+            metric = f"{value}/{maximum}"
         parts.append(
             bar_row(
                 134 + idx * 78,
@@ -304,9 +331,9 @@ def write_effect_lineage_svg(
     path.write_text(
         svg_page(
             "Exact Effect Lineage",
-            "Fixture checker plus R110 live in-scope smoke; native export remains the key C4 gap.",
+            "Fixture checker plus R110 harness and R111 native-export lineage smokes.",
             1120,
-            390,
+            468,
             "\n".join(parts),
         ),
         encoding="utf-8",
@@ -392,10 +419,12 @@ def run(out_dir: Path) -> list[Path]:
     lineage = read_json(out_dir / "effect-lineage-smoke.json")
     live_path = out_dir / "live-lineage-r110.json"
     live_lineage = read_json(live_path) if live_path.exists() else None
+    native_path = out_dir / "native-lineage-r111.json"
+    native_lineage = read_json(native_path) if native_path.exists() else None
     return [
         write_claim_gates_svg(out_dir, gates),
         write_semantic_mixing_svg(out_dir, evaluation),
-        write_effect_lineage_svg(out_dir, lineage, live_lineage),
+        write_effect_lineage_svg(out_dir, lineage, live_lineage, native_lineage),
         write_visual_summary_html(out_dir),
     ]
 

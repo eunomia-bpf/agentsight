@@ -31,6 +31,7 @@ native full-run exact file/network lineage or user utility.
 | R100 | Rust AgentFlame full local repo-related scan, 3B llama.cpp server, `tag_llm_calls=true` | `.agentsight/agentflame/latest/agentflame.json` | done |
 | R101 | Rust unit/clippy verification after Unicode and unreadable-session fixes | `cargo test --manifest-path agentflame/Cargo.toml`; `cargo clippy --manifest-path agentflame/Cargo.toml -- -D warnings` | done |
 | R110 | Live exact-lineage smoke over real AgentSight DB exports with harness-synthesized agent-run envelopes and llama.cpp root tags | `docs/visexp/out/live-lineage-r110.json` | partial |
+| R111 | Native export exact-lineage smoke over the same real AgentSight DB exports after moving the envelope into `collector report export` | `docs/visexp/out/native-lineage-r111.json` | partial |
 | R060 | legacy Python prototype pipeline over sampled sessions | `docs/visexp/out/pipeline-report.json` | legacy, superseded for headline scale |
 | R020a | fixture exact-effect lineage checker | `docs/visexp/out/effect-lineage-smoke.json` | partial, fixture only |
 | R025 | user-task benchmark packet generation | `docs/visexp/out/user-task-benchmark.json` | protocol only |
@@ -156,6 +157,24 @@ in-scope live effects. It does not yet prove native AgentSight export because
 136 raw effects were outside detected agent roots and session/tool envelopes are
 harness-generated.
 
+R111 removes the Python harness from the export path. `collector report export`
+now emits export-derived session/tool envelope rows from observed local prompts
+and root process events. Running the same checker on the full exported snapshots
+gives the same aggregate raw join, but with native exported sessions/tools:
+
+| Run | Sessions | Tool calls | Raw effects | Joined | Orphans | Raw join |
+|-----|---------:|-----------:|------------:|-------:|--------:|---------:|
+| codex-local | 1 | 1 | 90 | 48 | 42 | 53.333% |
+| codex-attach | 1 | 1 | 168 | 86 | 82 | 51.190% |
+| debug-ssl-auto | 1 | 1 | 60 | 48 | 12 | 80.000% |
+| aggregate | 3 | 3 | 318 | 182 | 136 | 57.233% |
+
+R111 is still partial. It proves that native export can carry the minimal
+session/tool ancestry needed by the checker, but it also exposes the remaining
+coverage problem: 136 raw effects are still orphaned, mostly because the current
+DB capture/export does not persist complete agent-run ancestry as first-class
+state.
+
 ## Dimension Projection Results
 
 | View | Unique stacks | Total weight | Compression | Max reuse |
@@ -172,9 +191,9 @@ cross-agent cost claims until token normalization is audited.
 
 ## Negative And Mixed Evidence
 
-- C4 exact AgentSight lineage is partial. R110 covers 57.233% of raw live
-  effects and validates 100.0% join only within that covered scope; it does not
-  prove native collector export of session/tool ancestry.
+- C4 exact AgentSight lineage is partial. R111 native export joins 57.233% of
+  raw live effects, but 136 raw effects remain orphaned and DB-persisted
+  complete session/tool ancestry is still missing.
 - C5 user utility remains unsupported. Task packets and scoring scripts exist,
   but no real participant responses have been collected.
 - C6 semantic adequacy is partial. The grammar is strong, but labels such as
@@ -194,3 +213,4 @@ cross-agent cost claims until token normalization is audited.
 - `.agentsight/agentflame/latest/llm-token.folded.txt`
 - `docs/visexp/out/effect-lineage-smoke.json` for fixture checker status
 - `docs/visexp/out/live-lineage-r110.json` for live in-scope C4 smoke status
+- `docs/visexp/out/native-lineage-r111.json` for native export C4 smoke status

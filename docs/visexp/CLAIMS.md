@@ -125,11 +125,17 @@ Current evidence:
   the covered scope it validates 182/182 effects with 0 orphans and 100.0%
   in-scope join rate. It also records 136 out-of-scope raw effects outside
   detected agent roots.
+- R111 moves the same minimal agent-run envelope into native `collector report
+  export`: exported snapshots now contain 3 sessions and 3 tool calls across the
+  same three DBs, and the checker joins 182/318 raw effects. The orphan count
+  remains 136, so this is native-export smoke evidence, not full C4 proof.
 - The full Rust AgentFlame run still uses agent-native session histories, and
-  current DB export does not natively materialize session/tool rows.
+  current DB capture does not yet persist session/tool rows as first-class
+  recorded state.
 
-Status: partial. The lineage checker works on live in-scope effects, but native
-collector export of `session -> tool_call -> process* -> effect` remains
+Status: partial. The lineage checker works on live effects and native export now
+emits session/tool envelope rows, but raw coverage is only 57.233% on this
+smoke and DB-persisted `session -> tool_call -> process* -> effect` remains
 unproven.
 
 ## Not Yet Supported
@@ -179,6 +185,8 @@ Allowed current wording:
 - "On three real AgentSight DB exports, the C4 checker covers and joins 182/318
   raw effects; within that covered scope it joins 182/182 effects after a
   harness-synthesized agent-run envelope is added."
+- "Native `collector report export` now emits export-derived session/tool
+  envelopes for the same three DBs, joining 182/318 raw effects."
 
 Disallowed current wording:
 

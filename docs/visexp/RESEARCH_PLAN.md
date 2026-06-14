@@ -29,8 +29,8 @@ for multi-agent workflows. The claim must be narrower and stronger:
 - Type: systems-for-ML observability and measurement tooling.
 - Target venue: OSDI/SOSP-style systems venue.
 - Artifact status: Rust CLI prototype over real local Codex/Claude session
-  histories; AgentSight exact-effect integration is designed but not yet the
-  primary full-run input.
+  histories; AgentSight exact-effect integration has harness and native-export
+  smokes but is not yet the primary full-run input.
 - Current maturity: stronger than a workshop demo for characterization and
   artifact-internal claims, but not OSDI weak-accept until live exact lineage and
   user/task benchmarks exist.
@@ -154,13 +154,16 @@ Current evidence:
   raw effects, for 57.233% raw coverage. Within the covered scope it validates
   182/182 effects with 0 orphans after adding a harness-synthesized agent-run
   envelope and llama.cpp root tags.
+- R111 moves the minimal envelope into native `collector report export`; the
+  exported snapshots contain 3 sessions/tools and the checker joins the same
+  182/318 raw effects, leaving 136 orphans.
 
 Remaining gap:
 
-- Current DB export does not natively persist session/tool ancestry, so C4 is
-  partial rather than supported. The harness must be replaced by collector-native
-  `session -> tool_call -> process* -> effect` export and more live tasks before
-  claiming OSDI-level novelty.
+- Current DB capture does not persist complete session/tool ancestry as
+  first-class state, and raw join coverage is only 57.233%, so C4 is partial
+  rather than supported. The next step is to reduce orphan causes in native
+  export and repeat on more live tasks before claiming OSDI-level novelty.
 
 ### RQ4. Developer Utility
 
@@ -216,7 +219,7 @@ Remaining gap:
 | C1 | AgentFlame can generate semantic folded stacks and dashboards over real local agent histories. | supported | verifier for full run and reproducibility script |
 | C2 | Local one-word LLM tagging is feasible for session/prompt/LLM-call contexts. | supported for 3B syntax; partial for cost/stability | 0.6B/1B/3B cost table and adequacy labels |
 | C3 | Semantic frames expose task-effect mixtures hidden by nonsemantic and flat summaries. | supported as mechanism | stronger examples and task benchmark |
-| C4 | Exact AgentSight lineage connects semantic intent to process/file/network effects. | partial live smoke | native export, more tasks, out-of-scope analysis |
+| C4 | Exact AgentSight lineage connects semantic intent to process/file/network effects. | partial native-export smoke | higher raw join, DB-persisted ancestry, more tasks, out-of-scope analysis |
 | C5 | Developers answer debugging/audit questions better with semantic effect flamegraphs. | unsupported | user/task benchmark |
 | C6 | One-word tags are stable and adequate enough for navigation. | partial | 0.6B/1B/3B cost table, repeated-run stability, human adequacy labels |
 | C7 | The approach is practical as an open-source developer tool. | partial | one-command install/run, runtime/cost, docs, artifact hygiene |
@@ -264,8 +267,8 @@ Current OSDI review posture: weak reject / promising measurement-tooling idea.
 
 The fastest route to weak accept is:
 
-1. Move the R110 harness envelope into native AgentSight export and repeat on
-   more live tasks.
+1. Improve native AgentSight export so orphan raw effects drop substantially,
+   then repeat on more live tasks.
 2. Add a small but real user/task benchmark with at least developer-authored
    answer keys and blinded condition packets.
 3. Re-run 0.6B/1B/3B tagger benchmarks on the same fragments and include tag

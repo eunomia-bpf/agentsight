@@ -291,11 +291,7 @@ impl SqliteStore {
                 } else {
                     "view".to_string()
                 },
-                confidence: if has_view_source {
-                    row.get(14)?
-                } else {
-                    None
-                },
+                confidence: if has_view_source { row.get(14)? } else { None },
             })
         })?;
         collect_rows(rows)
@@ -340,11 +336,7 @@ impl SqliteStore {
                 } else {
                     "view".to_string()
                 },
-                confidence: if has_view_source {
-                    row.get(15)?
-                } else {
-                    None
-                },
+                confidence: if has_view_source { row.get(15)? } else { None },
             })
         })?;
         collect_rows(rows)
@@ -435,11 +427,7 @@ impl SqliteStore {
                 } else {
                     "view".to_string()
                 },
-                confidence: if has_view_source {
-                    row.get(13)?
-                } else {
-                    None
-                },
+                confidence: if has_view_source { row.get(13)? } else { None },
             })
         })?;
         collect_rows(rows)

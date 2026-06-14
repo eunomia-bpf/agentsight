@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-use crate::model::{AuditEventRow, LlmCallRow, ProcessNodeRow, ViewResult};
+use crate::model::{
+    AuditEventRow, LlmCallRow, ProcessNodeRow, SessionRow, ToolCallRow, ViewResult,
+};
 use crate::sinks::sqlite::SqliteStore;
 use crate::sources::agent_native;
 use crate::text::{clean_prompt_text, extract_prompt_text, truncate_text};
@@ -52,11 +54,13 @@ fn load_view_inner(
         audit_rows = rows;
     }
     let mut process_pids = BTreeSet::new();
+    let mut process_rows = Vec::new();
     if let Ok(rows) = store.process_node_rows() {
         for row in &rows {
             process_pids.insert(row.pid);
             view.upsert_process_node(row);
         }
+        process_rows = rows;
     }
     if let Ok(rows) = store.tool_call_rows() {
         for row in rows {
@@ -76,13 +80,12 @@ fn load_view_inner(
     if include_observed_session_prompts {
         import_observed_process_nodes(&mut view, &llm_rows, &process_pids);
         let mut prompt_rows = llm_call_prompt_rows(&llm_rows);
-        append_deduped_local_session_prompt_rows(
-            &mut prompt_rows,
-            agent_native::observed_session_prompt_rows(&audit_rows),
-        );
+        let local_prompt_rows = agent_native::observed_session_prompt_rows(&audit_rows);
+        append_deduped_local_session_prompt_rows(&mut prompt_rows, local_prompt_rows.clone());
         for row in prompt_rows {
             view.apply_audit_event(&row);
         }
+        import_observed_agent_envelopes(&mut view, &audit_rows, &process_rows, &local_prompt_rows);
     }
 
     Ok(view)
@@ -202,6 +205,142 @@ fn prompt_text_from_details(details: &Value) -> Option<String> {
         .and_then(clean_prompt_text)
 }
 
+fn import_observed_agent_envelopes(
+    view: &mut MaterializedView,
+    audit_rows: &[AuditEventRow],
+    process_rows: &[ProcessNodeRow],
+    prompt_rows: &[AuditEventRow],
+) {
+    for prompt in prompt_rows {
+        let Some(prompt_text) = prompt_text_from_details(&prompt.details) else {
+            continue;
+        };
+        let Some(source_event) = source_event_for_prompt(prompt, audit_rows) else {
+            continue;
+        };
+        let process = process_for_event(source_event, process_rows);
+        let start = process
+            .and_then(|row| row.start_timestamp_ms)
+            .unwrap_or(prompt.timestamp_ms);
+        let end = process.and_then(|row| row.end_timestamp_ms);
+        let pid = source_event.pid.or(prompt.pid);
+        let agent = prompt
+            .details
+            .get("agent")
+            .and_then(Value::as_str)
+            .map(ToString::to_string)
+            .or_else(|| prompt.comm.clone())
+            .unwrap_or_else(|| "agent".to_string());
+        let session_id = prompt
+            .details
+            .get("session_id")
+            .and_then(Value::as_str)
+            .map(sanitize_observed_id)
+            .unwrap_or_else(|| {
+                format!(
+                    "observed:{}:{}:{}",
+                    sanitize_observed_id(&agent),
+                    pid.unwrap_or(0),
+                    prompt.timestamp_ms
+                )
+            });
+        let tool_id = format!("{session_id}:agent-run");
+
+        view.upsert_session(&SessionRow {
+            id: session_id.clone(),
+            agent_type: agent.clone(),
+            start_timestamp_ms: start,
+            end_timestamp_ms: end,
+            status: "observed".to_string(),
+            model: prompt.subject.clone(),
+            input_tokens: 0,
+            output_tokens: 0,
+            total_tokens: 0,
+            view_source: "sqlite_observed_agent_envelope".to_string(),
+            confidence: Some(0.65),
+            attributes: json!({
+                "prompt_preview": truncate_text(&prompt_text, 160),
+                "prompt_source": prompt.details.get("prompt_source").cloned().unwrap_or(Value::Null),
+                "root_pid": pid,
+                "source_event_id": source_event.id,
+            }),
+        });
+        view.apply_tool_call(&ToolCallRow {
+            id: tool_id.clone(),
+            session_id: Some(session_id),
+            conversation_id: None,
+            timestamp_ms: start,
+            tool_name: Some("agent-run".to_string()),
+            tool_call_id: Some(tool_id),
+            start_timestamp_ms: Some(start),
+            end_timestamp_ms: end,
+            duration_ms: end.map(|end| end.saturating_sub(start)),
+            status: Some("observed".to_string()),
+            input: json!({
+                "prompt_preview": truncate_text(&prompt_text, 160),
+                "prompt_source": prompt.details.get("prompt_source").cloned().unwrap_or(Value::Null),
+                "prompt_tag": "observed",
+            }),
+            output: json!({}),
+            related_pid: pid,
+            related_event_id: Some(source_event.id.clone()),
+            view_source: "sqlite_observed_agent_envelope".to_string(),
+            confidence: Some(0.65),
+        });
+    }
+}
+
+fn source_event_for_prompt<'a>(
+    prompt: &AuditEventRow,
+    audit_rows: &'a [AuditEventRow],
+) -> Option<&'a AuditEventRow> {
+    audit_rows.iter().find(|row| {
+        row.timestamp_ms == prompt.timestamp_ms
+            && row.pid == prompt.pid
+            && row.target == prompt.target
+            && matches!(
+                (row.audit_type.as_str(), row.action.as_deref()),
+                ("process", Some("exec")) | ("file", _)
+            )
+    })
+}
+
+fn process_for_event<'a>(
+    event: &AuditEventRow,
+    process_rows: &'a [ProcessNodeRow],
+) -> Option<&'a ProcessNodeRow> {
+    let pid = event.pid?;
+    process_rows.iter().find(|process| {
+        process.pid == pid
+            && process
+                .start_timestamp_ms
+                .map_or(true, |start| event.timestamp_ms >= start)
+            && process
+                .end_timestamp_ms
+                .map_or(true, |end| event.timestamp_ms <= end)
+    })
+}
+
+fn sanitize_observed_id(value: &str) -> String {
+    let value = value
+        .chars()
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() || matches!(ch, ':' | '-' | '_' | '.') {
+                ch
+            } else {
+                '-'
+            }
+        })
+        .collect::<String>()
+        .trim_matches('-')
+        .to_string();
+    if value.is_empty() {
+        "unknown".to_string()
+    } else {
+        value
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -245,6 +384,85 @@ mod tests {
 
             assert_eq!(prompt_rows.len(), expected_rows, "{name}");
         }
+    }
+
+    #[test]
+    fn observed_local_prompt_exports_agent_run_envelope() {
+        let mut view = MaterializedView::new();
+        let audit_rows = vec![AuditEventRow {
+            id: "exec-codex".to_string(),
+            timestamp_ms: 1_000,
+            audit_type: "process".to_string(),
+            pid: Some(42),
+            comm: Some("codex".to_string()),
+            subject: None,
+            action: Some("exec".to_string()),
+            target: Some("/usr/bin/codex".to_string()),
+            status: Some("observed".to_string()),
+            summary: Some("codex exec Fix tests".to_string()),
+            details: json!({"full_command": "codex exec Fix tests"}),
+        }];
+        let process_rows = vec![ProcessNodeRow {
+            id: "process-42".to_string(),
+            pid: 42,
+            ppid: None,
+            root_pid: Some(42),
+            start_timestamp_ms: Some(900),
+            end_timestamp_ms: Some(2_000),
+            comm: Some("codex".to_string()),
+            command: Some("codex exec Fix tests".to_string()),
+            argv: Vec::new(),
+            cwd: None,
+            exit_code: None,
+            status: Some("observed".to_string()),
+            view_source: "sqlite".to_string(),
+            confidence: Some(1.0),
+        }];
+        let prompt_rows = vec![AuditEventRow {
+            id: "audit-codex-exec-prompt-1000-42".to_string(),
+            timestamp_ms: 1_000,
+            audit_type: "llm".to_string(),
+            pid: Some(42),
+            comm: Some("codex".to_string()),
+            subject: Some("local".to_string()),
+            action: Some("request".to_string()),
+            target: Some("/usr/bin/codex".to_string()),
+            status: Some("observed".to_string()),
+            summary: Some("Fix tests".to_string()),
+            details: json!({
+                "text_content": "Fix tests",
+                "prompt_source": "local",
+            }),
+        }];
+
+        import_observed_agent_envelopes(&mut view, &audit_rows, &process_rows, &prompt_rows);
+        let snapshot = view.export_snapshot(crate::model::SnapshotOptions { audit_limit: 10 });
+
+        assert_eq!(snapshot.sessions.len(), 1);
+        assert_eq!(snapshot.sessions[0].agent_type, "codex");
+        assert_eq!(snapshot.sessions[0].start_timestamp_ms, 900);
+        assert_eq!(snapshot.sessions[0].end_timestamp_ms, Some(2_000));
+        assert_eq!(snapshot.tool_calls.len(), 1);
+        assert_eq!(
+            snapshot.tool_calls[0].session_id,
+            Some(snapshot.sessions[0].id.clone())
+        );
+        assert_eq!(
+            snapshot.tool_calls[0].tool_name.as_deref(),
+            Some("agent-run")
+        );
+        assert_eq!(snapshot.tool_calls[0].related_pid, Some(42));
+        assert_eq!(
+            snapshot.tool_calls[0].related_event_id.as_deref(),
+            Some("exec-codex")
+        );
+        assert_eq!(
+            snapshot.tool_calls[0]
+                .input
+                .get("prompt_tag")
+                .and_then(Value::as_str),
+            Some("observed")
+        );
     }
 
     fn ssl_call_row(model: &str, text: &str) -> LlmCallRow {
