@@ -11,8 +11,10 @@ from semantic_tag_flamegraph import (
     ToolEvent,
     UserRequest,
     build_agent_diff,
+    build_dimension_views,
     build_folded_stacks,
     build_nonsemantic_system,
+    project_folded,
 )
 from evaluate_artifacts import (
     compression_summary,
@@ -111,6 +113,29 @@ class AggregationTests(unittest.TestCase):
         self.assertEqual(len(system), 2)
         self.assertEqual(len(nonsemantic), 1)
         self.assertNotIn("prompt:", next(iter(nonsemantic)))
+
+    def test_dimension_views_project_without_changing_total_weight(self) -> None:
+        system = Counter(
+            {
+                "project:agentsight;agent:codex;session:design;prompt:fix;tool:shell;cmd:git;effect:read;status:ok": 3,
+                "project:agentsight;agent:codex;session:design;prompt:test;tool:shell;cmd:git;effect:read;status:ok": 2,
+            }
+        )
+        token = Counter(
+            {
+                "project:agentsight;agent:codex;session:design;prompt:fix;llm:review;model:gpt;kind:input": 11,
+                "project:agentsight;agent:codex;session:design;prompt:test;llm:review;model:gpt;kind:output": 7,
+            }
+        )
+
+        prompt_only = project_folded(system, ("project:", "agent:", "prompt:", "cmd:", "effect:", "status:"))
+        views = build_dimension_views(system, token)
+
+        self.assertEqual(sum(prompt_only.values()), sum(system.values()))
+        self.assertEqual(sum(views["session-system"].values()), sum(system.values()))
+        self.assertEqual(sum(views["llm-token"].values()), sum(token.values()))
+        self.assertNotIn("prompt:", next(iter(views["session-system"])))
+        self.assertNotIn("session:", next(iter(views["prompt-system"])))
 
     def test_agent_diff_uses_rate_normalization(self) -> None:
         system = Counter(

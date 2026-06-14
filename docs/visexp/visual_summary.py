@@ -304,7 +304,12 @@ def write_visual_summary_html(out_dir: Path) -> Path:
         ("Semantic Aggregation Value", "semantic-mixing.svg"),
         ("Exact Effect Lineage", "effect-lineage.svg"),
         ("System Footprint Flamegraph", "system-flamegraph.svg"),
+        ("Session System Footprint", "session-system.svg"),
+        ("Prompt System Footprint", "prompt-system.svg"),
         ("Token Footprint Flamegraph", "token-flamegraph.svg"),
+        ("Session Token Footprint", "session-token.svg"),
+        ("Prompt Token Footprint", "prompt-token.svg"),
+        ("LLM-Call Token Footprint", "llm-token.svg"),
     ]
     figures = "\n".join(
         f"""

@@ -1,0 +1,8 @@
+claim,verdict,oracle,evidence
+C1 folded aggregation,supported,system folded total exceeds unique stacks and repeated stacks exist,compression=2.34 repeated=921
+C2 one-word tags in stack grammar,supported,all committed tags match the one-word grammar and vocabulary is non-trivial,invalid=0 unique_prompt_tags=38
+C3 semantic stacks add information beyond flat/nonsemantic baselines,supported,baseline buckets mix multiple session/prompt tags that semantic stacks separate,nonsemantic_mixed=392 nonsemantic_weight_pct=68.505 flat_mixed=397 flat_weight_pct=74.473
+C4 normalized agent differences,diagnostic,"observational, unpaired source cohorts exist; no causal benchmark claim","sources={'codex-subagent': 13, 'codex': 6, 'claude': 12, 'claude-subagent': 5}"
+C5 user utility over trace tree/process logs,unsupported,"requires scored participant responses with time, accuracy, false positives, and confidence",task_bundle=pilot_packet_ready_no_participants task_count=6 scorer=ready response_template=present participant_results=missing
+C6 exact AgentSight effect stream preserves value,unsupported,requires live AgentSight exact effects from real sessions to pass lineage checker,effect_lineage_smoke=fixture_lineage_smoke_passed source=fixture effect_events=4 join_rate_pct=100.0 orphans=0 orphan_reasons={} live_exact_capture=missing
+C7 tag stability and adequacy,partial,smoke checks repeated-run syntax/stability; human adequacy remains required,same_hash_multi_tag_count=0 smoke_verdict=smoke_supported fallback_stable_pct=100.0 fallback_generic_pct=8.333 llama_stable_pct=100.0 llama_generic_pct=16.667 fallback_vs_llama_exact_pct=0.0
