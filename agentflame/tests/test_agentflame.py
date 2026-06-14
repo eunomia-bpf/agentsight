@@ -83,6 +83,7 @@ class AgentFlameTests(unittest.TestCase):
             self.assertTrue((out / "agentflame.json").exists())
             self.assertTrue((out / "tags.json").exists() is False)
             self.assertTrue((out / "index.html").exists())
+            self.assertEqual(payload["sessions"][0]["agent_sight_session_id"], "local:codex:codex:s1")
             self.assertGreater(payload["summary"]["system"]["unique_stacks"], 0)
 
     def test_llm_tagger_rejects_invalid_without_regex_fallback(self) -> None:

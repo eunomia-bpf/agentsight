@@ -8,7 +8,7 @@ from typing import Any, Protocol
 
 from .models import SessionRecord
 from .session_history import discover_sessions
-from .util import clean_space, now_iso, safe_frame, short_hash
+from .util import agent_sight_session_id, clean_space, now_iso, safe_frame, short_hash
 
 
 class Tagger(Protocol):
@@ -102,6 +102,7 @@ def build_folded_stacks(sessions: list[SessionRecord], project_name: str) -> tup
                 {
                     "source": session.source,
                     "session_id": session.session_id,
+                    "agent_sight_session_id": agent_sight_session_id(session.source, session.session_id),
                     "session_tag": session.session_tag,
                     "prompt_index": req.index,
                     "prompt_tag": req.tag,
@@ -275,6 +276,7 @@ def session_to_json(session: SessionRecord, include_previews: bool) -> dict[str,
     return {
         "source": session.source,
         "session_id": session.session_id,
+        "agent_sight_session_id": agent_sight_session_id(session.source, session.session_id),
         "session_file": session.path.name,
         "cwd_hash": short_hash(session.cwd, 16) if session.cwd else "",
         "agent_role": session.agent_role,

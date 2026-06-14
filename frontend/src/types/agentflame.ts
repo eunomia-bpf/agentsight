@@ -14,6 +14,7 @@ export interface AgentFlameCounterSummary {
 export interface AgentFlamePromptTag {
   source: string;
   session_id: string;
+  agent_sight_session_id?: string;
   session_tag: string;
   prompt_index: number;
   prompt_tag: string;
@@ -24,6 +25,7 @@ export interface AgentFlamePromptTag {
 export interface AgentFlameSession {
   source: string;
   session_id: string;
+  agent_sight_session_id?: string;
   session_file: string;
   cwd_hash: string;
   agent_role: string;

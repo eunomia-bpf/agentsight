@@ -162,7 +162,7 @@ export default function Home() {
           </div>
 
           {viewMode === 'agentflame' ? (
-            <AgentFlameView basePath={basePath} />
+            <AgentFlameView basePath={basePath} snapshot={snapshot} />
           ) : eventCount > 0 ? (
             viewMode === 'log' ? (
               <LogView events={displayEvents} />

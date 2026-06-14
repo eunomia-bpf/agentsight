@@ -37,6 +37,29 @@ def short_hash(text: str, n: int = 12) -> str:
     return hashlib.sha256(text.encode("utf-8", errors="ignore")).hexdigest()[:n]
 
 
+def short_session_id(session_id: str) -> str:
+    compact = (session_id or "").strip().rsplit("/", 1)[-1].removesuffix(".jsonl")
+    if not compact:
+        return "session"
+    if len(compact) <= 12:
+        return compact
+    return f"{compact[:6]}.{compact[-5:]}"
+
+
+def agent_family(source: str) -> str:
+    source = (source or "").lower()
+    if source.startswith("codex"):
+        return "codex"
+    if source.startswith("claude"):
+        return "claude"
+    return source or "agent"
+
+
+def agent_sight_session_id(source: str, session_id: str) -> str:
+    family = agent_family(source)
+    return f"local:{family}:{family}:{short_session_id(session_id)}"
+
+
 def clean_space(text: str, limit: int = 500) -> str:
     text = re.sub(r"\s+", " ", text or "").strip()
     if len(text) <= limit:
