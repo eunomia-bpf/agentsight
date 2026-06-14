@@ -8,6 +8,7 @@ from .util import (
     basename_from_command,
     clean_space,
     command_effect,
+    command_process_chain,
     content_to_text,
     extract_domains,
     extract_paths_from_command,
@@ -93,6 +94,7 @@ def add_tool_event(
     domains = extract_domains(command)
     category = tool_category(name, command)
     command_name = basename_from_command(command) if category == "shell" else one_word(name, "tool")
+    process_chain = command_process_chain(command) if category == "shell" else []
     if category == "network" and domains:
         command_name = domains[0].split(":", 1)[0]
 
@@ -104,6 +106,7 @@ def add_tool_event(
         command=command,
         command_name=command_name,
         effect=effect,
+        process_chain=process_chain,
         status="observed",
         path_groups=sorted(set(path_groups)),
         domains=sorted(set(domains)),

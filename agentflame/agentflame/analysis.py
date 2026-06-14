@@ -38,12 +38,12 @@ class AnalysisConfig:
 DIMENSION_SPECS: dict[str, dict[str, Any]] = {
     "session-system": {
         "source": "system",
-        "keep": ("project:", "agent:", "session:", "tool:", "cmd:", "effect:", "path:", "domain:", "status:"),
+        "keep": ("project:", "agent:", "session:", "call:", "process:", "effect:", "path:", "domain:", "status:"),
         "metric": "events",
     },
     "prompt-system": {
         "source": "system",
-        "keep": ("project:", "agent:", "prompt:", "tool:", "cmd:", "effect:", "path:", "domain:", "status:"),
+        "keep": ("project:", "agent:", "prompt:", "call:", "process:", "effect:", "path:", "domain:", "status:"),
         "metric": "events",
     },
     "session-token": {
@@ -58,7 +58,7 @@ DIMENSION_SPECS: dict[str, dict[str, Any]] = {
     },
     "llm-token": {
         "source": "token",
-        "keep": ("project:", "agent:", "llm:", "model:", "kind:"),
+        "keep": ("project:", "agent:", "call:", "model:", "kind:"),
         "metric": "tokens",
     },
 }
@@ -109,13 +109,14 @@ def build_folded_stacks(sessions: list[SessionRecord], project_name: str) -> tup
             )
         for event in session.tools:
             req = session.request_by_index(event.request_index)
+            process_frames = [safe_frame(process, "process") for process in event.process_chain]
             base = [
                 safe_frame(project_name, "project"),
                 agent_frame,
                 session_frame,
                 safe_frame(req.tag, "prompt"),
-                safe_frame(event.category, "tool"),
-                safe_frame(event.command_name, "cmd"),
+                safe_frame(f"tool/{event.category}", "call"),
+                *process_frames,
                 safe_frame(event.effect, "effect"),
             ]
             if event.path_groups:
@@ -136,7 +137,7 @@ def build_folded_stacks(sessions: list[SessionRecord], project_name: str) -> tup
                         agent_frame,
                         session_frame,
                         safe_frame(req.tag, "prompt"),
-                        safe_frame(call.tag, "llm"),
+                        safe_frame(f"llm/{call.tag}", "call"),
                         safe_frame((call.model or "model").split("/")[-1], "model"),
                         safe_frame(kind, "kind"),
                     ],

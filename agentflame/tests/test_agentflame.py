@@ -11,6 +11,7 @@ from agentflame.analysis import AnalysisConfig, run_analysis
 from agentflame.render import write_dashboard
 from agentflame.session_history import parse_codex_session
 from agentflame.tagging import LlamaCppTagger, TaggingError
+from agentflame.util import command_process_chain
 
 
 class FakeTagger:
@@ -38,6 +39,9 @@ class InvalidTagger(LlamaCppTagger):
 
 
 class AgentFlameTests(unittest.TestCase):
+    def test_command_process_chain_keeps_shell_wrapper_nesting(self) -> None:
+        self.assertEqual(command_process_chain("bash -lc 'cargo test --manifest-path collector/Cargo.toml'"), ["bash", "cargo"])
+
     def test_parse_codex_session_and_analysis(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -82,6 +86,7 @@ class AgentFlameTests(unittest.TestCase):
             parsed = parse_codex_session(session_path, root)
             self.assertIsNotNone(parsed)
             self.assertEqual(parsed.tools[0].effect, "test")
+            self.assertEqual(parsed.tools[0].process_chain, ["cargo"])
 
             out = root / "out"
             payload = run_analysis(
@@ -93,7 +98,8 @@ class AgentFlameTests(unittest.TestCase):
             self.assertTrue((out / "tags.json").exists() is False)
             self.assertTrue((out / "index.html").exists())
             self.assertEqual(payload["sessions"][0]["agent_sight_session_id"], "local:codex:codex:s1")
-            self.assertTrue(any("llm:response" in row["stack"] for row in payload["summary"]["token"]["top"]))
+            self.assertTrue(any("call:llm/response" in row["stack"] for row in payload["summary"]["token"]["top"]))
+            self.assertTrue(any("call:tool/shell;process:cargo;effect:test" in row["stack"] for row in payload["summary"]["system"]["top"]))
             self.assertGreater(payload["summary"]["system"]["unique_stacks"], 0)
 
     def test_llm_tagger_rejects_invalid_without_regex_fallback(self) -> None:
