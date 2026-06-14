@@ -150,8 +150,9 @@ Current evidence:
 - Current full run is still agent-native session-history input. It extracts
   commands, status, path groups, and effect classes, but it is not a kernel-level
   exact file/network stream.
-- R110 live smoke on three real AgentSight DB exports validates 182/182
-  in-scope effects with 0 orphans after adding a harness-synthesized agent-run
+- R110 live smoke on three real AgentSight DB exports covers and joins 182/318
+  raw effects, for 57.233% raw coverage. Within the covered scope it validates
+  182/182 effects with 0 orphans after adding a harness-synthesized agent-run
   envelope and llama.cpp root tags.
 
 Remaining gap:

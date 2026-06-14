@@ -323,10 +323,15 @@ def live_lineage_evidence(live_lineage: dict[str, Any] | None) -> str:
     return (
         f"live_lineage={live_lineage.get('status', 'unknown')} "
         f"runs={aggregate.get('runs')} "
+        f"synthetic_sessions={aggregate.get('synthetic_sessions')} "
+        f"synthetic_tool_calls={aggregate.get('synthetic_tool_calls')} "
+        f"raw_effects={aggregate.get('raw_effect_events')} "
         f"in_scope_effects={aggregate.get('in_scope_effect_events')} "
+        f"raw_coverage_pct={aggregate.get('raw_coverage_pct')} "
         f"joined={aggregate.get('joined_effect_events')} "
         f"orphans={aggregate.get('orphan_effect_events')} "
-        f"join_rate_pct={aggregate.get('join_rate_pct')} "
+        f"in_scope_join_rate_pct={aggregate.get('join_rate_pct')} "
+        f"join_methods={aggregate.get('join_methods', {})} "
         f"out_of_scope={aggregate.get('excluded_out_of_scope_effect_events')} "
         "native_export=pending"
     )

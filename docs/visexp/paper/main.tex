@@ -34,7 +34,7 @@ AI 编程 agent 的可观测性问题不只是 ``模型调用了哪个 tool''，
 在本机 AgentSight 仓库的 205 个可读 Codex/Claude 真实 session 上，AgentFlame 标注 2,463 个 prompt 和 90,930 个 LLM call，0 个最终标签失败；它把 167,005 个系统观测折叠成 24,295 条语义系统栈。
 去掉 session/prompt 语义后，nonsemantic baseline 有 90.219\% 的观测权重落入混合多个语义区域的 buckets；flat effect baseline 的混合权重为 90.770\%。
 这些结果支持一个机制性结论：语义帧能分开传统 trace 或 process summary 会合并的 task-effect 区域。
-本文也明确边界：当前 full run 仍基于 agent-native session 历史；R110 只证明 live AgentSight DB 中被 agent root process 覆盖的 in-scope effects 可 100\% join；native session/tool export 和用户任务实验尚未完成，因此不能声称用户效用或完整系统 provenance 已被证明。
+本文也明确边界：当前 full run 仍基于 agent-native session 历史；R110 只覆盖并 join 了 182/318 个 live raw effects（57.233\% raw coverage），在 covered scope 内达到 182/182 join；native session/tool export 和用户任务实验尚未完成，因此不能声称用户效用或完整系统 provenance 已被证明。
 \end{abstract}
 
 \section{问题}
@@ -265,11 +265,13 @@ Trace tree 能回放某次调用，span flamegraph 能看 duration bottleneck，
 当前答案是：live in-scope smoke 部分成立，native export 仍不足。
 \texttt{docs/visexp/effect\_lineage\_smoke.py} 已经能在 AgentSight-shaped fixture 上把 process/file/network effects 连到 session/tool/prompt ancestry，并输出 exact-effect folded stacks。
 R110 进一步导出了 3 个真实 AgentSight SQLite DB，使用 \texttt{docs/visexp/live\_lineage\_harness.py} 给检测到的 Codex/Claude root processes 增加 agent-run session/tool envelope，并用本地 llama.cpp 3B 模型给 root prompt 打一个词标签。
-在这些被 root process family 覆盖的 in-scope effects 上，checker 验证 182/182 joined，0 orphans，join rate 为 100.0\%。
+在这些被 root process family 覆盖的 effects 上，checker 验证 182/182 joined，0 orphans，in-scope join rate 为 100.0\%。
+但这不是 raw coverage 的 100.0\%：三个 DB 一共有 318 个 raw process/file/network effects，R110 只覆盖并 join 其中 182 个，raw coverage 为 57.233\%。
+aggregate join methods 是 \texttt{related\_event\_id=8} 和 \texttt{pid\_family\_time\_window=174}；harness 同时合成 8 个 session/tool envelopes。
 
 这个结果比 fixture 强，但还不是完整 C4。
 原因是当前 DB export 本身没有 materialized session/tool rows；harness 只补上 envelope，不伪造底层 process/file/network events。
-同时 318 个 raw effects 中有 136 个不在检测到的 agent roots 范围内。
+同时 136 个 raw effects 不在检测到的 agent roots 范围内。
 OSDI 版本必须把 envelope 移入 collector native export，并在更多任务上报告 in-scope coverage、orphan rate、child-process depth、path/domain specificity 和 redaction failures。
 
 \subsection{RQ4：用户效用是否成立？}

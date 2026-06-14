@@ -122,7 +122,9 @@ session, and prompt tag, then writes `effect-lineage.csv` and
 `orphan_reason`; the checker does not fall back to out-of-window processes.
 R110 adds live in-scope smoke evidence over three real DB exports, but still
 uses `live_lineage_harness.py` to synthesize the session/tool envelope because
-the current export does not materialize those rows natively.
+the current export does not materialize those rows natively. The R110 denominator
+is split intentionally: 182/318 raw effects were covered and joined, and 182/182
+covered effects joined to semantic ancestry.
 
 ## What Is New Here
 
