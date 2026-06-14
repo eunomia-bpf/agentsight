@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "run_id": "R110",
+  "claim": "C4 exact AgentSight effect lineage",
+  "stage": "execute/analyze",
+  "date": "2026-06-14",
+  "status": "partial_supported_for_in_scope_live_smoke",
+  "source_outputs": ".agentsight/agentflame/exact-lineage-r110",
+  "method": {
+    "snapshot_source": "real AgentSight SQLite DB exports",
+    "harness": "docs/visexp/live_lineage_harness.py",
+    "lineage_checker": "docs/visexp/effect_lineage_smoke.py",
+    "semantic_tagger": "llama.cpp qwen2.5-3b-instruct-q4_k_m",
+    "scope": "process/file/network effects covered by detected Codex/Claude root process families",
+    "important_boundary": "The harness adds session/tool envelopes because current DB export has effects but no materialized session/tool ancestry. Low-level process/file/network events are not synthesized."
+  },
+  "negative_control": {
+    "snapshot": "docs/sample-snapshot.json",
+    "effect_events": 176,
+    "joined_effect_events": 0,
+    "join_rate_pct": 0.0,
+    "orphan_reason": "missing_tool_ancestry",
+    "interpretation": "A process/effect snapshot without session/tool ancestry cannot support C4 by itself."
+  },
+  "runs": [
+    {
+      "name": "codex-local",
+      "db": "collector/target/agentsight-runs/codex-local-prompt.db",
+      "agent_roots": 2,
+      "synthetic_sessions": 2,
+      "synthetic_tool_calls": 2,
+      "raw_effect_events": 90,
+      "in_scope_effect_events": 48,
+      "excluded_out_of_scope_effect_events": 42,
+      "joined_effect_events": 48,
+      "orphan_effect_events": 0,
+      "join_rate_pct": 100.0,
+      "folded_stack_count": 20,
+      "join_methods": {
+        "related_event_id": 2,
+        "pid_family_time_window": 46
+      },
+      "llama_tags": ["prompt", "tasking"]
+    },
+    {
+      "name": "codex-attach",
+      "db": "collector/target/agentsight-runs/codex-attach-prompt.db",
+      "agent_roots": 2,
+      "synthetic_sessions": 2,
+      "synthetic_tool_calls": 2,
+      "raw_effect_events": 168,
+      "in_scope_effect_events": 86,
+      "excluded_out_of_scope_effect_events": 82,
+      "joined_effect_events": 86,
+      "orphan_effect_events": 0,
+      "join_rate_pct": 100.0,
+      "folded_stack_count": 23,
+      "join_methods": {
+        "related_event_id": 2,
+        "pid_family_time_window": 84
+      },
+      "llama_tags": ["codexattach", "codexagt"]
+    },
+    {
+      "name": "debug-ssl-auto",
+      "db": "collector/target/agentsight-runs/debug-ssl-auto-fixed.db",
+      "agent_roots": 4,
+      "synthetic_sessions": 4,
+      "synthetic_tool_calls": 4,
+      "raw_effect_events": 60,
+      "in_scope_effect_events": 48,
+      "excluded_out_of_scope_effect_events": 12,
+      "joined_effect_events": 48,
+      "orphan_effect_events": 0,
+      "join_rate_pct": 100.0,
+      "folded_stack_count": 33,
+      "join_methods": {
+        "related_event_id": 4,
+        "pid_family_time_window": 44
+      },
+      "llama_tags": ["ssl", "grep"]
+    }
+  ],
+  "aggregate": {
+    "runs": 3,
+    "agent_roots": 8,
+    "synthetic_sessions": 8,
+    "synthetic_tool_calls": 8,
+    "raw_effect_events": 318,
+    "in_scope_effect_events": 182,
+    "excluded_out_of_scope_effect_events": 136,
+    "joined_effect_events": 182,
+    "orphan_effect_events": 0,
+    "join_rate_pct": 100.0,
+    "folded_stack_count_sum": 76
+  },
+  "claim_boundary": "This moves C4 from fixture-only to live in-scope smoke evidence. It does not yet prove full native AgentSight export because session/tool envelopes are synthesized by the harness and 136 raw effects are out of scope for detected agent roots."
+}

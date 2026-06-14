@@ -34,7 +34,7 @@ AI 编程 agent 的可观测性问题不只是 ``模型调用了哪个 tool''，
 在本机 AgentSight 仓库的 205 个可读 Codex/Claude 真实 session 上，AgentFlame 标注 2,463 个 prompt 和 90,930 个 LLM call，0 个最终标签失败；它把 167,005 个系统观测折叠成 24,295 条语义系统栈。
 去掉 session/prompt 语义后，nonsemantic baseline 有 90.219\% 的观测权重落入混合多个语义区域的 buckets；flat effect baseline 的混合权重为 90.770\%。
 这些结果支持一个机制性结论：语义帧能分开传统 trace 或 process summary 会合并的 task-effect 区域。
-本文也明确边界：当前 full run 仍基于 agent-native session 历史；live AgentSight exact file/network lineage 和用户任务实验尚未完成，因此不能声称用户效用或完整系统 provenance 已被证明。
+本文也明确边界：当前 full run 仍基于 agent-native session 历史；R110 只证明 live AgentSight DB 中被 agent root process 覆盖的 in-scope effects 可 100\% join；native session/tool export 和用户任务实验尚未完成，因此不能声称用户效用或完整系统 provenance 已被证明。
 \end{abstract}
 
 \section{问题}
@@ -153,7 +153,7 @@ AgentFlame 没有 heuristic fallback：如果 LLM server 缺失，或模型重�
 AgentFlame 的第一模式是零 instrumentation 的历史分析。
 AgentSight 的独特点是运行时 exact provenance：\texttt{tool\_call -> shell -> child process -> file/network effect}。
 正确集成后，AgentFlame 负责语义帧，AgentSight 负责系统效应事实，两者通过 tool/session/prompt ancestry 连接。
-当前 full run 还不是 live exact-effect 结果；因此 C4 仍是下一步系统实验。
+当前 full run 还不是 live exact-effect 结果。R110 增加了一个 live in-scope smoke，但它仍通过 harness 补 session/tool envelope；因此 C4 仍是 partial。
 
 \section{评估}
 
@@ -262,11 +262,15 @@ Trace tree 能回放某次调用，span flamegraph 能看 duration bottleneck，
 
 \subsection{RQ3：exact lineage 是否成立？}
 
-当前答案是：接口设计成立，live evidence 不足。
+当前答案是：live in-scope smoke 部分成立，native export 仍不足。
 \texttt{docs/visexp/effect\_lineage\_smoke.py} 已经能在 AgentSight-shaped fixture 上把 process/file/network effects 连到 session/tool/prompt ancestry，并输出 exact-effect folded stacks。
-但是 fixture 不属于 full-run workload。
-OSDI 版本必须运行真实 AgentSight snapshot，报告 in-scope join coverage、orphan rate、child-process depth、path/domain specificity 和 redaction failures。
-在此之前，论文不能声称完整 exact file/network provenance。
+R110 进一步导出了 3 个真实 AgentSight SQLite DB，使用 \texttt{docs/visexp/live\_lineage\_harness.py} 给检测到的 Codex/Claude root processes 增加 agent-run session/tool envelope，并用本地 llama.cpp 3B 模型给 root prompt 打一个词标签。
+在这些被 root process family 覆盖的 in-scope effects 上，checker 验证 182/182 joined，0 orphans，join rate 为 100.0\%。
+
+这个结果比 fixture 强，但还不是完整 C4。
+原因是当前 DB export 本身没有 materialized session/tool rows；harness 只补上 envelope，不伪造底层 process/file/network events。
+同时 318 个 raw effects 中有 136 个不在检测到的 agent roots 范围内。
+OSDI 版本必须把 envelope 移入 collector native export，并在更多任务上报告 in-scope coverage、orphan rate、child-process depth、path/domain specificity 和 redaction failures。
 
 \subsection{RQ4：用户效用是否成立？}
 
@@ -303,7 +307,7 @@ AgentFlame 包含 token flamegraph，但当前只作为 source-local accounting�
 \section{局限与下一步}
 
 当前版本仍不到 OSDI weak accept。
-第一，exact lineage 是最强系统贡献，但还没有 live AgentSight full-run 证据。
+第一，exact lineage 是最强系统贡献，但当前只有 live in-scope smoke，还没有 native AgentSight full-run export 证据。
 第二，用户效用没有实验。
 第三，标签 adequacy 没有人工评估。
 第四，当前结果来自一个本机仓库，且历史是 observational，不是 paired benchmark。

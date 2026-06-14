@@ -386,11 +386,27 @@ def write_folded(path: Path, folded: Counter[str]) -> None:
 
 
 def write_summary(path: Path, result: dict[str, Any]) -> None:
+    source_line = (
+        "The committed run is fixture-backed; it is not a live exact-capture result."
+        if result["source"] == "fixture"
+        else "This run used a non-fixture AgentSight snapshot; scope is limited to the supplied snapshot."
+    )
+    claim_lines = (
+        [
+            "- This supports the C4 checker and stack grammar only.",
+            "- C4 remains unsupported until live AgentSight exact effects from real sessions pass the same checker.",
+        ]
+        if result["source"] == "fixture"
+        else [
+            "- This supports C4 for the in-scope effects present in this snapshot.",
+            "- Broader C4 still requires native session/tool export and more live tasks.",
+        ]
+    )
     lines = [
         "# Effect Lineage Smoke",
         "",
         "This smoke validates exact-effect lineage invariants on an AgentSight-shaped snapshot.",
-        "The committed run is fixture-backed; it is not a live exact-capture result.",
+        source_line,
         "",
         "## Metrics",
         "",
@@ -402,8 +418,7 @@ def write_summary(path: Path, result: dict[str, Any]) -> None:
         "",
         "## Claim Boundary",
         "",
-        "- This supports the C4 checker and stack grammar only.",
-        "- C4 remains unsupported until live AgentSight exact effects from real sessions pass the same checker.",
+        *claim_lines,
     ]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -430,7 +445,11 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "join_methods": dict(Counter(row["join_method"] for row in rows)),
         "orphan_reasons": dict(Counter(row["orphan_reason"] for row in orphans)),
         "orphan_examples": orphans[:10],
-        "claim_boundary": "checker evidence only; live exact capture over real sessions is still missing",
+        "claim_boundary": (
+            "checker evidence only; live exact capture over real sessions is still missing"
+            if args.fixture
+            else "live snapshot evidence for in-scope effects; broader exact-lineage claim still needs native session/tool export and more tasks"
+        ),
     }
     (out_dir / "effect-lineage-smoke.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
     write_csv(out_dir / "effect-lineage.csv", rows)

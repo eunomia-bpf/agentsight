@@ -2,34 +2,34 @@
   "schema_version": 1,
   "source_artifact": {
     "out_dir": "docs/visexp/out",
-    "session_fingerprint": "112cfeb9c563e49c",
-    "input_manifest_sha256": "8903c477cf1c0a98e36d11ef71ab1433e591e1abb07e028e9c9e18f00cec0b1b"
+    "session_fingerprint": "d11635430cc88e09",
+    "input_manifest_sha256": "268a1d32884db2f022f96bd2a34c8dab0d373bbd39895049a1c33f92101cdd5e"
   },
   "aggregation_strength": {
     "semantic_system": {
-      "total_observations": 5312,
-      "unique_stacks": 2270,
-      "compression_ratio": 2.34,
-      "repeated_stack_count": 921,
-      "collapsed_observations": 3042,
-      "collapsed_observation_share_pct": 57.267,
+      "total_observations": 6301,
+      "unique_stacks": 2620,
+      "compression_ratio": 2.405,
+      "repeated_stack_count": 1097,
+      "collapsed_observations": 3681,
+      "collapsed_observation_share_pct": 58.419,
       "max_stack_reuse": 75
     },
     "nonsemantic_system": {
-      "total_observations": 5312,
-      "unique_stacks": 1384,
-      "compression_ratio": 3.838,
-      "repeated_stack_count": 676,
-      "collapsed_observations": 3928,
-      "collapsed_observation_share_pct": 73.946,
-      "max_stack_reuse": 376
+      "total_observations": 6301,
+      "unique_stacks": 1571,
+      "compression_ratio": 4.011,
+      "repeated_stack_count": 802,
+      "collapsed_observations": 4730,
+      "collapsed_observation_share_pct": 75.067,
+      "max_stack_reuse": 431
     },
     "semantic_token": {
-      "total_observations": 158790715,
-      "unique_stacks": 226,
-      "compression_ratio": 702613.783,
-      "repeated_stack_count": 226,
-      "collapsed_observations": 158790489,
+      "total_observations": 158809508,
+      "unique_stacks": 268,
+      "compression_ratio": 592572.791,
+      "repeated_stack_count": 268,
+      "collapsed_observations": 158809240,
       "collapsed_observation_share_pct": 100.0,
       "max_stack_reuse": 57503301
     }
@@ -38,18 +38,18 @@
     "interpretation": "A mixed baseline bucket means ordinary/nonsemantic grouping merges multiple session/prompt tags that semantic stacks keep separate.",
     "nonsemantic_stack_mixing": {
       "baseline_kind": "nonsemantic_without_session_prompt",
-      "baseline_bucket_count": 1384,
-      "mixed_bucket_count": 392,
-      "mixed_bucket_share_pct": 28.324,
-      "mixed_weight": 3639,
-      "mixed_weight_share_pct": 68.505,
-      "max_semantic_variants_per_bucket": 27,
+      "baseline_bucket_count": 1571,
+      "mixed_bucket_count": 458,
+      "mixed_bucket_share_pct": 29.153,
+      "mixed_weight": 4326,
+      "mixed_weight_share_pct": 68.656,
+      "max_semantic_variants_per_bucket": 28,
       "examples": [
         {
           "baseline_kind": "nonsemantic_without_session_prompt",
           "baseline_stack": "project:agentsight;agent:codex;tool:shell;cmd:git;effect:read;status:ok",
-          "weight": 376,
-          "semantic_variant_count": 27,
+          "weight": 431,
+          "semantic_variant_count": 28,
           "top_semantic_variants": [
             {
               "semantic": "session:session/prompt:session",
@@ -58,6 +58,10 @@
             {
               "semantic": "session:flamegraph/prompt:design",
               "weight": 56
+            },
+            {
+              "semantic": "session:flamegraph/prompt:prompt",
+              "weight": 48
             },
             {
               "semantic": "session:paper/prompt:debug",
@@ -78,10 +82,46 @@
             {
               "semantic": "session:paper/prompt:pr",
               "weight": 20
+            }
+          ]
+        },
+        {
+          "baseline_kind": "nonsemantic_without_session_prompt",
+          "baseline_stack": "project:agentsight;agent:codex;tool:shell;cmd:python3;effect:process;status:ok",
+          "weight": 82,
+          "semantic_variant_count": 14,
+          "top_semantic_variants": [
+            {
+              "semantic": "session:session/prompt:session",
+              "weight": 14
             },
             {
-              "semantic": "session:paper/prompt:paper",
-              "weight": 15
+              "semantic": "session:flamegraph/prompt:design",
+              "weight": 13
+            },
+            {
+              "semantic": "session:flamegraph/prompt:flamegraph",
+              "weight": 11
+            },
+            {
+              "semantic": "session:paper/prompt:debug",
+              "weight": 11
+            },
+            {
+              "semantic": "session:session/prompt:trace",
+              "weight": 8
+            },
+            {
+              "semantic": "session:paper/prompt:session",
+              "weight": 6
+            },
+            {
+              "semantic": "session:flamegraph/prompt:prompt",
+              "weight": 3
+            },
+            {
+              "semantic": "session:paper/prompt:pr",
+              "weight": 3
             }
           ]
         },
@@ -127,41 +167,81 @@
         },
         {
           "baseline_kind": "nonsemantic_without_session_prompt",
-          "baseline_stack": "project:agentsight;agent:codex;tool:shell;cmd:python3;effect:process;status:ok",
-          "weight": 76,
-          "semantic_variant_count": 14,
+          "baseline_stack": "project:agentsight;agent:codex;tool:tool;cmd:write;effect:process;status:observed",
+          "weight": 77,
+          "semantic_variant_count": 13,
           "top_semantic_variants": [
             {
-              "semantic": "session:session/prompt:session",
-              "weight": 14
+              "semantic": "session:flamegraph/prompt:prompt",
+              "weight": 18
             },
             {
               "semantic": "session:flamegraph/prompt:design",
               "weight": 13
             },
             {
-              "semantic": "session:paper/prompt:debug",
-              "weight": 11
-            },
-            {
-              "semantic": "session:session/prompt:trace",
+              "semantic": "session:session/prompt:session",
               "weight": 8
             },
             {
-              "semantic": "session:flamegraph/prompt:flamegraph",
-              "weight": 7
-            },
-            {
-              "semantic": "session:paper/prompt:session",
+              "semantic": "session:paper/prompt:debug",
               "weight": 6
             },
             {
-              "semantic": "session:paper/prompt:pr",
+              "semantic": "session:paper/prompt:inspect",
+              "weight": 6
+            },
+            {
+              "semantic": "session:session/prompt:work",
+              "weight": 6
+            },
+            {
+              "semantic": "session:session/prompt:agent",
+              "weight": 5
+            },
+            {
+              "semantic": "session:flamegraph/prompt:flamegraph",
+              "weight": 4
+            }
+          ]
+        },
+        {
+          "baseline_kind": "nonsemantic_without_session_prompt",
+          "baseline_stack": "project:agentsight;agent:codex;tool:shell;cmd:sed;effect:read;path:collector/src/sources;status:ok",
+          "weight": 73,
+          "semantic_variant_count": 13,
+          "top_semantic_variants": [
+            {
+              "semantic": "session:session/prompt:session",
+              "weight": 34
+            },
+            {
+              "semantic": "session:flamegraph/prompt:prompt",
+              "weight": 8
+            },
+            {
+              "semantic": "session:session/prompt:agent",
+              "weight": 8
+            },
+            {
+              "semantic": "session:session/prompt:ssl",
+              "weight": 5
+            },
+            {
+              "semantic": "session:session/prompt:trace",
+              "weight": 4
+            },
+            {
+              "semantic": "session:session/prompt:work",
+              "weight": 4
+            },
+            {
+              "semantic": "session:session/prompt:commit",
               "weight": 3
             },
             {
-              "semantic": "session:session/prompt:model",
-              "weight": 3
+              "semantic": "session:session/prompt:inspect",
+              "weight": 2
             }
           ]
         },
@@ -247,89 +327,9 @@
         },
         {
           "baseline_kind": "nonsemantic_without_session_prompt",
-          "baseline_stack": "project:agentsight;agent:codex;tool:shell;cmd:sed;effect:read;path:collector/src/sources;status:ok",
-          "weight": 65,
-          "semantic_variant_count": 12,
-          "top_semantic_variants": [
-            {
-              "semantic": "session:session/prompt:session",
-              "weight": 34
-            },
-            {
-              "semantic": "session:session/prompt:agent",
-              "weight": 8
-            },
-            {
-              "semantic": "session:session/prompt:ssl",
-              "weight": 5
-            },
-            {
-              "semantic": "session:session/prompt:trace",
-              "weight": 4
-            },
-            {
-              "semantic": "session:session/prompt:work",
-              "weight": 4
-            },
-            {
-              "semantic": "session:session/prompt:commit",
-              "weight": 3
-            },
-            {
-              "semantic": "session:session/prompt:inspect",
-              "weight": 2
-            },
-            {
-              "semantic": "session:flamegraph/prompt:session",
-              "weight": 1
-            }
-          ]
-        },
-        {
-          "baseline_kind": "nonsemantic_without_session_prompt",
-          "baseline_stack": "project:agentsight;agent:codex;tool:tool;cmd:write;effect:process;status:observed",
-          "weight": 57,
-          "semantic_variant_count": 11,
-          "top_semantic_variants": [
-            {
-              "semantic": "session:flamegraph/prompt:design",
-              "weight": 13
-            },
-            {
-              "semantic": "session:session/prompt:session",
-              "weight": 8
-            },
-            {
-              "semantic": "session:paper/prompt:debug",
-              "weight": 6
-            },
-            {
-              "semantic": "session:paper/prompt:inspect",
-              "weight": 6
-            },
-            {
-              "semantic": "session:session/prompt:work",
-              "weight": 6
-            },
-            {
-              "semantic": "session:session/prompt:agent",
-              "weight": 5
-            },
-            {
-              "semantic": "session:paper/prompt:pr",
-              "weight": 4
-            },
-            {
-              "semantic": "session:session/prompt:trace",
-              "weight": 4
-            }
-          ]
-        },
-        {
-          "baseline_kind": "nonsemantic_without_session_prompt",
           "baseline_stack": "project:agentsight;agent:codex;tool:tool;cmd:write;effect:process;status:ok",
-          "weight": 56,
-          "semantic_variant_count": 12,
+          "weight": 65,
+          "semantic_variant_count": 14,
           "top_semantic_variants": [
             {
               "semantic": "session:flamegraph/prompt:design",
@@ -338,6 +338,10 @@
             {
               "semantic": "session:session/prompt:session",
               "weight": 15
+            },
+            {
+              "semantic": "session:flamegraph/prompt:prompt",
+              "weight": 6
             },
             {
               "semantic": "session:paper/prompt:paper",
@@ -356,11 +360,7 @@
               "weight": 3
             },
             {
-              "semantic": "session:session/prompt:work",
-              "weight": 2
-            },
-            {
-              "semantic": "session:session/prompt:agent",
+              "semantic": "session:flamegraph/prompt:flamegraph",
               "weight": 2
             }
           ]
@@ -368,8 +368,8 @@
         {
           "baseline_kind": "nonsemantic_without_session_prompt",
           "baseline_stack": "project:agentsight;agent:codex;tool:shell;cmd:rg;effect:read;path:collector/src;status:ok",
-          "weight": 52,
-          "semantic_variant_count": 13,
+          "weight": 54,
+          "semantic_variant_count": 14,
           "top_semantic_variants": [
             {
               "semantic": "session:session/prompt:session",
@@ -384,8 +384,8 @@
               "weight": 4
             },
             {
-              "semantic": "session:flamegraph/prompt:flamegraph",
-              "weight": 2
+              "semantic": "session:flamegraph/prompt:prompt",
+              "weight": 3
             },
             {
               "semantic": "session:paper/prompt:pr",
@@ -402,6 +402,22 @@
             {
               "semantic": "session:session/prompt:trace",
               "weight": 2
+            }
+          ]
+        },
+        {
+          "baseline_kind": "nonsemantic_without_session_prompt",
+          "baseline_stack": "project:agentsight;agent:codex;tool:shell;cmd:sed;effect:read;path:agentflame/src;status:ok",
+          "weight": 48,
+          "semantic_variant_count": 2,
+          "top_semantic_variants": [
+            {
+              "semantic": "session:flamegraph/prompt:prompt",
+              "weight": 47
+            },
+            {
+              "semantic": "session:flamegraph/prompt:repoadmin",
+              "weight": 1
             }
           ]
         },
@@ -430,6 +446,62 @@
             {
               "semantic": "session:flamegraph/prompt:flamegraph",
               "weight": 6
+            }
+          ]
+        },
+        {
+          "baseline_kind": "nonsemantic_without_session_prompt",
+          "baseline_stack": "project:agentsight;agent:codex;tool:shell;cmd:python3;effect:process;path:docs/visexp/out;status:ok",
+          "weight": 45,
+          "semantic_variant_count": 5,
+          "top_semantic_variants": [
+            {
+              "semantic": "session:flamegraph/prompt:design",
+              "weight": 31
+            },
+            {
+              "semantic": "session:flamegraph/prompt:prompt",
+              "weight": 5
+            },
+            {
+              "semantic": "session:flamegraph/prompt:work",
+              "weight": 4
+            },
+            {
+              "semantic": "session:flamegraph/prompt:flamegraph",
+              "weight": 3
+            },
+            {
+              "semantic": "session:flamegraph/prompt:branch",
+              "weight": 2
+            }
+          ]
+        },
+        {
+          "baseline_kind": "nonsemantic_without_session_prompt",
+          "baseline_stack": "project:agentsight;agent:codex;tool:shell;cmd:python3;effect:process;path:docs/visexp/test_semantic_tag_flamegraph.py;status:ok",
+          "weight": 42,
+          "semantic_variant_count": 5,
+          "top_semantic_variants": [
+            {
+              "semantic": "session:flamegraph/prompt:design",
+              "weight": 32
+            },
+            {
+              "semantic": "session:flamegraph/prompt:prompt",
+              "weight": 4
+            },
+            {
+              "semantic": "session:flamegraph/prompt:flamegraph",
+              "weight": 3
+            },
+            {
+              "semantic": "session:flamegraph/prompt:work",
+              "weight": 2
+            },
+            {
+              "semantic": "session:flamegraph/prompt:branch",
+              "weight": 1
             }
           ]
         },
@@ -475,113 +547,41 @@
         },
         {
           "baseline_kind": "nonsemantic_without_session_prompt",
-          "baseline_stack": "project:agentsight;agent:codex;tool:shell;cmd:python3;effect:process;path:docs/visexp/out;status:ok",
-          "weight": 38,
-          "semantic_variant_count": 4,
+          "baseline_stack": "project:agentsight;agent:codex;tool:shell;cmd:git;effect:repo;status:ok",
+          "weight": 37,
+          "semantic_variant_count": 13,
           "top_semantic_variants": [
             {
               "semantic": "session:flamegraph/prompt:design",
-              "weight": 31
+              "weight": 13
             },
             {
-              "semantic": "session:flamegraph/prompt:work",
-              "weight": 4
-            },
-            {
-              "semantic": "session:flamegraph/prompt:branch",
-              "weight": 2
-            },
-            {
-              "semantic": "session:flamegraph/prompt:flamegraph",
-              "weight": 1
-            }
-          ]
-        },
-        {
-          "baseline_kind": "nonsemantic_without_session_prompt",
-          "baseline_stack": "project:agentsight;agent:codex;tool:shell;cmd:python3;effect:process;path:docs/visexp/test_semantic_tag_flamegraph.py;status:ok",
-          "weight": 36,
-          "semantic_variant_count": 4,
-          "top_semantic_variants": [
-            {
-              "semantic": "session:flamegraph/prompt:design",
-              "weight": 32
-            },
-            {
-              "semantic": "session:flamegraph/prompt:work",
-              "weight": 2
+              "semantic": "session:flamegraph/prompt:prompt",
+              "weight": 9
             },
             {
               "semantic": "session:flamegraph/prompt:branch",
-              "weight": 1
-            },
-            {
-              "semantic": "session:flamegraph/prompt:flamegraph",
-              "weight": 1
-            }
-          ]
-        },
-        {
-          "baseline_kind": "nonsemantic_without_session_prompt",
-          "baseline_stack": "project:agentsight;agent:codex;tool:shell;cmd:git;effect:read;path:collector/src/runners;status:ok",
-          "weight": 34,
-          "semantic_variant_count": 8,
-          "top_semantic_variants": [
-            {
-              "semantic": "session:session/prompt:session",
-              "weight": 8
-            },
-            {
-              "semantic": "session:paper/prompt:paper",
-              "weight": 7
-            },
-            {
-              "semantic": "session:paper/prompt:pr",
-              "weight": 5
-            },
-            {
-              "semantic": "session:session/prompt:trace",
-              "weight": 5
-            },
-            {
-              "semantic": "session:paper/prompt:inspect",
-              "weight": 4
-            },
-            {
-              "semantic": "session:paper/prompt:debug",
               "weight": 3
             },
             {
-              "semantic": "session:session/prompt:subagent",
+              "semantic": "session:session/prompt:session",
+              "weight": 3
+            },
+            {
+              "semantic": "session:flamegraph/prompt:work",
               "weight": 1
             },
             {
-              "semantic": "session:session/prompt:model",
+              "semantic": "session:flamegraph/prompt:llmtag",
               "weight": 1
-            }
-          ]
-        },
-        {
-          "baseline_kind": "nonsemantic_without_session_prompt",
-          "baseline_stack": "project:agentsight;agent:codex-subagent;tool:shell;cmd:nl;effect:read;path:docs/visexp/semantic_tag_flamegraph.py;status:ok",
-          "weight": 34,
-          "semantic_variant_count": 4,
-          "top_semantic_variants": [
-            {
-              "semantic": "session:osdi/prompt:prompt",
-              "weight": 16
             },
             {
-              "semantic": "session:reviewing/prompt:prompt",
-              "weight": 8
+              "semantic": "session:paper/prompt:pr",
+              "weight": 1
             },
             {
-              "semantic": "session:reviewdoc/prompt:reviewdoc",
-              "weight": 6
-            },
-            {
-              "semantic": "session:flamegraph/prompt:paper",
-              "weight": 4
+              "semantic": "session:paper/prompt:paper",
+              "weight": 1
             }
           ]
         }
@@ -589,18 +589,18 @@
     },
     "flat_effect_mixing": {
       "baseline_kind": "flat_effect_without_project_agent_session_prompt",
-      "baseline_bucket_count": 1232,
-      "mixed_bucket_count": 397,
-      "mixed_bucket_share_pct": 32.224,
-      "mixed_weight": 3956,
-      "mixed_weight_share_pct": 74.473,
-      "max_semantic_variants_per_bucket": 29,
+      "baseline_bucket_count": 1410,
+      "mixed_bucket_count": 453,
+      "mixed_bucket_share_pct": 32.128,
+      "mixed_weight": 4668,
+      "mixed_weight_share_pct": 74.083,
+      "max_semantic_variants_per_bucket": 30,
       "examples": [
         {
           "baseline_kind": "flat_effect_without_project_agent_session_prompt",
           "baseline_stack": "tool:shell;cmd:git;effect:read;status:ok",
-          "weight": 387,
-          "semantic_variant_count": 29,
+          "weight": 442,
+          "semantic_variant_count": 30,
           "top_semantic_variants": [
             {
               "semantic": "session:session/prompt:session",
@@ -609,6 +609,10 @@
             {
               "semantic": "session:flamegraph/prompt:design",
               "weight": 56
+            },
+            {
+              "semantic": "session:flamegraph/prompt:prompt",
+              "weight": 48
             },
             {
               "semantic": "session:paper/prompt:debug",
@@ -629,10 +633,6 @@
             {
               "semantic": "session:paper/prompt:pr",
               "weight": 20
-            },
-            {
-              "semantic": "session:paper/prompt:paper",
-              "weight": 16
             }
           ]
         },
@@ -679,7 +679,7 @@
         {
           "baseline_kind": "flat_effect_without_project_agent_session_prompt",
           "baseline_stack": "tool:shell;cmd:python3;effect:process;status:ok",
-          "weight": 77,
+          "weight": 83,
           "semantic_variant_count": 15,
           "top_semantic_variants": [
             {
@@ -691,6 +691,10 @@
               "weight": 13
             },
             {
+              "semantic": "session:flamegraph/prompt:flamegraph",
+              "weight": 11
+            },
+            {
               "semantic": "session:paper/prompt:debug",
               "weight": 11
             },
@@ -699,20 +703,96 @@
               "weight": 8
             },
             {
-              "semantic": "session:flamegraph/prompt:flamegraph",
-              "weight": 7
-            },
-            {
               "semantic": "session:paper/prompt:session",
               "weight": 6
             },
             {
-              "semantic": "session:paper/prompt:pr",
+              "semantic": "session:flamegraph/prompt:prompt",
               "weight": 3
             },
             {
-              "semantic": "session:session/prompt:model",
+              "semantic": "session:paper/prompt:pr",
               "weight": 3
+            }
+          ]
+        },
+        {
+          "baseline_kind": "flat_effect_without_project_agent_session_prompt",
+          "baseline_stack": "tool:tool;cmd:write;effect:process;status:observed",
+          "weight": 77,
+          "semantic_variant_count": 13,
+          "top_semantic_variants": [
+            {
+              "semantic": "session:flamegraph/prompt:prompt",
+              "weight": 18
+            },
+            {
+              "semantic": "session:flamegraph/prompt:design",
+              "weight": 13
+            },
+            {
+              "semantic": "session:session/prompt:session",
+              "weight": 8
+            },
+            {
+              "semantic": "session:paper/prompt:debug",
+              "weight": 6
+            },
+            {
+              "semantic": "session:paper/prompt:inspect",
+              "weight": 6
+            },
+            {
+              "semantic": "session:session/prompt:work",
+              "weight": 6
+            },
+            {
+              "semantic": "session:session/prompt:agent",
+              "weight": 5
+            },
+            {
+              "semantic": "session:flamegraph/prompt:flamegraph",
+              "weight": 4
+            }
+          ]
+        },
+        {
+          "baseline_kind": "flat_effect_without_project_agent_session_prompt",
+          "baseline_stack": "tool:shell;cmd:sed;effect:read;path:collector/src/sources;status:ok",
+          "weight": 73,
+          "semantic_variant_count": 13,
+          "top_semantic_variants": [
+            {
+              "semantic": "session:session/prompt:session",
+              "weight": 34
+            },
+            {
+              "semantic": "session:flamegraph/prompt:prompt",
+              "weight": 8
+            },
+            {
+              "semantic": "session:session/prompt:agent",
+              "weight": 8
+            },
+            {
+              "semantic": "session:session/prompt:ssl",
+              "weight": 5
+            },
+            {
+              "semantic": "session:session/prompt:trace",
+              "weight": 4
+            },
+            {
+              "semantic": "session:session/prompt:work",
+              "weight": 4
+            },
+            {
+              "semantic": "session:session/prompt:commit",
+              "weight": 3
+            },
+            {
+              "semantic": "session:session/prompt:inspect",
+              "weight": 2
             }
           ]
         },
@@ -798,49 +878,9 @@
         },
         {
           "baseline_kind": "flat_effect_without_project_agent_session_prompt",
-          "baseline_stack": "tool:shell;cmd:sed;effect:read;path:collector/src/sources;status:ok",
-          "weight": 65,
-          "semantic_variant_count": 12,
-          "top_semantic_variants": [
-            {
-              "semantic": "session:session/prompt:session",
-              "weight": 34
-            },
-            {
-              "semantic": "session:session/prompt:agent",
-              "weight": 8
-            },
-            {
-              "semantic": "session:session/prompt:ssl",
-              "weight": 5
-            },
-            {
-              "semantic": "session:session/prompt:trace",
-              "weight": 4
-            },
-            {
-              "semantic": "session:session/prompt:work",
-              "weight": 4
-            },
-            {
-              "semantic": "session:session/prompt:commit",
-              "weight": 3
-            },
-            {
-              "semantic": "session:session/prompt:inspect",
-              "weight": 2
-            },
-            {
-              "semantic": "session:flamegraph/prompt:session",
-              "weight": 1
-            }
-          ]
-        },
-        {
-          "baseline_kind": "flat_effect_without_project_agent_session_prompt",
           "baseline_stack": "tool:tool;cmd:write;effect:process;status:ok",
-          "weight": 58,
-          "semantic_variant_count": 13,
+          "weight": 67,
+          "semantic_variant_count": 15,
           "top_semantic_variants": [
             {
               "semantic": "session:flamegraph/prompt:design",
@@ -855,6 +895,10 @@
               "weight": 7
             },
             {
+              "semantic": "session:flamegraph/prompt:prompt",
+              "weight": 6
+            },
+            {
               "semantic": "session:paper/prompt:inspect",
               "weight": 5
             },
@@ -867,11 +911,7 @@
               "weight": 3
             },
             {
-              "semantic": "session:session/prompt:work",
-              "weight": 2
-            },
-            {
-              "semantic": "session:session/prompt:agent",
+              "semantic": "session:flamegraph/prompt:flamegraph",
               "weight": 2
             }
           ]
@@ -879,8 +919,8 @@
         {
           "baseline_kind": "flat_effect_without_project_agent_session_prompt",
           "baseline_stack": "tool:shell;cmd:rg;effect:read;path:collector/src;status:ok",
-          "weight": 57,
-          "semantic_variant_count": 13,
+          "weight": 59,
+          "semantic_variant_count": 14,
           "top_semantic_variants": [
             {
               "semantic": "session:session/prompt:session",
@@ -899,8 +939,8 @@
               "weight": 4
             },
             {
-              "semantic": "session:flamegraph/prompt:flamegraph",
-              "weight": 2
+              "semantic": "session:flamegraph/prompt:prompt",
+              "weight": 3
             },
             {
               "semantic": "session:paper/prompt:pr",
@@ -918,41 +958,69 @@
         },
         {
           "baseline_kind": "flat_effect_without_project_agent_session_prompt",
-          "baseline_stack": "tool:tool;cmd:write;effect:process;status:observed",
-          "weight": 57,
-          "semantic_variant_count": 11,
+          "baseline_stack": "tool:shell;cmd:jq;effect:read;path:.agentsight/agentflame;status:ok",
+          "weight": 48,
+          "semantic_variant_count": 2,
+          "top_semantic_variants": [
+            {
+              "semantic": "session:flamegraph/prompt:prompt",
+              "weight": 30
+            },
+            {
+              "semantic": "session:reviewdoc/prompt:reviewdoc",
+              "weight": 18
+            }
+          ]
+        },
+        {
+          "baseline_kind": "flat_effect_without_project_agent_session_prompt",
+          "baseline_stack": "tool:shell;cmd:sed;effect:read;path:agentflame/src;status:ok",
+          "weight": 48,
+          "semantic_variant_count": 2,
+          "top_semantic_variants": [
+            {
+              "semantic": "session:flamegraph/prompt:prompt",
+              "weight": 47
+            },
+            {
+              "semantic": "session:flamegraph/prompt:repoadmin",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "baseline_kind": "flat_effect_without_project_agent_session_prompt",
+          "baseline_stack": "tool:shell;cmd:python3;effect:process;path:docs/visexp/out;status:ok",
+          "weight": 47,
+          "semantic_variant_count": 7,
           "top_semantic_variants": [
             {
               "semantic": "session:flamegraph/prompt:design",
-              "weight": 13
+              "weight": 31
             },
             {
-              "semantic": "session:session/prompt:session",
-              "weight": 8
-            },
-            {
-              "semantic": "session:paper/prompt:debug",
-              "weight": 6
-            },
-            {
-              "semantic": "session:paper/prompt:inspect",
-              "weight": 6
-            },
-            {
-              "semantic": "session:session/prompt:work",
-              "weight": 6
-            },
-            {
-              "semantic": "session:session/prompt:agent",
+              "semantic": "session:flamegraph/prompt:prompt",
               "weight": 5
             },
             {
-              "semantic": "session:paper/prompt:pr",
+              "semantic": "session:flamegraph/prompt:work",
               "weight": 4
             },
             {
-              "semantic": "session:session/prompt:trace",
-              "weight": 4
+              "semantic": "session:flamegraph/prompt:flamegraph",
+              "weight": 3
+            },
+            {
+              "semantic": "session:flamegraph/prompt:branch",
+              "weight": 2
+            },
+            {
+              "semantic": "session:reviewing/prompt:prompt",
+              "weight": 1
+            },
+            {
+              "semantic": "session:osdi/prompt:prompt",
+              "weight": 1
             }
           ]
         },
@@ -986,20 +1054,24 @@
         },
         {
           "baseline_kind": "flat_effect_without_project_agent_session_prompt",
-          "baseline_stack": "tool:shell;cmd:python3;effect:process;path:docs/visexp/out;status:ok",
-          "weight": 40,
-          "semantic_variant_count": 6,
+          "baseline_stack": "tool:shell;cmd:python3;effect:process;path:docs/visexp/test_semantic_tag_flamegraph.py;status:ok",
+          "weight": 45,
+          "semantic_variant_count": 7,
           "top_semantic_variants": [
             {
               "semantic": "session:flamegraph/prompt:design",
-              "weight": 31
+              "weight": 32
             },
             {
-              "semantic": "session:flamegraph/prompt:work",
+              "semantic": "session:flamegraph/prompt:prompt",
               "weight": 4
             },
             {
-              "semantic": "session:flamegraph/prompt:branch",
+              "semantic": "session:flamegraph/prompt:flamegraph",
+              "weight": 4
+            },
+            {
+              "semantic": "session:flamegraph/prompt:work",
               "weight": 2
             },
             {
@@ -1011,7 +1083,7 @@
               "weight": 1
             },
             {
-              "semantic": "session:flamegraph/prompt:flamegraph",
+              "semantic": "session:flamegraph/prompt:branch",
               "weight": 1
             }
           ]
@@ -1043,244 +1115,148 @@
               "weight": 4
             }
           ]
-        },
-        {
-          "baseline_kind": "flat_effect_without_project_agent_session_prompt",
-          "baseline_stack": "tool:shell;cmd:agentsight;effect:process;path:collector/target/debug;status:ok",
-          "weight": 39,
-          "semantic_variant_count": 8,
-          "top_semantic_variants": [
-            {
-              "semantic": "session:session/prompt:session",
-              "weight": 26
-            },
-            {
-              "semantic": "session:session/prompt:trace",
-              "weight": 4
-            },
-            {
-              "semantic": "session:session/prompt:debug",
-              "weight": 4
-            },
-            {
-              "semantic": "session:session/prompt:work",
-              "weight": 1
-            },
-            {
-              "semantic": "session:session/prompt:server",
-              "weight": 1
-            },
-            {
-              "semantic": "session:session/prompt:ssl",
-              "weight": 1
-            },
-            {
-              "semantic": "session:session/prompt:model",
-              "weight": 1
-            },
-            {
-              "semantic": "session:session/prompt:header",
-              "weight": 1
-            }
-          ]
-        },
-        {
-          "baseline_kind": "flat_effect_without_project_agent_session_prompt",
-          "baseline_stack": "tool:shell;cmd:python3;effect:process;path:docs/visexp/test_semantic_tag_flamegraph.py;status:ok",
-          "weight": 39,
-          "semantic_variant_count": 6,
-          "top_semantic_variants": [
-            {
-              "semantic": "session:flamegraph/prompt:design",
-              "weight": 32
-            },
-            {
-              "semantic": "session:flamegraph/prompt:work",
-              "weight": 2
-            },
-            {
-              "semantic": "session:flamegraph/prompt:flamegraph",
-              "weight": 2
-            },
-            {
-              "semantic": "session:reviewing/prompt:prompt",
-              "weight": 1
-            },
-            {
-              "semantic": "session:osdi/prompt:prompt",
-              "weight": 1
-            },
-            {
-              "semantic": "session:flamegraph/prompt:branch",
-              "weight": 1
-            }
-          ]
-        },
-        {
-          "baseline_kind": "flat_effect_without_project_agent_session_prompt",
-          "baseline_stack": "tool:shell;cmd:git;effect:read;path:origin/master...head;status:ok",
-          "weight": 36,
-          "semantic_variant_count": 4,
-          "top_semantic_variants": [
-            {
-              "semantic": "session:session/prompt:subagent",
-              "weight": 19
-            },
-            {
-              "semantic": "session:paper/prompt:paper",
-              "weight": 8
-            },
-            {
-              "semantic": "session:paper/prompt:debug",
-              "weight": 8
-            },
-            {
-              "semantic": "session:session/prompt:trace",
-              "weight": 1
-            }
-          ]
         }
       ]
     },
     "prompt_weight_concentration": {
-      "total_system_observations": 5312,
-      "unique_prompt_tags": 30,
-      "unique_session_prompt_pairs": 49,
-      "top_prompt_weight_share_pct": 21.8,
-      "top5_prompt_weight_share_pct": 63.046,
+      "total_system_observations": 6301,
+      "unique_prompt_tags": 33,
+      "unique_session_prompt_pairs": 53,
+      "top_prompt_weight_share_pct": 17.585,
+      "top5_prompt_weight_share_pct": 63.292,
       "top_prompt_tags": [
         {
           "prompt_tag": "session",
-          "weight": 1158,
-          "share_pct": 21.8
+          "weight": 1108,
+          "share_pct": 17.585
+        },
+        {
+          "prompt_tag": "prompt",
+          "weight": 1043,
+          "share_pct": 16.553
         },
         {
           "prompt_tag": "design",
           "weight": 864,
-          "share_pct": 16.265
+          "share_pct": 13.712
         },
         {
           "prompt_tag": "debug",
           "weight": 546,
-          "share_pct": 10.279
+          "share_pct": 8.665
         },
         {
           "prompt_tag": "work",
           "weight": 427,
-          "share_pct": 8.038
+          "share_pct": 6.777
         },
         {
           "prompt_tag": "paper",
           "weight": 354,
-          "share_pct": 6.664
+          "share_pct": 5.618
         },
         {
           "prompt_tag": "collector",
           "weight": 354,
-          "share_pct": 6.664
+          "share_pct": 5.618
         },
         {
           "prompt_tag": "trace",
           "weight": 261,
-          "share_pct": 4.913
+          "share_pct": 4.142
         },
         {
           "prompt_tag": "flamegraph",
-          "weight": 209,
-          "share_pct": 3.934
+          "weight": 252,
+          "share_pct": 3.999
         },
         {
           "prompt_tag": "agent",
           "weight": 180,
-          "share_pct": 3.389
-        },
-        {
-          "prompt_tag": "prompt",
-          "weight": 149,
-          "share_pct": 2.805
+          "share_pct": 2.857
         },
         {
           "prompt_tag": "pr",
           "weight": 143,
-          "share_pct": 2.692
+          "share_pct": 2.269
         },
         {
           "prompt_tag": "subagent",
           "weight": 106,
-          "share_pct": 1.995
+          "share_pct": 1.682
         }
       ],
       "top_session_prompt_pairs": [
         {
+          "session_prompt": "flamegraph/prompt",
+          "weight": 894,
+          "share_pct": 14.188
+        },
+        {
           "session_prompt": "session/session",
           "weight": 862,
-          "share_pct": 16.227
+          "share_pct": 13.68
         },
         {
           "session_prompt": "flamegraph/design",
           "weight": 841,
-          "share_pct": 15.832
+          "share_pct": 13.347
         },
         {
           "session_prompt": "paper/debug",
           "weight": 472,
-          "share_pct": 8.886
+          "share_pct": 7.491
         },
         {
           "session_prompt": "session/trace",
           "weight": 261,
-          "share_pct": 4.913
+          "share_pct": 4.142
         },
         {
           "session_prompt": "flamegraph/flamegraph",
-          "weight": 209,
-          "share_pct": 3.934
+          "weight": 252,
+          "share_pct": 3.999
         },
         {
           "session_prompt": "model/work",
           "weight": 203,
-          "share_pct": 3.822
+          "share_pct": 3.222
         },
         {
           "session_prompt": "subagent/collector",
           "weight": 198,
-          "share_pct": 3.727
+          "share_pct": 3.142
         },
         {
           "session_prompt": "paper/paper",
           "weight": 189,
-          "share_pct": 3.558
+          "share_pct": 3.0
         },
         {
           "session_prompt": "session/agent",
           "weight": 180,
-          "share_pct": 3.389
+          "share_pct": 2.857
         },
         {
           "session_prompt": "model/collector",
           "weight": 156,
-          "share_pct": 2.937
-        },
-        {
-          "session_prompt": "flamegraph/session",
-          "weight": 149,
-          "share_pct": 2.805
+          "share_pct": 2.476
         },
         {
           "session_prompt": "session/work",
           "weight": 149,
-          "share_pct": 2.805
+          "share_pct": 2.365
         }
       ]
     }
   },
   "tag_quality": {
-    "prompt_rows": 314,
-    "unique_prompt_tags": 38,
+    "prompt_rows": 324,
+    "unique_prompt_tags": 46,
     "top_prompt_tags": [
       {
         "tag": "session",
-        "count": 56
+        "count": 55
       },
       {
         "tag": "work",
@@ -1292,7 +1268,7 @@
       },
       {
         "tag": "flamegraph",
-        "count": 22
+        "count": 21
       },
       {
         "tag": "paper",
@@ -1319,17 +1295,17 @@
         "count": 9
       },
       {
-        "tag": "test",
+        "tag": "prompt",
         "count": 7
       },
       {
-        "tag": "design",
+        "tag": "test",
         "count": 7
       }
     ],
-    "prompt_tag_entropy_bits": 4.203,
-    "prompt_tag_normalized_entropy": 0.801,
-    "generic_prompt_row_share_pct": 35.987,
+    "prompt_tag_entropy_bits": 4.373,
+    "prompt_tag_normalized_entropy": 0.792,
+    "generic_prompt_row_share_pct": 35.494,
     "invalid_prompt_tags": [],
     "invalid_prompt_tag_count": 0,
     "same_hash_multi_tag_count": 0,
@@ -1343,7 +1319,7 @@
       },
       {
         "tag": "flamegraph",
-        "count": 7
+        "count": 6
       },
       {
         "tag": "session",
@@ -1355,7 +1331,7 @@
       },
       {
         "tag": "reviewdoc",
-        "count": 2
+        "count": 3
       },
       {
         "tag": "reviewing",
@@ -1397,10 +1373,10 @@
       "llama_limit": 60
     },
     "provenance": {
-      "repo_commit": "8ff0d9fd6f9483698f8f150f16ae62f1cfe47ef6",
+      "repo_commit": "be1e8760f368fa8c87205287fcf4d5ab666fa9c9",
       "repo_dirty": true,
-      "script_sha256": "ce5a1054d2baa5434db876bba0fb7b659aead7fac86b2871d0b22bad5ed8e9af",
-      "session_fingerprint": "21c456cfe97ed6ba",
+      "script_sha256": "a1a49edc2f44413817453d21b28113cd519ca27e53aec861967bac43cda7da55",
+      "session_fingerprint": "5144cc3d1d4eb366",
       "model": "qwen2.5-3b-instruct-q4_k_m.gguf",
       "model_sha256": "626b4a6678b86442240e33df819e00132d3ba7dddfe1cdc4fbb18e0a9615c62d",
       "llama_cli": "llama-cli",
@@ -1442,23 +1418,31 @@
         "fragment_count": 24,
         "invalid_count": 0,
         "invalid_output_share_pct": 0.0,
-        "generic_output_share_pct": 8.333,
-        "unique_tags": 3,
+        "generic_output_share_pct": 4.167,
+        "unique_tags": 5,
         "exact_stable_fragment_count": 24,
         "exact_stable_fragment_share_pct": 100.0,
         "mean_modal_share_pct": 100.0,
         "top_tags": [
           {
             "tag": "paper",
-            "count": 30
+            "count": 24
           },
           {
             "tag": "flamegraph",
-            "count": 14
+            "count": 12
+          },
+          {
+            "tag": "subagent",
+            "count": 6
+          },
+          {
+            "tag": "aggregate",
+            "count": 4
           },
           {
             "tag": "session",
-            "count": 4
+            "count": 2
           }
         ],
         "unstable_examples": []
@@ -1468,30 +1452,34 @@
         "fragment_count": 24,
         "invalid_count": 0,
         "invalid_output_share_pct": 0.0,
-        "generic_output_share_pct": 16.667,
-        "unique_tags": 14,
+        "generic_output_share_pct": 12.5,
+        "unique_tags": 15,
         "exact_stable_fragment_count": 24,
         "exact_stable_fragment_share_pct": 100.0,
         "mean_modal_share_pct": 100.0,
         "top_tags": [
           {
             "tag": "reviewdoc",
-            "count": 10
+            "count": 14
           },
           {
             "tag": "prompt",
-            "count": 8
-          },
-          {
-            "tag": "reviewing",
             "count": 6
           },
           {
-            "tag": "evaluate",
+            "tag": "reviewing",
             "count": 4
           },
           {
+            "tag": "audit",
+            "count": 2
+          },
+          {
             "tag": "review",
+            "count": 2
+          },
+          {
+            "tag": "auditdoc",
             "count": 2
           },
           {
@@ -1499,27 +1487,23 @@
             "count": 2
           },
           {
-            "tag": "validate",
+            "tag": "inspect",
             "count": 2
           },
           {
-            "tag": "verifydoc",
+            "tag": "llmctl",
             "count": 2
           },
           {
-            "tag": "llm",
+            "tag": "verifydraft",
             "count": 2
           },
           {
-            "tag": "revise",
+            "tag": "validation",
             "count": 2
           },
           {
-            "tag": "reporting",
-            "count": 2
-          },
-          {
-            "tag": "codexeval",
+            "tag": "extract",
             "count": 2
           }
         ],
@@ -1546,19 +1530,19 @@
               "llama": "prompt"
             },
             {
-              "fragment_id": "18a5868afc234061",
-              "fallback": "paper",
-              "llama": "verifydoc"
-            },
-            {
               "fragment_id": "18fc80ae391c63cb",
               "fallback": "paper",
               "llama": "reviewing"
             },
             {
-              "fragment_id": "2df23e7b2b194ed5",
-              "fallback": "paper",
-              "llama": "evaluate"
+              "fragment_id": "2889cb08e4045e15",
+              "fallback": "aggregate",
+              "llama": "validation"
+            },
+            {
+              "fragment_id": "31af72c582954345",
+              "fallback": "subagent",
+              "llama": "llmctl"
             },
             {
               "fragment_id": "397d72052517d166",
@@ -1571,19 +1555,19 @@
               "llama": "reviewing"
             },
             {
-              "fragment_id": "53f686e29762054b",
-              "fallback": "flamegraph",
-              "llama": "aianalysis"
+              "fragment_id": "4688fd096cef8ae1",
+              "fallback": "paper",
+              "llama": "verifydraft"
             },
             {
-              "fragment_id": "58c9dbf92b7ca7ab",
+              "fragment_id": "48ec4e69fb0ef11b",
               "fallback": "paper",
-              "llama": "evaluate"
+              "llama": "reviewdoc"
             },
             {
-              "fragment_id": "596abdc4f00f2187",
+              "fragment_id": "7f071316437fc41b",
               "fallback": "paper",
-              "llama": "validate"
+              "llama": "prompt"
             }
           ]
         }
@@ -1665,7 +1649,7 @@
         "oracle": {
           "baseline_kind": "nonsemantic_without_session_prompt",
           "baseline_stack": "project:agentsight;agent:codex;tool:shell;cmd:git;effect:read;status:ok",
-          "weight": 374,
+          "weight": 376,
           "semantic_variant_count": 27,
           "top_semantic_variant": "session:session/prompt:session",
           "top_semantic_variant_weight": 75
@@ -1725,8 +1709,8 @@
         "oracle": {
           "baseline_kind": "flat_effect_without_project_agent_session_prompt",
           "baseline_stack": "tool:shell;cmd:git;effect:read;status:ok",
-          "weight": 403,
-          "semantic_variant_count": 33,
+          "weight": 387,
+          "semantic_variant_count": 29,
           "top_semantic_variant": "session:session/prompt:session",
           "top_semantic_variant_weight": 75
         },
@@ -1976,30 +1960,137 @@
     "orphan_examples": [],
     "claim_boundary": "checker evidence only; live exact capture over real sessions is still missing"
   },
+  "live_lineage_r110": {
+    "schema_version": 1,
+    "run_id": "R110",
+    "claim": "C4 exact AgentSight effect lineage",
+    "stage": "execute/analyze",
+    "date": "2026-06-14",
+    "status": "partial_supported_for_in_scope_live_smoke",
+    "source_outputs": ".agentsight/agentflame/exact-lineage-r110",
+    "method": {
+      "snapshot_source": "real AgentSight SQLite DB exports",
+      "harness": "docs/visexp/live_lineage_harness.py",
+      "lineage_checker": "docs/visexp/effect_lineage_smoke.py",
+      "semantic_tagger": "llama.cpp qwen2.5-3b-instruct-q4_k_m",
+      "scope": "process/file/network effects covered by detected Codex/Claude root process families",
+      "important_boundary": "The harness adds session/tool envelopes because current DB export has effects but no materialized session/tool ancestry. Low-level process/file/network events are not synthesized."
+    },
+    "negative_control": {
+      "snapshot": "docs/sample-snapshot.json",
+      "effect_events": 176,
+      "joined_effect_events": 0,
+      "join_rate_pct": 0.0,
+      "orphan_reason": "missing_tool_ancestry",
+      "interpretation": "A process/effect snapshot without session/tool ancestry cannot support C4 by itself."
+    },
+    "runs": [
+      {
+        "name": "codex-local",
+        "db": "collector/target/agentsight-runs/codex-local-prompt.db",
+        "agent_roots": 2,
+        "synthetic_sessions": 2,
+        "synthetic_tool_calls": 2,
+        "raw_effect_events": 90,
+        "in_scope_effect_events": 48,
+        "excluded_out_of_scope_effect_events": 42,
+        "joined_effect_events": 48,
+        "orphan_effect_events": 0,
+        "join_rate_pct": 100.0,
+        "folded_stack_count": 20,
+        "join_methods": {
+          "related_event_id": 2,
+          "pid_family_time_window": 46
+        },
+        "llama_tags": [
+          "prompt",
+          "tasking"
+        ]
+      },
+      {
+        "name": "codex-attach",
+        "db": "collector/target/agentsight-runs/codex-attach-prompt.db",
+        "agent_roots": 2,
+        "synthetic_sessions": 2,
+        "synthetic_tool_calls": 2,
+        "raw_effect_events": 168,
+        "in_scope_effect_events": 86,
+        "excluded_out_of_scope_effect_events": 82,
+        "joined_effect_events": 86,
+        "orphan_effect_events": 0,
+        "join_rate_pct": 100.0,
+        "folded_stack_count": 23,
+        "join_methods": {
+          "related_event_id": 2,
+          "pid_family_time_window": 84
+        },
+        "llama_tags": [
+          "codexattach",
+          "codexagt"
+        ]
+      },
+      {
+        "name": "debug-ssl-auto",
+        "db": "collector/target/agentsight-runs/debug-ssl-auto-fixed.db",
+        "agent_roots": 4,
+        "synthetic_sessions": 4,
+        "synthetic_tool_calls": 4,
+        "raw_effect_events": 60,
+        "in_scope_effect_events": 48,
+        "excluded_out_of_scope_effect_events": 12,
+        "joined_effect_events": 48,
+        "orphan_effect_events": 0,
+        "join_rate_pct": 100.0,
+        "folded_stack_count": 33,
+        "join_methods": {
+          "related_event_id": 4,
+          "pid_family_time_window": 44
+        },
+        "llama_tags": [
+          "ssl",
+          "grep"
+        ]
+      }
+    ],
+    "aggregate": {
+      "runs": 3,
+      "agent_roots": 8,
+      "synthetic_sessions": 8,
+      "synthetic_tool_calls": 8,
+      "raw_effect_events": 318,
+      "in_scope_effect_events": 182,
+      "excluded_out_of_scope_effect_events": 136,
+      "joined_effect_events": 182,
+      "orphan_effect_events": 0,
+      "join_rate_pct": 100.0,
+      "folded_stack_count_sum": 76
+    },
+    "claim_boundary": "This moves C4 from fixture-only to live in-scope smoke evidence. It does not yet prove full native AgentSight export because session/tool envelopes are synthesized by the harness and 136 raw effects are out of scope for detected agent roots."
+  },
   "claim_gates": [
     {
       "claim": "C1 folded aggregation",
       "verdict": "supported",
       "oracle": "system folded total exceeds unique stacks and repeated stacks exist",
-      "evidence": "compression=2.34 repeated=921"
+      "evidence": "compression=2.405 repeated=1097"
     },
     {
       "claim": "C2 one-word tags in stack grammar",
       "verdict": "supported",
       "oracle": "all committed tags match the one-word grammar and vocabulary is non-trivial",
-      "evidence": "invalid=0 unique_prompt_tags=38"
+      "evidence": "invalid=0 unique_prompt_tags=46"
     },
     {
       "claim": "C3 semantic stacks add information beyond flat/nonsemantic baselines",
       "verdict": "supported",
       "oracle": "baseline buckets mix multiple session/prompt tags that semantic stacks separate",
-      "evidence": "nonsemantic_mixed=392 nonsemantic_weight_pct=68.505 flat_mixed=397 flat_weight_pct=74.473"
+      "evidence": "nonsemantic_mixed=458 nonsemantic_weight_pct=68.656 flat_mixed=453 flat_weight_pct=74.083"
     },
     {
       "claim": "D1 normalized agent differences",
       "verdict": "diagnostic",
       "oracle": "observational, unpaired source cohorts exist; no causal benchmark claim",
-      "evidence": "sources={'codex-subagent': 13, 'codex': 6, 'claude': 12, 'claude-subagent': 5}"
+      "evidence": "sources={'codex-subagent': 14, 'codex': 5, 'claude': 12, 'claude-subagent': 5}"
     },
     {
       "claim": "C5 user utility over trace tree/process logs",
@@ -2009,15 +2100,15 @@
     },
     {
       "claim": "C4 exact AgentSight effect stream preserves value",
-      "verdict": "unsupported",
-      "oracle": "requires live AgentSight exact effects from real sessions to pass lineage checker",
-      "evidence": "effect_lineage_smoke=fixture_lineage_smoke_passed source=fixture effect_events=4 join_rate_pct=100.0 orphans=0 orphan_reasons={} live_exact_capture=missing"
+      "verdict": "partial",
+      "oracle": "requires native AgentSight session/tool export, not only a harness envelope",
+      "evidence": "effect_lineage_smoke=fixture_lineage_smoke_passed source=fixture effect_events=4 join_rate_pct=100.0 orphans=0 orphan_reasons={} live_lineage=partial_supported_for_in_scope_live_smoke runs=3 in_scope_effects=182 joined=182 orphans=0 join_rate_pct=100.0 out_of_scope=136 native_export=pending"
     },
     {
       "claim": "C6 tag stability and adequacy",
       "verdict": "partial",
       "oracle": "smoke checks repeated-run syntax/stability; human adequacy remains required",
-      "evidence": "same_hash_multi_tag_count=0 smoke_verdict=smoke_supported fallback_stable_pct=100.0 fallback_generic_pct=8.333 llama_stable_pct=100.0 llama_generic_pct=16.667 fallback_vs_llama_exact_pct=0.0"
+      "evidence": "same_hash_multi_tag_count=0 smoke_verdict=smoke_supported fallback_stable_pct=100.0 fallback_generic_pct=4.167 llama_stable_pct=100.0 llama_generic_pct=12.5 fallback_vs_llama_exact_pct=0.0"
     }
   ]
 }

@@ -150,11 +150,16 @@ Current evidence:
 - Current full run is still agent-native session-history input. It extracts
   commands, status, path groups, and effect classes, but it is not a kernel-level
   exact file/network stream.
+- R110 live smoke on three real AgentSight DB exports validates 182/182
+  in-scope effects with 0 orphans after adding a harness-synthesized agent-run
+  envelope and llama.cpp root tags.
 
 Remaining gap:
 
-- This is the highest-value systems contribution and must be upgraded from
-  fixture to live runs before claiming OSDI-level novelty.
+- Current DB export does not natively persist session/tool ancestry, so C4 is
+  partial rather than supported. The harness must be replaced by collector-native
+  `session -> tool_call -> process* -> effect` export and more live tasks before
+  claiming OSDI-level novelty.
 
 ### RQ4. Developer Utility
 
@@ -210,7 +215,7 @@ Remaining gap:
 | C1 | AgentFlame can generate semantic folded stacks and dashboards over real local agent histories. | supported | verifier for full run and reproducibility script |
 | C2 | Local one-word LLM tagging is feasible for session/prompt/LLM-call contexts. | supported for 3B syntax; partial for cost/stability | 0.6B/1B/3B cost table and adequacy labels |
 | C3 | Semantic frames expose task-effect mixtures hidden by nonsemantic and flat summaries. | supported as mechanism | stronger examples and task benchmark |
-| C4 | Exact AgentSight lineage connects semantic intent to process/file/network effects. | unsupported beyond fixture | live snapshot join coverage and orphan analysis |
+| C4 | Exact AgentSight lineage connects semantic intent to process/file/network effects. | partial live smoke | native export, more tasks, out-of-scope analysis |
 | C5 | Developers answer debugging/audit questions better with semantic effect flamegraphs. | unsupported | user/task benchmark |
 | C6 | One-word tags are stable and adequate enough for navigation. | partial | 0.6B/1B/3B cost table, repeated-run stability, human adequacy labels |
 | C7 | The approach is practical as an open-source developer tool. | partial | one-command install/run, runtime/cost, docs, artifact hygiene |
@@ -221,7 +226,7 @@ Remaining gap:
 |-------|----|------------|--------------------|---------|--------|----------|
 | B1 | RQ1 | Full local-session characterization | 3B local llama.cpp, cache on/off where feasible | sessions, tags, invalids, runtime, cache hit rate | tag grammar checker and complete report | done, must repeat after changes |
 | B2 | RQ2 | Semantic partitioning audit | semantic, nonsemantic, flat process/effect summary | mixed buckets, mixed weight, entropy, examples | deterministic stack comparison | done |
-| B3 | RQ3 | Live exact AgentSight lineage | agent-native proxy vs exact effect stream | join coverage, orphan rate, path/domain specificity | lineage checker | must |
+| B3 | RQ3 | Live exact AgentSight lineage | agent-native proxy vs exact effect stream | join coverage, orphan rate, path/domain specificity | lineage checker | smoke done; native export must |
 | B4 | RQ4 | Developer task benchmark | trace tree, span flamegraph, flat summary, nonsemantic stack, semantic stack | time, accuracy, false positives, confidence | hidden answer key | must |
 | B5 | RQ5 | Small-model and tag-stability benchmark | 0.6B, 1B, 3B, optional larger reference | latency, invalid rate, stability, adequacy | repeated run + human labels | must |
 | B6 | RQ2/RQ3 | Ablations | session-only, prompt-only, prompt+LLM-call, no process nesting | information gain, stack explosion, task answerability | same query set | must |
@@ -258,7 +263,8 @@ Current OSDI review posture: weak reject / promising measurement-tooling idea.
 
 The fastest route to weak accept is:
 
-1. Run live AgentSight exact-effect sessions and report join/orphan metrics.
+1. Move the R110 harness envelope into native AgentSight export and repeat on
+   more live tasks.
 2. Add a small but real user/task benchmark with at least developer-authored
    answer keys and blinded condition packets.
 3. Re-run 0.6B/1B/3B tagger benchmarks on the same fragments and include tag

@@ -108,6 +108,9 @@ headline results come from `.agentsight/agentflame/latest`.
 - `out/effect-lineage.folded.txt`: exact-effect folded stack output from the
   lineage checker.
 - `out/effect-lineage-summary.md`: human-readable C4 smoke summary.
+- `out/live-lineage-r110.json`: R110 live in-scope C4 smoke summary over three
+  real AgentSight DB exports with harness-synthesized agent-run envelopes.
+- `out/live-lineage-r110.md`: human-readable R110 boundary and result table.
 - `out/tag-stability-smoke.json`: local-only repeated-run tag stability smoke
   summary over hashed session/prompt/LLM fragments.
 - `out/tag-stability-smoke.csv`: sanitized per-fragment tag outputs.
@@ -136,11 +139,13 @@ repeated shell/edit/network/tool patterns, how much semantic tags add beyond a
 non-semantic folded baseline, and where Codex and Claude differ on normalized
 behavior diagnostics.
 
-It cannot yet prove live precise file/network side effects from real sessions.
-`effect_lineage_smoke.py` proves the checker and folded-stack grammar over an
-AgentSight-shaped fixture, where every in-scope system event must inherit a
-session/tool/prompt tag. C4 still requires live AgentSight
-tool -> shell -> child process -> file/network events from real sessions.
+It cannot yet prove native full-run precise file/network side effects from real
+sessions. `effect_lineage_smoke.py` proves the checker and folded-stack grammar
+over an AgentSight-shaped fixture, and R110 shows the same checker joining all
+182 in-scope effects from three real AgentSight DB exports after
+`live_lineage_harness.py` adds a minimal agent-run envelope. C4 still requires a
+native AgentSight export that directly persists
+session -> tool_call -> shell -> child process -> file/network ancestry.
 
 ## Test
 
@@ -153,6 +158,15 @@ python3 docs/visexp/tag_stability_smoke.py --out docs/visexp/out
 python3 docs/visexp/user_task_benchmark.py --out docs/visexp/out
 python3 docs/visexp/evaluate_artifacts.py --out docs/visexp/out
 python3 docs/visexp/visual_summary.py --out docs/visexp/out
+```
+
+For a real AgentSight DB export converted to snapshot JSON, enrich it with:
+
+```bash
+python3 docs/visexp/live_lineage_harness.py \
+  --snapshot path/to/export.json \
+  --out /tmp/enriched.json \
+  --scope-covered-effects
 ```
 
 After collecting real C5 response rows:

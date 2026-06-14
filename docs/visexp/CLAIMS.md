@@ -102,7 +102,7 @@ Limitation:
 
 Status: diagnostic only.
 
-## Not Yet Supported
+## Partially Supported
 
 ### C4: AgentSight exact system effects preserve semantic attribution value.
 
@@ -113,13 +113,25 @@ Needed:
 - Join coverage and in-scope orphan-rate metrics.
 - Comparison against agent-native proxy stacks.
 
-Current partial setup:
+Current evidence:
 
 - `docs/visexp/effect_lineage_smoke.py` validates the checker over an
   AgentSight-shaped fixture.
-- The full Rust AgentFlame run still uses agent-native session histories.
+- R110 runs the checker on three real AgentSight SQLite DB exports after
+  `docs/visexp/live_lineage_harness.py` adds a minimal agent-run envelope around
+  detected Codex/Claude root processes. The low-level process/file/network
+  effects are not synthesized.
+- R110 validates 182/182 in-scope effects with 0 orphans and 100.0% in-scope
+  join rate. It also records 136 out-of-scope raw effects outside detected agent
+  roots.
+- The full Rust AgentFlame run still uses agent-native session histories, and
+  current DB export does not natively materialize session/tool rows.
 
-Status: unsupported as a live exact-effect claim.
+Status: partial. The lineage checker works on live in-scope effects, but native
+collector export of `session -> tool_call -> process* -> effect` remains
+unproven.
+
+## Not Yet Supported
 
 ### C5: Semantic effect flamegraphs improve developer task outcomes.
 
@@ -163,10 +175,12 @@ Allowed current wording:
 - "In our local full-history run, removing semantic frames causes more than 90%
   of system observation weight to fall into mixed semantic buckets."
 - "Local one-word tagging is syntactically feasible with a 3B llama.cpp model."
+- "On three real AgentSight DB exports, the C4 checker joins all 182 in-scope
+  effects after a harness-synthesized agent-run envelope is added."
 
 Disallowed current wording:
 
 - "AgentFlame proves developers debug faster."
-- "AgentFlame has validated live exact file/network provenance."
+- "AgentFlame has validated native full-run exact file/network provenance."
 - "One-word tags are semantically correct."
 - "AgentFlame is the first flamegraph for agents."
