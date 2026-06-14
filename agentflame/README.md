@@ -1,11 +1,10 @@
 # AgentFlame
 
-AgentFlame is a local, LLM-only tagger and visualization tool for AI coding
-agent session history. It reads local Codex and Claude JSONL sessions, asks a
-local llama.cpp server for one lowercase word per session, prompt, and LLM call,
-then writes reusable JSON plus semantic flamegraphs and dashboard charts. Pass
-`--no-tag-llm-calls` only when you intentionally want token views to inherit
-prompt tags for a faster exploratory run.
+AgentFlame is a Rust CLI for semantic flamegraphs over local AI coding-agent
+history. It reads local Codex and Claude JSONL sessions with
+`normalize-chat-sessions`, asks a real llama.cpp-compatible server for exactly
+one lowercase word per session, prompt, and LLM call, then writes reusable JSON,
+folded stacks, flamegraphs, and dashboard charts.
 
 It is intentionally separate from the AgentSight collector. The first mode is
 zero-instrumentation history analysis. AgentSight can later reuse
@@ -15,7 +14,13 @@ same semantic frames.
 
 ## Run
 
-Start a local llama.cpp server:
+Build the CLI:
+
+```bash
+cargo build --release --manifest-path agentflame/Cargo.toml
+```
+
+Start a local llama.cpp server with a real GGUF model:
 
 ```bash
 llama-server -m /path/to/model.gguf --port 8080
@@ -24,28 +29,55 @@ llama-server -m /path/to/model.gguf --port 8080
 Generate an AgentFlame report:
 
 ```bash
-python3 -m agentflame --project-root /path/to/repo --open
+./agentflame/target/release/agentflame run --project-root /path/to/repo
 ```
 
 From this repository during development:
 
 ```bash
-PYTHONPATH=agentflame python3 -m agentflame --project-root . --out .agentsight/agentflame/latest
+cargo run --manifest-path agentflame/Cargo.toml -- run \
+  --project-root . \
+  --out .agentsight/agentflame/latest
 ```
+
+Pass repeated `--session-file /path/to/session.jsonl` values to analyze a
+specific set of real local sessions instead of scanning the newest files under
+the Codex and Claude roots.
 
 The default llama.cpp API endpoint is `http://127.0.0.1:8080`. Override it with:
 
 ```bash
-PYTHONPATH=agentflame python3 -m agentflame run \
+cargo run --manifest-path agentflame/Cargo.toml -- run \
   --llama-url http://127.0.0.1:8080 \
   --model local
 ```
 
-AgentFlame does **not** fall back to regex labels. If the LLM server is missing,
-or if the model does not return one valid lowercase word, the run fails.
-This applies to every enabled tag scope. The default scope is session+prompt for
-system-effect views, plus per-LLM-call tags for token views. `--no-tag-llm-calls`
-disables only the LLM-call scope.
+AgentFlame has no heuristic label path. If the LLM server is missing, or if the
+model does not return one valid lowercase word after retry, the run fails. The
+default scope is session + prompt for system-effect views, plus per-LLM-call
+tags for token views. For a faster exploratory run, pass
+`--tag-llm-calls false`; the default is `true`.
+
+## Benchmark Models
+
+Benchmark real local models by letting AgentFlame start one llama.cpp server per
+model:
+
+```bash
+cargo run --manifest-path agentflame/Cargo.toml -- bench \
+  --llama-server /path/to/llama-server \
+  --runs 2 \
+  --out .agentsight/agentflame/model-benchmarks.json \
+  --model 3b=/path/to/model-3b.gguf \
+  --model 1b=/path/to/model-1b.gguf \
+  --model 0.6b=/path/to/model-0.6b.gguf
+```
+
+Use repeated `--server-arg` values for model-specific llama.cpp options, for
+example `--server-arg=--reasoning --server-arg=off` for no-thinking tag runs.
+
+The benchmark writes latency, success count, and invalid-output errors for each
+real model. It does not synthesize model responses.
 
 ## AgentSight Web
 
@@ -128,5 +160,5 @@ agent history.
 ## Development Test
 
 ```bash
-PYTHONPATH=agentflame python3 -m unittest discover agentflame/tests
+cargo test --manifest-path agentflame/Cargo.toml
 ```
