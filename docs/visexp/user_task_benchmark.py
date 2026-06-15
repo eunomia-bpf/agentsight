@@ -38,6 +38,9 @@ PARTICIPANT_COUNT = 5
 
 PUBLIC_EXCERPT_KEYS = {
     "trace-tree": {
+        "slice_id",
+        "slice_kind",
+        "slice_weight",
         "task_id",
         "category",
         "target_status",
@@ -45,35 +48,55 @@ PUBLIC_EXCERPT_KEYS = {
         "status",
         "metric",
         "value",
+        "frame_index",
+        "frame",
+        "frame_type",
         "note",
     },
     "span-duration": {
+        "slice_id",
+        "slice_kind",
+        "slice_weight",
         "task_id",
         "category",
         "duration_seconds",
         "status",
         "metric",
         "value",
+        "span",
+        "frame_index",
+        "event_weight",
+        "width_basis",
         "note",
     },
     "flat-summary": {
+        "slice_id",
+        "slice_kind",
+        "slice_weight",
         "agent",
         "tool",
         "cmd",
+        "call",
         "process",
         "effect",
         "status",
+        "path",
         "count",
         "metric",
         "value",
         "model",
         "kind",
+        "family",
+        "variant",
         "weight",
         "fragments",
         "runs",
         "note",
     },
     "nonsemantic-stack": {
+        "slice_id",
+        "slice_kind",
+        "slice_weight",
         "stack",
         "baseline_stack",
         "projected_stack",
@@ -82,6 +105,7 @@ PUBLIC_EXCERPT_KEYS = {
         "variant",
         "mixed_weight_share_pct",
         "mixed_residual_weight_share_pct",
+        "residual_pct",
         "raw_join_pct",
         "out_of_scope_effect_events",
         "join_methods",
@@ -90,13 +114,15 @@ PUBLIC_EXCERPT_KEYS = {
         "note",
     },
     "semantic-stack": {
+        "slice_id",
+        "slice_kind",
+        "slice_weight",
         "stack",
         "semantic",
         "weight",
         "variant",
         "family",
         "total_weight",
-        "unique_stacks",
         "mixed_weight_share_pct",
         "mixed_residual_weight_share_pct",
         "valid_runs",
@@ -168,6 +194,11 @@ def pct(part: int | float, whole: int | float) -> float:
     return round(100.0 * float(part) / float(whole), 3) if whole else 0.0
 
 
+def stable_id(*parts: Any) -> str:
+    text = "\n".join(str(part) for part in parts)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
+
+
 def percentile_nearest_rank(values: list[int | float], percentile: float) -> int | float:
     if not values:
         raise ValueError("cannot compute percentile for an empty list")
@@ -200,6 +231,129 @@ def stack_frame(stack: str, prefix: str, default: str = "unknown") -> str:
 
 def frame_list(stack: str) -> list[str]:
     return [frame for frame in stack.split(";") if frame]
+
+
+def frame_type(frame: str) -> str:
+    return frame.split(":", 1)[0] if ":" in frame else "frame"
+
+
+def stack_without(stack: str, prefixes: tuple[str, ...]) -> str:
+    return ";".join(frame for frame in frame_list(stack) if not frame.startswith(prefixes))
+
+
+def with_slice(rows: list[dict[str, Any]], *, slice_id: str, slice_kind: str, slice_weight: int | float) -> list[dict[str, Any]]:
+    return [
+        {
+            "slice_id": slice_id,
+            "slice_kind": slice_kind,
+            "slice_weight": slice_weight,
+            **row,
+        }
+        for row in rows
+    ]
+
+
+def trace_rows_from_stack(slice_id: str, slice_kind: str, stack: str, weight: int | float) -> list[dict[str, Any]]:
+    return with_slice(
+        [
+            {
+                "frame_index": idx,
+                "frame": frame,
+                "frame_type": frame_type(frame),
+                "status": "observed",
+            }
+            for idx, frame in enumerate(frame_list(stack), 1)
+            if not frame.startswith(("session:", "prompt:"))
+        ],
+        slice_id=slice_id,
+        slice_kind=slice_kind,
+        slice_weight=weight,
+    )
+
+
+def span_rows_from_stack(slice_id: str, slice_kind: str, stack: str, weight: int | float) -> list[dict[str, Any]]:
+    return with_slice(
+        [
+            {
+                "frame_index": idx,
+                "span": frame,
+                "event_weight": weight,
+                "width_basis": "event_weight_same_slice",
+                "note": "duration unavailable in folded artifact",
+            }
+            for idx, frame in enumerate(frame_list(stack), 1)
+            if not frame.startswith(("session:", "prompt:"))
+        ],
+        slice_id=slice_id,
+        slice_kind=slice_kind,
+        slice_weight=weight,
+    )
+
+
+def flat_rows_from_stack(slice_id: str, slice_kind: str, stack: str, weight: int | float) -> list[dict[str, Any]]:
+    return with_slice(
+        [
+            {
+                "agent": stack_frame(stack, "agent:"),
+                "tool": stack_frame(stack, "tool:", stack_frame(stack, "call:", "unknown")),
+                "call": stack_frame(stack, "call:", "unknown"),
+                "cmd": stack_frame(stack, "cmd:", "unknown"),
+                "process": stack_frame(stack, "process:", "unknown"),
+                "effect": stack_frame(stack, "effect:", stack_frame(stack, "kind:", "unknown")),
+                "status": stack_frame(stack, "status:", "unknown"),
+                "path": stack_frame(stack, "path:", "unknown"),
+                "model": stack_frame(stack, "model:", "unknown"),
+                "kind": stack_frame(stack, "kind:", "unknown"),
+                "weight": weight,
+            }
+        ],
+        slice_id=slice_id,
+        slice_kind=slice_kind,
+        slice_weight=weight,
+    )
+
+
+def stack_slice_conditions(
+    *,
+    task_id: str,
+    slice_kind: str,
+    stack: str,
+    weight: int | float,
+    nonsemantic_rows: list[dict[str, Any]],
+    semantic_rows: list[dict[str, Any]],
+    flat_rows: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    slice_id = stable_id(task_id, slice_kind, stack)
+    return standard_conditions(
+        trace_rows=trace_rows_from_stack(slice_id, slice_kind, stack, weight),
+        span_rows=span_rows_from_stack(slice_id, slice_kind, stack, weight),
+        flat_rows=with_slice(flat_rows, slice_id=slice_id, slice_kind=slice_kind, slice_weight=weight)
+        if flat_rows is not None
+        else flat_rows_from_stack(slice_id, slice_kind, stack, weight),
+        nonsemantic_rows=with_slice(nonsemantic_rows, slice_id=slice_id, slice_kind=slice_kind, slice_weight=weight),
+        semantic_rows=with_slice(semantic_rows, slice_id=slice_id, slice_kind=slice_kind, slice_weight=weight),
+    )
+
+
+def metric_slice_conditions(
+    *,
+    task_id: str,
+    slice_kind: str,
+    weight: int | float,
+    trace_rows: list[dict[str, Any]],
+    span_rows: list[dict[str, Any]],
+    flat_rows: list[dict[str, Any]],
+    nonsemantic_rows: list[dict[str, Any]],
+    semantic_rows: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    slice_id = stable_id(task_id, slice_kind, json.dumps(flat_rows, sort_keys=True))
+    return standard_conditions(
+        trace_rows=with_slice(trace_rows, slice_id=slice_id, slice_kind=slice_kind, slice_weight=weight),
+        span_rows=with_slice(span_rows, slice_id=slice_id, slice_kind=slice_kind, slice_weight=weight),
+        flat_rows=with_slice(flat_rows, slice_id=slice_id, slice_kind=slice_kind, slice_weight=weight),
+        nonsemantic_rows=with_slice(nonsemantic_rows, slice_id=slice_id, slice_kind=slice_kind, slice_weight=weight),
+        semantic_rows=with_slice(semantic_rows, slice_id=slice_id, slice_kind=slice_kind, slice_weight=weight),
+    )
 
 
 def variant_by(r131: dict[str, Any], family: str, variant: str) -> dict[str, Any]:
@@ -267,6 +421,35 @@ def reject_public_leaks(value: Any, path: str = "$") -> None:
     elif isinstance(value, list):
         for idx, child in enumerate(value):
             reject_public_leaks(child, f"{path}[{idx}]")
+
+
+def collect_slice_ids(value: Any) -> set[str]:
+    ids: set[str] = set()
+    if isinstance(value, dict):
+        if "slice_id" in value:
+            ids.add(str(value["slice_id"]))
+        for child in value.values():
+            ids |= collect_slice_ids(child)
+    elif isinstance(value, list):
+        for child in value:
+            ids |= collect_slice_ids(child)
+    return ids
+
+
+def validate_task_same_slice(task_item: dict[str, Any]) -> None:
+    expected: set[str] | None = None
+    for condition in task_item["participant_view_conditions"]:
+        ids = collect_slice_ids(condition.get("view_excerpt", []))
+        if len(ids) != 1:
+            raise AssertionError(
+                f"{task_item['task_id']} {condition['condition']} must expose exactly one slice_id, got {sorted(ids)}"
+            )
+        if expected is None:
+            expected = ids
+        elif ids != expected:
+            raise AssertionError(
+                f"{task_item['task_id']} condition {condition['condition']} has slice_id {sorted(ids)}; expected {sorted(expected)}"
+            )
 
 
 def public_title(task_id: str) -> str:
@@ -435,21 +618,6 @@ def build_tasks(
     r123_bench_model = r123_bench["models"][0]
     r123_p95_ms = int(percentile_nearest_rank(r123_bench_model["latency_ms"], 95))
 
-    shared_trace = r114_trace_rows(r114)
-    shared_span = r114_span_rows(r114)
-    shared_flat = command_rows[:8]
-    shared_nonsemantic = [
-        {
-            "projected_stack": no_example["projected_stack"],
-            "weight": no_example["weight"],
-        },
-        {
-            "projected_stack": session_example["projected_stack"],
-            "weight": session_example["weight"],
-        },
-    ]
-    shared_semantic = no_example["top_full_semantic_variants"][:8]
-
     def sem_rows(example: dict[str, Any]) -> list[dict[str, Any]]:
         return semantic_variants(example)[:8]
 
@@ -469,10 +637,11 @@ def build_tasks(
             "UT01",
             "Top Nonsemantic System Mixing",
             "Which high-weight nonsemantic system bucket is dominated by which semantic region?",
-            standard_conditions(
-                trace_rows=shared_trace,
-                span_rows=shared_span,
-                flat_rows=shared_flat,
+            stack_slice_conditions(
+                task_id="UT01",
+                slice_kind="system-nonsemantic-bucket",
+                stack=example_stack(no_example),
+                weight=no_example["weight"],
                 nonsemantic_rows=projected_row(no_example),
                 semantic_rows=sem_rows(no_example),
             ),
@@ -493,10 +662,22 @@ def build_tasks(
             "UT02",
             "Prompt Axis Contribution",
             "How much does prompt-only projection reduce system-effect mixing compared with no semantic axis?",
-            standard_conditions(
-                trace_rows=shared_trace,
-                span_rows=shared_span,
-                flat_rows=shared_flat,
+            metric_slice_conditions(
+                task_id="UT02",
+                slice_kind="system-ablation-axis",
+                weight=system_no["projection"]["total_weight"],
+                trace_rows=[
+                    {"metric": "family", "value": "system"},
+                    {"metric": "comparison", "value": "no-semantic vs prompt-only"},
+                ],
+                span_rows=[
+                    {"span": "no-semantic", "event_weight": system_no["projection"]["total_weight"], "width_basis": "same_projection_total"},
+                    {"span": "prompt-only", "event_weight": system_prompt["projection"]["total_weight"], "width_basis": "same_projection_total"},
+                ],
+                flat_rows=[
+                    {"variant": "no-semantic", "metric": "mixed_weight_share_pct", "value": system_no["mixing_against_full_semantics"]["mixed_weight_share_pct"]},
+                    {"variant": "prompt-only", "metric": "mixed_weight_share_pct", "value": system_prompt["mixing_against_full_semantics"]["mixed_weight_share_pct"]},
+                ],
                 nonsemantic_rows=[
                     {"variant": "no-semantic", **system_no["mixing_against_full_semantics"]},
                     {"variant": "prompt-only", **system_prompt["mixing_against_full_semantics"]},
@@ -521,15 +702,30 @@ def build_tasks(
             "UT03",
             "Session Versus Prompt Axis",
             "Which single semantic axis separates system effects better: session or prompt?",
-            standard_conditions(
-                trace_rows=shared_trace,
-                span_rows=shared_span,
-                flat_rows=shared_flat,
+            metric_slice_conditions(
+                task_id="UT03",
+                slice_kind="system-ablation-axis",
+                weight=system_session["projection"]["total_weight"],
+                trace_rows=[
+                    {"metric": "family", "value": "system"},
+                    {"metric": "comparison", "value": "session-only vs prompt-only"},
+                ],
+                span_rows=[
+                    {"span": "session-only", "event_weight": system_session["projection"]["total_weight"], "width_basis": "same_projection_total"},
+                    {"span": "prompt-only", "event_weight": system_prompt["projection"]["total_weight"], "width_basis": "same_projection_total"},
+                ],
+                flat_rows=[
+                    {"variant": "session-only", "metric": "mixed_weight_share_pct", "value": system_session["mixing_against_full_semantics"]["mixed_weight_share_pct"]},
+                    {"variant": "prompt-only", "metric": "mixed_weight_share_pct", "value": system_prompt["mixing_against_full_semantics"]["mixed_weight_share_pct"]},
+                ],
                 nonsemantic_rows=[
                     {"variant": "session-only", **system_session["mixing_against_full_semantics"]},
                     {"variant": "prompt-only", **system_prompt["mixing_against_full_semantics"]},
                 ],
-                semantic_rows=[session_example, prompt_example],
+                semantic_rows=[
+                    {"semantic": top_semantic(session_example)["semantic"], "weight": top_semantic(session_example)["weight"]},
+                    {"semantic": top_semantic(prompt_example)["semantic"], "weight": top_semantic(prompt_example)["weight"]},
+                ],
             ),
             ["docs/visexp/out/semantic-ablation-r131.json"],
             {
@@ -549,11 +745,12 @@ def build_tasks(
             "UT04",
             "Heaviest Repeated Semantic Stack",
             "Identify the heaviest semantic system stack and its semantic/effect fields.",
-            standard_conditions(
-                trace_rows=shared_trace,
-                span_rows=shared_span,
-                flat_rows=shared_flat,
-                nonsemantic_rows=[{"stack": ";".join(f for f in frame_list(top_system["stack"]) if not f.startswith(("session:", "prompt:"))), "weight": top_system["weight"]}],
+            stack_slice_conditions(
+                task_id="UT04",
+                slice_kind="semantic-system-stack",
+                stack=top_system["stack"],
+                weight=top_system["weight"],
+                nonsemantic_rows=[{"stack": stack_without(top_system["stack"], ("session:", "prompt:")), "weight": top_system["weight"]}],
                 semantic_rows=[top_system],
             ),
             [rel(agentflame_dir / "agentflame.json")],
@@ -575,11 +772,12 @@ def build_tasks(
             "UT05",
             "Heaviest Path-Specific Read",
             "Find the heaviest path-specific system-effect stack and report process, path, and semantic tags.",
-            standard_conditions(
-                trace_rows=shared_trace,
-                span_rows=shared_span,
-                flat_rows=shared_flat,
-                nonsemantic_rows=[{"stack": ";".join(f for f in frame_list(path_stack["stack"]) if not f.startswith(("session:", "prompt:"))), "weight": path_stack["weight"]}],
+            stack_slice_conditions(
+                task_id="UT05",
+                slice_kind="semantic-path-stack",
+                stack=path_stack["stack"],
+                weight=path_stack["weight"],
+                nonsemantic_rows=[{"stack": stack_without(path_stack["stack"], ("session:", "prompt:")), "weight": path_stack["weight"]}],
                 semantic_rows=[path_stack],
             ),
             [rel(agentflame_dir / "agentflame.json")],
@@ -607,10 +805,11 @@ def build_tasks(
                 task_id,
                 title,
                 f"For the {process_name} bucket, report total weight and the dominant semantic variant.",
-                standard_conditions(
-                    trace_rows=shared_trace,
-                    span_rows=shared_span,
-                    flat_rows=shared_flat,
+                stack_slice_conditions(
+                    task_id=task_id,
+                    slice_kind=f"{process_name}-command-bucket",
+                    stack=example_stack(example),
+                    weight=example["weight"],
                     nonsemantic_rows=projected_row(example),
                     semantic_rows=sem_rows(example),
                 ),
@@ -632,9 +831,11 @@ def build_tasks(
             "UT09",
             "Flat Git Read Baseline Failure",
             "In the flat git/read bucket, which semantic region dominates?",
-            standard_conditions(
-                trace_rows=shared_trace,
-                span_rows=shared_span,
+            stack_slice_conditions(
+                task_id="UT09",
+                slice_kind="flat-git-read-bucket",
+                stack=example_stack(git_flat),
+                weight=git_flat["weight"],
                 flat_rows=projected_row(git_flat),
                 nonsemantic_rows=projected_row(git_flat),
                 semantic_rows=sem_rows(git_flat),
@@ -656,11 +857,13 @@ def build_tasks(
             "UT10",
             "Largest Token Region",
             "Identify the largest token stack and report its semantic/token fields.",
-            standard_conditions(
-                trace_rows=shared_trace,
-                span_rows=shared_span,
+            stack_slice_conditions(
+                task_id="UT10",
+                slice_kind="semantic-token-stack",
+                stack=top_token["stack"],
+                weight=top_token["weight"],
                 flat_rows=[{"model": stack_frame(top_token["stack"], "model:"), "kind": stack_frame(top_token["stack"], "kind:"), "weight": top_token["weight"]}],
-                nonsemantic_rows=[{"stack": ";".join(f for f in frame_list(top_token["stack"]) if not f.startswith(("session:", "prompt:", "call:"))), "weight": top_token["weight"]}],
+                nonsemantic_rows=[{"stack": stack_without(top_token["stack"], ("session:", "prompt:", "call:")), "weight": top_token["weight"]}],
                 semantic_rows=[top_token],
             ),
             [rel(agentflame_dir / "agentflame.json")],
@@ -683,12 +886,20 @@ def build_tasks(
             "UT11",
             "LLM-Call Axis Boundary",
             "Does prompt+LLM-call alone fully explain token provenance, and what residual remains?",
-            standard_conditions(
-                trace_rows=shared_trace,
-                span_rows=shared_span,
-                flat_rows=[{"family": "token", "variant": "no-semantic", "mixed_pct": 100.0}],
-                nonsemantic_rows=[{"family": "token", "variant": "prompt+llm-call", "mixed_pct": token_mix["mixed_weight_share_pct"]}],
-                semantic_rows=[{"family": "token", "variant": "prompt+llm-call", "residual_pct": token_mix["mixed_residual_weight_share_pct"]}],
+            metric_slice_conditions(
+                task_id="UT11",
+                slice_kind="token-ablation-axis",
+                weight=token_prompt_llm["projection"]["total_weight"],
+                trace_rows=[
+                    {"metric": "family", "value": "token"},
+                    {"metric": "comparison", "value": "prompt+llm-call vs full token semantics"},
+                ],
+                span_rows=[
+                    {"span": "prompt+llm-call", "event_weight": token_prompt_llm["projection"]["total_weight"], "width_basis": "same_projection_total"}
+                ],
+                flat_rows=[{"family": "token", "variant": "prompt+llm-call", "metric": "mixed_weight_share_pct", "value": token_mix["mixed_weight_share_pct"]}],
+                nonsemantic_rows=[{"family": "token", "variant": "prompt+llm-call", "mixed_weight_share_pct": token_mix["mixed_weight_share_pct"]}],
+                semantic_rows=[{"family": "token", "variant": "prompt+llm-call", "mixed_residual_weight_share_pct": token_mix["mixed_residual_weight_share_pct"]}],
             ),
             ["docs/visexp/out/semantic-ablation-r131.json"],
             {
@@ -707,9 +918,15 @@ def build_tasks(
             "UT12",
             "Exact-Lineage Negative Controls",
             "For the R114 exact-lineage suite, report scoped join and negative-control outcomes.",
-            standard_conditions(
+            metric_slice_conditions(
+                task_id="UT12",
+                slice_kind="r114-lineage-suite",
+                weight=r114_agg["in_scope_effect_events"],
                 trace_rows=r114_trace_rows(r114, 8),
-                span_rows=r114_span_rows(r114, 8),
+                span_rows=[
+                    {"span": row.get("task_id"), "event_weight": row.get("duration_seconds"), "width_basis": "task_duration_seconds", "status": row.get("status")}
+                    for row in r114_span_rows(r114, 8)
+                ],
                 flat_rows=r114_flat_rows(r114),
                 nonsemantic_rows=[{"join_methods": r114_agg.get("join_methods", {})}],
                 semantic_rows=[
@@ -740,9 +957,15 @@ def build_tasks(
             "UT13",
             "Raw Join Versus Scoped Recall",
             "Why is R114 raw join much lower than scoped recall, and what are the key numbers?",
-            standard_conditions(
+            metric_slice_conditions(
+                task_id="UT13",
+                slice_kind="r114-lineage-scope",
+                weight=r114_agg["effect_events"],
                 trace_rows=r114_trace_rows(r114, 8),
-                span_rows=r114_span_rows(r114, 8),
+                span_rows=[
+                    {"span": row.get("task_id"), "event_weight": row.get("duration_seconds"), "width_basis": "task_duration_seconds", "status": row.get("status")}
+                    for row in r114_span_rows(r114, 8)
+                ],
                 flat_rows=r114_flat_rows(r114),
                 nonsemantic_rows=[{"raw_join_pct": r114_agg["raw_join_pct"], "out_of_scope_effect_events": r114_agg["out_of_scope_effect_events"]}],
                 semantic_rows=[{"recall_pct": r114_agg["recall_pct"], "scope": "retargeted agent process family"}],
@@ -764,9 +987,17 @@ def build_tasks(
             "UT14",
             "3B Tag Stability Boundary",
             "Report the real-fragment 3B tag-stability numbers and the correct claim boundary.",
-            standard_conditions(
-                trace_rows=shared_trace,
-                span_rows=shared_span,
+            metric_slice_conditions(
+                task_id="UT14",
+                slice_kind="r123-model-stability",
+                weight=r123_model["total_runs"],
+                trace_rows=[
+                    {"metric": "model", "value": "3b"},
+                    {"metric": "fragment_count", "value": r123_bench["fragments_per_model"]},
+                ],
+                span_rows=[
+                    {"span": "3b-tagging", "event_weight": r123_model["total_runs"], "width_basis": "llm_call_count"}
+                ],
                 flat_rows=[{"model": "3b", "fragments": r123_bench["fragments_per_model"], "runs": r123_model["total_runs"]}],
                 nonsemantic_rows=[{"exact_stable_fragments": r123_model["exact_stable_fragments"], "fragments": r123_bench["fragments_per_model"]}],
                 semantic_rows=[{"valid_runs": r123_model["ok_runs"], "total_runs": r123_model["total_runs"], "p95_ms": r123_p95_ms}],
@@ -871,6 +1102,7 @@ def participant_packets(tasks: list[dict[str, Any]]) -> list[dict[str, Any]]:
         "user-task-answer-key.csv",
     }
     for item in tasks:
+        validate_task_same_slice(item)
         for condition in item["participant_view_conditions"]:
             views = list(condition["views"])
             leaked = sorted(set(views) & forbidden_views)
@@ -890,7 +1122,6 @@ def participant_packets(tasks: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     "question": item["question"],
                     "views": views,
                     "view_excerpt": view_excerpt,
-                    "contains_oracle": False,
                 }
             )
     return packets
@@ -916,7 +1147,7 @@ def write_summary(path: Path, bundle: dict[str, Any]) -> None:
     lines = [
         "# User Task Benchmark Bundle",
         "",
-        "This draft bundle defines B4/C5 analysis tasks and answer keys. It is not a human-study result and is not yet a finalized participant protocol.",
+        "This bundle defines B4/C5 pilot analysis tasks and answer keys. It is not a human-study result.",
         "",
         f"- Tasks: {len(bundle['tasks'])}.",
         f"- Primary utility tasks: {bundle['primary_utility_task_count']}.",
@@ -935,10 +1166,10 @@ def write_summary(path: Path, bundle: dict[str, Any]) -> None:
             "",
             "## Claim Boundary",
             "",
-            "- The bundle makes C5 closer to executable by defining questions, condition packets, assignments, and answer keys.",
+            "- The bundle makes the C5 pilot executable by defining questions, condition packets, assignments, and answer keys.",
             "- `user-task-response-template.csv` defines the response schema consumed by `score_user_task_results.py`.",
             "- Participants should see only their assigned condition packet; oracle sources and answer keys are for graders.",
-            "- Baseline fairness still needs a same-event-slice audit before collecting participants.",
+            "- Every task's five condition excerpts share one `slice_id`; this checks the same-event-slice baseline-fairness requirement for the pilot packet.",
             "- C5 remains unsupported until participant responses are collected and scored.",
         ]
     )
@@ -1029,8 +1260,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     bundle = {
         "schema_version": 2,
         "claim": "C5",
-        "run_id": "R141-packet",
-        "status": "pilot_packet_draft_no_participants",
+        "run_id": "R142-packet",
+        "status": "pilot_packet_ready_no_participants",
         "generated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
         "source_artifacts": source_manifest(agentflame_dir, out_dir),
         "script_artifacts": script_manifest(),
@@ -1048,7 +1279,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "packet_count": len(packets),
         "assignment_count": len(assignments),
         "participant_protocol": {
-            "design": "draft within-subject counterbalanced assignment across five visualization families",
+            "design": "within-subject counterbalanced assignment across five visualization families",
             "conditions": CONDITION_ORDER,
             "metrics": [
                 "exact_answer_accuracy",
@@ -1061,7 +1292,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "paper_run_participants": "12-20",
             "assignment": "P01-P05 seeded rotation; each participant receives one condition per task and each task is covered once per condition across the pilot template",
             "oracle_visibility": "participants see only assigned condition packets; oracle_sources and answer keys are for graders",
-            "readiness_boundary": "draft: content leakage and assignment checks pass, but baseline fairness still needs a same-event-slice audit before collecting participants",
+            "readiness_boundary": "pilot packet: content leakage, assignment coverage, and same-event-slice checks pass; C5 remains unsupported until scored participant responses exist",
             "claim_gate": "C5 can move beyond unsupported only after scored participant responses exist.",
         },
         "participant_packet_files": [

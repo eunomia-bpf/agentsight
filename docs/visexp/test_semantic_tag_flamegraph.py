@@ -253,7 +253,7 @@ class AggregationTests(unittest.TestCase):
                     {
                         "condition": "semantic-stack",
                         "views": ["semantic folded excerpt"],
-                        "view_excerpt": [{"title": "semantic", "rows": [{"weight": 7}]}],
+                        "view_excerpt": [{"title": "semantic", "rows": [{"slice_id": "slice-a", "weight": 7}]}],
                     },
                 ],
                 "answer_format": {"weight": "int"},
@@ -266,8 +266,8 @@ class AggregationTests(unittest.TestCase):
         self.assertEqual(packets[0]["packet_id"], "UTX-semantic-stack")
         self.assertNotIn("skill", packets[0])
         self.assertEqual(packets[0]["view_excerpt"][0]["rows"][0]["weight"], 7)
-        self.assertEqual(packets[0]["contains_oracle"], False)
         self.assertNotIn("oracle", packets[0])
+        self.assertFalse(any("oracle" in key for key in packets[0]))
 
     def test_participant_packets_reject_oracle_only_excerpt_keys(self) -> None:
         tasks = [
@@ -284,9 +284,36 @@ class AggregationTests(unittest.TestCase):
                         "view_excerpt": [
                             {
                                 "title": "bad",
-                                "rows": [{"variant_count": 133}],
+                                "rows": [{"slice_id": "slice-a", "variant_count": 133}],
                             }
                         ],
+                    },
+                ],
+                "answer_format": {"weight": "int"},
+            }
+        ]
+
+        with self.assertRaises(AssertionError):
+            participant_packets(tasks)
+
+    def test_participant_packets_reject_condition_slice_mismatch(self) -> None:
+        tasks = [
+            {
+                "task_id": "UTX",
+                "claim": "C5",
+                "skill": "demo",
+                "title": "Demo",
+                "question": "Find the answer.",
+                "participant_view_conditions": [
+                    {
+                        "condition": "flat-summary",
+                        "views": ["flat"],
+                        "view_excerpt": [{"title": "flat", "rows": [{"slice_id": "slice-a", "weight": 7}]}],
+                    },
+                    {
+                        "condition": "semantic-stack",
+                        "views": ["semantic"],
+                        "view_excerpt": [{"title": "semantic", "rows": [{"slice_id": "slice-b", "weight": 7}]}],
                     },
                 ],
                 "answer_format": {"weight": "int"},

@@ -228,20 +228,20 @@ Required evidence:
 
 Current evidence:
 
-- R141-packet generated a current draft from R114/R123/R131/full-run artifacts:
+- R142-packet generated a current pilot packet from R114/R123/R131/full-run artifacts:
   14 questions, 8 primary utility tasks, 6 limitation/comprehension tasks, five
   conditions (`trace-tree`, `span-duration`, `flat-summary`,
   `nonsemantic-stack`, `semantic-stack`), 70 leak-checked blinded participant
   packets, a P01-P05 counterbalanced assignment template, a hidden answer key,
-  manifests, and a scorer output marked `participant_results_empty` with null
-  aggregate metrics.
+  manifests, a scorer output marked `participant_results_empty` with null
+  aggregate metrics, and per-task same-event-slice `slice_id` checks across all
+  five conditions.
 - No real participant responses are available.
 
 Remaining gap:
 
-- Without same-event-slice baseline fairness and participant responses, the
-  paper can claim improved information organization but not improved user
-  outcomes.
+- Without participant responses, the paper can claim improved information
+  organization but not improved user outcomes.
 
 ### RQ5. Robustness Of One-Word Tags
 
@@ -274,7 +274,7 @@ Remaining gap:
 | C2 | Local one-word LLM tagging is feasible for session/prompt/LLM-call contexts. | supported for 3B syntax/latency; partial for size/adequacy | 0.6B/1B evidence if claimed and adequacy labels |
 | C3 | Semantic frames expose task-effect mixtures hidden by nonsemantic and flat summaries. | supported as mechanism | stronger examples and task benchmark |
 | C4 | Exact AgentSight lineage connects semantic intent to process/file/network effects. | supported for fixed command-mode suite; partial broadly | cross-repo/full-history exact integration and user-task outcomes |
-| C5 | Developers answer debugging/audit questions better with semantic effect flamegraphs. | unsupported; R141-packet draft exists | same-event-slice fairness plus user/task benchmark responses with preregistered effect-size and statistics plan |
+| C5 | Developers answer debugging/audit questions better with semantic effect flamegraphs. | unsupported; R142-packet exists | user/task benchmark responses with preregistered effect-size and statistics plan |
 | C6 | One-word tags are stable and adequate enough for navigation. | partial | human adequacy labels with thresholds and 0.6B/1B evidence if claimed |
 | C7 | The approach is practical as an open-source developer tool. | partial | one-command install/run, runtime/cost, docs, artifact hygiene |
 
@@ -285,7 +285,7 @@ Remaining gap:
 | B1 | RQ1 | Full local-session characterization | 3B local llama.cpp, cache on/off where feasible | sessions, tags, invalids, runtime, cache hit rate | tag grammar checker and complete report | done, must repeat after changes |
 | B2 | RQ2 | Semantic partitioning audit | semantic, nonsemantic, flat process/effect summary | mixed buckets, mixed weight, entropy, examples | deterministic stack comparison | done |
 | B3 | RQ3 | Live exact AgentSight lineage | agent-native proxy vs exact effect stream plus negative controls | recall, precision, orphan rate, path/domain specificity | lineage checker with false-positive controls | fixed command-mode suite passed; broader replication should |
-| B4 | RQ4 | Developer task benchmark | trace tree, span flamegraph, flat summary, nonsemantic stack, semantic stack | time, accuracy, false positives, confidence | hidden answer key plus preregistered thresholds | draft packet done; same-event-slice fairness and participant run must |
+| B4 | RQ4 | Developer task benchmark | trace tree, span flamegraph, flat summary, nonsemantic stack, semantic stack | time, accuracy, false positives, confidence | hidden answer key plus preregistered thresholds | packet done; participant run must |
 | B5 | RQ5 | Small-model and tag-stability benchmark | 0.6B, 1B, 3B, optional larger reference | latency, invalid rate, identical-input stability, adequacy | repeated run + human labels | must |
 | B6 | RQ2 | Ablations | no semantic, session-only, prompt-only, prompt+LLM-call, full | information gain, stack explosion; noisy-tag burden and B4 task accuracy/time deferred | same observations, total-weight equality, report/folded cross-checks | done for C3 mechanism; C6/B4 deferred |
 | B7 | RQ6 | Open-source usability smoke | fresh clone, install, run, view dashboard | setup time, commands, failure modes | artifact checklist | should |
@@ -327,8 +327,7 @@ and G4 developer task utility.
 The fastest route to weak accept is:
 
 1. Collect and adjudicate R124 human adequacy labels over the R122 packet.
-2. Fix R141 same-event-slice baseline fairness, then run a small but real B4x
-   user/task benchmark using the generated answer keys and blinded condition
-   packets.
+2. Run a small but real B4x user/task benchmark using the generated R142 answer
+   keys and blinded condition packets.
 3. Rewrite the paper around "semantic attribution of agent system effects," not
    around "agent flamegraph UI."

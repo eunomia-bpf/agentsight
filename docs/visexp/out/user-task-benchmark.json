@@ -1,9 +1,9 @@
 {
   "schema_version": 2,
   "claim": "C5",
-  "run_id": "R141-packet",
-  "status": "pilot_packet_draft_no_participants",
-  "generated_at": "2026-06-15T06:43:21+00:00",
+  "run_id": "R142-packet",
+  "status": "pilot_packet_ready_no_participants",
+  "generated_at": "2026-06-15T07:01:01+00:00",
   "source_artifacts": [
     {
       "path": ".agentsight/agentflame/latest/agentflame.json",
@@ -35,7 +35,7 @@
     {
       "path": "docs/visexp/user_task_benchmark.py",
       "exists": true,
-      "sha256": "caeba078d820d5c8c04f8ae5412ccb12190bb00526e2ce16ace44bcee17dbc9f"
+      "sha256": "bf70244faaa2a8ccb03e298a919b5e71d36fb93c204573bf9b9c65232afc1e0a"
     },
     {
       "path": "docs/visexp/score_user_task_results.py",
@@ -45,11 +45,11 @@
     {
       "path": "docs/visexp/test_semantic_tag_flamegraph.py",
       "exists": true,
-      "sha256": "4da49ec666dd4b6a962c18c4f797455a3ce4324ea11c9b2ee18af41ab6544479"
+      "sha256": "026d96dc00f46ede4493543421f542ebdafd336335fe8b9d21c4f5dadeaddf2a"
     }
   ],
   "provenance": {
-    "repo_commit": "dd95f13f4894f1f3985719edb67cadeaa3e7dee8",
+    "repo_commit": "80fc9fc954dba8ceb2dd535c73ef423646d9403b",
     "repo_dirty": true,
     "command": "docs/visexp/user_task_benchmark.py --out docs/visexp/out --agentflame-dir .agentsight/agentflame/latest",
     "python_version": "3.12.3",
@@ -68,7 +68,7 @@
   "packet_count": 70,
   "assignment_count": 70,
   "participant_protocol": {
-    "design": "draft within-subject counterbalanced assignment across five visualization families",
+    "design": "within-subject counterbalanced assignment across five visualization families",
     "conditions": [
       "trace-tree",
       "span-duration",
@@ -87,7 +87,7 @@
     "paper_run_participants": "12-20",
     "assignment": "P01-P05 seeded rotation; each participant receives one condition per task and each task is covered once per condition across the pilot template",
     "oracle_visibility": "participants see only assigned condition packets; oracle_sources and answer keys are for graders",
-    "readiness_boundary": "draft: content leakage and assignment checks pass, but baseline fairness still needs a same-event-slice audit before collecting participants",
+    "readiness_boundary": "pilot packet: content leakage, assignment coverage, and same-event-slice checks pass; C5 remains unsupported until scored participant responses exist",
     "claim_gate": "C5 can move beyond unsupported only after scored participant responses exist."
   },
   "participant_packet_files": [
@@ -115,34 +115,49 @@
               "title": "trace tree excerpt",
               "rows": [
                 {
-                  "task_id": "r114-read-state",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "9094425a7659d6b2",
+                  "slice_kind": "system-nonsemantic-bucket",
+                  "slice_weight": 12841,
+                  "frame_index": 1,
+                  "frame": "project:agentsight",
+                  "frame_type": "project",
+                  "status": "observed"
                 },
                 {
-                  "task_id": "r114-read-verdict",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "9094425a7659d6b2",
+                  "slice_kind": "system-nonsemantic-bucket",
+                  "slice_weight": 12841,
+                  "frame_index": 2,
+                  "frame": "agent:codex",
+                  "frame_type": "agent",
+                  "status": "observed"
                 },
                 {
-                  "task_id": "r114-read-related",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "9094425a7659d6b2",
+                  "slice_kind": "system-nonsemantic-bucket",
+                  "slice_weight": 12841,
+                  "frame_index": 3,
+                  "frame": "call:tool/tool",
+                  "frame_type": "call",
+                  "status": "observed"
                 },
                 {
-                  "task_id": "r114-rg-baseline",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "9094425a7659d6b2",
+                  "slice_kind": "system-nonsemantic-bucket",
+                  "slice_weight": 12841,
+                  "frame_index": 4,
+                  "frame": "effect:process",
+                  "frame_type": "effect",
+                  "status": "observed"
                 },
                 {
-                  "task_id": "r114-agentflame-readme",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "9094425a7659d6b2",
+                  "slice_kind": "system-nonsemantic-bucket",
+                  "slice_weight": 12841,
+                  "frame_index": 5,
+                  "frame": "status:ok",
+                  "frame_type": "status",
+                  "status": "observed"
                 }
               ]
             }
@@ -158,34 +173,54 @@
               "title": "duration-ordered span excerpt",
               "rows": [
                 {
-                  "task_id": "r114-edit-rust-text",
-                  "category": "edit",
-                  "duration_seconds": 30.605,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "9094425a7659d6b2",
+                  "slice_kind": "system-nonsemantic-bucket",
+                  "slice_weight": 12841,
+                  "frame_index": 1,
+                  "span": "project:agentsight",
+                  "event_weight": 12841,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 },
                 {
-                  "task_id": "r114-write-json",
-                  "category": "edit",
-                  "duration_seconds": 30.304,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "9094425a7659d6b2",
+                  "slice_kind": "system-nonsemantic-bucket",
+                  "slice_weight": 12841,
+                  "frame_index": 2,
+                  "span": "agent:codex",
+                  "event_weight": 12841,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 },
                 {
-                  "task_id": "r114-test-debug",
-                  "category": "test",
-                  "duration_seconds": 28.372,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "9094425a7659d6b2",
+                  "slice_kind": "system-nonsemantic-bucket",
+                  "slice_weight": 12841,
+                  "frame_index": 3,
+                  "span": "call:tool/tool",
+                  "event_weight": 12841,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 },
                 {
-                  "task_id": "r114-fix-shell-script",
-                  "category": "test",
-                  "duration_seconds": 25.5,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "9094425a7659d6b2",
+                  "slice_kind": "system-nonsemantic-bucket",
+                  "slice_weight": 12841,
+                  "frame_index": 4,
+                  "span": "effect:process",
+                  "event_weight": 12841,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 },
                 {
-                  "task_id": "r114-edit-python-bug",
-                  "category": "edit",
-                  "duration_seconds": 25.311,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "9094425a7659d6b2",
+                  "slice_kind": "system-nonsemantic-bucket",
+                  "slice_weight": 12841,
+                  "frame_index": 5,
+                  "span": "status:ok",
+                  "event_weight": 12841,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 }
               ]
             }
@@ -201,68 +236,20 @@
               "title": "flat summary excerpt",
               "rows": [
                 {
+                  "slice_id": "9094425a7659d6b2",
+                  "slice_kind": "system-nonsemantic-bucket",
+                  "slice_weight": 12841,
                   "agent": "codex",
-                  "cmd": "sed",
-                  "count": 25755,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "rg",
-                  "count": 15336,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "write",
-                  "count": 12824,
+                  "tool": "tool/tool",
+                  "call": "tool/tool",
+                  "cmd": "unknown",
+                  "process": "unknown",
                   "effect": "process",
                   "status": "ok",
-                  "tool": "tool"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "git",
-                  "count": 8549,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "write",
-                  "count": 7655,
-                  "effect": "process",
-                  "status": "observed",
-                  "tool": "tool"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "nl",
-                  "count": 6354,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "find",
-                  "count": 4429,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "cargo",
-                  "count": 2903,
-                  "effect": "test",
-                  "status": "ok",
-                  "tool": "shell"
+                  "path": "unknown",
+                  "model": "unknown",
+                  "kind": "unknown",
+                  "weight": 12841
                 }
               ]
             }
@@ -278,6 +265,9 @@
               "title": "nonsemantic folded excerpt",
               "rows": [
                 {
+                  "slice_id": "9094425a7659d6b2",
+                  "slice_kind": "system-nonsemantic-bucket",
+                  "slice_weight": 12841,
                   "projected_stack": "project:agentsight;agent:codex;call:tool/tool;effect:process;status:ok",
                   "weight": 12841
                 }
@@ -295,34 +285,58 @@
               "title": "semantic folded excerpt",
               "rows": [
                 {
+                  "slice_id": "9094425a7659d6b2",
+                  "slice_kind": "system-nonsemantic-bucket",
+                  "slice_weight": 12841,
                   "semantic": "session:refactor/prompt:refactor",
                   "weight": 6004
                 },
                 {
+                  "slice_id": "9094425a7659d6b2",
+                  "slice_kind": "system-nonsemantic-bucket",
+                  "slice_weight": 12841,
                   "semantic": "session:refactor/prompt:design",
                   "weight": 1349
                 },
                 {
+                  "slice_id": "9094425a7659d6b2",
+                  "slice_kind": "system-nonsemantic-bucket",
+                  "slice_weight": 12841,
                   "semantic": "session:refactor/prompt:review",
                   "weight": 1349
                 },
                 {
+                  "slice_id": "9094425a7659d6b2",
+                  "slice_kind": "system-nonsemantic-bucket",
+                  "slice_weight": 12841,
                   "semantic": "session:analyze/prompt:analyze",
                   "weight": 704
                 },
                 {
+                  "slice_id": "9094425a7659d6b2",
+                  "slice_kind": "system-nonsemantic-bucket",
+                  "slice_weight": 12841,
                   "semantic": "session:refactor/prompt:test",
                   "weight": 331
                 },
                 {
+                  "slice_id": "9094425a7659d6b2",
+                  "slice_kind": "system-nonsemantic-bucket",
+                  "slice_weight": 12841,
                   "semantic": "session:refactor/prompt:benchmark",
                   "weight": 248
                 },
                 {
+                  "slice_id": "9094425a7659d6b2",
+                  "slice_kind": "system-nonsemantic-bucket",
+                  "slice_weight": 12841,
                   "semantic": "session:refactor/prompt:ignored",
                   "weight": 206
                 },
                 {
+                  "slice_id": "9094425a7659d6b2",
+                  "slice_kind": "system-nonsemantic-bucket",
+                  "slice_weight": 12841,
                   "semantic": "session:refactor/prompt:validate",
                   "weight": 129
                 }
@@ -375,34 +389,18 @@
               "title": "trace tree excerpt",
               "rows": [
                 {
-                  "task_id": "r114-read-state",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "6fe59bb891a3b287",
+                  "slice_kind": "system-ablation-axis",
+                  "slice_weight": 167005,
+                  "metric": "family",
+                  "value": "system"
                 },
                 {
-                  "task_id": "r114-read-verdict",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
-                },
-                {
-                  "task_id": "r114-read-related",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
-                },
-                {
-                  "task_id": "r114-rg-baseline",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
-                },
-                {
-                  "task_id": "r114-agentflame-readme",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "6fe59bb891a3b287",
+                  "slice_kind": "system-ablation-axis",
+                  "slice_weight": 167005,
+                  "metric": "comparison",
+                  "value": "no-semantic vs prompt-only"
                 }
               ]
             }
@@ -418,34 +416,20 @@
               "title": "duration-ordered span excerpt",
               "rows": [
                 {
-                  "task_id": "r114-edit-rust-text",
-                  "category": "edit",
-                  "duration_seconds": 30.605,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "6fe59bb891a3b287",
+                  "slice_kind": "system-ablation-axis",
+                  "slice_weight": 167005,
+                  "span": "no-semantic",
+                  "event_weight": 167005,
+                  "width_basis": "same_projection_total"
                 },
                 {
-                  "task_id": "r114-write-json",
-                  "category": "edit",
-                  "duration_seconds": 30.304,
-                  "status": "lineage_precision_ok"
-                },
-                {
-                  "task_id": "r114-test-debug",
-                  "category": "test",
-                  "duration_seconds": 28.372,
-                  "status": "lineage_precision_ok"
-                },
-                {
-                  "task_id": "r114-fix-shell-script",
-                  "category": "test",
-                  "duration_seconds": 25.5,
-                  "status": "lineage_precision_ok"
-                },
-                {
-                  "task_id": "r114-edit-python-bug",
-                  "category": "edit",
-                  "duration_seconds": 25.311,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "6fe59bb891a3b287",
+                  "slice_kind": "system-ablation-axis",
+                  "slice_weight": 167005,
+                  "span": "prompt-only",
+                  "event_weight": 167005,
+                  "width_basis": "same_projection_total"
                 }
               ]
             }
@@ -461,68 +445,20 @@
               "title": "flat summary excerpt",
               "rows": [
                 {
-                  "agent": "codex",
-                  "cmd": "sed",
-                  "count": 25755,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
+                  "slice_id": "6fe59bb891a3b287",
+                  "slice_kind": "system-ablation-axis",
+                  "slice_weight": 167005,
+                  "variant": "no-semantic",
+                  "metric": "mixed_weight_share_pct",
+                  "value": 90.219
                 },
                 {
-                  "agent": "codex",
-                  "cmd": "rg",
-                  "count": 15336,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "write",
-                  "count": 12824,
-                  "effect": "process",
-                  "status": "ok",
-                  "tool": "tool"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "git",
-                  "count": 8549,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "write",
-                  "count": 7655,
-                  "effect": "process",
-                  "status": "observed",
-                  "tool": "tool"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "nl",
-                  "count": 6354,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "find",
-                  "count": 4429,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "cargo",
-                  "count": 2903,
-                  "effect": "test",
-                  "status": "ok",
-                  "tool": "shell"
+                  "slice_id": "6fe59bb891a3b287",
+                  "slice_kind": "system-ablation-axis",
+                  "slice_weight": 167005,
+                  "variant": "prompt-only",
+                  "metric": "mixed_weight_share_pct",
+                  "value": 37.687
                 }
               ]
             }
@@ -538,11 +474,17 @@
               "title": "nonsemantic folded excerpt",
               "rows": [
                 {
+                  "slice_id": "6fe59bb891a3b287",
+                  "slice_kind": "system-ablation-axis",
+                  "slice_weight": 167005,
                   "variant": "no-semantic",
                   "mixed_residual_weight_share_pct": 44.639,
                   "mixed_weight_share_pct": 90.219
                 },
                 {
+                  "slice_id": "6fe59bb891a3b287",
+                  "slice_kind": "system-ablation-axis",
+                  "slice_weight": 167005,
                   "variant": "prompt-only",
                   "mixed_residual_weight_share_pct": 7.526,
                   "mixed_weight_share_pct": 37.687
@@ -561,12 +503,16 @@
               "title": "semantic folded excerpt",
               "rows": [
                 {
-                  "total_weight": 167005,
-                  "unique_stacks": 10641
+                  "slice_id": "6fe59bb891a3b287",
+                  "slice_kind": "system-ablation-axis",
+                  "slice_weight": 167005,
+                  "total_weight": 167005
                 },
                 {
-                  "total_weight": 167005,
-                  "unique_stacks": 22341
+                  "slice_id": "6fe59bb891a3b287",
+                  "slice_kind": "system-ablation-axis",
+                  "slice_weight": 167005,
+                  "total_weight": 167005
                 }
               ]
             }
@@ -620,34 +566,18 @@
               "title": "trace tree excerpt",
               "rows": [
                 {
-                  "task_id": "r114-read-state",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "9d047d1778ea07a6",
+                  "slice_kind": "system-ablation-axis",
+                  "slice_weight": 167005,
+                  "metric": "family",
+                  "value": "system"
                 },
                 {
-                  "task_id": "r114-read-verdict",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
-                },
-                {
-                  "task_id": "r114-read-related",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
-                },
-                {
-                  "task_id": "r114-rg-baseline",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
-                },
-                {
-                  "task_id": "r114-agentflame-readme",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "9d047d1778ea07a6",
+                  "slice_kind": "system-ablation-axis",
+                  "slice_weight": 167005,
+                  "metric": "comparison",
+                  "value": "session-only vs prompt-only"
                 }
               ]
             }
@@ -663,34 +593,20 @@
               "title": "duration-ordered span excerpt",
               "rows": [
                 {
-                  "task_id": "r114-edit-rust-text",
-                  "category": "edit",
-                  "duration_seconds": 30.605,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "9d047d1778ea07a6",
+                  "slice_kind": "system-ablation-axis",
+                  "slice_weight": 167005,
+                  "span": "session-only",
+                  "event_weight": 167005,
+                  "width_basis": "same_projection_total"
                 },
                 {
-                  "task_id": "r114-write-json",
-                  "category": "edit",
-                  "duration_seconds": 30.304,
-                  "status": "lineage_precision_ok"
-                },
-                {
-                  "task_id": "r114-test-debug",
-                  "category": "test",
-                  "duration_seconds": 28.372,
-                  "status": "lineage_precision_ok"
-                },
-                {
-                  "task_id": "r114-fix-shell-script",
-                  "category": "test",
-                  "duration_seconds": 25.5,
-                  "status": "lineage_precision_ok"
-                },
-                {
-                  "task_id": "r114-edit-python-bug",
-                  "category": "edit",
-                  "duration_seconds": 25.311,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "9d047d1778ea07a6",
+                  "slice_kind": "system-ablation-axis",
+                  "slice_weight": 167005,
+                  "span": "prompt-only",
+                  "event_weight": 167005,
+                  "width_basis": "same_projection_total"
                 }
               ]
             }
@@ -706,68 +622,20 @@
               "title": "flat summary excerpt",
               "rows": [
                 {
-                  "agent": "codex",
-                  "cmd": "sed",
-                  "count": 25755,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
+                  "slice_id": "9d047d1778ea07a6",
+                  "slice_kind": "system-ablation-axis",
+                  "slice_weight": 167005,
+                  "variant": "session-only",
+                  "metric": "mixed_weight_share_pct",
+                  "value": 84.18
                 },
                 {
-                  "agent": "codex",
-                  "cmd": "rg",
-                  "count": 15336,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "write",
-                  "count": 12824,
-                  "effect": "process",
-                  "status": "ok",
-                  "tool": "tool"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "git",
-                  "count": 8549,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "write",
-                  "count": 7655,
-                  "effect": "process",
-                  "status": "observed",
-                  "tool": "tool"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "nl",
-                  "count": 6354,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "find",
-                  "count": 4429,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "cargo",
-                  "count": 2903,
-                  "effect": "test",
-                  "status": "ok",
-                  "tool": "shell"
+                  "slice_id": "9d047d1778ea07a6",
+                  "slice_kind": "system-ablation-axis",
+                  "slice_weight": 167005,
+                  "variant": "prompt-only",
+                  "metric": "mixed_weight_share_pct",
+                  "value": 37.687
                 }
               ]
             }
@@ -783,11 +651,17 @@
               "title": "nonsemantic folded excerpt",
               "rows": [
                 {
+                  "slice_id": "9d047d1778ea07a6",
+                  "slice_kind": "system-ablation-axis",
+                  "slice_weight": 167005,
                   "variant": "session-only",
                   "mixed_residual_weight_share_pct": 34.138,
                   "mixed_weight_share_pct": 84.18
                 },
                 {
+                  "slice_id": "9d047d1778ea07a6",
+                  "slice_kind": "system-ablation-axis",
+                  "slice_weight": 167005,
                   "variant": "prompt-only",
                   "mixed_residual_weight_share_pct": 7.526,
                   "mixed_weight_share_pct": 37.687
@@ -806,10 +680,18 @@
               "title": "semantic folded excerpt",
               "rows": [
                 {
-                  "weight": 10130
+                  "slice_id": "9d047d1778ea07a6",
+                  "slice_kind": "system-ablation-axis",
+                  "slice_weight": 167005,
+                  "semantic": "session:refactor/prompt:refactor",
+                  "weight": 6004
                 },
                 {
-                  "weight": 6291
+                  "slice_id": "9d047d1778ea07a6",
+                  "slice_kind": "system-ablation-axis",
+                  "slice_weight": 167005,
+                  "semantic": "session:refactor/prompt:refactor",
+                  "weight": 6004
                 }
               ]
             }
@@ -863,34 +745,49 @@
               "title": "trace tree excerpt",
               "rows": [
                 {
-                  "task_id": "r114-read-state",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "3ec59ca5056116a4",
+                  "slice_kind": "semantic-system-stack",
+                  "slice_weight": 6004,
+                  "frame_index": 1,
+                  "frame": "project:agentsight",
+                  "frame_type": "project",
+                  "status": "observed"
                 },
                 {
-                  "task_id": "r114-read-verdict",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "3ec59ca5056116a4",
+                  "slice_kind": "semantic-system-stack",
+                  "slice_weight": 6004,
+                  "frame_index": 2,
+                  "frame": "agent:codex",
+                  "frame_type": "agent",
+                  "status": "observed"
                 },
                 {
-                  "task_id": "r114-read-related",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "3ec59ca5056116a4",
+                  "slice_kind": "semantic-system-stack",
+                  "slice_weight": 6004,
+                  "frame_index": 5,
+                  "frame": "call:tool/tool",
+                  "frame_type": "call",
+                  "status": "observed"
                 },
                 {
-                  "task_id": "r114-rg-baseline",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "3ec59ca5056116a4",
+                  "slice_kind": "semantic-system-stack",
+                  "slice_weight": 6004,
+                  "frame_index": 6,
+                  "frame": "effect:process",
+                  "frame_type": "effect",
+                  "status": "observed"
                 },
                 {
-                  "task_id": "r114-agentflame-readme",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "3ec59ca5056116a4",
+                  "slice_kind": "semantic-system-stack",
+                  "slice_weight": 6004,
+                  "frame_index": 7,
+                  "frame": "status:ok",
+                  "frame_type": "status",
+                  "status": "observed"
                 }
               ]
             }
@@ -906,34 +803,54 @@
               "title": "duration-ordered span excerpt",
               "rows": [
                 {
-                  "task_id": "r114-edit-rust-text",
-                  "category": "edit",
-                  "duration_seconds": 30.605,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "3ec59ca5056116a4",
+                  "slice_kind": "semantic-system-stack",
+                  "slice_weight": 6004,
+                  "frame_index": 1,
+                  "span": "project:agentsight",
+                  "event_weight": 6004,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 },
                 {
-                  "task_id": "r114-write-json",
-                  "category": "edit",
-                  "duration_seconds": 30.304,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "3ec59ca5056116a4",
+                  "slice_kind": "semantic-system-stack",
+                  "slice_weight": 6004,
+                  "frame_index": 2,
+                  "span": "agent:codex",
+                  "event_weight": 6004,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 },
                 {
-                  "task_id": "r114-test-debug",
-                  "category": "test",
-                  "duration_seconds": 28.372,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "3ec59ca5056116a4",
+                  "slice_kind": "semantic-system-stack",
+                  "slice_weight": 6004,
+                  "frame_index": 5,
+                  "span": "call:tool/tool",
+                  "event_weight": 6004,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 },
                 {
-                  "task_id": "r114-fix-shell-script",
-                  "category": "test",
-                  "duration_seconds": 25.5,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "3ec59ca5056116a4",
+                  "slice_kind": "semantic-system-stack",
+                  "slice_weight": 6004,
+                  "frame_index": 6,
+                  "span": "effect:process",
+                  "event_weight": 6004,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 },
                 {
-                  "task_id": "r114-edit-python-bug",
-                  "category": "edit",
-                  "duration_seconds": 25.311,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "3ec59ca5056116a4",
+                  "slice_kind": "semantic-system-stack",
+                  "slice_weight": 6004,
+                  "frame_index": 7,
+                  "span": "status:ok",
+                  "event_weight": 6004,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 }
               ]
             }
@@ -949,68 +866,20 @@
               "title": "flat summary excerpt",
               "rows": [
                 {
+                  "slice_id": "3ec59ca5056116a4",
+                  "slice_kind": "semantic-system-stack",
+                  "slice_weight": 6004,
                   "agent": "codex",
-                  "cmd": "sed",
-                  "count": 25755,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "rg",
-                  "count": 15336,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "write",
-                  "count": 12824,
+                  "tool": "tool/tool",
+                  "call": "tool/tool",
+                  "cmd": "unknown",
+                  "process": "unknown",
                   "effect": "process",
                   "status": "ok",
-                  "tool": "tool"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "git",
-                  "count": 8549,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "write",
-                  "count": 7655,
-                  "effect": "process",
-                  "status": "observed",
-                  "tool": "tool"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "nl",
-                  "count": 6354,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "find",
-                  "count": 4429,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "cargo",
-                  "count": 2903,
-                  "effect": "test",
-                  "status": "ok",
-                  "tool": "shell"
+                  "path": "unknown",
+                  "model": "unknown",
+                  "kind": "unknown",
+                  "weight": 6004
                 }
               ]
             }
@@ -1026,6 +895,9 @@
               "title": "nonsemantic folded excerpt",
               "rows": [
                 {
+                  "slice_id": "3ec59ca5056116a4",
+                  "slice_kind": "semantic-system-stack",
+                  "slice_weight": 6004,
                   "stack": "project:agentsight;agent:codex;call:tool/tool;effect:process;status:ok",
                   "weight": 6004
                 }
@@ -1043,6 +915,9 @@
               "title": "semantic folded excerpt",
               "rows": [
                 {
+                  "slice_id": "3ec59ca5056116a4",
+                  "slice_kind": "semantic-system-stack",
+                  "slice_weight": 6004,
                   "stack": "project:agentsight;agent:codex;session:refactor;prompt:refactor;call:tool/tool;effect:process;status:ok",
                   "weight": 6004
                 }
@@ -1101,34 +976,67 @@
               "title": "trace tree excerpt",
               "rows": [
                 {
-                  "task_id": "r114-read-state",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "6ff7c8f034f03071",
+                  "slice_kind": "semantic-path-stack",
+                  "slice_weight": 1648,
+                  "frame_index": 1,
+                  "frame": "project:agentsight",
+                  "frame_type": "project",
+                  "status": "observed"
                 },
                 {
-                  "task_id": "r114-read-verdict",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "6ff7c8f034f03071",
+                  "slice_kind": "semantic-path-stack",
+                  "slice_weight": 1648,
+                  "frame_index": 2,
+                  "frame": "agent:codex",
+                  "frame_type": "agent",
+                  "status": "observed"
                 },
                 {
-                  "task_id": "r114-read-related",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "6ff7c8f034f03071",
+                  "slice_kind": "semantic-path-stack",
+                  "slice_weight": 1648,
+                  "frame_index": 5,
+                  "frame": "call:tool/shell",
+                  "frame_type": "call",
+                  "status": "observed"
                 },
                 {
-                  "task_id": "r114-rg-baseline",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "6ff7c8f034f03071",
+                  "slice_kind": "semantic-path-stack",
+                  "slice_weight": 1648,
+                  "frame_index": 6,
+                  "frame": "process:sed",
+                  "frame_type": "process",
+                  "status": "observed"
                 },
                 {
-                  "task_id": "r114-agentflame-readme",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "6ff7c8f034f03071",
+                  "slice_kind": "semantic-path-stack",
+                  "slice_weight": 1648,
+                  "frame_index": 7,
+                  "frame": "effect:read",
+                  "frame_type": "effect",
+                  "status": "observed"
+                },
+                {
+                  "slice_id": "6ff7c8f034f03071",
+                  "slice_kind": "semantic-path-stack",
+                  "slice_weight": 1648,
+                  "frame_index": 8,
+                  "frame": "path:module/x86",
+                  "frame_type": "path",
+                  "status": "observed"
+                },
+                {
+                  "slice_id": "6ff7c8f034f03071",
+                  "slice_kind": "semantic-path-stack",
+                  "slice_weight": 1648,
+                  "frame_index": 9,
+                  "frame": "status:ok",
+                  "frame_type": "status",
+                  "status": "observed"
                 }
               ]
             }
@@ -1144,34 +1052,74 @@
               "title": "duration-ordered span excerpt",
               "rows": [
                 {
-                  "task_id": "r114-edit-rust-text",
-                  "category": "edit",
-                  "duration_seconds": 30.605,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "6ff7c8f034f03071",
+                  "slice_kind": "semantic-path-stack",
+                  "slice_weight": 1648,
+                  "frame_index": 1,
+                  "span": "project:agentsight",
+                  "event_weight": 1648,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 },
                 {
-                  "task_id": "r114-write-json",
-                  "category": "edit",
-                  "duration_seconds": 30.304,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "6ff7c8f034f03071",
+                  "slice_kind": "semantic-path-stack",
+                  "slice_weight": 1648,
+                  "frame_index": 2,
+                  "span": "agent:codex",
+                  "event_weight": 1648,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 },
                 {
-                  "task_id": "r114-test-debug",
-                  "category": "test",
-                  "duration_seconds": 28.372,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "6ff7c8f034f03071",
+                  "slice_kind": "semantic-path-stack",
+                  "slice_weight": 1648,
+                  "frame_index": 5,
+                  "span": "call:tool/shell",
+                  "event_weight": 1648,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 },
                 {
-                  "task_id": "r114-fix-shell-script",
-                  "category": "test",
-                  "duration_seconds": 25.5,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "6ff7c8f034f03071",
+                  "slice_kind": "semantic-path-stack",
+                  "slice_weight": 1648,
+                  "frame_index": 6,
+                  "span": "process:sed",
+                  "event_weight": 1648,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 },
                 {
-                  "task_id": "r114-edit-python-bug",
-                  "category": "edit",
-                  "duration_seconds": 25.311,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "6ff7c8f034f03071",
+                  "slice_kind": "semantic-path-stack",
+                  "slice_weight": 1648,
+                  "frame_index": 7,
+                  "span": "effect:read",
+                  "event_weight": 1648,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
+                },
+                {
+                  "slice_id": "6ff7c8f034f03071",
+                  "slice_kind": "semantic-path-stack",
+                  "slice_weight": 1648,
+                  "frame_index": 8,
+                  "span": "path:module/x86",
+                  "event_weight": 1648,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
+                },
+                {
+                  "slice_id": "6ff7c8f034f03071",
+                  "slice_kind": "semantic-path-stack",
+                  "slice_weight": 1648,
+                  "frame_index": 9,
+                  "span": "status:ok",
+                  "event_weight": 1648,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 }
               ]
             }
@@ -1187,68 +1135,20 @@
               "title": "flat summary excerpt",
               "rows": [
                 {
+                  "slice_id": "6ff7c8f034f03071",
+                  "slice_kind": "semantic-path-stack",
+                  "slice_weight": 1648,
                   "agent": "codex",
-                  "cmd": "sed",
-                  "count": 25755,
+                  "tool": "tool/shell",
+                  "call": "tool/shell",
+                  "cmd": "unknown",
+                  "process": "sed",
                   "effect": "read",
                   "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "rg",
-                  "count": 15336,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "write",
-                  "count": 12824,
-                  "effect": "process",
-                  "status": "ok",
-                  "tool": "tool"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "git",
-                  "count": 8549,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "write",
-                  "count": 7655,
-                  "effect": "process",
-                  "status": "observed",
-                  "tool": "tool"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "nl",
-                  "count": 6354,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "find",
-                  "count": 4429,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "cargo",
-                  "count": 2903,
-                  "effect": "test",
-                  "status": "ok",
-                  "tool": "shell"
+                  "path": "module/x86",
+                  "model": "unknown",
+                  "kind": "unknown",
+                  "weight": 1648
                 }
               ]
             }
@@ -1264,6 +1164,9 @@
               "title": "nonsemantic folded excerpt",
               "rows": [
                 {
+                  "slice_id": "6ff7c8f034f03071",
+                  "slice_kind": "semantic-path-stack",
+                  "slice_weight": 1648,
                   "stack": "project:agentsight;agent:codex;call:tool/shell;process:sed;effect:read;path:module/x86;status:ok",
                   "weight": 1648
                 }
@@ -1281,6 +1184,9 @@
               "title": "semantic folded excerpt",
               "rows": [
                 {
+                  "slice_id": "6ff7c8f034f03071",
+                  "slice_kind": "semantic-path-stack",
+                  "slice_weight": 1648,
                   "stack": "project:agentsight;agent:codex;session:refactor;prompt:refactor;call:tool/shell;process:sed;effect:read;path:module/x86;status:ok",
                   "weight": 1648
                 }
@@ -1339,34 +1245,58 @@
               "title": "trace tree excerpt",
               "rows": [
                 {
-                  "task_id": "r114-read-state",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "8b99fc559abb95ec",
+                  "slice_kind": "cargo-command-bucket",
+                  "slice_weight": 1420,
+                  "frame_index": 1,
+                  "frame": "project:agentsight",
+                  "frame_type": "project",
+                  "status": "observed"
                 },
                 {
-                  "task_id": "r114-read-verdict",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "8b99fc559abb95ec",
+                  "slice_kind": "cargo-command-bucket",
+                  "slice_weight": 1420,
+                  "frame_index": 2,
+                  "frame": "agent:codex",
+                  "frame_type": "agent",
+                  "status": "observed"
                 },
                 {
-                  "task_id": "r114-read-related",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "8b99fc559abb95ec",
+                  "slice_kind": "cargo-command-bucket",
+                  "slice_weight": 1420,
+                  "frame_index": 3,
+                  "frame": "call:tool/shell",
+                  "frame_type": "call",
+                  "status": "observed"
                 },
                 {
-                  "task_id": "r114-rg-baseline",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "8b99fc559abb95ec",
+                  "slice_kind": "cargo-command-bucket",
+                  "slice_weight": 1420,
+                  "frame_index": 4,
+                  "frame": "process:cargo",
+                  "frame_type": "process",
+                  "status": "observed"
                 },
                 {
-                  "task_id": "r114-agentflame-readme",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "8b99fc559abb95ec",
+                  "slice_kind": "cargo-command-bucket",
+                  "slice_weight": 1420,
+                  "frame_index": 5,
+                  "frame": "effect:test",
+                  "frame_type": "effect",
+                  "status": "observed"
+                },
+                {
+                  "slice_id": "8b99fc559abb95ec",
+                  "slice_kind": "cargo-command-bucket",
+                  "slice_weight": 1420,
+                  "frame_index": 6,
+                  "frame": "status:ok",
+                  "frame_type": "status",
+                  "status": "observed"
                 }
               ]
             }
@@ -1382,34 +1312,64 @@
               "title": "duration-ordered span excerpt",
               "rows": [
                 {
-                  "task_id": "r114-edit-rust-text",
-                  "category": "edit",
-                  "duration_seconds": 30.605,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "8b99fc559abb95ec",
+                  "slice_kind": "cargo-command-bucket",
+                  "slice_weight": 1420,
+                  "frame_index": 1,
+                  "span": "project:agentsight",
+                  "event_weight": 1420,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 },
                 {
-                  "task_id": "r114-write-json",
-                  "category": "edit",
-                  "duration_seconds": 30.304,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "8b99fc559abb95ec",
+                  "slice_kind": "cargo-command-bucket",
+                  "slice_weight": 1420,
+                  "frame_index": 2,
+                  "span": "agent:codex",
+                  "event_weight": 1420,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 },
                 {
-                  "task_id": "r114-test-debug",
-                  "category": "test",
-                  "duration_seconds": 28.372,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "8b99fc559abb95ec",
+                  "slice_kind": "cargo-command-bucket",
+                  "slice_weight": 1420,
+                  "frame_index": 3,
+                  "span": "call:tool/shell",
+                  "event_weight": 1420,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 },
                 {
-                  "task_id": "r114-fix-shell-script",
-                  "category": "test",
-                  "duration_seconds": 25.5,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "8b99fc559abb95ec",
+                  "slice_kind": "cargo-command-bucket",
+                  "slice_weight": 1420,
+                  "frame_index": 4,
+                  "span": "process:cargo",
+                  "event_weight": 1420,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 },
                 {
-                  "task_id": "r114-edit-python-bug",
-                  "category": "edit",
-                  "duration_seconds": 25.311,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "8b99fc559abb95ec",
+                  "slice_kind": "cargo-command-bucket",
+                  "slice_weight": 1420,
+                  "frame_index": 5,
+                  "span": "effect:test",
+                  "event_weight": 1420,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
+                },
+                {
+                  "slice_id": "8b99fc559abb95ec",
+                  "slice_kind": "cargo-command-bucket",
+                  "slice_weight": 1420,
+                  "frame_index": 6,
+                  "span": "status:ok",
+                  "event_weight": 1420,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 }
               ]
             }
@@ -1425,68 +1385,20 @@
               "title": "flat summary excerpt",
               "rows": [
                 {
+                  "slice_id": "8b99fc559abb95ec",
+                  "slice_kind": "cargo-command-bucket",
+                  "slice_weight": 1420,
                   "agent": "codex",
-                  "cmd": "sed",
-                  "count": 25755,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "rg",
-                  "count": 15336,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "write",
-                  "count": 12824,
-                  "effect": "process",
-                  "status": "ok",
-                  "tool": "tool"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "git",
-                  "count": 8549,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "write",
-                  "count": 7655,
-                  "effect": "process",
-                  "status": "observed",
-                  "tool": "tool"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "nl",
-                  "count": 6354,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "find",
-                  "count": 4429,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "cargo",
-                  "count": 2903,
+                  "tool": "tool/shell",
+                  "call": "tool/shell",
+                  "cmd": "unknown",
+                  "process": "cargo",
                   "effect": "test",
                   "status": "ok",
-                  "tool": "shell"
+                  "path": "unknown",
+                  "model": "unknown",
+                  "kind": "unknown",
+                  "weight": 1420
                 }
               ]
             }
@@ -1502,6 +1414,9 @@
               "title": "nonsemantic folded excerpt",
               "rows": [
                 {
+                  "slice_id": "8b99fc559abb95ec",
+                  "slice_kind": "cargo-command-bucket",
+                  "slice_weight": 1420,
                   "projected_stack": "project:agentsight;agent:codex;call:tool/shell;process:cargo;effect:test;status:ok",
                   "weight": 1420
                 }
@@ -1519,34 +1434,58 @@
               "title": "semantic folded excerpt",
               "rows": [
                 {
+                  "slice_id": "8b99fc559abb95ec",
+                  "slice_kind": "cargo-command-bucket",
+                  "slice_weight": 1420,
                   "semantic": "session:review/prompt:review",
                   "weight": 204
                 },
                 {
+                  "slice_id": "8b99fc559abb95ec",
+                  "slice_kind": "cargo-command-bucket",
+                  "slice_weight": 1420,
                   "semantic": "session:refactor/prompt:refactor",
                   "weight": 192
                 },
                 {
+                  "slice_id": "8b99fc559abb95ec",
+                  "slice_kind": "cargo-command-bucket",
+                  "slice_weight": 1420,
                   "semantic": "session:research/prompt:explain",
                   "weight": 124
                 },
                 {
+                  "slice_id": "8b99fc559abb95ec",
+                  "slice_kind": "cargo-command-bucket",
+                  "slice_weight": 1420,
                   "semantic": "session:research/prompt:refactor",
                   "weight": 104
                 },
                 {
+                  "slice_id": "8b99fc559abb95ec",
+                  "slice_kind": "cargo-command-bucket",
+                  "slice_weight": 1420,
                   "semantic": "session:research/prompt:research",
                   "weight": 82
                 },
                 {
+                  "slice_id": "8b99fc559abb95ec",
+                  "slice_kind": "cargo-command-bucket",
+                  "slice_weight": 1420,
                   "semantic": "session:review/prompt:refactor",
                   "weight": 60
                 },
                 {
+                  "slice_id": "8b99fc559abb95ec",
+                  "slice_kind": "cargo-command-bucket",
+                  "slice_weight": 1420,
                   "semantic": "session:design/prompt:review",
                   "weight": 53
                 },
                 {
+                  "slice_id": "8b99fc559abb95ec",
+                  "slice_kind": "cargo-command-bucket",
+                  "slice_weight": 1420,
                   "semantic": "session:test/prompt:refactor",
                   "weight": 46
                 }
@@ -1599,34 +1538,58 @@
               "title": "trace tree excerpt",
               "rows": [
                 {
-                  "task_id": "r114-read-state",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "16e90d76423d5242",
+                  "slice_kind": "python3-command-bucket",
+                  "slice_weight": 1612,
+                  "frame_index": 1,
+                  "frame": "project:agentsight",
+                  "frame_type": "project",
+                  "status": "observed"
                 },
                 {
-                  "task_id": "r114-read-verdict",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "16e90d76423d5242",
+                  "slice_kind": "python3-command-bucket",
+                  "slice_weight": 1612,
+                  "frame_index": 2,
+                  "frame": "agent:codex",
+                  "frame_type": "agent",
+                  "status": "observed"
                 },
                 {
-                  "task_id": "r114-read-related",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "16e90d76423d5242",
+                  "slice_kind": "python3-command-bucket",
+                  "slice_weight": 1612,
+                  "frame_index": 3,
+                  "frame": "call:tool/shell",
+                  "frame_type": "call",
+                  "status": "observed"
                 },
                 {
-                  "task_id": "r114-rg-baseline",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "16e90d76423d5242",
+                  "slice_kind": "python3-command-bucket",
+                  "slice_weight": 1612,
+                  "frame_index": 4,
+                  "frame": "process:python3",
+                  "frame_type": "process",
+                  "status": "observed"
                 },
                 {
-                  "task_id": "r114-agentflame-readme",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "16e90d76423d5242",
+                  "slice_kind": "python3-command-bucket",
+                  "slice_weight": 1612,
+                  "frame_index": 5,
+                  "frame": "effect:process",
+                  "frame_type": "effect",
+                  "status": "observed"
+                },
+                {
+                  "slice_id": "16e90d76423d5242",
+                  "slice_kind": "python3-command-bucket",
+                  "slice_weight": 1612,
+                  "frame_index": 6,
+                  "frame": "status:ok",
+                  "frame_type": "status",
+                  "status": "observed"
                 }
               ]
             }
@@ -1642,34 +1605,64 @@
               "title": "duration-ordered span excerpt",
               "rows": [
                 {
-                  "task_id": "r114-edit-rust-text",
-                  "category": "edit",
-                  "duration_seconds": 30.605,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "16e90d76423d5242",
+                  "slice_kind": "python3-command-bucket",
+                  "slice_weight": 1612,
+                  "frame_index": 1,
+                  "span": "project:agentsight",
+                  "event_weight": 1612,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 },
                 {
-                  "task_id": "r114-write-json",
-                  "category": "edit",
-                  "duration_seconds": 30.304,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "16e90d76423d5242",
+                  "slice_kind": "python3-command-bucket",
+                  "slice_weight": 1612,
+                  "frame_index": 2,
+                  "span": "agent:codex",
+                  "event_weight": 1612,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 },
                 {
-                  "task_id": "r114-test-debug",
-                  "category": "test",
-                  "duration_seconds": 28.372,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "16e90d76423d5242",
+                  "slice_kind": "python3-command-bucket",
+                  "slice_weight": 1612,
+                  "frame_index": 3,
+                  "span": "call:tool/shell",
+                  "event_weight": 1612,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 },
                 {
-                  "task_id": "r114-fix-shell-script",
-                  "category": "test",
-                  "duration_seconds": 25.5,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "16e90d76423d5242",
+                  "slice_kind": "python3-command-bucket",
+                  "slice_weight": 1612,
+                  "frame_index": 4,
+                  "span": "process:python3",
+                  "event_weight": 1612,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 },
                 {
-                  "task_id": "r114-edit-python-bug",
-                  "category": "edit",
-                  "duration_seconds": 25.311,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "16e90d76423d5242",
+                  "slice_kind": "python3-command-bucket",
+                  "slice_weight": 1612,
+                  "frame_index": 5,
+                  "span": "effect:process",
+                  "event_weight": 1612,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
+                },
+                {
+                  "slice_id": "16e90d76423d5242",
+                  "slice_kind": "python3-command-bucket",
+                  "slice_weight": 1612,
+                  "frame_index": 6,
+                  "span": "status:ok",
+                  "event_weight": 1612,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 }
               ]
             }
@@ -1685,68 +1678,20 @@
               "title": "flat summary excerpt",
               "rows": [
                 {
+                  "slice_id": "16e90d76423d5242",
+                  "slice_kind": "python3-command-bucket",
+                  "slice_weight": 1612,
                   "agent": "codex",
-                  "cmd": "sed",
-                  "count": 25755,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "rg",
-                  "count": 15336,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "write",
-                  "count": 12824,
+                  "tool": "tool/shell",
+                  "call": "tool/shell",
+                  "cmd": "unknown",
+                  "process": "python3",
                   "effect": "process",
                   "status": "ok",
-                  "tool": "tool"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "git",
-                  "count": 8549,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "write",
-                  "count": 7655,
-                  "effect": "process",
-                  "status": "observed",
-                  "tool": "tool"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "nl",
-                  "count": 6354,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "find",
-                  "count": 4429,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "cargo",
-                  "count": 2903,
-                  "effect": "test",
-                  "status": "ok",
-                  "tool": "shell"
+                  "path": "unknown",
+                  "model": "unknown",
+                  "kind": "unknown",
+                  "weight": 1612
                 }
               ]
             }
@@ -1762,6 +1707,9 @@
               "title": "nonsemantic folded excerpt",
               "rows": [
                 {
+                  "slice_id": "16e90d76423d5242",
+                  "slice_kind": "python3-command-bucket",
+                  "slice_weight": 1612,
                   "projected_stack": "project:agentsight;agent:codex;call:tool/shell;process:python3;effect:process;status:ok",
                   "weight": 1612
                 }
@@ -1779,34 +1727,58 @@
               "title": "semantic folded excerpt",
               "rows": [
                 {
+                  "slice_id": "16e90d76423d5242",
+                  "slice_kind": "python3-command-bucket",
+                  "slice_weight": 1612,
                   "semantic": "session:refactor/prompt:refactor",
                   "weight": 675
                 },
                 {
+                  "slice_id": "16e90d76423d5242",
+                  "slice_kind": "python3-command-bucket",
+                  "slice_weight": 1612,
                   "semantic": "session:refactor/prompt:review",
                   "weight": 109
                 },
                 {
+                  "slice_id": "16e90d76423d5242",
+                  "slice_kind": "python3-command-bucket",
+                  "slice_weight": 1612,
                   "semantic": "session:research/prompt:research",
                   "weight": 61
                 },
                 {
+                  "slice_id": "16e90d76423d5242",
+                  "slice_kind": "python3-command-bucket",
+                  "slice_weight": 1612,
                   "semantic": "session:refactor/prompt:test",
                   "weight": 56
                 },
                 {
+                  "slice_id": "16e90d76423d5242",
+                  "slice_kind": "python3-command-bucket",
+                  "slice_weight": 1612,
                   "semantic": "session:refactor/prompt:analyze",
                   "weight": 49
                 },
                 {
+                  "slice_id": "16e90d76423d5242",
+                  "slice_kind": "python3-command-bucket",
+                  "slice_weight": 1612,
                   "semantic": "session:review/prompt:review",
                   "weight": 42
                 },
                 {
+                  "slice_id": "16e90d76423d5242",
+                  "slice_kind": "python3-command-bucket",
+                  "slice_weight": 1612,
                   "semantic": "session:refactor/prompt:ignored",
                   "weight": 41
                 },
                 {
+                  "slice_id": "16e90d76423d5242",
+                  "slice_kind": "python3-command-bucket",
+                  "slice_weight": 1612,
                   "semantic": "session:refactor/prompt:benchmark",
                   "weight": 31
                 }
@@ -1859,34 +1831,58 @@
               "title": "trace tree excerpt",
               "rows": [
                 {
-                  "task_id": "r114-read-state",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "14f4af7e3ec50bb2",
+                  "slice_kind": "docker-command-bucket",
+                  "slice_weight": 1470,
+                  "frame_index": 1,
+                  "frame": "project:agentsight",
+                  "frame_type": "project",
+                  "status": "observed"
                 },
                 {
-                  "task_id": "r114-read-verdict",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "14f4af7e3ec50bb2",
+                  "slice_kind": "docker-command-bucket",
+                  "slice_weight": 1470,
+                  "frame_index": 2,
+                  "frame": "agent:codex",
+                  "frame_type": "agent",
+                  "status": "observed"
                 },
                 {
-                  "task_id": "r114-read-related",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "14f4af7e3ec50bb2",
+                  "slice_kind": "docker-command-bucket",
+                  "slice_weight": 1470,
+                  "frame_index": 3,
+                  "frame": "call:tool/shell",
+                  "frame_type": "call",
+                  "status": "observed"
                 },
                 {
-                  "task_id": "r114-rg-baseline",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "14f4af7e3ec50bb2",
+                  "slice_kind": "docker-command-bucket",
+                  "slice_weight": 1470,
+                  "frame_index": 4,
+                  "frame": "process:docker",
+                  "frame_type": "process",
+                  "status": "observed"
                 },
                 {
-                  "task_id": "r114-agentflame-readme",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "14f4af7e3ec50bb2",
+                  "slice_kind": "docker-command-bucket",
+                  "slice_weight": 1470,
+                  "frame_index": 5,
+                  "frame": "effect:process",
+                  "frame_type": "effect",
+                  "status": "observed"
+                },
+                {
+                  "slice_id": "14f4af7e3ec50bb2",
+                  "slice_kind": "docker-command-bucket",
+                  "slice_weight": 1470,
+                  "frame_index": 6,
+                  "frame": "status:ok",
+                  "frame_type": "status",
+                  "status": "observed"
                 }
               ]
             }
@@ -1902,34 +1898,64 @@
               "title": "duration-ordered span excerpt",
               "rows": [
                 {
-                  "task_id": "r114-edit-rust-text",
-                  "category": "edit",
-                  "duration_seconds": 30.605,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "14f4af7e3ec50bb2",
+                  "slice_kind": "docker-command-bucket",
+                  "slice_weight": 1470,
+                  "frame_index": 1,
+                  "span": "project:agentsight",
+                  "event_weight": 1470,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 },
                 {
-                  "task_id": "r114-write-json",
-                  "category": "edit",
-                  "duration_seconds": 30.304,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "14f4af7e3ec50bb2",
+                  "slice_kind": "docker-command-bucket",
+                  "slice_weight": 1470,
+                  "frame_index": 2,
+                  "span": "agent:codex",
+                  "event_weight": 1470,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 },
                 {
-                  "task_id": "r114-test-debug",
-                  "category": "test",
-                  "duration_seconds": 28.372,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "14f4af7e3ec50bb2",
+                  "slice_kind": "docker-command-bucket",
+                  "slice_weight": 1470,
+                  "frame_index": 3,
+                  "span": "call:tool/shell",
+                  "event_weight": 1470,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 },
                 {
-                  "task_id": "r114-fix-shell-script",
-                  "category": "test",
-                  "duration_seconds": 25.5,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "14f4af7e3ec50bb2",
+                  "slice_kind": "docker-command-bucket",
+                  "slice_weight": 1470,
+                  "frame_index": 4,
+                  "span": "process:docker",
+                  "event_weight": 1470,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 },
                 {
-                  "task_id": "r114-edit-python-bug",
-                  "category": "edit",
-                  "duration_seconds": 25.311,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "14f4af7e3ec50bb2",
+                  "slice_kind": "docker-command-bucket",
+                  "slice_weight": 1470,
+                  "frame_index": 5,
+                  "span": "effect:process",
+                  "event_weight": 1470,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
+                },
+                {
+                  "slice_id": "14f4af7e3ec50bb2",
+                  "slice_kind": "docker-command-bucket",
+                  "slice_weight": 1470,
+                  "frame_index": 6,
+                  "span": "status:ok",
+                  "event_weight": 1470,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 }
               ]
             }
@@ -1945,68 +1971,20 @@
               "title": "flat summary excerpt",
               "rows": [
                 {
+                  "slice_id": "14f4af7e3ec50bb2",
+                  "slice_kind": "docker-command-bucket",
+                  "slice_weight": 1470,
                   "agent": "codex",
-                  "cmd": "sed",
-                  "count": 25755,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "rg",
-                  "count": 15336,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "write",
-                  "count": 12824,
+                  "tool": "tool/shell",
+                  "call": "tool/shell",
+                  "cmd": "unknown",
+                  "process": "docker",
                   "effect": "process",
                   "status": "ok",
-                  "tool": "tool"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "git",
-                  "count": 8549,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "write",
-                  "count": 7655,
-                  "effect": "process",
-                  "status": "observed",
-                  "tool": "tool"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "nl",
-                  "count": 6354,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "find",
-                  "count": 4429,
-                  "effect": "read",
-                  "status": "ok",
-                  "tool": "shell"
-                },
-                {
-                  "agent": "codex",
-                  "cmd": "cargo",
-                  "count": 2903,
-                  "effect": "test",
-                  "status": "ok",
-                  "tool": "shell"
+                  "path": "unknown",
+                  "model": "unknown",
+                  "kind": "unknown",
+                  "weight": 1470
                 }
               ]
             }
@@ -2022,6 +2000,9 @@
               "title": "nonsemantic folded excerpt",
               "rows": [
                 {
+                  "slice_id": "14f4af7e3ec50bb2",
+                  "slice_kind": "docker-command-bucket",
+                  "slice_weight": 1470,
                   "projected_stack": "project:agentsight;agent:codex;call:tool/shell;process:docker;effect:process;status:ok",
                   "weight": 1470
                 }
@@ -2039,34 +2020,58 @@
               "title": "semantic folded excerpt",
               "rows": [
                 {
+                  "slice_id": "14f4af7e3ec50bb2",
+                  "slice_kind": "docker-command-bucket",
+                  "slice_weight": 1470,
                   "semantic": "session:analyze/prompt:analyze",
                   "weight": 1212
                 },
                 {
+                  "slice_id": "14f4af7e3ec50bb2",
+                  "slice_kind": "docker-command-bucket",
+                  "slice_weight": 1470,
                   "semantic": "session:cleanup/prompt:cleanup",
                   "weight": 66
                 },
                 {
+                  "slice_id": "14f4af7e3ec50bb2",
+                  "slice_kind": "docker-command-bucket",
+                  "slice_weight": 1470,
                   "semantic": "session:design/prompt:test",
                   "weight": 29
                 },
                 {
+                  "slice_id": "14f4af7e3ec50bb2",
+                  "slice_kind": "docker-command-bucket",
+                  "slice_weight": 1470,
                   "semantic": "session:refactor/prompt:refactor",
                   "weight": 24
                 },
                 {
+                  "slice_id": "14f4af7e3ec50bb2",
+                  "slice_kind": "docker-command-bucket",
+                  "slice_weight": 1470,
                   "semantic": "session:analyze/prompt:review",
                   "weight": 18
                 },
                 {
+                  "slice_id": "14f4af7e3ec50bb2",
+                  "slice_kind": "docker-command-bucket",
+                  "slice_weight": 1470,
                   "semantic": "session:cleanup/prompt:cleanups",
                   "weight": 18
                 },
                 {
+                  "slice_id": "14f4af7e3ec50bb2",
+                  "slice_kind": "docker-command-bucket",
+                  "slice_weight": 1470,
                   "semantic": "session:cleanup/prompt:cachecontrol",
                   "weight": 15
                 },
                 {
+                  "slice_id": "14f4af7e3ec50bb2",
+                  "slice_kind": "docker-command-bucket",
+                  "slice_weight": 1470,
                   "semantic": "session:cleanlocal/prompt:diskfull",
                   "weight": 12
                 }
@@ -2119,34 +2124,40 @@
               "title": "trace tree excerpt",
               "rows": [
                 {
-                  "task_id": "r114-read-state",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "b2f3f1b11ecfda65",
+                  "slice_kind": "flat-git-read-bucket",
+                  "slice_weight": 4505,
+                  "frame_index": 1,
+                  "frame": "call:tool/shell",
+                  "frame_type": "call",
+                  "status": "observed"
                 },
                 {
-                  "task_id": "r114-read-verdict",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "b2f3f1b11ecfda65",
+                  "slice_kind": "flat-git-read-bucket",
+                  "slice_weight": 4505,
+                  "frame_index": 2,
+                  "frame": "process:git",
+                  "frame_type": "process",
+                  "status": "observed"
                 },
                 {
-                  "task_id": "r114-read-related",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "b2f3f1b11ecfda65",
+                  "slice_kind": "flat-git-read-bucket",
+                  "slice_weight": 4505,
+                  "frame_index": 3,
+                  "frame": "effect:read",
+                  "frame_type": "effect",
+                  "status": "observed"
                 },
                 {
-                  "task_id": "r114-rg-baseline",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
-                },
-                {
-                  "task_id": "r114-agentflame-readme",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "b2f3f1b11ecfda65",
+                  "slice_kind": "flat-git-read-bucket",
+                  "slice_weight": 4505,
+                  "frame_index": 4,
+                  "frame": "status:ok",
+                  "frame_type": "status",
+                  "status": "observed"
                 }
               ]
             }
@@ -2162,34 +2173,44 @@
               "title": "duration-ordered span excerpt",
               "rows": [
                 {
-                  "task_id": "r114-edit-rust-text",
-                  "category": "edit",
-                  "duration_seconds": 30.605,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "b2f3f1b11ecfda65",
+                  "slice_kind": "flat-git-read-bucket",
+                  "slice_weight": 4505,
+                  "frame_index": 1,
+                  "span": "call:tool/shell",
+                  "event_weight": 4505,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 },
                 {
-                  "task_id": "r114-write-json",
-                  "category": "edit",
-                  "duration_seconds": 30.304,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "b2f3f1b11ecfda65",
+                  "slice_kind": "flat-git-read-bucket",
+                  "slice_weight": 4505,
+                  "frame_index": 2,
+                  "span": "process:git",
+                  "event_weight": 4505,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 },
                 {
-                  "task_id": "r114-test-debug",
-                  "category": "test",
-                  "duration_seconds": 28.372,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "b2f3f1b11ecfda65",
+                  "slice_kind": "flat-git-read-bucket",
+                  "slice_weight": 4505,
+                  "frame_index": 3,
+                  "span": "effect:read",
+                  "event_weight": 4505,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 },
                 {
-                  "task_id": "r114-fix-shell-script",
-                  "category": "test",
-                  "duration_seconds": 25.5,
-                  "status": "lineage_precision_ok"
-                },
-                {
-                  "task_id": "r114-edit-python-bug",
-                  "category": "edit",
-                  "duration_seconds": 25.311,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "b2f3f1b11ecfda65",
+                  "slice_kind": "flat-git-read-bucket",
+                  "slice_weight": 4505,
+                  "frame_index": 4,
+                  "span": "status:ok",
+                  "event_weight": 4505,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 }
               ]
             }
@@ -2205,6 +2226,9 @@
               "title": "flat summary excerpt",
               "rows": [
                 {
+                  "slice_id": "b2f3f1b11ecfda65",
+                  "slice_kind": "flat-git-read-bucket",
+                  "slice_weight": 4505,
                   "weight": 4505
                 }
               ]
@@ -2221,6 +2245,9 @@
               "title": "nonsemantic folded excerpt",
               "rows": [
                 {
+                  "slice_id": "b2f3f1b11ecfda65",
+                  "slice_kind": "flat-git-read-bucket",
+                  "slice_weight": 4505,
                   "projected_stack": "call:tool/shell;process:git;effect:read;status:ok",
                   "weight": 4505
                 }
@@ -2238,34 +2265,58 @@
               "title": "semantic folded excerpt",
               "rows": [
                 {
+                  "slice_id": "b2f3f1b11ecfda65",
+                  "slice_kind": "flat-git-read-bucket",
+                  "slice_weight": 4505,
                   "semantic": "session:review/prompt:review",
                   "weight": 696
                 },
                 {
+                  "slice_id": "b2f3f1b11ecfda65",
+                  "slice_kind": "flat-git-read-bucket",
+                  "slice_weight": 4505,
                   "semantic": "session:refactor/prompt:refactor",
                   "weight": 565
                 },
                 {
+                  "slice_id": "b2f3f1b11ecfda65",
+                  "slice_kind": "flat-git-read-bucket",
+                  "slice_weight": 4505,
                   "semantic": "session:design/prompt:design",
                   "weight": 352
                 },
                 {
+                  "slice_id": "b2f3f1b11ecfda65",
+                  "slice_kind": "flat-git-read-bucket",
+                  "slice_weight": 4505,
                   "semantic": "session:review/prompt:refactor",
                   "weight": 309
                 },
                 {
+                  "slice_id": "b2f3f1b11ecfda65",
+                  "slice_kind": "flat-git-read-bucket",
+                  "slice_weight": 4505,
                   "semantic": "session:design/prompt:review",
                   "weight": 209
                 },
                 {
+                  "slice_id": "b2f3f1b11ecfda65",
+                  "slice_kind": "flat-git-read-bucket",
+                  "slice_weight": 4505,
                   "semantic": "session:research/prompt:research",
                   "weight": 190
                 },
                 {
+                  "slice_id": "b2f3f1b11ecfda65",
+                  "slice_kind": "flat-git-read-bucket",
+                  "slice_weight": 4505,
                   "semantic": "session:research/prompt:explain",
                   "weight": 179
                 },
                 {
+                  "slice_id": "b2f3f1b11ecfda65",
+                  "slice_kind": "flat-git-read-bucket",
+                  "slice_weight": 4505,
                   "semantic": "session:research/prompt:refactor",
                   "weight": 157
                 }
@@ -2318,34 +2369,49 @@
               "title": "trace tree excerpt",
               "rows": [
                 {
-                  "task_id": "r114-read-state",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "8fad605fffd20eec",
+                  "slice_kind": "semantic-token-stack",
+                  "slice_weight": 17869111395752,
+                  "frame_index": 1,
+                  "frame": "project:agentsight",
+                  "frame_type": "project",
+                  "status": "observed"
                 },
                 {
-                  "task_id": "r114-read-verdict",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "8fad605fffd20eec",
+                  "slice_kind": "semantic-token-stack",
+                  "slice_weight": 17869111395752,
+                  "frame_index": 2,
+                  "frame": "agent:codex",
+                  "frame_type": "agent",
+                  "status": "observed"
                 },
                 {
-                  "task_id": "r114-read-related",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "8fad605fffd20eec",
+                  "slice_kind": "semantic-token-stack",
+                  "slice_weight": 17869111395752,
+                  "frame_index": 5,
+                  "frame": "call:llm/refactor",
+                  "frame_type": "call",
+                  "status": "observed"
                 },
                 {
-                  "task_id": "r114-rg-baseline",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "8fad605fffd20eec",
+                  "slice_kind": "semantic-token-stack",
+                  "slice_weight": 17869111395752,
+                  "frame_index": 6,
+                  "frame": "model:codex",
+                  "frame_type": "model",
+                  "status": "observed"
                 },
                 {
-                  "task_id": "r114-agentflame-readme",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "8fad605fffd20eec",
+                  "slice_kind": "semantic-token-stack",
+                  "slice_weight": 17869111395752,
+                  "frame_index": 7,
+                  "frame": "kind:estimate",
+                  "frame_type": "kind",
+                  "status": "observed"
                 }
               ]
             }
@@ -2361,34 +2427,54 @@
               "title": "duration-ordered span excerpt",
               "rows": [
                 {
-                  "task_id": "r114-edit-rust-text",
-                  "category": "edit",
-                  "duration_seconds": 30.605,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "8fad605fffd20eec",
+                  "slice_kind": "semantic-token-stack",
+                  "slice_weight": 17869111395752,
+                  "frame_index": 1,
+                  "span": "project:agentsight",
+                  "event_weight": 17869111395752,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 },
                 {
-                  "task_id": "r114-write-json",
-                  "category": "edit",
-                  "duration_seconds": 30.304,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "8fad605fffd20eec",
+                  "slice_kind": "semantic-token-stack",
+                  "slice_weight": 17869111395752,
+                  "frame_index": 2,
+                  "span": "agent:codex",
+                  "event_weight": 17869111395752,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 },
                 {
-                  "task_id": "r114-test-debug",
-                  "category": "test",
-                  "duration_seconds": 28.372,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "8fad605fffd20eec",
+                  "slice_kind": "semantic-token-stack",
+                  "slice_weight": 17869111395752,
+                  "frame_index": 5,
+                  "span": "call:llm/refactor",
+                  "event_weight": 17869111395752,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 },
                 {
-                  "task_id": "r114-fix-shell-script",
-                  "category": "test",
-                  "duration_seconds": 25.5,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "8fad605fffd20eec",
+                  "slice_kind": "semantic-token-stack",
+                  "slice_weight": 17869111395752,
+                  "frame_index": 6,
+                  "span": "model:codex",
+                  "event_weight": 17869111395752,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 },
                 {
-                  "task_id": "r114-edit-python-bug",
-                  "category": "edit",
-                  "duration_seconds": 25.311,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "8fad605fffd20eec",
+                  "slice_kind": "semantic-token-stack",
+                  "slice_weight": 17869111395752,
+                  "frame_index": 7,
+                  "span": "kind:estimate",
+                  "event_weight": 17869111395752,
+                  "width_basis": "event_weight_same_slice",
+                  "note": "duration unavailable in folded artifact"
                 }
               ]
             }
@@ -2404,6 +2490,9 @@
               "title": "flat summary excerpt",
               "rows": [
                 {
+                  "slice_id": "8fad605fffd20eec",
+                  "slice_kind": "semantic-token-stack",
+                  "slice_weight": 17869111395752,
                   "model": "codex",
                   "kind": "estimate",
                   "weight": 17869111395752
@@ -2422,6 +2511,9 @@
               "title": "nonsemantic folded excerpt",
               "rows": [
                 {
+                  "slice_id": "8fad605fffd20eec",
+                  "slice_kind": "semantic-token-stack",
+                  "slice_weight": 17869111395752,
                   "stack": "project:agentsight;agent:codex;model:codex;kind:estimate",
                   "weight": 17869111395752
                 }
@@ -2439,6 +2531,9 @@
               "title": "semantic folded excerpt",
               "rows": [
                 {
+                  "slice_id": "8fad605fffd20eec",
+                  "slice_kind": "semantic-token-stack",
+                  "slice_weight": 17869111395752,
                   "stack": "project:agentsight;agent:codex;session:refactor;prompt:refactor;call:llm/refactor;model:codex;kind:estimate",
                   "weight": 17869111395752
                 }
@@ -2497,34 +2592,18 @@
               "title": "trace tree excerpt",
               "rows": [
                 {
-                  "task_id": "r114-read-state",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "6186258163d8dd43",
+                  "slice_kind": "token-ablation-axis",
+                  "slice_weight": 28486605753818,
+                  "metric": "family",
+                  "value": "token"
                 },
                 {
-                  "task_id": "r114-read-verdict",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
-                },
-                {
-                  "task_id": "r114-read-related",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
-                },
-                {
-                  "task_id": "r114-rg-baseline",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
-                },
-                {
-                  "task_id": "r114-agentflame-readme",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "6186258163d8dd43",
+                  "slice_kind": "token-ablation-axis",
+                  "slice_weight": 28486605753818,
+                  "metric": "comparison",
+                  "value": "prompt+llm-call vs full token semantics"
                 }
               ]
             }
@@ -2540,34 +2619,12 @@
               "title": "duration-ordered span excerpt",
               "rows": [
                 {
-                  "task_id": "r114-edit-rust-text",
-                  "category": "edit",
-                  "duration_seconds": 30.605,
-                  "status": "lineage_precision_ok"
-                },
-                {
-                  "task_id": "r114-write-json",
-                  "category": "edit",
-                  "duration_seconds": 30.304,
-                  "status": "lineage_precision_ok"
-                },
-                {
-                  "task_id": "r114-test-debug",
-                  "category": "test",
-                  "duration_seconds": 28.372,
-                  "status": "lineage_precision_ok"
-                },
-                {
-                  "task_id": "r114-fix-shell-script",
-                  "category": "test",
-                  "duration_seconds": 25.5,
-                  "status": "lineage_precision_ok"
-                },
-                {
-                  "task_id": "r114-edit-python-bug",
-                  "category": "edit",
-                  "duration_seconds": 25.311,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "6186258163d8dd43",
+                  "slice_kind": "token-ablation-axis",
+                  "slice_weight": 28486605753818,
+                  "span": "prompt+llm-call",
+                  "event_weight": 28486605753818,
+                  "width_basis": "same_projection_total"
                 }
               ]
             }
@@ -2582,7 +2639,15 @@
             {
               "title": "flat summary excerpt",
               "rows": [
-                {}
+                {
+                  "slice_id": "6186258163d8dd43",
+                  "slice_kind": "token-ablation-axis",
+                  "slice_weight": 28486605753818,
+                  "family": "token",
+                  "variant": "prompt+llm-call",
+                  "metric": "mixed_weight_share_pct",
+                  "value": 95.765
+                }
               ]
             }
           ]
@@ -2597,8 +2662,12 @@
               "title": "nonsemantic folded excerpt",
               "rows": [
                 {
+                  "slice_id": "6186258163d8dd43",
+                  "slice_kind": "token-ablation-axis",
+                  "slice_weight": 28486605753818,
                   "family": "token",
-                  "variant": "prompt+llm-call"
+                  "variant": "prompt+llm-call",
+                  "mixed_weight_share_pct": 95.765
                 }
               ]
             }
@@ -2614,8 +2683,12 @@
               "title": "semantic folded excerpt",
               "rows": [
                 {
+                  "slice_id": "6186258163d8dd43",
+                  "slice_kind": "token-ablation-axis",
+                  "slice_weight": 28486605753818,
                   "family": "token",
-                  "variant": "prompt+llm-call"
+                  "variant": "prompt+llm-call",
+                  "mixed_residual_weight_share_pct": 0.027
                 }
               ]
             }
@@ -2666,48 +2739,72 @@
               "title": "trace tree excerpt",
               "rows": [
                 {
+                  "slice_id": "5ff61b3cb85ba508",
+                  "slice_kind": "r114-lineage-suite",
+                  "slice_weight": 1273,
                   "task_id": "r114-read-state",
                   "category": "read",
                   "target_status": "completed",
                   "lineage_status": "precision_ok"
                 },
                 {
+                  "slice_id": "5ff61b3cb85ba508",
+                  "slice_kind": "r114-lineage-suite",
+                  "slice_weight": 1273,
                   "task_id": "r114-read-verdict",
                   "category": "read",
                   "target_status": "completed",
                   "lineage_status": "precision_ok"
                 },
                 {
+                  "slice_id": "5ff61b3cb85ba508",
+                  "slice_kind": "r114-lineage-suite",
+                  "slice_weight": 1273,
                   "task_id": "r114-read-related",
                   "category": "read",
                   "target_status": "completed",
                   "lineage_status": "precision_ok"
                 },
                 {
+                  "slice_id": "5ff61b3cb85ba508",
+                  "slice_kind": "r114-lineage-suite",
+                  "slice_weight": 1273,
                   "task_id": "r114-rg-baseline",
                   "category": "read",
                   "target_status": "completed",
                   "lineage_status": "precision_ok"
                 },
                 {
+                  "slice_id": "5ff61b3cb85ba508",
+                  "slice_kind": "r114-lineage-suite",
+                  "slice_weight": 1273,
                   "task_id": "r114-agentflame-readme",
                   "category": "read",
                   "target_status": "completed",
                   "lineage_status": "precision_ok"
                 },
                 {
+                  "slice_id": "5ff61b3cb85ba508",
+                  "slice_kind": "r114-lineage-suite",
+                  "slice_weight": 1273,
                   "task_id": "r114-paper-search",
                   "category": "read",
                   "target_status": "completed",
                   "lineage_status": "precision_ok"
                 },
                 {
+                  "slice_id": "5ff61b3cb85ba508",
+                  "slice_kind": "r114-lineage-suite",
+                  "slice_weight": 1273,
                   "task_id": "r114-json-check",
                   "category": "read",
                   "target_status": "completed",
                   "lineage_status": "precision_ok"
                 },
                 {
+                  "slice_id": "5ff61b3cb85ba508",
+                  "slice_kind": "r114-lineage-suite",
+                  "slice_weight": 1273,
                   "task_id": "r114-claim-list",
                   "category": "read",
                   "target_status": "completed",
@@ -2727,51 +2824,75 @@
               "title": "duration-ordered span excerpt",
               "rows": [
                 {
-                  "task_id": "r114-edit-rust-text",
-                  "category": "edit",
-                  "duration_seconds": 30.605,
+                  "slice_id": "5ff61b3cb85ba508",
+                  "slice_kind": "r114-lineage-suite",
+                  "slice_weight": 1273,
+                  "span": "r114-edit-rust-text",
+                  "event_weight": 30.605,
+                  "width_basis": "task_duration_seconds",
                   "status": "lineage_precision_ok"
                 },
                 {
-                  "task_id": "r114-write-json",
-                  "category": "edit",
-                  "duration_seconds": 30.304,
+                  "slice_id": "5ff61b3cb85ba508",
+                  "slice_kind": "r114-lineage-suite",
+                  "slice_weight": 1273,
+                  "span": "r114-write-json",
+                  "event_weight": 30.304,
+                  "width_basis": "task_duration_seconds",
                   "status": "lineage_precision_ok"
                 },
                 {
-                  "task_id": "r114-test-debug",
-                  "category": "test",
-                  "duration_seconds": 28.372,
+                  "slice_id": "5ff61b3cb85ba508",
+                  "slice_kind": "r114-lineage-suite",
+                  "slice_weight": 1273,
+                  "span": "r114-test-debug",
+                  "event_weight": 28.372,
+                  "width_basis": "task_duration_seconds",
                   "status": "lineage_precision_ok"
                 },
                 {
-                  "task_id": "r114-fix-shell-script",
-                  "category": "test",
-                  "duration_seconds": 25.5,
+                  "slice_id": "5ff61b3cb85ba508",
+                  "slice_kind": "r114-lineage-suite",
+                  "slice_weight": 1273,
+                  "span": "r114-fix-shell-script",
+                  "event_weight": 25.5,
+                  "width_basis": "task_duration_seconds",
                   "status": "lineage_precision_ok"
                 },
                 {
-                  "task_id": "r114-edit-python-bug",
-                  "category": "edit",
-                  "duration_seconds": 25.311,
+                  "slice_id": "5ff61b3cb85ba508",
+                  "slice_kind": "r114-lineage-suite",
+                  "slice_weight": 1273,
+                  "span": "r114-edit-python-bug",
+                  "event_weight": 25.311,
+                  "width_basis": "task_duration_seconds",
                   "status": "lineage_precision_ok"
                 },
                 {
-                  "task_id": "r114-edit-doc-note",
-                  "category": "edit",
-                  "duration_seconds": 23.427,
+                  "slice_id": "5ff61b3cb85ba508",
+                  "slice_kind": "r114-lineage-suite",
+                  "slice_weight": 1273,
+                  "span": "r114-edit-doc-note",
+                  "event_weight": 23.427,
+                  "width_basis": "task_duration_seconds",
                   "status": "lineage_precision_ok"
                 },
                 {
-                  "task_id": "r114-network-docs",
-                  "category": "dependency",
-                  "duration_seconds": 20.66,
+                  "slice_id": "5ff61b3cb85ba508",
+                  "slice_kind": "r114-lineage-suite",
+                  "slice_weight": 1273,
+                  "span": "r114-network-docs",
+                  "event_weight": 20.66,
+                  "width_basis": "task_duration_seconds",
                   "status": "lineage_precision_ok"
                 },
                 {
-                  "task_id": "r114-claim-list",
-                  "category": "read",
-                  "duration_seconds": 19.765,
+                  "slice_id": "5ff61b3cb85ba508",
+                  "slice_kind": "r114-lineage-suite",
+                  "slice_weight": 1273,
+                  "span": "r114-claim-list",
+                  "event_weight": 19.765,
+                  "width_basis": "task_duration_seconds",
                   "status": "lineage_precision_ok"
                 }
               ]
@@ -2788,38 +2909,65 @@
               "title": "flat summary excerpt",
               "rows": [
                 {
+                  "slice_id": "5ff61b3cb85ba508",
+                  "slice_kind": "r114-lineage-suite",
+                  "slice_weight": 1273,
                   "metric": "effect_events",
                   "value": 5772
                 },
                 {
+                  "slice_id": "5ff61b3cb85ba508",
+                  "slice_kind": "r114-lineage-suite",
+                  "slice_weight": 1273,
                   "metric": "in_scope_effect_events",
                   "value": 1273
                 },
                 {
+                  "slice_id": "5ff61b3cb85ba508",
+                  "slice_kind": "r114-lineage-suite",
+                  "slice_weight": 1273,
                   "metric": "joined_effect_events",
                   "value": 1273
                 },
                 {
+                  "slice_id": "5ff61b3cb85ba508",
+                  "slice_kind": "r114-lineage-suite",
+                  "slice_weight": 1273,
                   "metric": "out_of_scope_effect_events",
                   "value": 1329
                 },
                 {
+                  "slice_id": "5ff61b3cb85ba508",
+                  "slice_kind": "r114-lineage-suite",
+                  "slice_weight": 1273,
                   "metric": "negative_effect_events_observed",
                   "value": 3170
                 },
                 {
+                  "slice_id": "5ff61b3cb85ba508",
+                  "slice_kind": "r114-lineage-suite",
+                  "slice_weight": 1273,
                   "metric": "negative_joined_effect_events",
                   "value": 0
                 },
                 {
+                  "slice_id": "5ff61b3cb85ba508",
+                  "slice_kind": "r114-lineage-suite",
+                  "slice_weight": 1273,
                   "metric": "raw_join_pct",
                   "value": 22.055
                 },
                 {
+                  "slice_id": "5ff61b3cb85ba508",
+                  "slice_kind": "r114-lineage-suite",
+                  "slice_weight": 1273,
                   "metric": "precision_pct",
                   "value": 100.0
                 },
                 {
+                  "slice_id": "5ff61b3cb85ba508",
+                  "slice_kind": "r114-lineage-suite",
+                  "slice_weight": 1273,
                   "metric": "recall_pct",
                   "value": 100.0
                 }
@@ -2837,6 +2985,9 @@
               "title": "nonsemantic folded excerpt",
               "rows": [
                 {
+                  "slice_id": "5ff61b3cb85ba508",
+                  "slice_kind": "r114-lineage-suite",
+                  "slice_weight": 1273,
                   "join_methods": {
                     "none": 4499,
                     "pid_family_time_window": 1273
@@ -2856,6 +3007,9 @@
               "title": "semantic folded excerpt",
               "rows": [
                 {
+                  "slice_id": "5ff61b3cb85ba508",
+                  "slice_kind": "r114-lineage-suite",
+                  "slice_weight": 1273,
                   "in_scope_effect_events": 1273,
                   "joined_effect_events": 1273,
                   "negative_effect_events_observed": 3170,
@@ -2917,48 +3071,72 @@
               "title": "trace tree excerpt",
               "rows": [
                 {
+                  "slice_id": "339b362294a8d18e",
+                  "slice_kind": "r114-lineage-scope",
+                  "slice_weight": 5772,
                   "task_id": "r114-read-state",
                   "category": "read",
                   "target_status": "completed",
                   "lineage_status": "precision_ok"
                 },
                 {
+                  "slice_id": "339b362294a8d18e",
+                  "slice_kind": "r114-lineage-scope",
+                  "slice_weight": 5772,
                   "task_id": "r114-read-verdict",
                   "category": "read",
                   "target_status": "completed",
                   "lineage_status": "precision_ok"
                 },
                 {
+                  "slice_id": "339b362294a8d18e",
+                  "slice_kind": "r114-lineage-scope",
+                  "slice_weight": 5772,
                   "task_id": "r114-read-related",
                   "category": "read",
                   "target_status": "completed",
                   "lineage_status": "precision_ok"
                 },
                 {
+                  "slice_id": "339b362294a8d18e",
+                  "slice_kind": "r114-lineage-scope",
+                  "slice_weight": 5772,
                   "task_id": "r114-rg-baseline",
                   "category": "read",
                   "target_status": "completed",
                   "lineage_status": "precision_ok"
                 },
                 {
+                  "slice_id": "339b362294a8d18e",
+                  "slice_kind": "r114-lineage-scope",
+                  "slice_weight": 5772,
                   "task_id": "r114-agentflame-readme",
                   "category": "read",
                   "target_status": "completed",
                   "lineage_status": "precision_ok"
                 },
                 {
+                  "slice_id": "339b362294a8d18e",
+                  "slice_kind": "r114-lineage-scope",
+                  "slice_weight": 5772,
                   "task_id": "r114-paper-search",
                   "category": "read",
                   "target_status": "completed",
                   "lineage_status": "precision_ok"
                 },
                 {
+                  "slice_id": "339b362294a8d18e",
+                  "slice_kind": "r114-lineage-scope",
+                  "slice_weight": 5772,
                   "task_id": "r114-json-check",
                   "category": "read",
                   "target_status": "completed",
                   "lineage_status": "precision_ok"
                 },
                 {
+                  "slice_id": "339b362294a8d18e",
+                  "slice_kind": "r114-lineage-scope",
+                  "slice_weight": 5772,
                   "task_id": "r114-claim-list",
                   "category": "read",
                   "target_status": "completed",
@@ -2978,51 +3156,75 @@
               "title": "duration-ordered span excerpt",
               "rows": [
                 {
-                  "task_id": "r114-edit-rust-text",
-                  "category": "edit",
-                  "duration_seconds": 30.605,
+                  "slice_id": "339b362294a8d18e",
+                  "slice_kind": "r114-lineage-scope",
+                  "slice_weight": 5772,
+                  "span": "r114-edit-rust-text",
+                  "event_weight": 30.605,
+                  "width_basis": "task_duration_seconds",
                   "status": "lineage_precision_ok"
                 },
                 {
-                  "task_id": "r114-write-json",
-                  "category": "edit",
-                  "duration_seconds": 30.304,
+                  "slice_id": "339b362294a8d18e",
+                  "slice_kind": "r114-lineage-scope",
+                  "slice_weight": 5772,
+                  "span": "r114-write-json",
+                  "event_weight": 30.304,
+                  "width_basis": "task_duration_seconds",
                   "status": "lineage_precision_ok"
                 },
                 {
-                  "task_id": "r114-test-debug",
-                  "category": "test",
-                  "duration_seconds": 28.372,
+                  "slice_id": "339b362294a8d18e",
+                  "slice_kind": "r114-lineage-scope",
+                  "slice_weight": 5772,
+                  "span": "r114-test-debug",
+                  "event_weight": 28.372,
+                  "width_basis": "task_duration_seconds",
                   "status": "lineage_precision_ok"
                 },
                 {
-                  "task_id": "r114-fix-shell-script",
-                  "category": "test",
-                  "duration_seconds": 25.5,
+                  "slice_id": "339b362294a8d18e",
+                  "slice_kind": "r114-lineage-scope",
+                  "slice_weight": 5772,
+                  "span": "r114-fix-shell-script",
+                  "event_weight": 25.5,
+                  "width_basis": "task_duration_seconds",
                   "status": "lineage_precision_ok"
                 },
                 {
-                  "task_id": "r114-edit-python-bug",
-                  "category": "edit",
-                  "duration_seconds": 25.311,
+                  "slice_id": "339b362294a8d18e",
+                  "slice_kind": "r114-lineage-scope",
+                  "slice_weight": 5772,
+                  "span": "r114-edit-python-bug",
+                  "event_weight": 25.311,
+                  "width_basis": "task_duration_seconds",
                   "status": "lineage_precision_ok"
                 },
                 {
-                  "task_id": "r114-edit-doc-note",
-                  "category": "edit",
-                  "duration_seconds": 23.427,
+                  "slice_id": "339b362294a8d18e",
+                  "slice_kind": "r114-lineage-scope",
+                  "slice_weight": 5772,
+                  "span": "r114-edit-doc-note",
+                  "event_weight": 23.427,
+                  "width_basis": "task_duration_seconds",
                   "status": "lineage_precision_ok"
                 },
                 {
-                  "task_id": "r114-network-docs",
-                  "category": "dependency",
-                  "duration_seconds": 20.66,
+                  "slice_id": "339b362294a8d18e",
+                  "slice_kind": "r114-lineage-scope",
+                  "slice_weight": 5772,
+                  "span": "r114-network-docs",
+                  "event_weight": 20.66,
+                  "width_basis": "task_duration_seconds",
                   "status": "lineage_precision_ok"
                 },
                 {
-                  "task_id": "r114-claim-list",
-                  "category": "read",
-                  "duration_seconds": 19.765,
+                  "slice_id": "339b362294a8d18e",
+                  "slice_kind": "r114-lineage-scope",
+                  "slice_weight": 5772,
+                  "span": "r114-claim-list",
+                  "event_weight": 19.765,
+                  "width_basis": "task_duration_seconds",
                   "status": "lineage_precision_ok"
                 }
               ]
@@ -3039,38 +3241,65 @@
               "title": "flat summary excerpt",
               "rows": [
                 {
+                  "slice_id": "339b362294a8d18e",
+                  "slice_kind": "r114-lineage-scope",
+                  "slice_weight": 5772,
                   "metric": "effect_events",
                   "value": 5772
                 },
                 {
+                  "slice_id": "339b362294a8d18e",
+                  "slice_kind": "r114-lineage-scope",
+                  "slice_weight": 5772,
                   "metric": "in_scope_effect_events",
                   "value": 1273
                 },
                 {
+                  "slice_id": "339b362294a8d18e",
+                  "slice_kind": "r114-lineage-scope",
+                  "slice_weight": 5772,
                   "metric": "joined_effect_events",
                   "value": 1273
                 },
                 {
+                  "slice_id": "339b362294a8d18e",
+                  "slice_kind": "r114-lineage-scope",
+                  "slice_weight": 5772,
                   "metric": "out_of_scope_effect_events",
                   "value": 1329
                 },
                 {
+                  "slice_id": "339b362294a8d18e",
+                  "slice_kind": "r114-lineage-scope",
+                  "slice_weight": 5772,
                   "metric": "negative_effect_events_observed",
                   "value": 3170
                 },
                 {
+                  "slice_id": "339b362294a8d18e",
+                  "slice_kind": "r114-lineage-scope",
+                  "slice_weight": 5772,
                   "metric": "negative_joined_effect_events",
                   "value": 0
                 },
                 {
+                  "slice_id": "339b362294a8d18e",
+                  "slice_kind": "r114-lineage-scope",
+                  "slice_weight": 5772,
                   "metric": "raw_join_pct",
                   "value": 22.055
                 },
                 {
+                  "slice_id": "339b362294a8d18e",
+                  "slice_kind": "r114-lineage-scope",
+                  "slice_weight": 5772,
                   "metric": "precision_pct",
                   "value": 100.0
                 },
                 {
+                  "slice_id": "339b362294a8d18e",
+                  "slice_kind": "r114-lineage-scope",
+                  "slice_weight": 5772,
                   "metric": "recall_pct",
                   "value": 100.0
                 }
@@ -3088,6 +3317,9 @@
               "title": "nonsemantic folded excerpt",
               "rows": [
                 {
+                  "slice_id": "339b362294a8d18e",
+                  "slice_kind": "r114-lineage-scope",
+                  "slice_weight": 5772,
                   "raw_join_pct": 22.055,
                   "out_of_scope_effect_events": 1329
                 }
@@ -3105,6 +3337,9 @@
               "title": "semantic folded excerpt",
               "rows": [
                 {
+                  "slice_id": "339b362294a8d18e",
+                  "slice_kind": "r114-lineage-scope",
+                  "slice_weight": 5772,
                   "recall_pct": 100.0,
                   "scope": "retargeted agent process family"
                 }
@@ -3157,34 +3392,18 @@
               "title": "trace tree excerpt",
               "rows": [
                 {
-                  "task_id": "r114-read-state",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "88c10cd28ed3f719",
+                  "slice_kind": "r123-model-stability",
+                  "slice_weight": 900,
+                  "metric": "model",
+                  "value": "3b"
                 },
                 {
-                  "task_id": "r114-read-verdict",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
-                },
-                {
-                  "task_id": "r114-read-related",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
-                },
-                {
-                  "task_id": "r114-rg-baseline",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
-                },
-                {
-                  "task_id": "r114-agentflame-readme",
-                  "category": "read",
-                  "target_status": "completed",
-                  "lineage_status": "precision_ok"
+                  "slice_id": "88c10cd28ed3f719",
+                  "slice_kind": "r123-model-stability",
+                  "slice_weight": 900,
+                  "metric": "fragment_count",
+                  "value": 300
                 }
               ]
             }
@@ -3200,34 +3419,12 @@
               "title": "duration-ordered span excerpt",
               "rows": [
                 {
-                  "task_id": "r114-edit-rust-text",
-                  "category": "edit",
-                  "duration_seconds": 30.605,
-                  "status": "lineage_precision_ok"
-                },
-                {
-                  "task_id": "r114-write-json",
-                  "category": "edit",
-                  "duration_seconds": 30.304,
-                  "status": "lineage_precision_ok"
-                },
-                {
-                  "task_id": "r114-test-debug",
-                  "category": "test",
-                  "duration_seconds": 28.372,
-                  "status": "lineage_precision_ok"
-                },
-                {
-                  "task_id": "r114-fix-shell-script",
-                  "category": "test",
-                  "duration_seconds": 25.5,
-                  "status": "lineage_precision_ok"
-                },
-                {
-                  "task_id": "r114-edit-python-bug",
-                  "category": "edit",
-                  "duration_seconds": 25.311,
-                  "status": "lineage_precision_ok"
+                  "slice_id": "88c10cd28ed3f719",
+                  "slice_kind": "r123-model-stability",
+                  "slice_weight": 900,
+                  "span": "3b-tagging",
+                  "event_weight": 900,
+                  "width_basis": "llm_call_count"
                 }
               ]
             }
@@ -3243,6 +3440,9 @@
               "title": "flat summary excerpt",
               "rows": [
                 {
+                  "slice_id": "88c10cd28ed3f719",
+                  "slice_kind": "r123-model-stability",
+                  "slice_weight": 900,
                   "model": "3b",
                   "fragments": 300,
                   "runs": 900
@@ -3261,6 +3461,9 @@
               "title": "nonsemantic folded excerpt",
               "rows": [
                 {
+                  "slice_id": "88c10cd28ed3f719",
+                  "slice_kind": "r123-model-stability",
+                  "slice_weight": 900,
                   "exact_stable_fragments": 282,
                   "fragments": 300
                 }
@@ -3278,6 +3481,9 @@
               "title": "semantic folded excerpt",
               "rows": [
                 {
+                  "slice_id": "88c10cd28ed3f719",
+                  "slice_kind": "r123-model-stability",
+                  "slice_weight": 900,
                   "valid_runs": 900,
                   "total_runs": 900,
                   "p95_ms": 30
