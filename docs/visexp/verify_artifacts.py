@@ -310,6 +310,40 @@ def run(out_dir: Path) -> dict[str, int | str]:
             raise AssertionError("R124 blinded label sheet manifest row count mismatch")
         if (blinded_manifest.get("privacy") or {}).get("public_sheet_scan", {}).get("status") != "ok":
             raise AssertionError("R124 blinded label sheet privacy scan failed")
+        join_manifest_path = out_dir / "tag-adequacy-label-join-r124.json"
+        adjudication_template_path = out_dir / "tag-adequacy-adjudication-template-r124.csv"
+        if not join_manifest_path.exists() or not adjudication_template_path.exists():
+            raise AssertionError("R124 label join protocol artifacts are missing")
+        join_manifest = json.loads(join_manifest_path.read_text(encoding="utf-8"))
+        if join_manifest.get("status") != "ready_for_independent_label_collection":
+            raise AssertionError("default R124 join manifest must wait for independent human labels")
+        if (join_manifest.get("source_packet") or {}).get("row_count") != len(tag_packet_rows):
+            raise AssertionError("R124 join manifest source row count mismatch")
+        if (join_manifest.get("blinded_sheet") or {}).get("row_count") != len(blinded_rows):
+            raise AssertionError("R124 join manifest blinded row count mismatch")
+        summary = join_manifest.get("summary") or {}
+        if summary.get("labeler_1_count") or summary.get("labeler_2_count"):
+            raise AssertionError("committed R124 join manifest must not contain human labels")
+        if (join_manifest.get("outputs") or {}).get("joined_labels"):
+            raise AssertionError("committed R124 join manifest must not point to joined human labels")
+        with adjudication_template_path.open("r", encoding="utf-8", newline="") as handle:
+            adjudication_reader = csv.DictReader(handle)
+            adjudication_fields = list(adjudication_reader.fieldnames or [])
+            adjudication_rows = list(adjudication_reader)
+        expected_adjudication_fields = [
+            "row_id",
+            "fragment_index",
+            "fragment_level",
+            "candidate_tag",
+            "labeler_1",
+            "labeler_2",
+            "adjudicated_label",
+            "notes",
+        ]
+        if adjudication_fields != expected_adjudication_fields:
+            raise AssertionError("R124 adjudication template has wrong columns")
+        if adjudication_rows:
+            raise AssertionError("default R124 adjudication template must be empty until labels disagree")
         tag_results = json.loads(tag_results_path.read_text(encoding="utf-8"))
         tag_summary = tag_results.get("summary", {})
         if tag_summary.get("packet_row_count") != len(tag_packet_rows):

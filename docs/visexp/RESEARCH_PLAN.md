@@ -274,6 +274,10 @@ Current evidence:
   empty result when no labels exist: 300 packet rows, 300 candidate tags, 0
   final labels, `human_labels_empty`, and `adequacy_supported=false`. This
   prepares the gate but does not support adequacy.
+- R124-join now validates the blinded labeler sheet against the source packet,
+  records the no-label default state, and emits an empty adjudication template.
+  It prepares the two-labeler/adjudication bridge but does not support
+  adequacy until real human sheets are joined and scored.
 - Some tags are clearly useful (`refactor`, `review`, `test`, `analyze`,
   `design`, `research`), but some are noisy or over-specific
   (`agentsightsm`, `testcodex`, `designcodex`, `bashoutput`).
@@ -339,7 +343,7 @@ Remaining gap:
 | C3 | Semantic frames expose task-effect mixtures hidden by nonsemantic and flat summaries. | supported as mechanism | stronger examples and task benchmark |
 | C4 | Exact AgentSight lineage connects semantic intent to process/file/network effects. | supported for fixed command-mode suite; partial broadly | cross-repo/full-history exact integration and user-task outcomes |
 | C5 | Developers answer debugging/audit questions better with semantic effect flamegraphs. | unsupported; R142 packet/scorer/preregistration exists | user/task benchmark responses with valid response contract passing the Holm-corrected paper-scale C5 gate |
-| C6 | One-word tags are stable and adequate enough for navigation. | partial; R124 scorer exists but labels are empty | human adequacy labels with thresholds and 0.6B/1B evidence if claimed |
+| C6 | One-word tags are stable and adequate enough for navigation. | partial; R124 scorer/join protocol exists but labels are empty | human adequacy labels with thresholds and 0.6B/1B evidence if claimed |
 | C7 | The approach is practical as an open-source developer tool. | partial | one-command install/run, runtime/cost, docs, artifact hygiene |
 
 ## Experiment Matrix
@@ -394,8 +398,10 @@ and G4 developer task utility.
 The fastest route to weak accept is now a gate-ordered plan:
 
 1. Collect and adjudicate human adequacy labels using the blinded R124 labeler
-   sheet. This is the smallest remaining local/manual step that can turn C6 from
-   partial syntax/stability evidence into adequacy evidence without changing the
+   sheet, join frozen sheets with `docs/visexp/r124_join_blinded_labels.py`,
+   and score `docs/visexp/out/tag-adequacy-label-packet-r124-joined.csv`. This
+   is the smallest remaining local/manual step that can turn C6 from partial
+   syntax/stability evidence into adequacy evidence without changing the
    system. The packet must receive two independent human labels per row plus
    adjudication for disagreements; LLM or subagent labels can only review the
    protocol and cannot count as C6 evidence.

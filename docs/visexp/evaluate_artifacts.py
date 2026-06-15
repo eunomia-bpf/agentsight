@@ -300,6 +300,20 @@ def tag_adequacy_evidence(adequacy: dict[str, Any] | None) -> str:
     )
 
 
+def tag_join_evidence(join: dict[str, Any] | None) -> str:
+    if not join:
+        return "tag_join=missing"
+    summary = join.get("summary") or {}
+    return (
+        f"tag_join={join.get('status', 'unknown')} "
+        f"join_rows={summary.get('row_count')} "
+        f"labeler_1={summary.get('labeler_1_count')} "
+        f"labeler_2={summary.get('labeler_2_count')} "
+        f"paired={summary.get('paired_label_count')} "
+        f"missing_adjudication={summary.get('missing_adjudication_count')}"
+    )
+
+
 def compact_tag_adequacy(adequacy: dict[str, Any] | None) -> dict[str, Any] | None:
     if not adequacy:
         return None
@@ -597,6 +611,7 @@ def build_claim_gates(
     live_record: dict[str, Any] | None = None,
     headline: dict[str, Any] | None = None,
     tag_adequacy: dict[str, Any] | None = None,
+    tag_join: dict[str, Any] | None = None,
 ) -> list[dict[str, str]]:
     c1_ok = compression["compression_ratio"] > 1 and compression["repeated_stack_count"] > 0
     c2_ok = (
@@ -711,7 +726,8 @@ def build_claim_gates(
             "evidence": (
                 f"same_hash_multi_tag_count={quality['same_hash_multi_tag_count']} "
                 f"{tag_stability_evidence(stability)} "
-                f"{tag_adequacy_evidence(tag_adequacy)}"
+                f"{tag_adequacy_evidence(tag_adequacy)} "
+                f"{tag_join_evidence(tag_join)}"
             ).strip(),
         },
     ]
@@ -873,6 +889,8 @@ def run(out_dir: Path, write_outputs: bool = True) -> dict[str, Any]:
     response_template_exists = (out_dir / "user-task-response-template.csv").exists()
     tag_adequacy_path = out_dir / "tag-adequacy-results-r124.json"
     tag_adequacy = read_json(tag_adequacy_path) if tag_adequacy_path.exists() else None
+    tag_join_path = out_dir / "tag-adequacy-label-join-r124.json"
+    tag_join = read_json(tag_join_path) if tag_join_path.exists() else None
     effect_lineage_path = out_dir / "effect-lineage-smoke.json"
     effect_lineage = read_json(effect_lineage_path) if effect_lineage_path.exists() else None
     live_lineage_path = out_dir / "live-lineage-r110.json"
@@ -905,6 +923,7 @@ def run(out_dir: Path, write_outputs: bool = True) -> dict[str, Any]:
         live_record,
         headline,
         tag_adequacy,
+        tag_join,
     )
 
     result = {
@@ -934,6 +953,7 @@ def run(out_dir: Path, write_outputs: bool = True) -> dict[str, Any]:
         "tag_quality": quality,
         "tag_stability_smoke": stability,
         "tag_adequacy_results": compact_tag_adequacy(tag_adequacy),
+        "tag_adequacy_label_join": tag_join,
         "user_task_benchmark": user_tasks,
         "user_task_results": user_task_results,
         "user_task_preregistration": user_task_preregistration,

@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "run_id": "R124-label-join",
+  "claim": "C6",
+  "status": "ready_for_independent_label_collection",
+  "generated_at": "2026-06-15T10:13:18+00:00",
+  "source_packet": {
+    "path": "docs/visexp/out/tag-adequacy-label-packet-r122.csv",
+    "sha256": "610c67043cf7cb880aaf886fe51689a69d8d23626ee6a8143dc0cfc85288e593",
+    "row_count": 300,
+    "fields": [
+      "fragment_index",
+      "fragment_hash",
+      "kind",
+      "source",
+      "model",
+      "candidate_tag",
+      "candidate_model",
+      "candidate_exact_stable",
+      "candidate_distinct_tags",
+      "text_chars",
+      "preview",
+      "labeler_1",
+      "labeler_2",
+      "adjudicated_label",
+      "notes"
+    ]
+  },
+  "blinded_sheet": {
+    "path": "docs/visexp/out/tag-adequacy-blinded-label-sheet-r124.csv",
+    "sha256": "cc47f0505ad936eb121ff66b90d1d9908a6291b4a25bc298f8fd1d9c5bc4b77c",
+    "row_count": 300
+  },
+  "labeler_sheets": [],
+  "adjudication": {
+    "input_path": null,
+    "input_sha256": null,
+    "template_path": "docs/visexp/out/tag-adequacy-adjudication-template-r124.csv",
+    "template_sha256": "f5dd03531cf72c5bf8f75e2aa2be0df278081321767215625242ae792b590601",
+    "disagreement_rows": 0
+  },
+  "outputs": {
+    "joined_labels": null,
+    "joined_labels_sha256": null
+  },
+  "summary": {
+    "row_count": 300,
+    "labeler_1_count": 0,
+    "labeler_2_count": 0,
+    "paired_label_count": 0,
+    "agreement_count": 0,
+    "disagreement_count": 0,
+    "missing_adjudication_count": 0,
+    "complete_two_labeler_sheets": false,
+    "complete_adjudication": true
+  },
+  "protocol": {
+    "label_values": [
+      "adequate",
+      "generic_noisy",
+      "misleading"
+    ],
+    "required_labeler_count": 2,
+    "independence_rule": "Use two separately completed blinded sheets; freeze both before joining.",
+    "adjudication_rule": "Only rows with disagreeing non-empty labels require adjudicated_label.",
+    "scoring_command": "python3 docs/visexp/score_tag_adequacy.py --labels docs/visexp/out/tag-adequacy-label-packet-r124-joined.csv"
+  },
+  "claim_boundary": "This join artifact prepares C6 scoring. It does not support tag adequacy unless two real human labeler sheets are complete, disagreements are adjudicated, and score_tag_adequacy.py reports adequacy_supported=true.",
+  "provenance": {
+    "repo_commit": "edab0c7d13981b33c4f237be4e8ec48311e96c37",
+    "repo_dirty": true,
+    "script_sha256": "4d020f8c1d5e076ec91eadf18c4dedbcc58a23f09897d86b7d242f8268c8bf93"
+  }
+}
