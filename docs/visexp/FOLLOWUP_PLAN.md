@@ -94,9 +94,10 @@ or silent skipping of readable sessions.
 
 ### RQ2: Do semantic frames expose information that nonsemantic tools merge?
 
-Do session/prompt/LLM-call frames separate repeated system effects that would be
+Do session and prompt frames separate repeated system effects that would be
 merged by ordinary span traces, flat process/file/network summaries, or folded
-stacks without semantic frames?
+stacks without semantic frames? LLM-call tags are evaluated separately for
+token/accounting views, not as system-effect attribution frames.
 
 Primary oracle: mixed-bucket analysis from the same underlying observations.
 
@@ -234,18 +235,33 @@ cargo run --manifest-path agentflame/Cargo.toml -- bench \
 
 ### B6x: Semantic Axis Ablation
 
-- Claim tested: C3; auxiliary evidence for C6 visual-noise burden only.
+- Claim tested: C3. C6 visual-noise burden and B4 task accuracy/time remain
+  deferred.
 - Workload: the same 205-session full run and the B4 task-question set.
 - Variants: no semantic frames, session-only, prompt-only, prompt+LLM-call,
   full session+prompt+LLM-call.
-- Metrics: mixed weight, unique stack growth, max stack reuse, number of
-  visually noisy tags, and B4 task accuracy/time if run before the user study.
-- Oracle: each variant must be generated from the same raw observations and
-  checked for identical total weight.
+- Metrics: mixed bucket weight, non-dominant residual mixed weight, unique stack
+  growth, max stack reuse. Visually noisy tags and B4 task accuracy/time are
+  deferred to R124/B4.
+- Oracle: each variant must be generated from the same folded observations and
+  checked for identical total weight, matching `agentflame.json` totals, and
+  exact counter equality against already generated folded projections where
+  available.
 - Success criterion for paper: prompt/session frames materially reduce baseline
   mixing while keeping stack growth manageable; LLM-call frames help token views
   or are scoped out from system-effect claims.
-- Result path: `.agentsight/agentflame/ablations-r131/summary.json`.
+- Current evidence: R131 ran over the existing full folded artifacts and
+  preserved all system/token totals. It records that `agentflame.json` totals
+  match folded inputs and that generated nonsemantic/session/prompt folded files
+  exactly match the projections. System no-semantic projection mixed 90.219% of
+  full semantic bucket weight with 44.639% residual; session-only left 84.180%
+  bucket / 34.138% residual; prompt-only left 37.687% bucket / 7.526% residual.
+  Full session+prompt left 0.000% by construction. Token prompt+LLM-call still
+  mixed 95.765% of full semantic token bucket weight but only 0.027% residual,
+  so the paper should scope LLM-call tags to token navigation rather than
+  system-effect attribution.
+- Result path: `.agentsight/agentflame/ablations-r131/summary.json`,
+  `docs/visexp/out/semantic-ablation-r131.json`.
 
 ### B4x: Developer Forensic Task Benchmark
 
@@ -282,7 +298,7 @@ cargo run --manifest-path agentflame/Cargo.toml -- bench \
 | R122 | C6 | B5x | Redacted label packet. | create redacted label packet | 300 fragments | redaction scan + stratified counts | packet ready; labels still required | `docs/visexp/out/tag-adequacy-label-packet-r122.csv` | done/packet |
 | R123 | C2,C6 | B5x | Real redacted fragment stability. | `agentflame bench --fragment-file .agentsight/agentflame/r122-real-fragments.txt --runs 3 --model ...` | 300 fragments x 3 repeats | grammar/stability/latency checker | done for 3B: 900/900 valid, 282/300 exact-stable; adequacy labels required | `.agentsight/agentflame/model-benchmarks-r123.json`, `docs/visexp/out/model-benchmarks-r123.json` | done |
 | R124 | C6 | B5x | Human adequacy labeling over sampled fragments. | collect labels in R122 packet | 300 fragments, >=2 labelers if possible | adequacy/generic/misleading rubric plus agreement | >=80% adequate, <=20% generic/noisy, kappa >=0.6 or limited claim | `docs/visexp/out/tag-adequacy-labels-r124.csv` | planned |
-| R131 | C3 | B6x | Semantic-axis ablation. | regenerate stacks for no/session/prompt/full variants | deterministic | total-weight equality + mixed-weight delta | semantic axes must improve information gain without unbounded stack growth | `.agentsight/agentflame/ablations-r131/summary.json` | planned |
+| R131 | C3 | B6x | Semantic-axis ablation. | `python3 docs/visexp/r131_semantic_ablation.py --input .agentsight/agentflame/latest --local-out .agentsight/agentflame/ablations-r131/summary.json --out-dir docs/visexp/out` | deterministic | total-weight equality + report/folded cross-checks + mixed/residual delta | passed for C3 mechanism: all totals preserved; generated folded files match projections; system prompt-only reduced mixed full semantic bucket weight from 90.219% to 37.687% and residual from 44.639% to 7.526%; C6/B4 deferred | `.agentsight/agentflame/ablations-r131/summary.json`, `docs/visexp/out/semantic-ablation-r131.json` | done for C3; C6/B4 deferred |
 | R141 | C5 | B4x | User-task pilot. | 4 developer participants, counterbalanced conditions | 4 participants | answer key and timing data | task protocol works before paper run | `docs/visexp/out/user-task-results-pilot.json` | planned |
 | R151 | C5 | B4x | User-task paper run. | 12-20 participants or scoped expert study | counterbalanced | accuracy/time/false-positive/confidence scorer | required for any user-utility claim | `docs/visexp/out/user-task-results.json` | planned |
 
@@ -312,7 +328,6 @@ needs evidence that the semantic labels are adequate and that developers
 actually answer forensic questions better with the visualization.
 
 1. collect and adjudicate R124 human adequacy labels for the R122 packet;
-2. run R131 semantic-axis ablations over the same observations;
-3. run the B4 developer task pilot using the R114 answer keys and compare
+2. run the B4 developer task pilot using the R114 answer keys and compare
    trace tree, span flamegraph, flat summary, nonsemantic stack, and semantic
    effect stack conditions.

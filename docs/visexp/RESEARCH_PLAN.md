@@ -112,14 +112,15 @@ Remaining gap:
 
 ### RQ2. Semantic Partitioning Beyond Traditional Tools
 
-Does adding session/prompt/LLM semantic frames separate system-effect buckets
-that duration trace trees, span flamegraphs, or flat process/file summaries
-would merge?
+Do session and prompt semantic frames separate system-effect buckets that
+duration trace trees, span flamegraphs, or flat process/file summaries would
+merge, while LLM-call tags remain scoped to token/accounting views?
 
 Required evidence:
 
 - Semantic folded stacks and nonsemantic/flat baselines from the same input.
-- Mixed-bucket metrics: count, weight, percent of observation weight, examples.
+- Mixed-bucket metrics: count, whole-bucket mixed weight, non-dominant residual
+  mixed weight, percent of observation weight, examples.
 - Disaggregation examples that answer real developer questions such as "which
   semantic task caused repeated cargo test runs?"
 
@@ -135,11 +136,26 @@ Current evidence:
 - Example mixed baselines include `git read`, `cargo test`, `python3 process`,
   `docker process`, and high-volume `tool write/process` stacks that split into
   different `refactor`, `review`, `design`, `research`, and `analyze` regions.
+- R131 ran a semantic-axis ablation over the same folded observations without
+  rescanning raw traces. All system and token projection totals were preserved,
+  `agentflame.json` totals matched the folded inputs, and projected counters
+  exactly matched the already generated nonsemantic/session/prompt folded files.
+  For system effects, no-semantic projection mixed 90.219% of full semantic
+  bucket weight with 44.639% non-dominant residual weight; session-only left
+  84.180% bucket / 34.138% residual; prompt-only left 37.687% bucket / 7.526%
+  residual. Full session+prompt semantics leaves 0.000% by construction. This
+  isolates the contribution: prompt tags carry most of the system-effect
+  separation, while session tags provide the remaining provenance context.
 
 Remaining gap:
 
 - Current metrics prove partitioning, not user benefit. They should support a
   mechanism claim, not the full usability claim.
+- R131 also shows a boundary condition: token-accounting projections need the
+  session axis. Prompt+LLM-call projection still mixed 95.765% of full
+  session/prompt/LLM-call token weight, so LLM-call tags should be claimed as
+  token-navigation labels, not as substitutes for session/prompt system-effect
+  attribution.
 
 ### RQ3. Exact Semantic-Effect Lineage
 
@@ -264,7 +280,7 @@ Remaining gap:
 | B3 | RQ3 | Live exact AgentSight lineage | agent-native proxy vs exact effect stream plus negative controls | recall, precision, orphan rate, path/domain specificity | lineage checker with false-positive controls | fixed command-mode suite passed; broader replication should |
 | B4 | RQ4 | Developer task benchmark | trace tree, span flamegraph, flat summary, nonsemantic stack, semantic stack | time, accuracy, false positives, confidence | hidden answer key plus preregistered thresholds | must |
 | B5 | RQ5 | Small-model and tag-stability benchmark | 0.6B, 1B, 3B, optional larger reference | latency, invalid rate, identical-input stability, adequacy | repeated run + human labels | must |
-| B6 | RQ2 | Ablations | no semantic, session-only, prompt-only, prompt+LLM-call, full | information gain, stack explosion, noisy-tag burden | same observations and total-weight equality | must |
+| B6 | RQ2 | Ablations | no semantic, session-only, prompt-only, prompt+LLM-call, full | information gain, stack explosion; noisy-tag burden and B4 task accuracy/time deferred | same observations, total-weight equality, report/folded cross-checks | done for C3 mechanism; C6/B4 deferred |
 | B7 | RQ6 | Open-source usability smoke | fresh clone, install, run, view dashboard | setup time, commands, failure modes | artifact checklist | should |
 
 ## Baseline Fairness
@@ -304,10 +320,7 @@ and G4 developer task utility.
 The fastest route to weak accept is:
 
 1. Collect and adjudicate R124 human adequacy labels over the R122 packet.
-2. Run B6x semantic-axis ablations over
-   the same observations and fix the
-   result path to `ablations-r131`.
-3. Add a small but real B4x user/task benchmark with answer keys and blinded
+2. Add a small but real B4x user/task benchmark with answer keys and blinded
    condition packets.
-4. Rewrite the paper around "semantic attribution of agent system effects," not
+3. Rewrite the paper around "semantic attribution of agent system effects," not
    around "agent flamegraph UI."
