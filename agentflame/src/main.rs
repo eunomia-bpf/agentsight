@@ -81,6 +81,7 @@ struct BenchArgs {
     llama_server: PathBuf,
     #[arg(long = "server-arg", allow_hyphen_values = true)]
     server_args: Vec<String>,
+    /// Repeats per fragment for stability measurement.
     #[arg(long, default_value_t = 2)]
     runs: usize,
     #[arg(long, default_value_t = 240)]
@@ -91,6 +92,12 @@ struct BenchArgs {
     out: Option<PathBuf>,
     #[arg(long = "model", required = true)]
     models: Vec<String>,
+    /// Fixed fragment to repeat for stability measurement. May be repeated.
+    #[arg(long = "fragment")]
+    fragments: Vec<String>,
+    /// Include fragment previews in benchmark output. Off by default for privacy.
+    #[arg(long = "include-fragment-previews")]
+    include_fragment_previews: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -1981,29 +1988,60 @@ fn command_bench(args: BenchArgs) -> Result<()> {
                     -1,
                 );
                 let mut run_rows = Vec::new();
-                for run_idx in 0..args.runs {
-                    let prompt = format!(
-                        "Benchmark run {run_idx}. Label this coding-agent fragment: Fix failing Rust tests and update semantic flamegraph stacks."
-                    );
-                    let req_started = Instant::now();
-                    let result = tagger.tag_uncached("prompt", &prompt);
-                    let latency_ms = req_started.elapsed().as_millis() as u64;
-                    run_rows.push(match result {
-                        Ok(tag) => json!({
-                            "run": run_idx,
-                            "latency_ms": latency_ms,
-                            "ok": true,
-                            "tag": tag,
-                        }),
-                        Err(error) => json!({
-                            "run": run_idx,
-                            "latency_ms": latency_ms,
-                            "ok": false,
-                            "error": error.to_string(),
-                        }),
+                let mut fragment_rows = Vec::new();
+                let fragments = bench_fragments(&args.fragments);
+                for (fragment_idx, prompt) in fragments.iter().enumerate() {
+                    let mut fragment_run_rows = Vec::new();
+                    let mut ok_tags = Vec::new();
+                    for repeat_idx in 0..args.runs {
+                        let req_started = Instant::now();
+                        let result = tagger.tag_uncached("prompt", prompt);
+                        let latency_ms = req_started.elapsed().as_millis() as u64;
+                        let run_row = match result {
+                            Ok(tag) => {
+                                ok_tags.push(tag.clone());
+                                json!({
+                                    "fragment_id": format!("f{fragment_idx}"),
+                                    "fragment_hash": short_hash(prompt, 16),
+                                    "repeat": repeat_idx,
+                                    "latency_ms": latency_ms,
+                                    "ok": true,
+                                    "tag": tag,
+                                })
+                            }
+                            Err(error) => json!({
+                                "fragment_id": format!("f{fragment_idx}"),
+                                "fragment_hash": short_hash(prompt, 16),
+                                "repeat": repeat_idx,
+                                "latency_ms": latency_ms,
+                                "ok": false,
+                                "error": error.to_string(),
+                            }),
+                        };
+                        fragment_run_rows.push(run_row.clone());
+                        run_rows.push(run_row);
+                    }
+                    let summary = stability_summary(&ok_tags, args.runs);
+                    let mut fragment_row = json!({
+                        "fragment_id": format!("f{fragment_idx}"),
+                        "fragment_hash": short_hash(prompt, 16),
+                        "runs": fragment_run_rows,
+                        "ok_runs": ok_tags.len(),
+                        "failed_runs": args.runs.saturating_sub(ok_tags.len()),
+                        "tags": ok_tags,
+                        "modal_tag": summary.modal_tag,
+                        "distinct_tags": summary.distinct_tags,
+                        "exact_stable": summary.exact_stable,
                     });
+                    if args.include_fragment_previews {
+                        fragment_row["preview"] = Value::String(truncate_clean(prompt, 140));
+                    }
+                    fragment_rows.push(fragment_row);
                 }
                 model_result["runs"] = Value::Array(run_rows);
+                model_result["fragments"] = Value::Array(fragment_rows.clone());
+                model_result["stability"] =
+                    serde_json::to_value(model_stability_summary(&fragment_rows, args.runs))?;
                 model_result["tagger_stats"] = serde_json::to_value(&tagger.stats)?;
             }
             Err(error) => {
@@ -2019,11 +2057,89 @@ fn command_bench(args: BenchArgs) -> Result<()> {
         "llama_server": args.llama_server,
         "server_args": args.server_args,
         "runs_per_model": args.runs,
+        "repeats_per_fragment": args.runs,
+        "fragments_per_model": bench_fragments(&args.fragments).len(),
+        "fragment_previews_included": args.include_fragment_previews,
         "models": results,
     });
     fs::write(&out, serde_json::to_vec_pretty(&payload)?)?;
     println!("{}", serde_json::to_string_pretty(&payload)?);
     Ok(())
+}
+
+fn bench_fragments(custom: &[String]) -> Vec<String> {
+    if !custom.is_empty() {
+        return custom.to_vec();
+    }
+    vec![
+        "User asks the coding agent to fix a failing Rust unit test, edit source code, and rerun cargo test.".to_string(),
+        "User asks the agent to summarize research evidence and update an OSDI experiment plan without changing source code.".to_string(),
+        "An assistant LLM call compares span-duration traces with semantic system-effect attribution for a paper draft.".to_string(),
+    ]
+}
+
+#[derive(Serialize)]
+struct FragmentStability {
+    exact_stable: bool,
+    modal_tag: Option<String>,
+    distinct_tags: usize,
+}
+
+fn stability_summary(tags: &[String], expected_runs: usize) -> FragmentStability {
+    let mut counts: BTreeMap<&str, usize> = BTreeMap::new();
+    for tag in tags {
+        *counts.entry(tag.as_str()).or_default() += 1;
+    }
+    let modal_tag = counts
+        .iter()
+        .max_by_key(|(_, count)| *count)
+        .map(|(tag, _)| (*tag).to_string());
+    FragmentStability {
+        exact_stable: tags.len() == expected_runs && counts.len() == 1,
+        modal_tag,
+        distinct_tags: counts.len(),
+    }
+}
+
+#[derive(Serialize)]
+struct ModelStability {
+    requested_runs: usize,
+    fragment_count: usize,
+    exact_stable_fragments: usize,
+    exact_stability_pct: f64,
+    valid_run_pct: f64,
+}
+
+fn model_stability_summary(fragment_rows: &[Value], runs_per_fragment: usize) -> ModelStability {
+    let fragment_count = fragment_rows.len();
+    let exact_stable_fragments = fragment_rows
+        .iter()
+        .filter(|row| {
+            row.get("exact_stable")
+                .and_then(Value::as_bool)
+                .unwrap_or(false)
+        })
+        .count();
+    let ok_runs: usize = fragment_rows
+        .iter()
+        .map(|row| row.get("ok_runs").and_then(Value::as_u64).unwrap_or(0) as usize)
+        .sum();
+    let requested_runs = fragment_count * runs_per_fragment;
+    ModelStability {
+        requested_runs,
+        fragment_count,
+        exact_stable_fragments,
+        exact_stability_pct: if fragment_count > 0 {
+            round3(100.0 * exact_stable_fragments as f64 / fragment_count as f64)
+        } else {
+            0.0
+        },
+        valid_run_pct: if requested_runs > 0 {
+            round3(100.0 * ok_runs as f64 / requested_runs as f64)
+        } else {
+            0.0
+        },
+    }
 }
 
 fn parse_model_spec(spec: &str) -> Result<(String, PathBuf)> {
@@ -2806,5 +2922,63 @@ mod tests {
         let (label, path) = parse_model_spec("/models/localmodel.gguf").unwrap();
         assert_eq!(label, "localmodel");
         assert_eq!(path, PathBuf::from("/models/localmodel.gguf"));
+    }
+
+    #[test]
+    fn bench_fragments_use_stable_defaults_unless_overridden() {
+        let defaults = bench_fragments(&[]);
+        assert_eq!(defaults.len(), 3);
+        assert!(defaults
+            .iter()
+            .all(|fragment| !fragment.contains("Benchmark run")));
+
+        let custom = vec!["repeat exactly this prompt".to_string()];
+        assert_eq!(bench_fragments(&custom), custom);
+    }
+
+    #[test]
+    fn stability_summary_requires_all_repeats_same_tag() {
+        let stable = stability_summary(
+            &[
+                "debug".to_string(),
+                "debug".to_string(),
+                "debug".to_string(),
+            ],
+            3,
+        );
+        assert!(stable.exact_stable);
+        assert_eq!(stable.modal_tag, Some("debug".to_string()));
+        assert_eq!(stable.distinct_tags, 1);
+
+        let changed = stability_summary(
+            &["debug".to_string(), "test".to_string(), "debug".to_string()],
+            3,
+        );
+        assert!(!changed.exact_stable);
+        assert_eq!(changed.distinct_tags, 2);
+
+        let failed_repeat = stability_summary(&["debug".to_string(), "debug".to_string()], 3);
+        assert!(!failed_repeat.exact_stable);
+        assert_eq!(failed_repeat.distinct_tags, 1);
+    }
+
+    #[test]
+    fn model_stability_summary_counts_exact_stable_fragments() {
+        let fragments = vec![
+            json!({
+                "ok_runs": 3,
+                "exact_stable": true,
+            }),
+            json!({
+                "ok_runs": 2,
+                "exact_stable": false,
+            }),
+        ];
+        let summary = model_stability_summary(&fragments, 3);
+        assert_eq!(summary.requested_runs, 6);
+        assert_eq!(summary.fragment_count, 2);
+        assert_eq!(summary.exact_stable_fragments, 1);
+        assert_eq!(summary.exact_stability_pct, 50.0);
+        assert_eq!(summary.valid_run_pct, 83.333);
     }
 }

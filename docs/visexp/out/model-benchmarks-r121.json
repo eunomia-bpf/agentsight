@@ -1,14 +1,15 @@
 {
+  "schema_version": 1,
   "run_id": "R121",
-  "generated_at": "2026-06-15T02:02:47Z",
+  "generated_at": "2026-06-15T03:44:24Z",
   "source": ".agentsight/agentflame/model-benchmarks.json",
   "model_discovery": {
-    "directory": "/home/yunwei37/workspace/llama.cpp-latest/models",
+    "directory": "$HOME/workspace/llama.cpp-latest/models",
     "real_model_ggufs": [
       {
-        "label": "3b",
         "name": "qwen2.5-3b-instruct-q4_k_m.gguf",
-        "bytes": 2104932768
+        "bytes": 2104932768,
+        "label": "3b"
       }
     ],
     "vocab_only_gguf_count": 17,
@@ -18,32 +19,130 @@
     ]
   },
   "bench": {
-    "llama_server": "/home/yunwei37/workspace/llama.cpp-latest/build/bin/llama-server",
+    "llama_server": "$HOME/workspace/llama.cpp-latest/build/bin/llama-server",
     "runs_per_model": 3,
+    "repeats_per_fragment": 3,
+    "fragments_per_model": 3,
+    "fragment_previews_included": true,
     "models": [
       {
         "label": "3b",
-        "load_ms": 1004,
-        "ok_runs": 3,
+        "path": "$HOME/workspace/llama.cpp-latest/models/qwen2.5-3b-instruct-q4_k_m.gguf",
+        "load_ms": 1002,
+        "total_runs": 9,
+        "ok_runs": 9,
         "failed_runs": 0,
+        "valid_tags": 9,
+        "invalid_tags": [],
         "latency_ms": [
           41,
-          17,
-          15
+          8,
+          8,
+          20,
+          14,
+          13,
+          15,
+          8,
+          7
         ],
         "tags": [
-          "render",
-          "debug",
-          "label"
+          "refactor",
+          "test",
+          "test",
+          "updateosdi",
+          "updateosdi",
+          "updateosdi",
+          "research",
+          "research",
+          "research"
         ],
-        "llm_calls": 3,
-        "llm_successes": 3
+        "stability": {
+          "exact_stability_pct": 66.667,
+          "exact_stable_fragments": 2,
+          "fragment_count": 3,
+          "requested_runs": 9,
+          "valid_run_pct": 100.0
+        },
+        "fragments": [
+          {
+            "fragment_id": "f0",
+            "fragment_hash": "0037c4769bf523b3",
+            "preview": "User asks the coding agent to fix a failing Rust unit test, edit source code, and rerun cargo test.",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "test",
+              "test"
+            ],
+            "modal_tag": "test",
+            "distinct_tags": 2,
+            "exact_stable": false,
+            "latency_ms": [
+              41,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f1",
+            "fragment_hash": "c7703620d4a5e570",
+            "preview": "User asks the agent to summarize research evidence and update an OSDI experiment plan without changing source code.",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "updateosdi",
+              "updateosdi",
+              "updateosdi"
+            ],
+            "modal_tag": "updateosdi",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              20,
+              14,
+              13
+            ]
+          },
+          {
+            "fragment_id": "f2",
+            "fragment_hash": "c9f26f17824da2cf",
+            "preview": "An assistant LLM call compares span-duration traces with semantic system-effect attribution for a paper draft.",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "research",
+              "research",
+              "research"
+            ],
+            "modal_tag": "research",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              15,
+              8,
+              7
+            ]
+          }
+        ],
+        "llm_calls": 9,
+        "llm_successes": 9
       }
     ]
   },
+  "aggregate": {
+    "total_runs": 9,
+    "ok_runs": 9,
+    "failed_runs": 0,
+    "valid_run_pct": 100.0,
+    "exact_stable_fragments": 2,
+    "fragment_count": 3,
+    "exact_stability_pct": 66.667
+  },
   "interpretation": [
-    "The 3B local llama.cpp benchmark path works and produced syntactically valid one-word tags in 3/3 runs.",
+    "The 3B local llama.cpp benchmark path works and produced syntactically valid one-word tags in every run.",
+    "The fixed-input stability result is mixed: one synthetic coding fragment changed labels across identical repeats, while two fragments were exactly stable.",
     "No locally available 0.6B or 1B real model GGUF was found, so this run cannot support claims about those size classes.",
-    "This smoke does not measure stability because the current benchmark prompt changes by embedding the run index."
+    "This run does not measure human adequacy; R122 remains required before C6 can become stronger than partial."
   ]
 }
