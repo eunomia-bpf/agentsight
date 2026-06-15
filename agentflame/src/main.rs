@@ -95,6 +95,9 @@ struct BenchArgs {
     /// Fixed fragment to repeat for stability measurement. May be repeated.
     #[arg(long = "fragment")]
     fragments: Vec<String>,
+    /// File with one fixed fragment per line. May be repeated.
+    #[arg(long = "fragment-file")]
+    fragment_files: Vec<PathBuf>,
     /// Include fragment previews in benchmark output. Off by default for privacy.
     #[arg(long = "include-fragment-previews")]
     include_fragment_previews: bool,
@@ -1961,6 +1964,7 @@ fn command_bench(args: BenchArgs) -> Result<()> {
     if let Some(parent) = out.parent() {
         fs::create_dir_all(parent)?;
     }
+    let fragments = bench_fragments(&args.fragments, &args.fragment_files)?;
     let mut results = Vec::new();
     for spec in &args.models {
         let (label, path) = parse_model_spec(spec)?;
@@ -1989,7 +1993,6 @@ fn command_bench(args: BenchArgs) -> Result<()> {
                 );
                 let mut run_rows = Vec::new();
                 let mut fragment_rows = Vec::new();
-                let fragments = bench_fragments(&args.fragments);
                 for (fragment_idx, prompt) in fragments.iter().enumerate() {
                     let mut fragment_run_rows = Vec::new();
                     let mut ok_tags = Vec::new();
@@ -2058,7 +2061,7 @@ fn command_bench(args: BenchArgs) -> Result<()> {
         "server_args": args.server_args,
         "runs_per_model": args.runs,
         "repeats_per_fragment": args.runs,
-        "fragments_per_model": bench_fragments(&args.fragments).len(),
+        "fragments_per_model": fragments.len(),
         "fragment_previews_included": args.include_fragment_previews,
         "models": results,
     });
@@ -2067,15 +2070,28 @@ fn command_bench(args: BenchArgs) -> Result<()> {
     Ok(())
 }
 
-fn bench_fragments(custom: &[String]) -> Vec<String> {
-    if !custom.is_empty() {
-        return custom.to_vec();
+fn bench_fragments(custom: &[String], fragment_files: &[PathBuf]) -> Result<Vec<String>> {
+    let mut fragments = Vec::new();
+    for path in fragment_files {
+        let contents = fs::read_to_string(path)
+            .with_context(|| format!("reading fragment file {}", path.display()))?;
+        for line in contents.lines() {
+            let fragment = line.trim();
+            if fragment.is_empty() {
+                continue;
+            }
+            fragments.push(fragment.to_string());
+        }
     }
-    vec![
+    fragments.extend(custom.iter().cloned());
+    if !fragments.is_empty() {
+        return Ok(fragments);
+    }
+    Ok(vec![
         "User asks the coding agent to fix a failing Rust unit test, edit source code, and rerun cargo test.".to_string(),
         "User asks the agent to summarize research evidence and update an OSDI experiment plan without changing source code.".to_string(),
         "An assistant LLM call compares span-duration traces with semantic system-effect attribution for a paper draft.".to_string(),
-    ]
+    ])
 }
 
 #[derive(Serialize)]
@@ -2926,14 +2942,35 @@ mod tests {
 
     #[test]
     fn bench_fragments_use_stable_defaults_unless_overridden() {
-        let defaults = bench_fragments(&[]);
+        let defaults = bench_fragments(&[], &[]).unwrap();
         assert_eq!(defaults.len(), 3);
         assert!(defaults
             .iter()
             .all(|fragment| !fragment.contains("Benchmark run")));
 
         let custom = vec!["repeat exactly this prompt".to_string()];
-        assert_eq!(bench_fragments(&custom), custom);
+        assert_eq!(bench_fragments(&custom, &[]).unwrap(), custom);
+    }
+
+    #[test]
+    fn bench_fragments_accept_file_inputs() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("fragments.txt");
+        fs::write(
+            &path,
+            "\n# markdown heading fragment\nfirst fixed fragment\nsecond fixed fragment\n",
+        )
+        .unwrap();
+        let custom = vec!["third fixed fragment".to_string()];
+        assert_eq!(
+            bench_fragments(&custom, &[path]).unwrap(),
+            vec![
+                "# markdown heading fragment".to_string(),
+                "first fixed fragment".to_string(),
+                "second fixed fragment".to_string(),
+                "third fixed fragment".to_string(),
+            ]
+        );
     }
 
     #[test]

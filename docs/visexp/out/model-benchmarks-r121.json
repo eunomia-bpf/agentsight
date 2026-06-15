@@ -3,6 +3,17 @@
   "run_id": "R121",
   "generated_at": "2026-06-15T03:44:24Z",
   "source": ".agentsight/agentflame/model-benchmarks.json",
+  "provenance": {
+    "repo_commit": "6efdd9e8a29c4b9f04f70740d39c09772d7eba9c",
+    "repo_dirty": true,
+    "command": "cargo run --manifest-path agentflame/Cargo.toml -- bench --llama-server $HOME/workspace/llama.cpp-latest/build/bin/llama-server --runs 3 --load-timeout 240 --request-timeout 60 --include-fragment-previews --out .agentsight/agentflame/model-benchmarks.json --model 3b=$HOME/workspace/llama.cpp-latest/models/qwen2.5-3b-instruct-q4_k_m.gguf",
+    "source_sha256": "a358e3d999de61f84c3277629f8f3325658bb9af8274487ee91e839c6b77ef6a",
+    "fragment_file": null,
+    "fragment_file_sha256": null,
+    "summary_script_sha256": "7b0b9806ed621bbd89a024c2e67a333957a6b84ae04461b6c16a6ee8d5b36734",
+    "llama_server_sha256": "c6bf46749973fbb1ab32ccec3df93c01d51f2c22cb503da32e800101968a5905",
+    "llama_server_version": null
+  },
   "model_discovery": {
     "directory": "$HOME/workspace/llama.cpp-latest/models",
     "real_model_ggufs": [
@@ -28,6 +39,8 @@
       {
         "label": "3b",
         "path": "$HOME/workspace/llama.cpp-latest/models/qwen2.5-3b-instruct-q4_k_m.gguf",
+        "path_bytes": 2104932768,
+        "path_sha256": "626b4a6678b86442240e33df819e00132d3ba7dddfe1cdc4fbb18e0a9615c62d",
         "load_ms": 1002,
         "total_runs": 9,
         "ok_runs": 9,
@@ -141,8 +154,8 @@
   },
   "interpretation": [
     "The 3B local llama.cpp benchmark path works and produced syntactically valid one-word tags in every run.",
-    "The fixed-input stability result is mixed: one synthetic coding fragment changed labels across identical repeats, while two fragments were exactly stable.",
+    "The fixed-input stability result is 2/3 exact-stable fragments over three fixed synthetic fragments.",
     "No locally available 0.6B or 1B real model GGUF was found, so this run cannot support claims about those size classes.",
-    "This run does not measure human adequacy; R122 remains required before C6 can become stronger than partial."
+    "This run does not measure human adequacy; R124 remains required before C6 can become stronger than partial."
   ]
 }

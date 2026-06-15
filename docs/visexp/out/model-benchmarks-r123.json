@@ -1,0 +1,7883 @@
+{
+  "schema_version": 1,
+  "run_id": "R123",
+  "generated_at": "2026-06-15T05:44:54Z",
+  "source": ".agentsight/agentflame/model-benchmarks-r123.json",
+  "provenance": {
+    "repo_commit": "6efdd9e8a29c4b9f04f70740d39c09772d7eba9c",
+    "repo_dirty": true,
+    "command": "cargo run --manifest-path agentflame/Cargo.toml -- bench --llama-server $HOME/workspace/llama.cpp-latest/build/bin/llama-server --runs 3 --load-timeout 240 --request-timeout 60 --fragment-file .agentsight/agentflame/r122-real-fragments.txt --out .agentsight/agentflame/model-benchmarks-r123.json --model 3b=$HOME/workspace/llama.cpp-latest/models/qwen2.5-3b-instruct-q4_k_m.gguf",
+    "source_sha256": "b3fd6c95750724b1eaba4651699cc542c655f2495ee3989a0dccb2b58ccd2fa4",
+    "fragment_file": ".agentsight/agentflame/r122-real-fragments.txt",
+    "fragment_file_sha256": "d1a0dd2e4821049753efdb01d8ff09e73f03b664863805299ebcf71d46b7427b",
+    "summary_script_sha256": "7b0b9806ed621bbd89a024c2e67a333957a6b84ae04461b6c16a6ee8d5b36734",
+    "llama_server_sha256": "c6bf46749973fbb1ab32ccec3df93c01d51f2c22cb503da32e800101968a5905",
+    "llama_server_version": null
+  },
+  "model_discovery": {
+    "directory": "$HOME/workspace/llama.cpp-latest/models",
+    "real_model_ggufs": [
+      {
+        "name": "qwen2.5-3b-instruct-q4_k_m.gguf",
+        "bytes": 2104932768,
+        "label": "3b"
+      }
+    ],
+    "vocab_only_gguf_count": 17,
+    "missing_size_classes": [
+      "0.6b",
+      "1b"
+    ]
+  },
+  "bench": {
+    "llama_server": "$HOME/workspace/llama.cpp-latest/build/bin/llama-server",
+    "runs_per_model": 3,
+    "repeats_per_fragment": 3,
+    "fragments_per_model": 300,
+    "fragment_previews_included": false,
+    "models": [
+      {
+        "label": "3b",
+        "path": "$HOME/workspace/llama.cpp-latest/models/qwen2.5-3b-instruct-q4_k_m.gguf",
+        "path_bytes": 2104932768,
+        "path_sha256": "626b4a6678b86442240e33df819e00132d3ba7dddfe1cdc4fbb18e0a9615c62d",
+        "load_ms": 1002,
+        "total_runs": 900,
+        "ok_runs": 900,
+        "failed_runs": 0,
+        "valid_tags": 900,
+        "invalid_tags": [],
+        "latency_ms": [
+          42,
+          13,
+          8,
+          18,
+          10,
+          10,
+          18,
+          10,
+          10,
+          18,
+          10,
+          10,
+          53,
+          38,
+          39,
+          19,
+          11,
+          10,
+          18,
+          11,
+          11,
+          18,
+          11,
+          11,
+          53,
+          44,
+          44,
+          19,
+          11,
+          11,
+          46,
+          39,
+          39,
+          19,
+          8,
+          8,
+          18,
+          11,
+          11,
+          18,
+          11,
+          11,
+          18,
+          11,
+          11,
+          46,
+          39,
+          43,
+          16,
+          9,
+          8,
+          18,
+          11,
+          10,
+          52,
+          43,
+          44,
+          19,
+          11,
+          11,
+          18,
+          8,
+          8,
+          38,
+          30,
+          30,
+          19,
+          11,
+          10,
+          18,
+          11,
+          10,
+          18,
+          11,
+          11,
+          18,
+          8,
+          8,
+          8,
+          8,
+          8,
+          16,
+          9,
+          8,
+          18,
+          10,
+          10,
+          16,
+          8,
+          8,
+          46,
+          38,
+          38,
+          16,
+          23,
+          21,
+          45,
+          38,
+          38,
+          16,
+          27,
+          25,
+          17,
+          9,
+          8,
+          15,
+          9,
+          8,
+          18,
+          10,
+          10,
+          18,
+          9,
+          8,
+          16,
+          9,
+          8,
+          16,
+          9,
+          8,
+          21,
+          9,
+          8,
+          20,
+          9,
+          8,
+          19,
+          11,
+          11,
+          19,
+          11,
+          11,
+          16,
+          9,
+          8,
+          39,
+          32,
+          32,
+          40,
+          32,
+          32,
+          40,
+          32,
+          32,
+          32,
+          25,
+          24,
+          27,
+          12,
+          11,
+          27,
+          11,
+          11,
+          16,
+          9,
+          8,
+          21,
+          9,
+          8,
+          20,
+          11,
+          11,
+          19,
+          11,
+          11,
+          20,
+          14,
+          13,
+          23,
+          11,
+          11,
+          19,
+          11,
+          11,
+          20,
+          14,
+          14,
+          26,
+          12,
+          11,
+          36,
+          12,
+          12,
+          29,
+          11,
+          11,
+          20,
+          11,
+          11,
+          20,
+          11,
+          11,
+          19,
+          11,
+          11,
+          20,
+          9,
+          8,
+          16,
+          9,
+          10,
+          22,
+          11,
+          11,
+          19,
+          11,
+          11,
+          17,
+          9,
+          8,
+          16,
+          9,
+          8,
+          20,
+          9,
+          8,
+          17,
+          9,
+          8,
+          16,
+          9,
+          8,
+          16,
+          9,
+          8,
+          19,
+          11,
+          11,
+          19,
+          11,
+          11,
+          25,
+          10,
+          9,
+          25,
+          9,
+          8,
+          20,
+          11,
+          11,
+          16,
+          9,
+          8,
+          16,
+          9,
+          8,
+          19,
+          11,
+          11,
+          19,
+          11,
+          11,
+          15,
+          9,
+          8,
+          18,
+          11,
+          11,
+          15,
+          9,
+          8,
+          14,
+          8,
+          8,
+          18,
+          11,
+          10,
+          15,
+          9,
+          8,
+          19,
+          9,
+          8,
+          21,
+          9,
+          8,
+          29,
+          10,
+          8,
+          18,
+          12,
+          11,
+          67,
+          59,
+          59,
+          26,
+          10,
+          9,
+          27,
+          9,
+          8,
+          20,
+          9,
+          8,
+          22,
+          9,
+          8,
+          31,
+          11,
+          11,
+          18,
+          11,
+          8,
+          15,
+          8,
+          8,
+          43,
+          24,
+          24,
+          18,
+          9,
+          8,
+          16,
+          9,
+          8,
+          16,
+          9,
+          8,
+          19,
+          11,
+          10,
+          17,
+          10,
+          10,
+          14,
+          8,
+          8,
+          14,
+          8,
+          8,
+          18,
+          9,
+          8,
+          17,
+          10,
+          10,
+          17,
+          11,
+          10,
+          15,
+          8,
+          8,
+          18,
+          11,
+          10,
+          19,
+          10,
+          10,
+          17,
+          10,
+          11,
+          33,
+          26,
+          26,
+          32,
+          25,
+          24,
+          19,
+          10,
+          10,
+          14,
+          9,
+          8,
+          14,
+          9,
+          8,
+          15,
+          8,
+          8,
+          20,
+          11,
+          11,
+          18,
+          11,
+          11,
+          21,
+          11,
+          11,
+          16,
+          9,
+          8,
+          15,
+          8,
+          8,
+          22,
+          23,
+          23,
+          19,
+          11,
+          10,
+          17,
+          10,
+          10,
+          17,
+          10,
+          10,
+          16,
+          8,
+          8,
+          15,
+          12,
+          10,
+          17,
+          9,
+          8,
+          16,
+          9,
+          8,
+          16,
+          9,
+          8,
+          16,
+          9,
+          8,
+          16,
+          9,
+          8,
+          20,
+          13,
+          13,
+          19,
+          11,
+          11,
+          16,
+          9,
+          8,
+          18,
+          14,
+          11,
+          15,
+          9,
+          8,
+          15,
+          9,
+          8,
+          17,
+          10,
+          10,
+          20,
+          13,
+          13,
+          17,
+          10,
+          10,
+          17,
+          9,
+          8,
+          17,
+          10,
+          10,
+          19,
+          11,
+          10,
+          14,
+          8,
+          8,
+          19,
+          11,
+          10,
+          19,
+          11,
+          11,
+          17,
+          9,
+          8,
+          20,
+          11,
+          11,
+          18,
+          9,
+          8,
+          15,
+          9,
+          8,
+          14,
+          8,
+          8,
+          16,
+          9,
+          8,
+          16,
+          9,
+          8,
+          18,
+          11,
+          10,
+          14,
+          9,
+          8,
+          16,
+          9,
+          8,
+          15,
+          9,
+          8,
+          17,
+          9,
+          8,
+          31,
+          12,
+          13,
+          18,
+          10,
+          11,
+          21,
+          11,
+          11,
+          15,
+          9,
+          8,
+          20,
+          11,
+          11,
+          22,
+          11,
+          11,
+          14,
+          9,
+          9,
+          16,
+          9,
+          9,
+          18,
+          10,
+          9,
+          19,
+          10,
+          9,
+          17,
+          10,
+          9,
+          19,
+          11,
+          11,
+          15,
+          9,
+          8,
+          16,
+          9,
+          8,
+          18,
+          28,
+          29,
+          17,
+          9,
+          8,
+          19,
+          11,
+          11,
+          15,
+          9,
+          8,
+          15,
+          8,
+          8,
+          15,
+          9,
+          8,
+          17,
+          11,
+          10,
+          21,
+          13,
+          13,
+          17,
+          10,
+          11,
+          17,
+          10,
+          10,
+          15,
+          8,
+          8,
+          18,
+          11,
+          10,
+          15,
+          8,
+          8,
+          16,
+          9,
+          8,
+          18,
+          9,
+          8,
+          15,
+          8,
+          8,
+          21,
+          11,
+          10,
+          20,
+          13,
+          13,
+          16,
+          8,
+          8,
+          14,
+          8,
+          8,
+          17,
+          9,
+          8,
+          18,
+          11,
+          11,
+          17,
+          9,
+          8,
+          17,
+          8,
+          8,
+          15,
+          9,
+          8,
+          20,
+          13,
+          14,
+          20,
+          9,
+          8,
+          15,
+          8,
+          8,
+          15,
+          8,
+          8,
+          16,
+          9,
+          8,
+          16,
+          9,
+          8,
+          15,
+          9,
+          8,
+          16,
+          9,
+          8,
+          16,
+          9,
+          8,
+          17,
+          9,
+          8,
+          14,
+          9,
+          8,
+          18,
+          10,
+          10,
+          14,
+          9,
+          8,
+          8,
+          8,
+          9,
+          18,
+          10,
+          10,
+          19,
+          11,
+          10,
+          16,
+          8,
+          8,
+          18,
+          9,
+          8,
+          20,
+          11,
+          10,
+          21,
+          10,
+          8,
+          14,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          15,
+          9,
+          8,
+          15,
+          8,
+          8,
+          14,
+          8,
+          8,
+          8,
+          10,
+          8,
+          18,
+          10,
+          10,
+          17,
+          10,
+          10,
+          14,
+          8,
+          10,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          14,
+          8,
+          8,
+          20,
+          10,
+          11,
+          14,
+          8,
+          8,
+          8,
+          8,
+          8,
+          20,
+          11,
+          11,
+          20,
+          11,
+          10,
+          19,
+          10,
+          10,
+          14,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          15,
+          8,
+          8,
+          17,
+          11,
+          10,
+          14,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          8,
+          32,
+          25,
+          25,
+          15,
+          9,
+          8,
+          8,
+          9,
+          8,
+          14,
+          8,
+          8,
+          14,
+          8,
+          8,
+          17,
+          8,
+          10,
+          15,
+          8,
+          8,
+          17,
+          10,
+          10,
+          20,
+          11,
+          10,
+          16,
+          8,
+          8,
+          14,
+          8,
+          11,
+          16,
+          8,
+          8,
+          14,
+          8,
+          8,
+          19,
+          10,
+          10,
+          19,
+          10,
+          10,
+          18,
+          10,
+          10,
+          18,
+          10,
+          10,
+          38,
+          30,
+          30,
+          14,
+          8,
+          8,
+          7,
+          7,
+          8,
+          18,
+          11,
+          10,
+          19,
+          10,
+          10,
+          19,
+          10,
+          10,
+          16,
+          8,
+          9,
+          19,
+          10,
+          10,
+          15,
+          11,
+          10,
+          16,
+          8,
+          8,
+          16,
+          8,
+          8,
+          19,
+          10,
+          10,
+          17,
+          8,
+          8,
+          20,
+          10,
+          11,
+          17,
+          8,
+          8,
+          21,
+          10,
+          10,
+          17,
+          8,
+          8,
+          20,
+          10,
+          10,
+          15,
+          8,
+          8,
+          15,
+          8,
+          8,
+          19,
+          10,
+          10,
+          14,
+          8,
+          8,
+          7,
+          8,
+          8,
+          8,
+          8,
+          7,
+          7,
+          8,
+          8,
+          19,
+          10,
+          10,
+          17,
+          8,
+          8
+        ],
+        "tags": [
+          "audit",
+          "audit",
+          "audit",
+          "refactor",
+          "refactor",
+          "refactor",
+          "claimid",
+          "claimid",
+          "claimid",
+          "benchmarks",
+          "benchmarks",
+          "benchmarks",
+          "cmt",
+          "cmt",
+          "cmt",
+          "readdocs",
+          "readdocs",
+          "readdocs",
+          "readdocs",
+          "readdocs",
+          "readdocs",
+          "refactor",
+          "refactor",
+          "refactor",
+          "jsonokno",
+          "jsonokno",
+          "jsonokno",
+          "countlines",
+          "countlines",
+          "countlines",
+          "cmt",
+          "cmt",
+          "cmt",
+          "readdocs",
+          "review",
+          "review",
+          "docsupdate",
+          "docsupdate",
+          "docsupdate",
+          "claimid",
+          "claimid",
+          "claimid",
+          "benchmarks",
+          "benchmarks",
+          "benchmarks",
+          "cmt",
+          "cmt",
+          "cmt",
+          "research",
+          "research",
+          "research",
+          "docsupdate",
+          "docsupdate",
+          "docsupdate",
+          "jsonokno",
+          "jsonokno",
+          "jsonokno",
+          "countlines",
+          "countlines",
+          "countlines",
+          "readdocs",
+          "review",
+          "review",
+          "rootpidcount",
+          "rootpidcount",
+          "rootpidcount",
+          "claimid",
+          "claimid",
+          "claimid",
+          "benchmarks",
+          "benchmarks",
+          "benchmarks",
+          "readdocs",
+          "readdocs",
+          "readdocs",
+          "readdocs",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "count",
+          "count",
+          "count",
+          "refactor",
+          "refactor",
+          "refactor",
+          "count",
+          "count",
+          "count",
+          "rtdiff",
+          "rtdiff",
+          "rtdiff",
+          "review",
+          "criterion",
+          "criterion",
+          "rtdiff",
+          "rtdiff",
+          "rtdiff",
+          "review",
+          "criterion",
+          "criterion",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "refactor",
+          "refactor",
+          "refactor",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "confirm",
+          "confirm",
+          "confirm",
+          "rawsslok",
+          "rawsslok",
+          "rawsslok",
+          "sslverifyok",
+          "sslverifyok",
+          "sslverifyok",
+          "agentsightr",
+          "agentsightr",
+          "agentsightr",
+          "sleep",
+          "sleep",
+          "sleep",
+          "refactor",
+          "refactor",
+          "refactor",
+          "testrepo",
+          "testrepo",
+          "testrepo",
+          "docs",
+          "docs",
+          "docs",
+          "docs",
+          "docs",
+          "docs",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "refactor",
+          "refactor",
+          "refactor",
+          "listfiles",
+          "listfiles",
+          "listfiles",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "verify",
+          "verify",
+          "verify",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "design",
+          "design",
+          "design",
+          "verify",
+          "verify",
+          "verify",
+          "refactor",
+          "refactor",
+          "refactor",
+          "verify",
+          "verify",
+          "verify",
+          "review",
+          "review",
+          "review",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "render",
+          "render",
+          "render",
+          "testreply",
+          "testreply",
+          "testreply",
+          "render",
+          "render",
+          "render",
+          "test",
+          "test",
+          "test",
+          "testrun",
+          "testrun",
+          "testrun",
+          "echo",
+          "bash",
+          "bash",
+          "review",
+          "review",
+          "review",
+          "design",
+          "design",
+          "design",
+          "check",
+          "check",
+          "check",
+          "docs",
+          "docswrite",
+          "docswrite",
+          "userscenariq",
+          "userscenarii",
+          "userscenarii",
+          "docs",
+          "docs",
+          "docs",
+          "plan",
+          "plan",
+          "plan",
+          "design",
+          "design",
+          "design",
+          "docs",
+          "docs",
+          "docs",
+          "licensecheck",
+          "licensecheck",
+          "licensecheck",
+          "audit",
+          "audit",
+          "audit",
+          "bench",
+          "bench",
+          "bench",
+          "cverdict",
+          "cverdict",
+          "cverdict",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "analyze",
+          "analyze",
+          "analyze",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "review",
+          "review",
+          "review",
+          "debug",
+          "debug",
+          "debug",
+          "review",
+          "review",
+          "review",
+          "prfix",
+          "prfix",
+          "prfix",
+          "reviewing",
+          "reviewing",
+          "reviewing",
+          "test",
+          "test",
+          "test",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "sslcheck",
+          "sslcheck",
+          "sslcheck",
+          "tracessl",
+          "tracessl",
+          "tracessl",
+          "tree",
+          "tree",
+          "tree",
+          "extractssl",
+          "extractssl",
+          "extractssl",
+          "review",
+          "review",
+          "review",
+          "test",
+          "debug",
+          "debug",
+          "comment",
+          "comment",
+          "comment",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "review",
+          "review",
+          "review",
+          "docs",
+          "docs",
+          "docs",
+          "memleakcheck",
+          "memoryleak",
+          "memoryleak",
+          "refactor",
+          "refactor",
+          "refactor",
+          "viewrender",
+          "viewrender",
+          "viewrender",
+          "refactor",
+          "refactor",
+          "refactor",
+          "trace",
+          "trace",
+          "trace",
+          "debug",
+          "debug",
+          "debug",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "layout",
+          "detail",
+          "detail",
+          "debug",
+          "debug",
+          "debug",
+          "doingsession",
+          "doingsession",
+          "doingsession",
+          "refactor",
+          "refactor",
+          "refactor",
+          "review",
+          "review",
+          "review",
+          "queryexport",
+          "queryexport",
+          "queryexport",
+          "inspect",
+          "inspect",
+          "inspect",
+          "review",
+          "review",
+          "review",
+          "lsdir",
+          "lsdir",
+          "lsdir",
+          "queryview",
+          "queryview",
+          "queryview",
+          "refactor",
+          "refactor",
+          "refactor",
+          "review",
+          "review",
+          "review",
+          "refactor",
+          "refactor",
+          "refactor",
+          "fieldname",
+          "fieldname",
+          "fieldname",
+          "design",
+          "design",
+          "design",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "review",
+          "review",
+          "review",
+          "checkimport",
+          "checkimport",
+          "checkimport",
+          "design",
+          "design",
+          "design",
+          "review",
+          "review",
+          "review",
+          "design",
+          "design",
+          "design",
+          "test",
+          "test",
+          "test",
+          "verify",
+          "verify",
+          "verify",
+          "smoke",
+          "smoke",
+          "smoke",
+          "ignore",
+          "ignore",
+          "ignore",
+          "docs",
+          "docs",
+          "docs",
+          "grep",
+          "grep",
+          "grep",
+          "summary",
+          "summary",
+          "summary",
+          "logfetch",
+          "logfetch",
+          "logfetch",
+          "docupdate",
+          "docupdate",
+          "docupdate",
+          "refactor",
+          "refactor",
+          "refactor",
+          "trace",
+          "trace",
+          "trace",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "feedback",
+          "feedback",
+          "feedback",
+          "build",
+          "build",
+          "build",
+          "skip",
+          "skip",
+          "skip",
+          "trace",
+          "trace",
+          "trace",
+          "design",
+          "design",
+          "design",
+          "refactor",
+          "refactor",
+          "refactor",
+          "review",
+          "review",
+          "review",
+          "docs",
+          "docs",
+          "docs",
+          "docsync",
+          "docsync",
+          "docsync",
+          "review",
+          "review",
+          "review",
+          "refactor",
+          "refactor",
+          "refactor",
+          "survey",
+          "survey",
+          "survey",
+          "market",
+          "market",
+          "market",
+          "audit",
+          "audit",
+          "audit",
+          "codecount",
+          "changestats",
+          "changestats",
+          "monitoringf",
+          "monitoringf",
+          "monitoringf",
+          "refactor",
+          "refactor",
+          "refactor",
+          "commitlog",
+          "commitlog",
+          "commitlog",
+          "evaluate",
+          "evaluate",
+          "evaluate",
+          "refactor",
+          "refactor",
+          "refactor",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "test",
+          "test",
+          "test",
+          "review",
+          "review",
+          "review",
+          "serveevents",
+          "serveevents",
+          "serveevents",
+          "improveui",
+          "improveui",
+          "improveui",
+          "trace",
+          "trace",
+          "trace",
+          "test",
+          "test",
+          "test",
+          "review",
+          "review",
+          "review",
+          "cleanup",
+          "cleanup",
+          "cleanup",
+          "review",
+          "review",
+          "review",
+          "evaluate",
+          "evaluate",
+          "evaluate",
+          "update",
+          "update",
+          "update",
+          "refactor",
+          "refactor",
+          "refactor",
+          "pattern",
+          "pattern",
+          "pattern",
+          "check",
+          "check",
+          "check",
+          "review",
+          "review",
+          "review",
+          "compare",
+          "render",
+          "render",
+          "review",
+          "review",
+          "review",
+          "export",
+          "export",
+          "export",
+          "analyze",
+          "analyze",
+          "analyze",
+          "test",
+          "test",
+          "test",
+          "network",
+          "network",
+          "network",
+          "review",
+          "review",
+          "review",
+          "refactor",
+          "refactor",
+          "refactor",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "patch",
+          "patch",
+          "patch",
+          "test",
+          "test",
+          "test",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "deploy",
+          "deploy",
+          "deploy",
+          "test",
+          "test",
+          "test",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "refactor",
+          "refactor",
+          "refactor",
+          "includecheck",
+          "includecheck",
+          "includecheck",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "read",
+          "read",
+          "read",
+          "organize",
+          "organize",
+          "organize",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "refactor",
+          "refactor",
+          "refactor",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "checkremain",
+          "checkremain",
+          "checkremain",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "match",
+          "match",
+          "match",
+          "test",
+          "test",
+          "test",
+          "cleanup",
+          "cleanup",
+          "cleanup",
+          "refactor",
+          "refactor",
+          "refactor",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "export",
+          "export",
+          "export",
+          "review",
+          "review",
+          "review",
+          "refactor",
+          "refactor",
+          "refactor",
+          "typecheck",
+          "typecheck",
+          "typecheck",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "refactor",
+          "rundiscover",
+          "rundiscover",
+          "rundiscover",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "refactor",
+          "refactor",
+          "refactor",
+          "cleanup",
+          "cleanup",
+          "cleanup",
+          "cleanup",
+          "cleanup",
+          "cleanup",
+          "trace",
+          "trace",
+          "trace",
+          "testrun",
+          "testrun",
+          "testrun",
+          "build",
+          "refactor",
+          "refactor",
+          "test",
+          "test",
+          "test",
+          "trace",
+          "trace",
+          "trace",
+          "refactor",
+          "refactor",
+          "refactor",
+          "debug",
+          "debug",
+          "debug",
+          "refactor",
+          "refactor",
+          "refactor",
+          "trace",
+          "trace",
+          "trace",
+          "fixes",
+          "fixes",
+          "fixes",
+          "summary",
+          "summary",
+          "summary",
+          "refactor",
+          "refactor",
+          "refactor",
+          "verify",
+          "confirm",
+          "confirm",
+          "test",
+          "test",
+          "test",
+          "findings",
+          "readonly",
+          "readonly",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "review",
+          "fixopenssl",
+          "fixes",
+          "fixes",
+          "test",
+          "test",
+          "test"
+        ],
+        "stability": {
+          "exact_stability_pct": 94.0,
+          "exact_stable_fragments": 282,
+          "fragment_count": 300,
+          "requested_runs": 900,
+          "valid_run_pct": 100.0
+        },
+        "fragments": [
+          {
+            "fragment_id": "f0",
+            "fragment_hash": "b6f14e241ca36d87",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "audit",
+              "audit",
+              "audit"
+            ],
+            "modal_tag": "audit",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              42,
+              13,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f1",
+            "fragment_hash": "2f81cd25e86cff1a",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              10,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f2",
+            "fragment_hash": "1e9714568f9b5b9c",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "claimid",
+              "claimid",
+              "claimid"
+            ],
+            "modal_tag": "claimid",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              10,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f3",
+            "fragment_hash": "c67147a0af7f802c",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "benchmarks",
+              "benchmarks",
+              "benchmarks"
+            ],
+            "modal_tag": "benchmarks",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              10,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f4",
+            "fragment_hash": "c864dc01cf004b03",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "cmt",
+              "cmt",
+              "cmt"
+            ],
+            "modal_tag": "cmt",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              53,
+              38,
+              39
+            ]
+          },
+          {
+            "fragment_id": "f5",
+            "fragment_hash": "49cef6c13b5c6c0d",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "readdocs",
+              "readdocs",
+              "readdocs"
+            ],
+            "modal_tag": "readdocs",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              11,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f6",
+            "fragment_hash": "77d38998ed0f73f3",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "readdocs",
+              "readdocs",
+              "readdocs"
+            ],
+            "modal_tag": "readdocs",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f7",
+            "fragment_hash": "2f81cd25e86cff1a",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f8",
+            "fragment_hash": "5a3d760b786e6207",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "jsonokno",
+              "jsonokno",
+              "jsonokno"
+            ],
+            "modal_tag": "jsonokno",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              53,
+              44,
+              44
+            ]
+          },
+          {
+            "fragment_id": "f9",
+            "fragment_hash": "e72169a93bc158d9",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "countlines",
+              "countlines",
+              "countlines"
+            ],
+            "modal_tag": "countlines",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f10",
+            "fragment_hash": "c864dc01cf004b03",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "cmt",
+              "cmt",
+              "cmt"
+            ],
+            "modal_tag": "cmt",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              46,
+              39,
+              39
+            ]
+          },
+          {
+            "fragment_id": "f11",
+            "fragment_hash": "77d38998ed0f73f3",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "readdocs",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 2,
+            "exact_stable": false,
+            "latency_ms": [
+              19,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f12",
+            "fragment_hash": "2f81cd25e86cff1a",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "docsupdate",
+              "docsupdate",
+              "docsupdate"
+            ],
+            "modal_tag": "docsupdate",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f13",
+            "fragment_hash": "1e9714568f9b5b9c",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "claimid",
+              "claimid",
+              "claimid"
+            ],
+            "modal_tag": "claimid",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f14",
+            "fragment_hash": "c67147a0af7f802c",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "benchmarks",
+              "benchmarks",
+              "benchmarks"
+            ],
+            "modal_tag": "benchmarks",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f15",
+            "fragment_hash": "c864dc01cf004b03",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "cmt",
+              "cmt",
+              "cmt"
+            ],
+            "modal_tag": "cmt",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              46,
+              39,
+              43
+            ]
+          },
+          {
+            "fragment_id": "f16",
+            "fragment_hash": "0021fe90f273b89b",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "research",
+              "research",
+              "research"
+            ],
+            "modal_tag": "research",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f17",
+            "fragment_hash": "2f81cd25e86cff1a",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "docsupdate",
+              "docsupdate",
+              "docsupdate"
+            ],
+            "modal_tag": "docsupdate",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              11,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f18",
+            "fragment_hash": "5a3d760b786e6207",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "jsonokno",
+              "jsonokno",
+              "jsonokno"
+            ],
+            "modal_tag": "jsonokno",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              52,
+              43,
+              44
+            ]
+          },
+          {
+            "fragment_id": "f19",
+            "fragment_hash": "e72169a93bc158d9",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "countlines",
+              "countlines",
+              "countlines"
+            ],
+            "modal_tag": "countlines",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f20",
+            "fragment_hash": "77d38998ed0f73f3",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "readdocs",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 2,
+            "exact_stable": false,
+            "latency_ms": [
+              18,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f21",
+            "fragment_hash": "be4df403b0c7ac3e",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "rootpidcount",
+              "rootpidcount",
+              "rootpidcount"
+            ],
+            "modal_tag": "rootpidcount",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              38,
+              30,
+              30
+            ]
+          },
+          {
+            "fragment_id": "f22",
+            "fragment_hash": "1e9714568f9b5b9c",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "claimid",
+              "claimid",
+              "claimid"
+            ],
+            "modal_tag": "claimid",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              11,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f23",
+            "fragment_hash": "c67147a0af7f802c",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "benchmarks",
+              "benchmarks",
+              "benchmarks"
+            ],
+            "modal_tag": "benchmarks",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              11,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f24",
+            "fragment_hash": "49cef6c13b5c6c0d",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "readdocs",
+              "readdocs",
+              "readdocs"
+            ],
+            "modal_tag": "readdocs",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f25",
+            "fragment_hash": "77d38998ed0f73f3",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "readdocs",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 2,
+            "exact_stable": false,
+            "latency_ms": [
+              18,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f26",
+            "fragment_hash": "77d38998ed0f73f3",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              8,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f27",
+            "fragment_hash": "12da9df6fdff1ff5",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "count",
+              "count",
+              "count"
+            ],
+            "modal_tag": "count",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f28",
+            "fragment_hash": "e0a2e8e5ad9a7cd2",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              10,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f29",
+            "fragment_hash": "12da9df6fdff1ff5",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "count",
+              "count",
+              "count"
+            ],
+            "modal_tag": "count",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f30",
+            "fragment_hash": "bb9df0809bf19e0f",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "rtdiff",
+              "rtdiff",
+              "rtdiff"
+            ],
+            "modal_tag": "rtdiff",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              46,
+              38,
+              38
+            ]
+          },
+          {
+            "fragment_id": "f31",
+            "fragment_hash": "79a3ae5b042da2cd",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "criterion",
+              "criterion"
+            ],
+            "modal_tag": "criterion",
+            "distinct_tags": 2,
+            "exact_stable": false,
+            "latency_ms": [
+              16,
+              23,
+              21
+            ]
+          },
+          {
+            "fragment_id": "f32",
+            "fragment_hash": "bb9df0809bf19e0f",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "rtdiff",
+              "rtdiff",
+              "rtdiff"
+            ],
+            "modal_tag": "rtdiff",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              45,
+              38,
+              38
+            ]
+          },
+          {
+            "fragment_id": "f33",
+            "fragment_hash": "79a3ae5b042da2cd",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "criterion",
+              "criterion"
+            ],
+            "modal_tag": "criterion",
+            "distinct_tags": 2,
+            "exact_stable": false,
+            "latency_ms": [
+              16,
+              27,
+              25
+            ]
+          },
+          {
+            "fragment_id": "f34",
+            "fragment_hash": "952843758c65497f",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              17,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f35",
+            "fragment_hash": "7b8bd2cd6bed837b",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              15,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f36",
+            "fragment_hash": "e0a2e8e5ad9a7cd2",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              10,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f37",
+            "fragment_hash": "cf7961d166614941",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f38",
+            "fragment_hash": "a53892e1087bc9d1",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f39",
+            "fragment_hash": "be5a0624f27b45eb",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f40",
+            "fragment_hash": "c0b8391628b8583c",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              21,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f41",
+            "fragment_hash": "343ebf6f006ed5fb",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              20,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f42",
+            "fragment_hash": "6d500eafc8854f6b",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f43",
+            "fragment_hash": "91bd1dbca1c1942c",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f44",
+            "fragment_hash": "3c861a6725479bcb",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "confirm",
+              "confirm",
+              "confirm"
+            ],
+            "modal_tag": "confirm",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f45",
+            "fragment_hash": "7864512ba9274a08",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "rawsslok",
+              "rawsslok",
+              "rawsslok"
+            ],
+            "modal_tag": "rawsslok",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              39,
+              32,
+              32
+            ]
+          },
+          {
+            "fragment_id": "f46",
+            "fragment_hash": "5e78cd50062061f3",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "sslverifyok",
+              "sslverifyok",
+              "sslverifyok"
+            ],
+            "modal_tag": "sslverifyok",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              40,
+              32,
+              32
+            ]
+          },
+          {
+            "fragment_id": "f47",
+            "fragment_hash": "392f7908e153f540",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "agentsightr",
+              "agentsightr",
+              "agentsightr"
+            ],
+            "modal_tag": "agentsightr",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              40,
+              32,
+              32
+            ]
+          },
+          {
+            "fragment_id": "f48",
+            "fragment_hash": "0a241438a517b7f0",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "sleep",
+              "sleep",
+              "sleep"
+            ],
+            "modal_tag": "sleep",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              32,
+              25,
+              24
+            ]
+          },
+          {
+            "fragment_id": "f49",
+            "fragment_hash": "9e7c0e2d10eef179",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              27,
+              12,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f50",
+            "fragment_hash": "6a7c905b7509f8c0",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "testrepo",
+              "testrepo",
+              "testrepo"
+            ],
+            "modal_tag": "testrepo",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              27,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f51",
+            "fragment_hash": "a27cf94b5e80d6d4",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "docs",
+              "docs",
+              "docs"
+            ],
+            "modal_tag": "docs",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f52",
+            "fragment_hash": "4773a854def466f5",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "docs",
+              "docs",
+              "docs"
+            ],
+            "modal_tag": "docs",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              21,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f53",
+            "fragment_hash": "22501c8fceecd09e",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              20,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f54",
+            "fragment_hash": "19e96f00d9205c28",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f55",
+            "fragment_hash": "abca6e9518917ef6",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              20,
+              14,
+              13
+            ]
+          },
+          {
+            "fragment_id": "f56",
+            "fragment_hash": "7b3e3826b736fe67",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              23,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f57",
+            "fragment_hash": "7fea2e3f629db32e",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f58",
+            "fragment_hash": "9159d6e107f91875",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              20,
+              14,
+              14
+            ]
+          },
+          {
+            "fragment_id": "f59",
+            "fragment_hash": "f1b7971b584876c2",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              26,
+              12,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f60",
+            "fragment_hash": "e08a6950a0cf7639",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              36,
+              12,
+              12
+            ]
+          },
+          {
+            "fragment_id": "f61",
+            "fragment_hash": "12c3feb86603435d",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              29,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f62",
+            "fragment_hash": "e59d8103287c5ee8",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              20,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f63",
+            "fragment_hash": "4d6c18d4fffa6fbc",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              20,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f64",
+            "fragment_hash": "fb10564a95e8e990",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f65",
+            "fragment_hash": "5becb79ebf75bbbd",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              20,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f66",
+            "fragment_hash": "0b02460d2c37d0bb",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              9,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f67",
+            "fragment_hash": "b496a95c27e17ddc",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              22,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f68",
+            "fragment_hash": "0c922ca39f23031b",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "listfiles",
+              "listfiles",
+              "listfiles"
+            ],
+            "modal_tag": "listfiles",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f69",
+            "fragment_hash": "36cc51891df1607a",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              17,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f70",
+            "fragment_hash": "be322817ae589f63",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f71",
+            "fragment_hash": "d298231853dae560",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              20,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f72",
+            "fragment_hash": "c73770543123d5aa",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              17,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f73",
+            "fragment_hash": "6e958865c4305788",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f74",
+            "fragment_hash": "488faf161adb286d",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "verify",
+              "verify",
+              "verify"
+            ],
+            "modal_tag": "verify",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f75",
+            "fragment_hash": "0a9d890b855f93f5",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f76",
+            "fragment_hash": "c1392160bfa5340f",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f77",
+            "fragment_hash": "091ab18dd891d6c6",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "design",
+              "design",
+              "design"
+            ],
+            "modal_tag": "design",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              25,
+              10,
+              9
+            ]
+          },
+          {
+            "fragment_id": "f78",
+            "fragment_hash": "89a08a4c64fd57ed",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "verify",
+              "verify",
+              "verify"
+            ],
+            "modal_tag": "verify",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              25,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f79",
+            "fragment_hash": "1021035905f8120c",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              20,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f80",
+            "fragment_hash": "3d354578c7619723",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "verify",
+              "verify",
+              "verify"
+            ],
+            "modal_tag": "verify",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f81",
+            "fragment_hash": "378321f824168755",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f82",
+            "fragment_hash": "b5dee386876cad2c",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f83",
+            "fragment_hash": "d9b57b4ae66fad01",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f84",
+            "fragment_hash": "64224ece5198534e",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "render",
+              "render",
+              "render"
+            ],
+            "modal_tag": "render",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              15,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f85",
+            "fragment_hash": "54bf9716cc706cc1",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "testreply",
+              "testreply",
+              "testreply"
+            ],
+            "modal_tag": "testreply",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f86",
+            "fragment_hash": "64224ece5198534e",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "render",
+              "render",
+              "render"
+            ],
+            "modal_tag": "render",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              15,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f87",
+            "fragment_hash": "a80def95e23b9b96",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "test",
+              "test",
+              "test"
+            ],
+            "modal_tag": "test",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              14,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f88",
+            "fragment_hash": "c4fa3741bf653dc6",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "testrun",
+              "testrun",
+              "testrun"
+            ],
+            "modal_tag": "testrun",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              11,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f89",
+            "fragment_hash": "20c2cd940ab1fbff",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "echo",
+              "bash",
+              "bash"
+            ],
+            "modal_tag": "bash",
+            "distinct_tags": 2,
+            "exact_stable": false,
+            "latency_ms": [
+              15,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f90",
+            "fragment_hash": "d43e90e6ebb82515",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f91",
+            "fragment_hash": "6010fcc718de98b1",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "design",
+              "design",
+              "design"
+            ],
+            "modal_tag": "design",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              21,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f92",
+            "fragment_hash": "73dbd5b39e8af59c",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "check",
+              "check",
+              "check"
+            ],
+            "modal_tag": "check",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              29,
+              10,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f93",
+            "fragment_hash": "384f7cf19de77389",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "docs",
+              "docswrite",
+              "docswrite"
+            ],
+            "modal_tag": "docswrite",
+            "distinct_tags": 2,
+            "exact_stable": false,
+            "latency_ms": [
+              18,
+              12,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f94",
+            "fragment_hash": "e0334c6880e2b206",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "userscenariq",
+              "userscenarii",
+              "userscenarii"
+            ],
+            "modal_tag": "userscenarii",
+            "distinct_tags": 2,
+            "exact_stable": false,
+            "latency_ms": [
+              67,
+              59,
+              59
+            ]
+          },
+          {
+            "fragment_id": "f95",
+            "fragment_hash": "423f9cbcaea90d50",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "docs",
+              "docs",
+              "docs"
+            ],
+            "modal_tag": "docs",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              26,
+              10,
+              9
+            ]
+          },
+          {
+            "fragment_id": "f96",
+            "fragment_hash": "7bfdde3f516fb041",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "plan",
+              "plan",
+              "plan"
+            ],
+            "modal_tag": "plan",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              27,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f97",
+            "fragment_hash": "227c45c3334a373d",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "design",
+              "design",
+              "design"
+            ],
+            "modal_tag": "design",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              20,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f98",
+            "fragment_hash": "1023937e20fab6ec",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "docs",
+              "docs",
+              "docs"
+            ],
+            "modal_tag": "docs",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              22,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f99",
+            "fragment_hash": "9a3eded41794c5da",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "licensecheck",
+              "licensecheck",
+              "licensecheck"
+            ],
+            "modal_tag": "licensecheck",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              31,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f100",
+            "fragment_hash": "a5531085227a39e2",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "audit",
+              "audit",
+              "audit"
+            ],
+            "modal_tag": "audit",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              11,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f101",
+            "fragment_hash": "4802e502219eef4c",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "bench",
+              "bench",
+              "bench"
+            ],
+            "modal_tag": "bench",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              15,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f102",
+            "fragment_hash": "3142dba7cfec7583",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "cverdict",
+              "cverdict",
+              "cverdict"
+            ],
+            "modal_tag": "cverdict",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              43,
+              24,
+              24
+            ]
+          },
+          {
+            "fragment_id": "f103",
+            "fragment_hash": "2d337db09e9f1706",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f104",
+            "fragment_hash": "8a734cf250584efa",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f105",
+            "fragment_hash": "119e2d80576fa95b",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "analyze",
+              "analyze",
+              "analyze"
+            ],
+            "modal_tag": "analyze",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f106",
+            "fragment_hash": "7ce5064c3dba6943",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              11,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f107",
+            "fragment_hash": "efe5bac62cade8aa",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              17,
+              10,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f108",
+            "fragment_hash": "d72a31c30f8d9d97",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              14,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f109",
+            "fragment_hash": "69043c6b9e260e47",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "debug",
+              "debug",
+              "debug"
+            ],
+            "modal_tag": "debug",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              14,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f110",
+            "fragment_hash": "f2f68eb1f1675fee",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f111",
+            "fragment_hash": "617fded64d170d39",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "prfix",
+              "prfix",
+              "prfix"
+            ],
+            "modal_tag": "prfix",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              17,
+              10,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f112",
+            "fragment_hash": "4b7b3cb6a993de1f",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "reviewing",
+              "reviewing",
+              "reviewing"
+            ],
+            "modal_tag": "reviewing",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              17,
+              11,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f113",
+            "fragment_hash": "66ba3f02a5efe792",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "test",
+              "test",
+              "test"
+            ],
+            "modal_tag": "test",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              15,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f114",
+            "fragment_hash": "6e01432654781726",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              11,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f115",
+            "fragment_hash": "4d849aadb0f9fbb7",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              10,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f116",
+            "fragment_hash": "ef0e638f02cce4bf",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "sslcheck",
+              "sslcheck",
+              "sslcheck"
+            ],
+            "modal_tag": "sslcheck",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              17,
+              10,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f117",
+            "fragment_hash": "1d696ead5182b4d4",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "tracessl",
+              "tracessl",
+              "tracessl"
+            ],
+            "modal_tag": "tracessl",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              33,
+              26,
+              26
+            ]
+          },
+          {
+            "fragment_id": "f118",
+            "fragment_hash": "d1fba08ff9b60ec2",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "tree",
+              "tree",
+              "tree"
+            ],
+            "modal_tag": "tree",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              32,
+              25,
+              24
+            ]
+          },
+          {
+            "fragment_id": "f119",
+            "fragment_hash": "7b1b6477927512cf",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "extractssl",
+              "extractssl",
+              "extractssl"
+            ],
+            "modal_tag": "extractssl",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              10,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f120",
+            "fragment_hash": "95a16438061c1e57",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              14,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f121",
+            "fragment_hash": "6b393fcc881b159c",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "test",
+              "debug",
+              "debug"
+            ],
+            "modal_tag": "debug",
+            "distinct_tags": 2,
+            "exact_stable": false,
+            "latency_ms": [
+              14,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f122",
+            "fragment_hash": "144f3d6f85fd658a",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "comment",
+              "comment",
+              "comment"
+            ],
+            "modal_tag": "comment",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              15,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f123",
+            "fragment_hash": "ce3ee493216fe5e6",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              20,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f124",
+            "fragment_hash": "d170486f7acfe60a",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f125",
+            "fragment_hash": "efd35c3b43830e21",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              21,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f126",
+            "fragment_hash": "ef3295c5818c3cfc",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f127",
+            "fragment_hash": "8641bea7ddbe609a",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "docs",
+              "docs",
+              "docs"
+            ],
+            "modal_tag": "docs",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              15,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f128",
+            "fragment_hash": "949d5ccda5cb3c12",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "memleakcheck",
+              "memoryleak",
+              "memoryleak"
+            ],
+            "modal_tag": "memoryleak",
+            "distinct_tags": 2,
+            "exact_stable": false,
+            "latency_ms": [
+              22,
+              23,
+              23
+            ]
+          },
+          {
+            "fragment_id": "f129",
+            "fragment_hash": "0f8a6b4067be72e0",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              11,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f130",
+            "fragment_hash": "ed7573fb6df413bc",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "viewrender",
+              "viewrender",
+              "viewrender"
+            ],
+            "modal_tag": "viewrender",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              17,
+              10,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f131",
+            "fragment_hash": "210e09d7e2947029",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              17,
+              10,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f132",
+            "fragment_hash": "2977e270f7e7f29d",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "trace",
+              "trace",
+              "trace"
+            ],
+            "modal_tag": "trace",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f133",
+            "fragment_hash": "7aac73fb1f75b0a7",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "debug",
+              "debug",
+              "debug"
+            ],
+            "modal_tag": "debug",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              15,
+              12,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f134",
+            "fragment_hash": "e88951425207195f",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              17,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f135",
+            "fragment_hash": "8648f5e611ec546d",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f136",
+            "fragment_hash": "15389e68e7c93b75",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f137",
+            "fragment_hash": "36bf30894ea16a30",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "layout",
+              "detail",
+              "detail"
+            ],
+            "modal_tag": "detail",
+            "distinct_tags": 2,
+            "exact_stable": false,
+            "latency_ms": [
+              16,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f138",
+            "fragment_hash": "7d619e919c2af15c",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "debug",
+              "debug",
+              "debug"
+            ],
+            "modal_tag": "debug",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f139",
+            "fragment_hash": "4afb78726344bafe",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "doingsession",
+              "doingsession",
+              "doingsession"
+            ],
+            "modal_tag": "doingsession",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              20,
+              13,
+              13
+            ]
+          },
+          {
+            "fragment_id": "f140",
+            "fragment_hash": "ce68608a311fea82",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f141",
+            "fragment_hash": "fef41acc2ad4bd0c",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f142",
+            "fragment_hash": "57ded1018581fbb6",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "queryexport",
+              "queryexport",
+              "queryexport"
+            ],
+            "modal_tag": "queryexport",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              14,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f143",
+            "fragment_hash": "cdc4067de98c613a",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "inspect",
+              "inspect",
+              "inspect"
+            ],
+            "modal_tag": "inspect",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              15,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f144",
+            "fragment_hash": "58cb336f3082b179",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              15,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f145",
+            "fragment_hash": "c7b68ac37f364473",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "lsdir",
+              "lsdir",
+              "lsdir"
+            ],
+            "modal_tag": "lsdir",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              17,
+              10,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f146",
+            "fragment_hash": "b0d2862637074934",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "queryview",
+              "queryview",
+              "queryview"
+            ],
+            "modal_tag": "queryview",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              20,
+              13,
+              13
+            ]
+          },
+          {
+            "fragment_id": "f147",
+            "fragment_hash": "67ac85b052d2a649",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              17,
+              10,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f148",
+            "fragment_hash": "41c77acfdc009b12",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              17,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f149",
+            "fragment_hash": "0b3b96bf2d17ba71",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              17,
+              10,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f150",
+            "fragment_hash": "062f256377077987",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "fieldname",
+              "fieldname",
+              "fieldname"
+            ],
+            "modal_tag": "fieldname",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              11,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f151",
+            "fragment_hash": "5230605c9f060d76",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "design",
+              "design",
+              "design"
+            ],
+            "modal_tag": "design",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              14,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f152",
+            "fragment_hash": "f8ad766f60d06c09",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              11,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f153",
+            "fragment_hash": "59930aefe45eace3",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f154",
+            "fragment_hash": "e721885f55d88a13",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              17,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f155",
+            "fragment_hash": "002ce079f280d036",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "checkimport",
+              "checkimport",
+              "checkimport"
+            ],
+            "modal_tag": "checkimport",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              20,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f156",
+            "fragment_hash": "5fd6a83e6e75479f",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "design",
+              "design",
+              "design"
+            ],
+            "modal_tag": "design",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f157",
+            "fragment_hash": "ce21dd935d9afe95",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              15,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f158",
+            "fragment_hash": "012c05f0ff7f32f7",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "design",
+              "design",
+              "design"
+            ],
+            "modal_tag": "design",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              14,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f159",
+            "fragment_hash": "bb928e6ae4627d35",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "test",
+              "test",
+              "test"
+            ],
+            "modal_tag": "test",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f160",
+            "fragment_hash": "f3be290b5d4f87b0",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "verify",
+              "verify",
+              "verify"
+            ],
+            "modal_tag": "verify",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f161",
+            "fragment_hash": "f3107d860906ca56",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "smoke",
+              "smoke",
+              "smoke"
+            ],
+            "modal_tag": "smoke",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              11,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f162",
+            "fragment_hash": "46436290320b6b2f",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "ignore",
+              "ignore",
+              "ignore"
+            ],
+            "modal_tag": "ignore",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              14,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f163",
+            "fragment_hash": "01f93ec57ddfd32c",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "docs",
+              "docs",
+              "docs"
+            ],
+            "modal_tag": "docs",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f164",
+            "fragment_hash": "d8a261dd5f1a67da",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "grep",
+              "grep",
+              "grep"
+            ],
+            "modal_tag": "grep",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              15,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f165",
+            "fragment_hash": "ddc9ad92a7198808",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "summary",
+              "summary",
+              "summary"
+            ],
+            "modal_tag": "summary",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              17,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f166",
+            "fragment_hash": "cd0f46fda30ac840",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "logfetch",
+              "logfetch",
+              "logfetch"
+            ],
+            "modal_tag": "logfetch",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              31,
+              12,
+              13
+            ]
+          },
+          {
+            "fragment_id": "f167",
+            "fragment_hash": "21016217de74c551",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "docupdate",
+              "docupdate",
+              "docupdate"
+            ],
+            "modal_tag": "docupdate",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              10,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f168",
+            "fragment_hash": "6c157d35bb97ac43",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              21,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f169",
+            "fragment_hash": "936271219537833e",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "trace",
+              "trace",
+              "trace"
+            ],
+            "modal_tag": "trace",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              15,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f170",
+            "fragment_hash": "8a6c0095311ff08d",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              20,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f171",
+            "fragment_hash": "9e892ed52806912a",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              22,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f172",
+            "fragment_hash": "ee5c3ec9a436a0b0",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "feedback",
+              "feedback",
+              "feedback"
+            ],
+            "modal_tag": "feedback",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              14,
+              9,
+              9
+            ]
+          },
+          {
+            "fragment_id": "f173",
+            "fragment_hash": "425c7a214827463f",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "build",
+              "build",
+              "build"
+            ],
+            "modal_tag": "build",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              9,
+              9
+            ]
+          },
+          {
+            "fragment_id": "f174",
+            "fragment_hash": "20599cef191ff6ee",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "skip",
+              "skip",
+              "skip"
+            ],
+            "modal_tag": "skip",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              10,
+              9
+            ]
+          },
+          {
+            "fragment_id": "f175",
+            "fragment_hash": "098e21c79a6f939a",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "trace",
+              "trace",
+              "trace"
+            ],
+            "modal_tag": "trace",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              10,
+              9
+            ]
+          },
+          {
+            "fragment_id": "f176",
+            "fragment_hash": "79426113a62932d4",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "design",
+              "design",
+              "design"
+            ],
+            "modal_tag": "design",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              17,
+              10,
+              9
+            ]
+          },
+          {
+            "fragment_id": "f177",
+            "fragment_hash": "83000d0cb58abf6e",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f178",
+            "fragment_hash": "6ff429999619ef3f",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              15,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f179",
+            "fragment_hash": "9da83bcf655cf051",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "docs",
+              "docs",
+              "docs"
+            ],
+            "modal_tag": "docs",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f180",
+            "fragment_hash": "756e4613d2caea60",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "docsync",
+              "docsync",
+              "docsync"
+            ],
+            "modal_tag": "docsync",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              28,
+              29
+            ]
+          },
+          {
+            "fragment_id": "f181",
+            "fragment_hash": "0a69c894140b70d0",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              17,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f182",
+            "fragment_hash": "ff5538c699d895b7",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f183",
+            "fragment_hash": "ee989dae287056d3",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "survey",
+              "survey",
+              "survey"
+            ],
+            "modal_tag": "survey",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              15,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f184",
+            "fragment_hash": "3a5e6d39b5a61684",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "market",
+              "market",
+              "market"
+            ],
+            "modal_tag": "market",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              15,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f185",
+            "fragment_hash": "c4ae2743a2665c44",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "audit",
+              "audit",
+              "audit"
+            ],
+            "modal_tag": "audit",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              15,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f186",
+            "fragment_hash": "19f1f0a137554648",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "codecount",
+              "changestats",
+              "changestats"
+            ],
+            "modal_tag": "changestats",
+            "distinct_tags": 2,
+            "exact_stable": false,
+            "latency_ms": [
+              17,
+              11,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f187",
+            "fragment_hash": "0ad16d6716f8bbe5",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "monitoringf",
+              "monitoringf",
+              "monitoringf"
+            ],
+            "modal_tag": "monitoringf",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              21,
+              13,
+              13
+            ]
+          },
+          {
+            "fragment_id": "f188",
+            "fragment_hash": "07490424595b3068",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              17,
+              10,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f189",
+            "fragment_hash": "cb8d90514861de9f",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "commitlog",
+              "commitlog",
+              "commitlog"
+            ],
+            "modal_tag": "commitlog",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              17,
+              10,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f190",
+            "fragment_hash": "0e1461595be882d7",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "evaluate",
+              "evaluate",
+              "evaluate"
+            ],
+            "modal_tag": "evaluate",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              15,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f191",
+            "fragment_hash": "d170d1370a5284d6",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              11,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f192",
+            "fragment_hash": "71338159b26ad48b",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              15,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f193",
+            "fragment_hash": "41a6c340cd82050c",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f194",
+            "fragment_hash": "b97a0800b00e887c",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "test",
+              "test",
+              "test"
+            ],
+            "modal_tag": "test",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f195",
+            "fragment_hash": "5be8f608484028f7",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              15,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f196",
+            "fragment_hash": "5698ad5ac18bdfd5",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "serveevents",
+              "serveevents",
+              "serveevents"
+            ],
+            "modal_tag": "serveevents",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              21,
+              11,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f197",
+            "fragment_hash": "628d6f08b1f89fc4",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "improveui",
+              "improveui",
+              "improveui"
+            ],
+            "modal_tag": "improveui",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              20,
+              13,
+              13
+            ]
+          },
+          {
+            "fragment_id": "f198",
+            "fragment_hash": "3c52632efc1db8ca",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "trace",
+              "trace",
+              "trace"
+            ],
+            "modal_tag": "trace",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f199",
+            "fragment_hash": "3b186e6fa60a33a2",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "test",
+              "test",
+              "test"
+            ],
+            "modal_tag": "test",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              14,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f200",
+            "fragment_hash": "7258d33ab1bed47d",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              17,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f201",
+            "fragment_hash": "49b5eebbfd8e9dcc",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "cleanup",
+              "cleanup",
+              "cleanup"
+            ],
+            "modal_tag": "cleanup",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f202",
+            "fragment_hash": "f0143da5c3771a13",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              17,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f203",
+            "fragment_hash": "94ca5a097255e2ca",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "evaluate",
+              "evaluate",
+              "evaluate"
+            ],
+            "modal_tag": "evaluate",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              17,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f204",
+            "fragment_hash": "339e40e8cf960dea",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "update",
+              "update",
+              "update"
+            ],
+            "modal_tag": "update",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              15,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f205",
+            "fragment_hash": "28e62477539f570d",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              20,
+              13,
+              14
+            ]
+          },
+          {
+            "fragment_id": "f206",
+            "fragment_hash": "4c00253dd976c9d3",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "pattern",
+              "pattern",
+              "pattern"
+            ],
+            "modal_tag": "pattern",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              20,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f207",
+            "fragment_hash": "8b2d98ad0875bb09",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "check",
+              "check",
+              "check"
+            ],
+            "modal_tag": "check",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              15,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f208",
+            "fragment_hash": "17bf8bb9457b14ac",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              15,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f209",
+            "fragment_hash": "ae198e5bf661e93b",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "compare",
+              "render",
+              "render"
+            ],
+            "modal_tag": "render",
+            "distinct_tags": 2,
+            "exact_stable": false,
+            "latency_ms": [
+              16,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f210",
+            "fragment_hash": "c944348068005bea",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f211",
+            "fragment_hash": "6d5b7a0fd02354ac",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "export",
+              "export",
+              "export"
+            ],
+            "modal_tag": "export",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              15,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f212",
+            "fragment_hash": "36f53b287be8abc2",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "analyze",
+              "analyze",
+              "analyze"
+            ],
+            "modal_tag": "analyze",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f213",
+            "fragment_hash": "6763e038caad1a2f",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "test",
+              "test",
+              "test"
+            ],
+            "modal_tag": "test",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f214",
+            "fragment_hash": "79beb13240a7ace3",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "network",
+              "network",
+              "network"
+            ],
+            "modal_tag": "network",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              17,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f215",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              14,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f216",
+            "fragment_hash": "5d8a135a2ed7d6fa",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              10,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f217",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              14,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f218",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              8,
+              8,
+              9
+            ]
+          },
+          {
+            "fragment_id": "f219",
+            "fragment_hash": "67e5457b31a780d5",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              10,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f220",
+            "fragment_hash": "a6e4427a65fad185",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              11,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f221",
+            "fragment_hash": "fa3b9a4f17b4b764",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "patch",
+              "patch",
+              "patch"
+            ],
+            "modal_tag": "patch",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f222",
+            "fragment_hash": "fa2a360832b2ba03",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "test",
+              "test",
+              "test"
+            ],
+            "modal_tag": "test",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f223",
+            "fragment_hash": "5d6a1213c347d4f8",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              20,
+              11,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f224",
+            "fragment_hash": "72cc13c89614768d",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 2,
+            "exact_stable": false,
+            "latency_ms": [
+              21,
+              10,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f225",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              14,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f226",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              8,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f227",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              8,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f228",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              8,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f229",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              8,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f230",
+            "fragment_hash": "fba8dfcd6cff3f91",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "deploy",
+              "deploy",
+              "deploy"
+            ],
+            "modal_tag": "deploy",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              15,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f231",
+            "fragment_hash": "2b24da903371224b",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "test",
+              "test",
+              "test"
+            ],
+            "modal_tag": "test",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              15,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f232",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              14,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f233",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              8,
+              10,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f234",
+            "fragment_hash": "77b5a05746b33ed0",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              10,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f235",
+            "fragment_hash": "b880d73fa6f8dc5d",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "includecheck",
+              "includecheck",
+              "includecheck"
+            ],
+            "modal_tag": "includecheck",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              17,
+              10,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f236",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              14,
+              8,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f237",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              8,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f238",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              8,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f239",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              8,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f240",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              8,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f241",
+            "fragment_hash": "037d90c563ebd77b",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "read",
+              "read",
+              "read"
+            ],
+            "modal_tag": "read",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              14,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f242",
+            "fragment_hash": "eb03d53cb3b661ad",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "organize",
+              "organize",
+              "organize"
+            ],
+            "modal_tag": "organize",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              20,
+              10,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f243",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              14,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f244",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              8,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f245",
+            "fragment_hash": "87254c3eff62db01",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              20,
+              11,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f246",
+            "fragment_hash": "954e89589081c634",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              20,
+              11,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f247",
+            "fragment_hash": "39a27b692c0d7dc5",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              10,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f248",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              14,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f249",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              8,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f250",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              8,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f251",
+            "fragment_hash": "b10266e597333f5a",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              15,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f252",
+            "fragment_hash": "5232ff85ba7df7e9",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              17,
+              11,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f253",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              14,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f254",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              8,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f255",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              8,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f256",
+            "fragment_hash": "40d6b5a13b8493f9",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "checkremain",
+              "checkremain",
+              "checkremain"
+            ],
+            "modal_tag": "checkremain",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              32,
+              25,
+              25
+            ]
+          },
+          {
+            "fragment_id": "f257",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              15,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f258",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              8,
+              9,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f259",
+            "fragment_hash": "5887f4757e46c573",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              14,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f260",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              14,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f261",
+            "fragment_hash": "28b98ed579c5faf7",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "match",
+              "match",
+              "match"
+            ],
+            "modal_tag": "match",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              17,
+              8,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f262",
+            "fragment_hash": "5d63376c114e0703",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "test",
+              "test",
+              "test"
+            ],
+            "modal_tag": "test",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              15,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f263",
+            "fragment_hash": "677f04e4894f7653",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "cleanup",
+              "cleanup",
+              "cleanup"
+            ],
+            "modal_tag": "cleanup",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              17,
+              10,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f264",
+            "fragment_hash": "b92fe5b7dc103122",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              20,
+              11,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f265",
+            "fragment_hash": "37a54106c3484288",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f266",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              14,
+              8,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f267",
+            "fragment_hash": "5df2de5e0fdcd0e5",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "export",
+              "export",
+              "export"
+            ],
+            "modal_tag": "export",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f268",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              14,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f269",
+            "fragment_hash": "089bf2259d4f14b3",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              10,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f270",
+            "fragment_hash": "53fafff03b246186",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "typecheck",
+              "typecheck",
+              "typecheck"
+            ],
+            "modal_tag": "typecheck",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              10,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f271",
+            "fragment_hash": "10cf594c0a551a3d",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              10,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f272",
+            "fragment_hash": "28760cc819335620",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              10,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f273",
+            "fragment_hash": "ad4420c52d8e79ff",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "rundiscover",
+              "rundiscover",
+              "rundiscover"
+            ],
+            "modal_tag": "rundiscover",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              38,
+              30,
+              30
+            ]
+          },
+          {
+            "fragment_id": "f274",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              14,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f275",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              7,
+              7,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f276",
+            "fragment_hash": "cbcf63f760e517d6",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              18,
+              11,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f277",
+            "fragment_hash": "112be730b55a23d0",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "cleanup",
+              "cleanup",
+              "cleanup"
+            ],
+            "modal_tag": "cleanup",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              10,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f278",
+            "fragment_hash": "fd1ce0526dc141a2",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "cleanup",
+              "cleanup",
+              "cleanup"
+            ],
+            "modal_tag": "cleanup",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              10,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f279",
+            "fragment_hash": "e4f3ecf42c0e9091",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "trace",
+              "trace",
+              "trace"
+            ],
+            "modal_tag": "trace",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              8,
+              9
+            ]
+          },
+          {
+            "fragment_id": "f280",
+            "fragment_hash": "2264084a4938dbaf",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "testrun",
+              "testrun",
+              "testrun"
+            ],
+            "modal_tag": "testrun",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              10,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f281",
+            "fragment_hash": "3d521e1e2cf048fe",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "build",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 2,
+            "exact_stable": false,
+            "latency_ms": [
+              15,
+              11,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f282",
+            "fragment_hash": "7119ec5d201cd06b",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "test",
+              "test",
+              "test"
+            ],
+            "modal_tag": "test",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f283",
+            "fragment_hash": "b2d9efca00e60ac2",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "trace",
+              "trace",
+              "trace"
+            ],
+            "modal_tag": "trace",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              16,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f284",
+            "fragment_hash": "ba1b2e19cd7d75c0",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              19,
+              10,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f285",
+            "fragment_hash": "631830618d664d3f",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "debug",
+              "debug",
+              "debug"
+            ],
+            "modal_tag": "debug",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              17,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f286",
+            "fragment_hash": "3956a16ea7e22c5b",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              20,
+              10,
+              11
+            ]
+          },
+          {
+            "fragment_id": "f287",
+            "fragment_hash": "e41fcb66b9a9e317",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "trace",
+              "trace",
+              "trace"
+            ],
+            "modal_tag": "trace",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              17,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f288",
+            "fragment_hash": "ac0b865daefce73e",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "fixes",
+              "fixes",
+              "fixes"
+            ],
+            "modal_tag": "fixes",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              21,
+              10,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f289",
+            "fragment_hash": "a5a3ffd2fbd83bde",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "summary",
+              "summary",
+              "summary"
+            ],
+            "modal_tag": "summary",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              17,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f290",
+            "fragment_hash": "a1b2e83676508f18",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "refactor",
+              "refactor",
+              "refactor"
+            ],
+            "modal_tag": "refactor",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              20,
+              10,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f291",
+            "fragment_hash": "6fea5aac08ed9106",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "verify",
+              "confirm",
+              "confirm"
+            ],
+            "modal_tag": "confirm",
+            "distinct_tags": 2,
+            "exact_stable": false,
+            "latency_ms": [
+              15,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f292",
+            "fragment_hash": "f7719a8a4f0cbd41",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "test",
+              "test",
+              "test"
+            ],
+            "modal_tag": "test",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              15,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f293",
+            "fragment_hash": "e9bcc4a1f7b01bb6",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "findings",
+              "readonly",
+              "readonly"
+            ],
+            "modal_tag": "readonly",
+            "distinct_tags": 2,
+            "exact_stable": false,
+            "latency_ms": [
+              19,
+              10,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f294",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              14,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f295",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              7,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f296",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              8,
+              8,
+              7
+            ]
+          },
+          {
+            "fragment_id": "f297",
+            "fragment_hash": "4fa41f6992370f20",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "review",
+              "review",
+              "review"
+            ],
+            "modal_tag": "review",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              7,
+              8,
+              8
+            ]
+          },
+          {
+            "fragment_id": "f298",
+            "fragment_hash": "98ea5521c7bdbeda",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "fixopenssl",
+              "fixes",
+              "fixes"
+            ],
+            "modal_tag": "fixes",
+            "distinct_tags": 2,
+            "exact_stable": false,
+            "latency_ms": [
+              19,
+              10,
+              10
+            ]
+          },
+          {
+            "fragment_id": "f299",
+            "fragment_hash": "f89710362aaac8a9",
+            "preview": "",
+            "ok_runs": 3,
+            "failed_runs": 0,
+            "tags": [
+              "test",
+              "test",
+              "test"
+            ],
+            "modal_tag": "test",
+            "distinct_tags": 1,
+            "exact_stable": true,
+            "latency_ms": [
+              17,
+              8,
+              8
+            ]
+          }
+        ],
+        "llm_calls": 900,
+        "llm_successes": 900
+      }
+    ]
+  },
+  "aggregate": {
+    "total_runs": 900,
+    "ok_runs": 900,
+    "failed_runs": 0,
+    "valid_run_pct": 100.0,
+    "exact_stable_fragments": 282,
+    "fragment_count": 300,
+    "exact_stability_pct": 94.0
+  },
+  "interpretation": [
+    "The 3B local llama.cpp benchmark path works and produced syntactically valid one-word tags in every run.",
+    "The fixed-input stability result is 282/300 exact-stable fragments over 300 real redacted session/prompt/LLM-call fragments from R122.",
+    "No locally available 0.6B or 1B real model GGUF was found, so this run cannot support claims about those size classes.",
+    "This run does not measure human adequacy; R124 remains required before C6 can become stronger than partial."
+  ]
+}

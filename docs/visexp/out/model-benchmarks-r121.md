@@ -36,4 +36,4 @@ Interpretation:
 - Mixed: fixed-input exact stability is 2/3 fragments (66.667%).
 - Not supported: 0.6B/1B feasibility and human adequacy.
 - Claim impact: C2 can cite 3B syntax/latency feasibility; C6 remains partial
-  until adequacy labels and a larger stability sample exist.
+  until human adequacy labels exist.
