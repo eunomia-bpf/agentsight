@@ -129,14 +129,17 @@ Current evidence:
   export`: exported snapshots now contain 3 sessions and 3 tool calls across the
   same three DBs, and the checker joins 182/318 raw effects. The orphan count
   remains 136, so this is native-export smoke evidence, not full C4 proof.
+- R112 runs explicit `collector report materialize-observed` backfill on copies
+  of the same DBs, writes 3 SQLite `sessions` rows and 3 `tool_calls` rows, then
+  exports with `--no-observed-projection`. The persisted-only snapshots still
+  join 182/318 raw effects and leave 136 orphans.
 - The full Rust AgentFlame run still uses agent-native session histories, and
-  current DB capture does not yet persist session/tool rows as first-class
-  recorded state.
+  current DB capture does not yet create session/tool ancestry at capture time.
 
 Status: partial. The lineage checker works on live effects and native export now
-emits session/tool envelope rows, but raw coverage is only 57.233% on this
-smoke and DB-persisted `session -> tool_call -> process* -> effect` remains
-unproven.
+emits session/tool envelope rows. R112 proves DB-persisted backfill rows, but raw
+coverage is only 57.233% on this smoke and capture-time
+`session -> tool_call -> process* -> effect` remains unproven.
 
 ## Not Yet Supported
 
@@ -187,10 +190,14 @@ Allowed current wording:
   harness-synthesized agent-run envelope is added."
 - "Native `collector report export` now emits export-derived session/tool
   envelopes for the same three DBs, joining 182/318 raw effects."
+- "Explicit `collector report materialize-observed` backfill can persist those
+  envelopes into SQLite `sessions` and `tool_calls` rows on DB copies; persisted-only
+  export still joins 182/318 raw effects."
 
 Disallowed current wording:
 
 - "AgentFlame proves developers debug faster."
 - "AgentFlame has validated native full-run exact file/network provenance."
+- "AgentSight already captures complete session/tool ancestry at runtime."
 - "One-word tags are semantically correct."
 - "AgentFlame is the first flamegraph for agents."

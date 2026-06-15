@@ -14,4 +14,4 @@ The committed run is fixture-backed; it is not a live exact-capture result.
 ## Claim Boundary
 
 - This supports the C4 checker and stack grammar only.
-- C4 remains unsupported until live AgentSight exact effects from real sessions pass the same checker.
+- Live C4 evidence is tracked separately in R110-R112; broader C4 remains partial until orphan rates fall and capture-time ancestry exists.

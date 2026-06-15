@@ -43,8 +43,8 @@ mod view;
 use analyzers::{print_global_http_filter_metrics, print_global_ssl_filter_metrics};
 use binary_extractor::BinaryExtractor;
 use cli_db::{
-    configured_db_path, run_audit_query, run_db_summary, run_export, run_prompts_query,
-    run_token_query,
+    configured_db_path, run_audit_query, run_db_summary, run_export, run_materialize_observed,
+    run_prompts_query, run_token_query,
 };
 use cmd_debug::{run_raw_process, run_raw_ssl, run_raw_stdio, run_system};
 use cmd_exec::{default_session_db_path, print_session_summary, run_exec};
@@ -341,6 +341,18 @@ enum ReportCommands {
         /// Maximum audit events to include
         #[arg(long, default_value = "10000")]
         audit_limit: usize,
+        /// Export only rows already persisted in the SQLite DB
+        #[arg(long = "no-observed-projection", default_value_t = true, action = clap::ArgAction::SetFalse)]
+        observed_projection: bool,
+    },
+    /// Persist observed local agent prompt ancestry into session/tool rows
+    MaterializeObserved {
+        /// SQLite database path (defaults to latest session)
+        #[arg(long)]
+        db: Option<String>,
+        /// Emit JSON output
+        #[arg(long)]
+        json: bool,
     },
     /// Serve the web UI for a saved SQLite session
     Serve {
@@ -618,10 +630,16 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 db: d,
                 output,
                 audit_limit,
+                observed_projection,
             }) => {
                 let effective = d.as_ref().or(db.as_ref()).cloned();
                 let db = resolve_db_or_latest(&effective)?;
-                run_export(&db, output, *audit_limit)?;
+                run_export(&db, output, *audit_limit, *observed_projection)?;
+            }
+            Some(ReportCommands::MaterializeObserved { db: d, json }) => {
+                let effective = d.as_ref().or(db.as_ref()).cloned();
+                let db = resolve_db_or_latest(&effective)?;
+                run_materialize_observed(&db, *json)?;
             }
             Some(ReportCommands::Serve { db: d, server_port }) => {
                 let effective = d.as_ref().or(db.as_ref()).cloned();

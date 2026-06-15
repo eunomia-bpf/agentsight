@@ -12,7 +12,7 @@ Completeness: partial
 | C3 semantic partitioning beyond baselines | supported | Nonsemantic mixed weight 90.219%; flat mixed weight 90.770%; examples include `git`, `cargo`, `python3`, `docker`, and tool write/process buckets split by semantic tags. | Semantic frames partition system-effect buckets that nonsemantic folded stacks and flat summaries merge in this local workload. | User-task benchmark and stronger case studies. |
 | D1 Codex/Claude behavior comparison | diagnostic | Cohort summaries exist for Codex, Claude, and Claude subagents. | The full run can characterize local histories by cohort. | Paired same-task benchmark before making comparative claims. |
 | D2 token flamegraphs | diagnostic | Token projections exist and preserve total token weights. | Token views provide source-local accounting. | Token normalization across agents/models. |
-| C4 exact AgentSight effect lineage | partial | R110 live smoke over 3 real AgentSight DB exports: 8 detected agent roots, 8 synthetic sessions/tools, 318 raw effects, 182 covered and joined, 136 out of scope, 57.233% raw coverage, 182/182 in-scope join, 0 orphans. R111 moves the envelope into native `collector report export`: 3 exported sessions/tools, 182/318 raw effects joined, 136 orphans, 57.233% raw join. | AgentFlame's C4 checker can validate live AgentSight effects when an agent-run envelope links root processes to prompt ancestry; native export now emits that envelope. | DB-persisted session/tool capture, more live tasks, lower orphan share, child-depth/path/domain/redaction analysis. |
+| C4 exact AgentSight effect lineage | partial | R110 live smoke over 3 real AgentSight DB exports: 8 detected agent roots, 8 synthetic sessions/tools, 318 raw effects, 182 covered and joined, 136 out of scope, 57.233% raw coverage, 182/182 in-scope join, 0 orphans. R111 moves the envelope into native `collector report export`: 3 exported sessions/tools, 182/318 raw effects joined, 136 orphans, 57.233% raw join. R112 persists those envelopes into SQLite `sessions`/`tool_calls` rows on DB copies and verifies persisted-only export: 3 DB sessions/tools, 182/318 raw effects joined, 136 orphans, 57.233% raw join. | AgentFlame's C4 checker can validate live AgentSight effects when an agent-run envelope links root processes to prompt ancestry; native export and DB-persisted backfill now carry that envelope. | Capture-time session/tool ancestry, more live tasks, lower orphan share, child-depth/path/domain/redaction analysis. |
 | C5 developer utility | unsupported | Task packet/scorer prototypes exist; no participant responses. | No user-outcome claim should be made yet. | Scored task benchmark with time, accuracy, false positives, and confidence. |
 | C6 tag adequacy/stability | partial | 0 malformed tags in the full 3B run; noisy tags remain. | One-word tags are usable as syntactic navigation frames. | Human adequacy labels, repeated-run stability, and smaller-model comparison. |
 
@@ -24,8 +24,8 @@ The work has a credible mechanism and a real full-history characterization, but
 two central systems-paper gaps remain:
 
 1. The strongest system novelty, exact semantic-effect lineage, is only shown as
-   a native-export smoke with export-derived envelope rows and 57.233% raw join,
-   not as DB-persisted complete provenance.
+   a DB-persisted backfill smoke with 57.233% raw join, not as capture-time
+   complete provenance.
 2. The strongest user-value claim has no scored user/task benchmark.
 
 ## Paper Wording Rule

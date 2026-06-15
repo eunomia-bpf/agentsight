@@ -286,6 +286,10 @@ pub struct SessionRow {
 }
 
 pub trait ViewSink: Send {
+    fn session(&mut self, _row: &SessionRow) -> ViewResult<()> {
+        Ok(())
+    }
+
     fn llm_call(&mut self, _row: &LlmCallRow) -> ViewResult<()> {
         Ok(())
     }

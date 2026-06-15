@@ -323,6 +323,17 @@ def native_lineage_present(native_lineage: dict[str, Any] | None) -> bool:
     return int(aggregate.get("joined_effect_events") or 0) > 0
 
 
+def db_lineage_present(db_lineage: dict[str, Any] | None) -> bool:
+    if not db_lineage:
+        return False
+    aggregate = db_lineage.get("aggregate") or {}
+    return (
+        int(aggregate.get("db_session_rows") or 0) > 0
+        and int(aggregate.get("db_tool_rows") or 0) > 0
+        and int(aggregate.get("joined_effect_events") or 0) > 0
+    )
+
+
 def live_lineage_evidence(live_lineage: dict[str, Any] | None) -> str:
     if not live_lineage:
         return "live_lineage=missing"
@@ -358,7 +369,25 @@ def native_lineage_evidence(native_lineage: dict[str, Any] | None) -> str:
         f"orphans={aggregate.get('orphan_effect_events')} "
         f"raw_join_pct={aggregate.get('raw_join_pct')} "
         f"join_methods={aggregate.get('join_methods', {})} "
-        "db_persisted_ancestry=pending"
+        "db_persisted_backfill=see_R112"
+    )
+
+
+def db_lineage_evidence(db_lineage: dict[str, Any] | None) -> str:
+    if not db_lineage:
+        return "db_lineage=missing"
+    aggregate = db_lineage.get("aggregate") or {}
+    return (
+        f"db_lineage={db_lineage.get('status', 'unknown')} "
+        f"runs={aggregate.get('runs')} "
+        f"db_sessions={aggregate.get('db_session_rows')} "
+        f"db_tool_calls={aggregate.get('db_tool_rows')} "
+        f"raw_effects={aggregate.get('raw_effect_events')} "
+        f"joined={aggregate.get('joined_effect_events')} "
+        f"orphans={aggregate.get('orphan_effect_events')} "
+        f"raw_join_pct={aggregate.get('raw_join_pct')} "
+        f"join_methods={aggregate.get('join_methods', {})} "
+        "capture_time_ancestry=pending"
     )
 
 
@@ -366,11 +395,13 @@ def effect_lineage_evidence(
     lineage: dict[str, Any] | None,
     live_lineage: dict[str, Any] | None = None,
     native_lineage: dict[str, Any] | None = None,
+    db_lineage: dict[str, Any] | None = None,
 ) -> str:
     live = live_lineage_evidence(live_lineage)
     native = native_lineage_evidence(native_lineage)
+    db = db_lineage_evidence(db_lineage)
     if not lineage:
-        return f"effect_lineage_smoke=missing {live} {native}"
+        return f"effect_lineage_smoke=missing {live} {native} {db}"
     return (
         f"effect_lineage_smoke={lineage.get('status', 'unknown')} "
         f"source={lineage.get('source', 'unknown')} "
@@ -379,7 +410,8 @@ def effect_lineage_evidence(
         f"orphans={lineage.get('orphan_effect_events')} "
         f"orphan_reasons={lineage.get('orphan_reasons', {})} "
         f"{live} "
-        f"{native}"
+        f"{native} "
+        f"{db}"
     )
 
 
@@ -396,6 +428,7 @@ def build_claim_gates(
     effect_lineage: dict[str, Any] | None = None,
     live_lineage: dict[str, Any] | None = None,
     native_lineage: dict[str, Any] | None = None,
+    db_lineage: dict[str, Any] | None = None,
 ) -> list[dict[str, str]]:
     c1_ok = compression["compression_ratio"] > 1 and compression["repeated_stack_count"] > 0
     c2_ok = (
@@ -456,10 +489,19 @@ def build_claim_gates(
         {
             "claim": "C4 exact AgentSight effect stream preserves value",
             "verdict": "partial"
-            if live_lineage_supported(live_lineage) or native_lineage_present(native_lineage)
+            if (
+                live_lineage_supported(live_lineage)
+                or native_lineage_present(native_lineage)
+                or db_lineage_present(db_lineage)
+            )
             else "unsupported",
-            "oracle": "requires high raw join plus DB-persisted session/tool ancestry",
-            "evidence": effect_lineage_evidence(effect_lineage, live_lineage, native_lineage),
+            "oracle": "requires high raw join plus capture-time session/tool ancestry",
+            "evidence": effect_lineage_evidence(
+                effect_lineage,
+                live_lineage,
+                native_lineage,
+                db_lineage,
+            ),
         },
         {
             "claim": "C6 tag stability and adequacy",
@@ -553,7 +595,7 @@ def write_summary_md(path: Path, result: dict[str, Any]) -> None:
             "",
             "1. Collect a B4 response CSV and score it with `score_user_task_results.py` to test C5.",
             "2. Expand B5 with manual adequacy labels and a larger multi-model tag stability run for C6.",
-            "3. Reduce R111 native-export orphans and persist session/tool ancestry in the AgentSight DB.",
+            "3. Move R112 DB-persisted backfill into capture-time ancestry and reduce native-export orphans.",
         ]
     )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -595,6 +637,8 @@ def run(out_dir: Path, write_outputs: bool = True) -> dict[str, Any]:
     live_lineage = read_json(live_lineage_path) if live_lineage_path.exists() else None
     native_lineage_path = out_dir / "native-lineage-r111.json"
     native_lineage = read_json(native_lineage_path) if native_lineage_path.exists() else None
+    db_lineage_path = out_dir / "native-lineage-r112.json"
+    db_lineage = read_json(db_lineage_path) if db_lineage_path.exists() else None
     gates = build_claim_gates(
         aggregation,
         semantic_compression,
@@ -608,6 +652,7 @@ def run(out_dir: Path, write_outputs: bool = True) -> dict[str, Any]:
         effect_lineage,
         live_lineage,
         native_lineage,
+        db_lineage,
     )
 
     result = {
@@ -638,6 +683,7 @@ def run(out_dir: Path, write_outputs: bool = True) -> dict[str, Any]:
         "effect_lineage_smoke": effect_lineage,
         "live_lineage_r110": live_lineage,
         "native_lineage_r111": native_lineage,
+        "db_lineage_r112": db_lineage,
         "claim_gates": gates,
     }
 

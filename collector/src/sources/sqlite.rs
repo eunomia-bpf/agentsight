@@ -2,17 +2,27 @@
 // Copyright (c) 2026 eunomia-bpf org.
 
 use crate::model::{
-    AuditEventRow, LlmCallRow, ProcessNodeRow, SessionRow, ToolCallRow, ViewResult,
+    AuditEventRow, LlmCallRow, ProcessNodeRow, SessionRow, ToolCallRow, ViewResult, ViewSink,
 };
 use crate::sinks::sqlite::SqliteStore;
 use crate::sources::agent_native;
 use crate::text::{clean_prompt_text, extract_prompt_text, truncate_text};
 use crate::view::MaterializedView;
+use serde::Serialize;
 use serde_json::{Value, json};
 use std::collections::BTreeSet;
 use std::path::Path;
 
 const PROMPT_DEDUP_WINDOW_MS: u64 = 10_000;
+
+#[derive(Debug, Clone, Serialize)]
+pub(crate) struct ObservedEnvelopePersistResult {
+    pub(crate) db: String,
+    pub(crate) observed_prompt_rows: usize,
+    pub(crate) envelopes: usize,
+    pub(crate) sessions_written: usize,
+    pub(crate) tool_calls_written: usize,
+}
 pub(crate) fn load_view(path: impl AsRef<Path>) -> ViewResult<MaterializedView> {
     load_view_inner(path, false)
 }
@@ -62,6 +72,11 @@ fn load_view_inner(
         }
         process_rows = rows;
     }
+    if let Ok(rows) = store.session_rows() {
+        for row in rows {
+            view.upsert_session(&row);
+        }
+    }
     if let Ok(rows) = store.tool_call_rows() {
         for row in rows {
             view.apply_tool_call(&row);
@@ -89,6 +104,28 @@ fn load_view_inner(
     }
 
     Ok(view)
+}
+
+pub(crate) fn persist_observed_agent_envelopes(
+    path: impl AsRef<Path>,
+) -> ViewResult<ObservedEnvelopePersistResult> {
+    let path = path.as_ref();
+    let mut store = SqliteStore::open(path)?;
+    let audit_rows = store.all_audit_event_rows()?;
+    let process_rows = store.process_node_rows().unwrap_or_default();
+    let local_prompt_rows = agent_native::observed_session_prompt_rows(&audit_rows);
+    let envelopes = observed_agent_envelopes(&audit_rows, &process_rows, &local_prompt_rows);
+    for (session, tool) in &envelopes {
+        store.session(session)?;
+        store.tool_call(tool)?;
+    }
+    Ok(ObservedEnvelopePersistResult {
+        db: path.to_string_lossy().to_string(),
+        observed_prompt_rows: local_prompt_rows.len(),
+        envelopes: envelopes.len(),
+        sessions_written: envelopes.len(),
+        tool_calls_written: envelopes.len(),
+    })
 }
 
 fn import_observed_process_nodes(
@@ -211,6 +248,18 @@ fn import_observed_agent_envelopes(
     process_rows: &[ProcessNodeRow],
     prompt_rows: &[AuditEventRow],
 ) {
+    for (session, tool) in observed_agent_envelopes(audit_rows, process_rows, prompt_rows) {
+        view.upsert_session(&session);
+        view.apply_tool_call(&tool);
+    }
+}
+
+fn observed_agent_envelopes(
+    audit_rows: &[AuditEventRow],
+    process_rows: &[ProcessNodeRow],
+    prompt_rows: &[AuditEventRow],
+) -> Vec<(SessionRow, ToolCallRow)> {
+    let mut envelopes = Vec::new();
     for prompt in prompt_rows {
         let Some(prompt_text) = prompt_text_from_details(&prompt.details) else {
             continue;
@@ -246,7 +295,7 @@ fn import_observed_agent_envelopes(
             });
         let tool_id = format!("{session_id}:agent-run");
 
-        view.upsert_session(&SessionRow {
+        let session = SessionRow {
             id: session_id.clone(),
             agent_type: agent.clone(),
             start_timestamp_ms: start,
@@ -264,8 +313,8 @@ fn import_observed_agent_envelopes(
                 "root_pid": pid,
                 "source_event_id": source_event.id,
             }),
-        });
-        view.apply_tool_call(&ToolCallRow {
+        };
+        let tool = ToolCallRow {
             id: tool_id.clone(),
             session_id: Some(session_id),
             conversation_id: None,
@@ -286,8 +335,10 @@ fn import_observed_agent_envelopes(
             related_event_id: Some(source_event.id.clone()),
             view_source: "sqlite_observed_agent_envelope".to_string(),
             confidence: Some(0.65),
-        });
+        };
+        envelopes.push((session, tool));
     }
+    envelopes
 }
 
 fn source_event_for_prompt<'a>(
@@ -463,6 +514,59 @@ mod tests {
                 .and_then(Value::as_str),
             Some("observed")
         );
+    }
+
+    #[test]
+    fn persist_observed_agent_envelopes_writes_session_rows_to_sqlite() {
+        let temp = tempfile::tempdir().unwrap();
+        let db = temp.path().join("observed-envelope.db");
+        let store = SqliteStore::open(&db).unwrap();
+        store
+            .connection()
+            .execute(
+                "INSERT INTO audit_events (
+                    id, timestamp_ms, audit_type, pid, comm, subject, action, target, status, summary, details_json
+                 ) VALUES (
+                    'exec-codex', 1000, 'process', 42, 'codex', NULL, 'exec',
+                    '/usr/bin/codex', 'observed', 'codex exec Fix tests',
+                    '{\"full_command\":\"codex exec Fix tests\"}'
+                 )",
+                [],
+            )
+            .unwrap();
+        store
+            .connection()
+            .execute(
+                "INSERT INTO process_nodes (
+                    id, pid, ppid, root_pid, start_timestamp_ms, end_timestamp_ms,
+                    comm, command, argv_json, cwd, exit_code, status, view_source, confidence
+                 ) VALUES (
+                    'process-42', 42, NULL, 42, 900, 2000,
+                    'codex', 'codex exec Fix tests', '[]', NULL, NULL,
+                    'observed', 'test', 1.0
+                 )",
+                [],
+            )
+            .unwrap();
+        drop(store);
+
+        let result = persist_observed_agent_envelopes(&db).unwrap();
+        assert_eq!(result.observed_prompt_rows, 1);
+        assert_eq!(result.sessions_written, 1);
+        assert_eq!(result.tool_calls_written, 1);
+
+        let store = SqliteStore::open_readonly(&db).unwrap();
+        let sessions = store.session_rows().unwrap();
+        let tools = store.tool_call_rows().unwrap();
+        assert_eq!(sessions.len(), 1);
+        assert_eq!(sessions[0].id, "observed:codex:42:1000");
+        assert_eq!(sessions[0].view_source, "sqlite_observed_agent_envelope");
+        assert_eq!(tools.len(), 1);
+        assert_eq!(
+            tools[0].session_id.as_deref(),
+            Some(sessions[0].id.as_str())
+        );
+        assert_eq!(tools[0].related_event_id.as_deref(), Some("exec-codex"));
     }
 
     fn ssl_call_row(model: &str, text: &str) -> LlmCallRow {

@@ -244,6 +244,7 @@ def write_effect_lineage_svg(
     lineage: dict[str, Any],
     live_lineage: dict[str, Any] | None = None,
     native_lineage: dict[str, Any] | None = None,
+    db_lineage: dict[str, Any] | None = None,
 ) -> Path:
     total = int(lineage.get("effect_events") or 0)
     joined = int(lineage.get("joined_effect_events") or 0)
@@ -274,6 +275,20 @@ def write_effect_lineage_svg(
             f"tool_calls={native_aggregate.get('tool_calls')}"
         )
         native_color = PARTIAL if native_orphan else SUPPORTED
+    db_aggregate = (db_lineage or {}).get("aggregate") or {}
+    db_total = int(db_aggregate.get("raw_effect_events") or 0)
+    db_joined = int(db_aggregate.get("joined_effect_events") or 0)
+    db_orphan = int(db_aggregate.get("orphan_effect_events") or 0)
+    db_note = "DB-persisted backfill missing"
+    db_color = UNSUPPORTED
+    if db_total:
+        db_note = (
+            f"{db_aggregate.get('raw_join_pct', 0)}% raw joined; "
+            f"{db_orphan} orphans; "
+            f"db_sessions={db_aggregate.get('db_session_rows')}, "
+            f"db_tools={db_aggregate.get('db_tool_rows')}"
+        )
+        db_color = PARTIAL if db_orphan else SUPPORTED
     rows = [
         (
             "Fixture effects joined",
@@ -303,6 +318,13 @@ def write_effect_lineage_svg(
             native_color,
             native_note,
         ),
+        (
+            "R112 DB persisted raw effects",
+            db_joined,
+            max(db_total, 1),
+            db_color,
+            db_note,
+        ),
     ]
     parts = [
         f'<line x1="36" y1="96" x2="1084" y2="96" stroke="{GRID}"/>',
@@ -312,6 +334,8 @@ def write_effect_lineage_svg(
         if label == "R110 live in-scope" and not live_total:
             metric = "missing"
         elif label == "R111 native raw effects" and not native_total:
+            metric = "missing"
+        elif label == "R112 DB persisted raw effects" and not db_total:
             metric = "missing"
         else:
             metric = f"{value}/{maximum}"
@@ -331,9 +355,9 @@ def write_effect_lineage_svg(
     path.write_text(
         svg_page(
             "Exact Effect Lineage",
-            "Fixture checker plus R110 harness and R111 native-export lineage smokes.",
+            "Fixture checker plus R110/R111/R112 lineage smokes; C4 remains partial.",
             1120,
-            468,
+            546,
             "\n".join(parts),
         ),
         encoding="utf-8",
@@ -421,10 +445,12 @@ def run(out_dir: Path) -> list[Path]:
     live_lineage = read_json(live_path) if live_path.exists() else None
     native_path = out_dir / "native-lineage-r111.json"
     native_lineage = read_json(native_path) if native_path.exists() else None
+    db_path = out_dir / "native-lineage-r112.json"
+    db_lineage = read_json(db_path) if db_path.exists() else None
     return [
         write_claim_gates_svg(out_dir, gates),
         write_semantic_mixing_svg(out_dir, evaluation),
-        write_effect_lineage_svg(out_dir, lineage, live_lineage, native_lineage),
+        write_effect_lineage_svg(out_dir, lineage, live_lineage, native_lineage, db_lineage),
         write_visual_summary_html(out_dir),
     ]
 

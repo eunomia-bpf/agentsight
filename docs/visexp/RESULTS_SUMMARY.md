@@ -21,8 +21,9 @@ semantic regions for 90.219% of observation weight, and flat effect buckets mix
 
 This supports the mechanism claim that semantic frames separate system-effect
 regions that ordinary process summaries or nonsemantic folded stacks merge. R110
-adds a live in-scope exact-lineage smoke, but the project does not yet prove
-native full-run exact file/network lineage or user utility.
+adds a live in-scope exact-lineage smoke; R112 adds DB-persisted backfill rows
+for the observed envelope. The project still does not prove capture-time
+full-run exact file/network lineage or user utility.
 
 ## Completed Runs
 
@@ -32,6 +33,7 @@ native full-run exact file/network lineage or user utility.
 | R101 | Rust unit/clippy verification after Unicode and unreadable-session fixes | `cargo test --manifest-path agentflame/Cargo.toml`; `cargo clippy --manifest-path agentflame/Cargo.toml -- -D warnings` | done |
 | R110 | Live exact-lineage smoke over real AgentSight DB exports with harness-synthesized agent-run envelopes and llama.cpp root tags | `docs/visexp/out/live-lineage-r110.json` | partial |
 | R111 | Native export exact-lineage smoke over the same real AgentSight DB exports after moving the envelope into `collector report export` | `docs/visexp/out/native-lineage-r111.json` | partial |
+| R112 | DB-persisted backfill smoke over copies of the same real DB exports, then persisted-only export with observed projection disabled | `docs/visexp/out/native-lineage-r112.json` | partial |
 | R060 | legacy Python prototype pipeline over sampled sessions | `docs/visexp/out/pipeline-report.json` | legacy, superseded for headline scale |
 | R020a | fixture exact-effect lineage checker | `docs/visexp/out/effect-lineage-smoke.json` | partial, fixture only |
 | R025 | user-task benchmark packet generation | `docs/visexp/out/user-task-benchmark.json` | protocol only |
@@ -171,9 +173,25 @@ gives the same aggregate raw join, but with native exported sessions/tools:
 
 R111 is still partial. It proves that native export can carry the minimal
 session/tool ancestry needed by the checker, but it also exposes the remaining
-coverage problem: 136 raw effects are still orphaned, mostly because the current
-DB capture/export does not persist complete agent-run ancestry as first-class
-state.
+coverage problem: 136 raw effects are still orphaned.
+
+R112 adds a DB persistence smoke. It copies the same three real SQLite DBs,
+runs `collector report materialize-observed`, verifies that SQLite contains 3
+`sessions` rows and 3 `tool_calls` rows with
+`view_source=sqlite_observed_agent_envelope`, and then exports with
+`--no-observed-projection` so the snapshot must read persisted DB rows:
+
+| Run | DB session rows | DB tool rows | Raw effects | Joined | Orphans | Raw join |
+|-----|----------------:|-------------:|------------:|-------:|--------:|---------:|
+| codex-local | 1 | 1 | 90 | 48 | 42 | 53.333% |
+| codex-attach | 1 | 1 | 168 | 86 | 82 | 51.190% |
+| debug-ssl-auto | 1 | 1 | 60 | 48 | 12 | 80.000% |
+| aggregate | 3 | 3 | 318 | 182 | 136 | 57.233% |
+
+R112 improves the artifact boundary from export-derived rows to DB-persisted
+backfill rows. It does not improve the C4 verdict because raw join remains
+182/318, and the session/tool rows are still produced by explicit backfill
+rather than capture-time instrumentation.
 
 ## Dimension Projection Results
 
@@ -191,9 +209,9 @@ cross-agent cost claims until token normalization is audited.
 
 ## Negative And Mixed Evidence
 
-- C4 exact AgentSight lineage is partial. R111 native export joins 57.233% of
-  raw live effects, but 136 raw effects remain orphaned and DB-persisted
-  complete session/tool ancestry is still missing.
+- C4 exact AgentSight lineage is partial. R112 DB-persisted backfill joins
+  57.233% of raw live effects, but 136 raw effects remain orphaned and
+  capture-time complete session/tool ancestry is still missing.
 - C5 user utility remains unsupported. Task packets and scoring scripts exist,
   but no real participant responses have been collected.
 - C6 semantic adequacy is partial. The grammar is strong, but labels such as
@@ -214,3 +232,4 @@ cross-agent cost claims until token normalization is audited.
 - `docs/visexp/out/effect-lineage-smoke.json` for fixture checker status
 - `docs/visexp/out/live-lineage-r110.json` for live in-scope C4 smoke status
 - `docs/visexp/out/native-lineage-r111.json` for native export C4 smoke status
+- `docs/visexp/out/native-lineage-r112.json` for DB-persisted backfill C4 smoke status

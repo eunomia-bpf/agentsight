@@ -394,12 +394,12 @@ def write_summary(path: Path, result: dict[str, Any]) -> None:
     claim_lines = (
         [
             "- This supports the C4 checker and stack grammar only.",
-            "- C4 remains unsupported until live AgentSight exact effects from real sessions pass the same checker.",
+            "- Live C4 evidence is tracked separately in R110-R112; broader C4 remains partial until orphan rates fall and capture-time ancestry exists.",
         ]
         if result["source"] == "fixture"
         else [
             "- This supports C4 for the in-scope effects present in this snapshot.",
-            "- Broader C4 still requires lower orphan rates, DB-persisted ancestry, and more live tasks.",
+            "- Broader C4 still requires lower orphan rates, capture-time ancestry, and more live tasks.",
         ]
     )
     lines = [
@@ -446,9 +446,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "orphan_reasons": dict(Counter(row["orphan_reason"] for row in orphans)),
         "orphan_examples": orphans[:10],
         "claim_boundary": (
-            "checker evidence only; live exact capture over real sessions is still missing"
+            "checker evidence only; live C4 evidence is tracked separately in R110-R112 and remains partial"
             if args.fixture
-            else "live snapshot evidence for joined effects; broader exact-lineage claim still needs lower orphan rates, DB-persisted ancestry, and more tasks"
+            else "live snapshot evidence for joined effects; broader exact-lineage claim still needs lower orphan rates, capture-time ancestry, and more tasks"
         ),
     }
     (out_dir / "effect-lineage-smoke.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
