@@ -44,6 +44,9 @@ from effect_lineage_smoke import lineage_rows
 from live_lineage_harness import synthesize
 from r114_live_record_suite import Task, precision_recall_summary, task_command
 from r182_network_record_suite import aggregate_network, network_gate
+from r184_weak_accept_gate import c5_gate as r184_c5_gate
+from r184_weak_accept_gate import c6_gate as r184_c6_gate
+from r184_weak_accept_gate import overall_gate as r184_overall_gate
 from r124_blinded_label_sheet import (
     VISIBLE_FIELDS as R124_BLINDED_FIELDS,
     blinded_row as r124_blinded_row,
@@ -1540,6 +1543,78 @@ class AggregationTests(unittest.TestCase):
         self.assertEqual(bar_width(150, 100, 200), 200)
         self.assertEqual(bar_width(-1, 100, 200), 0)
         self.assertLessEqual(max(len(line) for line in label_lines("one two three four", 8)), 8)
+
+    def test_r184_gate_rejects_empty_human_evidence(self) -> None:
+        c5 = r184_c5_gate(
+            {"status": "frozen_before_collection", "validation": {"status": "ok"}},
+            {
+                "status": "participant_results_empty",
+                "participant_count": 0,
+                "response_count": 0,
+                "claim_analysis": {"claim_gate": {"c5_supported": False, "pilot_ready": False}},
+            },
+        )
+        c6 = r184_c6_gate(
+            {
+                "summary": {
+                    "row_count": 300,
+                    "labeler_1_count": 0,
+                    "labeler_2_count": 0,
+                    "paired_label_count": 0,
+                    "complete_two_labeler_sheets": False,
+                    "complete_adjudication": True,
+                }
+            },
+            {
+                "summary": {"packet_row_count": 300, "final_label_count": 0, "both_labeler_count": 0},
+                "claim_gate": {"adequacy_supported": False},
+            },
+        )
+        overall = r184_overall_gate(c5, c6)
+
+        self.assertEqual(c5["status"], "ready_for_participant_collection")
+        self.assertEqual(c6["status"], "ready_for_independent_label_collection")
+        self.assertFalse(overall["human_evidence_supported"])
+        self.assertEqual(overall["status"], "not_weak_accept")
+        self.assertIn("subagent review", overall["disallowed_evidence"])
+
+    def test_r184_gate_can_only_clear_human_evidence_after_both_claims_pass(self) -> None:
+        c5 = r184_c5_gate(
+            {"status": "frozen_before_collection", "validation": {"status": "ok"}},
+            {
+                "participant_count": 12,
+                "response_count": 840,
+                "claim_analysis": {
+                    "claim_gate": {
+                        "c5_supported": True,
+                        "pilot_ready": True,
+                        "paper_model_ready": True,
+                    }
+                },
+            },
+        )
+        c6 = r184_c6_gate(
+            {
+                "summary": {
+                    "row_count": 300,
+                    "labeler_1_count": 300,
+                    "labeler_2_count": 300,
+                    "paired_label_count": 300,
+                    "complete_two_labeler_sheets": True,
+                    "complete_adjudication": True,
+                }
+            },
+            {
+                "summary": {"packet_row_count": 300, "final_label_count": 300, "both_labeler_count": 300},
+                "claim_gate": {"adequacy_supported": True},
+            },
+        )
+        overall = r184_overall_gate(c5, c6)
+
+        self.assertTrue(c5["supported"])
+        self.assertTrue(c6["supported"])
+        self.assertEqual(overall["status"], "human_evidence_ready_for_osdi_claim_audit")
+        self.assertTrue(overall["human_evidence_supported"])
 
 
 if __name__ == "__main__":

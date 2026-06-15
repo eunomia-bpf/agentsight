@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "run_id": "R184",
+  "claim": "C5,C6 weak-accept human evidence gate",
+  "status": "not_weak_accept",
+  "generated_at": "2026-06-15T11:52:45+00:00",
+  "source_artifacts": {
+    "tag_adequacy_label_join": "docs/visexp/out/tag-adequacy-label-join-r124.json",
+    "tag_adequacy_scoring": "docs/visexp/out/tag-adequacy-results-r124.json",
+    "user_task_preregistration": "docs/visexp/out/user-task-preregistration-r142.json",
+    "user_task_results": "docs/visexp/out/user-task-results.json"
+  },
+  "c5_user_utility": {
+    "claim": "C5",
+    "status": "ready_for_participant_collection",
+    "supported": false,
+    "preregistration_frozen": true,
+    "preregistration_validation_ok": true,
+    "participant_count": 0,
+    "response_count": 0,
+    "pilot_ready": false,
+    "paper_model_ready": false,
+    "c5_supported": false,
+    "blockers": [
+      "real participant response CSV has not been collected",
+      "score_user_task_results.py has not reported c5_supported=true"
+    ],
+    "next_inputs": [
+      "completed copy of docs/visexp/out/user-task-response-template.csv"
+    ],
+    "commands_after_human_input": [
+      "python3 docs/visexp/score_user_task_results.py --responses <completed-responses.csv>"
+    ]
+  },
+  "c6_tag_adequacy": {
+    "claim": "C6",
+    "status": "ready_for_independent_label_collection",
+    "supported": false,
+    "row_count": 300,
+    "labeler_1_count": 0,
+    "labeler_2_count": 0,
+    "paired_label_count": 0,
+    "final_label_count": 0,
+    "complete_two_labeler_sheets": false,
+    "complete_adjudication": true,
+    "adequacy_supported": false,
+    "blockers": [
+      "two complete independent human labeler sheets are missing",
+      "score_tag_adequacy.py has not reported adequacy_supported=true"
+    ],
+    "next_inputs": [
+      "two completed copies of docs/visexp/out/tag-adequacy-blinded-label-sheet-r124.csv"
+    ],
+    "commands_after_human_input": [
+      "python3 docs/visexp/r124_join_blinded_labels.py --labeler-1 <labeler1.csv> --labeler-2 <labeler2.csv>",
+      "python3 docs/visexp/r124_join_blinded_labels.py --labeler-1 <labeler1.csv> --labeler-2 <labeler2.csv> --adjudication docs/visexp/out/tag-adequacy-adjudication-template-r124.csv",
+      "python3 docs/visexp/score_tag_adequacy.py --labels docs/visexp/out/tag-adequacy-label-packet-r124-joined.csv"
+    ]
+  },
+  "overall": {
+    "status": "not_weak_accept",
+    "human_evidence_supported": false,
+    "weak_accept_supported": false,
+    "weak_accept_note": "Even if C5 and C6 pass, final weak-accept wording still requires a claim-verdict and paper audit. With either C5 or C6 missing, weak accept is not supportable.",
+    "blockers": [
+      "C5 developer utility lacks supported human participant results",
+      "C6 tag adequacy lacks supported independent human labels"
+    ],
+    "disallowed_evidence": [
+      "subagent review",
+      "LLM-filled labels",
+      "author-filled mock responses",
+      "placeholder response rows",
+      "syntax-only tag validity"
+    ]
+  },
+  "claim_boundary": "R184 is a gate/checklist artifact only. It does not strengthen C5 or C6 until real human participant responses and independent human tag labels satisfy their existing scorers.",
+  "output_dir": "docs/visexp/out"
+}
