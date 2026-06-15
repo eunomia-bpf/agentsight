@@ -172,6 +172,7 @@ AgentFlame 分析了 205 个可读 session，其中 Codex 78 个、Claude 50 个
 标签器共有 93,598 个请求，64,297 个命中 cache，29,302 次真实 llama.cpp HTTP calls，0 个最终失败。
 Prompt 和 LLM-call tag 的非法计数均为 0。
 这说明一词语法和本地 3B 模型路径在真实历史规模上可运行。
+R180 进一步表明，在同一组 300 个 redacted fragments 上，本机可用的 0.6B、1.1B 和 3B GGUF 都能输出符合语法的一词标签；但该实验只支持 syntax/latency/stability，不支持 semantic adequacy。
 
 \begin{table}[t]
   \centering
@@ -315,11 +316,13 @@ Raw join 仍只有 22.055\%，这是预期结果：wrapper、sibling 和 out-of-
 
 \subsection{RQ5：小模型成本和标签质量}
 
-Full run 和 R123 证明 3B 模型路径可用，但没有证明 0.6B 或 1B 足够。
+Full run 和 R123 证明 3B 模型路径可用；R180 进一步补上本机 0.6B/1B-class/3B-class syntax-stability smoke。
 R122 从本机 290 个 parsed sessions 中抽取 300 个 redacted fragments：100 个 session、100 个 prompt、100 个 LLM-call。
 R123 用本地 llama.cpp 3B server 对这 300 个 fragments 做三次 identical repeats，共 900 次请求；结果是 900/900 valid tags，285/300 exact-stable fragments（95.000\%），模型加载约 1,002 ms，请求延迟 p50/p95 为 11/31 ms。
-这支持 3B syntax、latency 和 repeated-input stability，但不支持 human adequacy。
-OSDI 版本还需要 R124 人工 adequacy labels；如果论文要声称 0.6B/1B，也必须加入真实 GGUF weights 后重跑。
+R180 用 \texttt{--reasoning off} 对同一个 R122 fragment file 分别运行本机 0.6b、TinyLlama 1.1b 和 3b GGUF：三者都是 900/900 valid tags；exact-stable fragments 分别是 299/300、279/300 和 285/300；p95 延迟分别为 23/18/32 ms。
+这支持本机小模型的 syntax、latency 和 repeated-input stability smoke，但不是同一模型家族的 scaling curve。
+更重要的是，TinyLlama 1.1b 虽然语法有效，却大多输出 localization/localized 一类标签，说明 stability 不能替代 adequacy。
+OSDI 版本还需要 R124 人工 adequacy labels。
 一词标签应该被定位为 lossy navigation frames，而不是 semantic truth。
 
 \subsection{RQ6：开源 artifact 路径是否可用？}
@@ -372,9 +375,9 @@ OSDI reviewer 最可能挑战的点是 C4、C5 和 C6：C4 已经有固定 comma
     unsupported &
     需要基于已冻结的 preregistration 运行 trace tree/event-count/flat/nonsemantic/semantic 视图的 user benchmark。 \\
     C6 tag adequacy &
-    3B full run syntax gate 通过；R123 真实 redacted fragments 上 900/900 valid，285/300 exact-stable，p95 31 ms；可观察到少量 noisy tags。 &
+    R180 在本机 0.6b/1.1b/3b GGUF 上得到 2,700/2,700 valid tags；exact-stable fragments 为 299/300、279/300、285/300，p95 为 23/18/32 ms；1.1b 存在 localization-like collapse。 &
     partial &
-    需要 R124 人工 adequacy labels；若要声称 0.6B/1B 还需真实模型 benchmark。 \\
+    需要 R124 人工 adequacy labels；若要声称 controlled model scaling 还需同族模型 benchmark。 \\
     C7 artifact usability &
     R160 bounded smoke 生成 expected artifacts；clean run 1.64 s，60 uncached LLM calls；cached rerun 0.11 s，76/76 cache hits，0 LLM calls。 &
     partial &
@@ -416,7 +419,7 @@ AgentFlame 包含 token flamegraph，但当前只作为 source-local accounting�
   \item 使用 blinded R124 label sheet 对 R122 的 300 个 session/prompt/LLM fragments 收集人工 adequacy labels。
   \item 在 R114/R131 traces 上使用 trace tree、event-count proxy、flat summary、nonsemantic stack、semantic stack 五种视图；真实 span-duration baseline 需要另行由 timestamps 重建。
   \item 基于已冻结的 R142 preregistration 用 12--20 个参与者或明确限定的 expert study 运行开发者任务 benchmark。
-  \item 如果要声称更小模型，加入真实 0.6B/1B GGUF weights 并重跑 tagger benchmark。
+  \item 如果要声称模型缩放规律，使用同一模型家族的 0.6B/1B/3B weights 重跑 controlled tagger benchmark。
 \end{enumerate}
 
 \section{结论}

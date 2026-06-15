@@ -51,4 +51,5 @@ accept. The shortest path is:
 2. Small user/task benchmark against trace tree, event-count proxy, flat
    summary, nonsemantic stack, and semantic stack; add a true span-duration
    baseline only after reconstructing timestamps.
-3. 0.6B/1B/3B tagger cost/stability and human adequacy labels.
+3. Human adequacy labels for R124; R180 now covers local 0.6B-/1B-/3B-class
+   syntax/stability but not adequacy or controlled scaling.

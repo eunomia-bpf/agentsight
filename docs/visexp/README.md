@@ -88,6 +88,12 @@ headline results come from `.agentsight/agentflame/latest`.
   counts, fresh llama.cpp tag calls, cache hits, folded-total integrity, and
   an explicit C5/C6 non-evidence boundary.
 - `out/full-history-r170.md`: human-readable R170 refresh summary.
+- `out/model-benchmarks-r180.json`: scrubbed R180 local 0.6B-/1B-/3B-class
+  llama.cpp syntax/stability benchmark over the 300 redacted R122 fragments.
+  It records 2700/2700 valid one-word outputs, per-model latency/stability, and
+  an explicit boundary that this is not human adequacy or controlled
+  same-family scaling evidence.
+- `out/model-benchmarks-r180.md`: human-readable R180 benchmark summary.
 - `out/index.html`: legacy Python report page.
 - `out/visual-summary.html`: compact visual progress gallery.
 - `out/system-flamegraph.svg`: system/tool footprint flamegraph.
@@ -195,6 +201,9 @@ headline results come from `.agentsight/agentflame/latest`.
   including expected-file checks, redaction, folded-total equality, clean/cached
   runtime, sanitized fixed-input manifest, input-equality check, local-report
   privacy boundary, and cached-rerun tagger stats.
+- `out/osdi-gate-review-r181.md`: latest read-only OSDI gate review, confirming
+  that R180 is syntax/stability evidence only and that C5/C6 remain the weak
+  accept blockers.
 - `out/prompt-tags.csv`: sanitized prompt hashes, previews, and one-word tags.
 - `out/sessions.json`: per-session counts and tag summaries.
 

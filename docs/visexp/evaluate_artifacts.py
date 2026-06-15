@@ -314,6 +314,62 @@ def tag_join_evidence(join: dict[str, Any] | None) -> str:
     )
 
 
+def percentile_nearest(values: list[Any], pct_value: float) -> int:
+    ints = sorted(int(value) for value in values if value is not None)
+    if not ints:
+        return 0
+    idx = round((len(ints) - 1) * pct_value)
+    return ints[max(0, min(idx, len(ints) - 1))]
+
+
+def model_benchmark_evidence(benchmark: dict[str, Any] | None) -> str:
+    if not benchmark:
+        return "model_benchmark=missing"
+    aggregate = benchmark.get("aggregate") or {}
+    models = benchmark.get("bench", {}).get("models", [])
+    pieces = [
+        f"model_benchmark={benchmark.get('run_id', 'unknown')}",
+        f"runs={aggregate.get('total_runs')}",
+        f"ok={aggregate.get('ok_runs')}",
+        f"failed={aggregate.get('failed_runs')}",
+        f"valid_pct={aggregate.get('valid_run_pct')}",
+    ]
+    for model in models:
+        stability = model.get("stability") or {}
+        pieces.append(
+            "{label}_class={size_class}_ok={ok}_stable={stable}/{total}_p95={p95}".format(
+                label=model.get("label"),
+                size_class=model.get("size_class"),
+                ok=model.get("ok_runs"),
+                stable=stability.get("exact_stable_fragments"),
+                total=stability.get("fragment_count"),
+                p95=percentile_nearest(model.get("latency_ms", []), 0.95),
+            )
+        )
+    return " ".join(pieces)
+
+
+def model_benchmark_size_classes(benchmark: dict[str, Any] | None) -> set[str]:
+    if not benchmark:
+        return set()
+    return {
+        str(model.get("size_class"))
+        for model in benchmark.get("bench", {}).get("models", [])
+        if model.get("size_class")
+    }
+
+
+def model_benchmark_valid(benchmark: dict[str, Any] | None) -> bool:
+    if not benchmark:
+        return False
+    aggregate = benchmark.get("aggregate") or {}
+    return (
+        int(aggregate.get("total_runs") or 0) > 0
+        and int(aggregate.get("ok_runs") or 0) == int(aggregate.get("total_runs") or 0)
+        and int(aggregate.get("failed_runs") or 0) == 0
+    )
+
+
 def full_refresh_evidence(refresh: dict[str, Any] | None) -> str:
     if not refresh:
         return "r170_refresh=missing"
@@ -342,6 +398,51 @@ def compact_tag_adequacy(adequacy: dict[str, Any] | None) -> dict[str, Any] | No
         "summary": adequacy.get("summary"),
         "claim_gate": adequacy.get("claim_gate"),
         "claim_boundary": adequacy.get("claim_boundary"),
+    }
+
+
+def compact_model_benchmark(benchmark: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not benchmark:
+        return None
+    compact_models = []
+    for model in (benchmark.get("bench") or {}).get("models", []):
+        compact_models.append(
+            {
+                "label": model.get("label"),
+                "size_class": model.get("size_class"),
+                "load_ms": model.get("load_ms"),
+                "total_runs": model.get("total_runs"),
+                "ok_runs": model.get("ok_runs"),
+                "failed_runs": model.get("failed_runs"),
+                "valid_tags": model.get("valid_tags"),
+                "invalid_tag_count": len(model.get("invalid_tags") or []),
+                "stability": model.get("stability"),
+                "llm_calls": model.get("llm_calls"),
+                "llm_successes": model.get("llm_successes"),
+                "latency_p50_ms": percentile_nearest(model.get("latency_ms", []), 0.50),
+                "latency_p95_ms": percentile_nearest(model.get("latency_ms", []), 0.95),
+            }
+        )
+    return {
+        "schema_version": benchmark.get("schema_version"),
+        "run_id": benchmark.get("run_id"),
+        "generated_at": benchmark.get("generated_at"),
+        "source": benchmark.get("source"),
+        "provenance": benchmark.get("provenance"),
+        "model_discovery": {
+            "bench_models": (benchmark.get("model_discovery") or {}).get("bench_models"),
+            "missing_size_classes": (benchmark.get("model_discovery") or {}).get("missing_size_classes"),
+            "vocab_only_gguf_count": (benchmark.get("model_discovery") or {}).get("vocab_only_gguf_count"),
+        },
+        "bench": {
+            "runs_per_model": (benchmark.get("bench") or {}).get("runs_per_model"),
+            "repeats_per_fragment": (benchmark.get("bench") or {}).get("repeats_per_fragment"),
+            "fragments_per_model": (benchmark.get("bench") or {}).get("fragments_per_model"),
+            "fragment_previews_included": (benchmark.get("bench") or {}).get("fragment_previews_included"),
+            "models": compact_models,
+        },
+        "aggregate": benchmark.get("aggregate"),
+        "interpretation": benchmark.get("interpretation"),
     }
 
 
@@ -629,6 +730,7 @@ def build_claim_gates(
     tag_adequacy: dict[str, Any] | None = None,
     tag_join: dict[str, Any] | None = None,
     full_refresh: dict[str, Any] | None = None,
+    model_benchmark: dict[str, Any] | None = None,
 ) -> list[dict[str, str]]:
     c1_ok = compression["compression_ratio"] > 1 and compression["repeated_stack_count"] > 0
     c2_ok = (
@@ -661,6 +763,8 @@ def build_claim_gates(
     agent_diff_exists = source_counts.get("codex", 0) or source_counts.get("claude", 0)
     c6_quality_ok = quality["same_hash_multi_tag_count"] == 0
     c6_adequacy_ok = bool((tag_adequacy or {}).get("claim_gate", {}).get("adequacy_supported"))
+    benchmark_classes = model_benchmark_size_classes(model_benchmark)
+    c2_model_ok = model_benchmark_valid(model_benchmark)
     c5_supported = bool((user_task_results or {}).get("claim_analysis", {}).get("claim_gate", {}).get("c5_supported"))
     if not c6_quality_ok:
         c6_verdict = "unsupported"
@@ -686,6 +790,9 @@ def build_claim_gates(
             "evidence": (
                 f"invalid={quality['invalid_prompt_tag_count']} "
                 f"unique_prompt_tags={quality['unique_prompt_tags']} "
+                f"model_classes={sorted(benchmark_classes)} "
+                f"model_benchmark_valid={c2_model_ok} "
+                f"{model_benchmark_evidence(model_benchmark)} "
                 f"{full_refresh_evidence(full_refresh)}"
             ),
         },
@@ -749,6 +856,7 @@ def build_claim_gates(
             "evidence": (
                 f"same_hash_multi_tag_count={quality['same_hash_multi_tag_count']} "
                 f"{tag_stability_evidence(stability)} "
+                f"{model_benchmark_evidence(model_benchmark)} "
                 f"{tag_adequacy_evidence(tag_adequacy)} "
                 f"{tag_join_evidence(tag_join)}"
             ).strip(),
@@ -884,7 +992,7 @@ def write_summary_md(path: Path, result: dict[str, Any]) -> None:
             "## Highest-Value Next Runs",
             "",
             "1. Collect a B4 response CSV and score it with `score_user_task_results.py` to test C5.",
-            "2. Expand B5 with manual adequacy labels and a larger multi-model tag stability run for C6.",
+            "2. Collect manual adequacy labels for R124; R180 already covers the local multi-model syntax/stability smoke.",
             "3. Expand R113-live beyond five read-only tasks and add child-depth/path/domain/redaction analysis.",
         ]
     )
@@ -929,6 +1037,10 @@ def run(out_dir: Path, write_outputs: bool = True) -> dict[str, Any]:
     tag_adequacy = read_json(tag_adequacy_path) if tag_adequacy_path.exists() else None
     tag_join_path = out_dir / "tag-adequacy-label-join-r124.json"
     tag_join = read_json(tag_join_path) if tag_join_path.exists() else None
+    model_benchmark_path = out_dir / "model-benchmarks-r180.json"
+    if not model_benchmark_path.exists():
+        model_benchmark_path = out_dir / "model-benchmarks-r123.json"
+    model_benchmark = read_json(model_benchmark_path) if model_benchmark_path.exists() else None
     full_refresh_path = out_dir / "full-history-r170.json"
     full_refresh = read_json(full_refresh_path) if full_refresh_path.exists() else None
     effect_lineage_path = out_dir / "effect-lineage-smoke.json"
@@ -965,6 +1077,7 @@ def run(out_dir: Path, write_outputs: bool = True) -> dict[str, Any]:
         tag_adequacy,
         tag_join,
         full_refresh,
+        model_benchmark,
     )
 
     result = {
@@ -994,6 +1107,7 @@ def run(out_dir: Path, write_outputs: bool = True) -> dict[str, Any]:
         },
         "tag_quality": quality,
         "tag_stability_smoke": stability,
+        "model_benchmark": compact_model_benchmark(model_benchmark),
         "tag_adequacy_results": compact_tag_adequacy(tag_adequacy),
         "tag_adequacy_label_join": tag_join,
         "user_task_benchmark": user_tasks,
