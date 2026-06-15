@@ -75,7 +75,7 @@ Weak accept requires all four gates below:
 | G1 full-history semantic characterization | C1-C3 | all repo-related readable sessions annotated by real llama.cpp model, with redacted output and baseline-mixing analysis | 205 sessions, 29,302 llama.cpp HTTP calls, 0 final tag failures, 90.219%/90.770% mixed baseline weights | pass |
 | G2 live exact semantic-effect lineage | C4 | broader live `agentsight record` suite, recall/precision table, join/orphan table, child-depth and path specificity, negative controls | R114 fixed 20-task suite: 20/20 targets completed, 20/20 tasks observed negative controls, 1273/1273 in-scope effects joined, 100.0% precision/recall, 3170 observed negative-control effects with 0 joined, child-depth/path/redaction tables generated | pass for fixed suite |
 | G3 small-model and tag adequacy | C2,C6 | 0.6B/1B/3B llama.cpp benchmark, repeated-run stability, human adequacy labels | 3B syntax/full-run evidence plus R123 real redacted stability: 900/900 valid tags, 285/300 exact-stable fragments, p95 31 ms; no local 0.6B/1B weights; human adequacy still missing | partial |
-| G4 developer task utility | C5 | head-to-head task benchmark against trace tree, span flamegraph, flat summary, nonsemantic stack, semantic stack | R142-packet generated 14 tasks, 8 primary utility tasks, 6 limitation/comprehension tasks, 5 conditions, 70 leak-checked blinded packets, P01-P05 counterbalanced assignments, hidden answer key, manifests, null-metric empty scorer output, and per-task same-event-slice `slice_id` checks; no participants | missing |
+| G4 developer task utility | C5 | head-to-head task benchmark against trace tree, span flamegraph, flat summary, nonsemantic stack, semantic stack | R142-packet generated 14 tasks, 8 primary utility tasks, 6 limitation/comprehension tasks, 5 conditions, 70 leak-checked blinded packets, P01-P05 counterbalanced assignments, hidden answer key, manifests, and per-task same-event-slice `slice_id` checks. R142-scoring now adds response-contract checks, task-level diagnostic deltas, Holm-corrected participant/task fixed-effect paper gates, false-positive guardrails, and C5 support/pilot gates; no participants | missing |
 
 ## Revised Research Questions
 
@@ -294,11 +294,14 @@ cargo run --manifest-path agentflame/Cargo.toml -- bench \
   `nonsemantic-stack`, `semantic-stack`); 70 blinded packets with recursive
   forbidden-key leakage checks; a P01-P05 counterbalanced assignment template;
   a hidden answer key; script/output manifests; and a scorer output marked
-  `participant_results_empty` with null aggregate metrics. For baseline
+  `participant_results_empty`. For baseline
   fairness, every task's five condition excerpts now share exactly one
   `slice_id`, so trace/span/flat/nonsemantic/semantic packets are derived from
-  the same underlying evidence slice. C5 remains unsupported until participant
-  responses are collected and scored.
+  the same underlying evidence slice. R142-scoring now validates response
+  assignment consistency, keeps paired task-level semantic-vs-baseline deltas
+  as diagnostics, and gates paper-scale C5 with Holm-corrected
+  participant/task fixed-effect blocked permutation tests. C5 remains
+  unsupported until participant responses are collected and scored.
 - Result path: `docs/visexp/out/user-task-results.json`.
 
 ## Tracker Rows To Add Next
@@ -314,6 +317,7 @@ cargo run --manifest-path agentflame/Cargo.toml -- bench \
 | R131 | C3 | B6x | Semantic-axis ablation. | `python3 docs/visexp/r131_semantic_ablation.py --input .agentsight/agentflame/latest --local-out .agentsight/agentflame/ablations-r131/summary.json --out-dir docs/visexp/out` | deterministic | total-weight equality + report/folded cross-checks + mixed/residual delta | passed for C3 mechanism: all totals preserved; generated folded files match projections; system prompt-only reduced mixed full semantic bucket weight from 90.219% to 37.687% and residual from 44.639% to 7.526%; C6/B4 deferred | `.agentsight/agentflame/ablations-r131/summary.json`, `docs/visexp/out/semantic-ablation-r131.json` | done for C3; C6/B4 deferred |
 | R141-packet | C5 | B4x | Superseded deterministic user-task packet draft. | `python3 docs/visexp/user_task_benchmark.py ...` before same-slice enforcement | 14 tasks x 5 conditions; P01-P05 assignments; 0 responses | leak check + assignment coverage + scorer status | superseded by R142 same-slice packet | `docs/visexp/out/user-task-benchmark.json` historical commit | superseded |
 | R142-packet | C5 | B4x | Same-event-slice user-task packet and empty scorer check. | `python3 docs/visexp/user_task_benchmark.py --out docs/visexp/out --agentflame-dir .agentsight/agentflame/latest`; scorer over `user-task-response-template.csv` | 14 tasks x 5 conditions; P01-P05 assignments; 0 responses | hidden answer key + leak-checked blinded packets + assignment coverage + per-task common `slice_id` + scorer status | packet ready for pilot collection; no C5 claim without participants | `docs/visexp/out/user-task-benchmark.json`, `docs/visexp/out/user-task-assignments.csv`, `docs/visexp/out/user-task-results.json` | done/packet |
+| R142-scoring | C5 | B4x | Response-contract and paper-scale C5 scorer gate. | `python3 docs/visexp/score_user_task_results.py --responses docs/visexp/out/user-task-response-template.csv --bundle docs/visexp/out/user-task-benchmark.json --answer-key docs/visexp/out/user-task-answer-key.csv --out docs/visexp/out` | deterministic empty-template check; real responses later | assignment/packet contract checks, diagnostic task-level deltas, Holm-corrected participant/task fixed-effect tests, false-positive guardrail, pilot/paper support gates | current output is `participant_results_empty`, `c5_supported=false`, `pilot_ready=false`; no C5 claim without participants | `docs/visexp/out/user-task-results.json` | done/empty |
 | R142 | C5 | B4x | User-task pilot. | 5 developer participants, counterbalanced P01-P05 conditions | 5 participants for complete condition coverage | answer key and timing data | task protocol works before paper run | `docs/visexp/out/user-task-results-pilot.json` | planned |
 | R151 | C5 | B4x | User-task paper run. | 12-20 participants or scoped expert study | counterbalanced | accuracy/time/false-positive/confidence scorer | required for any user-utility claim | `docs/visexp/out/user-task-results.json` | planned |
 

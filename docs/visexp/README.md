@@ -150,7 +150,10 @@ headline results come from `.agentsight/agentflame/latest`.
 - `out/user-task-response-template.csv`: response CSV schema for collecting C5
   participant answers.
 - `out/user-task-results.json`: scored C5 participant results after running
-  `score_user_task_results.py` on a real response CSV.
+  `score_user_task_results.py` on a real response CSV. It includes response
+  contract status, diagnostic task-level deltas, and the paper-scale C5 claim
+  gate; the current committed result is `participant_results_empty`, not
+  user-utility evidence.
 - `out/user-task-results.csv`: per-response scored C5 rows.
 - `out/user-task-results.md`: human-readable C5 scoring summary.
 - `out/prompt-tags.csv`: sanitized prompt hashes, previews, and one-word tags.
@@ -209,3 +212,11 @@ python3 docs/visexp/score_user_task_results.py \
   --responses path/to/responses.csv \
   --out docs/visexp/out
 ```
+
+The C5 scorer compares `semantic-stack` against `trace-tree`,
+`span-duration`, `flat-summary`, and `nonsemantic-stack`. It first validates
+assignment/packet consistency and rejects duplicate, partial, or nonnumeric
+real-response CSVs. Task-level paired deltas remain diagnostic; paper-scale
+support requires the Holm-corrected participant/task fixed-effect gate in
+`claim_analysis.claim_gate` to pass. Pilot-scale output should not be cited as
+a user-utility result.

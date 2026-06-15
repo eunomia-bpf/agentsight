@@ -233,9 +233,9 @@ Current evidence:
   conditions (`trace-tree`, `span-duration`, `flat-summary`,
   `nonsemantic-stack`, `semantic-stack`), 70 leak-checked blinded participant
   packets, a P01-P05 counterbalanced assignment template, a hidden answer key,
-  manifests, a scorer output marked `participant_results_empty` with null
-  aggregate metrics, and per-task same-event-slice `slice_id` checks across all
-  five conditions.
+  manifests, a scorer output marked `participant_results_empty`, response
+  contract checks, a paper-scale C5 support gate, and per-task
+  same-event-slice `slice_id` checks across all five conditions.
 - No real participant responses are available.
 
 Remaining gap:
@@ -278,7 +278,7 @@ Remaining gap:
 | C2 | Local one-word LLM tagging is feasible for session/prompt/LLM-call contexts. | supported for 3B syntax/latency; partial for size/adequacy | 0.6B/1B evidence if claimed and adequacy labels |
 | C3 | Semantic frames expose task-effect mixtures hidden by nonsemantic and flat summaries. | supported as mechanism | stronger examples and task benchmark |
 | C4 | Exact AgentSight lineage connects semantic intent to process/file/network effects. | supported for fixed command-mode suite; partial broadly | cross-repo/full-history exact integration and user-task outcomes |
-| C5 | Developers answer debugging/audit questions better with semantic effect flamegraphs. | unsupported; R142-packet exists | user/task benchmark responses with preregistered effect-size and statistics plan |
+| C5 | Developers answer debugging/audit questions better with semantic effect flamegraphs. | unsupported; R142 packet/scorer exists | user/task benchmark responses with valid response contract passing the Holm-corrected paper-scale C5 gate |
 | C6 | One-word tags are stable and adequate enough for navigation. | partial; R124 scorer exists but labels are empty | human adequacy labels with thresholds and 0.6B/1B evidence if claimed |
 | C7 | The approach is practical as an open-source developer tool. | partial | one-command install/run, runtime/cost, docs, artifact hygiene |
 

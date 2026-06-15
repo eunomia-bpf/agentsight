@@ -175,10 +175,12 @@ deterministic system-effect provenance and folded-stack aggregation.
   `span-duration`, `flat-summary`, `nonsemantic-stack`, `semantic-stack`); 70
   blinded packets with recursive forbidden-key leakage checks; a P01-P05
   counterbalanced assignment template; a hidden answer key; script/output
-  manifests; and an empty scorer output marked `participant_results_empty` with
-  null aggregate metrics. For baseline fairness, each task's five condition
+  manifests; and an empty scorer output marked `participant_results_empty`. For baseline fairness, each task's five condition
   excerpts share exactly one `slice_id`, so all views are derived from the same
-  evidence slice.
+  evidence slice. R142-scoring now validates response assignment consistency,
+  keeps paired task-level semantic-vs-baseline deltas as diagnostics, and gates
+  paper-scale C5 with Holm-corrected participant/task fixed-effect blocked
+  permutation tests plus false-positive guardrails.
 - Success criterion: semantic view improves exact answer accuracy by >=10
   percentage points or median task time by >=20% on core forensic tasks, with no
   >5 percentage-point increase in false positives, under paired permutation or
@@ -252,6 +254,7 @@ deterministic system-effect provenance and folded-stack aggregation.
 | R131 | decision | semantic-axis ablation | no/session/prompt/full variants plus token LLM-call projections | deterministic | passed for C3 mechanism: totals and external folded cross-checks preserved; system prompt-only reduces mixed full semantic bucket weight from 90.219% to 37.687% and residual from 44.639% to 7.526%; token prompt+LLM-call remains 95.765% bucket mixed but only 0.027% residual | low | done for C3; C6/B4 deferred |
 | R141-packet | decision | superseded user-task packet draft | old `user_task_benchmark.py` packet before same-slice enforcement | deterministic 14 tasks x 5 conditions; P01-P05 assignments; 0 responses | superseded by R142 because same-event-slice fairness was unresolved | low | superseded |
 | R142-packet | decision | same-event-slice user-task packet and empty scorer check | `user_task_benchmark.py` over current artifacts; scorer over response template | deterministic 14 tasks x 5 conditions; P01-P05 assignments; 0 responses | packet ready only if leakage, assignment, same-slice, and scorer checks pass | low | done/packet |
+| R142-scoring | decision | response-contract and paper-scale user-task scorer gate | `score_user_task_results.py` over response template | deterministic empty-template check | C5 must stay unsupported until real responses; real runs use contract checks, diagnostic paired deltas, fixed-effect blocked permutation tests, and Holm correction | low | done/empty |
 | R142 | main | user task pilot | 5 developers, five conditions | counterbalanced P01-P05 template | protocol and answer keys work on real responses | medium | recruiting |
 | R151 | main | user task paper run | 12-20 developers or scoped expert study | counterbalanced | C5 verdict | high | strongest missing evidence |
 

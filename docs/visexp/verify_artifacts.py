@@ -157,6 +157,35 @@ def run(out_dir: Path) -> dict[str, int | str]:
             for row in template_rows
         ):
             raise AssertionError("response template must not contain participant responses")
+        user_task_results_path = out_dir / "user-task-results.json"
+        if not user_task_results_path.exists():
+            raise AssertionError("user-task-results.json is missing")
+        user_task_results = json.loads(user_task_results_path.read_text(encoding="utf-8"))
+        response_contract = user_task_results.get("response_contract") or {}
+        if "valid" not in response_contract:
+            raise AssertionError("user-task-results.json is missing response_contract.valid")
+        if not response_contract.get("valid"):
+            raise AssertionError("user-task-results.json records an invalid response contract")
+        analysis = user_task_results.get("claim_analysis") or {}
+        gate = analysis.get("claim_gate") or {}
+        thresholds = analysis.get("thresholds") or {}
+        if "c5_supported" not in gate or "pilot_ready" not in gate:
+            raise AssertionError("user-task-results.json is missing C5 claim gate fields")
+        if "paper_scale_test" not in thresholds or "holm_correction_family" not in thresholds:
+            raise AssertionError("C5 claim analysis is missing paper-scale statistical contract fields")
+        if thresholds.get("semantic_condition") != "semantic-stack":
+            raise AssertionError("C5 claim analysis has wrong semantic condition")
+        if user_task_results.get("status") == "participant_results_empty" and gate.get("c5_supported"):
+            raise AssertionError("empty C5 participant results must not support C5")
+        if gate.get("c5_supported") and not gate.get("paper_model_ready"):
+            raise AssertionError("C5 cannot be supported without the paper-scale model gate")
+        claim_gates_path = out_dir / "claim-gates.csv"
+        if claim_gates_path.exists():
+            with claim_gates_path.open("r", encoding="utf-8", newline="") as handle:
+                gates = {row.get("claim"): row for row in csv.DictReader(handle)}
+            c5 = gates.get("C5 user utility over trace tree/process logs")
+            if not c5 or f"c5_supported={gate.get('c5_supported')}" not in c5.get("evidence", ""):
+                raise AssertionError("C5 claim gate does not include current scorer status")
 
     tag_packet_path = out_dir / "tag-adequacy-label-packet-r122.csv"
     tag_results_path = out_dir / "tag-adequacy-results-r124.json"

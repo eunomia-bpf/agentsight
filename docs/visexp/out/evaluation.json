@@ -1435,7 +1435,7 @@
     "claim": "C5",
     "run_id": "R142-packet",
     "status": "pilot_packet_ready_no_participants",
-    "generated_at": "2026-06-15T07:01:01+00:00",
+    "generated_at": "2026-06-15T08:12:14+00:00",
     "source_artifacts": [
       {
         "path": ".agentsight/agentflame/latest/agentflame.json",
@@ -1460,7 +1460,7 @@
       {
         "path": "docs/visexp/out/model-benchmarks-r123.json",
         "exists": true,
-        "sha256": "f7e5339007077182864fcac74ff97aae899ce14db39331e76a7f5e4984d275bf"
+        "sha256": "c89106a31abd589b426edc1f3997457fb2127b375165ac7f59aab6925dc5b3a7"
       }
     ],
     "script_artifacts": [
@@ -1472,16 +1472,16 @@
       {
         "path": "docs/visexp/score_user_task_results.py",
         "exists": true,
-        "sha256": "9bfe4e5056b5a5b149d1b86a8a5b06716996fb2ebd005ae71e54652f53570bc8"
+        "sha256": "57a2baea29466892ec27f51df6fba16247b36970f883dc2ee62d1b748a4d2886"
       },
       {
         "path": "docs/visexp/test_semantic_tag_flamegraph.py",
         "exists": true,
-        "sha256": "026d96dc00f46ede4493543421f542ebdafd336335fe8b9d21c4f5dadeaddf2a"
+        "sha256": "7c5f1f10614fc2b216b2e633c5b2da5edf1bc70c0db4c2002779c42e32814ce8"
       }
     ],
     "provenance": {
-      "repo_commit": "80fc9fc954dba8ceb2dd535c73ef423646d9403b",
+      "repo_commit": "2029a88f95e3e22fdb44fc5df01f0a03d77862f0",
       "repo_dirty": true,
       "command": "docs/visexp/user_task_benchmark.py --out docs/visexp/out --agentflame-dir .agentsight/agentflame/latest",
       "python_version": "3.12.3",
@@ -4896,7 +4896,7 @@
                     "slice_id": "88c10cd28ed3f719",
                     "slice_kind": "r123-model-stability",
                     "slice_weight": 900,
-                    "exact_stable_fragments": 282,
+                    "exact_stable_fragments": 285,
                     "fragments": 300
                   }
                 ]
@@ -4918,7 +4918,7 @@
                     "slice_weight": 900,
                     "valid_runs": 900,
                     "total_runs": 900,
-                    "p95_ms": 30
+                    "p95_ms": 31
                   }
                 ]
               }
@@ -4939,9 +4939,9 @@
         "oracle": {
           "valid_runs": 900,
           "total_runs": 900,
-          "exact_stable_fragments": 282,
+          "exact_stable_fragments": 285,
           "fragments": 300,
-          "p95_ms": 30,
+          "p95_ms": 31,
           "human_adequacy_proven": false
         },
         "scoring": {
@@ -4966,6 +4966,18 @@
     "source": "user-task-response-template.csv",
     "template_row_count": 70,
     "ignored_placeholder_rows": 70,
+    "response_contract": {
+      "valid": true,
+      "errors": [],
+      "warnings": [],
+      "assignment_row_count": 70,
+      "response_row_count": 70,
+      "scorable_row_count": 0,
+      "placeholder_row_count": 70,
+      "complete_assigned_rows": false,
+      "template_only": true,
+      "requires_complete_assigned_rows": false
+    },
     "participant_count": 0,
     "response_count": 0,
     "task_count": 0,
@@ -4978,11 +4990,48 @@
         "median_time_seconds": null,
         "mean_confidence": null,
         "false_positive_count": null,
+        "false_positive_response_share_pct": null,
         "parse_error_count": null
       },
       "by_condition": {},
       "by_task_condition": {},
       "condition_assignment_counts": {}
+    },
+    "claim_analysis": {
+      "status": "participant_results_empty",
+      "participant_count": 0,
+      "response_count": 0,
+      "thresholds": {
+        "semantic_condition": "semantic-stack",
+        "baseline_conditions": [
+          "trace-tree",
+          "span-duration",
+          "flat-summary",
+          "nonsemantic-stack"
+        ],
+        "primary_role": "primary_utility",
+        "min_participants_for_claim": 12,
+        "pilot_min_participants": 5,
+        "min_task_pairs_for_claim": 8,
+        "accuracy_delta_threshold_pp": 10.0,
+        "time_reduction_threshold_pct": 20.0,
+        "max_false_positive_increase_pp": 5.0,
+        "p_value_threshold": 0.05,
+        "diagnostic_test": "paired task-level sign-flip permutation",
+        "paper_scale_test": "participant-and-task fixed-effect blocked permutation",
+        "holm_correction_family": "primary baseline comparisons x accuracy/time endpoints",
+        "monte_carlo_permutations": 4096
+      },
+      "task_level_primary_utility": null,
+      "paper_scale_primary": null,
+      "primary_utility": null,
+      "all_tasks": null,
+      "claim_gate": {
+        "c5_supported": false,
+        "pilot_ready": false,
+        "requires_real_participants": true,
+        "reason": "no scorable participant responses"
+      }
     },
     "scored_rows": [],
     "claim_boundary": "C5 requires real participant responses and adequate sample size before becoming supported"
@@ -5653,7 +5702,7 @@
       "claim": "C5 user utility over trace tree/process logs",
       "verdict": "unsupported",
       "oracle": "requires scored participant responses with time, accuracy, false positives, and confidence",
-      "evidence": "task_bundle=pilot_packet_ready_no_participants task_count=14 scorer=ready response_template=present ignored_placeholder_rows=70 participant_results=missing"
+      "evidence": "task_bundle=pilot_packet_ready_no_participants task_count=14 scorer=ready response_template=present ignored_placeholder_rows=70 c5_supported=False pilot_ready=False paper_model_ready=None participant_results=missing"
     },
     {
       "claim": "C4 exact AgentSight effect stream preserves value",

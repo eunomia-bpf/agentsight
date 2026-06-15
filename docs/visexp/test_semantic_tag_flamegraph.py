@@ -37,7 +37,16 @@ from user_task_benchmark import (
 from effect_lineage_smoke import lineage_rows
 from live_lineage_harness import synthesize
 from r114_live_record_suite import Task, precision_recall_summary, task_command
-from score_user_task_results import is_placeholder_response, score_response, summarize
+from score_user_task_results import (
+    BASELINE_CONDITIONS,
+    SEMANTIC_CONDITION,
+    claim_analysis,
+    is_placeholder_response,
+    paired_sign_flip_p_value,
+    score_response,
+    summarize,
+    validate_response_contract,
+)
 from score_tag_adequacy import (
     claim_gate as tag_adequacy_claim_gate,
     cohen_kappa,
@@ -822,6 +831,104 @@ class AggregationTests(unittest.TestCase):
                 }
             )
         )
+
+    def test_user_task_claim_analysis_empty_results_do_not_support_c5(self) -> None:
+        analysis = claim_analysis([], {"tasks": []})
+
+        self.assertEqual(analysis["status"], "participant_results_empty")
+        self.assertFalse(analysis["claim_gate"]["c5_supported"])
+        self.assertTrue(analysis["claim_gate"]["requires_real_participants"])
+        self.assertIsNone(analysis["primary_utility"])
+
+    def balanced_user_task_rows(self, participants: int = 12) -> tuple[list[dict[str, object]], list[dict[str, str]]]:
+        tasks = [
+            {"task_id": f"UT{idx:02d}", "analysis_role": "primary_utility"}
+            for idx in range(1, 9)
+        ]
+        rows = []
+        condition_order = [*BASELINE_CONDITIONS, SEMANTIC_CONDITION]
+        for participant_idx in range(participants):
+            participant_id = f"P{participant_idx + 1:02d}"
+            for task_idx, task in enumerate(tasks):
+                condition = condition_order[(participant_idx + task_idx) % len(condition_order)]
+                semantic = condition == SEMANTIC_CONDITION
+                rows.append(
+                    {
+                        "participant_id": participant_id,
+                        "packet_id": f"{task['task_id']}-{condition}",
+                        "task_id": task["task_id"],
+                        "condition": condition,
+                        "task_time_seconds": 8.0 if semantic else 12.0,
+                        "confidence": 5.0 if semantic else 3.0,
+                        "exact": semantic,
+                        "field_accuracy_pct": 100.0 if semantic else 50.0,
+                        "false_positive_count": 0,
+                        "parse_error": "",
+                    }
+                )
+        return rows, tasks
+
+    def test_user_task_claim_analysis_uses_paper_scale_gate(self) -> None:
+        rows, tasks = self.balanced_user_task_rows()
+
+        analysis = claim_analysis(rows, {"tasks": tasks})
+
+        self.assertTrue(analysis["claim_gate"]["c5_supported"])
+        self.assertTrue(analysis["claim_gate"]["pilot_ready"])
+        self.assertTrue(analysis["claim_gate"]["paper_model_ready"])
+        self.assertEqual(analysis["paper_scale_primary"]["successful_comparison_count"], len(BASELINE_CONDITIONS))
+        for comparison in analysis["paper_scale_primary"]["comparisons"]:
+            self.assertEqual(comparison["task_pair_count"], 8)
+            self.assertGreaterEqual(comparison["model_accuracy_delta_pp"], 90.0)
+            self.assertEqual(comparison["median_task_time_reduction_pct"], 33.333)
+            self.assertLessEqual(comparison["accuracy_holm_p_value"], 0.05)
+
+    def test_user_task_claim_analysis_requires_enough_participants(self) -> None:
+        rows, tasks = self.balanced_user_task_rows(participants=5)
+
+        analysis = claim_analysis(rows, {"tasks": tasks})
+
+        self.assertFalse(analysis["claim_gate"]["c5_supported"])
+        self.assertFalse(analysis["claim_gate"]["enough_participants_for_claim"])
+        self.assertTrue(analysis["claim_gate"]["pilot_ready"])
+
+    def test_user_task_sign_flip_p_value_handles_zero_deltas(self) -> None:
+        self.assertEqual(paired_sign_flip_p_value([0.0, 0.0], "greater"), 1.0)
+        self.assertEqual(paired_sign_flip_p_value([1.0, 1.0], "greater"), 0.25)
+
+    def test_user_task_response_contract_rejects_bad_measurements_and_duplicates(self) -> None:
+        bundle = {
+            "tasks": [
+                {
+                    "task_id": "UT01",
+                    "participant_view_conditions": [
+                        {"condition": "semantic-stack"},
+                    ],
+                }
+            ]
+        }
+        assignment = [
+            {
+                "participant_id": "P01",
+                "order_index": "1",
+                "task_id": "UT01",
+                "condition": "semantic-stack",
+                "packet_id": "UT01-semantic-stack",
+            }
+        ]
+        response = {
+            **assignment[0],
+            "response_json": "{\"answer\": true}",
+            "task_time_seconds": "fast",
+            "confidence": "9",
+            "notes": "",
+        }
+        contract = validate_response_contract([response, response], bundle, assignment)
+
+        self.assertFalse(contract["valid"])
+        self.assertTrue(any("duplicate response" in error for error in contract["errors"]))
+        self.assertTrue(any("invalid task_time_seconds" in error for error in contract["errors"]))
+        self.assertTrue(any("invalid confidence" in error for error in contract["errors"]))
 
     def test_tag_adequacy_empty_rows_do_not_support_c6(self) -> None:
         rows = [
