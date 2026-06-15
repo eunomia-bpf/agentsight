@@ -239,6 +239,18 @@ pub(crate) fn build_trace_agent_with_view(
         );
     }
 
+    if let Ok(mut view) = view.lock() {
+        if let Some(session_root) = cfg.session_id {
+            // Session-filtered runners only emit events from this process
+            // session; the hint preserves attribution when short-lived
+            // descendants are observed without intermediate fork nodes.
+            view.set_session_process_root_hint(session_root);
+        } else if let Some(root_pid) = cfg.pid {
+            // A plain PID filter is narrower: only the root process and
+            // observed descendants may inherit the root.
+            view.set_process_root_hint(root_pid);
+        }
+    }
     let mut materializer = MaterializingAnalyzer::with_view(view);
     if let Some(path) = cfg.db_path.as_deref() {
         materializer =

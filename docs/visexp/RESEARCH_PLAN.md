@@ -163,13 +163,16 @@ Current evidence:
 - R113 implements capture-time `record -- <command>` session/tool rows with
   `view_source=record_capture_time_agent_envelope` and verifies the row shape in
   a temp SQLite DB.
+- R113-live runs five real read-only `codex exec` tasks under `agentsight
+  record`; all five create capture-time session/tool rows and join 508/508 raw
+  effects with 0 orphans.
 
 Remaining gap:
 
 - The strongest exact-lineage evidence remains a smoke, not a full benchmark.
-  Raw join coverage is still only 57.233%, 136 raw effects remain orphaned, and
-  R113 has not been rerun on fresh live eBPF tasks. C4 stays partial until raw
-  join coverage improves and per-effect ancestry is reported.
+  R113-live passes for five command-mode Codex tasks, but C4 stays partial until
+  the artifact covers broader task suites, full-history exact integration,
+  child-depth/path/domain/redaction analysis, and user-task outcomes.
 
 ### RQ4. Developer Utility
 
@@ -225,7 +228,7 @@ Remaining gap:
 | C1 | AgentFlame can generate semantic folded stacks and dashboards over real local agent histories. | supported | verifier for full run and reproducibility script |
 | C2 | Local one-word LLM tagging is feasible for session/prompt/LLM-call contexts. | supported for 3B syntax; partial for cost/stability | 0.6B/1B/3B cost table and adequacy labels |
 | C3 | Semantic frames expose task-effect mixtures hidden by nonsemantic and flat summaries. | supported as mechanism | stronger examples and task benchmark |
-| C4 | Exact AgentSight lineage connects semantic intent to process/file/network effects. | partial capture-time row smoke | higher raw join, fresh live tasks, per-effect ancestry, out-of-scope analysis |
+| C4 | Exact AgentSight lineage connects semantic intent to process/file/network effects. | partial live Codex smoke | higher raw join, process-family ancestry, per-effect ancestry, out-of-scope analysis |
 | C5 | Developers answer debugging/audit questions better with semantic effect flamegraphs. | unsupported | user/task benchmark |
 | C6 | One-word tags are stable and adequate enough for navigation. | partial | 0.6B/1B/3B cost table, repeated-run stability, human adequacy labels |
 | C7 | The approach is practical as an open-source developer tool. | partial | one-command install/run, runtime/cost, docs, artifact hygiene |
@@ -236,7 +239,7 @@ Remaining gap:
 |-------|----|------------|--------------------|---------|--------|----------|
 | B1 | RQ1 | Full local-session characterization | 3B local llama.cpp, cache on/off where feasible | sessions, tags, invalids, runtime, cache hit rate | tag grammar checker and complete report | done, must repeat after changes |
 | B2 | RQ2 | Semantic partitioning audit | semantic, nonsemantic, flat process/effect summary | mixed buckets, mixed weight, entropy, examples | deterministic stack comparison | done |
-| B3 | RQ3 | Live exact AgentSight lineage | agent-native proxy vs exact effect stream | join coverage, orphan rate, path/domain specificity | lineage checker | smoke done; fresh R113 live rerun must |
+| B3 | RQ3 | Live exact AgentSight lineage | agent-native proxy vs exact effect stream | join coverage, orphan rate, path/domain specificity | lineage checker | command-mode smoke passed; broader benchmark must |
 | B4 | RQ4 | Developer task benchmark | trace tree, span flamegraph, flat summary, nonsemantic stack, semantic stack | time, accuracy, false positives, confidence | hidden answer key | must |
 | B5 | RQ5 | Small-model and tag-stability benchmark | 0.6B, 1B, 3B, optional larger reference | latency, invalid rate, stability, adequacy | repeated run + human labels | must |
 | B6 | RQ2/RQ3 | Ablations | session-only, prompt-only, prompt+LLM-call, no process nesting | information gain, stack explosion, task answerability | same query set | must |

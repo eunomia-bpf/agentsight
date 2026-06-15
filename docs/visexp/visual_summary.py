@@ -246,6 +246,7 @@ def write_effect_lineage_svg(
     native_lineage: dict[str, Any] | None = None,
     db_lineage: dict[str, Any] | None = None,
     capture_time: dict[str, Any] | None = None,
+    live_record: dict[str, Any] | None = None,
 ) -> Path:
     total = int(lineage.get("effect_events") or 0)
     joined = int(lineage.get("joined_effect_events") or 0)
@@ -301,6 +302,20 @@ def write_effect_lineage_svg(
             f"live_rerun={capture_time.get('live_rerun', 'pending')}"
         )
         capture_color = PARTIAL
+    record_aggregate = (live_record or {}).get("aggregate") or {}
+    record_total = int(record_aggregate.get("effect_events") or 0)
+    record_joined = int(record_aggregate.get("joined_effect_events") or 0)
+    record_orphan = int(record_aggregate.get("orphan_effect_events") or 0)
+    record_note = "R113 live Codex record missing"
+    record_color = UNSUPPORTED
+    if record_total:
+        record_note = (
+            f"{record_aggregate.get('raw_join_pct', 0)}% raw joined; "
+            f"{record_orphan} orphans; "
+            f"tasks={record_aggregate.get('tasks')}, "
+            f"record_tools={record_aggregate.get('record_envelope_tool_calls')}"
+        )
+        record_color = PARTIAL if record_orphan else SUPPORTED
     rows = [
         (
             "Fixture effects joined",
@@ -344,6 +359,13 @@ def write_effect_lineage_svg(
             capture_color,
             capture_note,
         ),
+        (
+            "R113 live Codex raw effects",
+            record_joined,
+            max(record_total, 1),
+            record_color,
+            record_note,
+        ),
     ]
     parts = [
         f'<line x1="36" y1="96" x2="1084" y2="96" stroke="{GRID}"/>',
@@ -357,6 +379,8 @@ def write_effect_lineage_svg(
         elif label == "R112 DB persisted raw effects" and not db_total:
             metric = "missing"
         elif label == "R113 capture-time rows" and not capture_time:
+            metric = "missing"
+        elif label == "R113 live Codex raw effects" and not record_total:
             metric = "missing"
         else:
             metric = f"{value}/{maximum}"
@@ -376,9 +400,9 @@ def write_effect_lineage_svg(
     path.write_text(
         svg_page(
             "Exact Effect Lineage",
-            "Fixture checker plus R110/R111/R112 raw-effect smokes and R113 capture-time row smoke; C4 remains partial.",
+            "Fixture checker plus R110/R111/R112 raw-effect smokes, R113 capture-time rows, and R113 live Codex records; C4 remains partial.",
             1120,
-            624,
+            702,
             "\n".join(parts),
         ),
         encoding="utf-8",
@@ -470,11 +494,19 @@ def run(out_dir: Path) -> list[Path]:
     db_lineage = read_json(db_path) if db_path.exists() else None
     capture_path = out_dir / "capture-time-r113.json"
     capture_time = read_json(capture_path) if capture_path.exists() else None
+    live_record_path = out_dir / "live-record-r113.json"
+    live_record = read_json(live_record_path) if live_record_path.exists() else None
     return [
         write_claim_gates_svg(out_dir, gates),
         write_semantic_mixing_svg(out_dir, evaluation),
         write_effect_lineage_svg(
-            out_dir, lineage, live_lineage, native_lineage, db_lineage, capture_time
+            out_dir,
+            lineage,
+            live_lineage,
+            native_lineage,
+            db_lineage,
+            capture_time,
+            live_record,
         ),
         write_visual_summary_html(out_dir),
     ]

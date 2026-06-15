@@ -3,7 +3,7 @@
 Last updated: 2026-06-14
 Stage at update: implement/verify
 Source/command: `cargo test --manifest-path collector/Cargo.toml cmd_exec::tests::record_agent_envelope_start_and_end_persist_to_sqlite`
-Completeness: partial
+Completeness: implementation smoke passed; live smoke tracked by R113-live
 
 R113 moves one part of the R112 boundary into the `record` hot path:
 `agentsight record -- <command>` now writes a first-class SQLite `sessions` row
@@ -23,8 +23,8 @@ The rows use `related_pid=<target child pid>`, `tool_name=agent-run`, and
 
 ## Boundary
 
-This is implementation evidence, not a live lineage result. R113 does not rerun
-fresh eBPF workloads, does not reduce the R112 orphan count of 136 effects, and
-does not add direct per-effect `tool_call_id` or `related_event_id` links. C4
-therefore remains partial until fresh live `record` tasks show high raw join
-coverage and explain the remaining orphan classes.
+This is implementation evidence for the row-writing path. R113-live supplies
+the live eBPF rerun: five real read-only Codex tasks create 5/5 capture-time
+sessions/tools and join 508/508 raw effects. C4 remains partial because broader
+task coverage, full-history exact integration, and user-task evidence are still
+missing.
