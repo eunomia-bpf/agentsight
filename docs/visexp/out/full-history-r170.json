@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "run_id": "R170",
+  "claim": "C1,C2,C3,C7 mechanism/artifact refresh",
+  "status": "full_history_refresh_passed",
+  "generated_at": "2026-06-15T10:30:44+00:00",
+  "source_command": "cargo run --manifest-path agentflame/Cargo.toml -- run --project-root . --scan-files 10000 --max-sessions 10000 --llama-url http://127.0.0.1:18080 --model local-r170 --timeout 60 --out .agentsight/agentflame/r170-full-current",
+  "agentflame_artifacts": {
+    "dir": ".agentsight/agentflame/r170-full-current",
+    "report": ".agentsight/agentflame/r170-full-current/agentflame.json",
+    "report_sha256": "32a11de291ac11a8c8b79b4a616af72edb4cf6b9ab4ad95b9109baa1fac09924",
+    "tags": ".agentsight/agentflame/r170-full-current/tags.json",
+    "tags_sha256": "61dab368625eddc0dec13ba047c40a8cea200d5067ce7450517ca9966767d90b"
+  },
+  "input_scope": {
+    "scan_files": 10000,
+    "max_sessions": 10000,
+    "tag_llm_calls": true,
+    "session_file_mode": false,
+    "absolute_trace_roots_redacted": true,
+    "raw_trace_policy": "read-only local input; raw trace files are not copied into committed artifacts"
+  },
+  "summary": {
+    "report_generated_at": "2026-06-15T10:30:26Z",
+    "session_count": 325,
+    "source_counts": {
+      "claude": 50,
+      "claude-subagent": 77,
+      "codex": 198
+    },
+    "raw_tool_events": 142468,
+    "raw_llm_events": 114837,
+    "system_observations": 183714,
+    "semantic_system_stacks": 26829,
+    "nonsemantic_system_stacks": 11967,
+    "semantic_system_compression": 6.848,
+    "nonsemantic_system_compression": 15.352,
+    "semantic_mixing": {
+      "nonsemantic_mixed_weight_pct": 90.402,
+      "flat_mixed_weight_pct": 90.918
+    }
+  },
+  "llm_tagger": {
+    "requests": 118021,
+    "cache_hits": 82886,
+    "llm_calls": 35136,
+    "llm_successes": 35135,
+    "failure_count": 0,
+    "cache_seed": ".agentsight/agentflame/latest/tags.json",
+    "seed_cache_tags": 29342,
+    "final_cache_tags": 64477,
+    "new_cache_entries": 35135
+  },
+  "integrity": {
+    "all_folded_totals_match_report": true,
+    "folded": {
+      "semantic_system": {
+        "report_unique_stacks": 26829,
+        "report_total_weight": 183714,
+        "folded_unique_stacks": 26829,
+        "folded_total_weight": 183714,
+        "matches_folded": true
+      },
+      "nonsemantic_system": {
+        "report_unique_stacks": 11967,
+        "report_total_weight": 183714,
+        "folded_unique_stacks": 11967,
+        "folded_total_weight": 183714,
+        "matches_folded": true
+      },
+      "semantic_token": {
+        "report_unique_stacks": 8569,
+        "report_total_weight": 31805830937143,
+        "folded_unique_stacks": 8569,
+        "folded_total_weight": 31805830937143,
+        "matches_folded": true
+      }
+    },
+    "warning_count": 1,
+    "warnings_redacted": true
+  },
+  "claim_boundary": "R170 refreshes the current full-history AgentFlame annotation path with a real llama.cpp-compatible server and a seeded local tag cache. It strengthens mechanism and artifact reproducibility evidence only; it does not provide human tag adequacy, developer utility, broad exact lineage, or community adoption evidence.",
+  "provenance": {
+    "repo_commit": "0ceebac3257852acb9fe1572872c8a0e218a720e",
+    "repo_dirty": true,
+    "script_sha256": "c5d7946710a19f9d53501060d0073dceda00f7e6d7468a40e225b9a725df327b"
+  }
+}

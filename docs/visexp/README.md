@@ -83,6 +83,11 @@ headline results come from `.agentsight/agentflame/latest`.
   provenance and no raw prompt text.
 - `.agentsight/agentflame/latest/*.folded.txt`: current folded stacks.
 - `.agentsight/agentflame/latest/*.svg`: current dashboard figures.
+- `out/full-history-r170.json`: sanitized R170 current full-history refresh
+  summary over `.agentsight/agentflame/r170-full-current`, including session
+  counts, fresh llama.cpp tag calls, cache hits, folded-total integrity, and
+  an explicit C5/C6 non-evidence boundary.
+- `out/full-history-r170.md`: human-readable R170 refresh summary.
 - `out/index.html`: legacy Python report page.
 - `out/visual-summary.html`: compact visual progress gallery.
 - `out/system-flamegraph.svg`: system/tool footprint flamegraph.
@@ -226,6 +231,7 @@ python3 docs/visexp/verify_artifacts.py --out docs/visexp/out
 python3 docs/visexp/tag_stability_smoke.py --out docs/visexp/out
 python3 docs/visexp/score_tag_adequacy.py --labels docs/visexp/out/tag-adequacy-label-packet-r122.csv
 python3 docs/visexp/r124_join_blinded_labels.py
+python3 docs/visexp/r170_full_history_refresh.py
 python3 docs/visexp/user_task_benchmark.py --out docs/visexp/out
 python3 docs/visexp/r142_preregistration.py
 python3 docs/visexp/artifact_usability_r160.py --agentflame-dir .agentsight/agentflame/r160-smoke-fixed --clean-agentflame-json .agentsight/agentflame/r160-smoke-fixed/agentflame.clean.json --out docs/visexp/out/artifact-usability-r160.json

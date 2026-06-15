@@ -362,6 +362,27 @@ def run(out_dir: Path) -> dict[str, int | str]:
             if not c6 or f"tag_adequacy={tag_results.get('status')}" not in c6.get("evidence", ""):
                 raise AssertionError("C6 claim gate does not include current R124 status")
 
+    r170_path = out_dir / "full-history-r170.json"
+    if r170_path.exists():
+        r170 = json.loads(r170_path.read_text(encoding="utf-8"))
+        if r170.get("status") != "full_history_refresh_passed":
+            raise AssertionError("R170 full-history refresh did not pass")
+        r170_summary = r170.get("summary") or {}
+        if not r170_summary.get("session_count") or not r170_summary.get("system_observations"):
+            raise AssertionError("R170 summary is missing full-history counts")
+        if not (r170.get("integrity") or {}).get("all_folded_totals_match_report"):
+            raise AssertionError("R170 folded totals do not match the report")
+        r170_llm = r170.get("llm_tagger") or {}
+        if r170_llm.get("failure_count") != 0:
+            raise AssertionError("R170 LLM tagger reported failures")
+        if r170_llm.get("requests", 0) < r170_llm.get("cache_hits", 0):
+            raise AssertionError("R170 cache hits cannot exceed tag requests")
+        if r170_llm.get("final_cache_tags", 0) < r170_llm.get("seed_cache_tags", 0):
+            raise AssertionError("R170 final cache must include the seeded cache")
+        boundary = r170.get("claim_boundary", "")
+        if "does not provide human tag adequacy" not in boundary or "developer utility" not in boundary:
+            raise AssertionError("R170 claim boundary must exclude C5/C6 outcome evidence")
+
     for path in out_dir.glob("*"):
         if path.suffix in {".json", ".csv", ".txt", ".html", ".svg"}:
             assert_no_sensitive_text(path)
