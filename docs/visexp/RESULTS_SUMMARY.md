@@ -45,6 +45,7 @@ utility.
 | R114 | Twenty fixed Codex tasks under `agentsight record` with negative controls and scoped precision/recall analysis | `docs/visexp/out/live-record-r114.json`, `docs/visexp/out/live-record-r114-analysis.json` | done |
 | R122 | Redacted human adequacy label packet over 100 session, 100 prompt, and 100 LLM-call fragments | `docs/visexp/out/tag-adequacy-label-packet-r122.json` | packet only |
 | R123 | 3B llama.cpp real-fragment stability benchmark over the R122 packet | `docs/visexp/out/model-benchmarks-r123.json` | done |
+| R124-scoring | Human tag-adequacy scorer over the current blank R122 packet | `docs/visexp/out/tag-adequacy-results-r124.json` | done/empty |
 | R131 | Semantic-axis ablation over the same folded observations | `docs/visexp/out/semantic-ablation-r131.json` | done |
 | R141-packet | Superseded deterministic C5 task benchmark draft over R114/R123/R131/full-run artifacts | historical `docs/visexp/out/user-task-benchmark.json` at commit `80fc9fc` | superseded by R142 |
 | R142-packet | Same-event-slice C5 task benchmark packet and empty scorer check over R114/R123/R131/full-run artifacts | `docs/visexp/out/user-task-benchmark.json`, `docs/visexp/out/user-task-assignments.csv`, `docs/visexp/out/user-task-results.json` | packet only; no participants |
@@ -95,12 +96,18 @@ important for RQ1: syntax validity is strong in the completed run, while
 semantic adequacy still needs human labels.
 
 R122/R123 add a real-fragment stability check over the same local trace corpus:
-R122 sampled 300 redacted fragments from 290 parsed sessions (100 session, 100
+R122 sampled 300 redacted fragments from 294 parsed sessions (100 session, 100
 prompt, 100 LLM-call), and R123 ran the local 3B llama.cpp server over those
 fragments with three identical repeats each. R123 produced 900/900 valid tags,
-282/300 exact-stable fragments (94.000%), p95 request latency 30 ms after a
+285/300 exact-stable fragments (95.000%), p95 request latency 31 ms after a
 1002 ms model load, and no committed fragment previews in the benchmark summary.
 This supports 3B syntax/latency/stability, but not human adequacy.
+
+R124-scoring adds the missing scorer path for human adequacy labels without
+inventing labels. On the current blank R122 packet it reports
+`human_labels_empty`, 300 packet rows, 300 candidate tags, 0 final labels, no
+adequacy percentage, and `adequacy_supported=false`. This keeps C6 partial while
+making the next human-label run mechanically auditable.
 
 Top prompt tags:
 
@@ -324,7 +331,9 @@ provenance.
   fairness check. No real participant responses have been collected.
 - C6 semantic adequacy is partial. The grammar is strong, but labels such as
   `agentsightsm`, `testcodex`, and `bashoutput` show that one-word tags need
-  human adequacy measurement and possibly prompt repair.
+  human adequacy measurement and possibly prompt repair. R124-scoring exists
+  and currently records `human_labels_empty`; it is protocol evidence, not
+  adequacy evidence.
 - R131 is a mechanism ablation, not a usability result. It supports C3 and
   figure design, but not the C5 developer-utility claim.
 - One root-owned Claude session could not be read. The run records this as a
@@ -347,6 +356,7 @@ provenance.
 - `docs/visexp/out/live-record-r113.json` for fresh live Codex record lineage status
 - `docs/visexp/out/live-record-r114.json` and `docs/visexp/out/live-record-r114-analysis.json` for fixed-suite live exact lineage
 - `docs/visexp/out/tag-adequacy-label-packet-r122.json` for the redacted adequacy-label packet
+- `docs/visexp/out/tag-adequacy-results-r124.json` for the empty human-label scorer gate
 - `docs/visexp/out/model-benchmarks-r123.json` for real-fragment stability
 - `docs/visexp/out/semantic-ablation-r131.json` for semantic-axis ablation
 - `docs/visexp/out/user-task-benchmark.json`, `docs/visexp/out/user-task-participant-packets.json`, `docs/visexp/out/user-task-assignments.csv`, `docs/visexp/out/user-task-manifest.json`, and `docs/visexp/out/user-task-results.json` for the R142-packet C5 benchmark bundle

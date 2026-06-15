@@ -282,6 +282,39 @@ def tag_stability_evidence(stability: dict[str, Any] | None) -> str:
     return " ".join(pieces)
 
 
+def tag_adequacy_evidence(adequacy: dict[str, Any] | None) -> str:
+    if not adequacy:
+        return "tag_adequacy=missing"
+    summary = adequacy.get("summary") or {}
+    gate = adequacy.get("claim_gate") or {}
+    return (
+        f"tag_adequacy={adequacy.get('status', 'unknown')} "
+        f"candidate_tags={summary.get('candidate_tag_count')} "
+        f"final_labels={summary.get('final_label_count')} "
+        f"packet_rows={summary.get('packet_row_count')} "
+        f"adequate_pct={summary.get('adequate_share_pct')} "
+        f"generic_noisy_pct={summary.get('generic_noisy_share_pct')} "
+        f"misleading_pct={summary.get('misleading_share_pct')} "
+        f"kappa={summary.get('cohen_kappa')} "
+        f"adequacy_supported={gate.get('adequacy_supported')}"
+    )
+
+
+def compact_tag_adequacy(adequacy: dict[str, Any] | None) -> dict[str, Any] | None:
+    if not adequacy:
+        return None
+    return {
+        "schema_version": adequacy.get("schema_version"),
+        "run_id": adequacy.get("run_id"),
+        "claim": adequacy.get("claim"),
+        "status": adequacy.get("status"),
+        "source": adequacy.get("source"),
+        "summary": adequacy.get("summary"),
+        "claim_gate": adequacy.get("claim_gate"),
+        "claim_boundary": adequacy.get("claim_boundary"),
+    }
+
+
 def user_task_evidence(
     bundle: dict[str, Any] | None,
     results: dict[str, Any] | None = None,
@@ -536,6 +569,7 @@ def build_claim_gates(
     capture_time: dict[str, Any] | None = None,
     live_record: dict[str, Any] | None = None,
     headline: dict[str, Any] | None = None,
+    tag_adequacy: dict[str, Any] | None = None,
 ) -> list[dict[str, str]]:
     c1_ok = compression["compression_ratio"] > 1 and compression["repeated_stack_count"] > 0
     c2_ok = (
@@ -566,6 +600,14 @@ def build_claim_gates(
         )
     source_counts = aggregation.get("source_counts", {})
     agent_diff_exists = source_counts.get("codex", 0) or source_counts.get("claude", 0)
+    c6_quality_ok = quality["same_hash_multi_tag_count"] == 0
+    c6_adequacy_ok = bool((tag_adequacy or {}).get("claim_gate", {}).get("adequacy_supported"))
+    if not c6_quality_ok:
+        c6_verdict = "unsupported"
+    elif c6_adequacy_ok:
+        c6_verdict = "supported_for_3b"
+    else:
+        c6_verdict = "partial"
     return [
         {
             "claim": "C1 folded aggregation",
@@ -631,11 +673,12 @@ def build_claim_gates(
         },
         {
             "claim": "C6 tag stability and adequacy",
-            "verdict": "partial" if quality["same_hash_multi_tag_count"] == 0 else "unsupported",
-            "oracle": "smoke checks repeated-run syntax/stability; human adequacy remains required",
+            "verdict": c6_verdict,
+            "oracle": "smoke checks repeated-run syntax/stability plus R124 human adequacy scoring",
             "evidence": (
                 f"same_hash_multi_tag_count={quality['same_hash_multi_tag_count']} "
-                f"{tag_stability_evidence(stability)}"
+                f"{tag_stability_evidence(stability)} "
+                f"{tag_adequacy_evidence(tag_adequacy)}"
             ).strip(),
         },
     ]
@@ -791,6 +834,8 @@ def run(out_dir: Path, write_outputs: bool = True) -> dict[str, Any]:
     user_task_results_path = out_dir / "user-task-results.json"
     user_task_results = read_json(user_task_results_path) if user_task_results_path.exists() else None
     response_template_exists = (out_dir / "user-task-response-template.csv").exists()
+    tag_adequacy_path = out_dir / "tag-adequacy-results-r124.json"
+    tag_adequacy = read_json(tag_adequacy_path) if tag_adequacy_path.exists() else None
     effect_lineage_path = out_dir / "effect-lineage-smoke.json"
     effect_lineage = read_json(effect_lineage_path) if effect_lineage_path.exists() else None
     live_lineage_path = out_dir / "live-lineage-r110.json"
@@ -821,6 +866,7 @@ def run(out_dir: Path, write_outputs: bool = True) -> dict[str, Any]:
         capture_time,
         live_record,
         headline,
+        tag_adequacy,
     )
 
     result = {
@@ -849,6 +895,7 @@ def run(out_dir: Path, write_outputs: bool = True) -> dict[str, Any]:
         },
         "tag_quality": quality,
         "tag_stability_smoke": stability,
+        "tag_adequacy_results": compact_tag_adequacy(tag_adequacy),
         "user_task_benchmark": user_tasks,
         "user_task_results": user_task_results,
         "effect_lineage_smoke": effect_lineage,

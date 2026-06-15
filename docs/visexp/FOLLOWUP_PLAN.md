@@ -74,7 +74,7 @@ Weak accept requires all four gates below:
 |------|----------|-------------------|---------------|--------|
 | G1 full-history semantic characterization | C1-C3 | all repo-related readable sessions annotated by real llama.cpp model, with redacted output and baseline-mixing analysis | 205 sessions, 29,302 llama.cpp HTTP calls, 0 final tag failures, 90.219%/90.770% mixed baseline weights | pass |
 | G2 live exact semantic-effect lineage | C4 | broader live `agentsight record` suite, recall/precision table, join/orphan table, child-depth and path specificity, negative controls | R114 fixed 20-task suite: 20/20 targets completed, 20/20 tasks observed negative controls, 1273/1273 in-scope effects joined, 100.0% precision/recall, 3170 observed negative-control effects with 0 joined, child-depth/path/redaction tables generated | pass for fixed suite |
-| G3 small-model and tag adequacy | C2,C6 | 0.6B/1B/3B llama.cpp benchmark, repeated-run stability, human adequacy labels | 3B syntax/full-run evidence plus R123 real redacted stability: 900/900 valid tags, 282/300 exact-stable fragments, p95 30 ms; no local 0.6B/1B weights; human adequacy still missing | partial |
+| G3 small-model and tag adequacy | C2,C6 | 0.6B/1B/3B llama.cpp benchmark, repeated-run stability, human adequacy labels | 3B syntax/full-run evidence plus R123 real redacted stability: 900/900 valid tags, 285/300 exact-stable fragments, p95 31 ms; no local 0.6B/1B weights; human adequacy still missing | partial |
 | G4 developer task utility | C5 | head-to-head task benchmark against trace tree, span flamegraph, flat summary, nonsemantic stack, semantic stack | R142-packet generated 14 tasks, 8 primary utility tasks, 6 limitation/comprehension tasks, 5 conditions, 70 leak-checked blinded packets, P01-P05 counterbalanced assignments, hidden answer key, manifests, null-metric empty scorer output, and per-task same-event-slice `slice_id` checks; no participants | missing |
 
 ## Revised Research Questions
@@ -218,11 +218,11 @@ cargo run --manifest-path agentflame/Cargo.toml -- bench \
   inter-label agreement of Cohen's kappa >=0.6 or an explicitly weaker
   limitation statement.
 - Current evidence: R121 fixed the identical-fragment benchmark path. R122 then
-  sampled 300 real redacted fragments from 290 parsed local sessions: 100
+  sampled 300 real redacted fragments from 294 parsed local sessions: 100
   session summaries, 100 prompt fragments, and 100 LLM-call fragments. R123 ran
   those fragments through the available 3B llama.cpp server with 3 identical
-  repeats each and produced 900/900 valid tags, p95 request latency 30 ms after
-  load, and 282/300 exact-stable fragments (94.000%).
+  repeats each and produced 900/900 valid tags, p95 request latency 31 ms after
+  load, and 285/300 exact-stable fragments (95.000%).
 - Privacy guard: `agentflame bench` now omits fragment previews by default; R121
   used `--include-fragment-previews` only because the three smoke fragments are
   synthetic.
@@ -308,7 +308,8 @@ cargo run --manifest-path agentflame/Cargo.toml -- bench \
 | R114 | C4 | B3x | Broader live exact-lineage task suite over 20 real agent tasks. | `python3 docs/visexp/r114_live_record_suite.py --out docs/visexp/out --timeout 240`; then `python3 docs/visexp/r114_lineage_analysis.py --result docs/visexp/out/live-record-r114.json --out docs/visexp/out` | 20 tasks, fixed task manifest | lineage checker + precision/recall + redaction/path analyzer | passed: 20/20 tasks observed negative controls, 100.0% precision, 100.0% recall, 0/3170 negative-control joins, 0 redaction failures | `docs/visexp/out/live-record-r114.json`, `docs/visexp/out/live-record-r114-analysis.json` | done |
 | R121 | C2,C6 | B5x | Real llama.cpp model benchmark. | `agentflame bench --runs 3 --model ...` using available GGUF models | 3 fixed fragments x 3 identical repeats | grammar/stability/latency checker | done for 3B smoke: 9/9 valid tags, 2/3 exact-stable fragments; no claims for missing size classes; adequacy labels required | `.agentsight/agentflame/model-benchmarks.json`, `docs/visexp/out/model-benchmarks-r121.json` | done |
 | R122 | C6 | B5x | Redacted label packet. | create redacted label packet | 300 fragments | redaction scan + stratified counts | packet ready; labels still required | `docs/visexp/out/tag-adequacy-label-packet-r122.csv` | done/packet |
-| R123 | C2,C6 | B5x | Real redacted fragment stability. | `agentflame bench --fragment-file .agentsight/agentflame/r122-real-fragments.txt --runs 3 --model ...` | 300 fragments x 3 repeats | grammar/stability/latency checker | done for 3B: 900/900 valid, 282/300 exact-stable; adequacy labels required | `.agentsight/agentflame/model-benchmarks-r123.json`, `docs/visexp/out/model-benchmarks-r123.json` | done |
+| R123 | C2,C6 | B5x | Real redacted fragment stability. | `agentflame bench --fragment-file .agentsight/agentflame/r122-real-fragments.txt --runs 3 --model ...` | 300 fragments x 3 repeats | grammar/stability/latency checker | done for 3B: 900/900 valid, 285/300 exact-stable, p95 31 ms; adequacy labels required | `.agentsight/agentflame/model-benchmarks-r123.json`, `docs/visexp/out/model-benchmarks-r123.json` | done |
+| R124-scoring | C6 | B5x | Adequacy scorer and empty-result gate. | `python3 docs/visexp/score_tag_adequacy.py --labels docs/visexp/out/tag-adequacy-label-packet-r122.csv ...`; then `python3 docs/visexp/evaluate_artifacts.py --out docs/visexp/out` | deterministic over 300 packet rows | candidate-tag coverage, empty/partial/scored status, adequacy/kappa thresholds | done as protocol only: current output is `human_labels_empty`, 300 candidate tags, 0 final labels, `adequacy_supported=false`; C6 remains partial | `docs/visexp/out/tag-adequacy-results-r124.json` | done/empty |
 | R124 | C6 | B5x | Human adequacy labeling over sampled fragments. | collect labels in R122 packet | 300 fragments, >=2 labelers if possible | adequacy/generic/misleading rubric plus agreement | >=80% adequate, <=20% generic/noisy, kappa >=0.6 or limited claim | `docs/visexp/out/tag-adequacy-labels-r124.csv` | planned |
 | R131 | C3 | B6x | Semantic-axis ablation. | `python3 docs/visexp/r131_semantic_ablation.py --input .agentsight/agentflame/latest --local-out .agentsight/agentflame/ablations-r131/summary.json --out-dir docs/visexp/out` | deterministic | total-weight equality + report/folded cross-checks + mixed/residual delta | passed for C3 mechanism: all totals preserved; generated folded files match projections; system prompt-only reduced mixed full semantic bucket weight from 90.219% to 37.687% and residual from 44.639% to 7.526%; C6/B4 deferred | `.agentsight/agentflame/ablations-r131/summary.json`, `docs/visexp/out/semantic-ablation-r131.json` | done for C3; C6/B4 deferred |
 | R141-packet | C5 | B4x | Superseded deterministic user-task packet draft. | `python3 docs/visexp/user_task_benchmark.py ...` before same-slice enforcement | 14 tasks x 5 conditions; P01-P05 assignments; 0 responses | leak check + assignment coverage + scorer status | superseded by R142 same-slice packet | `docs/visexp/out/user-task-benchmark.json` historical commit | superseded |
@@ -341,7 +342,8 @@ evidence that span-duration traces do not provide, but OSDI weak accept still
 needs evidence that the semantic labels are adequate and that developers
 actually answer forensic questions better with the visualization.
 
-1. collect and adjudicate R124 human adequacy labels for the R122 packet;
+1. collect and adjudicate R124 human adequacy labels for the R122 packet, then
+   rerun `score_tag_adequacy.py`;
 2. run the R142 developer task pilot using the generated assignment template
    and compare trace tree, span flamegraph, flat summary, nonsemantic stack,
    and semantic effect stack conditions.

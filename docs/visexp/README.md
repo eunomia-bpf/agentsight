@@ -128,6 +128,17 @@ headline results come from `.agentsight/agentflame/latest`.
   summary over hashed session/prompt/LLM fragments.
 - `out/tag-stability-smoke.csv`: sanitized per-fragment tag outputs.
 - `out/tag-stability-summary.md`: human-readable C6 smoke summary.
+- `out/tag-adequacy-label-packet-r122.csv`: redacted C6 packet for collecting
+  human adequacy labels. The packet includes the candidate one-word tag being
+  judged; ordinary prompt wording such as exact-output instructions may remain
+  in redacted previews, while home paths, secrets, emails, URL paths, and long
+  ids are removed.
+- `out/tag-adequacy-results-r124.json`: C6 adequacy scorer output. The current
+  committed result is `human_labels_empty` with 300/300 candidate tags, not
+  adequacy evidence.
+- `out/tag-adequacy-results-r124.csv`: per-fragment normalized label state.
+- `out/tag-adequacy-results-r124.md`: human-readable C6 adequacy scoring
+  boundary.
 - `out/user-task-benchmark.json`: C5 user-task benchmark bundle with sanitized
   tasks and source-view references.
 - `out/user-task-answer-key.csv`: machine-readable answer key for the C5 tasks.
@@ -176,6 +187,7 @@ python3 -m unittest docs/visexp/test_semantic_tag_flamegraph.py
 python3 docs/visexp/effect_lineage_smoke.py --fixture --out docs/visexp/out
 python3 docs/visexp/verify_artifacts.py --out docs/visexp/out
 python3 docs/visexp/tag_stability_smoke.py --out docs/visexp/out
+python3 docs/visexp/score_tag_adequacy.py --labels docs/visexp/out/tag-adequacy-label-packet-r122.csv
 python3 docs/visexp/user_task_benchmark.py --out docs/visexp/out
 python3 docs/visexp/evaluate_artifacts.py --out docs/visexp/out
 python3 docs/visexp/visual_summary.py --out docs/visexp/out

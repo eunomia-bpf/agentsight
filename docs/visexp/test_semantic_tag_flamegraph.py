@@ -38,6 +38,12 @@ from effect_lineage_smoke import lineage_rows
 from live_lineage_harness import synthesize
 from r114_live_record_suite import Task, precision_recall_summary, task_command
 from score_user_task_results import is_placeholder_response, score_response, summarize
+from score_tag_adequacy import (
+    claim_gate as tag_adequacy_claim_gate,
+    cohen_kappa,
+    result_status as tag_adequacy_status,
+    score_rows as score_tag_adequacy_rows,
+)
 from visual_summary import bar_width, label_lines, verdict_color, verdict_score
 
 
@@ -816,6 +822,174 @@ class AggregationTests(unittest.TestCase):
                 }
             )
         )
+
+    def test_tag_adequacy_empty_rows_do_not_support_c6(self) -> None:
+        rows = [
+            {
+                "fragment_index": "0",
+                "fragment_hash": "abc",
+                "kind": "prompt",
+                "source": "codex",
+                "labeler_1": "",
+                "labeler_2": "",
+                "adjudicated_label": "",
+            }
+        ]
+
+        scored, summary = score_tag_adequacy_rows(rows)
+        gate = tag_adequacy_claim_gate(summary)
+
+        self.assertEqual(scored[0]["label_state"], "unlabeled")
+        self.assertEqual(tag_adequacy_status(summary), "human_labels_empty")
+        self.assertEqual(summary["final_label_count"], 0)
+        self.assertIsNone(summary["adequate_share_pct"])
+        self.assertFalse(gate["adequacy_supported"])
+        self.assertTrue(gate["requires_real_human_labels"])
+
+    def test_tag_adequacy_scores_agreement_and_label_shares(self) -> None:
+        rows = [
+            {
+                "fragment_index": "0",
+                "fragment_hash": "a",
+                "kind": "prompt",
+                "source": "codex",
+                "candidate_tag": "review",
+                "labeler_1": "adequate",
+                "labeler_2": "good",
+                "adjudicated_label": "",
+            },
+            {
+                "fragment_index": "1",
+                "fragment_hash": "b",
+                "kind": "llm",
+                "source": "claude",
+                "candidate_tag": "task",
+                "labeler_1": "generic/noisy",
+                "labeler_2": "generic-noisy",
+                "adjudicated_label": "",
+            },
+            {
+                "fragment_index": "2",
+                "fragment_hash": "c",
+                "kind": "session",
+                "source": "codex",
+                "candidate_tag": "debug",
+                "labeler_1": "misleading",
+                "labeler_2": "wrong",
+                "adjudicated_label": "",
+            },
+        ]
+
+        _, summary = score_tag_adequacy_rows(rows)
+
+        self.assertEqual(tag_adequacy_status(summary), "human_labels_scored")
+        self.assertEqual(summary["final_label_counts"]["adequate"], 1)
+        self.assertEqual(summary["final_label_counts"]["generic_noisy"], 1)
+        self.assertEqual(summary["final_label_counts"]["misleading"], 1)
+        self.assertEqual(summary["inter_labeler_agreement_pct"], 100.0)
+        self.assertEqual(cohen_kappa([("adequate", "adequate"), ("misleading", "misleading")]), 1.0)
+        self.assertFalse(tag_adequacy_claim_gate(summary)["adequacy_supported"])
+
+    def test_tag_adequacy_gate_requires_candidate_tags_and_strong_labels(self) -> None:
+        strong_rows = [
+            {
+                "fragment_index": str(idx),
+                "fragment_hash": f"h{idx}",
+                "kind": "prompt",
+                "source": "codex",
+                "candidate_tag": "review",
+                "labeler_1": "adequate",
+                "labeler_2": "adequate",
+                "adjudicated_label": "",
+            }
+            for idx in range(3)
+        ]
+        _, strong_summary = score_tag_adequacy_rows(strong_rows)
+        strong_gate = tag_adequacy_claim_gate(strong_summary)
+
+        self.assertTrue(strong_gate["complete_candidate_tags"])
+        self.assertTrue(strong_gate["complete_strong_final_labels"])
+        self.assertTrue(strong_gate["adequacy_supported"])
+
+        single_label_rows = [
+            {
+                **row,
+                "labeler_2": "",
+            }
+            for row in strong_rows
+        ]
+        _, single_summary = score_tag_adequacy_rows(single_label_rows)
+        single_gate = tag_adequacy_claim_gate(single_summary)
+
+        self.assertEqual(single_summary["single_label_count"], 3)
+        self.assertFalse(single_gate["complete_strong_final_labels"])
+        self.assertFalse(single_gate["adequacy_supported"])
+
+        missing_tag_rows = [
+            {
+                **row,
+                "candidate_tag": "",
+            }
+            for row in strong_rows
+        ]
+        _, missing_tag_summary = score_tag_adequacy_rows(missing_tag_rows)
+        missing_tag_gate = tag_adequacy_claim_gate(missing_tag_summary)
+
+        self.assertFalse(missing_tag_gate["complete_candidate_tags"])
+        self.assertFalse(missing_tag_gate["adequacy_supported"])
+
+    def test_tag_adequacy_gate_rejects_adjudicated_only_rows(self) -> None:
+        rows = [
+            {
+                "fragment_index": "0",
+                "fragment_hash": "h0",
+                "kind": "prompt",
+                "source": "codex",
+                "candidate_tag": "review",
+                "labeler_1": "adequate",
+                "labeler_2": "adequate",
+                "adjudicated_label": "",
+            },
+            {
+                "fragment_index": "1",
+                "fragment_hash": "h1",
+                "kind": "prompt",
+                "source": "codex",
+                "candidate_tag": "review",
+                "labeler_1": "",
+                "labeler_2": "",
+                "adjudicated_label": "adequate",
+            },
+        ]
+
+        _, summary = score_tag_adequacy_rows(rows)
+        gate = tag_adequacy_claim_gate(summary)
+
+        self.assertEqual(summary["final_label_count"], 2)
+        self.assertEqual(summary["strong_final_label_count"], 2)
+        self.assertEqual(summary["both_labeler_count"], 1)
+        self.assertFalse(gate["complete_paired_labels"])
+        self.assertFalse(gate["adequacy_supported"])
+
+    def test_tag_adequacy_requires_adjudication_for_disagreement(self) -> None:
+        rows = [
+            {
+                "fragment_index": "0",
+                "fragment_hash": "abc",
+                "kind": "prompt",
+                "source": "codex",
+                "candidate_tag": "review",
+                "labeler_1": "adequate",
+                "labeler_2": "misleading",
+                "adjudicated_label": "",
+            }
+        ]
+
+        scored, summary = score_tag_adequacy_rows(rows)
+
+        self.assertEqual(scored[0]["label_state"], "needs_adjudication")
+        self.assertEqual(summary["unadjudicated_disagreement_count"], 1)
+        self.assertEqual(tag_adequacy_status(summary), "human_labels_partial")
 
     def test_visual_summary_helpers_keep_svg_values_bounded(self) -> None:
         self.assertEqual(verdict_color("supported"), "#2f855a")

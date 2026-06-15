@@ -310,7 +310,7 @@ Raw join 仍只有 22.055\%，这是预期结果：wrapper、sibling 和 out-of-
 
 Full run 和 R123 证明 3B 模型路径可用，但没有证明 0.6B 或 1B 足够。
 R122 从本机 290 个 parsed sessions 中抽取 300 个 redacted fragments：100 个 session、100 个 prompt、100 个 LLM-call。
-R123 用本地 llama.cpp 3B server 对这 300 个 fragments 做三次 identical repeats，共 900 次请求；结果是 900/900 valid tags，282/300 exact-stable fragments（94.000\%），模型加载约 1,002 ms，请求延迟 p50/p95 为 11/30 ms。
+R123 用本地 llama.cpp 3B server 对这 300 个 fragments 做三次 identical repeats，共 900 次请求；结果是 900/900 valid tags，285/300 exact-stable fragments（95.000\%），模型加载约 1,002 ms，请求延迟 p50/p95 为 11/31 ms。
 这支持 3B syntax、latency 和 repeated-input stability，但不支持 human adequacy。
 OSDI 版本还需要 R124 人工 adequacy labels；如果论文要声称 0.6B/1B，也必须加入真实 GGUF weights 后重跑。
 一词标签应该被定位为 lossy navigation frames，而不是 semantic truth。
@@ -352,7 +352,7 @@ OSDI reviewer 最可能挑战的点是 C4、C5 和 C6：C4 已经有固定 comma
     unsupported &
     需要 trace tree/span flamegraph/flat/semantic 视图的 paired user benchmark。 \\
     C6 tag adequacy &
-    3B full run syntax gate 通过；R123 真实 redacted fragments 上 900/900 valid，282/300 exact-stable，p95 30 ms；可观察到少量 noisy tags。 &
+    3B full run syntax gate 通过；R123 真实 redacted fragments 上 900/900 valid，285/300 exact-stable，p95 31 ms；可观察到少量 noisy tags。 &
     partial &
     需要 R124 人工 adequacy labels；若要声称 0.6B/1B 还需真实模型 benchmark。 \\
     \bottomrule

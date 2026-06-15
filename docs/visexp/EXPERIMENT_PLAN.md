@@ -247,6 +247,7 @@ deterministic system-effect provenance and folded-stack aggregation.
 | R121 | decision | real local model benchmark | `agentflame bench` over available 0.6B/1B/3B-class GGUF models | 3 fixed fragments x 3 identical repeats | C2 can cite only models that actually ran; C6 remains partial unless stability and adequacy pass | medium | missing model sizes and small smoke sample |
 | R122 | decision | redacted tag adequacy packet | 100 session + 100 prompt + 100 LLM-call fragments | deterministic sample | label packet and redaction gate | low | trace privacy |
 | R123 | decision | real-fragment stability benchmark | R122 fragment file through 3B llama.cpp server | 300 fragments x 3 identical repeats | C2/C6 can cite 3B stability only if grammar/latency/stability pass | low | missing model sizes |
+| R124-scoring | decision | tag adequacy scorer and empty-result gate | R122 label packet with no human labels yet | deterministic scorer over 300 rows | output must have 300/300 candidate tags, stay `human_labels_empty`, and keep C6 partial until labels exist | low | evidence boundary |
 | R124 | decision | human tag adequacy labels | R122 label packet | >=2 labelers if possible | tag adequacy wording | medium | subjective labels |
 | R131 | decision | semantic-axis ablation | no/session/prompt/full variants plus token LLM-call projections | deterministic | passed for C3 mechanism: totals and external folded cross-checks preserved; system prompt-only reduces mixed full semantic bucket weight from 90.219% to 37.687% and residual from 44.639% to 7.526%; token prompt+LLM-call remains 95.765% bucket mixed but only 0.027% residual | low | done for C3; C6/B4 deferred |
 | R141-packet | decision | superseded user-task packet draft | old `user_task_benchmark.py` packet before same-slice enforcement | deterministic 14 tasks x 5 conditions; P01-P05 assignments; 0 responses | superseded by R142 because same-event-slice fairness was unresolved | low | superseded |
@@ -263,6 +264,7 @@ deterministic system-effect provenance and folded-stack aggregation.
   - `.agentsight/agentflame/model-benchmarks*.json` and
     `docs/visexp/out/model-benchmarks-r12*.json` for model cost/stability.
   - `.agentsight/agentflame/ablations-*` for semantic-axis ablations.
+  - `docs/visexp/out/tag-adequacy-results-r124.*` for C6 human-label scoring.
   - `docs/visexp/out/user-task-results.*` for benchmark scoring.
 - Required tracker columns: Run ID, Claim, Block, Purpose, Command/config,
   Commit, Machine, Seed/reps, Oracle, Decision gate, Result path, Status.
@@ -305,6 +307,9 @@ deterministic system-effect provenance and folded-stack aggregation.
   packet/scorer executable for a pilot, but no participant responses have been
   collected.
 - Current tag adequacy is unproven even though syntax validity is strong.
+  R124-scoring can score labels and reports the current packet as
+  `human_labels_empty` with 300/300 candidate tags, so it is a reproducibility
+  artifact rather than adequacy evidence.
 - These limitations are acceptable for internal planning but not for OSDI final
   claims.
 
@@ -317,4 +322,4 @@ deterministic system-effect provenance and folded-stack aggregation.
 | C3 | `.agentsight/agentflame/latest/agentflame.json` | supported | semantic partitioning in local workload |
 | C4 | `docs/visexp/out/native-lineage-r112.json`, `docs/visexp/out/live-record-r114.json`, `docs/visexp/out/live-record-r114-analysis.json` | supported for fixed command-mode suite; partial broadly | exact lineage over the fixed 20-task command-mode suite; full-history and cross-repo provenance pending |
 | C5 | `docs/visexp/out/user-task-benchmark.json`, `docs/visexp/out/user-task-results.json` | unsupported | same-slice packet exists; no user outcome claim |
-| C6 | model benchmark and labels pending | partial | syntactic tags, adequacy unproven |
+| C6 | `docs/visexp/out/model-benchmarks-r123.json`, `docs/visexp/out/tag-adequacy-results-r124.json` | partial | 3B syntactic/stability evidence; adequacy scorer ready but labels empty |

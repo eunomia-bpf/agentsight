@@ -98,11 +98,11 @@ Current evidence:
   request latency after a 1002 ms load. Exact fixed-input stability was mixed:
   2/3 fragments were exact-stable and one coding fragment drifted from
   `refactor` to `test`.
-- R122 sampled 300 real redacted fragments from 290 parsed local sessions:
+- R122 sampled 300 real redacted fragments from 294 parsed local sessions:
   100 session summaries, 100 prompt fragments, and 100 LLM-call fragments.
 - R123 ran the R122 fragment file through the local 3B llama.cpp server with
   3 identical repeats per fragment: 900/900 valid tags, 1002 ms load, p95
-  request latency 30 ms, and 282/300 exact-stable fragments.
+  request latency 31 ms, and 285/300 exact-stable fragments.
 
 Remaining gap:
 
@@ -258,6 +258,10 @@ Required evidence:
 Current evidence:
 
 - The full 3B run has 0 malformed prompt and LLM-call tags.
+- R124-scoring now reads the R122 human-label packet and emits an auditable
+  empty result when no labels exist: 300 packet rows, 300 candidate tags, 0
+  final labels, `human_labels_empty`, and `adequacy_supported=false`. This
+  prepares the gate but does not support adequacy.
 - Some tags are clearly useful (`refactor`, `review`, `test`, `analyze`,
   `design`, `research`), but some are noisy or over-specific
   (`agentsightsm`, `testcodex`, `designcodex`, `bashoutput`).
@@ -275,7 +279,7 @@ Remaining gap:
 | C3 | Semantic frames expose task-effect mixtures hidden by nonsemantic and flat summaries. | supported as mechanism | stronger examples and task benchmark |
 | C4 | Exact AgentSight lineage connects semantic intent to process/file/network effects. | supported for fixed command-mode suite; partial broadly | cross-repo/full-history exact integration and user-task outcomes |
 | C5 | Developers answer debugging/audit questions better with semantic effect flamegraphs. | unsupported; R142-packet exists | user/task benchmark responses with preregistered effect-size and statistics plan |
-| C6 | One-word tags are stable and adequate enough for navigation. | partial | human adequacy labels with thresholds and 0.6B/1B evidence if claimed |
+| C6 | One-word tags are stable and adequate enough for navigation. | partial; R124 scorer exists but labels are empty | human adequacy labels with thresholds and 0.6B/1B evidence if claimed |
 | C7 | The approach is practical as an open-source developer tool. | partial | one-command install/run, runtime/cost, docs, artifact hygiene |
 
 ## Experiment Matrix

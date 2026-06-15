@@ -180,6 +180,10 @@ Current partial evidence:
 - Full 3B run has 0 malformed tags.
 - Some noisy tags exist, such as `agentsightsm`, `testcodex`, and
   `bashoutput`.
+- R122 creates a redacted 300-fragment label packet, and R124-scoring now
+  scores that packet without fabricating labels. The packet now includes
+  300/300 candidate tags from the R123 llama.cpp benchmark. The current output
+  is `human_labels_empty` with 0 final labels, so adequacy remains unproven.
 
 Status: partial. Syntax is strong; adequacy is unproven.
 
