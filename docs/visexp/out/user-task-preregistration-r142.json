@@ -1,0 +1,323 @@
+{
+  "schema_version": 1,
+  "run_id": "R142-preregistration",
+  "claim": "C5",
+  "status": "frozen_before_collection",
+  "generated_at": "2026-06-15T10:00:42+00:00",
+  "source_files": {
+    "bundle": {
+      "path": "docs/visexp/out/user-task-benchmark.json",
+      "sha256": "4d7536c025ae01918f747b0f3656e83891b082b7bbc65e9d8fbda9477b02240f"
+    },
+    "assignments": {
+      "path": "docs/visexp/out/user-task-assignments.csv",
+      "sha256": "50adc55106c8495c564f7754b00168157de81e4f2e55d5060b82507e33bdbf54"
+    },
+    "answer_key": {
+      "path": "docs/visexp/out/user-task-answer-key.csv",
+      "sha256": "f8c9fc0ee23d979de5bc88f490f06b11d3064d282be0828f84e2967449d6e70b"
+    },
+    "response_template": {
+      "path": "docs/visexp/out/user-task-response-template.csv",
+      "sha256": "087a6577bd2a6182dacc21b259cba22517bad9974aaca4f943a4403eec17f972"
+    },
+    "scorer": {
+      "path": "docs/visexp/score_user_task_results.py",
+      "sha256": "738e911eca488870d3a29f7417db344d51300710a8b9ba982a127a16d3f211d8"
+    }
+  },
+  "tasks": {
+    "task_count": 14,
+    "primary_utility_task_count": 8,
+    "limitation_or_comprehension_task_count": 6,
+    "analysis_role_counts": {
+      "limitation_check": 6,
+      "primary_utility": 8
+    },
+    "primary_task_ids": [
+      "UT01",
+      "UT04",
+      "UT05",
+      "UT06",
+      "UT07",
+      "UT08",
+      "UT09",
+      "UT10"
+    ],
+    "nonprimary_task_ids": [
+      "UT02",
+      "UT03",
+      "UT11",
+      "UT12",
+      "UT13",
+      "UT14"
+    ],
+    "all_task_ids": [
+      "UT01",
+      "UT02",
+      "UT03",
+      "UT04",
+      "UT05",
+      "UT06",
+      "UT07",
+      "UT08",
+      "UT09",
+      "UT10",
+      "UT11",
+      "UT12",
+      "UT13",
+      "UT14"
+    ]
+  },
+  "conditions": {
+    "semantic_condition": "semantic-stack",
+    "baseline_conditions": [
+      "trace-tree",
+      "event-count-proxy",
+      "flat-summary",
+      "nonsemantic-stack"
+    ],
+    "condition_order": [
+      "trace-tree",
+      "event-count-proxy",
+      "flat-summary",
+      "nonsemantic-stack",
+      "semantic-stack"
+    ],
+    "baseline_boundary": "event-count-proxy is an event/count-weight view, not a span-duration baseline; a true span-duration baseline requires measured timestamp/duration reconstruction."
+  },
+  "response_unit": "one participant x task x condition row",
+  "response_schema": {
+    "required_fields": [
+      "condition",
+      "confidence",
+      "notes",
+      "order_index",
+      "packet_id",
+      "participant_id",
+      "response_json",
+      "task_id",
+      "task_time_seconds"
+    ],
+    "template_fields": [
+      "participant_id",
+      "order_index",
+      "packet_id",
+      "task_id",
+      "condition",
+      "response_json",
+      "task_time_seconds",
+      "confidence",
+      "notes"
+    ],
+    "confidence_range": [
+      1,
+      5
+    ],
+    "task_time_seconds": "finite positive seconds",
+    "response_json": "JSON object containing each task's required answer fields"
+  },
+  "assignment_design": {
+    "assignment_row_count": 70,
+    "participant_ids": [
+      "P01",
+      "P02",
+      "P03",
+      "P04",
+      "P05"
+    ],
+    "participant_count": 5,
+    "rows_per_participant": {
+      "P01": 14,
+      "P02": 14,
+      "P03": 14,
+      "P04": 14,
+      "P05": 14
+    },
+    "rows_per_task": {
+      "UT01": 5,
+      "UT02": 5,
+      "UT03": 5,
+      "UT04": 5,
+      "UT05": 5,
+      "UT06": 5,
+      "UT07": 5,
+      "UT08": 5,
+      "UT09": 5,
+      "UT10": 5,
+      "UT11": 5,
+      "UT12": 5,
+      "UT13": 5,
+      "UT14": 5
+    },
+    "complete_task_condition_coverage": true,
+    "conditions_per_task": {
+      "UT01": [
+        "event-count-proxy",
+        "flat-summary",
+        "nonsemantic-stack",
+        "semantic-stack",
+        "trace-tree"
+      ],
+      "UT02": [
+        "event-count-proxy",
+        "flat-summary",
+        "nonsemantic-stack",
+        "semantic-stack",
+        "trace-tree"
+      ],
+      "UT03": [
+        "event-count-proxy",
+        "flat-summary",
+        "nonsemantic-stack",
+        "semantic-stack",
+        "trace-tree"
+      ],
+      "UT04": [
+        "event-count-proxy",
+        "flat-summary",
+        "nonsemantic-stack",
+        "semantic-stack",
+        "trace-tree"
+      ],
+      "UT05": [
+        "event-count-proxy",
+        "flat-summary",
+        "nonsemantic-stack",
+        "semantic-stack",
+        "trace-tree"
+      ],
+      "UT06": [
+        "event-count-proxy",
+        "flat-summary",
+        "nonsemantic-stack",
+        "semantic-stack",
+        "trace-tree"
+      ],
+      "UT07": [
+        "event-count-proxy",
+        "flat-summary",
+        "nonsemantic-stack",
+        "semantic-stack",
+        "trace-tree"
+      ],
+      "UT08": [
+        "event-count-proxy",
+        "flat-summary",
+        "nonsemantic-stack",
+        "semantic-stack",
+        "trace-tree"
+      ],
+      "UT09": [
+        "event-count-proxy",
+        "flat-summary",
+        "nonsemantic-stack",
+        "semantic-stack",
+        "trace-tree"
+      ],
+      "UT10": [
+        "event-count-proxy",
+        "flat-summary",
+        "nonsemantic-stack",
+        "semantic-stack",
+        "trace-tree"
+      ],
+      "UT11": [
+        "event-count-proxy",
+        "flat-summary",
+        "nonsemantic-stack",
+        "semantic-stack",
+        "trace-tree"
+      ],
+      "UT12": [
+        "event-count-proxy",
+        "flat-summary",
+        "nonsemantic-stack",
+        "semantic-stack",
+        "trace-tree"
+      ],
+      "UT13": [
+        "event-count-proxy",
+        "flat-summary",
+        "nonsemantic-stack",
+        "semantic-stack",
+        "trace-tree"
+      ],
+      "UT14": [
+        "event-count-proxy",
+        "flat-summary",
+        "nonsemantic-stack",
+        "semantic-stack",
+        "trace-tree"
+      ]
+    },
+    "contiguous_order_indices_per_participant": true
+  },
+  "analysis_plan": {
+    "primary_task_role": "primary_utility",
+    "primary_task_ids": [
+      "UT01",
+      "UT04",
+      "UT05",
+      "UT06",
+      "UT07",
+      "UT08",
+      "UT09",
+      "UT10"
+    ],
+    "pilot_min_participants": 5,
+    "paper_min_participants": 12,
+    "minimum_primary_pairs_per_baseline": 8,
+    "primary_endpoints": [
+      "exact_accuracy_pct",
+      "log_time_seconds"
+    ],
+    "secondary_metrics": [
+      "field_accuracy_pct",
+      "confidence"
+    ],
+    "guardrail": "false_positive_response_share_pct",
+    "diagnostic_test": "paired task-level sign-flip permutation",
+    "paper_scale_test": "participant-task-order fixed-effect blocked permutation",
+    "holm_family": "primary baseline comparisons x accuracy/time endpoints",
+    "monte_carlo_permutations": 4096,
+    "success_rule": "Semantic-stack must beat every baseline on primary utility tasks by >=10 pp exact accuracy or >=20% median task-time reduction, with Holm-corrected p<=0.05 and no >5 pp false-positive increase."
+  },
+  "exclusion_rules": [
+    "Reject a response CSV with missing required columns.",
+    "Reject duplicate participant/task/condition/packet assignment rows.",
+    "Reject rows outside the committed assignment file when assignments are provided.",
+    "Reject partial real-response files once any assigned row is scorable.",
+    "Reject nonpositive or non-finite task_time_seconds.",
+    "Reject confidence values outside 1..5.",
+    "Do not drop tasks or participants after seeing outcomes unless the exclusion is documented before scoring."
+  ],
+  "claim_boundaries": [
+    "Pilot results can validate task wording and instrumentation but cannot support paper-scale C5.",
+    "C5 remains unsupported while user-task-results.json is participant_results_empty.",
+    "Subagent, LLM, or author-filled mock responses do not count as participant evidence.",
+    "A true span-duration comparison must be registered as a new condition if reconstructed later."
+  ],
+  "validation": {
+    "status": "ok",
+    "errors": [],
+    "answer_key_row_count": 14,
+    "answer_key_fields": [
+      "task_id",
+      "answer_json"
+    ],
+    "assignment_fields": [
+      "participant_id",
+      "order_index",
+      "task_id",
+      "condition",
+      "packet_id"
+    ],
+    "response_template_row_count": 70
+  },
+  "provenance": {
+    "repo_commit": "846f824a0d1069ae24ff0cdadf972e8d40269dfb",
+    "repo_dirty": true,
+    "script_sha256": "ab63b8352ac3704fcb8c29de000e23475a8644e4e17a8bdcce08dba52d3f4a25"
+  }
+}

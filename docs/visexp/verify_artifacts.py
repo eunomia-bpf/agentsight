@@ -185,6 +185,51 @@ def run(out_dir: Path) -> dict[str, int | str]:
             raise AssertionError("empty C5 participant results must not support C5")
         if gate.get("c5_supported") and not gate.get("paper_model_ready"):
             raise AssertionError("C5 cannot be supported without the paper-scale model gate")
+        prereg_path = out_dir / "user-task-preregistration-r142.json"
+        if not prereg_path.exists():
+            raise AssertionError("R142 user-task preregistration artifact is missing")
+        prereg = json.loads(prereg_path.read_text(encoding="utf-8"))
+        if prereg.get("status") != "frozen_before_collection":
+            raise AssertionError("R142 preregistration must be frozen before participant collection")
+        if (prereg.get("validation") or {}).get("status") != "ok":
+            raise AssertionError("R142 preregistration validation did not pass")
+        prereg_conditions = prereg.get("conditions") or {}
+        if prereg_conditions.get("semantic_condition") != thresholds.get("semantic_condition"):
+            raise AssertionError("R142 preregistration semantic condition does not match scorer")
+        if prereg_conditions.get("baseline_conditions") != thresholds.get("baseline_conditions"):
+            raise AssertionError("R142 preregistration baselines do not match scorer")
+        if "event-count-proxy" not in prereg_conditions.get("condition_order", []):
+            raise AssertionError("R142 preregistration must include event-count-proxy")
+        if "span-duration" in prereg_conditions.get("condition_order", []):
+            raise AssertionError("R142 preregistration must not contain span-duration")
+        prereg_plan = prereg.get("analysis_plan") or {}
+        if prereg_plan.get("paper_scale_test") != thresholds.get("paper_scale_test"):
+            raise AssertionError("R142 preregistration paper-scale test does not match scorer")
+        if "order" not in str(prereg_plan.get("paper_scale_test")):
+            raise AssertionError("R142 preregistration must block on participant/task/order")
+        if prereg_plan.get("paper_min_participants") != thresholds.get("min_participants_for_claim"):
+            raise AssertionError("R142 preregistration participant threshold does not match scorer")
+        if (prereg.get("tasks") or {}).get("task_count") != len({packet["task_id"] for packet in packets}):
+            raise AssertionError("R142 preregistration task count does not match packets")
+        if (prereg.get("tasks") or {}).get("primary_utility_task_count") != thresholds.get("min_task_pairs_for_claim"):
+            raise AssertionError("R142 preregistration primary task count must equal the C5 claim threshold")
+        assignment = prereg.get("assignment_design") or {}
+        if assignment.get("assignment_row_count") != len(template_rows):
+            raise AssertionError("R142 preregistration assignment row count does not match response template")
+        if not assignment.get("complete_task_condition_coverage"):
+            raise AssertionError("R142 preregistration assignment must cover every condition per task")
+        source_files = prereg.get("source_files") or {}
+        expected_hash_paths = {
+            "bundle": out_dir / "user-task-benchmark.json",
+            "assignments": out_dir / "user-task-assignments.csv",
+            "answer_key": out_dir / "user-task-answer-key.csv",
+            "response_template": response_template_path,
+            "scorer": Path(__file__).resolve().parent / "score_user_task_results.py",
+        }
+        for name, path in expected_hash_paths.items():
+            recorded = (source_files.get(name) or {}).get("sha256")
+            if recorded != file_sha256(path):
+                raise AssertionError(f"R142 preregistration source hash mismatch for {name}")
         claim_gates_path = out_dir / "claim-gates.csv"
         if claim_gates_path.exists():
             with claim_gates_path.open("r", encoding="utf-8", newline="") as handle:

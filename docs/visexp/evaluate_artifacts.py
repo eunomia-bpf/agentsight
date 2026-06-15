@@ -318,6 +318,7 @@ def compact_tag_adequacy(adequacy: dict[str, Any] | None) -> dict[str, Any] | No
 def user_task_evidence(
     bundle: dict[str, Any] | None,
     results: dict[str, Any] | None = None,
+    preregistration: dict[str, Any] | None = None,
     response_template_exists: bool = False,
 ) -> str:
     if not bundle:
@@ -325,6 +326,9 @@ def user_task_evidence(
     tasks = bundle.get("tasks", [])
     status = bundle.get("status", "unknown")
     template = "present" if response_template_exists else "missing"
+    prereg = preregistration or {}
+    prereg_status = prereg.get("status", "missing")
+    prereg_validation = (prereg.get("validation") or {}).get("status", "missing")
     thresholds = ((results or {}).get("claim_analysis") or {}).get("thresholds") or {}
     baselines = ",".join(thresholds.get("baseline_conditions") or bundle.get("condition_order") or [])
     paper_test = thresholds.get("paper_scale_test") or "unknown"
@@ -333,6 +337,7 @@ def user_task_evidence(
             f"task_bundle={status} task_count={len(tasks)} "
             "scorer=ready "
             f"response_template={template} "
+            f"preregistration={prereg_status}/{prereg_validation} "
             f"baselines={baselines} "
             f"paper_test={paper_test} "
             "participant_results=missing"
@@ -344,6 +349,7 @@ def user_task_evidence(
             f"task_bundle={status} task_count={len(tasks)} "
             "scorer=ready "
             f"response_template={template} "
+            f"preregistration={prereg_status}/{prereg_validation} "
             f"baselines={baselines} "
             f"paper_test={paper_test} "
             f"ignored_placeholder_rows={results.get('ignored_placeholder_rows')} "
@@ -359,6 +365,7 @@ def user_task_evidence(
         f"scorer_results={results.get('status', 'unknown')} "
         f"participants={results.get('participant_count')} "
         f"responses={results.get('response_count')} "
+        f"preregistration={prereg_status}/{prereg_validation} "
         f"baselines={baselines} "
         f"paper_test={paper_test} "
         f"exact_accuracy_pct={results.get('summary', {}).get('overall', {}).get('exact_accuracy_pct')} "
@@ -580,6 +587,7 @@ def build_claim_gates(
     stability: dict[str, Any] | None = None,
     user_tasks: dict[str, Any] | None = None,
     user_task_results: dict[str, Any] | None = None,
+    user_task_preregistration: dict[str, Any] | None = None,
     response_template_exists: bool = False,
     effect_lineage: dict[str, Any] | None = None,
     live_lineage: dict[str, Any] | None = None,
@@ -669,7 +677,12 @@ def build_claim_gates(
             "claim": "C5 user utility over trace tree/process logs",
             "verdict": "supported" if c5_supported else "unsupported",
             "oracle": "requires scored participant responses with time, accuracy, false positives, and confidence",
-            "evidence": user_task_evidence(user_tasks, user_task_results, response_template_exists),
+            "evidence": user_task_evidence(
+                user_tasks,
+                user_task_results,
+                user_task_preregistration,
+                response_template_exists,
+            ),
         },
         {
             "claim": "C4 exact AgentSight effect stream preserves value",
@@ -853,6 +866,10 @@ def run(out_dir: Path, write_outputs: bool = True) -> dict[str, Any]:
     user_tasks = read_json(user_tasks_path) if user_tasks_path.exists() else None
     user_task_results_path = out_dir / "user-task-results.json"
     user_task_results = read_json(user_task_results_path) if user_task_results_path.exists() else None
+    user_task_preregistration_path = out_dir / "user-task-preregistration-r142.json"
+    user_task_preregistration = (
+        read_json(user_task_preregistration_path) if user_task_preregistration_path.exists() else None
+    )
     response_template_exists = (out_dir / "user-task-response-template.csv").exists()
     tag_adequacy_path = out_dir / "tag-adequacy-results-r124.json"
     tag_adequacy = read_json(tag_adequacy_path) if tag_adequacy_path.exists() else None
@@ -878,6 +895,7 @@ def run(out_dir: Path, write_outputs: bool = True) -> dict[str, Any]:
         stability,
         user_tasks,
         user_task_results,
+        user_task_preregistration,
         response_template_exists,
         effect_lineage,
         live_lineage,
@@ -918,6 +936,7 @@ def run(out_dir: Path, write_outputs: bool = True) -> dict[str, Any]:
         "tag_adequacy_results": compact_tag_adequacy(tag_adequacy),
         "user_task_benchmark": user_tasks,
         "user_task_results": user_task_results,
+        "user_task_preregistration": user_task_preregistration,
         "effect_lineage_smoke": effect_lineage,
         "live_lineage_r110": live_lineage,
         "native_lineage_r111": native_lineage,

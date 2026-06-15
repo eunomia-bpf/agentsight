@@ -41,8 +41,10 @@ from r124_blinded_label_sheet import (
     VISIBLE_FIELDS as R124_BLINDED_FIELDS,
     blinded_row as r124_blinded_row,
 )
+from r142_preregistration import validate_preregistration as validate_r142_preregistration
 from score_user_task_results import (
     BASELINE_CONDITIONS,
+    REQUIRED_RESPONSE_FIELDS,
     SEMANTIC_CONDITION,
     claim_analysis,
     is_placeholder_response,
@@ -361,6 +363,77 @@ class AggregationTests(unittest.TestCase):
         )
         self.assertIn("event-count-proxy", CONDITION_ORDER)
         self.assertNotIn("span-duration", CONDITION_ORDER)
+
+    def test_r142_preregistration_accepts_event_count_proxy_contract(self) -> None:
+        tasks = []
+        for idx in range(1, 15):
+            tasks.append(
+                {
+                    "task_id": f"UT{idx:02d}",
+                    "analysis_role": "primary_utility" if idx <= 8 else "limitation_check",
+                    "participant_view_conditions": [{"condition": condition} for condition in CONDITION_ORDER],
+                }
+            )
+        assignments = build_assignments(tasks)
+        response_rows = [
+            {
+                **row,
+                "response_json": "{}",
+                "task_time_seconds": "",
+                "confidence": "",
+                "notes": "",
+            }
+            for row in assignments
+        ]
+        answer_rows = [{"task_id": task["task_id"]} for task in tasks]
+
+        errors = validate_r142_preregistration(
+            {"tasks": tasks, "condition_order": CONDITION_ORDER},
+            assignments,
+            answer_rows,
+            response_rows,
+            sorted(REQUIRED_RESPONSE_FIELDS),
+        )
+
+        self.assertEqual(errors, [])
+
+    def test_r142_preregistration_rejects_span_duration_proxy_name(self) -> None:
+        bad_conditions = [
+            "trace-tree",
+            "span-duration",
+            "flat-summary",
+            "nonsemantic-stack",
+            "semantic-stack",
+        ]
+        tasks = [
+            {
+                "task_id": f"UT{idx:02d}",
+                "analysis_role": "primary_utility" if idx <= 8 else "limitation_check",
+                "participant_view_conditions": [{"condition": condition} for condition in bad_conditions],
+            }
+            for idx in range(1, 15)
+        ]
+        assignments = build_assignments(tasks)
+        response_rows = [
+            {
+                **row,
+                "response_json": "{}",
+                "task_time_seconds": "",
+                "confidence": "",
+                "notes": "",
+            }
+            for row in assignments
+        ]
+
+        errors = validate_r142_preregistration(
+            {"tasks": tasks, "condition_order": bad_conditions},
+            assignments,
+            [{"task_id": task["task_id"]} for task in tasks],
+            response_rows,
+            sorted(REQUIRED_RESPONSE_FIELDS),
+        )
+
+        self.assertTrue(any("span-duration" in error for error in errors))
 
     def test_effect_lineage_joins_child_process_effects_to_tool(self) -> None:
         snapshot = {
