@@ -169,15 +169,16 @@ deterministic system-effect provenance and folded-stack aggregation.
 - Run budget: pilot 5 developers for complete condition coverage; paper 12-20 developers or a smaller
   expert-study with careful limitations.
 - Oracle: preregistered answer key from exact event/provenance data.
-- Current result: R141-packet generated the current draft artifact from
+- Current result: R142-packet generated the current pilot packet from
   R114/R123/R131/full-run inputs: 14 tasks, split into 8 primary utility tasks
   and 6 limitation/comprehension tasks; five conditions (`trace-tree`,
   `span-duration`, `flat-summary`, `nonsemantic-stack`, `semantic-stack`); 70
   blinded packets with recursive forbidden-key leakage checks; a P01-P05
   counterbalanced assignment template; a hidden answer key; script/output
   manifests; and an empty scorer output marked `participant_results_empty` with
-  null aggregate metrics. The remaining must-fix before collecting participants
-  is same-event-slice baseline fairness.
+  null aggregate metrics. For baseline fairness, each task's five condition
+  excerpts share exactly one `slice_id`, so all views are derived from the same
+  evidence slice.
 - Success criterion: semantic view improves exact answer accuracy by >=10
   percentage points or median task time by >=20% on core forensic tasks, with no
   >5 percentage-point increase in false positives, under paired permutation or
@@ -248,8 +249,9 @@ deterministic system-effect provenance and folded-stack aggregation.
 | R123 | decision | real-fragment stability benchmark | R122 fragment file through 3B llama.cpp server | 300 fragments x 3 identical repeats | C2/C6 can cite 3B stability only if grammar/latency/stability pass | low | missing model sizes |
 | R124 | decision | human tag adequacy labels | R122 label packet | >=2 labelers if possible | tag adequacy wording | medium | subjective labels |
 | R131 | decision | semantic-axis ablation | no/session/prompt/full variants plus token LLM-call projections | deterministic | passed for C3 mechanism: totals and external folded cross-checks preserved; system prompt-only reduces mixed full semantic bucket weight from 90.219% to 37.687% and residual from 44.639% to 7.526%; token prompt+LLM-call remains 95.765% bucket mixed but only 0.027% residual | low | done for C3; C6/B4 deferred |
-| R141-packet | decision | user-task packet draft and empty scorer check | `user_task_benchmark.py` over current artifacts; scorer over response template | deterministic 14 tasks x 5 conditions; P01-P05 assignments; 0 responses | draft acceptable only if leakage/assignment/scorer checks pass; same-event-slice fairness still blocks participants | low | done/draft |
-| R141 | main | user task pilot | 5 developers, five conditions | counterbalanced P01-P05 template | protocol and answer keys work on real responses | medium | recruiting |
+| R141-packet | decision | superseded user-task packet draft | old `user_task_benchmark.py` packet before same-slice enforcement | deterministic 14 tasks x 5 conditions; P01-P05 assignments; 0 responses | superseded by R142 because same-event-slice fairness was unresolved | low | superseded |
+| R142-packet | decision | same-event-slice user-task packet and empty scorer check | `user_task_benchmark.py` over current artifacts; scorer over response template | deterministic 14 tasks x 5 conditions; P01-P05 assignments; 0 responses | packet ready only if leakage, assignment, same-slice, and scorer checks pass | low | done/packet |
+| R142 | main | user task pilot | 5 developers, five conditions | counterbalanced P01-P05 template | protocol and answer keys work on real responses | medium | recruiting |
 | R151 | main | user task paper run | 12-20 developers or scoped expert study | counterbalanced | C5 verdict | high | strongest missing evidence |
 
 ## Tracker Handoff
@@ -299,9 +301,9 @@ deterministic system-effect provenance and folded-stack aggregation.
   capture-time record passes on 20 fixed Codex tasks. The remaining uncertainty
   is full-history, cross-repo, and broader workload coverage, not command-mode
   capture-time row creation.
-- Current user utility outcome evidence is absent. R141-packet makes the B4
-  packet/scorer draft executable, but same-event-slice baseline fairness still
-  blocks participant collection.
+- Current user utility outcome evidence is absent. R142-packet makes the B4
+  packet/scorer executable for a pilot, but no participant responses have been
+  collected.
 - Current tag adequacy is unproven even though syntax validity is strong.
 - These limitations are acceptable for internal planning but not for OSDI final
   claims.
@@ -314,5 +316,5 @@ deterministic system-effect provenance and folded-stack aggregation.
 | C2 | `.agentsight/agentflame/latest/tags.json` | partial | 3B syntactic feasibility |
 | C3 | `.agentsight/agentflame/latest/agentflame.json` | supported | semantic partitioning in local workload |
 | C4 | `docs/visexp/out/native-lineage-r112.json`, `docs/visexp/out/live-record-r114.json`, `docs/visexp/out/live-record-r114-analysis.json` | supported for fixed command-mode suite; partial broadly | exact lineage over the fixed 20-task command-mode suite; full-history and cross-repo provenance pending |
-| C5 | `docs/visexp/out/user-task-benchmark.json`, `docs/visexp/out/user-task-results.json` | unsupported | draft packet exists; no user outcome claim |
+| C5 | `docs/visexp/out/user-task-benchmark.json`, `docs/visexp/out/user-task-results.json` | unsupported | same-slice packet exists; no user outcome claim |
 | C6 | model benchmark and labels pending | partial | syntactic tags, adequacy unproven |

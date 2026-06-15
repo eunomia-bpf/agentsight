@@ -1,6 +1,6 @@
 # User Task Benchmark Bundle
 
-This draft bundle defines B4/C5 analysis tasks and answer keys. It is not a human-study result and is not yet a finalized participant protocol.
+This bundle defines B4/C5 pilot analysis tasks and answer keys. It is not a human-study result.
 
 - Tasks: 14.
 - Primary utility tasks: 8.
@@ -28,8 +28,8 @@ This draft bundle defines B4/C5 analysis tasks and answer keys. It is not a huma
 
 ## Claim Boundary
 
-- The bundle makes C5 closer to executable by defining questions, condition packets, assignments, and answer keys.
+- The bundle makes the C5 pilot executable by defining questions, condition packets, assignments, and answer keys.
 - `user-task-response-template.csv` defines the response schema consumed by `score_user_task_results.py`.
 - Participants should see only their assigned condition packet; oracle sources and answer keys are for graders.
-- Baseline fairness still needs a same-event-slice audit before collecting participants.
+- Every task's five condition excerpts share one `slice_id`; this checks the same-event-slice baseline-fairness requirement for the pilot packet.
 - C5 remains unsupported until participant responses are collected and scored.
