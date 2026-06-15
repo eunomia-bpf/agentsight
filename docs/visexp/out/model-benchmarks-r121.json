@@ -1,0 +1,49 @@
+{
+  "run_id": "R121",
+  "generated_at": "2026-06-15T02:02:47Z",
+  "source": ".agentsight/agentflame/model-benchmarks.json",
+  "model_discovery": {
+    "directory": "/home/yunwei37/workspace/llama.cpp-latest/models",
+    "real_model_ggufs": [
+      {
+        "label": "3b",
+        "name": "qwen2.5-3b-instruct-q4_k_m.gguf",
+        "bytes": 2104932768
+      }
+    ],
+    "vocab_only_gguf_count": 17,
+    "missing_size_classes": [
+      "0.6b",
+      "1b"
+    ]
+  },
+  "bench": {
+    "llama_server": "/home/yunwei37/workspace/llama.cpp-latest/build/bin/llama-server",
+    "runs_per_model": 3,
+    "models": [
+      {
+        "label": "3b",
+        "load_ms": 1004,
+        "ok_runs": 3,
+        "failed_runs": 0,
+        "latency_ms": [
+          41,
+          17,
+          15
+        ],
+        "tags": [
+          "render",
+          "debug",
+          "label"
+        ],
+        "llm_calls": 3,
+        "llm_successes": 3
+      }
+    ]
+  },
+  "interpretation": [
+    "The 3B local llama.cpp benchmark path works and produced syntactically valid one-word tags in 3/3 runs.",
+    "No locally available 0.6B or 1B real model GGUF was found, so this run cannot support claims about those size classes.",
+    "This smoke does not measure stability because the current benchmark prompt changes by embedding the run index."
+  ]
+}

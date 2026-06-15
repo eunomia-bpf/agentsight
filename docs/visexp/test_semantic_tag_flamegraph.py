@@ -29,6 +29,7 @@ from tag_stability_smoke import (
 from user_task_benchmark import parse_variants, participant_packets, stack_frame
 from effect_lineage_smoke import lineage_rows
 from live_lineage_harness import synthesize
+from r114_live_record_suite import precision_recall_summary
 from score_user_task_results import is_placeholder_response, score_response, summarize
 from visual_summary import bar_width, label_lines, verdict_color, verdict_score
 
@@ -414,6 +415,32 @@ class AggregationTests(unittest.TestCase):
         self.assertEqual(rows[0]["process_id"], "new-child")
         self.assertEqual(rows[0]["orphan_reason"], "missing_tool_ancestry")
         self.assertEqual(sum(folded.values()), 0)
+
+    def test_r114_precision_recall_counts_negative_control_false_positive(self) -> None:
+        snapshot = {
+            "audit_events": [
+                {"id": "agent-joined", "audit_type": "file", "target": "docs/visexp/STATE.md"},
+                {"id": "agent-orphan", "audit_type": "file", "target": "docs/visexp/MISSING.md"},
+                {"id": "neg-joined", "audit_type": "file", "target": "/tmp/R114_NEGATIVE_CONTROL_x/file.txt"},
+                {"id": "neg-orphan", "audit_type": "file", "target": "/tmp/R114_NEGATIVE_CONTROL_x/other.txt"},
+            ]
+        }
+        rows = [
+            {"event_id": "agent-joined", "joined": "True"},
+            {"event_id": "agent-orphan", "joined": "False"},
+            {"event_id": "neg-joined", "joined": "True"},
+            {"event_id": "neg-orphan", "joined": "False"},
+        ]
+
+        summary = precision_recall_summary(snapshot, rows, ["R114_NEGATIVE_CONTROL_x"])
+
+        self.assertEqual(summary["negative_effect_events_observed"], 2)
+        self.assertEqual(summary["negative_joined_effect_events"], 1)
+        self.assertEqual(summary["true_positives"], 1)
+        self.assertEqual(summary["false_positives"], 1)
+        self.assertEqual(summary["false_negatives"], 1)
+        self.assertEqual(summary["precision_pct"], 50.0)
+        self.assertEqual(summary["recall_pct"], 50.0)
 
     def test_live_lineage_harness_scopes_detected_agent_process_family(self) -> None:
         snapshot = {

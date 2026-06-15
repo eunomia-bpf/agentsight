@@ -1,7 +1,7 @@
 # Experiment Plan: AgentFlame
 
-Last updated: 2026-06-14
-Stage at update: experiment-design
+Last updated: 2026-06-15
+Stage at update: supplement / experiment-design
 Source/command: `docs/visexp/RESEARCH_PLAN.md`, `.agentsight/agentflame/latest/agentflame.json`
 Completeness: partial
 
@@ -70,10 +70,10 @@ deterministic system-effect provenance and folded-stack aggregation.
 |-------|-------|------------|--------------------|---------|--------|--------------|----------|
 | B1 | C1,C2 | Full local-history characterization | 3B llama.cpp, cache enabled | sessions, events, tags, invalids, cache, unique stacks | JSON/folded consistency and tag grammar | Table 1 | done/must repeat |
 | B2 | C3 | Semantic information-gain audit | semantic, nonsemantic, flat summary | mixed buckets, mixed weight, examples | deterministic stack comparison | Fig. 2 | done |
-| B3 | C4 | Live exact-effect lineage | agent-native proxy vs AgentSight exact stream | join coverage, orphan rate, path/domain specificity | lineage checker | Fig. 3/Table 2 | smoke done/native partial |
+| B3 | C4 | Live exact-effect lineage | agent-native proxy vs AgentSight exact stream plus negative controls | recall, precision, orphan rate, path/domain specificity | lineage checker with false-positive controls | Fig. 3/Table 2 | smoke done/native partial |
 | B4 | C5 | Developer task benchmark | trace tree, span flamegraph, flat summary, nonsemantic stack, semantic stack | time, accuracy, confidence, false positives | hidden answer key | Table 3 | must |
 | B5 | C2,C6 | Small-model/stability/adequacy | 0.6B, 1B, 3B, repeated runs | latency, invalid rate, exact stability, adequacy | grammar + human labels | Table 4 | must |
-| B6 | C3,C6 | Semantic-axis ablation | no semantic, session-only, prompt-only, prompt+LLM-call | information gain, stack explosion, noisy tags | same queries/tasks | Fig. 4 | must |
+| B6 | C3 | Semantic-axis ablation | no semantic, session-only, prompt-only, prompt+LLM-call | information gain, stack explosion, noisy tags | same observations and baseline queries | Fig. 4 | must |
 | B7 | C6 | Artifact usability smoke | fresh clone/run, documented setup | setup time, errors, output completeness | artifact checklist | Appendix | should |
 
 ## Experiment Blocks
@@ -115,10 +115,14 @@ deterministic system-effect provenance and folded-stack aggregation.
 - Claim tested: C4.
 - Hypothesis: AgentSight can join each in-scope system effect to semantic
   ancestry without high orphan rate.
-- Workload: 5-10 controlled coding-agent tasks run under AgentSight collection.
-- Compared systems: agent-native proxy extraction vs exact AgentSight stream.
-- Metrics: in-scope join coverage, orphan rate, child-process depth, path/domain
-  specificity, redaction failures.
+- Workload: 20 controlled coding-agent tasks run under AgentSight collection,
+  including read-only, edit, test/debug, dependency, failure/retry, and
+  disposable-repo write tasks.
+- Compared systems: agent-native proxy extraction vs exact AgentSight stream,
+  with concurrent negative-control processes that must not inherit agent
+  ancestry.
+- Metrics: recall, precision, true positives, false positives, false negatives,
+  orphan rate, child-process depth, path/domain specificity, redaction failures.
 - Current result: R110 covers and joins 182/318 raw effects across three real DB
   exports, for 57.233% raw coverage, after adding a harness-synthesized
   agent-run envelope. R111 moves that minimal envelope into native
@@ -126,12 +130,19 @@ deterministic system-effect provenance and folded-stack aggregation.
   the checker joins the same 182/318 raw effects, leaving 136 orphans. R112
   persists those envelope rows into SQLite `sessions` and `tool_calls` tables on
   DB copies and verifies persisted-only export with the same 182/318 raw join.
+  R113-live joins 508/508 raw effects across five real read-only Codex tasks.
+  R114-smoke adds wrapper negative controls and shows why join rate is
+  insufficient: 408/408 raw effects joined, but 302/302 negative-control effects
+  were over-attributed, yielding 25.98% precision.
 - Setup/config: run selected Codex/Claude tasks with AgentSight collector;
   export sanitized snapshot; join tags by session/tool/prompt IDs.
-- Run budget: smoke 3 tasks; paper 10-20 tasks.
+- Run budget: smoke 3-5 tasks; paper 20 tasks.
 - Oracle: lineage checker rejects any in-scope effect without tool/prompt
-  ancestry unless explicitly out of scope.
-- Success criterion: high raw join coverage in native export and concrete
+  ancestry unless explicitly out of scope, and rejects any attribution of
+  concurrent background or sibling-repository negative-control effects.
+- Success criterion: after fixing or explicitly scoping the R114-smoke false
+  positives, >=95% in-scope recall, >=98% precision, 0
+  negative-control over-attributions, 0 redaction failures, and concrete
   examples where exact lineage adds path/network/process specificity beyond
   agent-native logs.
 - Failure interpretation: paper becomes a local-history profiler, not an exact
@@ -148,12 +159,15 @@ deterministic system-effect provenance and folded-stack aggregation.
 - Metrics: answer accuracy, task time, false positives, confidence, subjective
   workload.
 - Setup/config: within-subject counterbalanced design; each task shown once per
-  participant; condition order randomized.
+  participant; condition order randomized with a Latin-square or equivalent
+  counterbalance.
 - Run budget: pilot 4 developers; paper 12-20 developers or a smaller
   expert-study with careful limitations.
 - Oracle: preregistered answer key from exact event/provenance data.
-- Success criterion: semantic view improves accuracy or time on core forensic
-  tasks without increasing false positives.
+- Success criterion: semantic view improves exact answer accuracy by >=10
+  percentage points or median task time by >=20% on core forensic tasks, with no
+  >5 percentage-point increase in false positives, under paired permutation or
+  mixed-effects analysis.
 - Failure interpretation: keep the tool as an expert exploratory profiler.
 
 ### B5. Small-Model Cost And Tag Adequacy
@@ -161,19 +175,23 @@ deterministic system-effect provenance and folded-stack aggregation.
 - Claim tested: C2, C6.
 - Hypothesis: smaller local models can produce valid one-word tags cheaply, but
   adequacy may vary.
-- Workload: 200 session/prompt/LLM-call fragments sampled from B1, with hashes
-  and no committed raw text.
+- Workload: 300 session/prompt/LLM-call fragments sampled from B1: 100 session
+  summaries, 100 prompt texts, and 100 LLM-call previews, with hashes and no
+  committed raw text.
 - Compared systems: 0.6B, 1B, 3B local models; optional larger reference model;
   deterministic no-LLM baseline only as a lower bound.
 - Metrics: latency p50/p95, invalid rate, retry rate, exact stability, generic
   tag rate, human adequacy.
-- Oracle: grammar checker plus human adequacy labels.
-- Success criterion: at least one small model is practical; paper wording
-  honestly scopes noisy tags as navigation frames.
+- Oracle: grammar checker plus human adequacy labels with adequate,
+  generic/noisy, and misleading classes.
+- Success criterion: at least one local model reaches 0 final invalid tags, p95
+  per-fragment latency under 500 ms after model load, >=80% identical-fragment
+  stability, >=80% adequate labels, <=20% generic/noisy labels, and kappa >=0.6
+  or a weaker claim.
 
 ### B6. Semantic-Axis Ablation
 
-- Claim tested: C3, C6.
+- Claim tested: C3; auxiliary visual-noise evidence for C6.
 - Hypothesis: prompt-level tags carry most system-effect partitioning, while
   LLM-call tags mostly help token/accounting views.
 - Workload: same full run and B4 tasks.
@@ -181,7 +199,7 @@ deterministic system-effect provenance and folded-stack aggregation.
   session+prompt+LLM-call.
 - Metrics: mixed weight, unique stack growth, task accuracy/time, noisy-tag
   burden.
-- Oracle: same mixed-bucket checker and B4 answer key.
+- Oracle: same raw observations and total-weight equality checker.
 - Success criterion: semantic axes improve information gain more than they
   increase visual noise.
 
@@ -193,10 +211,12 @@ deterministic system-effect provenance and folded-stack aggregation.
 | R110 | decision | exact lineage harness smoke | 3 live tasks under AgentSight | 3 tasks | raw coverage, in-scope join coverage, orphan report | low | done |
 | R111 | decision | exact lineage native export smoke | same 3 DB exports | 3 tasks | native sessions/tools plus raw join/orphan report | low | done/partial |
 | R112 | decision | exact lineage DB-persisted backfill smoke | same 3 DB copies | 3 tasks | persisted sessions/tools plus raw join/orphan report | low | done/partial |
-| R120 | decision | small-model comparison | 0.6B/1B/3B | 3 repeats per fragment | invalid/stability/latency table | medium | prompt drift |
-| R130 | decision | semantic ablation | session-only/prompt-only/full | one deterministic rerun | mixed-weight delta | low | noisy labels |
-| R140 | main | user task pilot | 4 developers | counterbalanced | task protocol works | medium | recruiting |
-| R150 | main | user task paper run | 12-20 developers | counterbalanced | C5 verdict | high | strongest missing evidence |
+| R114 | decision | broader live exact-lineage suite | 20 `agentsight record` tasks, disposable repos for writes | fixed task manifest | C4 scope can widen only if join/orphan/path/domain/redaction gates pass | medium | live task variance |
+| R121 | decision | real local model benchmark | `agentflame bench` over available 0.6B/1B/3B-class GGUF models | 3 repeats/model | C2/C6 can mention only models that actually ran | medium | missing model sizes |
+| R122 | decision | human tag adequacy labels | redacted 300-fragment packet | >=2 labelers if possible | tag adequacy wording | medium | subjective labels |
+| R131 | decision | semantic-axis ablation | no/session/prompt/full variants | deterministic | C3 mechanism isolation | low | artifact churn |
+| R141 | main | user task pilot | 4 developers, five conditions | counterbalanced | protocol and answer keys work | medium | recruiting |
+| R151 | main | user task paper run | 12-20 developers or scoped expert study | counterbalanced | C5 verdict | high | strongest missing evidence |
 
 ## Tracker Handoff
 
@@ -205,6 +225,7 @@ deterministic system-effect provenance and folded-stack aggregation.
   - `.agentsight/agentflame/latest` for local generated reports.
   - `.agentsight/agentflame/exact-lineage-*` for live AgentSight runs.
   - `.agentsight/agentflame/model-benchmarks.json` for model cost.
+  - `.agentsight/agentflame/ablations-*` for semantic-axis ablations.
   - `docs/visexp/out/user-task-results.*` for benchmark scoring.
 - Required tracker columns: Run ID, Claim, Block, Purpose, Command/config,
   Commit, Machine, Seed/reps, Oracle, Decision gate, Result path, Status.

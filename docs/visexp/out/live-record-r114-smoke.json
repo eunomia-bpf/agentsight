@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "run_id": "R114-smoke",
+  "generated_at": "2026-06-15",
+  "source": "/tmp/agentsight-r114-smoke-out2/live-record-r114.json",
+  "scope": "one real codex exec task under agentsight record with wrapper negative controls",
+  "artifact_boundary": "Raw SQLite DBs and exported snapshots stayed under /tmp and are not committed.",
+  "command": "python3 docs/visexp/r114_live_record_suite.py --task-limit 1 --out /tmp/agentsight-r114-smoke-out2 --work-dir /tmp/agentsight-r114-smoke-work2 --timeout 240",
+  "aggregate": {
+    "tasks": 1,
+    "record_statuses": {
+      "ok": 1
+    },
+    "lineage_statuses": {
+      "ok": 1
+    },
+    "sessions": 1,
+    "tool_calls": 1,
+    "process_nodes": 50,
+    "audit_events": 408,
+    "effect_events": 408,
+    "joined_effect_events": 408,
+    "orphan_effect_events": 0,
+    "raw_join_pct": 100.0,
+    "true_positives": 106,
+    "false_positives": 302,
+    "false_negatives": 0,
+    "precision_pct": 25.98,
+    "recall_pct": 100.0,
+    "negative_effect_events_observed": 302,
+    "negative_joined_effect_events": 302,
+    "join_methods": {
+      "pid_family_time_window": 60,
+      "root_pid_time_window": 348
+    }
+  },
+  "interpretation": [
+    "Join rate alone is misleading: every effect joined, but wrapper negative-control effects were also attributed to the agent-run tool.",
+    "This falsifies the current R114 precision gate and blocks widening C4 beyond smoke evidence.",
+    "The next implementation step is to distinguish the actual agent process from wrapper/sibling background work or otherwise report this scope limitation explicitly."
+  ]
+}

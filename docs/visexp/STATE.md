@@ -1,11 +1,11 @@
 # Research State
 
-Current stage: experiment-design / analyze
+Current stage: supplement / experiment-design
 Stage status: partial
-Last updated: 2026-06-14
+Last updated: 2026-06-15
 Active claim(s): C1, C2, C3, C4, C5, C6
-Latest artifact: `docs/visexp/out/live-record-r113.json`, `docs/visexp/out/capture-time-r113.json`, `docs/visexp/out/native-lineage-r112.json`, `.agentsight/agentflame/latest/agentflame.json`
-Blocking gate: R113 live Codex record run creates capture-time session/tool rows for 5/5 tasks and joins 508/508 raw effects, but full-history exact integration, broader task coverage, and user/task benchmark are missing
-Gate evidence: `docs/visexp/CLAIM_VERDICT.md`
-Next action: expand R113-live beyond five read-only tasks, then run B5 small-model/stability benchmark and B4 user-task pilot
-Last handoff: local full-history AgentFlame run completed with 205 sessions and 0 final tag failures
+Latest artifact: `docs/visexp/out/live-record-r114-smoke.json`, `docs/visexp/FOLLOWUP_PLAN.md`, `docs/visexp/out/model-benchmarks-r121.json`, `docs/visexp/out/live-record-r113.json`, `.agentsight/agentflame/latest/agentflame.json`
+Blocking gate: OSDI weak accept requires G2 broader live exact lineage, G3 small-model/tag adequacy, and G4 developer task utility; only G1 full-history characterization currently passes
+Gate evidence: `docs/visexp/FOLLOWUP_PLAN.md`, `docs/visexp/CLAIM_VERDICT.md`
+Next action: fix or explicitly scope R114 wrapper/sibling false positives before running the 20-task exact-lineage suite
+Last handoff: R114 suite implementation and 1-task smoke completed; raw join was 100.0% but precision was only 25.98% because wrapper negative-control effects were over-attributed
