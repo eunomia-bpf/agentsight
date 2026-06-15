@@ -170,17 +170,24 @@ Current evidence:
   record`; all five create capture-time session/tool rows and join 508/508 raw
   effects with 0 orphans.
 - R114-smoke runs the new precision suite for one task with wrapper negative
-  controls. It records 408/408 joined raw effects, but precision is only 25.98%
-  because 302/302 negative-control effects are over-attributed.
+  controls. After `--agent-comm codex` retargeting and scoped oracle accounting,
+  it joins 45/45 in-scope effects, reports 0 false positives and 0 false
+  negatives, and attributes 0/306 observed negative-control effects. Raw join is
+  only 11.392% because wrapper/sibling/out-of-scope effects remain orphaned.
+- Full R114 runs 20 real Codex tasks, including read-only, edit, test/debug,
+  dependency, failure/retry, and disposable-workspace write tasks. After
+  missing-root child fallback and disposable-workspace `--skip-git-repo-check`,
+  20/20 targets complete, 20/20 tasks observe negative controls, 1273/1273
+  in-scope effects join, precision and recall are both 100.0%, 3170
+  negative-control effects are observed with 0 joined, and child-depth/path/
+  redaction analysis passes.
 
 Remaining gap:
 
-- The strongest exact-lineage evidence remains a smoke, not a full benchmark.
-  R113-live passes for five command-mode Codex tasks, but R114-smoke shows raw
-  join rate is not enough. C4 stays partial until wrapper/sibling false
-  positives are fixed or scoped and the artifact covers broader task suites,
-  full-history exact integration, child-depth/path/domain/redaction analysis,
-  and user-task outcomes.
+- The strongest exact-lineage evidence now covers a fixed 20-task command-mode
+  suite with negative controls. C4 still should not be stated as a broad
+  cross-repo/full-history claim until the artifact covers more repositories,
+  agent types, and user-task outcomes.
 
 ### RQ4. Developer Utility
 
@@ -236,7 +243,7 @@ Remaining gap:
 | C1 | AgentFlame can generate semantic folded stacks and dashboards over real local agent histories. | supported | verifier for full run and reproducibility script |
 | C2 | Local one-word LLM tagging is feasible for session/prompt/LLM-call contexts. | supported for 3B syntax; partial for cost/stability | 0.6B/1B/3B cost table and adequacy labels |
 | C3 | Semantic frames expose task-effect mixtures hidden by nonsemantic and flat summaries. | supported as mechanism | stronger examples and task benchmark |
-| C4 | Exact AgentSight lineage connects semantic intent to process/file/network effects. | partial live Codex smoke | 20-task suite with precision/recall, process-family ancestry, per-effect ancestry, negative controls, and out-of-scope analysis |
+| C4 | Exact AgentSight lineage connects semantic intent to process/file/network effects. | supported for fixed command-mode suite; partial broadly | cross-repo/full-history exact integration and user-task outcomes |
 | C5 | Developers answer debugging/audit questions better with semantic effect flamegraphs. | unsupported | user/task benchmark with preregistered effect-size and statistics plan |
 | C6 | One-word tags are stable and adequate enough for navigation. | partial | 0.6B/1B/3B cost table, identical-fragment repeated-run stability, human adequacy labels with thresholds |
 | C7 | The approach is practical as an open-source developer tool. | partial | one-command install/run, runtime/cost, docs, artifact hygiene |
@@ -247,7 +254,7 @@ Remaining gap:
 |-------|----|------------|--------------------|---------|--------|----------|
 | B1 | RQ1 | Full local-session characterization | 3B local llama.cpp, cache on/off where feasible | sessions, tags, invalids, runtime, cache hit rate | tag grammar checker and complete report | done, must repeat after changes |
 | B2 | RQ2 | Semantic partitioning audit | semantic, nonsemantic, flat process/effect summary | mixed buckets, mixed weight, entropy, examples | deterministic stack comparison | done |
-| B3 | RQ3 | Live exact AgentSight lineage | agent-native proxy vs exact effect stream plus negative controls | recall, precision, orphan rate, path/domain specificity | lineage checker with false-positive controls | command-mode smoke passed; broader benchmark must |
+| B3 | RQ3 | Live exact AgentSight lineage | agent-native proxy vs exact effect stream plus negative controls | recall, precision, orphan rate, path/domain specificity | lineage checker with false-positive controls | fixed command-mode suite passed; broader replication should |
 | B4 | RQ4 | Developer task benchmark | trace tree, span flamegraph, flat summary, nonsemantic stack, semantic stack | time, accuracy, false positives, confidence | hidden answer key plus preregistered thresholds | must |
 | B5 | RQ5 | Small-model and tag-stability benchmark | 0.6B, 1B, 3B, optional larger reference | latency, invalid rate, identical-input stability, adequacy | repeated run + human labels | must |
 | B6 | RQ2 | Ablations | no semantic, session-only, prompt-only, prompt+LLM-call, full | information gain, stack explosion, noisy-tag burden | same observations and total-weight equality | must |
@@ -289,16 +296,13 @@ and G4 developer task utility.
 
 The fastest route to weak accept is:
 
-1. Fix or scope the R114 wrapper/sibling false positives exposed by
-   R114-smoke, then expand R113-live into R114/B3x: at least 20 live agent
-   tasks, including write/test tasks in disposable repos, with precision/recall,
-   negative-control, child-depth, path/domain, and redaction analysis.
-2. Fix B5x stability benchmarking so it repeats identical redacted fragments;
+1. Fix B5x stability benchmarking so it repeats identical redacted fragments;
    rerun 3B and any added 0.6B/1B real GGUF weights, keeping missing size
    classes explicit.
-3. Run B6x semantic-axis ablations over the same observations and fix the
+2. Prepare R122 tag adequacy labels, then run B6x semantic-axis ablations over
+   the same observations and fix the
    result path to `ablations-r131`.
-4. Add a small but real B4x user/task benchmark with answer keys and blinded
+3. Add a small but real B4x user/task benchmark with answer keys and blinded
    condition packets.
-5. Rewrite the paper around "semantic attribution of agent system effects," not
+4. Rewrite the paper around "semantic attribution of agent system effects," not
    around "agent flamegraph UI."

@@ -13,8 +13,8 @@ The paper should be framed as:
 
 The contribution is not a new trace UI and not "flamegraphs for agents." The
 claim is that user-level semantic intent, produced by a local small LLM, can be
-deterministically joined with tool/process/file/network provenance and then
-aggregated as folded stacks:
+deterministically joined with tool/process/effect provenance in fixed
+command-mode runs, then aggregated as folded stacks:
 
 ```text
 sessionTag;promptTag;llmcall/tool;process*;effect
@@ -56,7 +56,7 @@ claimable delta is:
 1. one-word semantic frames assigned to real Codex/Claude session, prompt, and
    LLM-call contexts by a local model;
 2. exact local system-effect lineage from prompt/tool intent through shell and
-   child processes to file/network effects;
+   child processes to process/file effects in the fixed command-mode suite;
 3. folded-stack aggregation across sessions so repeated heavy or divergent
    effects can be grouped by semantic task, not only by span name or duration.
 
@@ -65,15 +65,15 @@ claimable delta is:
 Current reviewer posture: promising systems tooling, not OSDI weak accept.
 
 The current evidence supports C1-C3 as mechanism/characterization claims and C4
-as a five-task command-mode live smoke. It does not yet support broad exact
-provenance, user utility, or tag adequacy.
+for a fixed 20-task command-mode suite. It does not yet support broad
+cross-repo/full-history exact provenance, user utility, or tag adequacy.
 
 Weak accept requires all four gates below:
 
 | Gate | Claim(s) | Required evidence | Current state | Status |
 |------|----------|-------------------|---------------|--------|
 | G1 full-history semantic characterization | C1-C3 | all repo-related readable sessions annotated by real llama.cpp model, with redacted output and baseline-mixing analysis | 205 sessions, 29,302 llama.cpp HTTP calls, 0 final tag failures, 90.219%/90.770% mixed baseline weights | pass |
-| G2 live exact semantic-effect lineage | C4 | broader live `agentsight record` suite, recall/precision table, join/orphan table, child-depth and path/domain specificity, negative controls | R113-live 5 tasks joined 508/508 raw effects, but R114-smoke found wrapper negative-control precision failure: 302/302 negative effects joined, precision 25.98% | partial |
+| G2 live exact semantic-effect lineage | C4 | broader live `agentsight record` suite, recall/precision table, join/orphan table, child-depth and path specificity, negative controls | R114 fixed 20-task suite: 20/20 targets completed, 20/20 tasks observed negative controls, 1273/1273 in-scope effects joined, 100.0% precision/recall, 3170 observed negative-control effects with 0 joined, child-depth/path/redaction tables generated | pass for fixed suite |
 | G3 small-model and tag adequacy | C2,C6 | 0.6B/1B/3B llama.cpp benchmark, repeated-run stability, human adequacy labels | 3B syntax/full-run evidence plus R121 3B bench smoke; no local 0.6B/1B weights; stability/adequacy still missing | missing |
 | G4 developer task utility | C5 | head-to-head task benchmark against trace tree, span flamegraph, flat summary, nonsemantic stack, semantic stack | packets/scorer exist, no participants | missing |
 
@@ -105,8 +105,8 @@ show the semantic axes add only visual noise.
 
 ### RQ3: Can live AgentSight traces preserve exact semantic-effect lineage?
 
-Can each in-scope process/file/network effect in live agent runs inherit the
-right `sessionTag/promptTag/tool` ancestry through
+Can each in-scope process/file effect row observed in live agent runs inherit
+the right `sessionTag/promptTag/tool` ancestry through
 `tool_call -> shell -> process* -> effect` rather than through post-hoc text
 guessing?
 
@@ -168,14 +168,16 @@ fragments, or latency/cost too high for local developer use.
   out of scope for recall and in scope for false-positive checks.
 - Success criterion for paper: at least 20 tasks, >=95% in-scope recall, >=98%
   precision, 0 negative-control over-attributions, 0 redaction failures, and at
-  least three concrete cases where exact lineage reveals path/domain/process
+  least three concrete cases where exact lineage reveals path/process
   detail that agent-native history alone lacks.
-- Current negative evidence: R114-smoke observed 302 wrapper negative-control
-  effects and joined all 302 to the agent-run tool, so the full suite must not
-  proceed as paper evidence until wrapper/sibling false positives are fixed or
-  scoped.
-- Failure interpretation: C4 becomes "command-mode smoke only"; exact provenance
-  moves to future work.
+- Current evidence: R114 retargets the record envelope to the real `codex`
+  child process with `--agent-comm codex`, handles missing related-root process
+  nodes by anchoring on captured children, and joins 1273/1273 in-scope effects
+  across 20 real tasks. It leaves wrapper/sibling/out-of-scope effects orphaned
+  and attributes 0/3170 observed negative-control effects; all 20 tasks observe
+  negative-control effects.
+- Failure interpretation: if broader replication fails, C4 remains scoped to
+  command-mode capture-time suites and cannot be claimed for arbitrary histories.
 - Result path: `.agentsight/agentflame/exact-lineage-r114/summary.json` plus
   committed redacted summary under `docs/visexp/out/live-record-r114.*`.
 
@@ -265,7 +267,7 @@ cargo run --manifest-path agentflame/Cargo.toml -- bench \
 
 | Run ID | Claim | Block | Purpose | Command/config | Seed/reps | Oracle | Decision gate | Result path | Status |
 |--------|-------|-------|---------|----------------|-----------|--------|---------------|-------------|--------|
-| R114 | C4 | B3x | Broader live exact-lineage task suite over 20 real agent tasks. | extend `r113_live_record_harness.py` or add `r114_live_record_suite.py`; run under `agentsight record`; include disposable write-task repos and concurrent negative controls | 20 tasks, fixed task manifest | lineage checker + precision/recall + redaction/path/domain analyzer | >=95% recall, >=98% precision, 0 negative-control over-attribution, 0 redaction failures | `.agentsight/agentflame/exact-lineage-r114/summary.json`, `docs/visexp/out/live-record-r114.json` | planned |
+| R114 | C4 | B3x | Broader live exact-lineage task suite over 20 real agent tasks. | `python3 docs/visexp/r114_live_record_suite.py --out docs/visexp/out --timeout 240`; then `python3 docs/visexp/r114_lineage_analysis.py --result docs/visexp/out/live-record-r114.json --out docs/visexp/out` | 20 tasks, fixed task manifest | lineage checker + precision/recall + redaction/path analyzer | passed: 20/20 tasks observed negative controls, 100.0% precision, 100.0% recall, 0/3170 negative-control joins, 0 redaction failures | `docs/visexp/out/live-record-r114.json`, `docs/visexp/out/live-record-r114-analysis.json` | done |
 | R121 | C2,C6 | B5x | Real llama.cpp model benchmark. | `agentflame bench --runs 3 --model ...` using available GGUF models | 3 repeats/model | grammar/stability/latency checker | no claims for missing size classes; adequacy labels required | `.agentsight/agentflame/model-benchmarks.json` | planned |
 | R122 | C6 | B5x | Human adequacy labeling over sampled fragments. | create redacted label packet and collect labels | 300 fragments, >=2 labelers if possible | adequacy/generic/misleading rubric plus agreement | >=80% adequate, <=20% generic/noisy, kappa >=0.6 or limited claim | `docs/visexp/out/tag-adequacy-labels.csv` | planned |
 | R131 | C3 | B6x | Semantic-axis ablation. | regenerate stacks for no/session/prompt/full variants | deterministic | total-weight equality + mixed-weight delta | semantic axes must improve information gain without unbounded stack growth | `.agentsight/agentflame/ablations-r131/summary.json` | planned |
@@ -274,12 +276,13 @@ cargo run --manifest-path agentflame/Cargo.toml -- bench \
 
 ## Paper Revision Rule
 
-Until G2-G4 pass, the paper may say:
+Until G3-G4 pass and broader C4 replication exists, the paper may say:
 
 - supported: AgentFlame can annotate this repo's real agent histories with a
   real local llama.cpp model and expose semantic/nonsemantic mixing;
-- partial: command-mode live AgentSight provenance can join all effects in a
-  five-task smoke;
+- supported for fixed suite: command-mode live AgentSight provenance joins all
+  scoped in-scope effects in a 20-task suite and rejects per-task negative
+  controls;
 - unsupported: developer utility and semantic adequacy.
 
 It may not say:
@@ -291,19 +294,15 @@ It may not say:
 
 ## Immediate Next Action
 
-Fix or scope R114/B3x precision first, because exact semantic-effect lineage is
-the core novelty against existing span-duration agent flamegraphs. R121 already
-completed a 3B bench smoke and exposed the B5x stability-design gap; R114-smoke
-showed raw join rate is misleading when wrapper/sibling negative controls are
-over-attributed.
+Move to G3/G4 next. R114/B3x now gives the paper concrete exact-lineage
+evidence that span-duration traces do not provide, but OSDI weak accept still
+needs evidence that the semantic labels are adequate and that developers
+actually answer forensic questions better with the visualization.
 
-1. repair lineage precision for wrapper/sibling negative controls, or explicitly
-   scope command-mode C4 to direct agent roots only;
-2. rerun R114-smoke and require observed negative controls with 0 joined
-   negative effects before the full 20-task suite;
-3. run the R114 fixed task manifest with read-only, edit, test/debug,
-   dependency, failure/retry, and disposable-repo write tasks;
-4. generate child-depth/path/domain/redaction tables and three concrete
-   forensic examples;
-5. then fix B5x identical-fragment stability and run B6x/B4x on top of the R114
-   answer keys.
+1. fix B5x identical-fragment stability so the benchmark repeats the same
+   redacted fragments for each model;
+2. prepare R122 human adequacy labels for one-word session/prompt/LLM-call tags;
+3. run R131 semantic-axis ablations over the same observations;
+4. run the B4 developer task pilot using the R114 answer keys and compare
+   trace tree, span flamegraph, flat summary, nonsemantic stack, and semantic
+   effect stack conditions.

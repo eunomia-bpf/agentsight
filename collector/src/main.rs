@@ -250,6 +250,9 @@ enum Commands {
         /// Path to the binary executable to monitor (e.g., ~/.nvm/versions/node/v20.0.0/bin/node)
         #[arg(long)]
         binary_path: Option<String>,
+        /// Command-mode semantic agent process name inside a wrapper, e.g. codex
+        #[arg(long)]
+        agent_comm: Option<String>,
         /// SQLite database path for view snapshots
         #[arg(long)]
         db: Option<String>,
@@ -728,6 +731,7 @@ async fn run_with_extractor(
             comm,
             pid,
             binary_path,
+            agent_comm,
             db,
             no_server,
             server_port,
@@ -743,6 +747,7 @@ async fn run_with_extractor(
                     binary_extractor,
                     command,
                     binary_path.as_deref(),
+                    agent_comm.as_deref(),
                     configured_db_path(db),
                     !*no_server,
                     &cli.listen,

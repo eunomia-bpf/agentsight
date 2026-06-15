@@ -166,14 +166,16 @@ neg_dir = pathlib.Path(sys.argv[1])
 sibling_dir = pathlib.Path(sys.argv[2])
 stop_file = pathlib.Path(sys.argv[3])
 marker = sys.argv[4]
+once = len(sys.argv) > 5 and sys.argv[5] == "--once"
 idx = 0
-while idx < 200 and not stop_file.exists():
+limit = 10 if once else 200
+while idx < limit and not stop_file.exists():
     for base in (neg_dir, sibling_dir):
         path = base / f"{marker}_{idx}.txt"
         path.write_text(marker + "\n", encoding="utf-8")
         _ = path.read_text(encoding="utf-8")
     idx += 1
-    time.sleep(0.05)
+    time.sleep(0.02 if once else 0.05)
 """
 
 
@@ -187,8 +189,19 @@ def rel(path: Path) -> str:
 def scrub(text: str, limit: int = 1600) -> str:
     home = str(Path.home())
     text = text.replace(home, "$HOME")
+    text = text.replace(f"home/{Path.home().name}", "$HOME")
     text = text.replace(str(REPO_ROOT.resolve()), "$REPO")
     return text[-limit:]
+
+
+def scrub_artifact_value(value: Any) -> Any:
+    if isinstance(value, str):
+        return scrub(value, limit=max(len(value), 1))
+    if isinstance(value, list):
+        return [scrub_artifact_value(item) for item in value]
+    if isinstance(value, dict):
+        return {key: scrub_artifact_value(item) for key, item in value.items()}
+    return value
 
 
 def run_cmd(cmd: list[str], cwd: Path, timeout_s: int) -> subprocess.CompletedProcess[str]:
@@ -276,17 +289,24 @@ def workspace_for_task(task: Task, work_dir: Path) -> Path:
 
 
 def task_command(task: Task, task_cwd: Path, answer_path: Path, codex_bin: str) -> list[str]:
-    return [
+    command = [
         codex_bin,
         "exec",
         "--sandbox",
         task.sandbox,
         "--cd",
         str(task_cwd),
-        "--output-last-message",
-        str(answer_path),
-        task.prompt,
     ]
+    if task.workspace != "repo":
+        command.append("--skip-git-repo-check")
+    command.extend(
+        [
+            "--output-last-message",
+            str(answer_path),
+            task.prompt,
+        ]
+    )
+    return command
 
 
 def negative_control_paths(task: Task, work_dir: Path) -> dict[str, str]:
@@ -331,9 +351,13 @@ def start_negative_control(task: Task, work_dir: Path) -> tuple[subprocess.Popen
 
 def wrap_with_negative_control(command: list[str], control: dict[str, str]) -> list[str]:
     wrapper_script = (
-        'python3 "$1" "$2" "$3" "$4" "$5" >/dev/null 2>&1 & '
+        "worker=$1; neg=$2; sibling=$3; stop=$4; marker=$5; "
         "shift 5; "
-        'exec "$@"'
+        'python3 "$worker" "$neg" "$sibling" "$stop" "$marker" >/dev/null 2>&1 & '
+        '"$@"; '
+        "status=$?; "
+        'python3 "$worker" "$neg" "$sibling" "$stop" "$marker" --once >/dev/null 2>&1; '
+        "exit $status"
     )
     return [
         "bash",
@@ -384,6 +408,152 @@ def row_joined(row: dict[str, str]) -> bool:
     return str(row.get("joined", "")).lower() in {"true", "1", "yes"}
 
 
+def process_id(process: dict[str, Any]) -> str:
+    return str(process.get("id") or "")
+
+
+def json_object(value: Any) -> dict[str, Any]:
+    if isinstance(value, dict):
+        return value
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+        except json.JSONDecodeError:
+            return {}
+        return parsed if isinstance(parsed, dict) else {}
+    return {}
+
+
+def process_time_contains(process: dict[str, Any], timestamp_ms: int) -> bool:
+    start = process.get("start_timestamp_ms")
+    end = process.get("end_timestamp_ms")
+    if start is not None and timestamp_ms < int(start):
+        return False
+    if end is not None and timestamp_ms > int(end):
+        return False
+    return True
+
+
+def processes_overlap(left: dict[str, Any], right: dict[str, Any]) -> bool:
+    left_start = left.get("start_timestamp_ms")
+    left_end = left.get("end_timestamp_ms")
+    right_start = right.get("start_timestamp_ms")
+    right_end = right.get("end_timestamp_ms")
+    if left_end is not None and right_start is not None and int(left_end) < int(right_start):
+        return False
+    if right_end is not None and left_start is not None and int(right_end) < int(left_start):
+        return False
+    return True
+
+
+def process_belongs_to_parent(child: dict[str, Any], parent: dict[str, Any]) -> bool:
+    if child.get("ppid") is None or parent.get("pid") is None:
+        return False
+    if int(child["ppid"]) != int(parent["pid"]):
+        return False
+    if not processes_overlap(child, parent):
+        return False
+    child_start = child.get("start_timestamp_ms")
+    if child_start is not None:
+        return process_time_contains(parent, int(child_start))
+    return True
+
+
+def descendant_process_ids(snapshot: dict[str, Any], root_pid: int) -> set[str]:
+    processes = [row for row in snapshot.get("process_nodes") or [] if process_id(row)]
+    roots = [row for row in processes if row.get("pid") is not None and int(row["pid"]) == root_pid]
+    if not roots:
+        roots = [
+            row
+            for row in processes
+            if row.get("ppid") is not None and int(row["ppid"]) == root_pid
+        ]
+    if not roots:
+        return set()
+    children: dict[str, list[str]] = {}
+    by_id = {process_id(row): row for row in processes}
+    for child in processes:
+        child_id = process_id(child)
+        for parent in processes:
+            parent_id = process_id(parent)
+            if child_id == parent_id:
+                continue
+            if process_belongs_to_parent(child, parent):
+                children.setdefault(parent_id, []).append(child_id)
+
+    seen = {process_id(root) for root in roots}
+    queue = list(seen)
+    while queue:
+        parent_id = queue.pop(0)
+        if parent_id not in by_id:
+            continue
+        for child_id in children.get(parent_id, []):
+            if child_id in seen:
+                continue
+            seen.add(child_id)
+            queue.append(child_id)
+    return seen
+
+
+def tool_id(tool: dict[str, Any]) -> str:
+    return str(tool.get("id") or tool.get("tool_call_id") or "")
+
+
+def tool_related_pid(tool: dict[str, Any]) -> int | None:
+    if tool.get("related_pid") is not None:
+        return int(tool["related_pid"])
+    input_json = json_object(tool.get("input"))
+    if input_json.get("related_pid") is not None:
+        return int(input_json["related_pid"])
+    return None
+
+
+def record_capture_tool(snapshot: dict[str, Any]) -> dict[str, Any]:
+    for tool in snapshot.get("tool_calls") or []:
+        if tool.get("view_source") == "record_capture_time_agent_envelope":
+            return tool
+    tools = snapshot.get("tool_calls") or []
+    return tools[0] if tools else {}
+
+
+def target_status(snapshot: dict[str, Any]) -> dict[str, Any]:
+    tool = record_capture_tool(snapshot)
+    output_json = json_object(tool.get("output"))
+    return {
+        "target_status": str(tool.get("status") or output_json.get("status") or "unknown"),
+        "target_exit_code": output_json.get("exit_code"),
+    }
+
+
+def agent_tool_ids(snapshot: dict[str, Any]) -> set[str]:
+    tools = []
+    for tool in snapshot.get("tool_calls") or []:
+        if tool.get("view_source") == "record_capture_time_agent_envelope":
+            tools.append(tool)
+    if not tools:
+        tools = list(snapshot.get("tool_calls") or [])
+    return {tool_id(tool) for tool in tools if tool_id(tool)}
+
+
+def agent_process_ids(snapshot: dict[str, Any]) -> set[str]:
+    root_pids = []
+    for tool in snapshot.get("tool_calls") or []:
+        if tool.get("view_source") != "record_capture_time_agent_envelope":
+            continue
+        related_pid = tool_related_pid(tool)
+        if related_pid is not None:
+            root_pids.append(related_pid)
+    if not root_pids:
+        for tool in snapshot.get("tool_calls") or []:
+            related_pid = tool_related_pid(tool)
+            if related_pid is not None:
+                root_pids.append(related_pid)
+    process_ids: set[str] = set()
+    for root_pid in root_pids:
+        process_ids.update(descendant_process_ids(snapshot, root_pid))
+    return process_ids
+
+
 def event_text(event: dict[str, Any]) -> str:
     parts = [
         str(event.get("id") or ""),
@@ -399,6 +569,8 @@ def precision_recall_summary(
     rows: list[dict[str, str]],
     marker_fragments: list[str],
 ) -> dict[str, Any]:
+    scoped_tool_ids = agent_tool_ids(snapshot)
+    scoped_process_ids = agent_process_ids(snapshot)
     negative_ids = {
         str(event.get("id"))
         for event in snapshot.get("audit_events") or []
@@ -406,14 +578,32 @@ def precision_recall_summary(
     }
     row_by_id = {str(row.get("event_id")): row for row in rows if row.get("event_id")}
     negative_rows = [row_by_id[event_id] for event_id in sorted(negative_ids) if event_id in row_by_id]
-    negative_joined = [row for row in negative_rows if row_joined(row)]
     nonnegative_rows = [row for row in rows if str(row.get("event_id")) not in negative_ids]
-    true_positives = sum(1 for row in nonnegative_rows if row_joined(row))
-    false_negatives = sum(1 for row in nonnegative_rows if not row_joined(row))
+    if scoped_process_ids:
+        in_scope_rows = [
+            row for row in nonnegative_rows if str(row.get("process_id") or "") in scoped_process_ids
+        ]
+    else:
+        in_scope_rows = nonnegative_rows
+
+    def joined_to_agent(row: dict[str, str]) -> bool:
+        if not row_joined(row):
+            return False
+        if not scoped_tool_ids:
+            return True
+        return str(row.get("tool_id") or "") in scoped_tool_ids
+
+    negative_joined = [row for row in negative_rows if joined_to_agent(row)]
+    true_positives = sum(1 for row in in_scope_rows if joined_to_agent(row))
+    false_negatives = sum(1 for row in in_scope_rows if not joined_to_agent(row))
     false_positives = len(negative_joined)
     precision_den = true_positives + false_positives
     recall_den = true_positives + false_negatives
     return {
+        "agent_tool_ids": sorted(scoped_tool_ids),
+        "agent_process_count": len(scoped_process_ids),
+        "in_scope_effect_events": len(in_scope_rows),
+        "out_of_scope_effect_events": max(0, len(nonnegative_rows) - len(in_scope_rows)),
         "negative_effect_events_observed": len(negative_rows),
         "negative_joined_effect_events": false_positives,
         "true_positives": true_positives,
@@ -459,6 +649,8 @@ def record_task(
         "--no-server",
         "--db",
         str(db_path),
+        "--agent-comm",
+        "codex",
         "--",
         *command_under_record,
     ]
@@ -555,6 +747,7 @@ def record_task(
         row["status"] = "lineage_missing"
 
     snapshot = read_json(snapshot_path)
+    row.update(target_status(snapshot))
     lineage_rows = read_lineage_csv(lineage_dir / "effect-lineage.csv")
     control_markers = [
         stopped["marker"],
@@ -562,6 +755,7 @@ def record_task(
         stopped["sibling_dir"],
     ]
     row["precision_recall"] = precision_recall_summary(snapshot, lineage_rows, control_markers)
+    pr = row["precision_recall"]
     row["snapshot_counts"] = {
         "sessions": len(snapshot.get("sessions") or []),
         "tool_calls": len(snapshot.get("tool_calls") or []),
@@ -570,7 +764,15 @@ def record_task(
         "resource_samples": len(snapshot.get("resource_samples") or []),
     }
     lineage = row.get("lineage") or {}
-    if lineage:
+    precision_ok = (
+        pr.get("negative_effect_events_observed", 0) > 0
+        and pr.get("negative_joined_effect_events", 0) == 0
+        and pr.get("precision_pct", 0.0) >= 98.0
+        and pr.get("recall_pct", 0.0) >= 95.0
+    )
+    if precision_ok:
+        row["lineage_status"] = "precision_ok"
+    elif lineage:
         if int(lineage.get("orphan_effect_events") or 0) > 0:
             row["lineage_status"] = "partial"
         elif lineage_proc.returncode == 0 and lineage.get("status") != "lineage_smoke_failed":
@@ -590,6 +792,7 @@ def aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
     join_methods = Counter()
     statuses = Counter(row.get("status", "unknown") for row in rows)
     record_statuses = Counter(row.get("record_status", "unknown") for row in rows)
+    target_statuses = Counter(row.get("target_status", "unknown") for row in rows)
     lineage_statuses = Counter(row.get("lineage_status", "unknown") for row in rows)
     negative_statuses = Counter()
     for row in rows:
@@ -606,8 +809,12 @@ def aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
         totals["true_positives"] += int(pr.get("true_positives") or 0)
         totals["false_positives"] += int(pr.get("false_positives") or 0)
         totals["false_negatives"] += int(pr.get("false_negatives") or 0)
+        totals["in_scope_effect_events"] += int(pr.get("in_scope_effect_events") or 0)
+        totals["out_of_scope_effect_events"] += int(pr.get("out_of_scope_effect_events") or 0)
         totals["negative_effect_events_observed"] += int(pr.get("negative_effect_events_observed") or 0)
         totals["negative_joined_effect_events"] += int(pr.get("negative_joined_effect_events") or 0)
+        if int(pr.get("negative_effect_events_observed") or 0) > 0:
+            totals["negative_control_tasks_observed"] += 1
         negative_statuses[str(pr.get("negative_control_status") or "unknown")] += 1
         join_methods.update(lineage.get("join_methods") or {})
     joined = totals["joined_effect_events"]
@@ -618,6 +825,7 @@ def aggregate(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "tasks": len(rows),
         "task_statuses": dict(statuses),
         "record_statuses": dict(record_statuses),
+        "target_statuses": dict(target_statuses),
         "lineage_statuses": dict(lineage_statuses),
         **dict(totals),
         "raw_join_pct": round(100.0 * joined / effects, 3) if effects else 0.0,
@@ -640,32 +848,34 @@ def write_markdown(path: Path, result: dict[str, Any]) -> None:
         "",
         "This suite wraps real `codex exec` tasks with `agentsight record`, runs concurrent",
         "negative-control processes, exports each SQLite DB, and checks lineage precision",
-        "and recall from prompt/tool ancestry to process/file/network effects.",
+        "and recall from prompt/tool ancestry to effect rows when present.",
         "",
         "Raw SQLite DBs and exported snapshots stay in the local work dir and are not committed.",
         "",
         "## Aggregate",
         "",
         f"- Tasks: {agg['tasks']} ({agg['task_statuses']})",
-        f"- Record status: {agg.get('record_statuses', {})}; lineage status: {agg.get('lineage_statuses', {})}",
+        f"- Record status: {agg.get('record_statuses', {})}; target status: {agg.get('target_statuses', {})}; lineage status: {agg.get('lineage_statuses', {})}",
         f"- Effects: joined={agg['joined_effect_events']} / {agg['effect_events']} = {agg['raw_join_pct']}%",
+        f"- Scope accounting: in_scope={agg.get('in_scope_effect_events', 0)}, out_of_scope={agg.get('out_of_scope_effect_events', 0)}",
         f"- Precision/recall: precision={agg['precision_pct']}%, recall={agg['recall_pct']}%",
-        f"- Negative controls: observed={agg['negative_effect_events_observed']}, joined={agg['negative_joined_effect_events']}, statuses={agg['negative_control_statuses']}",
+        f"- Negative controls: tasks_observed={agg.get('negative_control_tasks_observed', 0)}/{agg['tasks']}, observed={agg['negative_effect_events_observed']}, joined={agg['negative_joined_effect_events']}, statuses={agg['negative_control_statuses']}",
         f"- Join methods: {agg['join_methods']}",
         "",
         "## Per Task",
         "",
-        "| Task | Cat | Record | Lineage | Effects | Joined | Orphans | Precision | Recall | Neg observed | Neg joined | Answer |",
-        "|------|-----|--------|---------|--------:|-------:|--------:|----------:|-------:|-------------:|-----------:|--------|",
+        "| Task | Cat | Record | Target | Lineage | Effects | Joined | Orphans | In scope | Out scope | Precision | Recall | Neg observed | Neg joined | Answer |",
+        "|------|-----|--------|--------|---------|--------:|-------:|--------:|---------:|----------:|----------:|-------:|-------------:|-----------:|--------|",
     ]
     for row in result["tasks"]:
         lineage = row.get("lineage") or {}
         pr = row.get("precision_recall") or {}
         answer = str(row.get("answer") or "").replace("|", "\\|").replace("\n", " ")[:80]
         lines.append(
-            f"| `{row['task_id']}` | {row.get('category')} | {row.get('record_status')} | {row.get('lineage_status')} | "
+            f"| `{row['task_id']}` | {row.get('category')} | {row.get('record_status')} | {row.get('target_status')} | {row.get('lineage_status')} | "
             f"{int(lineage.get('effect_events') or 0)} | {int(lineage.get('joined_effect_events') or 0)} | "
-            f"{int(lineage.get('orphan_effect_events') or 0)} | {pr.get('precision_pct', 0.0)}% | "
+            f"{int(lineage.get('orphan_effect_events') or 0)} | {pr.get('in_scope_effect_events', 0)} | "
+            f"{pr.get('out_of_scope_effect_events', 0)} | {pr.get('precision_pct', 0.0)}% | "
             f"{pr.get('recall_pct', 0.0)}% | {pr.get('negative_effect_events_observed', 0)} | "
             f"{pr.get('negative_joined_effect_events', 0)} | {answer} |"
         )
@@ -711,11 +921,14 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         for task in selected
     ]
     aggregate_result = aggregate(rows)
+    target_statuses = aggregate_result.get("target_statuses") or {}
     pass_lineage = (
         aggregate_result["recall_pct"] >= 95.0
         and aggregate_result["precision_pct"] >= 98.0
         and aggregate_result["negative_joined_effect_events"] == 0
         and aggregate_result["negative_effect_events_observed"] > 0
+        and aggregate_result.get("negative_control_tasks_observed", 0) == len(rows)
+        and target_statuses.get("completed", 0) == len(rows)
     )
     if pass_lineage:
         status = "ok"
@@ -748,6 +961,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "tasks": rows,
         "boundary": boundary,
     }
+    result = scrub_artifact_value(result)
     json_path = out_dir / "live-record-r114.json"
     md_path = out_dir / "live-record-r114.md"
     json_path.write_text(json.dumps(result, indent=2), encoding="utf-8")
