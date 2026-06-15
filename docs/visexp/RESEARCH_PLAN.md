@@ -228,26 +228,26 @@ process/file/network summaries?
 Required evidence:
 
 - Task benchmark with preregistered answer key.
-- Baselines: raw trace/tree, true span-duration flamegraph or comparable trace
-  UI, flat process/file/network summary, nonsemantic folded stack, semantic
-  folded stack. If duration is unavailable, the span-like view must be renamed
-  as an event-count proxy and cannot serve as the span-duration baseline.
+- Baselines: raw trace/tree, explicitly named `event-count-proxy`, flat
+  process/file/network summary, nonsemantic folded stack, semantic folded stack.
+  A true span-duration flamegraph can be added only if regenerated from
+  timestamps and preregistered as a separate baseline.
 - Metrics: accuracy, time, confidence, false positives, repeated-effect recall.
 
 Current evidence:
 
 - R142-packet generated a current pilot packet from R114/R123/R131/full-run
   artifacts: 14 questions, 8 primary utility tasks, 6
-  limitation/comprehension tasks, five conditions (`trace-tree`, currently a
-  span-like `event-count-proxy`, `flat-summary`, `nonsemantic-stack`,
-  `semantic-stack`), 70 leak-checked blinded participant packets, a P01-P05
+  limitation/comprehension tasks, five conditions (`trace-tree`,
+  `event-count-proxy`, `flat-summary`, `nonsemantic-stack`, `semantic-stack`),
+  70 leak-checked blinded participant packets, a P01-P05
   counterbalanced assignment template, a hidden answer key, manifests, a scorer
   output marked `participant_results_empty`, response contract checks, a
   paper-scale C5 support gate, and per-task same-event-slice `slice_id` checks
   across all five conditions.
-- The current span-like R142 condition uses event weights because duration is
-  unavailable in folded artifacts. It must be regenerated from real timestamps
-  or renamed as an event-count proxy before any C5 participant collection.
+- The former span-like R142 condition now uses the explicit
+  `event-count-proxy` name because folded artifacts do not expose real span
+  durations. It must not be cited as a span-duration flamegraph baseline.
 - No real participant responses are available.
 
 Remaining gap:
@@ -349,7 +349,7 @@ Remaining gap:
 | B1 | RQ1 | Full local-session characterization | 3B local llama.cpp, cache on/off where feasible | sessions, tags, invalids, runtime, cache hit rate | tag grammar checker and complete report | done, must repeat after changes |
 | B2 | RQ2 | Semantic partitioning audit | semantic, nonsemantic, flat process/effect summary | mixed buckets, mixed weight, entropy, examples | deterministic stack comparison | done |
 | B3 | RQ3 | Live exact AgentSight lineage | agent-native proxy vs exact effect stream plus negative controls | recall, precision, orphan rate, path/domain specificity | lineage checker with false-positive controls | fixed command-mode suite passed; broader replication should |
-| B4 | RQ4 | Developer task benchmark | trace tree, true span-duration flamegraph or explicitly named event-count proxy, flat summary, nonsemantic stack, semantic stack | time, accuracy, false positives, confidence | hidden answer key plus preregistered thresholds | packet scaffold done; baseline/preregistration fix before participants |
+| B4 | RQ4 | Developer task benchmark | trace tree, event-count proxy, flat summary, nonsemantic stack, semantic stack; optional true span-duration baseline if reconstructed from timestamps | time, accuracy, false positives, confidence | hidden answer key plus preregistered thresholds | packet scaffold and baseline naming done; preregistration/participants missing |
 | B5 | RQ5 | Small-model and tag-stability benchmark | 0.6B, 1B, 3B, optional larger reference | latency, invalid rate, identical-input stability, adequacy | repeated run + human labels | must |
 | B6 | RQ2 | Ablations | no semantic, session-only, prompt-only, prompt+LLM-call, full | information gain, stack explosion; noisy-tag burden and B4 task accuracy/time deferred | same observations, total-weight equality, report/folded cross-checks | done for C3 mechanism; C6/B4 deferred |
 | B7 | RQ6 | Open-source usability smoke | fresh clone, install, run, view dashboard | setup time, commands, failure modes | artifact checklist | should |
@@ -359,10 +359,9 @@ Remaining gap:
 - Span-duration flamegraph baseline should be represented by an OpenTelemetry
   trace flamegraph or faithful local reconstruction: bars/spans ordered by
   timing, width by duration, no semantic inheritance into file/network effects.
-- The existing R142 packet does not yet satisfy this requirement: its
-  span-like excerpts use `event_weight_same_slice` because duration is
-  unavailable. It is acceptable only as an event-count proxy unless regenerated
-  from timestamps.
+- The existing R142 packet uses `event-count-proxy`, not `span-duration`,
+  because its width basis is event weight or task-level proxy counts rather than
+  reconstructed span duration.
 - Trace tree baseline should show the same session/tool/LLM-call sequence but no
   cross-session folded aggregation.
 - Flat summary baseline should show process/effect/path/domain counts without
@@ -394,31 +393,26 @@ and G4 developer task utility.
 
 The fastest route to weak accept is now a gate-ordered plan:
 
-1. Generate a blinded R124 labeler sheet, then collect and adjudicate human
-   adequacy labels over the R122 packet. This is the smallest remaining
-   local/manual step that can turn C6 from partial syntax/stability evidence
-   into adequacy evidence without changing the system. The packet must receive
-   two independent human labels per row plus adjudication for disagreements; LLM
-   or subagent labels can only review the protocol and cannot count as C6
-   evidence.
-2. Fix the R142 baseline contract before recruiting participants. Either
-   regenerate a true span-duration condition from trace timestamps or rename the
-   current event-weight condition as `event-count-proxy` and remove
-   span-duration-baseline claims from C5/RQ4.
-3. Freeze the C5 preregistration: response unit, primary task subset, condition
+1. Collect and adjudicate human adequacy labels using the blinded R124 labeler
+   sheet. This is the smallest remaining local/manual step that can turn C6 from
+   partial syntax/stability evidence into adequacy evidence without changing the
+   system. The packet must receive two independent human labels per row plus
+   adjudication for disagreements; LLM or subagent labels can only review the
+   protocol and cannot count as C6 evidence.
+2. Freeze the C5 preregistration: response unit, primary task subset, condition
    comparisons, exclusion rules, participant/task/order blocking, 12-20
    participant rotation, and Holm correction family.
-4. Run a small but real B4x user/task benchmark using the corrected R142 answer
+3. Run a small but real B4x user/task benchmark using the corrected R142 answer
    keys and blinded condition packets. The pilot validates packet wording and
    the response contract; it does not support C5 unless the scorer's paper-scale
    gate passes.
-5. If the pilot passes, run R151 with 12-20 developers or a deliberately
+4. If the pilot passes, run R151 with 12-20 developers or a deliberately
    narrowed expert-study population. C5 can be claimed only if the
-   Holm-corrected participant/task fixed-effect gate passes and false positives
+   Holm-corrected participant/task/order fixed-effect gate passes and false positives
    do not increase beyond the preregistered threshold.
-6. Turn the bounded R160 artifact smoke into a fresh-clone/clean-install
+5. Turn the bounded R160 artifact smoke into a fresh-clone/clean-install
    community workflow, after the core claims stop moving.
-7. Rewrite the paper around "semantic attribution of agent system effects," not
+6. Rewrite the paper around "semantic attribution of agent system effects," not
    around "agent flamegraph UI," and keep C5/C6 limitations explicit unless the
    new results pass their gates.
 

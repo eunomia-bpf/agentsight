@@ -37,6 +37,10 @@ from user_task_benchmark import (
 from effect_lineage_smoke import lineage_rows
 from live_lineage_harness import synthesize
 from r114_live_record_suite import Task, precision_recall_summary, task_command
+from r124_blinded_label_sheet import (
+    VISIBLE_FIELDS as R124_BLINDED_FIELDS,
+    blinded_row as r124_blinded_row,
+)
 from score_user_task_results import (
     BASELINE_CONDITIONS,
     SEMANTIC_CONDITION,
@@ -355,6 +359,8 @@ class AggregationTests(unittest.TestCase):
             sorted(row["condition"] for row in assignments if row["task_id"] == "UT01"),
             sorted(CONDITION_ORDER),
         )
+        self.assertIn("event-count-proxy", CONDITION_ORDER)
+        self.assertNotIn("span-duration", CONDITION_ORDER)
 
     def test_effect_lineage_joins_child_process_effects_to_tool(self) -> None:
         snapshot = {
@@ -1097,6 +1103,35 @@ class AggregationTests(unittest.TestCase):
         self.assertEqual(scored[0]["label_state"], "needs_adjudication")
         self.assertEqual(summary["unadjudicated_disagreement_count"], 1)
         self.assertEqual(tag_adequacy_status(summary), "human_labels_partial")
+
+    def test_r124_blinded_sheet_hides_model_and_stability_columns(self) -> None:
+        source = {
+            "fragment_index": "7",
+            "fragment_hash": "abc123",
+            "kind": "prompt",
+            "source": "codex",
+            "model": "gpt-5",
+            "candidate_tag": "review",
+            "candidate_model": "3b",
+            "candidate_exact_stable": "true",
+            "candidate_distinct_tags": "1",
+            "text_chars": "42",
+            "preview": "Review the patch.",
+            "labeler_1": "",
+            "labeler_2": "",
+            "adjudicated_label": "",
+        }
+
+        row = r124_blinded_row(source)
+
+        self.assertEqual(list(row), R124_BLINDED_FIELDS)
+        self.assertEqual(row["row_id"], "R124-007")
+        self.assertEqual(row["fragment_level"], "prompt")
+        self.assertEqual(row["candidate_tag"], "review")
+        self.assertNotIn("model", row)
+        self.assertNotIn("candidate_model", row)
+        self.assertNotIn("candidate_exact_stable", row)
+        self.assertNotIn("source", row)
 
     def test_visual_summary_helpers_keep_svg_values_bounded(self) -> None:
         self.assertEqual(verdict_color("supported"), "#2f855a")

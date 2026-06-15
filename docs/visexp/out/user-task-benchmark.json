@@ -3,7 +3,7 @@
   "claim": "C5",
   "run_id": "R142-packet",
   "status": "pilot_packet_ready_no_participants",
-  "generated_at": "2026-06-15T08:46:11+00:00",
+  "generated_at": "2026-06-15T09:46:07+00:00",
   "source_artifacts": [
     {
       "path": ".agentsight/agentflame/latest/agentflame.json",
@@ -35,21 +35,21 @@
     {
       "path": "docs/visexp/user_task_benchmark.py",
       "exists": true,
-      "sha256": "bf70244faaa2a8ccb03e298a919b5e71d36fb93c204573bf9b9c65232afc1e0a"
+      "sha256": "853a4b7cc2121a650601e43ac0af5995a5840083629d7565d6723612d8d09f40"
     },
     {
       "path": "docs/visexp/score_user_task_results.py",
       "exists": true,
-      "sha256": "83dbce9a4761a1b73f8946ee51e5a3524fd6ad978668be047363df9190af700d"
+      "sha256": "738e911eca488870d3a29f7417db344d51300710a8b9ba982a127a16d3f211d8"
     },
     {
       "path": "docs/visexp/test_semantic_tag_flamegraph.py",
       "exists": true,
-      "sha256": "7c5f1f10614fc2b216b2e633c5b2da5edf1bc70c0db4c2002779c42e32814ce8"
+      "sha256": "fa7b9fe5f1bd4431049aa89cf8c6909d5a3e566ccfacb83bf52fbd7c875498ba"
     }
   ],
   "provenance": {
-    "repo_commit": "03850c354c8f3b42ed890cf707b0c2f32438a8c2",
+    "repo_commit": "de7e02cb720d3f00a0344bd74888467c380f5cf6",
     "repo_dirty": true,
     "command": "docs/visexp/user_task_benchmark.py --out docs/visexp/out --agentflame-dir .agentsight/agentflame/latest",
     "python_version": "3.12.3",
@@ -57,7 +57,7 @@
   },
   "condition_order": [
     "trace-tree",
-    "span-duration",
+    "event-count-proxy",
     "flat-summary",
     "nonsemantic-stack",
     "semantic-stack"
@@ -71,7 +71,7 @@
     "design": "within-subject counterbalanced assignment across five visualization families",
     "conditions": [
       "trace-tree",
-      "span-duration",
+      "event-count-proxy",
       "flat-summary",
       "nonsemantic-stack",
       "semantic-stack"
@@ -87,7 +87,8 @@
     "paper_run_participants": "12-20",
     "assignment": "P01-P05 seeded rotation; each participant receives one condition per task and each task is covered once per condition across the pilot template",
     "oracle_visibility": "participants see only assigned condition packets; oracle_sources and answer keys are for graders",
-    "readiness_boundary": "pilot packet: content leakage, assignment coverage, and same-event-slice checks pass; C5 remains unsupported until scored participant responses exist",
+    "baseline_boundary": "`event-count-proxy` is a deliberately named event-weight/count proxy and must not be cited as a span-duration flamegraph baseline.",
+    "readiness_boundary": "pilot packet: content leakage, assignment coverage, same-event-slice checks, and explicit event-count baseline naming pass; C5 remains unsupported until scored participant responses exist",
     "claim_gate": "C5 can move beyond unsupported only after scored participant responses exist."
   },
   "participant_packet_files": [
@@ -164,13 +165,13 @@
           ]
         },
         {
-          "condition": "span-duration",
+          "condition": "event-count-proxy",
           "views": [
-            "span-duration flamegraph excerpt"
+            "event-count proxy flamegraph excerpt"
           ],
           "view_excerpt": [
             {
-              "title": "duration-ordered span excerpt",
+              "title": "event-count proxy excerpt",
               "rows": [
                 {
                   "slice_id": "9094425a7659d6b2",
@@ -180,7 +181,7 @@
                   "span": "project:agentsight",
                   "event_weight": 12841,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "9094425a7659d6b2",
@@ -190,7 +191,7 @@
                   "span": "agent:codex",
                   "event_weight": 12841,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "9094425a7659d6b2",
@@ -200,7 +201,7 @@
                   "span": "call:tool/tool",
                   "event_weight": 12841,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "9094425a7659d6b2",
@@ -210,7 +211,7 @@
                   "span": "effect:process",
                   "event_weight": 12841,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "9094425a7659d6b2",
@@ -220,7 +221,7 @@
                   "span": "status:ok",
                   "event_weight": 12841,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 }
               ]
             }
@@ -407,13 +408,13 @@
           ]
         },
         {
-          "condition": "span-duration",
+          "condition": "event-count-proxy",
           "views": [
-            "span-duration flamegraph excerpt"
+            "event-count proxy flamegraph excerpt"
           ],
           "view_excerpt": [
             {
-              "title": "duration-ordered span excerpt",
+              "title": "event-count proxy excerpt",
               "rows": [
                 {
                   "slice_id": "6fe59bb891a3b287",
@@ -584,13 +585,13 @@
           ]
         },
         {
-          "condition": "span-duration",
+          "condition": "event-count-proxy",
           "views": [
-            "span-duration flamegraph excerpt"
+            "event-count proxy flamegraph excerpt"
           ],
           "view_excerpt": [
             {
-              "title": "duration-ordered span excerpt",
+              "title": "event-count proxy excerpt",
               "rows": [
                 {
                   "slice_id": "9d047d1778ea07a6",
@@ -794,13 +795,13 @@
           ]
         },
         {
-          "condition": "span-duration",
+          "condition": "event-count-proxy",
           "views": [
-            "span-duration flamegraph excerpt"
+            "event-count proxy flamegraph excerpt"
           ],
           "view_excerpt": [
             {
-              "title": "duration-ordered span excerpt",
+              "title": "event-count proxy excerpt",
               "rows": [
                 {
                   "slice_id": "3ec59ca5056116a4",
@@ -810,7 +811,7 @@
                   "span": "project:agentsight",
                   "event_weight": 6004,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "3ec59ca5056116a4",
@@ -820,7 +821,7 @@
                   "span": "agent:codex",
                   "event_weight": 6004,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "3ec59ca5056116a4",
@@ -830,7 +831,7 @@
                   "span": "call:tool/tool",
                   "event_weight": 6004,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "3ec59ca5056116a4",
@@ -840,7 +841,7 @@
                   "span": "effect:process",
                   "event_weight": 6004,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "3ec59ca5056116a4",
@@ -850,7 +851,7 @@
                   "span": "status:ok",
                   "event_weight": 6004,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 }
               ]
             }
@@ -1043,13 +1044,13 @@
           ]
         },
         {
-          "condition": "span-duration",
+          "condition": "event-count-proxy",
           "views": [
-            "span-duration flamegraph excerpt"
+            "event-count proxy flamegraph excerpt"
           ],
           "view_excerpt": [
             {
-              "title": "duration-ordered span excerpt",
+              "title": "event-count proxy excerpt",
               "rows": [
                 {
                   "slice_id": "6ff7c8f034f03071",
@@ -1059,7 +1060,7 @@
                   "span": "project:agentsight",
                   "event_weight": 1648,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "6ff7c8f034f03071",
@@ -1069,7 +1070,7 @@
                   "span": "agent:codex",
                   "event_weight": 1648,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "6ff7c8f034f03071",
@@ -1079,7 +1080,7 @@
                   "span": "call:tool/shell",
                   "event_weight": 1648,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "6ff7c8f034f03071",
@@ -1089,7 +1090,7 @@
                   "span": "process:sed",
                   "event_weight": 1648,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "6ff7c8f034f03071",
@@ -1099,7 +1100,7 @@
                   "span": "effect:read",
                   "event_weight": 1648,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "6ff7c8f034f03071",
@@ -1109,7 +1110,7 @@
                   "span": "path:module/x86",
                   "event_weight": 1648,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "6ff7c8f034f03071",
@@ -1119,7 +1120,7 @@
                   "span": "status:ok",
                   "event_weight": 1648,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 }
               ]
             }
@@ -1303,13 +1304,13 @@
           ]
         },
         {
-          "condition": "span-duration",
+          "condition": "event-count-proxy",
           "views": [
-            "span-duration flamegraph excerpt"
+            "event-count proxy flamegraph excerpt"
           ],
           "view_excerpt": [
             {
-              "title": "duration-ordered span excerpt",
+              "title": "event-count proxy excerpt",
               "rows": [
                 {
                   "slice_id": "8b99fc559abb95ec",
@@ -1319,7 +1320,7 @@
                   "span": "project:agentsight",
                   "event_weight": 1420,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "8b99fc559abb95ec",
@@ -1329,7 +1330,7 @@
                   "span": "agent:codex",
                   "event_weight": 1420,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "8b99fc559abb95ec",
@@ -1339,7 +1340,7 @@
                   "span": "call:tool/shell",
                   "event_weight": 1420,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "8b99fc559abb95ec",
@@ -1349,7 +1350,7 @@
                   "span": "process:cargo",
                   "event_weight": 1420,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "8b99fc559abb95ec",
@@ -1359,7 +1360,7 @@
                   "span": "effect:test",
                   "event_weight": 1420,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "8b99fc559abb95ec",
@@ -1369,7 +1370,7 @@
                   "span": "status:ok",
                   "event_weight": 1420,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 }
               ]
             }
@@ -1596,13 +1597,13 @@
           ]
         },
         {
-          "condition": "span-duration",
+          "condition": "event-count-proxy",
           "views": [
-            "span-duration flamegraph excerpt"
+            "event-count proxy flamegraph excerpt"
           ],
           "view_excerpt": [
             {
-              "title": "duration-ordered span excerpt",
+              "title": "event-count proxy excerpt",
               "rows": [
                 {
                   "slice_id": "16e90d76423d5242",
@@ -1612,7 +1613,7 @@
                   "span": "project:agentsight",
                   "event_weight": 1612,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "16e90d76423d5242",
@@ -1622,7 +1623,7 @@
                   "span": "agent:codex",
                   "event_weight": 1612,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "16e90d76423d5242",
@@ -1632,7 +1633,7 @@
                   "span": "call:tool/shell",
                   "event_weight": 1612,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "16e90d76423d5242",
@@ -1642,7 +1643,7 @@
                   "span": "process:python3",
                   "event_weight": 1612,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "16e90d76423d5242",
@@ -1652,7 +1653,7 @@
                   "span": "effect:process",
                   "event_weight": 1612,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "16e90d76423d5242",
@@ -1662,7 +1663,7 @@
                   "span": "status:ok",
                   "event_weight": 1612,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 }
               ]
             }
@@ -1889,13 +1890,13 @@
           ]
         },
         {
-          "condition": "span-duration",
+          "condition": "event-count-proxy",
           "views": [
-            "span-duration flamegraph excerpt"
+            "event-count proxy flamegraph excerpt"
           ],
           "view_excerpt": [
             {
-              "title": "duration-ordered span excerpt",
+              "title": "event-count proxy excerpt",
               "rows": [
                 {
                   "slice_id": "14f4af7e3ec50bb2",
@@ -1905,7 +1906,7 @@
                   "span": "project:agentsight",
                   "event_weight": 1470,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "14f4af7e3ec50bb2",
@@ -1915,7 +1916,7 @@
                   "span": "agent:codex",
                   "event_weight": 1470,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "14f4af7e3ec50bb2",
@@ -1925,7 +1926,7 @@
                   "span": "call:tool/shell",
                   "event_weight": 1470,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "14f4af7e3ec50bb2",
@@ -1935,7 +1936,7 @@
                   "span": "process:docker",
                   "event_weight": 1470,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "14f4af7e3ec50bb2",
@@ -1945,7 +1946,7 @@
                   "span": "effect:process",
                   "event_weight": 1470,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "14f4af7e3ec50bb2",
@@ -1955,7 +1956,7 @@
                   "span": "status:ok",
                   "event_weight": 1470,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 }
               ]
             }
@@ -2164,13 +2165,13 @@
           ]
         },
         {
-          "condition": "span-duration",
+          "condition": "event-count-proxy",
           "views": [
-            "span-duration flamegraph excerpt"
+            "event-count proxy flamegraph excerpt"
           ],
           "view_excerpt": [
             {
-              "title": "duration-ordered span excerpt",
+              "title": "event-count proxy excerpt",
               "rows": [
                 {
                   "slice_id": "b2f3f1b11ecfda65",
@@ -2180,7 +2181,7 @@
                   "span": "call:tool/shell",
                   "event_weight": 4505,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "b2f3f1b11ecfda65",
@@ -2190,7 +2191,7 @@
                   "span": "process:git",
                   "event_weight": 4505,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "b2f3f1b11ecfda65",
@@ -2200,7 +2201,7 @@
                   "span": "effect:read",
                   "event_weight": 4505,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "b2f3f1b11ecfda65",
@@ -2210,7 +2211,7 @@
                   "span": "status:ok",
                   "event_weight": 4505,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 }
               ]
             }
@@ -2418,13 +2419,13 @@
           ]
         },
         {
-          "condition": "span-duration",
+          "condition": "event-count-proxy",
           "views": [
-            "span-duration flamegraph excerpt"
+            "event-count proxy flamegraph excerpt"
           ],
           "view_excerpt": [
             {
-              "title": "duration-ordered span excerpt",
+              "title": "event-count proxy excerpt",
               "rows": [
                 {
                   "slice_id": "8fad605fffd20eec",
@@ -2434,7 +2435,7 @@
                   "span": "project:agentsight",
                   "event_weight": 17869111395752,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "8fad605fffd20eec",
@@ -2444,7 +2445,7 @@
                   "span": "agent:codex",
                   "event_weight": 17869111395752,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "8fad605fffd20eec",
@@ -2454,7 +2455,7 @@
                   "span": "call:llm/refactor",
                   "event_weight": 17869111395752,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "8fad605fffd20eec",
@@ -2464,7 +2465,7 @@
                   "span": "model:codex",
                   "event_weight": 17869111395752,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 },
                 {
                   "slice_id": "8fad605fffd20eec",
@@ -2474,7 +2475,7 @@
                   "span": "kind:estimate",
                   "event_weight": 17869111395752,
                   "width_basis": "event_weight_same_slice",
-                  "note": "duration unavailable in folded artifact"
+                  "note": "event-count proxy; duration unavailable in folded artifact"
                 }
               ]
             }
@@ -2610,13 +2611,13 @@
           ]
         },
         {
-          "condition": "span-duration",
+          "condition": "event-count-proxy",
           "views": [
-            "span-duration flamegraph excerpt"
+            "event-count proxy flamegraph excerpt"
           ],
           "view_excerpt": [
             {
-              "title": "duration-ordered span excerpt",
+              "title": "event-count proxy excerpt",
               "rows": [
                 {
                   "slice_id": "6186258163d8dd43",
@@ -2815,13 +2816,13 @@
           ]
         },
         {
-          "condition": "span-duration",
+          "condition": "event-count-proxy",
           "views": [
-            "span-duration flamegraph excerpt"
+            "event-count proxy flamegraph excerpt"
           ],
           "view_excerpt": [
             {
-              "title": "duration-ordered span excerpt",
+              "title": "event-count proxy excerpt",
               "rows": [
                 {
                   "slice_id": "5ff61b3cb85ba508",
@@ -3147,13 +3148,13 @@
           ]
         },
         {
-          "condition": "span-duration",
+          "condition": "event-count-proxy",
           "views": [
-            "span-duration flamegraph excerpt"
+            "event-count proxy flamegraph excerpt"
           ],
           "view_excerpt": [
             {
-              "title": "duration-ordered span excerpt",
+              "title": "event-count proxy excerpt",
               "rows": [
                 {
                   "slice_id": "339b362294a8d18e",
@@ -3410,13 +3411,13 @@
           ]
         },
         {
-          "condition": "span-duration",
+          "condition": "event-count-proxy",
           "views": [
-            "span-duration flamegraph excerpt"
+            "event-count proxy flamegraph excerpt"
           ],
           "view_excerpt": [
             {
-              "title": "duration-ordered span excerpt",
+              "title": "event-count proxy excerpt",
               "rows": [
                 {
                   "slice_id": "88c10cd28ed3f719",

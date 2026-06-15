@@ -236,9 +236,9 @@ python3 docs/visexp/score_user_task_results.py \
 ```
 
 The C5 scorer compares `semantic-stack` against `trace-tree`,
-`span-duration`, `flat-summary`, and `nonsemantic-stack`. It first validates
+`event-count-proxy`, `flat-summary`, and `nonsemantic-stack`. It first validates
 assignment/packet consistency and rejects duplicate, partial, or nonnumeric
 real-response CSVs. Task-level paired deltas remain diagnostic; paper-scale
-support requires the Holm-corrected participant/task fixed-effect gate in
+support requires the Holm-corrected participant/task/order fixed-effect gate in
 `claim_analysis.claim_gate` to pass. Pilot-scale output should not be cited as
 a user-utility result.
