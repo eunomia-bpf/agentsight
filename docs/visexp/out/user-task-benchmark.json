@@ -1,366 +1,3323 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "claim": "C5",
-  "status": "pilot_packet_ready_no_participants",
+  "run_id": "R141-packet",
+  "status": "pilot_packet_draft_no_participants",
+  "generated_at": "2026-06-15T06:43:21+00:00",
   "source_artifacts": [
-    "aggregation.json",
-    "evaluation.json",
-    "semantic-mixing.csv",
-    "agent-diff.csv",
-    "semantic-system.folded.txt",
-    "semantic-token.folded.txt",
-    "tag-stability-smoke.json"
+    {
+      "path": ".agentsight/agentflame/latest/agentflame.json",
+      "exists": true,
+      "sha256": "304e931737dbf4ef4cede6c17d9b0e812d46b2116c0a1011ef7ba7a2b581980a"
+    },
+    {
+      "path": "docs/visexp/out/live-record-r114.json",
+      "exists": true,
+      "sha256": "c6dfee4c17ed9cb9018ec0d44c689ea683aa8ef4d62a8f759f21d94a157541b6"
+    },
+    {
+      "path": "docs/visexp/out/live-record-r114-analysis.json",
+      "exists": true,
+      "sha256": "34f7f554bc36e3eee0a9b2026550a42f830efb27ac87b3ffc5ad005116f1df46"
+    },
+    {
+      "path": "docs/visexp/out/semantic-ablation-r131.json",
+      "exists": true,
+      "sha256": "46ca106b77bf17948580906793f21a0140f6a74a0ce165959947f36e59779e01"
+    },
+    {
+      "path": "docs/visexp/out/model-benchmarks-r123.json",
+      "exists": true,
+      "sha256": "f7e5339007077182864fcac74ff97aae899ce14db39331e76a7f5e4984d275bf"
+    }
   ],
+  "script_artifacts": [
+    {
+      "path": "docs/visexp/user_task_benchmark.py",
+      "exists": true,
+      "sha256": "caeba078d820d5c8c04f8ae5412ccb12190bb00526e2ce16ace44bcee17dbc9f"
+    },
+    {
+      "path": "docs/visexp/score_user_task_results.py",
+      "exists": true,
+      "sha256": "9bfe4e5056b5a5b149d1b86a8a5b06716996fb2ebd005ae71e54652f53570bc8"
+    },
+    {
+      "path": "docs/visexp/test_semantic_tag_flamegraph.py",
+      "exists": true,
+      "sha256": "4da49ec666dd4b6a962c18c4f797455a3ce4324ea11c9b2ee18af41ab6544479"
+    }
+  ],
+  "provenance": {
+    "repo_commit": "dd95f13f4894f1f3985719edb67cadeaa3e7dee8",
+    "repo_dirty": true,
+    "command": "docs/visexp/user_task_benchmark.py --out docs/visexp/out --agentflame-dir .agentsight/agentflame/latest",
+    "python_version": "3.12.3",
+    "platform": "Linux-6.15.11-061511-generic-x86_64-with-glibc2.39"
+  },
+  "condition_order": [
+    "trace-tree",
+    "span-duration",
+    "flat-summary",
+    "nonsemantic-stack",
+    "semantic-stack"
+  ],
+  "task_count": 14,
+  "primary_utility_task_count": 8,
+  "limitation_check_task_count": 6,
+  "packet_count": 70,
+  "assignment_count": 70,
   "participant_protocol": {
-    "design": "within-subject counterbalanced order across visualization families",
+    "design": "draft within-subject counterbalanced assignment across five visualization families",
+    "conditions": [
+      "trace-tree",
+      "span-duration",
+      "flat-summary",
+      "nonsemantic-stack",
+      "semantic-stack"
+    ],
     "metrics": [
+      "exact_answer_accuracy",
+      "field_accuracy_pct",
       "task_time_seconds",
-      "answer_accuracy",
       "false_positive_count",
       "confidence"
     ],
-    "minimum_pilot_participants": 4,
+    "minimum_pilot_participants": 5,
     "paper_run_participants": "12-20",
-    "oracle_visibility": "participants see only one assigned view condition; oracle_sources are for graders",
+    "assignment": "P01-P05 seeded rotation; each participant receives one condition per task and each task is covered once per condition across the pilot template",
+    "oracle_visibility": "participants see only assigned condition packets; oracle_sources and answer keys are for graders",
+    "readiness_boundary": "draft: content leakage and assignment checks pass, but baseline fairness still needs a same-event-slice audit before collecting participants",
     "claim_gate": "C5 can move beyond unsupported only after scored participant responses exist."
   },
   "participant_packet_files": [
     "user-task-participant-packets.json",
     "user-task-participant-packets.md",
+    "user-task-assignments.csv",
     "user-task-response-template.csv"
   ],
   "tasks": [
     {
-      "task_id": "UT1",
+      "task_id": "UT01",
       "claim": "C5",
+      "analysis_role": "primary_utility",
       "skill": "find-hidden-semantic-mixing",
-      "title": "Nonsemantic Mixing",
-      "question": "Find the highest-weight nonsemantic folded bucket. Report the baseline stack, total weight, semantic variant count, and top semantic variant.",
+      "title": "Top Nonsemantic System Mixing",
+      "question": "Which high-weight nonsemantic system bucket is dominated by which semantic region?",
       "participant_view_conditions": [
         {
-          "condition": "semantic",
+          "condition": "trace-tree",
           "views": [
-            "system-flamegraph.svg",
-            "semantic-system.folded.txt"
+            "session/tool chronological tree excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "trace tree excerpt",
+              "rows": [
+                {
+                  "task_id": "r114-read-state",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-read-verdict",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-read-related",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-rg-baseline",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-agentflame-readme",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                }
+              ]
+            }
           ]
         },
         {
-          "condition": "nonsemantic",
+          "condition": "span-duration",
           "views": [
-            "nonsemantic-system.folded.txt"
+            "span-duration flamegraph excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "duration-ordered span excerpt",
+              "rows": [
+                {
+                  "task_id": "r114-edit-rust-text",
+                  "category": "edit",
+                  "duration_seconds": 30.605,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-write-json",
+                  "category": "edit",
+                  "duration_seconds": 30.304,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-test-debug",
+                  "category": "test",
+                  "duration_seconds": 28.372,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-fix-shell-script",
+                  "category": "test",
+                  "duration_seconds": 25.5,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-edit-python-bug",
+                  "category": "edit",
+                  "duration_seconds": 25.311,
+                  "status": "lineage_precision_ok"
+                }
+              ]
+            }
           ]
         },
         {
-          "condition": "flat",
+          "condition": "flat-summary",
           "views": [
-            "command-summary.csv"
+            "process/effect/path summary excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "flat summary excerpt",
+              "rows": [
+                {
+                  "agent": "codex",
+                  "cmd": "sed",
+                  "count": 25755,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "rg",
+                  "count": 15336,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "write",
+                  "count": 12824,
+                  "effect": "process",
+                  "status": "ok",
+                  "tool": "tool"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "git",
+                  "count": 8549,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "write",
+                  "count": 7655,
+                  "effect": "process",
+                  "status": "observed",
+                  "tool": "tool"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "nl",
+                  "count": 6354,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "find",
+                  "count": 4429,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "cargo",
+                  "count": 2903,
+                  "effect": "test",
+                  "status": "ok",
+                  "tool": "shell"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "nonsemantic-stack",
+          "views": [
+            "nonsemantic folded stack excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "nonsemantic folded excerpt",
+              "rows": [
+                {
+                  "projected_stack": "project:agentsight;agent:codex;call:tool/tool;effect:process;status:ok",
+                  "weight": 12841
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "semantic-stack",
+          "views": [
+            "semantic effect flamegraph excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "semantic folded excerpt",
+              "rows": [
+                {
+                  "semantic": "session:refactor/prompt:refactor",
+                  "weight": 6004
+                },
+                {
+                  "semantic": "session:refactor/prompt:design",
+                  "weight": 1349
+                },
+                {
+                  "semantic": "session:refactor/prompt:review",
+                  "weight": 1349
+                },
+                {
+                  "semantic": "session:analyze/prompt:analyze",
+                  "weight": 704
+                },
+                {
+                  "semantic": "session:refactor/prompt:test",
+                  "weight": 331
+                },
+                {
+                  "semantic": "session:refactor/prompt:benchmark",
+                  "weight": 248
+                },
+                {
+                  "semantic": "session:refactor/prompt:ignored",
+                  "weight": 206
+                },
+                {
+                  "semantic": "session:refactor/prompt:validate",
+                  "weight": 129
+                }
+              ]
+            }
           ]
         }
       ],
       "oracle_sources": [
-        "semantic-mixing.csv",
-        "evaluation.json"
+        "docs/visexp/out/semantic-ablation-r131.json"
       ],
       "answer_format": {
-        "baseline_kind": "str",
-        "baseline_stack": "str",
+        "projected_stack_hash": "str",
         "weight": "int",
-        "semantic_variant_count": "int",
-        "top_semantic_variant": "str",
-        "top_semantic_variant_weight": "int"
+        "top_semantic": "str",
+        "top_semantic_weight": "int"
       },
       "oracle": {
-        "baseline_kind": "nonsemantic_without_session_prompt",
-        "baseline_stack": "project:agentsight;agent:codex;tool:shell;cmd:git;effect:read;status:ok",
-        "weight": 326,
-        "semantic_variant_count": 19,
-        "top_semantic_variant": "session:flamegraph/prompt:prompt",
-        "top_semantic_variant_weight": 70
+        "projected_stack_hash": "7d7f790d370420a0",
+        "weight": 12841,
+        "top_semantic": "session:refactor/prompt:refactor",
+        "top_semantic_weight": 6004
       },
       "scoring": {
-        "method": "exact field match against oracle unless the field is marked explanatory",
+        "method": "exact field match against oracle",
         "required_fields": [
-          "baseline_kind",
-          "baseline_stack",
-          "semantic_variant_count",
-          "top_semantic_variant",
-          "top_semantic_variant_weight",
+          "projected_stack_hash",
+          "top_semantic",
+          "top_semantic_weight",
           "weight"
         ]
       },
-      "baseline_contrast": "A nonsemantic folded stack can show the combined bucket, but not which session/prompt regions produced it."
+      "baseline_contrast": "Trace/span/flat views show activity but do not expose the semantic split inside this repeated bucket."
     },
     {
-      "task_id": "UT2",
+      "task_id": "UT02",
       "claim": "C5",
-      "skill": "compare-flat-vs-semantic",
-      "title": "Flat Effect Mixing",
-      "question": "Find the highest-weight flat effect bucket after removing project, agent, session, and prompt frames. Report its variant count and top semantic variant.",
+      "analysis_role": "limitation_check",
+      "skill": "compare-semantic-axis",
+      "title": "Prompt Axis Contribution",
+      "question": "How much does prompt-only projection reduce system-effect mixing compared with no semantic axis?",
       "participant_view_conditions": [
         {
-          "condition": "semantic",
+          "condition": "trace-tree",
           "views": [
-            "system-flamegraph.svg",
-            "semantic-system.folded.txt"
+            "session/tool chronological tree excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "trace tree excerpt",
+              "rows": [
+                {
+                  "task_id": "r114-read-state",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-read-verdict",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-read-related",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-rg-baseline",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-agentflame-readme",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                }
+              ]
+            }
           ]
         },
         {
-          "condition": "flat",
+          "condition": "span-duration",
           "views": [
-            "command-summary.csv"
+            "span-duration flamegraph excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "duration-ordered span excerpt",
+              "rows": [
+                {
+                  "task_id": "r114-edit-rust-text",
+                  "category": "edit",
+                  "duration_seconds": 30.605,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-write-json",
+                  "category": "edit",
+                  "duration_seconds": 30.304,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-test-debug",
+                  "category": "test",
+                  "duration_seconds": 28.372,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-fix-shell-script",
+                  "category": "test",
+                  "duration_seconds": 25.5,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-edit-python-bug",
+                  "category": "edit",
+                  "duration_seconds": 25.311,
+                  "status": "lineage_precision_ok"
+                }
+              ]
+            }
           ]
         },
         {
-          "condition": "nonsemantic",
+          "condition": "flat-summary",
           "views": [
-            "nonsemantic-system.folded.txt"
+            "process/effect/path summary excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "flat summary excerpt",
+              "rows": [
+                {
+                  "agent": "codex",
+                  "cmd": "sed",
+                  "count": 25755,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "rg",
+                  "count": 15336,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "write",
+                  "count": 12824,
+                  "effect": "process",
+                  "status": "ok",
+                  "tool": "tool"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "git",
+                  "count": 8549,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "write",
+                  "count": 7655,
+                  "effect": "process",
+                  "status": "observed",
+                  "tool": "tool"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "nl",
+                  "count": 6354,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "find",
+                  "count": 4429,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "cargo",
+                  "count": 2903,
+                  "effect": "test",
+                  "status": "ok",
+                  "tool": "shell"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "nonsemantic-stack",
+          "views": [
+            "nonsemantic folded stack excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "nonsemantic folded excerpt",
+              "rows": [
+                {
+                  "variant": "no-semantic",
+                  "mixed_residual_weight_share_pct": 44.639,
+                  "mixed_weight_share_pct": 90.219
+                },
+                {
+                  "variant": "prompt-only",
+                  "mixed_residual_weight_share_pct": 7.526,
+                  "mixed_weight_share_pct": 37.687
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "semantic-stack",
+          "views": [
+            "semantic effect flamegraph excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "semantic folded excerpt",
+              "rows": [
+                {
+                  "total_weight": 167005,
+                  "unique_stacks": 10641
+                },
+                {
+                  "total_weight": 167005,
+                  "unique_stacks": 22341
+                }
+              ]
+            }
           ]
         }
       ],
       "oracle_sources": [
-        "semantic-mixing.csv",
-        "evaluation.json"
+        "docs/visexp/out/semantic-ablation-r131.json"
       ],
       "answer_format": {
-        "baseline_kind": "str",
-        "baseline_stack": "str",
-        "weight": "int",
-        "semantic_variant_count": "int",
-        "top_semantic_variant": "str",
-        "top_semantic_variant_weight": "int"
+        "no_semantic_mixed_pct": "float",
+        "prompt_only_mixed_pct": "float",
+        "reduction_points": "float",
+        "no_semantic_residual_pct": "float",
+        "prompt_only_residual_pct": "float"
       },
       "oracle": {
-        "baseline_kind": "flat_effect_without_project_agent_session_prompt",
-        "baseline_stack": "tool:shell;cmd:git;effect:read;status:ok",
-        "weight": 345,
-        "semantic_variant_count": 24,
-        "top_semantic_variant": "session:flamegraph/prompt:prompt",
-        "top_semantic_variant_weight": 70
+        "no_semantic_mixed_pct": 90.219,
+        "prompt_only_mixed_pct": 37.687,
+        "reduction_points": 52.532,
+        "no_semantic_residual_pct": 44.639,
+        "prompt_only_residual_pct": 7.526
       },
       "scoring": {
-        "method": "exact field match against oracle unless the field is marked explanatory",
+        "method": "exact field match against oracle",
         "required_fields": [
-          "baseline_kind",
-          "baseline_stack",
-          "semantic_variant_count",
-          "top_semantic_variant",
-          "top_semantic_variant_weight",
-          "weight"
+          "no_semantic_mixed_pct",
+          "no_semantic_residual_pct",
+          "prompt_only_mixed_pct",
+          "prompt_only_residual_pct",
+          "reduction_points"
         ]
       },
-      "baseline_contrast": "A flat process/effect summary can report the command/effect, but not the task regions hidden inside that bucket."
+      "baseline_contrast": "A nonsemantic flamegraph aggregates repeated work but cannot quantify which semantic axis reduced mixing."
     },
     {
-      "task_id": "UT3",
+      "task_id": "UT03",
       "claim": "C5",
+      "analysis_role": "limitation_check",
+      "skill": "compare-semantic-axis",
+      "title": "Session Versus Prompt Axis",
+      "question": "Which single semantic axis separates system effects better: session or prompt?",
+      "participant_view_conditions": [
+        {
+          "condition": "trace-tree",
+          "views": [
+            "session/tool chronological tree excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "trace tree excerpt",
+              "rows": [
+                {
+                  "task_id": "r114-read-state",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-read-verdict",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-read-related",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-rg-baseline",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-agentflame-readme",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "span-duration",
+          "views": [
+            "span-duration flamegraph excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "duration-ordered span excerpt",
+              "rows": [
+                {
+                  "task_id": "r114-edit-rust-text",
+                  "category": "edit",
+                  "duration_seconds": 30.605,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-write-json",
+                  "category": "edit",
+                  "duration_seconds": 30.304,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-test-debug",
+                  "category": "test",
+                  "duration_seconds": 28.372,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-fix-shell-script",
+                  "category": "test",
+                  "duration_seconds": 25.5,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-edit-python-bug",
+                  "category": "edit",
+                  "duration_seconds": 25.311,
+                  "status": "lineage_precision_ok"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "flat-summary",
+          "views": [
+            "process/effect/path summary excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "flat summary excerpt",
+              "rows": [
+                {
+                  "agent": "codex",
+                  "cmd": "sed",
+                  "count": 25755,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "rg",
+                  "count": 15336,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "write",
+                  "count": 12824,
+                  "effect": "process",
+                  "status": "ok",
+                  "tool": "tool"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "git",
+                  "count": 8549,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "write",
+                  "count": 7655,
+                  "effect": "process",
+                  "status": "observed",
+                  "tool": "tool"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "nl",
+                  "count": 6354,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "find",
+                  "count": 4429,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "cargo",
+                  "count": 2903,
+                  "effect": "test",
+                  "status": "ok",
+                  "tool": "shell"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "nonsemantic-stack",
+          "views": [
+            "nonsemantic folded stack excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "nonsemantic folded excerpt",
+              "rows": [
+                {
+                  "variant": "session-only",
+                  "mixed_residual_weight_share_pct": 34.138,
+                  "mixed_weight_share_pct": 84.18
+                },
+                {
+                  "variant": "prompt-only",
+                  "mixed_residual_weight_share_pct": 7.526,
+                  "mixed_weight_share_pct": 37.687
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "semantic-stack",
+          "views": [
+            "semantic effect flamegraph excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "semantic folded excerpt",
+              "rows": [
+                {
+                  "weight": 10130
+                },
+                {
+                  "weight": 6291
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "oracle_sources": [
+        "docs/visexp/out/semantic-ablation-r131.json"
+      ],
+      "answer_format": {
+        "better_axis": "str",
+        "session_only_mixed_pct": "float",
+        "prompt_only_mixed_pct": "float",
+        "session_only_residual_pct": "float",
+        "prompt_only_residual_pct": "float"
+      },
+      "oracle": {
+        "better_axis": "prompt",
+        "session_only_mixed_pct": 84.18,
+        "prompt_only_mixed_pct": 37.687,
+        "session_only_residual_pct": 34.138,
+        "prompt_only_residual_pct": 7.526
+      },
+      "scoring": {
+        "method": "exact field match against oracle",
+        "required_fields": [
+          "better_axis",
+          "prompt_only_mixed_pct",
+          "prompt_only_residual_pct",
+          "session_only_mixed_pct",
+          "session_only_residual_pct"
+        ]
+      },
+      "baseline_contrast": "This task isolates mechanism: prompt tags carry most system-effect separation in the current corpus."
+    },
+    {
+      "task_id": "UT04",
+      "claim": "C5",
+      "analysis_role": "primary_utility",
       "skill": "find-repeated-heavy-behavior",
       "title": "Heaviest Repeated Semantic Stack",
-      "question": "Identify the heaviest semantic system stack and report its session tag, prompt tag, command, effect, and weight.",
+      "question": "Identify the heaviest semantic system stack and its semantic/effect fields.",
       "participant_view_conditions": [
         {
-          "condition": "semantic",
+          "condition": "trace-tree",
           "views": [
-            "system-flamegraph.svg",
-            "semantic-system.folded.txt"
+            "session/tool chronological tree excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "trace tree excerpt",
+              "rows": [
+                {
+                  "task_id": "r114-read-state",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-read-verdict",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-read-related",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-rg-baseline",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-agentflame-readme",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                }
+              ]
+            }
           ]
         },
         {
-          "condition": "nonsemantic",
+          "condition": "span-duration",
           "views": [
-            "nonsemantic-system.folded.txt"
+            "span-duration flamegraph excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "duration-ordered span excerpt",
+              "rows": [
+                {
+                  "task_id": "r114-edit-rust-text",
+                  "category": "edit",
+                  "duration_seconds": 30.605,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-write-json",
+                  "category": "edit",
+                  "duration_seconds": 30.304,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-test-debug",
+                  "category": "test",
+                  "duration_seconds": 28.372,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-fix-shell-script",
+                  "category": "test",
+                  "duration_seconds": 25.5,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-edit-python-bug",
+                  "category": "edit",
+                  "duration_seconds": 25.311,
+                  "status": "lineage_precision_ok"
+                }
+              ]
+            }
           ]
         },
         {
-          "condition": "flat",
+          "condition": "flat-summary",
           "views": [
-            "command-summary.csv"
+            "process/effect/path summary excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "flat summary excerpt",
+              "rows": [
+                {
+                  "agent": "codex",
+                  "cmd": "sed",
+                  "count": 25755,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "rg",
+                  "count": 15336,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "write",
+                  "count": 12824,
+                  "effect": "process",
+                  "status": "ok",
+                  "tool": "tool"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "git",
+                  "count": 8549,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "write",
+                  "count": 7655,
+                  "effect": "process",
+                  "status": "observed",
+                  "tool": "tool"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "nl",
+                  "count": 6354,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "find",
+                  "count": 4429,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "cargo",
+                  "count": 2903,
+                  "effect": "test",
+                  "status": "ok",
+                  "tool": "shell"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "nonsemantic-stack",
+          "views": [
+            "nonsemantic folded stack excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "nonsemantic folded excerpt",
+              "rows": [
+                {
+                  "stack": "project:agentsight;agent:codex;call:tool/tool;effect:process;status:ok",
+                  "weight": 6004
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "semantic-stack",
+          "views": [
+            "semantic effect flamegraph excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "semantic folded excerpt",
+              "rows": [
+                {
+                  "stack": "project:agentsight;agent:codex;session:refactor;prompt:refactor;call:tool/tool;effect:process;status:ok",
+                  "weight": 6004
+                }
+              ]
+            }
           ]
         }
       ],
       "oracle_sources": [
-        "aggregation.json",
-        "semantic-system.folded.txt"
+        ".agentsight/agentflame/latest/agentflame.json"
       ],
       "answer_format": {
-        "stack": "str",
         "weight": "int",
         "session": "str",
         "prompt": "str",
-        "cmd": "str",
-        "effect": "str"
+        "call": "str",
+        "effect": "str",
+        "status": "str"
       },
       "oracle": {
-        "stack": "project:agentsight;agent:codex-subagent;session:reviewdoc;prompt:reviewdoc;tool:shell;cmd:jq;effect:read;path:.agentsight/agentflame;status:ok",
-        "weight": 18,
-        "session": "reviewdoc",
-        "prompt": "reviewdoc",
-        "cmd": "jq",
-        "effect": "read"
+        "weight": 6004,
+        "session": "refactor",
+        "prompt": "refactor",
+        "call": "tool/tool",
+        "effect": "process",
+        "status": "ok"
       },
       "scoring": {
-        "method": "exact field match against oracle unless the field is marked explanatory",
+        "method": "exact field match against oracle",
         "required_fields": [
-          "cmd",
+          "call",
           "effect",
           "prompt",
           "session",
-          "stack",
+          "status",
           "weight"
         ]
       },
-      "baseline_contrast": "A trace tree requires scanning many occurrences; the folded stack turns repeated behavior into one weighted answer."
+      "baseline_contrast": "A flat summary can reveal volume, but the semantic stack names the task region causing it."
     },
     {
-      "task_id": "UT4",
+      "task_id": "UT05",
       "claim": "C5",
-      "skill": "find-agent-divergence",
-      "title": "Top Agent-Difference Diagnostic",
-      "question": "In the top-level cohort, identify the largest normalized Codex-vs-Claude behavioral difference and report the winner, delta per 1000 observations, and normalized stack.",
+      "analysis_role": "primary_utility",
+      "skill": "find-path-effect-provenance",
+      "title": "Heaviest Path-Specific Read",
+      "question": "Find the heaviest path-specific system-effect stack and report process, path, and semantic tags.",
       "participant_view_conditions": [
         {
-          "condition": "semantic-diff",
+          "condition": "trace-tree",
           "views": [
-            "agent-diff.csv"
+            "session/tool chronological tree excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "trace tree excerpt",
+              "rows": [
+                {
+                  "task_id": "r114-read-state",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-read-verdict",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-read-related",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-rg-baseline",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-agentflame-readme",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                }
+              ]
+            }
           ]
         },
         {
-          "condition": "flat",
+          "condition": "span-duration",
           "views": [
-            "command-summary.csv"
+            "span-duration flamegraph excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "duration-ordered span excerpt",
+              "rows": [
+                {
+                  "task_id": "r114-edit-rust-text",
+                  "category": "edit",
+                  "duration_seconds": 30.605,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-write-json",
+                  "category": "edit",
+                  "duration_seconds": 30.304,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-test-debug",
+                  "category": "test",
+                  "duration_seconds": 28.372,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-fix-shell-script",
+                  "category": "test",
+                  "duration_seconds": 25.5,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-edit-python-bug",
+                  "category": "edit",
+                  "duration_seconds": 25.311,
+                  "status": "lineage_precision_ok"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "flat-summary",
+          "views": [
+            "process/effect/path summary excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "flat summary excerpt",
+              "rows": [
+                {
+                  "agent": "codex",
+                  "cmd": "sed",
+                  "count": 25755,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "rg",
+                  "count": 15336,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "write",
+                  "count": 12824,
+                  "effect": "process",
+                  "status": "ok",
+                  "tool": "tool"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "git",
+                  "count": 8549,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "write",
+                  "count": 7655,
+                  "effect": "process",
+                  "status": "observed",
+                  "tool": "tool"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "nl",
+                  "count": 6354,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "find",
+                  "count": 4429,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "cargo",
+                  "count": 2903,
+                  "effect": "test",
+                  "status": "ok",
+                  "tool": "shell"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "nonsemantic-stack",
+          "views": [
+            "nonsemantic folded stack excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "nonsemantic folded excerpt",
+              "rows": [
+                {
+                  "stack": "project:agentsight;agent:codex;call:tool/shell;process:sed;effect:read;path:module/x86;status:ok",
+                  "weight": 1648
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "semantic-stack",
+          "views": [
+            "semantic effect flamegraph excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "semantic folded excerpt",
+              "rows": [
+                {
+                  "stack": "project:agentsight;agent:codex;session:refactor;prompt:refactor;call:tool/shell;process:sed;effect:read;path:module/x86;status:ok",
+                  "weight": 1648
+                }
+              ]
+            }
           ]
         }
       ],
       "oracle_sources": [
-        "agent-diff.csv"
+        ".agentsight/agentflame/latest/agentflame.json"
       ],
       "answer_format": {
-        "cohort": "str",
-        "winner": "str",
-        "rate_delta_per_1k": "float",
-        "codex_rate_per_1k": "float",
-        "claude_rate_per_1k": "float",
-        "stack": "str"
-      },
-      "oracle": {
-        "cohort": "top",
-        "winner": "codex",
-        "rate_delta_per_1k": 222.222,
-        "codex_rate_per_1k": 222.222,
-        "claude_rate_per_1k": 0.0,
-        "stack": "project:agentsight;session:countlines;prompt:readline;tool:shell;cmd:rg;effect:read;path:docs/visexp/experiment_plan.md;status:ok"
-      },
-      "scoring": {
-        "method": "exact field match against oracle unless the field is marked explanatory",
-        "required_fields": [
-          "claude_rate_per_1k",
-          "codex_rate_per_1k",
-          "cohort",
-          "rate_delta_per_1k",
-          "stack",
-          "winner"
-        ]
-      },
-      "baseline_contrast": "Raw per-agent counts are confounded by total volume; this view normalizes stacks before presenting the diagnostic."
-    },
-    {
-      "task_id": "UT5",
-      "claim": "C5",
-      "skill": "find-token-hotspot",
-      "title": "Largest Token Region",
-      "question": "Identify the largest token stack and report the session tag, prompt tag, model, token kind, and weight.",
-      "participant_view_conditions": [
-        {
-          "condition": "semantic-token",
-          "views": [
-            "token-flamegraph.svg",
-            "semantic-token.folded.txt"
-          ]
-        },
-        {
-          "condition": "folded-token",
-          "views": [
-            "semantic-token.folded.txt"
-          ]
-        }
-      ],
-      "oracle_sources": [
-        "aggregation.json",
-        "semantic-token.folded.txt"
-      ],
-      "answer_format": {
-        "stack": "str",
         "weight": "int",
         "session": "str",
         "prompt": "str",
+        "process": "str",
+        "effect": "str",
+        "path": "str"
+      },
+      "oracle": {
+        "weight": 1648,
+        "session": "refactor",
+        "prompt": "refactor",
+        "process": "sed",
+        "effect": "read",
+        "path": "module/x86"
+      },
+      "scoring": {
+        "method": "exact field match against oracle",
+        "required_fields": [
+          "effect",
+          "path",
+          "process",
+          "prompt",
+          "session",
+          "weight"
+        ]
+      },
+      "baseline_contrast": "Traditional file summaries can find a hot path, but not the prompt/session region that caused it."
+    },
+    {
+      "task_id": "UT06",
+      "claim": "C5",
+      "analysis_role": "primary_utility",
+      "skill": "explain-command-effect-mixing",
+      "title": "Cargo Test Semantic Split",
+      "question": "For the cargo bucket, report total weight and the dominant semantic variant.",
+      "participant_view_conditions": [
+        {
+          "condition": "trace-tree",
+          "views": [
+            "session/tool chronological tree excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "trace tree excerpt",
+              "rows": [
+                {
+                  "task_id": "r114-read-state",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-read-verdict",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-read-related",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-rg-baseline",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-agentflame-readme",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "span-duration",
+          "views": [
+            "span-duration flamegraph excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "duration-ordered span excerpt",
+              "rows": [
+                {
+                  "task_id": "r114-edit-rust-text",
+                  "category": "edit",
+                  "duration_seconds": 30.605,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-write-json",
+                  "category": "edit",
+                  "duration_seconds": 30.304,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-test-debug",
+                  "category": "test",
+                  "duration_seconds": 28.372,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-fix-shell-script",
+                  "category": "test",
+                  "duration_seconds": 25.5,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-edit-python-bug",
+                  "category": "edit",
+                  "duration_seconds": 25.311,
+                  "status": "lineage_precision_ok"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "flat-summary",
+          "views": [
+            "process/effect/path summary excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "flat summary excerpt",
+              "rows": [
+                {
+                  "agent": "codex",
+                  "cmd": "sed",
+                  "count": 25755,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "rg",
+                  "count": 15336,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "write",
+                  "count": 12824,
+                  "effect": "process",
+                  "status": "ok",
+                  "tool": "tool"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "git",
+                  "count": 8549,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "write",
+                  "count": 7655,
+                  "effect": "process",
+                  "status": "observed",
+                  "tool": "tool"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "nl",
+                  "count": 6354,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "find",
+                  "count": 4429,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "cargo",
+                  "count": 2903,
+                  "effect": "test",
+                  "status": "ok",
+                  "tool": "shell"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "nonsemantic-stack",
+          "views": [
+            "nonsemantic folded stack excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "nonsemantic folded excerpt",
+              "rows": [
+                {
+                  "projected_stack": "project:agentsight;agent:codex;call:tool/shell;process:cargo;effect:test;status:ok",
+                  "weight": 1420
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "semantic-stack",
+          "views": [
+            "semantic effect flamegraph excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "semantic folded excerpt",
+              "rows": [
+                {
+                  "semantic": "session:review/prompt:review",
+                  "weight": 204
+                },
+                {
+                  "semantic": "session:refactor/prompt:refactor",
+                  "weight": 192
+                },
+                {
+                  "semantic": "session:research/prompt:explain",
+                  "weight": 124
+                },
+                {
+                  "semantic": "session:research/prompt:refactor",
+                  "weight": 104
+                },
+                {
+                  "semantic": "session:research/prompt:research",
+                  "weight": 82
+                },
+                {
+                  "semantic": "session:review/prompt:refactor",
+                  "weight": 60
+                },
+                {
+                  "semantic": "session:design/prompt:review",
+                  "weight": 53
+                },
+                {
+                  "semantic": "session:test/prompt:refactor",
+                  "weight": 46
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "oracle_sources": [
+        ".agentsight/agentflame/latest/agentflame.json"
+      ],
+      "answer_format": {
+        "baseline_stack": "str",
+        "weight": "int",
+        "top_semantic": "str",
+        "top_semantic_weight": "int"
+      },
+      "oracle": {
+        "baseline_stack": "project:agentsight;agent:codex;call:tool/shell;process:cargo;effect:test;status:ok",
+        "weight": 1420,
+        "top_semantic": "session:review/prompt:review",
+        "top_semantic_weight": 204
+      },
+      "scoring": {
+        "method": "exact field match against oracle",
+        "required_fields": [
+          "baseline_stack",
+          "top_semantic",
+          "top_semantic_weight",
+          "weight"
+        ]
+      },
+      "baseline_contrast": "The baseline can name the command/effect bucket; semantic aggregation identifies the task split."
+    },
+    {
+      "task_id": "UT07",
+      "claim": "C5",
+      "analysis_role": "primary_utility",
+      "skill": "explain-command-effect-mixing",
+      "title": "Python Process Semantic Split",
+      "question": "For the python3 bucket, report total weight and the dominant semantic variant.",
+      "participant_view_conditions": [
+        {
+          "condition": "trace-tree",
+          "views": [
+            "session/tool chronological tree excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "trace tree excerpt",
+              "rows": [
+                {
+                  "task_id": "r114-read-state",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-read-verdict",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-read-related",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-rg-baseline",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-agentflame-readme",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "span-duration",
+          "views": [
+            "span-duration flamegraph excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "duration-ordered span excerpt",
+              "rows": [
+                {
+                  "task_id": "r114-edit-rust-text",
+                  "category": "edit",
+                  "duration_seconds": 30.605,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-write-json",
+                  "category": "edit",
+                  "duration_seconds": 30.304,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-test-debug",
+                  "category": "test",
+                  "duration_seconds": 28.372,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-fix-shell-script",
+                  "category": "test",
+                  "duration_seconds": 25.5,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-edit-python-bug",
+                  "category": "edit",
+                  "duration_seconds": 25.311,
+                  "status": "lineage_precision_ok"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "flat-summary",
+          "views": [
+            "process/effect/path summary excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "flat summary excerpt",
+              "rows": [
+                {
+                  "agent": "codex",
+                  "cmd": "sed",
+                  "count": 25755,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "rg",
+                  "count": 15336,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "write",
+                  "count": 12824,
+                  "effect": "process",
+                  "status": "ok",
+                  "tool": "tool"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "git",
+                  "count": 8549,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "write",
+                  "count": 7655,
+                  "effect": "process",
+                  "status": "observed",
+                  "tool": "tool"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "nl",
+                  "count": 6354,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "find",
+                  "count": 4429,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "cargo",
+                  "count": 2903,
+                  "effect": "test",
+                  "status": "ok",
+                  "tool": "shell"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "nonsemantic-stack",
+          "views": [
+            "nonsemantic folded stack excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "nonsemantic folded excerpt",
+              "rows": [
+                {
+                  "projected_stack": "project:agentsight;agent:codex;call:tool/shell;process:python3;effect:process;status:ok",
+                  "weight": 1612
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "semantic-stack",
+          "views": [
+            "semantic effect flamegraph excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "semantic folded excerpt",
+              "rows": [
+                {
+                  "semantic": "session:refactor/prompt:refactor",
+                  "weight": 675
+                },
+                {
+                  "semantic": "session:refactor/prompt:review",
+                  "weight": 109
+                },
+                {
+                  "semantic": "session:research/prompt:research",
+                  "weight": 61
+                },
+                {
+                  "semantic": "session:refactor/prompt:test",
+                  "weight": 56
+                },
+                {
+                  "semantic": "session:refactor/prompt:analyze",
+                  "weight": 49
+                },
+                {
+                  "semantic": "session:review/prompt:review",
+                  "weight": 42
+                },
+                {
+                  "semantic": "session:refactor/prompt:ignored",
+                  "weight": 41
+                },
+                {
+                  "semantic": "session:refactor/prompt:benchmark",
+                  "weight": 31
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "oracle_sources": [
+        ".agentsight/agentflame/latest/agentflame.json"
+      ],
+      "answer_format": {
+        "baseline_stack": "str",
+        "weight": "int",
+        "top_semantic": "str",
+        "top_semantic_weight": "int"
+      },
+      "oracle": {
+        "baseline_stack": "project:agentsight;agent:codex;call:tool/shell;process:python3;effect:process;status:ok",
+        "weight": 1612,
+        "top_semantic": "session:refactor/prompt:refactor",
+        "top_semantic_weight": 675
+      },
+      "scoring": {
+        "method": "exact field match against oracle",
+        "required_fields": [
+          "baseline_stack",
+          "top_semantic",
+          "top_semantic_weight",
+          "weight"
+        ]
+      },
+      "baseline_contrast": "The baseline can name the command/effect bucket; semantic aggregation identifies the task split."
+    },
+    {
+      "task_id": "UT08",
+      "claim": "C5",
+      "analysis_role": "primary_utility",
+      "skill": "explain-command-effect-mixing",
+      "title": "Docker Process Semantic Split",
+      "question": "For the docker bucket, report total weight and the dominant semantic variant.",
+      "participant_view_conditions": [
+        {
+          "condition": "trace-tree",
+          "views": [
+            "session/tool chronological tree excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "trace tree excerpt",
+              "rows": [
+                {
+                  "task_id": "r114-read-state",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-read-verdict",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-read-related",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-rg-baseline",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-agentflame-readme",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "span-duration",
+          "views": [
+            "span-duration flamegraph excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "duration-ordered span excerpt",
+              "rows": [
+                {
+                  "task_id": "r114-edit-rust-text",
+                  "category": "edit",
+                  "duration_seconds": 30.605,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-write-json",
+                  "category": "edit",
+                  "duration_seconds": 30.304,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-test-debug",
+                  "category": "test",
+                  "duration_seconds": 28.372,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-fix-shell-script",
+                  "category": "test",
+                  "duration_seconds": 25.5,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-edit-python-bug",
+                  "category": "edit",
+                  "duration_seconds": 25.311,
+                  "status": "lineage_precision_ok"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "flat-summary",
+          "views": [
+            "process/effect/path summary excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "flat summary excerpt",
+              "rows": [
+                {
+                  "agent": "codex",
+                  "cmd": "sed",
+                  "count": 25755,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "rg",
+                  "count": 15336,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "write",
+                  "count": 12824,
+                  "effect": "process",
+                  "status": "ok",
+                  "tool": "tool"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "git",
+                  "count": 8549,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "write",
+                  "count": 7655,
+                  "effect": "process",
+                  "status": "observed",
+                  "tool": "tool"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "nl",
+                  "count": 6354,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "find",
+                  "count": 4429,
+                  "effect": "read",
+                  "status": "ok",
+                  "tool": "shell"
+                },
+                {
+                  "agent": "codex",
+                  "cmd": "cargo",
+                  "count": 2903,
+                  "effect": "test",
+                  "status": "ok",
+                  "tool": "shell"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "nonsemantic-stack",
+          "views": [
+            "nonsemantic folded stack excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "nonsemantic folded excerpt",
+              "rows": [
+                {
+                  "projected_stack": "project:agentsight;agent:codex;call:tool/shell;process:docker;effect:process;status:ok",
+                  "weight": 1470
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "semantic-stack",
+          "views": [
+            "semantic effect flamegraph excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "semantic folded excerpt",
+              "rows": [
+                {
+                  "semantic": "session:analyze/prompt:analyze",
+                  "weight": 1212
+                },
+                {
+                  "semantic": "session:cleanup/prompt:cleanup",
+                  "weight": 66
+                },
+                {
+                  "semantic": "session:design/prompt:test",
+                  "weight": 29
+                },
+                {
+                  "semantic": "session:refactor/prompt:refactor",
+                  "weight": 24
+                },
+                {
+                  "semantic": "session:analyze/prompt:review",
+                  "weight": 18
+                },
+                {
+                  "semantic": "session:cleanup/prompt:cleanups",
+                  "weight": 18
+                },
+                {
+                  "semantic": "session:cleanup/prompt:cachecontrol",
+                  "weight": 15
+                },
+                {
+                  "semantic": "session:cleanlocal/prompt:diskfull",
+                  "weight": 12
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "oracle_sources": [
+        ".agentsight/agentflame/latest/agentflame.json"
+      ],
+      "answer_format": {
+        "baseline_stack": "str",
+        "weight": "int",
+        "top_semantic": "str",
+        "top_semantic_weight": "int"
+      },
+      "oracle": {
+        "baseline_stack": "project:agentsight;agent:codex;call:tool/shell;process:docker;effect:process;status:ok",
+        "weight": 1470,
+        "top_semantic": "session:analyze/prompt:analyze",
+        "top_semantic_weight": 1212
+      },
+      "scoring": {
+        "method": "exact field match against oracle",
+        "required_fields": [
+          "baseline_stack",
+          "top_semantic",
+          "top_semantic_weight",
+          "weight"
+        ]
+      },
+      "baseline_contrast": "The baseline can name the command/effect bucket; semantic aggregation identifies the task split."
+    },
+    {
+      "task_id": "UT09",
+      "claim": "C5",
+      "analysis_role": "primary_utility",
+      "skill": "compare-flat-vs-semantic",
+      "title": "Flat Git Read Baseline Failure",
+      "question": "In the flat git/read bucket, which semantic region dominates?",
+      "participant_view_conditions": [
+        {
+          "condition": "trace-tree",
+          "views": [
+            "session/tool chronological tree excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "trace tree excerpt",
+              "rows": [
+                {
+                  "task_id": "r114-read-state",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-read-verdict",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-read-related",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-rg-baseline",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-agentflame-readme",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "span-duration",
+          "views": [
+            "span-duration flamegraph excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "duration-ordered span excerpt",
+              "rows": [
+                {
+                  "task_id": "r114-edit-rust-text",
+                  "category": "edit",
+                  "duration_seconds": 30.605,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-write-json",
+                  "category": "edit",
+                  "duration_seconds": 30.304,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-test-debug",
+                  "category": "test",
+                  "duration_seconds": 28.372,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-fix-shell-script",
+                  "category": "test",
+                  "duration_seconds": 25.5,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-edit-python-bug",
+                  "category": "edit",
+                  "duration_seconds": 25.311,
+                  "status": "lineage_precision_ok"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "flat-summary",
+          "views": [
+            "process/effect/path summary excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "flat summary excerpt",
+              "rows": [
+                {
+                  "weight": 4505
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "nonsemantic-stack",
+          "views": [
+            "nonsemantic folded stack excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "nonsemantic folded excerpt",
+              "rows": [
+                {
+                  "projected_stack": "call:tool/shell;process:git;effect:read;status:ok",
+                  "weight": 4505
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "semantic-stack",
+          "views": [
+            "semantic effect flamegraph excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "semantic folded excerpt",
+              "rows": [
+                {
+                  "semantic": "session:review/prompt:review",
+                  "weight": 696
+                },
+                {
+                  "semantic": "session:refactor/prompt:refactor",
+                  "weight": 565
+                },
+                {
+                  "semantic": "session:design/prompt:design",
+                  "weight": 352
+                },
+                {
+                  "semantic": "session:review/prompt:refactor",
+                  "weight": 309
+                },
+                {
+                  "semantic": "session:design/prompt:review",
+                  "weight": 209
+                },
+                {
+                  "semantic": "session:research/prompt:research",
+                  "weight": 190
+                },
+                {
+                  "semantic": "session:research/prompt:explain",
+                  "weight": 179
+                },
+                {
+                  "semantic": "session:research/prompt:refactor",
+                  "weight": 157
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "oracle_sources": [
+        ".agentsight/agentflame/latest/agentflame.json"
+      ],
+      "answer_format": {
+        "baseline_stack": "str",
+        "weight": "int",
+        "top_semantic": "str",
+        "top_semantic_weight": "int"
+      },
+      "oracle": {
+        "baseline_stack": "call:tool/shell;process:git;effect:read;status:ok",
+        "weight": 4505,
+        "top_semantic": "session:review/prompt:review",
+        "top_semantic_weight": 696
+      },
+      "scoring": {
+        "method": "exact field match against oracle",
+        "required_fields": [
+          "baseline_stack",
+          "top_semantic",
+          "top_semantic_weight",
+          "weight"
+        ]
+      },
+      "baseline_contrast": "Flat process summaries find git/read volume but lose the task intent behind it."
+    },
+    {
+      "task_id": "UT10",
+      "claim": "C5",
+      "analysis_role": "primary_utility",
+      "skill": "find-token-hotspot",
+      "title": "Largest Token Region",
+      "question": "Identify the largest token stack and report its semantic/token fields.",
+      "participant_view_conditions": [
+        {
+          "condition": "trace-tree",
+          "views": [
+            "session/tool chronological tree excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "trace tree excerpt",
+              "rows": [
+                {
+                  "task_id": "r114-read-state",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-read-verdict",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-read-related",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-rg-baseline",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-agentflame-readme",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "span-duration",
+          "views": [
+            "span-duration flamegraph excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "duration-ordered span excerpt",
+              "rows": [
+                {
+                  "task_id": "r114-edit-rust-text",
+                  "category": "edit",
+                  "duration_seconds": 30.605,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-write-json",
+                  "category": "edit",
+                  "duration_seconds": 30.304,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-test-debug",
+                  "category": "test",
+                  "duration_seconds": 28.372,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-fix-shell-script",
+                  "category": "test",
+                  "duration_seconds": 25.5,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-edit-python-bug",
+                  "category": "edit",
+                  "duration_seconds": 25.311,
+                  "status": "lineage_precision_ok"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "flat-summary",
+          "views": [
+            "process/effect/path summary excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "flat summary excerpt",
+              "rows": [
+                {
+                  "model": "codex",
+                  "kind": "estimate",
+                  "weight": 17869111395752
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "nonsemantic-stack",
+          "views": [
+            "nonsemantic folded stack excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "nonsemantic folded excerpt",
+              "rows": [
+                {
+                  "stack": "project:agentsight;agent:codex;model:codex;kind:estimate",
+                  "weight": 17869111395752
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "semantic-stack",
+          "views": [
+            "semantic effect flamegraph excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "semantic folded excerpt",
+              "rows": [
+                {
+                  "stack": "project:agentsight;agent:codex;session:refactor;prompt:refactor;call:llm/refactor;model:codex;kind:estimate",
+                  "weight": 17869111395752
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "oracle_sources": [
+        ".agentsight/agentflame/latest/agentflame.json"
+      ],
+      "answer_format": {
+        "weight": "int",
+        "session": "str",
+        "prompt": "str",
+        "llm_call": "str",
         "model": "str",
         "kind": "str"
       },
       "oracle": {
-        "stack": "project:agentsight;agent:codex-subagent;session:auditdoc;prompt:auditdoc;llm:auditdoc;model:gpt-5.5;kind:estimate",
-        "weight": 1778,
-        "session": "auditdoc",
-        "prompt": "auditdoc",
-        "model": "gpt-5.5",
+        "weight": 17869111395752,
+        "session": "refactor",
+        "prompt": "refactor",
+        "llm_call": "llm/refactor",
+        "model": "codex",
         "kind": "estimate"
       },
       "scoring": {
-        "method": "exact field match against oracle unless the field is marked explanatory",
+        "method": "exact field match against oracle",
         "required_fields": [
           "kind",
+          "llm_call",
           "model",
           "prompt",
           "session",
-          "stack",
           "weight"
         ]
       },
-      "baseline_contrast": "A token dashboard can show aggregate cost, but this task asks for the semantic region and provenance kind of the largest token mass."
+      "baseline_contrast": "Token cost views need semantic frames to explain which task region consumed the token mass."
     },
     {
-      "task_id": "UT6",
+      "task_id": "UT11",
       "claim": "C5",
-      "skill": "avoid-overclaiming-tag-quality",
-      "title": "Tag Stability Boundary",
-      "question": "Decide whether the current tag stability smoke proves semantic adequacy. Report the smoke verdict, llama repeated-run stability, fallback-vs-llama exact match, and the correct conclusion.",
+      "analysis_role": "limitation_check",
+      "skill": "avoid-axis-overclaim",
+      "title": "LLM-Call Axis Boundary",
+      "question": "Does prompt+LLM-call alone fully explain token provenance, and what residual remains?",
       "participant_view_conditions": [
         {
-          "condition": "summary",
+          "condition": "trace-tree",
           "views": [
-            "tag-stability-summary.md"
+            "session/tool chronological tree excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "trace tree excerpt",
+              "rows": [
+                {
+                  "task_id": "r114-read-state",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-read-verdict",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-read-related",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-rg-baseline",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-agentflame-readme",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                }
+              ]
+            }
           ]
         },
         {
-          "condition": "json",
+          "condition": "span-duration",
           "views": [
-            "tag-stability-smoke.json"
+            "span-duration flamegraph excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "duration-ordered span excerpt",
+              "rows": [
+                {
+                  "task_id": "r114-edit-rust-text",
+                  "category": "edit",
+                  "duration_seconds": 30.605,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-write-json",
+                  "category": "edit",
+                  "duration_seconds": 30.304,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-test-debug",
+                  "category": "test",
+                  "duration_seconds": 28.372,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-fix-shell-script",
+                  "category": "test",
+                  "duration_seconds": 25.5,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-edit-python-bug",
+                  "category": "edit",
+                  "duration_seconds": 25.311,
+                  "status": "lineage_precision_ok"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "flat-summary",
+          "views": [
+            "process/effect/path summary excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "flat summary excerpt",
+              "rows": [
+                {}
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "nonsemantic-stack",
+          "views": [
+            "nonsemantic folded stack excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "nonsemantic folded excerpt",
+              "rows": [
+                {
+                  "family": "token",
+                  "variant": "prompt+llm-call"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "semantic-stack",
+          "views": [
+            "semantic effect flamegraph excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "semantic folded excerpt",
+              "rows": [
+                {
+                  "family": "token",
+                  "variant": "prompt+llm-call"
+                }
+              ]
+            }
           ]
         }
       ],
       "oracle_sources": [
-        "tag-stability-smoke.json"
+        "docs/visexp/out/semantic-ablation-r131.json"
       ],
       "answer_format": {
-        "smoke_verdict": "str",
-        "llama_stable_pct": "float",
-        "fallback_vs_llama_exact_pct": "float",
-        "semantic_adequacy_proven": "bool"
+        "prompt_llm_mixed_bucket_pct": "float",
+        "prompt_llm_residual_pct": "float",
+        "llm_call_system_effect_axis": "bool",
+        "correct_scope": "str"
       },
       "oracle": {
-        "smoke_verdict": "smoke_supported",
-        "llama_stable_pct": 100.0,
-        "fallback_vs_llama_exact_pct": 0.0,
-        "semantic_adequacy_proven": false
+        "prompt_llm_mixed_bucket_pct": 95.765,
+        "prompt_llm_residual_pct": 0.027,
+        "llm_call_system_effect_axis": false,
+        "correct_scope": "token_navigation"
       },
       "scoring": {
-        "method": "exact field match against oracle unless the field is marked explanatory",
+        "method": "exact field match against oracle",
         "required_fields": [
-          "fallback_vs_llama_exact_pct",
-          "llama_stable_pct",
-          "semantic_adequacy_proven",
-          "smoke_verdict"
+          "correct_scope",
+          "llm_call_system_effect_axis",
+          "prompt_llm_mixed_bucket_pct",
+          "prompt_llm_residual_pct"
         ]
       },
-      "baseline_contrast": "This task checks that users do not over-read stability smoke as semantic adequacy evidence."
+      "baseline_contrast": "This guards against overclaiming LLM-call tags as system-effect attribution axes."
+    },
+    {
+      "task_id": "UT12",
+      "claim": "C5",
+      "analysis_role": "limitation_check",
+      "skill": "check-exact-lineage",
+      "title": "Exact-Lineage Negative Controls",
+      "question": "For the R114 exact-lineage suite, report scoped join and negative-control outcomes.",
+      "participant_view_conditions": [
+        {
+          "condition": "trace-tree",
+          "views": [
+            "session/tool chronological tree excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "trace tree excerpt",
+              "rows": [
+                {
+                  "task_id": "r114-read-state",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-read-verdict",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-read-related",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-rg-baseline",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-agentflame-readme",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-paper-search",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-json-check",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-claim-list",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "span-duration",
+          "views": [
+            "span-duration flamegraph excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "duration-ordered span excerpt",
+              "rows": [
+                {
+                  "task_id": "r114-edit-rust-text",
+                  "category": "edit",
+                  "duration_seconds": 30.605,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-write-json",
+                  "category": "edit",
+                  "duration_seconds": 30.304,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-test-debug",
+                  "category": "test",
+                  "duration_seconds": 28.372,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-fix-shell-script",
+                  "category": "test",
+                  "duration_seconds": 25.5,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-edit-python-bug",
+                  "category": "edit",
+                  "duration_seconds": 25.311,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-edit-doc-note",
+                  "category": "edit",
+                  "duration_seconds": 23.427,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-network-docs",
+                  "category": "dependency",
+                  "duration_seconds": 20.66,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-claim-list",
+                  "category": "read",
+                  "duration_seconds": 19.765,
+                  "status": "lineage_precision_ok"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "flat-summary",
+          "views": [
+            "process/effect/path summary excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "flat summary excerpt",
+              "rows": [
+                {
+                  "metric": "effect_events",
+                  "value": 5772
+                },
+                {
+                  "metric": "in_scope_effect_events",
+                  "value": 1273
+                },
+                {
+                  "metric": "joined_effect_events",
+                  "value": 1273
+                },
+                {
+                  "metric": "out_of_scope_effect_events",
+                  "value": 1329
+                },
+                {
+                  "metric": "negative_effect_events_observed",
+                  "value": 3170
+                },
+                {
+                  "metric": "negative_joined_effect_events",
+                  "value": 0
+                },
+                {
+                  "metric": "raw_join_pct",
+                  "value": 22.055
+                },
+                {
+                  "metric": "precision_pct",
+                  "value": 100.0
+                },
+                {
+                  "metric": "recall_pct",
+                  "value": 100.0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "nonsemantic-stack",
+          "views": [
+            "nonsemantic folded stack excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "nonsemantic folded excerpt",
+              "rows": [
+                {
+                  "join_methods": {
+                    "none": 4499,
+                    "pid_family_time_window": 1273
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "semantic-stack",
+          "views": [
+            "semantic effect flamegraph excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "semantic folded excerpt",
+              "rows": [
+                {
+                  "in_scope_effect_events": 1273,
+                  "joined_effect_events": 1273,
+                  "negative_effect_events_observed": 3170,
+                  "negative_joined_effect_events": 0
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "oracle_sources": [
+        "docs/visexp/out/live-record-r114.json",
+        "docs/visexp/out/live-record-r114-analysis.json"
+      ],
+      "answer_format": {
+        "in_scope_effect_events": "int",
+        "joined_effect_events": "int",
+        "precision_pct": "float",
+        "recall_pct": "float",
+        "negative_effect_events_observed": "int",
+        "negative_joined_effect_events": "int"
+      },
+      "oracle": {
+        "in_scope_effect_events": 1273,
+        "joined_effect_events": 1273,
+        "precision_pct": 100.0,
+        "recall_pct": 100.0,
+        "negative_effect_events_observed": 3170,
+        "negative_joined_effect_events": 0
+      },
+      "scoring": {
+        "method": "exact field match against oracle",
+        "required_fields": [
+          "in_scope_effect_events",
+          "joined_effect_events",
+          "negative_effect_events_observed",
+          "negative_joined_effect_events",
+          "precision_pct",
+          "recall_pct"
+        ]
+      },
+      "baseline_contrast": "Span traces show execution; exact provenance checks whether system effects inherit the right agent ancestry."
+    },
+    {
+      "task_id": "UT13",
+      "claim": "C5",
+      "analysis_role": "limitation_check",
+      "skill": "avoid-lineage-overclaim",
+      "title": "Raw Join Versus Scoped Recall",
+      "question": "Why is R114 raw join much lower than scoped recall, and what are the key numbers?",
+      "participant_view_conditions": [
+        {
+          "condition": "trace-tree",
+          "views": [
+            "session/tool chronological tree excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "trace tree excerpt",
+              "rows": [
+                {
+                  "task_id": "r114-read-state",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-read-verdict",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-read-related",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-rg-baseline",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-agentflame-readme",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-paper-search",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-json-check",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-claim-list",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "span-duration",
+          "views": [
+            "span-duration flamegraph excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "duration-ordered span excerpt",
+              "rows": [
+                {
+                  "task_id": "r114-edit-rust-text",
+                  "category": "edit",
+                  "duration_seconds": 30.605,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-write-json",
+                  "category": "edit",
+                  "duration_seconds": 30.304,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-test-debug",
+                  "category": "test",
+                  "duration_seconds": 28.372,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-fix-shell-script",
+                  "category": "test",
+                  "duration_seconds": 25.5,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-edit-python-bug",
+                  "category": "edit",
+                  "duration_seconds": 25.311,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-edit-doc-note",
+                  "category": "edit",
+                  "duration_seconds": 23.427,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-network-docs",
+                  "category": "dependency",
+                  "duration_seconds": 20.66,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-claim-list",
+                  "category": "read",
+                  "duration_seconds": 19.765,
+                  "status": "lineage_precision_ok"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "flat-summary",
+          "views": [
+            "process/effect/path summary excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "flat summary excerpt",
+              "rows": [
+                {
+                  "metric": "effect_events",
+                  "value": 5772
+                },
+                {
+                  "metric": "in_scope_effect_events",
+                  "value": 1273
+                },
+                {
+                  "metric": "joined_effect_events",
+                  "value": 1273
+                },
+                {
+                  "metric": "out_of_scope_effect_events",
+                  "value": 1329
+                },
+                {
+                  "metric": "negative_effect_events_observed",
+                  "value": 3170
+                },
+                {
+                  "metric": "negative_joined_effect_events",
+                  "value": 0
+                },
+                {
+                  "metric": "raw_join_pct",
+                  "value": 22.055
+                },
+                {
+                  "metric": "precision_pct",
+                  "value": 100.0
+                },
+                {
+                  "metric": "recall_pct",
+                  "value": 100.0
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "nonsemantic-stack",
+          "views": [
+            "nonsemantic folded stack excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "nonsemantic folded excerpt",
+              "rows": [
+                {
+                  "raw_join_pct": 22.055,
+                  "out_of_scope_effect_events": 1329
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "semantic-stack",
+          "views": [
+            "semantic effect flamegraph excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "semantic folded excerpt",
+              "rows": [
+                {
+                  "recall_pct": 100.0,
+                  "scope": "retargeted agent process family"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "oracle_sources": [
+        "docs/visexp/out/live-record-r114.json"
+      ],
+      "answer_format": {
+        "raw_join_pct": "float",
+        "recall_pct": "float",
+        "out_of_scope_effect_events": "int",
+        "correct_interpretation": "str"
+      },
+      "oracle": {
+        "raw_join_pct": 22.055,
+        "recall_pct": 100.0,
+        "out_of_scope_effect_events": 1329,
+        "correct_interpretation": "out_of_scope_effects_remain_orphaned"
+      },
+      "scoring": {
+        "method": "exact field match against oracle",
+        "required_fields": [
+          "correct_interpretation",
+          "out_of_scope_effect_events",
+          "raw_join_pct",
+          "recall_pct"
+        ]
+      },
+      "baseline_contrast": "This task tests whether users avoid confusing raw coverage with scoped lineage recall."
+    },
+    {
+      "task_id": "UT14",
+      "claim": "C5",
+      "analysis_role": "limitation_check",
+      "skill": "avoid-tag-overclaim",
+      "title": "3B Tag Stability Boundary",
+      "question": "Report the real-fragment 3B tag-stability numbers and the correct claim boundary.",
+      "participant_view_conditions": [
+        {
+          "condition": "trace-tree",
+          "views": [
+            "session/tool chronological tree excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "trace tree excerpt",
+              "rows": [
+                {
+                  "task_id": "r114-read-state",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-read-verdict",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-read-related",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-rg-baseline",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                },
+                {
+                  "task_id": "r114-agentflame-readme",
+                  "category": "read",
+                  "target_status": "completed",
+                  "lineage_status": "precision_ok"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "span-duration",
+          "views": [
+            "span-duration flamegraph excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "duration-ordered span excerpt",
+              "rows": [
+                {
+                  "task_id": "r114-edit-rust-text",
+                  "category": "edit",
+                  "duration_seconds": 30.605,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-write-json",
+                  "category": "edit",
+                  "duration_seconds": 30.304,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-test-debug",
+                  "category": "test",
+                  "duration_seconds": 28.372,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-fix-shell-script",
+                  "category": "test",
+                  "duration_seconds": 25.5,
+                  "status": "lineage_precision_ok"
+                },
+                {
+                  "task_id": "r114-edit-python-bug",
+                  "category": "edit",
+                  "duration_seconds": 25.311,
+                  "status": "lineage_precision_ok"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "flat-summary",
+          "views": [
+            "process/effect/path summary excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "flat summary excerpt",
+              "rows": [
+                {
+                  "model": "3b",
+                  "fragments": 300,
+                  "runs": 900
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "nonsemantic-stack",
+          "views": [
+            "nonsemantic folded stack excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "nonsemantic folded excerpt",
+              "rows": [
+                {
+                  "exact_stable_fragments": 282,
+                  "fragments": 300
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "condition": "semantic-stack",
+          "views": [
+            "semantic effect flamegraph excerpt"
+          ],
+          "view_excerpt": [
+            {
+              "title": "semantic folded excerpt",
+              "rows": [
+                {
+                  "valid_runs": 900,
+                  "total_runs": 900,
+                  "p95_ms": 30
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "oracle_sources": [
+        "docs/visexp/out/model-benchmarks-r123.json"
+      ],
+      "answer_format": {
+        "valid_runs": "int",
+        "total_runs": "int",
+        "exact_stable_fragments": "int",
+        "fragments": "int",
+        "p95_ms": "int",
+        "human_adequacy_proven": "bool"
+      },
+      "oracle": {
+        "valid_runs": 900,
+        "total_runs": 900,
+        "exact_stable_fragments": 282,
+        "fragments": 300,
+        "p95_ms": 30,
+        "human_adequacy_proven": false
+      },
+      "scoring": {
+        "method": "exact field match against oracle",
+        "required_fields": [
+          "exact_stable_fragments",
+          "fragments",
+          "human_adequacy_proven",
+          "p95_ms",
+          "total_runs",
+          "valid_runs"
+        ]
+      },
+      "baseline_contrast": "This is a boundary task: stable one-word tags do not prove human adequacy."
     }
   ]
 }

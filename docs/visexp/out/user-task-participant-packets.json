@@ -1,0 +1,3120 @@
+{
+  "schema_version": 2,
+  "packets": [
+    {
+      "packet_id": "UT01-trace-tree",
+      "task_id": "UT01",
+      "claim": "C5",
+      "condition": "trace-tree",
+      "title": "Task UT01",
+      "question": "Which high-weight nonsemantic system bucket is dominated by which semantic region?",
+      "views": [
+        "session/tool chronological tree excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "trace tree excerpt",
+          "rows": [
+            {
+              "task_id": "r114-read-state",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-read-verdict",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-read-related",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-rg-baseline",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-agentflame-readme",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT01-span-duration",
+      "task_id": "UT01",
+      "claim": "C5",
+      "condition": "span-duration",
+      "title": "Task UT01",
+      "question": "Which high-weight nonsemantic system bucket is dominated by which semantic region?",
+      "views": [
+        "span-duration flamegraph excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "duration-ordered span excerpt",
+          "rows": [
+            {
+              "task_id": "r114-edit-rust-text",
+              "category": "edit",
+              "duration_seconds": 30.605,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-write-json",
+              "category": "edit",
+              "duration_seconds": 30.304,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-test-debug",
+              "category": "test",
+              "duration_seconds": 28.372,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-fix-shell-script",
+              "category": "test",
+              "duration_seconds": 25.5,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-edit-python-bug",
+              "category": "edit",
+              "duration_seconds": 25.311,
+              "status": "lineage_precision_ok"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT01-flat-summary",
+      "task_id": "UT01",
+      "claim": "C5",
+      "condition": "flat-summary",
+      "title": "Task UT01",
+      "question": "Which high-weight nonsemantic system bucket is dominated by which semantic region?",
+      "views": [
+        "process/effect/path summary excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "flat summary excerpt",
+          "rows": [
+            {
+              "agent": "codex",
+              "cmd": "sed",
+              "count": 25755,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "rg",
+              "count": 15336,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "write",
+              "count": 12824,
+              "effect": "process",
+              "status": "ok",
+              "tool": "tool"
+            },
+            {
+              "agent": "codex",
+              "cmd": "git",
+              "count": 8549,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "write",
+              "count": 7655,
+              "effect": "process",
+              "status": "observed",
+              "tool": "tool"
+            },
+            {
+              "agent": "codex",
+              "cmd": "nl",
+              "count": 6354,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "find",
+              "count": 4429,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "cargo",
+              "count": 2903,
+              "effect": "test",
+              "status": "ok",
+              "tool": "shell"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT01-nonsemantic-stack",
+      "task_id": "UT01",
+      "claim": "C5",
+      "condition": "nonsemantic-stack",
+      "title": "Task UT01",
+      "question": "Which high-weight nonsemantic system bucket is dominated by which semantic region?",
+      "views": [
+        "nonsemantic folded stack excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "nonsemantic folded excerpt",
+          "rows": [
+            {
+              "projected_stack": "project:agentsight;agent:codex;call:tool/tool;effect:process;status:ok",
+              "weight": 12841
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT01-semantic-stack",
+      "task_id": "UT01",
+      "claim": "C5",
+      "condition": "semantic-stack",
+      "title": "Task UT01",
+      "question": "Which high-weight nonsemantic system bucket is dominated by which semantic region?",
+      "views": [
+        "semantic effect flamegraph excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "semantic folded excerpt",
+          "rows": [
+            {
+              "semantic": "session:refactor/prompt:refactor",
+              "weight": 6004
+            },
+            {
+              "semantic": "session:refactor/prompt:design",
+              "weight": 1349
+            },
+            {
+              "semantic": "session:refactor/prompt:review",
+              "weight": 1349
+            },
+            {
+              "semantic": "session:analyze/prompt:analyze",
+              "weight": 704
+            },
+            {
+              "semantic": "session:refactor/prompt:test",
+              "weight": 331
+            },
+            {
+              "semantic": "session:refactor/prompt:benchmark",
+              "weight": 248
+            },
+            {
+              "semantic": "session:refactor/prompt:ignored",
+              "weight": 206
+            },
+            {
+              "semantic": "session:refactor/prompt:validate",
+              "weight": 129
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT02-trace-tree",
+      "task_id": "UT02",
+      "claim": "C5",
+      "condition": "trace-tree",
+      "title": "Task UT02",
+      "question": "How much does prompt-only projection reduce system-effect mixing compared with no semantic axis?",
+      "views": [
+        "session/tool chronological tree excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "trace tree excerpt",
+          "rows": [
+            {
+              "task_id": "r114-read-state",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-read-verdict",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-read-related",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-rg-baseline",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-agentflame-readme",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT02-span-duration",
+      "task_id": "UT02",
+      "claim": "C5",
+      "condition": "span-duration",
+      "title": "Task UT02",
+      "question": "How much does prompt-only projection reduce system-effect mixing compared with no semantic axis?",
+      "views": [
+        "span-duration flamegraph excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "duration-ordered span excerpt",
+          "rows": [
+            {
+              "task_id": "r114-edit-rust-text",
+              "category": "edit",
+              "duration_seconds": 30.605,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-write-json",
+              "category": "edit",
+              "duration_seconds": 30.304,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-test-debug",
+              "category": "test",
+              "duration_seconds": 28.372,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-fix-shell-script",
+              "category": "test",
+              "duration_seconds": 25.5,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-edit-python-bug",
+              "category": "edit",
+              "duration_seconds": 25.311,
+              "status": "lineage_precision_ok"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT02-flat-summary",
+      "task_id": "UT02",
+      "claim": "C5",
+      "condition": "flat-summary",
+      "title": "Task UT02",
+      "question": "How much does prompt-only projection reduce system-effect mixing compared with no semantic axis?",
+      "views": [
+        "process/effect/path summary excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "flat summary excerpt",
+          "rows": [
+            {
+              "agent": "codex",
+              "cmd": "sed",
+              "count": 25755,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "rg",
+              "count": 15336,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "write",
+              "count": 12824,
+              "effect": "process",
+              "status": "ok",
+              "tool": "tool"
+            },
+            {
+              "agent": "codex",
+              "cmd": "git",
+              "count": 8549,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "write",
+              "count": 7655,
+              "effect": "process",
+              "status": "observed",
+              "tool": "tool"
+            },
+            {
+              "agent": "codex",
+              "cmd": "nl",
+              "count": 6354,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "find",
+              "count": 4429,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "cargo",
+              "count": 2903,
+              "effect": "test",
+              "status": "ok",
+              "tool": "shell"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT02-nonsemantic-stack",
+      "task_id": "UT02",
+      "claim": "C5",
+      "condition": "nonsemantic-stack",
+      "title": "Task UT02",
+      "question": "How much does prompt-only projection reduce system-effect mixing compared with no semantic axis?",
+      "views": [
+        "nonsemantic folded stack excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "nonsemantic folded excerpt",
+          "rows": [
+            {
+              "variant": "no-semantic",
+              "mixed_residual_weight_share_pct": 44.639,
+              "mixed_weight_share_pct": 90.219
+            },
+            {
+              "variant": "prompt-only",
+              "mixed_residual_weight_share_pct": 7.526,
+              "mixed_weight_share_pct": 37.687
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT02-semantic-stack",
+      "task_id": "UT02",
+      "claim": "C5",
+      "condition": "semantic-stack",
+      "title": "Task UT02",
+      "question": "How much does prompt-only projection reduce system-effect mixing compared with no semantic axis?",
+      "views": [
+        "semantic effect flamegraph excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "semantic folded excerpt",
+          "rows": [
+            {
+              "total_weight": 167005,
+              "unique_stacks": 10641
+            },
+            {
+              "total_weight": 167005,
+              "unique_stacks": 22341
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT03-trace-tree",
+      "task_id": "UT03",
+      "claim": "C5",
+      "condition": "trace-tree",
+      "title": "Task UT03",
+      "question": "Which single semantic axis separates system effects better: session or prompt?",
+      "views": [
+        "session/tool chronological tree excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "trace tree excerpt",
+          "rows": [
+            {
+              "task_id": "r114-read-state",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-read-verdict",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-read-related",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-rg-baseline",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-agentflame-readme",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT03-span-duration",
+      "task_id": "UT03",
+      "claim": "C5",
+      "condition": "span-duration",
+      "title": "Task UT03",
+      "question": "Which single semantic axis separates system effects better: session or prompt?",
+      "views": [
+        "span-duration flamegraph excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "duration-ordered span excerpt",
+          "rows": [
+            {
+              "task_id": "r114-edit-rust-text",
+              "category": "edit",
+              "duration_seconds": 30.605,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-write-json",
+              "category": "edit",
+              "duration_seconds": 30.304,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-test-debug",
+              "category": "test",
+              "duration_seconds": 28.372,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-fix-shell-script",
+              "category": "test",
+              "duration_seconds": 25.5,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-edit-python-bug",
+              "category": "edit",
+              "duration_seconds": 25.311,
+              "status": "lineage_precision_ok"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT03-flat-summary",
+      "task_id": "UT03",
+      "claim": "C5",
+      "condition": "flat-summary",
+      "title": "Task UT03",
+      "question": "Which single semantic axis separates system effects better: session or prompt?",
+      "views": [
+        "process/effect/path summary excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "flat summary excerpt",
+          "rows": [
+            {
+              "agent": "codex",
+              "cmd": "sed",
+              "count": 25755,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "rg",
+              "count": 15336,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "write",
+              "count": 12824,
+              "effect": "process",
+              "status": "ok",
+              "tool": "tool"
+            },
+            {
+              "agent": "codex",
+              "cmd": "git",
+              "count": 8549,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "write",
+              "count": 7655,
+              "effect": "process",
+              "status": "observed",
+              "tool": "tool"
+            },
+            {
+              "agent": "codex",
+              "cmd": "nl",
+              "count": 6354,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "find",
+              "count": 4429,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "cargo",
+              "count": 2903,
+              "effect": "test",
+              "status": "ok",
+              "tool": "shell"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT03-nonsemantic-stack",
+      "task_id": "UT03",
+      "claim": "C5",
+      "condition": "nonsemantic-stack",
+      "title": "Task UT03",
+      "question": "Which single semantic axis separates system effects better: session or prompt?",
+      "views": [
+        "nonsemantic folded stack excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "nonsemantic folded excerpt",
+          "rows": [
+            {
+              "variant": "session-only",
+              "mixed_residual_weight_share_pct": 34.138,
+              "mixed_weight_share_pct": 84.18
+            },
+            {
+              "variant": "prompt-only",
+              "mixed_residual_weight_share_pct": 7.526,
+              "mixed_weight_share_pct": 37.687
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT03-semantic-stack",
+      "task_id": "UT03",
+      "claim": "C5",
+      "condition": "semantic-stack",
+      "title": "Task UT03",
+      "question": "Which single semantic axis separates system effects better: session or prompt?",
+      "views": [
+        "semantic effect flamegraph excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "semantic folded excerpt",
+          "rows": [
+            {
+              "weight": 10130
+            },
+            {
+              "weight": 6291
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT04-trace-tree",
+      "task_id": "UT04",
+      "claim": "C5",
+      "condition": "trace-tree",
+      "title": "Task UT04",
+      "question": "Identify the heaviest semantic system stack and its semantic/effect fields.",
+      "views": [
+        "session/tool chronological tree excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "trace tree excerpt",
+          "rows": [
+            {
+              "task_id": "r114-read-state",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-read-verdict",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-read-related",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-rg-baseline",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-agentflame-readme",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT04-span-duration",
+      "task_id": "UT04",
+      "claim": "C5",
+      "condition": "span-duration",
+      "title": "Task UT04",
+      "question": "Identify the heaviest semantic system stack and its semantic/effect fields.",
+      "views": [
+        "span-duration flamegraph excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "duration-ordered span excerpt",
+          "rows": [
+            {
+              "task_id": "r114-edit-rust-text",
+              "category": "edit",
+              "duration_seconds": 30.605,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-write-json",
+              "category": "edit",
+              "duration_seconds": 30.304,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-test-debug",
+              "category": "test",
+              "duration_seconds": 28.372,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-fix-shell-script",
+              "category": "test",
+              "duration_seconds": 25.5,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-edit-python-bug",
+              "category": "edit",
+              "duration_seconds": 25.311,
+              "status": "lineage_precision_ok"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT04-flat-summary",
+      "task_id": "UT04",
+      "claim": "C5",
+      "condition": "flat-summary",
+      "title": "Task UT04",
+      "question": "Identify the heaviest semantic system stack and its semantic/effect fields.",
+      "views": [
+        "process/effect/path summary excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "flat summary excerpt",
+          "rows": [
+            {
+              "agent": "codex",
+              "cmd": "sed",
+              "count": 25755,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "rg",
+              "count": 15336,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "write",
+              "count": 12824,
+              "effect": "process",
+              "status": "ok",
+              "tool": "tool"
+            },
+            {
+              "agent": "codex",
+              "cmd": "git",
+              "count": 8549,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "write",
+              "count": 7655,
+              "effect": "process",
+              "status": "observed",
+              "tool": "tool"
+            },
+            {
+              "agent": "codex",
+              "cmd": "nl",
+              "count": 6354,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "find",
+              "count": 4429,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "cargo",
+              "count": 2903,
+              "effect": "test",
+              "status": "ok",
+              "tool": "shell"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT04-nonsemantic-stack",
+      "task_id": "UT04",
+      "claim": "C5",
+      "condition": "nonsemantic-stack",
+      "title": "Task UT04",
+      "question": "Identify the heaviest semantic system stack and its semantic/effect fields.",
+      "views": [
+        "nonsemantic folded stack excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "nonsemantic folded excerpt",
+          "rows": [
+            {
+              "stack": "project:agentsight;agent:codex;call:tool/tool;effect:process;status:ok",
+              "weight": 6004
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT04-semantic-stack",
+      "task_id": "UT04",
+      "claim": "C5",
+      "condition": "semantic-stack",
+      "title": "Task UT04",
+      "question": "Identify the heaviest semantic system stack and its semantic/effect fields.",
+      "views": [
+        "semantic effect flamegraph excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "semantic folded excerpt",
+          "rows": [
+            {
+              "stack": "project:agentsight;agent:codex;session:refactor;prompt:refactor;call:tool/tool;effect:process;status:ok",
+              "weight": 6004
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT05-trace-tree",
+      "task_id": "UT05",
+      "claim": "C5",
+      "condition": "trace-tree",
+      "title": "Task UT05",
+      "question": "Find the heaviest path-specific system-effect stack and report process, path, and semantic tags.",
+      "views": [
+        "session/tool chronological tree excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "trace tree excerpt",
+          "rows": [
+            {
+              "task_id": "r114-read-state",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-read-verdict",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-read-related",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-rg-baseline",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-agentflame-readme",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT05-span-duration",
+      "task_id": "UT05",
+      "claim": "C5",
+      "condition": "span-duration",
+      "title": "Task UT05",
+      "question": "Find the heaviest path-specific system-effect stack and report process, path, and semantic tags.",
+      "views": [
+        "span-duration flamegraph excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "duration-ordered span excerpt",
+          "rows": [
+            {
+              "task_id": "r114-edit-rust-text",
+              "category": "edit",
+              "duration_seconds": 30.605,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-write-json",
+              "category": "edit",
+              "duration_seconds": 30.304,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-test-debug",
+              "category": "test",
+              "duration_seconds": 28.372,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-fix-shell-script",
+              "category": "test",
+              "duration_seconds": 25.5,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-edit-python-bug",
+              "category": "edit",
+              "duration_seconds": 25.311,
+              "status": "lineage_precision_ok"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT05-flat-summary",
+      "task_id": "UT05",
+      "claim": "C5",
+      "condition": "flat-summary",
+      "title": "Task UT05",
+      "question": "Find the heaviest path-specific system-effect stack and report process, path, and semantic tags.",
+      "views": [
+        "process/effect/path summary excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "flat summary excerpt",
+          "rows": [
+            {
+              "agent": "codex",
+              "cmd": "sed",
+              "count": 25755,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "rg",
+              "count": 15336,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "write",
+              "count": 12824,
+              "effect": "process",
+              "status": "ok",
+              "tool": "tool"
+            },
+            {
+              "agent": "codex",
+              "cmd": "git",
+              "count": 8549,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "write",
+              "count": 7655,
+              "effect": "process",
+              "status": "observed",
+              "tool": "tool"
+            },
+            {
+              "agent": "codex",
+              "cmd": "nl",
+              "count": 6354,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "find",
+              "count": 4429,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "cargo",
+              "count": 2903,
+              "effect": "test",
+              "status": "ok",
+              "tool": "shell"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT05-nonsemantic-stack",
+      "task_id": "UT05",
+      "claim": "C5",
+      "condition": "nonsemantic-stack",
+      "title": "Task UT05",
+      "question": "Find the heaviest path-specific system-effect stack and report process, path, and semantic tags.",
+      "views": [
+        "nonsemantic folded stack excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "nonsemantic folded excerpt",
+          "rows": [
+            {
+              "stack": "project:agentsight;agent:codex;call:tool/shell;process:sed;effect:read;path:module/x86;status:ok",
+              "weight": 1648
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT05-semantic-stack",
+      "task_id": "UT05",
+      "claim": "C5",
+      "condition": "semantic-stack",
+      "title": "Task UT05",
+      "question": "Find the heaviest path-specific system-effect stack and report process, path, and semantic tags.",
+      "views": [
+        "semantic effect flamegraph excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "semantic folded excerpt",
+          "rows": [
+            {
+              "stack": "project:agentsight;agent:codex;session:refactor;prompt:refactor;call:tool/shell;process:sed;effect:read;path:module/x86;status:ok",
+              "weight": 1648
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT06-trace-tree",
+      "task_id": "UT06",
+      "claim": "C5",
+      "condition": "trace-tree",
+      "title": "Task UT06",
+      "question": "For the cargo bucket, report total weight and the dominant semantic variant.",
+      "views": [
+        "session/tool chronological tree excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "trace tree excerpt",
+          "rows": [
+            {
+              "task_id": "r114-read-state",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-read-verdict",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-read-related",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-rg-baseline",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-agentflame-readme",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT06-span-duration",
+      "task_id": "UT06",
+      "claim": "C5",
+      "condition": "span-duration",
+      "title": "Task UT06",
+      "question": "For the cargo bucket, report total weight and the dominant semantic variant.",
+      "views": [
+        "span-duration flamegraph excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "duration-ordered span excerpt",
+          "rows": [
+            {
+              "task_id": "r114-edit-rust-text",
+              "category": "edit",
+              "duration_seconds": 30.605,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-write-json",
+              "category": "edit",
+              "duration_seconds": 30.304,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-test-debug",
+              "category": "test",
+              "duration_seconds": 28.372,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-fix-shell-script",
+              "category": "test",
+              "duration_seconds": 25.5,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-edit-python-bug",
+              "category": "edit",
+              "duration_seconds": 25.311,
+              "status": "lineage_precision_ok"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT06-flat-summary",
+      "task_id": "UT06",
+      "claim": "C5",
+      "condition": "flat-summary",
+      "title": "Task UT06",
+      "question": "For the cargo bucket, report total weight and the dominant semantic variant.",
+      "views": [
+        "process/effect/path summary excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "flat summary excerpt",
+          "rows": [
+            {
+              "agent": "codex",
+              "cmd": "sed",
+              "count": 25755,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "rg",
+              "count": 15336,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "write",
+              "count": 12824,
+              "effect": "process",
+              "status": "ok",
+              "tool": "tool"
+            },
+            {
+              "agent": "codex",
+              "cmd": "git",
+              "count": 8549,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "write",
+              "count": 7655,
+              "effect": "process",
+              "status": "observed",
+              "tool": "tool"
+            },
+            {
+              "agent": "codex",
+              "cmd": "nl",
+              "count": 6354,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "find",
+              "count": 4429,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "cargo",
+              "count": 2903,
+              "effect": "test",
+              "status": "ok",
+              "tool": "shell"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT06-nonsemantic-stack",
+      "task_id": "UT06",
+      "claim": "C5",
+      "condition": "nonsemantic-stack",
+      "title": "Task UT06",
+      "question": "For the cargo bucket, report total weight and the dominant semantic variant.",
+      "views": [
+        "nonsemantic folded stack excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "nonsemantic folded excerpt",
+          "rows": [
+            {
+              "projected_stack": "project:agentsight;agent:codex;call:tool/shell;process:cargo;effect:test;status:ok",
+              "weight": 1420
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT06-semantic-stack",
+      "task_id": "UT06",
+      "claim": "C5",
+      "condition": "semantic-stack",
+      "title": "Task UT06",
+      "question": "For the cargo bucket, report total weight and the dominant semantic variant.",
+      "views": [
+        "semantic effect flamegraph excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "semantic folded excerpt",
+          "rows": [
+            {
+              "semantic": "session:review/prompt:review",
+              "weight": 204
+            },
+            {
+              "semantic": "session:refactor/prompt:refactor",
+              "weight": 192
+            },
+            {
+              "semantic": "session:research/prompt:explain",
+              "weight": 124
+            },
+            {
+              "semantic": "session:research/prompt:refactor",
+              "weight": 104
+            },
+            {
+              "semantic": "session:research/prompt:research",
+              "weight": 82
+            },
+            {
+              "semantic": "session:review/prompt:refactor",
+              "weight": 60
+            },
+            {
+              "semantic": "session:design/prompt:review",
+              "weight": 53
+            },
+            {
+              "semantic": "session:test/prompt:refactor",
+              "weight": 46
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT07-trace-tree",
+      "task_id": "UT07",
+      "claim": "C5",
+      "condition": "trace-tree",
+      "title": "Task UT07",
+      "question": "For the python3 bucket, report total weight and the dominant semantic variant.",
+      "views": [
+        "session/tool chronological tree excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "trace tree excerpt",
+          "rows": [
+            {
+              "task_id": "r114-read-state",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-read-verdict",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-read-related",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-rg-baseline",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-agentflame-readme",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT07-span-duration",
+      "task_id": "UT07",
+      "claim": "C5",
+      "condition": "span-duration",
+      "title": "Task UT07",
+      "question": "For the python3 bucket, report total weight and the dominant semantic variant.",
+      "views": [
+        "span-duration flamegraph excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "duration-ordered span excerpt",
+          "rows": [
+            {
+              "task_id": "r114-edit-rust-text",
+              "category": "edit",
+              "duration_seconds": 30.605,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-write-json",
+              "category": "edit",
+              "duration_seconds": 30.304,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-test-debug",
+              "category": "test",
+              "duration_seconds": 28.372,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-fix-shell-script",
+              "category": "test",
+              "duration_seconds": 25.5,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-edit-python-bug",
+              "category": "edit",
+              "duration_seconds": 25.311,
+              "status": "lineage_precision_ok"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT07-flat-summary",
+      "task_id": "UT07",
+      "claim": "C5",
+      "condition": "flat-summary",
+      "title": "Task UT07",
+      "question": "For the python3 bucket, report total weight and the dominant semantic variant.",
+      "views": [
+        "process/effect/path summary excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "flat summary excerpt",
+          "rows": [
+            {
+              "agent": "codex",
+              "cmd": "sed",
+              "count": 25755,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "rg",
+              "count": 15336,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "write",
+              "count": 12824,
+              "effect": "process",
+              "status": "ok",
+              "tool": "tool"
+            },
+            {
+              "agent": "codex",
+              "cmd": "git",
+              "count": 8549,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "write",
+              "count": 7655,
+              "effect": "process",
+              "status": "observed",
+              "tool": "tool"
+            },
+            {
+              "agent": "codex",
+              "cmd": "nl",
+              "count": 6354,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "find",
+              "count": 4429,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "cargo",
+              "count": 2903,
+              "effect": "test",
+              "status": "ok",
+              "tool": "shell"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT07-nonsemantic-stack",
+      "task_id": "UT07",
+      "claim": "C5",
+      "condition": "nonsemantic-stack",
+      "title": "Task UT07",
+      "question": "For the python3 bucket, report total weight and the dominant semantic variant.",
+      "views": [
+        "nonsemantic folded stack excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "nonsemantic folded excerpt",
+          "rows": [
+            {
+              "projected_stack": "project:agentsight;agent:codex;call:tool/shell;process:python3;effect:process;status:ok",
+              "weight": 1612
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT07-semantic-stack",
+      "task_id": "UT07",
+      "claim": "C5",
+      "condition": "semantic-stack",
+      "title": "Task UT07",
+      "question": "For the python3 bucket, report total weight and the dominant semantic variant.",
+      "views": [
+        "semantic effect flamegraph excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "semantic folded excerpt",
+          "rows": [
+            {
+              "semantic": "session:refactor/prompt:refactor",
+              "weight": 675
+            },
+            {
+              "semantic": "session:refactor/prompt:review",
+              "weight": 109
+            },
+            {
+              "semantic": "session:research/prompt:research",
+              "weight": 61
+            },
+            {
+              "semantic": "session:refactor/prompt:test",
+              "weight": 56
+            },
+            {
+              "semantic": "session:refactor/prompt:analyze",
+              "weight": 49
+            },
+            {
+              "semantic": "session:review/prompt:review",
+              "weight": 42
+            },
+            {
+              "semantic": "session:refactor/prompt:ignored",
+              "weight": 41
+            },
+            {
+              "semantic": "session:refactor/prompt:benchmark",
+              "weight": 31
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT08-trace-tree",
+      "task_id": "UT08",
+      "claim": "C5",
+      "condition": "trace-tree",
+      "title": "Task UT08",
+      "question": "For the docker bucket, report total weight and the dominant semantic variant.",
+      "views": [
+        "session/tool chronological tree excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "trace tree excerpt",
+          "rows": [
+            {
+              "task_id": "r114-read-state",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-read-verdict",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-read-related",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-rg-baseline",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-agentflame-readme",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT08-span-duration",
+      "task_id": "UT08",
+      "claim": "C5",
+      "condition": "span-duration",
+      "title": "Task UT08",
+      "question": "For the docker bucket, report total weight and the dominant semantic variant.",
+      "views": [
+        "span-duration flamegraph excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "duration-ordered span excerpt",
+          "rows": [
+            {
+              "task_id": "r114-edit-rust-text",
+              "category": "edit",
+              "duration_seconds": 30.605,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-write-json",
+              "category": "edit",
+              "duration_seconds": 30.304,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-test-debug",
+              "category": "test",
+              "duration_seconds": 28.372,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-fix-shell-script",
+              "category": "test",
+              "duration_seconds": 25.5,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-edit-python-bug",
+              "category": "edit",
+              "duration_seconds": 25.311,
+              "status": "lineage_precision_ok"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT08-flat-summary",
+      "task_id": "UT08",
+      "claim": "C5",
+      "condition": "flat-summary",
+      "title": "Task UT08",
+      "question": "For the docker bucket, report total weight and the dominant semantic variant.",
+      "views": [
+        "process/effect/path summary excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "flat summary excerpt",
+          "rows": [
+            {
+              "agent": "codex",
+              "cmd": "sed",
+              "count": 25755,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "rg",
+              "count": 15336,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "write",
+              "count": 12824,
+              "effect": "process",
+              "status": "ok",
+              "tool": "tool"
+            },
+            {
+              "agent": "codex",
+              "cmd": "git",
+              "count": 8549,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "write",
+              "count": 7655,
+              "effect": "process",
+              "status": "observed",
+              "tool": "tool"
+            },
+            {
+              "agent": "codex",
+              "cmd": "nl",
+              "count": 6354,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "find",
+              "count": 4429,
+              "effect": "read",
+              "status": "ok",
+              "tool": "shell"
+            },
+            {
+              "agent": "codex",
+              "cmd": "cargo",
+              "count": 2903,
+              "effect": "test",
+              "status": "ok",
+              "tool": "shell"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT08-nonsemantic-stack",
+      "task_id": "UT08",
+      "claim": "C5",
+      "condition": "nonsemantic-stack",
+      "title": "Task UT08",
+      "question": "For the docker bucket, report total weight and the dominant semantic variant.",
+      "views": [
+        "nonsemantic folded stack excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "nonsemantic folded excerpt",
+          "rows": [
+            {
+              "projected_stack": "project:agentsight;agent:codex;call:tool/shell;process:docker;effect:process;status:ok",
+              "weight": 1470
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT08-semantic-stack",
+      "task_id": "UT08",
+      "claim": "C5",
+      "condition": "semantic-stack",
+      "title": "Task UT08",
+      "question": "For the docker bucket, report total weight and the dominant semantic variant.",
+      "views": [
+        "semantic effect flamegraph excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "semantic folded excerpt",
+          "rows": [
+            {
+              "semantic": "session:analyze/prompt:analyze",
+              "weight": 1212
+            },
+            {
+              "semantic": "session:cleanup/prompt:cleanup",
+              "weight": 66
+            },
+            {
+              "semantic": "session:design/prompt:test",
+              "weight": 29
+            },
+            {
+              "semantic": "session:refactor/prompt:refactor",
+              "weight": 24
+            },
+            {
+              "semantic": "session:analyze/prompt:review",
+              "weight": 18
+            },
+            {
+              "semantic": "session:cleanup/prompt:cleanups",
+              "weight": 18
+            },
+            {
+              "semantic": "session:cleanup/prompt:cachecontrol",
+              "weight": 15
+            },
+            {
+              "semantic": "session:cleanlocal/prompt:diskfull",
+              "weight": 12
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT09-trace-tree",
+      "task_id": "UT09",
+      "claim": "C5",
+      "condition": "trace-tree",
+      "title": "Task UT09",
+      "question": "In the flat git/read bucket, which semantic region dominates?",
+      "views": [
+        "session/tool chronological tree excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "trace tree excerpt",
+          "rows": [
+            {
+              "task_id": "r114-read-state",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-read-verdict",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-read-related",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-rg-baseline",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-agentflame-readme",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT09-span-duration",
+      "task_id": "UT09",
+      "claim": "C5",
+      "condition": "span-duration",
+      "title": "Task UT09",
+      "question": "In the flat git/read bucket, which semantic region dominates?",
+      "views": [
+        "span-duration flamegraph excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "duration-ordered span excerpt",
+          "rows": [
+            {
+              "task_id": "r114-edit-rust-text",
+              "category": "edit",
+              "duration_seconds": 30.605,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-write-json",
+              "category": "edit",
+              "duration_seconds": 30.304,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-test-debug",
+              "category": "test",
+              "duration_seconds": 28.372,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-fix-shell-script",
+              "category": "test",
+              "duration_seconds": 25.5,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-edit-python-bug",
+              "category": "edit",
+              "duration_seconds": 25.311,
+              "status": "lineage_precision_ok"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT09-flat-summary",
+      "task_id": "UT09",
+      "claim": "C5",
+      "condition": "flat-summary",
+      "title": "Task UT09",
+      "question": "In the flat git/read bucket, which semantic region dominates?",
+      "views": [
+        "process/effect/path summary excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "flat summary excerpt",
+          "rows": [
+            {
+              "weight": 4505
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT09-nonsemantic-stack",
+      "task_id": "UT09",
+      "claim": "C5",
+      "condition": "nonsemantic-stack",
+      "title": "Task UT09",
+      "question": "In the flat git/read bucket, which semantic region dominates?",
+      "views": [
+        "nonsemantic folded stack excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "nonsemantic folded excerpt",
+          "rows": [
+            {
+              "projected_stack": "call:tool/shell;process:git;effect:read;status:ok",
+              "weight": 4505
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT09-semantic-stack",
+      "task_id": "UT09",
+      "claim": "C5",
+      "condition": "semantic-stack",
+      "title": "Task UT09",
+      "question": "In the flat git/read bucket, which semantic region dominates?",
+      "views": [
+        "semantic effect flamegraph excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "semantic folded excerpt",
+          "rows": [
+            {
+              "semantic": "session:review/prompt:review",
+              "weight": 696
+            },
+            {
+              "semantic": "session:refactor/prompt:refactor",
+              "weight": 565
+            },
+            {
+              "semantic": "session:design/prompt:design",
+              "weight": 352
+            },
+            {
+              "semantic": "session:review/prompt:refactor",
+              "weight": 309
+            },
+            {
+              "semantic": "session:design/prompt:review",
+              "weight": 209
+            },
+            {
+              "semantic": "session:research/prompt:research",
+              "weight": 190
+            },
+            {
+              "semantic": "session:research/prompt:explain",
+              "weight": 179
+            },
+            {
+              "semantic": "session:research/prompt:refactor",
+              "weight": 157
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT10-trace-tree",
+      "task_id": "UT10",
+      "claim": "C5",
+      "condition": "trace-tree",
+      "title": "Task UT10",
+      "question": "Identify the largest token stack and report its semantic/token fields.",
+      "views": [
+        "session/tool chronological tree excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "trace tree excerpt",
+          "rows": [
+            {
+              "task_id": "r114-read-state",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-read-verdict",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-read-related",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-rg-baseline",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-agentflame-readme",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT10-span-duration",
+      "task_id": "UT10",
+      "claim": "C5",
+      "condition": "span-duration",
+      "title": "Task UT10",
+      "question": "Identify the largest token stack and report its semantic/token fields.",
+      "views": [
+        "span-duration flamegraph excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "duration-ordered span excerpt",
+          "rows": [
+            {
+              "task_id": "r114-edit-rust-text",
+              "category": "edit",
+              "duration_seconds": 30.605,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-write-json",
+              "category": "edit",
+              "duration_seconds": 30.304,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-test-debug",
+              "category": "test",
+              "duration_seconds": 28.372,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-fix-shell-script",
+              "category": "test",
+              "duration_seconds": 25.5,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-edit-python-bug",
+              "category": "edit",
+              "duration_seconds": 25.311,
+              "status": "lineage_precision_ok"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT10-flat-summary",
+      "task_id": "UT10",
+      "claim": "C5",
+      "condition": "flat-summary",
+      "title": "Task UT10",
+      "question": "Identify the largest token stack and report its semantic/token fields.",
+      "views": [
+        "process/effect/path summary excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "flat summary excerpt",
+          "rows": [
+            {
+              "model": "codex",
+              "kind": "estimate",
+              "weight": 17869111395752
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT10-nonsemantic-stack",
+      "task_id": "UT10",
+      "claim": "C5",
+      "condition": "nonsemantic-stack",
+      "title": "Task UT10",
+      "question": "Identify the largest token stack and report its semantic/token fields.",
+      "views": [
+        "nonsemantic folded stack excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "nonsemantic folded excerpt",
+          "rows": [
+            {
+              "stack": "project:agentsight;agent:codex;model:codex;kind:estimate",
+              "weight": 17869111395752
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT10-semantic-stack",
+      "task_id": "UT10",
+      "claim": "C5",
+      "condition": "semantic-stack",
+      "title": "Task UT10",
+      "question": "Identify the largest token stack and report its semantic/token fields.",
+      "views": [
+        "semantic effect flamegraph excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "semantic folded excerpt",
+          "rows": [
+            {
+              "stack": "project:agentsight;agent:codex;session:refactor;prompt:refactor;call:llm/refactor;model:codex;kind:estimate",
+              "weight": 17869111395752
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT11-trace-tree",
+      "task_id": "UT11",
+      "claim": "C5",
+      "condition": "trace-tree",
+      "title": "Task UT11",
+      "question": "Does prompt+LLM-call alone fully explain token provenance, and what residual remains?",
+      "views": [
+        "session/tool chronological tree excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "trace tree excerpt",
+          "rows": [
+            {
+              "task_id": "r114-read-state",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-read-verdict",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-read-related",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-rg-baseline",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-agentflame-readme",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT11-span-duration",
+      "task_id": "UT11",
+      "claim": "C5",
+      "condition": "span-duration",
+      "title": "Task UT11",
+      "question": "Does prompt+LLM-call alone fully explain token provenance, and what residual remains?",
+      "views": [
+        "span-duration flamegraph excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "duration-ordered span excerpt",
+          "rows": [
+            {
+              "task_id": "r114-edit-rust-text",
+              "category": "edit",
+              "duration_seconds": 30.605,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-write-json",
+              "category": "edit",
+              "duration_seconds": 30.304,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-test-debug",
+              "category": "test",
+              "duration_seconds": 28.372,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-fix-shell-script",
+              "category": "test",
+              "duration_seconds": 25.5,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-edit-python-bug",
+              "category": "edit",
+              "duration_seconds": 25.311,
+              "status": "lineage_precision_ok"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT11-flat-summary",
+      "task_id": "UT11",
+      "claim": "C5",
+      "condition": "flat-summary",
+      "title": "Task UT11",
+      "question": "Does prompt+LLM-call alone fully explain token provenance, and what residual remains?",
+      "views": [
+        "process/effect/path summary excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "flat summary excerpt",
+          "rows": [
+            {}
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT11-nonsemantic-stack",
+      "task_id": "UT11",
+      "claim": "C5",
+      "condition": "nonsemantic-stack",
+      "title": "Task UT11",
+      "question": "Does prompt+LLM-call alone fully explain token provenance, and what residual remains?",
+      "views": [
+        "nonsemantic folded stack excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "nonsemantic folded excerpt",
+          "rows": [
+            {
+              "family": "token",
+              "variant": "prompt+llm-call"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT11-semantic-stack",
+      "task_id": "UT11",
+      "claim": "C5",
+      "condition": "semantic-stack",
+      "title": "Task UT11",
+      "question": "Does prompt+LLM-call alone fully explain token provenance, and what residual remains?",
+      "views": [
+        "semantic effect flamegraph excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "semantic folded excerpt",
+          "rows": [
+            {
+              "family": "token",
+              "variant": "prompt+llm-call"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT12-trace-tree",
+      "task_id": "UT12",
+      "claim": "C5",
+      "condition": "trace-tree",
+      "title": "Task UT12",
+      "question": "For the R114 exact-lineage suite, report scoped join and negative-control outcomes.",
+      "views": [
+        "session/tool chronological tree excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "trace tree excerpt",
+          "rows": [
+            {
+              "task_id": "r114-read-state",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-read-verdict",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-read-related",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-rg-baseline",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-agentflame-readme",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-paper-search",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-json-check",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-claim-list",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT12-span-duration",
+      "task_id": "UT12",
+      "claim": "C5",
+      "condition": "span-duration",
+      "title": "Task UT12",
+      "question": "For the R114 exact-lineage suite, report scoped join and negative-control outcomes.",
+      "views": [
+        "span-duration flamegraph excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "duration-ordered span excerpt",
+          "rows": [
+            {
+              "task_id": "r114-edit-rust-text",
+              "category": "edit",
+              "duration_seconds": 30.605,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-write-json",
+              "category": "edit",
+              "duration_seconds": 30.304,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-test-debug",
+              "category": "test",
+              "duration_seconds": 28.372,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-fix-shell-script",
+              "category": "test",
+              "duration_seconds": 25.5,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-edit-python-bug",
+              "category": "edit",
+              "duration_seconds": 25.311,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-edit-doc-note",
+              "category": "edit",
+              "duration_seconds": 23.427,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-network-docs",
+              "category": "dependency",
+              "duration_seconds": 20.66,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-claim-list",
+              "category": "read",
+              "duration_seconds": 19.765,
+              "status": "lineage_precision_ok"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT12-flat-summary",
+      "task_id": "UT12",
+      "claim": "C5",
+      "condition": "flat-summary",
+      "title": "Task UT12",
+      "question": "For the R114 exact-lineage suite, report scoped join and negative-control outcomes.",
+      "views": [
+        "process/effect/path summary excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "flat summary excerpt",
+          "rows": [
+            {
+              "metric": "effect_events",
+              "value": 5772
+            },
+            {
+              "metric": "in_scope_effect_events",
+              "value": 1273
+            },
+            {
+              "metric": "joined_effect_events",
+              "value": 1273
+            },
+            {
+              "metric": "out_of_scope_effect_events",
+              "value": 1329
+            },
+            {
+              "metric": "negative_effect_events_observed",
+              "value": 3170
+            },
+            {
+              "metric": "negative_joined_effect_events",
+              "value": 0
+            },
+            {
+              "metric": "raw_join_pct",
+              "value": 22.055
+            },
+            {
+              "metric": "precision_pct",
+              "value": 100.0
+            },
+            {
+              "metric": "recall_pct",
+              "value": 100.0
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT12-nonsemantic-stack",
+      "task_id": "UT12",
+      "claim": "C5",
+      "condition": "nonsemantic-stack",
+      "title": "Task UT12",
+      "question": "For the R114 exact-lineage suite, report scoped join and negative-control outcomes.",
+      "views": [
+        "nonsemantic folded stack excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "nonsemantic folded excerpt",
+          "rows": [
+            {
+              "join_methods": {
+                "none": 4499,
+                "pid_family_time_window": 1273
+              }
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT12-semantic-stack",
+      "task_id": "UT12",
+      "claim": "C5",
+      "condition": "semantic-stack",
+      "title": "Task UT12",
+      "question": "For the R114 exact-lineage suite, report scoped join and negative-control outcomes.",
+      "views": [
+        "semantic effect flamegraph excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "semantic folded excerpt",
+          "rows": [
+            {
+              "in_scope_effect_events": 1273,
+              "joined_effect_events": 1273,
+              "negative_effect_events_observed": 3170,
+              "negative_joined_effect_events": 0
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT13-trace-tree",
+      "task_id": "UT13",
+      "claim": "C5",
+      "condition": "trace-tree",
+      "title": "Task UT13",
+      "question": "Why is R114 raw join much lower than scoped recall, and what are the key numbers?",
+      "views": [
+        "session/tool chronological tree excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "trace tree excerpt",
+          "rows": [
+            {
+              "task_id": "r114-read-state",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-read-verdict",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-read-related",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-rg-baseline",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-agentflame-readme",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-paper-search",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-json-check",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-claim-list",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT13-span-duration",
+      "task_id": "UT13",
+      "claim": "C5",
+      "condition": "span-duration",
+      "title": "Task UT13",
+      "question": "Why is R114 raw join much lower than scoped recall, and what are the key numbers?",
+      "views": [
+        "span-duration flamegraph excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "duration-ordered span excerpt",
+          "rows": [
+            {
+              "task_id": "r114-edit-rust-text",
+              "category": "edit",
+              "duration_seconds": 30.605,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-write-json",
+              "category": "edit",
+              "duration_seconds": 30.304,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-test-debug",
+              "category": "test",
+              "duration_seconds": 28.372,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-fix-shell-script",
+              "category": "test",
+              "duration_seconds": 25.5,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-edit-python-bug",
+              "category": "edit",
+              "duration_seconds": 25.311,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-edit-doc-note",
+              "category": "edit",
+              "duration_seconds": 23.427,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-network-docs",
+              "category": "dependency",
+              "duration_seconds": 20.66,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-claim-list",
+              "category": "read",
+              "duration_seconds": 19.765,
+              "status": "lineage_precision_ok"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT13-flat-summary",
+      "task_id": "UT13",
+      "claim": "C5",
+      "condition": "flat-summary",
+      "title": "Task UT13",
+      "question": "Why is R114 raw join much lower than scoped recall, and what are the key numbers?",
+      "views": [
+        "process/effect/path summary excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "flat summary excerpt",
+          "rows": [
+            {
+              "metric": "effect_events",
+              "value": 5772
+            },
+            {
+              "metric": "in_scope_effect_events",
+              "value": 1273
+            },
+            {
+              "metric": "joined_effect_events",
+              "value": 1273
+            },
+            {
+              "metric": "out_of_scope_effect_events",
+              "value": 1329
+            },
+            {
+              "metric": "negative_effect_events_observed",
+              "value": 3170
+            },
+            {
+              "metric": "negative_joined_effect_events",
+              "value": 0
+            },
+            {
+              "metric": "raw_join_pct",
+              "value": 22.055
+            },
+            {
+              "metric": "precision_pct",
+              "value": 100.0
+            },
+            {
+              "metric": "recall_pct",
+              "value": 100.0
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT13-nonsemantic-stack",
+      "task_id": "UT13",
+      "claim": "C5",
+      "condition": "nonsemantic-stack",
+      "title": "Task UT13",
+      "question": "Why is R114 raw join much lower than scoped recall, and what are the key numbers?",
+      "views": [
+        "nonsemantic folded stack excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "nonsemantic folded excerpt",
+          "rows": [
+            {
+              "raw_join_pct": 22.055,
+              "out_of_scope_effect_events": 1329
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT13-semantic-stack",
+      "task_id": "UT13",
+      "claim": "C5",
+      "condition": "semantic-stack",
+      "title": "Task UT13",
+      "question": "Why is R114 raw join much lower than scoped recall, and what are the key numbers?",
+      "views": [
+        "semantic effect flamegraph excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "semantic folded excerpt",
+          "rows": [
+            {
+              "recall_pct": 100.0,
+              "scope": "retargeted agent process family"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT14-trace-tree",
+      "task_id": "UT14",
+      "claim": "C5",
+      "condition": "trace-tree",
+      "title": "Task UT14",
+      "question": "Report the real-fragment 3B tag-stability numbers and the correct claim boundary.",
+      "views": [
+        "session/tool chronological tree excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "trace tree excerpt",
+          "rows": [
+            {
+              "task_id": "r114-read-state",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-read-verdict",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-read-related",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-rg-baseline",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            },
+            {
+              "task_id": "r114-agentflame-readme",
+              "category": "read",
+              "target_status": "completed",
+              "lineage_status": "precision_ok"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT14-span-duration",
+      "task_id": "UT14",
+      "claim": "C5",
+      "condition": "span-duration",
+      "title": "Task UT14",
+      "question": "Report the real-fragment 3B tag-stability numbers and the correct claim boundary.",
+      "views": [
+        "span-duration flamegraph excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "duration-ordered span excerpt",
+          "rows": [
+            {
+              "task_id": "r114-edit-rust-text",
+              "category": "edit",
+              "duration_seconds": 30.605,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-write-json",
+              "category": "edit",
+              "duration_seconds": 30.304,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-test-debug",
+              "category": "test",
+              "duration_seconds": 28.372,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-fix-shell-script",
+              "category": "test",
+              "duration_seconds": 25.5,
+              "status": "lineage_precision_ok"
+            },
+            {
+              "task_id": "r114-edit-python-bug",
+              "category": "edit",
+              "duration_seconds": 25.311,
+              "status": "lineage_precision_ok"
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT14-flat-summary",
+      "task_id": "UT14",
+      "claim": "C5",
+      "condition": "flat-summary",
+      "title": "Task UT14",
+      "question": "Report the real-fragment 3B tag-stability numbers and the correct claim boundary.",
+      "views": [
+        "process/effect/path summary excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "flat summary excerpt",
+          "rows": [
+            {
+              "model": "3b",
+              "fragments": 300,
+              "runs": 900
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT14-nonsemantic-stack",
+      "task_id": "UT14",
+      "claim": "C5",
+      "condition": "nonsemantic-stack",
+      "title": "Task UT14",
+      "question": "Report the real-fragment 3B tag-stability numbers and the correct claim boundary.",
+      "views": [
+        "nonsemantic folded stack excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "nonsemantic folded excerpt",
+          "rows": [
+            {
+              "exact_stable_fragments": 282,
+              "fragments": 300
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    },
+    {
+      "packet_id": "UT14-semantic-stack",
+      "task_id": "UT14",
+      "claim": "C5",
+      "condition": "semantic-stack",
+      "title": "Task UT14",
+      "question": "Report the real-fragment 3B tag-stability numbers and the correct claim boundary.",
+      "views": [
+        "semantic effect flamegraph excerpt"
+      ],
+      "view_excerpt": [
+        {
+          "title": "semantic folded excerpt",
+          "rows": [
+            {
+              "valid_runs": 900,
+              "total_runs": 900,
+              "p95_ms": 30
+            }
+          ]
+        }
+      ],
+      "contains_oracle": false
+    }
+  ]
+}
