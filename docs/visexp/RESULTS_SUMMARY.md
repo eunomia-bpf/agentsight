@@ -59,6 +59,8 @@ exact lineage or user utility.
 | R141-packet | Superseded deterministic C5 task benchmark draft over R114/R123/R131/full-run artifacts | historical `docs/visexp/out/user-task-benchmark.json` at commit `80fc9fc` | superseded by R142 |
 | R142-packet/scoring | Same-event-slice C5 task benchmark packet, response-contract checker, and empty paper-scale scorer gate over R114/R123/R131/full-run artifacts | `docs/visexp/out/user-task-benchmark.json`, `docs/visexp/out/user-task-assignments.csv`, `docs/visexp/out/user-task-results.json` | packet/scorer only; no participants |
 | R142-preregistration | Frozen C5 analysis contract before participant collection | `docs/visexp/out/user-task-preregistration-r142.json` | done/protocol; no participants |
+| R184 | Mechanical weak-accept human-evidence gate over R124/R142 artifacts | `docs/visexp/out/weak-accept-gate-r184.json`, `docs/visexp/out/weak-accept-gate-r184.md` | `not_weak_accept`; C5/C6 human evidence missing |
+| R185 | Read-only subagent OSDI gate review after R184 | `docs/visexp/out/osdi-gate-review-r185.md` | Level 3; next artifact is real R142 developer pilot |
 | R160 | Bounded fixed-session artifact-usability smoke over 8 historical Codex sessions, with clean and cached AgentFlame runs | `docs/visexp/out/artifact-usability-r160.json` | done/bounded; C7 remains partial |
 | R170 | Current full-history AgentFlame refresh over all discovered repo sessions with real llama.cpp annotation calls | `docs/visexp/out/full-history-r170.json` | done/mechanism; not C5/C6 |
 | R171 | Read-only subagent OSDI gate review after R170/R124-join planning | `docs/visexp/out/osdi-gate-review-r171.md` | done/review |
@@ -440,4 +442,7 @@ provenance.
 - `docs/visexp/out/semantic-ablation-r131.json` for semantic-axis ablation
 - `docs/visexp/out/user-task-benchmark.json`, `docs/visexp/out/user-task-participant-packets.json`, `docs/visexp/out/user-task-assignments.csv`, `docs/visexp/out/user-task-manifest.json`, `docs/visexp/out/user-task-preregistration-r142.json`, and `docs/visexp/out/user-task-results.json` for the R142-packet C5 benchmark bundle
 - `docs/visexp/out/full-history-r170.json` and `.md` for the current full-history refresh summary
-- `docs/visexp/out/osdi-gate-review-r181.md` for the latest read-only subagent OSDI gate review
+- `docs/visexp/out/weak-accept-gate-r184.json` and `.md` for the current
+  mechanical C5/C6 weak-accept human-evidence gate
+- `docs/visexp/out/osdi-gate-review-r185.md` for the latest read-only subagent
+  OSDI gate review; earlier R171/R181 reviews remain historical checkpoints

@@ -105,6 +105,14 @@ headline results come from `.agentsight/agentflame/latest`.
 - `out/osdi-gate-review-r183.md`: read-only subagent OSDI gate review that
   downgraded the initial R182 overclaim and keeps the network result scoped as
   a partial record-mode `--trace-net` smoke.
+- `out/weak-accept-gate-r184.json`: mechanical C5/C6 weak-accept human
+  evidence gate. It currently reports `not_weak_accept`, with C5 ready for
+  participant collection and C6 ready for independent label collection.
+- `out/weak-accept-gate-r184.md`: human-readable R184 gate summary and exact
+  commands to run after real human inputs exist.
+- `out/osdi-gate-review-r185.md`: read-only subagent OSDI gate review after
+  R184; it identifies the real R142 developer pilot as the highest-value next
+  artifact.
 - `out/index.html`: legacy Python report page.
 - `out/visual-summary.html`: compact visual progress gallery.
 - `out/system-flamegraph.svg`: system/tool footprint flamegraph.

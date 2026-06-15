@@ -452,6 +452,27 @@ def run(out_dir: Path) -> dict[str, int | str]:
             if aggregate.get("negative_control_tasks_observed", 0) != len(tasks):
                 raise AssertionError("R182 ok status requires negative controls for every task")
 
+    r184_path = out_dir / "weak-accept-gate-r184.json"
+    if r184_path.exists():
+        r184 = json.loads(r184_path.read_text(encoding="utf-8"))
+        if r184.get("run_id") != "R184":
+            raise AssertionError("R184 weak-accept gate has the wrong run_id")
+        c5 = r184.get("c5_user_utility") or {}
+        c6 = r184.get("c6_tag_adequacy") or {}
+        overall = r184.get("overall") or {}
+        if c5.get("supported") != bool(c5.get("c5_supported")):
+            raise AssertionError("R184 C5 supported flag must match c5_supported")
+        if c6.get("supported") != bool(c6.get("adequacy_supported")):
+            raise AssertionError("R184 C6 supported flag must match adequacy_supported")
+        if overall.get("human_evidence_supported") != bool(c5.get("supported") and c6.get("supported")):
+            raise AssertionError("R184 human evidence gate must require both C5 and C6")
+        if "subagent review" not in (overall.get("disallowed_evidence") or []):
+            raise AssertionError("R184 must reject subagent review as C5/C6 evidence")
+        if "LLM-filled labels" not in (overall.get("disallowed_evidence") or []):
+            raise AssertionError("R184 must reject LLM-filled labels as C6 evidence")
+        if not overall.get("human_evidence_supported") and r184.get("status") != "not_weak_accept":
+            raise AssertionError("R184 must remain not_weak_accept while human evidence is missing")
+
     r170_path = out_dir / "full-history-r170.json"
     if r170_path.exists():
         r170 = json.loads(r170_path.read_text(encoding="utf-8"))
