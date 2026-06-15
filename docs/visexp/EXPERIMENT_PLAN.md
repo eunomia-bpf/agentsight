@@ -161,8 +161,10 @@ hypothesis that requires C5 participant evidence.
 - Hypothesis: semantic effect flamegraphs improve answer accuracy or task time
   for repeated/heavy/divergent system-effect questions.
 - Workload: 12-20 tasks generated from B1/B3 traces with hidden answer keys.
-- Compared systems: raw trace tree, span-duration flamegraph, flat
-  process/effect summary, nonsemantic folded stack, semantic folded stack.
+- Compared systems: raw trace tree, explicitly named `event-count-proxy`, flat
+  process/effect summary, nonsemantic folded stack, semantic folded stack. A
+  true span-duration flamegraph remains a future stronger baseline if
+  reconstructed from timestamps.
 - Metrics: answer accuracy, task time, false positives, confidence, subjective
   workload.
 - Setup/config: within-subject counterbalanced design; each task shown once per
@@ -174,19 +176,19 @@ hypothesis that requires C5 participant evidence.
 - Current result: R142-packet generated the current pilot packet from
   R114/R123/R131/full-run inputs: 14 tasks, split into 8 primary utility tasks
   and 6 limitation/comprehension tasks; five conditions (`trace-tree`,
-  `span-duration`, `flat-summary`, `nonsemantic-stack`, `semantic-stack`); 70
+  `event-count-proxy`, `flat-summary`, `nonsemantic-stack`, `semantic-stack`); 70
   blinded packets with recursive forbidden-key leakage checks; a P01-P05
   counterbalanced assignment template; a hidden answer key; script/output
   manifests; and an empty scorer output marked `participant_results_empty`. For baseline fairness, each task's five condition
   excerpts share exactly one `slice_id`, so all views are derived from the same
   evidence slice. R142-scoring now validates response assignment consistency,
   keeps paired task-level semantic-vs-baseline deltas as diagnostics, and gates
-  paper-scale C5 with Holm-corrected participant/task fixed-effect blocked
-  permutation tests plus false-positive guardrails.
+  paper-scale C5 with Holm-corrected participant/task/order fixed-effect
+  blocked permutation tests plus false-positive guardrails.
 - Success criterion: semantic view improves exact answer accuracy by >=10
   percentage points or median task time by >=20% on core forensic tasks, with no
-  >5 percentage-point increase in false positives, under paired permutation or
-  mixed-effects analysis.
+  >5 percentage-point increase in false positives, under the preregistered
+  participant/task/order blocked permutation analysis.
 - Failure interpretation: keep the tool as an expert exploratory profiler.
 
 ### B5. Small-Model Cost And Tag Adequacy
@@ -252,12 +254,13 @@ hypothesis that requires C5 participant evidence.
 | R122 | decision | redacted tag adequacy packet | 100 session + 100 prompt + 100 LLM-call fragments | deterministic sample | label packet and redaction gate | low | trace privacy |
 | R123 | decision | real-fragment stability benchmark | R122 fragment file through 3B llama.cpp server | 300 fragments x 3 identical repeats | C2/C6 can cite 3B stability only if grammar/latency/stability pass | low | missing model sizes |
 | R124-scoring | decision | tag adequacy scorer and empty-result gate | R122 label packet with no human labels yet | deterministic scorer over 300 rows | output must have 300/300 candidate tags, stay `human_labels_empty`, and keep C6 partial until labels exist | low | evidence boundary |
-| R124 | decision | human tag adequacy labels | R122 label packet | >=2 labelers if possible | tag adequacy wording | medium | subjective labels |
+| R124-blinding | decision | blinded human labeler sheet | R122 label packet with candidate tags | deterministic export | labelers see row id, level, redacted preview, candidate tag, rubric, label, notes; model/source/stability columns hidden | low | done; labels still missing |
+| R124 | decision | human tag adequacy labels | blinded R124 labeler sheet | >=2 labelers if possible | tag adequacy wording | medium | subjective labels |
 | R131 | decision | semantic-axis ablation | no/session/prompt/full variants plus token LLM-call projections | deterministic | passed for C3 mechanism: totals and external folded cross-checks preserved; system prompt-only reduces mixed full semantic bucket weight from 90.219% to 37.687% and residual from 44.639% to 7.526%; token prompt+LLM-call remains 95.765% bucket mixed but only 0.027% residual | low | done for C3; C6/B4 deferred |
 | R141-packet | decision | superseded user-task packet draft | old `user_task_benchmark.py` packet before same-slice enforcement | deterministic 14 tasks x 5 conditions; P01-P05 assignments; 0 responses | superseded by R142 because same-event-slice fairness was unresolved | low | superseded |
-| R142-packet | decision | same-event-slice user-task packet and empty scorer check | `user_task_benchmark.py` over current artifacts; scorer over response template | deterministic 14 tasks x 5 conditions; P01-P05 assignments; 0 responses | packet ready only if leakage, assignment, same-slice, and scorer checks pass | low | done/packet |
-| R142-scoring | decision | response-contract and paper-scale user-task scorer gate | `score_user_task_results.py` over response template | deterministic empty-template check | C5 must stay unsupported until real responses; real runs use contract checks, diagnostic paired deltas, fixed-effect blocked permutation tests, and Holm correction | low | done/empty |
-| R142 | main | user task pilot | 5 developers, five conditions | counterbalanced P01-P05 template | protocol and answer keys work on real responses | medium | recruiting |
+| R142-packet | decision | same-event-slice user-task packet and empty scorer check | `user_task_benchmark.py` over current artifacts; scorer over response template | deterministic 14 tasks x 5 conditions; P01-P05 assignments; 0 responses | packet ready only if leakage, assignment, same-slice, explicit event-count baseline naming, and scorer checks pass | low | done/packet |
+| R142-scoring | decision | response-contract and paper-scale user-task scorer gate | `score_user_task_results.py` over response template | deterministic empty-template check | C5 must stay unsupported until real responses; real runs use contract checks, diagnostic paired deltas, participant/task/order fixed-effect blocked permutation tests, and Holm correction | low | done/empty |
+| R142 | main | user task pilot | 5 developers, five conditions | counterbalanced P01-P05 template | protocol and answer keys work on real responses after preregistration | medium | preregistration/recruiting |
 | R151 | main | user task paper run | 12-20 developers or scoped expert study | counterbalanced | C5 verdict | high | strongest missing evidence |
 | R160 | polish | bounded fixed-session open-source usability smoke | `cargo run --manifest-path agentflame/Cargo.toml -- run --project-root . --llama-url http://127.0.0.1:18080 --model local --timeout 60 --out .agentsight/agentflame/r160-smoke-fixed --session-file <8 fixed historical Codex sessions>`; repeat same command against the same output dir; then `python3 docs/visexp/artifact_usability_r160.py --agentflame-dir .agentsight/agentflame/r160-smoke-fixed --clean-agentflame-json .agentsight/agentflame/r160-smoke-fixed/agentflame.clean.json --out docs/visexp/out/artifact-usability-r160.json ...` | one clean run plus cached rerun over fixed inputs | expected files, runtime/cache summary, sanitized input manifest, clean/cached input equality, fully cached rerun, no raw trace commit, generated report path containment | low | done/bounded; full fresh-clone/community usefulness and pre/post write-set audit still open |
 
@@ -278,15 +281,18 @@ hypothesis that requires C5 participant evidence.
 ## Baseline Fairness
 
 - Named baselines:
-  - span-duration trace/flamegraph: OpenTelemetry-style span tree/flamegraph,
-    represented faithfully even if implemented locally.
+  - event-count proxy: same event slice rendered with event/count weights and no
+    semantic inheritance; this is not a duration baseline.
+  - true span-duration trace/flamegraph: OpenTelemetry-style span tree/flamegraph,
+    represented faithfully if timestamps are reconstructed in a later packet.
   - raw trace tree: session/tool/LLM chronological tree.
   - flat process/effect summary: command/effect/path/domain counts.
   - nonsemantic folded stack: same folding mechanism, semantic frames removed.
 - Tuning policy: all baselines use the same underlying event set and redaction
   rules.
 - What each baseline proves:
-  - span/trace baseline proves whether ordinary agent observability suffices.
+  - event-count/trace baseline proves whether nonsemantic agent observability
+    and count-weighted flame views suffice.
   - flat summary proves whether traditional process tools suffice.
   - nonsemantic stack isolates semantic labels from flamegraph aggregation.
 

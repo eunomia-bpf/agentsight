@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "run_id": "R124-blinded-label-sheet",
+  "status": "ready_for_independent_labeling",
+  "generated_at": "2026-06-15T09:44:08+00:00",
+  "source_packet": {
+    "path": "docs/visexp/out/tag-adequacy-label-packet-r122.csv",
+    "sha256": "610c67043cf7cb880aaf886fe51689a69d8d23626ee6a8143dc0cfc85288e593",
+    "row_count": 300,
+    "fields": [
+      "fragment_index",
+      "fragment_hash",
+      "kind",
+      "source",
+      "model",
+      "candidate_tag",
+      "candidate_model",
+      "candidate_exact_stable",
+      "candidate_distinct_tags",
+      "text_chars",
+      "preview",
+      "labeler_1",
+      "labeler_2",
+      "adjudicated_label",
+      "notes"
+    ]
+  },
+  "outputs": {
+    "blinded_csv": "docs/visexp/out/tag-adequacy-blinded-label-sheet-r124.csv"
+  },
+  "blinding_contract": {
+    "visible_fields": [
+      "row_id",
+      "fragment_index",
+      "fragment_level",
+      "redacted_preview",
+      "candidate_tag",
+      "rubric",
+      "label",
+      "notes"
+    ],
+    "hidden_source_fields": [
+      "adjudicated_label",
+      "candidate_distinct_tags",
+      "candidate_exact_stable",
+      "candidate_model",
+      "fragment_hash",
+      "labeler_1",
+      "labeler_2",
+      "model",
+      "source",
+      "text_chars"
+    ],
+    "label_values": [
+      "adequate",
+      "generic_noisy",
+      "misleading"
+    ],
+    "single_labeler_template": true,
+    "independence_rule": "Give a separate blank copy to each labeler; do not combine labels until both copies are frozen."
+  },
+  "row_count": 300,
+  "candidate_tag_count": 300,
+  "candidate_tag_coverage_pct": 100.0,
+  "privacy": {
+    "raw_trace_files_modified": false,
+    "raw_prompt_text_included": false,
+    "redacted_preview_only": true,
+    "public_sheet_scan": {
+      "status": "ok",
+      "findings": []
+    }
+  },
+  "provenance": {
+    "repo_commit": "de7e02cb720d3f00a0344bd74888467c380f5cf6",
+    "repo_dirty": true,
+    "script_sha256": "d15f3e3e6f6a402d81456f32a20f263acda5c5cb69e59ec417e8dd5aa2e532a2"
+  },
+  "claim_boundary": "This artifact prepares R124 human labeling but does not itself provide human adequacy evidence."
+}

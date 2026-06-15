@@ -22,7 +22,7 @@ from typing import Any
 
 
 SEMANTIC_CONDITION = "semantic-stack"
-BASELINE_CONDITIONS = ("trace-tree", "span-duration", "flat-summary", "nonsemantic-stack")
+BASELINE_CONDITIONS = ("trace-tree", "event-count-proxy", "flat-summary", "nonsemantic-stack")
 PRIMARY_ROLE = "primary_utility"
 DEFAULT_MIN_PARTICIPANTS_FOR_CLAIM = 12
 PILOT_MIN_PARTICIPANTS = 5
@@ -152,6 +152,7 @@ def score_response(
     exact = not parse_error and not missing and not mismatched and not extra_fields
     return {
         "participant_id": row.get("participant_id", ""),
+        "order_index": row.get("order_index", ""),
         "packet_id": row.get("packet_id", ""),
         "task_id": row.get("task_id", ""),
         "condition": row.get("condition", ""),
@@ -319,6 +320,7 @@ def fixed_effect_items(
             {
                 "participant_id": row["participant_id"],
                 "task_id": row["task_id"],
+                "order_index": row.get("order_index", ""),
                 "condition": row["condition"],
                 "semantic": row["condition"] == SEMANTIC_CONDITION,
                 "value": value,
@@ -332,13 +334,16 @@ def ols_condition_coefficient(items: list[dict[str, Any]], semantic_labels: list
         return None
     participants = sorted({str(item["participant_id"]) for item in items})
     tasks = sorted({str(item["task_id"]) for item in items})
+    orders = sorted({str(item.get("order_index") or "") for item in items if str(item.get("order_index") or "")})
     if len(participants) < 2 or len(tasks) < 2:
         return None
 
     participant_cols = {participant: idx for idx, participant in enumerate(participants[1:], start=2)}
     task_offset = 2 + len(participant_cols)
     task_cols = {task: idx for idx, task in enumerate(tasks[1:], start=task_offset)}
-    col_count = 2 + len(participant_cols) + len(task_cols)
+    order_offset = task_offset + len(task_cols)
+    order_cols = {order: idx for idx, order in enumerate(orders[1:], start=order_offset)}
+    col_count = 2 + len(participant_cols) + len(task_cols) + len(order_cols)
     if len(items) <= col_count:
         return None
 
@@ -354,6 +359,9 @@ def ols_condition_coefficient(items: list[dict[str, Any]], semantic_labels: list
         task_col = task_cols.get(str(item["task_id"]))
         if task_col is not None:
             row[task_col] = 1.0
+        order_col = order_cols.get(str(item.get("order_index") or ""))
+        if order_col is not None:
+            row[order_col] = 1.0
         value = float(item["value"])
         for left in range(col_count):
             xty[left] += row[left] * value
@@ -735,7 +743,7 @@ def claim_analysis(rows: list[dict[str, Any]], bundle: dict[str, Any]) -> dict[s
             "successful_comparison_count": len(paper_successes),
             "model_ready": paper_model_ready,
             "holm_family": "primary baseline comparisons x {exact accuracy, log time}",
-            "statistical_model": "participant-and-task fixed-effect blocked permutation",
+            "statistical_model": "participant-task-order fixed-effect blocked permutation",
         },
         "primary_utility": {
             "comparisons": paper_primary,
@@ -754,7 +762,8 @@ def claim_analysis(rows: list[dict[str, Any]], bundle: dict[str, Any]) -> dict[s
             "paper_model_ready": paper_model_ready,
             "success_rule": (
                 "All four baselines must be beaten on primary utility tasks by >=10 pp exact accuracy "
-                "or >=20% median task time reduction with Holm-corrected fixed-effect permutation p<=0.05, "
+                "or >=20% median task time reduction with Holm-corrected participant/task/order "
+                "fixed-effect permutation p<=0.05, "
                 "without >5 pp false-positive increase."
             ),
         },
@@ -774,7 +783,7 @@ def claim_thresholds() -> dict[str, Any]:
         "max_false_positive_increase_pp": MAX_FALSE_POSITIVE_INCREASE_PP,
         "p_value_threshold": P_VALUE_THRESHOLD,
         "diagnostic_test": "paired task-level sign-flip permutation",
-        "paper_scale_test": "participant-and-task fixed-effect blocked permutation",
+        "paper_scale_test": "participant-task-order fixed-effect blocked permutation",
         "holm_correction_family": "primary baseline comparisons x accuracy/time endpoints",
         "monte_carlo_permutations": MONTE_CARLO_PERMUTATIONS,
     }
@@ -783,6 +792,7 @@ def claim_thresholds() -> dict[str, Any]:
 def write_scored_csv(path: Path, rows: list[dict[str, Any]]) -> None:
     fields = [
         "participant_id",
+        "order_index",
         "packet_id",
         "task_id",
         "condition",
@@ -836,7 +846,7 @@ def write_summary_md(path: Path, result: dict[str, Any]) -> None:
             "",
             "- This is scored evidence only when `source` points to a real participant-response file.",
             "- Pilot-scale results should guide task/instrument changes, not final user-utility claims.",
-            "- Paper-scale support requires the Holm-corrected participant/task fixed-effect gate in `claim_analysis` to pass.",
+            "- Paper-scale support requires the Holm-corrected participant/task/order fixed-effect gate in `claim_analysis` to pass.",
         ]
     )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")

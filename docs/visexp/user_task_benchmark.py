@@ -26,7 +26,7 @@ DEFAULT_AGENTFLAME_DIR = REPO_ROOT / ".agentsight" / "agentflame" / "latest"
 
 CONDITION_ORDER = [
     "trace-tree",
-    "span-duration",
+    "event-count-proxy",
     "flat-summary",
     "nonsemantic-stack",
     "semantic-stack",
@@ -53,7 +53,7 @@ PUBLIC_EXCERPT_KEYS = {
         "frame_type",
         "note",
     },
-    "span-duration": {
+    "event-count-proxy": {
         "slice_id",
         "slice_kind",
         "slice_weight",
@@ -271,7 +271,7 @@ def trace_rows_from_stack(slice_id: str, slice_kind: str, stack: str, weight: in
     )
 
 
-def span_rows_from_stack(slice_id: str, slice_kind: str, stack: str, weight: int | float) -> list[dict[str, Any]]:
+def event_count_rows_from_stack(slice_id: str, slice_kind: str, stack: str, weight: int | float) -> list[dict[str, Any]]:
     return with_slice(
         [
             {
@@ -279,7 +279,7 @@ def span_rows_from_stack(slice_id: str, slice_kind: str, stack: str, weight: int
                 "span": frame,
                 "event_weight": weight,
                 "width_basis": "event_weight_same_slice",
-                "note": "duration unavailable in folded artifact",
+                "note": "event-count proxy; duration unavailable in folded artifact",
             }
             for idx, frame in enumerate(frame_list(stack), 1)
             if not frame.startswith(("session:", "prompt:"))
@@ -326,7 +326,7 @@ def stack_slice_conditions(
     slice_id = stable_id(task_id, slice_kind, stack)
     return standard_conditions(
         trace_rows=trace_rows_from_stack(slice_id, slice_kind, stack, weight),
-        span_rows=span_rows_from_stack(slice_id, slice_kind, stack, weight),
+        span_rows=event_count_rows_from_stack(slice_id, slice_kind, stack, weight),
         flat_rows=with_slice(flat_rows, slice_id=slice_id, slice_kind=slice_kind, slice_weight=weight)
         if flat_rows is not None
         else flat_rows_from_stack(slice_id, slice_kind, stack, weight),
@@ -481,9 +481,9 @@ def standard_conditions(
             public_condition_rows("trace-tree", trace_rows, "trace tree excerpt"),
         ),
         (
-            "span-duration",
-            ["span-duration flamegraph excerpt"],
-            public_condition_rows("span-duration", span_rows, "duration-ordered span excerpt"),
+            "event-count-proxy",
+            ["event-count proxy flamegraph excerpt"],
+            public_condition_rows("event-count-proxy", span_rows, "event-count proxy excerpt"),
         ),
         (
             "flat-summary",
@@ -1170,6 +1170,7 @@ def write_summary(path: Path, bundle: dict[str, Any]) -> None:
             "- `user-task-response-template.csv` defines the response schema consumed by `score_user_task_results.py`.",
             "- Participants should see only their assigned condition packet; oracle sources and answer keys are for graders.",
             "- Every task's five condition excerpts share one `slice_id`; this checks the same-event-slice baseline-fairness requirement for the pilot packet.",
+            "- `event-count-proxy` is not a span-duration baseline: widths come from event/count weights or explicit task-duration rows when available.",
             "- C5 remains unsupported until participant responses are collected and scored.",
         ]
     )
@@ -1292,7 +1293,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "paper_run_participants": "12-20",
             "assignment": "P01-P05 seeded rotation; each participant receives one condition per task and each task is covered once per condition across the pilot template",
             "oracle_visibility": "participants see only assigned condition packets; oracle_sources and answer keys are for graders",
-            "readiness_boundary": "pilot packet: content leakage, assignment coverage, and same-event-slice checks pass; C5 remains unsupported until scored participant responses exist",
+            "baseline_boundary": "`event-count-proxy` is a deliberately named event-weight/count proxy and must not be cited as a span-duration flamegraph baseline.",
+            "readiness_boundary": "pilot packet: content leakage, assignment coverage, same-event-slice checks, and explicit event-count baseline naming pass; C5 remains unsupported until scored participant responses exist",
             "claim_gate": "C5 can move beyond unsupported only after scored participant responses exist.",
         },
         "participant_packet_files": [

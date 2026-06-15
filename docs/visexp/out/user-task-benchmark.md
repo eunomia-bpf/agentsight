@@ -7,7 +7,7 @@ This bundle defines B4/C5 pilot analysis tasks and answer keys. It is not a huma
 - Limitation/comprehension tasks: 6.
 - Participant packets: 70.
 - Pilot assignment rows: 70.
-- Conditions: trace-tree, span-duration, flat-summary, nonsemantic-stack, semantic-stack.
+- Conditions: trace-tree, event-count-proxy, flat-summary, nonsemantic-stack, semantic-stack.
 
 ## Tasks
 
@@ -32,4 +32,5 @@ This bundle defines B4/C5 pilot analysis tasks and answer keys. It is not a huma
 - `user-task-response-template.csv` defines the response schema consumed by `score_user_task_results.py`.
 - Participants should see only their assigned condition packet; oracle sources and answer keys are for graders.
 - Every task's five condition excerpts share one `slice_id`; this checks the same-event-slice baseline-fairness requirement for the pilot packet.
+- `event-count-proxy` is not a span-duration baseline: widths come from event/count weights or explicit task-duration rows when available.
 - C5 remains unsupported until participant responses are collected and scored.

@@ -170,8 +170,10 @@ user utility remain unproven.
 
 Needed:
 
-- Head-to-head task benchmark against trace tree/span flamegraph, flat summary,
-  nonsemantic folded stack, and semantic folded stack.
+- Head-to-head task benchmark against trace tree, event-count proxy, flat
+  summary, nonsemantic folded stack, and semantic folded stack. A true
+  span-duration flamegraph remains a separate future baseline if reconstructed
+  from timestamps.
 - Metrics: answer accuracy, task time, false positives, confidence, and
   repeated-effect recall.
 
@@ -179,12 +181,13 @@ Current partial setup:
 
 - R142-packet generated 14 blinded forensic tasks from R114/R123/R131/full-run
   artifacts: 8 primary utility tasks, 6 limitation/comprehension tasks, five
-  conditions, 70 participant packets, hidden answer key, P01-P05
+  conditions (`trace-tree`, `event-count-proxy`, `flat-summary`,
+  `nonsemantic-stack`, `semantic-stack`), 70 participant packets, hidden answer key, P01-P05
   counterbalanced assignment template, recursive leak check, and same-event
   `slice_id` fairness across conditions.
 - R142-scoring validates response contract, rejects duplicate/partial/bad
   measurement CSVs, keeps task-level deltas as diagnostics, and gates
-  paper-scale C5 with Holm-corrected participant/task fixed-effect blocked
+  paper-scale C5 with Holm-corrected participant/task/order fixed-effect blocked
   permutation tests.
 - Current scored output is `participant_results_empty`,
   `c5_supported=false`, and `pilot_ready=false`.

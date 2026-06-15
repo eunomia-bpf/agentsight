@@ -325,11 +325,16 @@ def user_task_evidence(
     tasks = bundle.get("tasks", [])
     status = bundle.get("status", "unknown")
     template = "present" if response_template_exists else "missing"
+    thresholds = ((results or {}).get("claim_analysis") or {}).get("thresholds") or {}
+    baselines = ",".join(thresholds.get("baseline_conditions") or bundle.get("condition_order") or [])
+    paper_test = thresholds.get("paper_scale_test") or "unknown"
     if not results:
         return (
             f"task_bundle={status} task_count={len(tasks)} "
             "scorer=ready "
             f"response_template={template} "
+            f"baselines={baselines} "
+            f"paper_test={paper_test} "
             "participant_results=missing"
         )
     if results.get("status") == "participant_results_empty":
@@ -339,6 +344,8 @@ def user_task_evidence(
             f"task_bundle={status} task_count={len(tasks)} "
             "scorer=ready "
             f"response_template={template} "
+            f"baselines={baselines} "
+            f"paper_test={paper_test} "
             f"ignored_placeholder_rows={results.get('ignored_placeholder_rows')} "
             f"c5_supported={gate.get('c5_supported')} "
             f"pilot_ready={gate.get('pilot_ready')} "
@@ -352,6 +359,8 @@ def user_task_evidence(
         f"scorer_results={results.get('status', 'unknown')} "
         f"participants={results.get('participant_count')} "
         f"responses={results.get('response_count')} "
+        f"baselines={baselines} "
+        f"paper_test={paper_test} "
         f"exact_accuracy_pct={results.get('summary', {}).get('overall', {}).get('exact_accuracy_pct')} "
         f"c5_supported={gate.get('c5_supported')} "
         f"pilot_ready={gate.get('pilot_ready')} "

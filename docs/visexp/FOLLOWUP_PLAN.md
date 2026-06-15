@@ -75,7 +75,7 @@ Weak accept requires all four gates below:
 | G1 full-history semantic characterization | C1-C3 | all repo-related readable sessions annotated by real llama.cpp model, with redacted output and baseline-mixing analysis | 205 sessions, 29,302 llama.cpp HTTP calls, 0 final tag failures, 90.219%/90.770% mixed baseline weights | pass |
 | G2 live exact semantic-effect lineage | C4 | broader live `agentsight record` suite, recall/precision table, join/orphan table, child-depth and path specificity, negative controls | R114 fixed 20-task suite: 20/20 targets completed, 20/20 tasks observed negative controls, 1273/1273 in-scope effects joined, 100.0% precision/recall, 3170 observed negative-control effects with 0 joined, child-depth/path/redaction tables generated | pass for fixed suite |
 | G3 small-model and tag adequacy | C2,C6 | 0.6B/1B/3B llama.cpp benchmark, repeated-run stability, human adequacy labels | 3B syntax/full-run evidence plus R123 real redacted stability: 900/900 valid tags, 285/300 exact-stable fragments, p95 31 ms; no local 0.6B/1B weights; human adequacy still missing | partial |
-| G4 developer task utility | C5 | head-to-head task benchmark against trace tree, true span-duration flamegraph or explicitly named event-count proxy, flat summary, nonsemantic stack, semantic stack | R142-packet generated 14 tasks, 8 primary utility tasks, 6 limitation/comprehension tasks, 5 conditions, 70 leak-checked blinded packets, P01-P05 counterbalanced assignments, hidden answer key, manifests, and per-task same-event-slice `slice_id` checks. The current span-like condition is event-weight based and protocol-blocked until regenerated from timestamps or renamed. R142-scoring now adds response-contract checks, task-level diagnostic deltas, Holm-corrected participant/task/order fixed-effect paper gates, false-positive guardrails, and C5 support/pilot gates; no participants | missing |
+| G4 developer task utility | C5 | head-to-head task benchmark against trace tree, true span-duration flamegraph or explicitly named event-count proxy, flat summary, nonsemantic stack, semantic stack | R142-packet generated 14 tasks, 8 primary utility tasks, 6 limitation/comprehension tasks, 5 conditions, 70 leak-checked blinded packets, P01-P05 counterbalanced assignments, hidden answer key, manifests, and per-task same-event-slice `slice_id` checks. The former span-like event-weight condition is now explicitly named `event-count-proxy`, so the packet no longer claims to be a span-duration baseline. R142-scoring now adds response-contract checks, task-level diagnostic deltas, Holm-corrected participant/task/order fixed-effect paper gates, false-positive guardrails, and C5 support/pilot gates; no participants | missing |
 
 ## Weak-Accept Execution Protocol
 
@@ -83,21 +83,22 @@ The next work should not add another visualization polish pass unless it
 directly unblocks C5 or C6. OSDI weak accept requires outcome evidence, so the
 execution order is:
 
-1. **R124-labels for C6.** First generate a blinded labeler sheet from
-   `docs/visexp/out/tag-adequacy-label-packet-r122.csv`, then collect two
-   independent human labels for every row, adjudicate disagreements, and rerun
-   `score_tag_adequacy.py`. Subagents or LLMs may review the rubric and
-   spot-check leakage, but their labels do not count as human adequacy evidence.
-2. **R142-pilot for C5.** Before any participant sees the packet, either
-   regenerate a true duration/timeline baseline from trace timestamps or rename
-   the current span-like condition as an event-count proxy. Then run the P01-P05
-   counterbalanced packet with real developers or scoped expert participants.
-   The pilot can validate procedure and task wording, but it must stay labeled
-   as pilot evidence unless the paper-scale C5 gate passes.
+1. **R124-labels for C6.** Use
+   `docs/visexp/out/tag-adequacy-blinded-label-sheet-r124.csv` to collect two
+   independent human labels for every row, adjudicate disagreements into the
+   scoring packet, and rerun `score_tag_adequacy.py`. Subagents or LLMs may
+   review the rubric and spot-check leakage, but their labels do not count as
+   human adequacy evidence.
+2. **R142-pilot for C5.** The current packet has been rescoped to use an
+   explicitly named `event-count-proxy` baseline rather than a misleading
+   span-duration condition. Freeze the C5 analysis preregistration, then run the
+   P01-P05 counterbalanced packet with real developers or scoped expert
+   participants. The pilot can validate procedure and task wording, but it must
+   stay labeled as pilot evidence unless the paper-scale C5 gate passes.
 3. **R151 paper run for C5.** Only after the pilot response contract passes and
    the C5 analysis model is preregistered, collect 12-20 participant response
    rows or explicitly narrow to a scoped expert study. The scorer's
-   Holm-corrected participant/task fixed-effect gate decides whether any
+   Holm-corrected participant/task/order fixed-effect gate decides whether any
    user-utility claim is allowed.
 4. **C4/RQ6 replication and artifact polish.** Run cross-repo or clean-install
    work only after C5/C6 are no longer empty. These runs strengthen scope and
@@ -142,8 +143,8 @@ R124 can support a narrowed C6 claim only if:
 
 ### R142/R151 Participant Contract
 
-Do not collect R142 pilot or R151 paper responses until the baseline and
-analysis contracts are frozen:
+Do not collect R142 pilot or R151 paper responses until the analysis contract is
+frozen and the baseline name remains honest:
 
 - The `span-duration` condition must be a real trace/timeline view: spans
   ordered by timestamp, widths derived from measured duration, and no semantic
@@ -153,6 +154,9 @@ analysis contracts are frozen:
 - Existing R142 packet excerpts with `width_basis=event_weight_same_slice` and
   "duration unavailable" notes are useful as an event-count proxy only; they are
   not a fair span-duration baseline.
+- The current R142 packet satisfies this naming boundary by exposing the
+  event-weight view as `event-count-proxy`. A future true duration baseline
+  requires regenerated packet artifacts and updated scoring thresholds.
 - The C5 analysis must be preregistered before pilot collection if possible, and
   before R151 at the latest. Freeze the response unit, primary task subset,
   condition comparisons, exclusion rules, participant/task/order blocking
@@ -384,10 +388,10 @@ cargo run --manifest-path agentflame/Cargo.toml -- bench \
   - Which prompt region produced repo-outside file reads?
   - Which task caused network calls, and to which domains?
   - Which repeated failures are concentrated in one semantic region?
-- Conditions: raw trace tree, true span-duration flamegraph, flat
-  process/effect summary, nonsemantic folded stack, semantic effect flamegraph.
-  If duration cannot be reconstructed, the second condition must be named
-  `event-count-proxy` and must not be claimed as a span-duration baseline.
+- Conditions: raw trace tree, `event-count-proxy`, flat process/effect summary,
+  nonsemantic folded stack, semantic effect flamegraph. If a future
+  span-duration baseline is reconstructed from timestamps, it must replace or
+  supplement `event-count-proxy` with a separate preregistered condition.
 - Design: within-subject, Latin-square/counterbalanced order, one condition per
   question per participant, blinded scoring, participants with recent coding
   agent experience or a scoped expert-study limitation.
@@ -406,21 +410,20 @@ cargo run --manifest-path agentflame/Cargo.toml -- bench \
 - Current evidence: R142-packet makes the pilot packet executable but does not
   score utility. It generates 14 tasks from R114/R123/R131/full-run artifacts,
   split into 8 primary utility tasks and 6 limitation/comprehension tasks; five
-  conditions (`trace-tree`, currently span-like `event-count-proxy`,
-  `flat-summary`, `nonsemantic-stack`, `semantic-stack`); 70 blinded packets with recursive
+  conditions (`trace-tree`, `event-count-proxy`, `flat-summary`,
+  `nonsemantic-stack`, `semantic-stack`); 70 blinded packets with recursive
   forbidden-key leakage checks; a P01-P05 counterbalanced assignment template;
   a hidden answer key; script/output manifests; and a scorer output marked
   `participant_results_empty`. For baseline
   fairness, every task's five condition excerpts now share exactly one
-  `slice_id`, so trace/span-like/flat/nonsemantic/semantic packets are derived
-  from the same underlying evidence slice. However, the current span-like packet
-  uses event-weight widths because folded artifacts do not expose duration; it
-  is not a fair span-duration baseline until regenerated from timestamps or
-  explicitly rescoped as an event-count proxy. R142-scoring now validates
+  `slice_id`, so trace/event-proxy/flat/nonsemantic/semantic packets are derived
+  from the same underlying evidence slice. The event-weight view is explicitly
+  named `event-count-proxy`, so it is not presented as a fair span-duration
+  baseline. R142-scoring now validates
   response assignment consistency, keeps task-level semantic-vs-baseline deltas
   as diagnostics, and gates paper-scale C5 with Holm-corrected
   participant/task/order fixed-effect blocked permutation tests. C5 remains
-  unsupported until the baseline contract is fixed and participant responses are
+  unsupported until the preregistration is frozen and participant responses are
   collected and scored.
 - Result path: `docs/visexp/out/user-task-results.json`.
 
@@ -436,9 +439,9 @@ cargo run --manifest-path agentflame/Cargo.toml -- bench \
 | R124 | C6 | B5x | Human adequacy labeling over sampled fragments. | collect labels in `docs/visexp/out/tag-adequacy-label-packet-r122.csv`; score with `python3 docs/visexp/score_tag_adequacy.py --labels docs/visexp/out/tag-adequacy-label-packet-r122.csv --out-json docs/visexp/out/tag-adequacy-results-r124.json --out-csv docs/visexp/out/tag-adequacy-results-r124.csv --out-md docs/visexp/out/tag-adequacy-results-r124.md` | 300 fragments, >=2 labelers if possible | adequacy/generic/misleading rubric plus agreement | scored gate has >=80% adequate, <=20% generic/noisy, kappa >=0.6 or limited claim | `docs/visexp/out/tag-adequacy-results-r124.json`, `docs/visexp/out/tag-adequacy-results-r124.csv`, `docs/visexp/out/tag-adequacy-results-r124.md` | planned |
 | R131 | C3 | B6x | Semantic-axis ablation. | `python3 docs/visexp/r131_semantic_ablation.py --input .agentsight/agentflame/latest --local-out .agentsight/agentflame/ablations-r131/summary.json --out-dir docs/visexp/out` | deterministic | total-weight equality + report/folded cross-checks + mixed/residual delta | passed for C3 mechanism: all totals preserved; generated folded files match projections; system prompt-only reduced mixed full semantic bucket weight from 90.219% to 37.687% and residual from 44.639% to 7.526%; C6/B4 deferred | `.agentsight/agentflame/ablations-r131/summary.json`, `docs/visexp/out/semantic-ablation-r131.json` | done for C3; C6/B4 deferred |
 | R141-packet | C5 | B4x | Superseded deterministic user-task packet draft. | `python3 docs/visexp/user_task_benchmark.py ...` before same-slice enforcement | 14 tasks x 5 conditions; P01-P05 assignments; 0 responses | leak check + assignment coverage + scorer status | superseded by R142 same-slice packet | `docs/visexp/out/user-task-benchmark.json` historical commit | superseded |
-| R142-packet | C5 | B4x | Same-event-slice user-task packet and empty scorer check. | `python3 docs/visexp/user_task_benchmark.py --out docs/visexp/out --agentflame-dir .agentsight/agentflame/latest`; scorer over `user-task-response-template.csv` | 14 tasks x 5 conditions; P01-P05 assignments; 0 responses | hidden answer key + leak-checked blinded packets + assignment coverage + per-task common `slice_id` + scorer status | protocol-blocked for participant collection until the span-like event-weight condition is regenerated as true duration or renamed as `event-count-proxy`; no C5 claim without participants | `docs/visexp/out/user-task-benchmark.json`, `docs/visexp/out/user-task-assignments.csv`, `docs/visexp/out/user-task-results.json` | done/packet |
-| R142-scoring | C5 | B4x | Response-contract and paper-scale C5 scorer gate. | `python3 docs/visexp/score_user_task_results.py --responses docs/visexp/out/user-task-response-template.csv --bundle docs/visexp/out/user-task-benchmark.json --answer-key docs/visexp/out/user-task-answer-key.csv --out docs/visexp/out` | deterministic empty-template check; real responses later | assignment/packet contract checks, diagnostic task-level deltas, Holm-corrected participant/task fixed-effect tests, false-positive guardrail, pilot/paper support gates | current output is `participant_results_empty`, `c5_supported=false`, `pilot_ready=false`; no C5 claim without participants | `docs/visexp/out/user-task-results.json` | done/empty |
-| R142 | C5 | B4x | User-task pilot. | after fixing the baseline contract and preregistering the analysis, collect 5 developer participants using counterbalanced P01-P05 conditions; score with `python3 docs/visexp/score_user_task_results.py --responses <pilot-response.csv> --bundle docs/visexp/out/user-task-benchmark.json --answer-key docs/visexp/out/user-task-answer-key.csv --out docs/visexp/out/user-task-pilot-r142` | 5 participants for complete condition coverage | answer key, timing data, false positives, confidence, response-contract checker | task protocol works before paper run; pilot is not paper-scale C5 support | `docs/visexp/out/user-task-pilot-r142/user-task-results.json` | planned after protocol fix |
+| R142-packet | C5 | B4x | Same-event-slice user-task packet and empty scorer check. | `python3 docs/visexp/user_task_benchmark.py --out docs/visexp/out --agentflame-dir .agentsight/agentflame/latest`; scorer over `user-task-response-template.csv` | 14 tasks x 5 conditions; P01-P05 assignments; 0 responses | hidden answer key + leak-checked blinded packets + assignment coverage + per-task common `slice_id` + explicit `event-count-proxy` baseline naming + scorer status | packet ready for preregistered pilot collection; no C5 claim without participants | `docs/visexp/out/user-task-benchmark.json`, `docs/visexp/out/user-task-assignments.csv`, `docs/visexp/out/user-task-results.json` | done/packet |
+| R142-scoring | C5 | B4x | Response-contract and paper-scale C5 scorer gate. | `python3 docs/visexp/score_user_task_results.py --responses docs/visexp/out/user-task-response-template.csv --bundle docs/visexp/out/user-task-benchmark.json --answer-key docs/visexp/out/user-task-answer-key.csv --out docs/visexp/out` | deterministic empty-template check; real responses later | assignment/packet contract checks, diagnostic task-level deltas, Holm-corrected participant/task/order fixed-effect tests, false-positive guardrail, pilot/paper support gates | current output is `participant_results_empty`, `c5_supported=false`, `pilot_ready=false`; no C5 claim without participants | `docs/visexp/out/user-task-results.json` | done/empty |
+| R142 | C5 | B4x | User-task pilot. | after freezing the analysis preregistration, collect 5 developer participants using counterbalanced P01-P05 conditions; score with `python3 docs/visexp/score_user_task_results.py --responses <pilot-response.csv> --bundle docs/visexp/out/user-task-benchmark.json --answer-key docs/visexp/out/user-task-answer-key.csv --out docs/visexp/out/user-task-pilot-r142` | 5 participants for complete condition coverage | answer key, timing data, false positives, confidence, response-contract checker | task protocol works before paper run; pilot is not paper-scale C5 support | `docs/visexp/out/user-task-pilot-r142/user-task-results.json` | planned after preregistration |
 | R151 | C5 | B4x | User-task paper run. | 12-20 participants or scoped expert study | counterbalanced | accuracy/time/false-positive/confidence scorer | required for any user-utility claim | `docs/visexp/out/user-task-results.json` | planned |
 | R160 | C7 | B7 | Bounded fixed-session open-source usability smoke. | `cargo run --manifest-path agentflame/Cargo.toml -- run --project-root . --llama-url http://127.0.0.1:18080 --model local --timeout 60 --out .agentsight/agentflame/r160-smoke-fixed --session-file <8 fixed historical Codex sessions>`; repeat same command against the same output dir; then `python3 docs/visexp/artifact_usability_r160.py --agentflame-dir .agentsight/agentflame/r160-smoke-fixed --clean-agentflame-json .agentsight/agentflame/r160-smoke-fixed/agentflame.clean.json --out docs/visexp/out/artifact-usability-r160.json ...` | one clean run plus cached rerun over fixed inputs | expected files + runtime/cache summary + sanitized input manifest + clean/cached input equality + 76/76 cached rerun + no raw-trace git dirt + generated report path containment | bounded local artifact path is auditable without the internal harness; fresh-clone/community usefulness, public report sanitization, and full write-set containment remain open | `docs/visexp/out/artifact-usability-r160.json` | done/bounded |
 
@@ -468,10 +471,9 @@ span-duration traces do not provide, but OSDI weak accept still needs evidence
 that the semantic labels are adequate and that developers actually answer
 forensic questions better with the visualization.
 
-1. generate the blinded R124 labeler sheet, collect/adjudicate human adequacy
-   labels for the R122 packet, then rerun `score_tag_adequacy.py`;
-2. regenerate the R142 span-duration condition from real timestamps or rename it
-   as an event-count proxy, then freeze the C5 analysis preregistration;
-3. run the R142 developer task pilot using the corrected assignment template and
-   compare trace tree, corrected span/event baseline, flat summary, nonsemantic
-   stack, and semantic effect stack conditions.
+1. collect/adjudicate human adequacy labels using the blinded R124 labeler
+   sheet, then rerun `score_tag_adequacy.py`;
+2. freeze the C5 analysis preregistration over the current trace tree,
+   event-count proxy, flat summary, nonsemantic stack, and semantic stack
+   conditions;
+3. run the R142 developer task pilot using the corrected assignment template.

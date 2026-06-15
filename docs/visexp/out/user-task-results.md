@@ -16,4 +16,4 @@ This report scores participant responses for C5 against the committed answer key
 
 - This is scored evidence only when `source` points to a real participant-response file.
 - Pilot-scale results should guide task/instrument changes, not final user-utility claims.
-- Paper-scale support requires the Holm-corrected participant/task fixed-effect gate in `claim_analysis` to pass.
+- Paper-scale support requires the Holm-corrected participant/task/order fixed-effect gate in `claim_analysis` to pass.

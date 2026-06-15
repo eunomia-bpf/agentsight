@@ -309,8 +309,8 @@ Raw join 仍只有 22.055\%，这是预期结果：wrapper、sibling 和 out-of-
 
 当前答案是不成立，或者更准确地说：未验证。
 已有 task packet、answer key 和 scorer 原型，但没有真实参与者响应。
-下一步需要把 baseline 设为 trace tree、真实 span-duration flamegraph、flat process summary、nonsemantic folded stack 和 semantic folded stack，比较 accuracy、time、false positives 和 confidence。
-当前 R142 packet 中的 span-like 条件仍用 event weight，因为 folded artifact 没有 duration；它必须先由 trace timestamp 重建，或者明确降级为 event-count proxy，不能直接当作 span-duration baseline。
+下一步需要把 baseline 设为 trace tree、event-count proxy、flat process summary、nonsemantic folded stack 和 semantic folded stack，比较 accuracy、time、false positives 和 confidence。
+当前 R142 packet 中原来的 span-like 条件已经明确命名为 event-count proxy，因为 folded artifact 没有真实 duration；它不能直接当作 span-duration baseline。
 如果这个实验失败，AgentFlame 仍可能是专家 forensic 工具，但不能写成提升普通开发者效率。
 
 \subsection{RQ5：小模型成本和标签质量}
@@ -370,7 +370,7 @@ OSDI reviewer 最可能挑战的点是 C4、C5 和 C6：C4 已经有固定 comma
     C5 user utility &
     已有 task packet 和 scorer；尚无 participant responses。 &
     unsupported &
-    需要修复 duration baseline 后运行 trace tree/span-or-proxy/flat/semantic 视图的 user benchmark。 \\
+    需要冻结 preregistration 后运行 trace tree/event-count/flat/nonsemantic/semantic 视图的 user benchmark。 \\
     C6 tag adequacy &
     3B full run syntax gate 通过；R123 真实 redacted fragments 上 900/900 valid，285/300 exact-stable，p95 31 ms；可观察到少量 noisy tags。 &
     partial &
@@ -413,8 +413,8 @@ AgentFlame 包含 token flamegraph，但当前只作为 source-local accounting�
 最短补强路径是：
 
 \begin{enumerate}
-  \item 先生成 blinded R124 label sheet，再对 R122 的 300 个 session/prompt/LLM fragments 收集人工 adequacy labels。
-  \item 在 R114/R131 traces 上生成 trace tree、真实 span-duration flamegraph 或明确标注的 event-count proxy、flat summary、nonsemantic stack、semantic stack 五种视图。
+  \item 使用 blinded R124 label sheet 对 R122 的 300 个 session/prompt/LLM fragments 收集人工 adequacy labels。
+  \item 在 R114/R131 traces 上使用 trace tree、event-count proxy、flat summary、nonsemantic stack、semantic stack 五种视图；真实 span-duration baseline 需要另行由 timestamps 重建。
   \item 用 12--20 个 forensic questions 运行开发者任务 benchmark。
   \item 如果要声称更小模型，加入真实 0.6B/1B GGUF weights 并重跑 tagger benchmark。
 \end{enumerate}

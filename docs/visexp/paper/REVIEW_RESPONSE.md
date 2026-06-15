@@ -48,6 +48,7 @@ The revised paper is more honest and more interesting, but still not OSDI weak
 accept. The shortest path is:
 
 1. Live AgentSight exact-effect lineage with join/orphan metrics.
-2. Small user/task benchmark against trace tree, span-duration flamegraph, flat
-   summary, nonsemantic stack, and semantic stack.
+2. Small user/task benchmark against trace tree, event-count proxy, flat
+   summary, nonsemantic stack, and semantic stack; add a true span-duration
+   baseline only after reconstructing timestamps.
 3. 0.6B/1B/3B tagger cost/stability and human adequacy labels.

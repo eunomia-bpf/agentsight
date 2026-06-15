@@ -173,8 +173,14 @@ def run(out_dir: Path) -> dict[str, int | str]:
             raise AssertionError("user-task-results.json is missing C5 claim gate fields")
         if "paper_scale_test" not in thresholds or "holm_correction_family" not in thresholds:
             raise AssertionError("C5 claim analysis is missing paper-scale statistical contract fields")
+        if "order" not in str(thresholds.get("paper_scale_test")):
+            raise AssertionError("C5 paper-scale statistical contract must include order blocking")
         if thresholds.get("semantic_condition") != "semantic-stack":
             raise AssertionError("C5 claim analysis has wrong semantic condition")
+        if "event-count-proxy" not in thresholds.get("baseline_conditions", []):
+            raise AssertionError("C5 baseline conditions must include the explicit event-count proxy")
+        if "span-duration" in thresholds.get("baseline_conditions", []):
+            raise AssertionError("C5 scorer must not treat event-count packets as span-duration baseline")
         if user_task_results.get("status") == "participant_results_empty" and gate.get("c5_supported"):
             raise AssertionError("empty C5 participant results must not support C5")
         if gate.get("c5_supported") and not gate.get("paper_model_ready"):
@@ -215,6 +221,50 @@ def run(out_dir: Path) -> dict[str, int | str]:
                 raise AssertionError("R122 tag adequacy packet is missing candidate tag columns")
             if any(not row.get("candidate_tag") for row in tag_packet_rows):
                 raise AssertionError("R122 tag adequacy packet has rows without candidate tags")
+        blinded_path = out_dir / "tag-adequacy-blinded-label-sheet-r124.csv"
+        blinded_manifest_path = out_dir / "tag-adequacy-blinded-label-sheet-r124.json"
+        if not blinded_path.exists() or not blinded_manifest_path.exists():
+            raise AssertionError("R124 blinded label sheet artifacts are missing")
+        with blinded_path.open("r", encoding="utf-8", newline="") as handle:
+            blinded_rows = list(csv.DictReader(handle))
+        with blinded_path.open("r", encoding="utf-8", newline="") as handle:
+            blinded_reader = csv.DictReader(handle)
+            visible_fields = list(blinded_reader.fieldnames or [])
+        expected_blinded_fields = [
+            "row_id",
+            "fragment_index",
+            "fragment_level",
+            "redacted_preview",
+            "candidate_tag",
+            "rubric",
+            "label",
+            "notes",
+        ]
+        if visible_fields != expected_blinded_fields:
+            raise AssertionError("R124 blinded label sheet has wrong visible columns")
+        forbidden_blinded_fields = {
+            "fragment_hash",
+            "source",
+            "model",
+            "candidate_model",
+            "candidate_exact_stable",
+            "candidate_distinct_tags",
+            "text_chars",
+            "labeler_1",
+            "labeler_2",
+            "adjudicated_label",
+        }
+        if forbidden_blinded_fields & set(visible_fields):
+            raise AssertionError("R124 blinded label sheet exposes hidden source fields")
+        if len(blinded_rows) != len(tag_packet_rows):
+            raise AssertionError("R124 blinded label sheet row count does not match R122 packet")
+        if any(row.get("label") or row.get("notes") for row in blinded_rows):
+            raise AssertionError("R124 blinded label sheet template must not contain labels")
+        blinded_manifest = json.loads(blinded_manifest_path.read_text(encoding="utf-8"))
+        if blinded_manifest.get("row_count") != len(tag_packet_rows):
+            raise AssertionError("R124 blinded label sheet manifest row count mismatch")
+        if (blinded_manifest.get("privacy") or {}).get("public_sheet_scan", {}).get("status") != "ok":
+            raise AssertionError("R124 blinded label sheet privacy scan failed")
         tag_results = json.loads(tag_results_path.read_text(encoding="utf-8"))
         tag_summary = tag_results.get("summary", {})
         if tag_summary.get("packet_row_count") != len(tag_packet_rows):
