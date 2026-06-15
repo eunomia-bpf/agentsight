@@ -15,7 +15,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: python/agentsight-py
+        working-directory: package/python/agentsight-py
 
     steps:
       - name: Checkout code
@@ -36,11 +36,11 @@ jobs:
         run: |
           python -m pip install dist/*.whl
           agentsight-py --version
-          agentsight-py summary ../../docs/sample-snapshot.json
-          agentsight-py summary ../../docs/sample-snapshot.json --json
+          agentsight-py summary ../../../docs/sample-snapshot.json
+          agentsight-py summary ../../../docs/sample-snapshot.json --json
 
       - name: Publish package distributions to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          packages-dir: python/agentsight-py/dist
+          packages-dir: package/python/agentsight-py/dist
 
