@@ -17,8 +17,8 @@ deterministic system-effect provenance and folded-stack aggregation.
 - Target venue: OSDI/SOSP-style systems venue.
 - Artifact status: Rust CLI prototype with a full local-history run; exact
   AgentSight live lineage has harness, native-export, DB-persisted backfill,
-  and capture-time record-command smokes, while high-coverage live provenance is
-  pending.
+  capture-time record-command, and fresh Codex live-record smokes, while
+  high-coverage live provenance is pending.
 - Main reviewer risk: the work will be rejected as "just another agent
   trace/flamegraph UI" unless the evaluation proves semantic attribution answers
   questions that span-duration traces and process summaries cannot.
@@ -41,7 +41,7 @@ deterministic system-effect provenance and folded-stack aggregation.
 | C1 | Full run with consistent folded outputs. | B1 | Folded totals mismatch or report cannot be regenerated. | Prototype supports only sampled/local histories. |
 | C2 | Low invalid/failure rate and practical local runtime. | B1, B5 | Small models fail often or latency is prohibitive. | 3B works; smaller models remain optional. |
 | C3 | Semantic frames split mixed nonsemantic/flat buckets. | B2, B6 | Mixed weight is negligible or examples are not useful. | Semantic frames are a label overlay, not strong information gain. |
-| C4 | Live exact effects inherit prompt/session ancestry. | B3 | Raw orphan rate remains high or lineage cannot cross process trees. | Capture-time record-command rows exist; high raw join and per-effect ancestry remain future work. |
+| C4 | Live exact effects inherit prompt/session ancestry. | B3 | Raw orphan rate remains high or lineage cannot cross process trees. | R113-live passes on five command-mode Codex tasks; broader and full-history exact coverage remain open. |
 | C5 | Users solve tasks better with semantic views. | B4 | No time/accuracy/confidence improvement. | Semantic flamegraphs are expert exploratory views. |
 | C6 | Tags are stable and adequate. | B5 | High instability, generic/noisy tags, poor adequacy. | Tags are lossy hints only. |
 
@@ -57,7 +57,8 @@ deterministic system-effect provenance and folded-stack aggregation.
 - Workloads: local real Codex/Claude histories for AgentSight; future paired
   benchmark tasks run under AgentSight collection.
 - Observability: session/prompt/LLM-call tags now; capture-time record-command
-  session/tool rows exist; exact per-effect
+  session/tool rows exist and have been exercised on five real Codex tasks;
+  exact per-effect
   `tool_call -> shell -> child process -> file/network effect` remains the next
   live-capture target.
 - Assumptions: a tool/effect inherits semantic intent through session/prompt
@@ -237,9 +238,11 @@ deterministic system-effect provenance and folded-stack aggregation.
 ## Residual Uncertainty
 
 - Current full run is single-repo and observational.
-- Current exact lineage evidence includes a DB-persisted backfill smoke, but raw
-  join is only 57.233% and the envelope is backfill-derived rather than
-  capture-time first-class state.
+- Current exact lineage evidence is split: the R111/R112 DB snapshot/backfill
+  smoke still joins only 182/318 raw effects (57.233%), while R113-live
+  command-mode capture-time record joins 508/508 raw effects across five
+  read-only Codex tasks. The remaining uncertainty is full-history and broader
+  workload coverage, not command-mode capture-time row creation.
 - Current user utility evidence is absent.
 - Current tag adequacy is unproven even though syntax validity is strong.
 - These limitations are acceptable for internal planning but not for OSDI final
@@ -252,6 +255,6 @@ deterministic system-effect provenance and folded-stack aggregation.
 | C1 | `.agentsight/agentflame/latest/agentflame.json` | supported | local-history semantic folded stacks |
 | C2 | `.agentsight/agentflame/latest/tags.json` | partial | 3B syntactic feasibility |
 | C3 | `.agentsight/agentflame/latest/agentflame.json` | supported | semantic partitioning in local workload |
-| C4 | `docs/visexp/out/native-lineage-r112.json` | partial | DB-persisted backfill smoke; capture-time complete provenance pending |
+| C4 | `docs/visexp/out/native-lineage-r112.json`, `docs/visexp/out/live-record-r113.json` | partial | DB-persisted backfill smoke plus five-task command-mode capture-time smoke; full-history provenance pending |
 | C5 | user results pending | unsupported | no user outcome claim |
 | C6 | model benchmark and labels pending | partial | syntactic tags, adequacy unproven |

@@ -546,10 +546,12 @@ impl MaterializedView {
             summary: event.summary.clone(),
             details: event.attributes.clone(),
         })?;
-        if let Some(row) = self
-            .process_node_id(event, action)
-            .and_then(|id| process_node_from_event(event, action, id))
-        {
+        if let Some(row) = self.process_node_id(event, action).and_then(|id| {
+            let root_pid = event
+                .pid
+                .and_then(|pid| self.process_root_for_event(pid, event.ppid));
+            process_node_from_event(event, action, id, root_pid)
+        }) {
             self.emit_process_node(row)?;
         }
         Ok(())
@@ -709,6 +711,7 @@ fn process_node_from_event(
     event: &CanonicalEvent,
     action: &str,
     id: String,
+    root_pid: Option<u32>,
 ) -> Option<ProcessNodeRow> {
     let pid = event.pid?;
     let status = process_audit_status(action, &event.attributes).to_string();
@@ -717,7 +720,7 @@ fn process_node_from_event(
         id,
         pid,
         ppid: event.ppid,
-        root_pid: None,
+        root_pid,
         start_timestamp_ms: (action == "exec").then_some(event.timestamp_ms),
         end_timestamp_ms: (action == "exit").then_some(event.timestamp_ms),
         comm: event.comm.clone(),
@@ -1031,6 +1034,61 @@ mod tests {
         assert_eq!(first_exec, first_exit);
         assert_eq!(second_exec, second_exit);
         assert_ne!(first_exec, second_exec);
+    }
+
+    #[test]
+    fn process_node_inherits_configured_root_pid_hint() {
+        let mut view = MaterializedView::new();
+        view.set_session_process_root_hint(10);
+        let event = Event::new_with_timestamp(
+            1_000,
+            "process".to_string(),
+            12,
+            "cut".to_string(),
+            json!({
+                "event": "EXEC",
+                "filename": "/usr/bin/cut",
+                "ppid": 11
+            }),
+        );
+
+        view.ingest_event(&event).expect("ingest process event");
+
+        let snapshot = view.export_snapshot(crate::model::SnapshotOptions { audit_limit: 100 });
+        let process = snapshot
+            .process_nodes
+            .iter()
+            .find(|row| row.pid == 12)
+            .expect("process node");
+        assert_eq!(process.ppid, Some(11));
+        assert_eq!(process.root_pid, Some(10));
+    }
+
+    #[test]
+    fn process_node_does_not_apply_pid_hint_to_unrelated_process() {
+        let mut view = MaterializedView::new();
+        view.set_process_root_hint(10);
+        let event = Event::new_with_timestamp(
+            1_000,
+            "process".to_string(),
+            12,
+            "cut".to_string(),
+            json!({
+                "event": "EXEC",
+                "filename": "/usr/bin/cut",
+                "ppid": 11
+            }),
+        );
+
+        view.ingest_event(&event).expect("ingest process event");
+
+        let snapshot = view.export_snapshot(crate::model::SnapshotOptions { audit_limit: 100 });
+        let process = snapshot
+            .process_nodes
+            .iter()
+            .find(|row| row.pid == 12)
+            .expect("process node");
+        assert_eq!(process.root_pid, None);
     }
 
     #[test]

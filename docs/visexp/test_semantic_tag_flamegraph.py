@@ -296,6 +296,46 @@ class AggregationTests(unittest.TestCase):
         self.assertEqual(rows[0]["join_method"], "pid_family_time_window")
         self.assertEqual(sum(folded.values()), 1)
 
+    def test_effect_lineage_joins_root_pid_even_when_parent_node_is_missing(self) -> None:
+        snapshot = {
+            "project": "agentsight",
+            "sessions": [{"id": "s1", "agent_type": "codex", "attributes": {"session_tag": "record"}}],
+            "tool_calls": [
+                {
+                    "id": "t1",
+                    "session_id": "s1",
+                    "tool_name": "agent-run",
+                    "start_timestamp_ms": 10,
+                    "end_timestamp_ms": 100,
+                    "input": {"prompt_tag": "record"},
+                    "related_pid": 10,
+                }
+            ],
+            "process_nodes": [
+                {"id": "p10", "pid": 10, "root_pid": 10, "start_timestamp_ms": 10, "end_timestamp_ms": 100, "comm": "node"},
+                {"id": "p12", "pid": 12, "ppid": 11, "root_pid": 10, "start_timestamp_ms": 20, "end_timestamp_ms": 80, "comm": "cut"},
+            ],
+            "audit_events": [
+                {
+                    "id": "a1",
+                    "timestamp_ms": 30,
+                    "audit_type": "process",
+                    "pid": 12,
+                    "action": "exec",
+                    "target": "/usr/bin/cut",
+                    "status": "observed",
+                    "details": {},
+                }
+            ],
+        }
+
+        rows, orphans, folded = lineage_rows(snapshot)
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(orphans, [])
+        self.assertEqual(rows[0]["join_method"], "root_pid_time_window")
+        self.assertEqual(sum(folded.values()), 1)
+
     def test_effect_lineage_rejects_out_of_window_process_event(self) -> None:
         snapshot = {
             "project": "agentsight",

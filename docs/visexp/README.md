@@ -121,6 +121,9 @@ headline results come from `.agentsight/agentflame/latest`.
 - `out/capture-time-r113.json`: R113 capture-time `record -- <command>`
   session/tool row implementation smoke.
 - `out/capture-time-r113.md`: human-readable R113 boundary and result table.
+- `out/live-record-r113.json`: R113-live summary over five real read-only Codex
+  tasks wrapped with `agentsight record`.
+- `out/live-record-r113.md`: human-readable R113-live boundary and result table.
 - `out/tag-stability-smoke.json`: local-only repeated-run tag stability smoke
   summary over hashed session/prompt/LLM fragments.
 - `out/tag-stability-smoke.csv`: sanitized per-fragment tag outputs.
@@ -158,9 +161,12 @@ envelope into native `collector report export`: exported snapshots contain
 session/tool rows and join the same 182/318 raw effects. R112 persists that
 envelope into SQLite `sessions` and `tool_calls` rows on DB copies and verifies
 persisted-only export. R113 implements capture-time `record -- <command>`
-session/tool rows with `related_pid`, but fresh live tasks and lower orphan
-rates are still required before claiming complete
-session -> tool_call -> shell -> child process -> file/network ancestry.
+session/tool rows with `related_pid`. R113-live wraps five real read-only Codex
+tasks with `agentsight record`, creates 5/5 capture-time sessions/tools, and
+joins 508/508 raw effects by combining process-family and session-scoped
+root-pid ancestry.
+Broader task coverage, full-history exact integration, and user/task evidence
+are still required before claiming complete developer utility.
 
 ## Test
 

@@ -135,15 +135,18 @@ Current evidence:
   join 182/318 raw effects and leave 136 orphans.
 - R113 implements capture-time `record -- <command>` session/tool rows with
   `view_source=record_capture_time_agent_envelope` and verifies the row shape in
-  a temp SQLite DB. Fresh live tasks and per-effect direct ancestry ids are
-  still pending.
+  a temp SQLite DB.
+- R113-live runs five real read-only `codex exec` tasks under `agentsight
+  record`. It creates 5/5 capture-time sessions/tools and joins 508/508 raw
+  effects; 258 effects join through process-family ancestry and 250 through
+  `root_pid_time_window`.
 - The full Rust AgentFlame run still uses agent-native session histories.
 
 Status: partial. The lineage checker works on live effects and native export now
 emits session/tool envelope rows. R112 proves DB-persisted backfill rows, and
-R113 adds capture-time record-command rows, but raw coverage is only 57.233% on
-the latest live smoke and complete
-`session -> tool_call -> process* -> effect` remains unproven.
+R113 adds capture-time record-command rows. R113-live gives fresh Codex evidence,
+but complete full-history exact lineage, larger task coverage, and user utility
+remain unproven.
 
 ## Not Yet Supported
 

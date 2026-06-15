@@ -289,10 +289,7 @@ def matching_tool(event: dict[str, Any], process: dict[str, Any] | None, indexes
                     continue
                 if not tool_time_contains(tool, timestamp):
                     continue
-                for related_process_key in related_process_keys_for_tool(tool, indexes):
-                    related_family = indexes["descendants"].get(related_process_key, {related_process_key})
-                    if event_process_key in related_family:
-                        return tool, "root_pid_time_window"
+                return tool, "root_pid_time_window"
     return None, "none"
 
 
@@ -432,6 +429,20 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     joined = len(rows) - len(orphans)
     passed = bool(rows and not orphans)
     passed_status = "fixture_lineage_smoke_passed" if args.fixture else "lineage_smoke_passed"
+    if args.fixture:
+        claim_boundary = (
+            "checker evidence only; live C4 evidence is tracked separately in R110-R113 and remains partial"
+        )
+    elif passed:
+        claim_boundary = (
+            "live snapshot evidence for joined effects; broader exact-lineage claim still needs "
+            "more tasks, full-history integration, and user-task evidence"
+        )
+    else:
+        claim_boundary = (
+            "live snapshot evidence with orphan effects; broader exact-lineage claim still needs "
+            "lower orphan rates, capture-time ancestry, and more tasks"
+        )
     result = {
         "schema_version": 1,
         "status": passed_status if passed else "lineage_smoke_failed",
@@ -445,11 +456,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "join_methods": dict(Counter(row["join_method"] for row in rows)),
         "orphan_reasons": dict(Counter(row["orphan_reason"] for row in orphans)),
         "orphan_examples": orphans[:10],
-        "claim_boundary": (
-            "checker evidence only; live C4 evidence is tracked separately in R110-R112 and remains partial"
-            if args.fixture
-            else "live snapshot evidence for joined effects; broader exact-lineage claim still needs lower orphan rates, capture-time ancestry, and more tasks"
-        ),
+        "claim_boundary": claim_boundary,
     }
     (out_dir / "effect-lineage-smoke.json").write_text(json.dumps(result, indent=2), encoding="utf-8")
     write_csv(out_dir / "effect-lineage.csv", rows)

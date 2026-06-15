@@ -454,19 +454,56 @@ def capture_time_evidence(capture_time: dict[str, Any] | None) -> str:
     )
 
 
+def live_record_supported(live_record: dict[str, Any] | None) -> bool:
+    if not live_record:
+        return False
+    aggregate = live_record.get("aggregate") or {}
+    effect_events = int(aggregate.get("effect_events") or 0)
+    joined_effect_events = int(aggregate.get("joined_effect_events") or 0)
+    return (
+        live_record.get("status") == "ok"
+        and int(aggregate.get("tasks") or 0) > 0
+        and int(aggregate.get("record_envelope_sessions") or 0) > 0
+        and int(aggregate.get("record_envelope_tool_calls") or 0) > 0
+        and effect_events > 0
+        and joined_effect_events == effect_events
+        and int(aggregate.get("orphan_effect_events") or 0) == 0
+    )
+
+
+def live_record_evidence(live_record: dict[str, Any] | None) -> str:
+    if not live_record:
+        return "r113_live_record=missing"
+    aggregate = live_record.get("aggregate") or {}
+    return (
+        f"r113_live_record={live_record.get('status', 'unknown')} "
+        f"tasks={aggregate.get('tasks')} "
+        f"record_sessions={aggregate.get('record_envelope_sessions')} "
+        f"record_tool_calls={aggregate.get('record_envelope_tool_calls')} "
+        f"raw_effects={aggregate.get('effect_events')} "
+        f"joined={aggregate.get('joined_effect_events')} "
+        f"orphans={aggregate.get('orphan_effect_events')} "
+        f"raw_join_pct={aggregate.get('raw_join_pct')} "
+        f"join_methods={aggregate.get('join_methods', {})} "
+        f"orphan_reasons={aggregate.get('orphan_reasons', {})}"
+    )
+
+
 def effect_lineage_evidence(
     lineage: dict[str, Any] | None,
     live_lineage: dict[str, Any] | None = None,
     native_lineage: dict[str, Any] | None = None,
     db_lineage: dict[str, Any] | None = None,
     capture_time: dict[str, Any] | None = None,
+    live_record: dict[str, Any] | None = None,
 ) -> str:
     live = live_lineage_evidence(live_lineage)
     native = native_lineage_evidence(native_lineage)
     db = db_lineage_evidence(db_lineage)
     capture = capture_time_evidence(capture_time)
+    record = live_record_evidence(live_record)
     if not lineage:
-        return f"effect_lineage_smoke=missing {live} {native} {db} {capture}"
+        return f"effect_lineage_smoke=missing {live} {native} {db} {capture} {record}"
     return (
         f"effect_lineage_smoke={lineage.get('status', 'unknown')} "
         f"source={lineage.get('source', 'unknown')} "
@@ -477,7 +514,8 @@ def effect_lineage_evidence(
         f"{live} "
         f"{native} "
         f"{db} "
-        f"{capture}"
+        f"{capture} "
+        f"{record}"
     )
 
 
@@ -496,6 +534,8 @@ def build_claim_gates(
     native_lineage: dict[str, Any] | None = None,
     db_lineage: dict[str, Any] | None = None,
     capture_time: dict[str, Any] | None = None,
+    live_record: dict[str, Any] | None = None,
+    headline: dict[str, Any] | None = None,
 ) -> list[dict[str, str]]:
     c1_ok = compression["compression_ratio"] > 1 and compression["repeated_stack_count"] > 0
     c2_ok = (
@@ -509,6 +549,21 @@ def build_claim_gates(
         and nonsemantic_mixing["mixed_weight_share_pct"] >= MIN_MIXED_WEIGHT_SHARE_PCT
         and flat_mixing["mixed_weight_share_pct"] >= MIN_MIXED_WEIGHT_SHARE_PCT
     )
+    headline_c3_ok = False
+    headline_c3_evidence = ""
+    if headline:
+        headline_nonsemantic = float(headline.get("nonsemantic_mixed_weight_pct") or 0.0)
+        headline_flat = float(headline.get("flat_mixed_weight_pct") or 0.0)
+        headline_c3_ok = (
+            headline_nonsemantic >= MIN_MIXED_WEIGHT_SHARE_PCT
+            and headline_flat >= MIN_MIXED_WEIGHT_SHARE_PCT
+        )
+        headline_c3_evidence = (
+            f"headline_sessions={headline.get('session_count')} "
+            f"headline_system_observations={headline.get('system_observations')} "
+            f"headline_nonsemantic_mixed_weight_pct={headline.get('nonsemantic_mixed_weight_pct')} "
+            f"headline_flat_mixed_weight_pct={headline.get('flat_mixed_weight_pct')}"
+        )
     source_counts = aggregation.get("source_counts", {})
     agent_diff_exists = source_counts.get("codex", 0) or source_counts.get("claude", 0)
     return [
@@ -532,13 +587,14 @@ def build_claim_gates(
         },
         {
             "claim": "C3 semantic stacks add information beyond flat/nonsemantic baselines",
-            "verdict": "supported" if c3_ok else "partial",
+            "verdict": "supported" if (headline_c3_ok or c3_ok) else "partial",
             "oracle": "baseline buckets mix multiple session/prompt tags that semantic stacks separate",
-            "evidence": (
-                f"nonsemantic_mixed={nonsemantic_mixing['mixed_bucket_count']} "
-                f"nonsemantic_weight_pct={nonsemantic_mixing['mixed_weight_share_pct']} "
-                f"flat_mixed={flat_mixing['mixed_bucket_count']} "
-                f"flat_weight_pct={flat_mixing['mixed_weight_share_pct']}"
+            "evidence": headline_c3_evidence
+            or (
+                f"sampled_nonsemantic_mixed={nonsemantic_mixing['mixed_bucket_count']} "
+                f"sampled_nonsemantic_weight_pct={nonsemantic_mixing['mixed_weight_share_pct']} "
+                f"sampled_flat_mixed={flat_mixing['mixed_bucket_count']} "
+                f"sampled_flat_weight_pct={flat_mixing['mixed_weight_share_pct']}"
             ),
         },
         {
@@ -560,6 +616,7 @@ def build_claim_gates(
                 live_lineage_supported(live_lineage)
                 or native_lineage_present(native_lineage)
                 or db_lineage_present(db_lineage)
+                or live_record_supported(live_record)
             )
             else "unsupported",
             "oracle": "requires high raw join plus capture-time session/tool ancestry",
@@ -569,6 +626,7 @@ def build_claim_gates(
                 native_lineage,
                 db_lineage,
                 capture_time,
+                live_record,
             ),
         },
         {
@@ -644,8 +702,8 @@ def write_summary_md(path: Path, result: dict[str, Any]) -> None:
         lines.extend(
             [
                 f"- Headline reference scope: `{headline['path']}` from the Rust full local-history run. "
-                "These metrics are reported to avoid provenance drift, but the sampled claim gates below "
-                "do not recompute over the ignored local artifact.",
+                "Claim gates use this headline reference where available and keep sampled rows as "
+                "artifact-audit sanity checks.",
                 f"- Headline full run: {headline['session_count']} sessions, "
                 f"{headline['raw_tool_events']} raw tool events, "
                 f"{headline['raw_llm_events']} raw LLM events, "
@@ -697,7 +755,7 @@ def write_summary_md(path: Path, result: dict[str, Any]) -> None:
             "",
             "1. Collect a B4 response CSV and score it with `score_user_task_results.py` to test C5.",
             "2. Expand B5 with manual adequacy labels and a larger multi-model tag stability run for C6.",
-            "3. Run R113 on fresh live `record` tasks and reduce native-export orphans.",
+            "3. Expand R113-live beyond five read-only tasks and add child-depth/path/domain/redaction analysis.",
         ]
     )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -743,6 +801,9 @@ def run(out_dir: Path, write_outputs: bool = True) -> dict[str, Any]:
     db_lineage = read_json(db_lineage_path) if db_lineage_path.exists() else None
     capture_time_path = out_dir / "capture-time-r113.json"
     capture_time = read_json(capture_time_path) if capture_time_path.exists() else None
+    live_record_path = out_dir / "live-record-r113.json"
+    live_record = read_json(live_record_path) if live_record_path.exists() else None
+    headline = headline_reference()
     gates = build_claim_gates(
         aggregation,
         semantic_compression,
@@ -758,6 +819,8 @@ def run(out_dir: Path, write_outputs: bool = True) -> dict[str, Any]:
         native_lineage,
         db_lineage,
         capture_time,
+        live_record,
+        headline,
     )
 
     result = {
@@ -769,7 +832,7 @@ def run(out_dir: Path, write_outputs: bool = True) -> dict[str, Any]:
             "input_manifest_sha256": aggregation.get("input_manifest_sha256"),
             "not_headline_scale": True,
         },
-        "headline_reference": headline_reference(),
+        "headline_reference": headline,
         "aggregation_strength": {
             "semantic_system": semantic_compression,
             "nonsemantic_system": nonsemantic_compression,
@@ -793,6 +856,7 @@ def run(out_dir: Path, write_outputs: bool = True) -> dict[str, Any]:
         "native_lineage_r111": native_lineage,
         "db_lineage_r112": db_lineage,
         "capture_time_r113": capture_time,
+        "live_record_r113": live_record,
         "claim_gates": gates,
     }
 

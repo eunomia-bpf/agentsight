@@ -23,7 +23,8 @@ This supports the mechanism claim that semantic frames separate system-effect
 regions that ordinary process summaries or nonsemantic folded stacks merge. R110
 adds a live in-scope exact-lineage smoke; R112 adds DB-persisted backfill rows
 for the observed envelope; R113 implements capture-time record-command
-session/tool rows. The project still does not prove high-coverage full-run exact
+session/tool rows; R113-live runs five real Codex tasks under `agentsight
+record`. The project still does not prove high-coverage full-run exact
 file/network lineage or user utility.
 
 ## Completed Runs
@@ -36,6 +37,7 @@ file/network lineage or user utility.
 | R111 | Native export exact-lineage smoke over the same real AgentSight DB exports after moving the envelope into `collector report export` | `docs/visexp/out/native-lineage-r111.json` | partial |
 | R112 | DB-persisted backfill smoke over copies of the same real DB exports, then persisted-only export with observed projection disabled | `docs/visexp/out/native-lineage-r112.json` | partial |
 | R113 | Capture-time `record -- <command>` session/tool envelope implementation smoke | `docs/visexp/out/capture-time-r113.json` | partial |
+| R113-live | Five real read-only `codex exec` tasks wrapped with `agentsight record`, then exported and checked for lineage | `docs/visexp/out/live-record-r113.json` | partial |
 | R060 | legacy Python prototype pipeline over sampled sessions | `docs/visexp/out/pipeline-report.json` | legacy, superseded for headline scale |
 | R020a | fixture exact-effect lineage checker | `docs/visexp/out/effect-lineage-smoke.json` | partial, fixture only |
 | R025 | user-task benchmark packet generation | `docs/visexp/out/user-task-benchmark.json` | protocol only |
@@ -202,9 +204,29 @@ a SQLite `sessions` row and matching `tool_calls` row with
 `related_pid=<target child pid>` before the child is continued. On target exit,
 the same row ids are updated with end time, duration, status, and exit code.
 The unit smoke verifies 1 session and 1 tool row in a temp SQLite DB. This fixes
-the narrow "no capture-time row" objection for command-mode `record`, but it is
-not yet a live C4 proof: no fresh eBPF task has been rerun, no orphan count has
-changed, and per-effect direct ancestry ids are still absent.
+the narrow "no capture-time row" objection for command-mode `record`; R113-live
+below adds the fresh eBPF rerun.
+
+R113-live adds the missing fresh live rerun. The harness runs five real
+read-only `codex exec` tasks in this repository under `agentsight record`, then
+exports each SQLite DB and runs the exact-lineage checker:
+
+| Metric | Value |
+|--------|------:|
+| Codex tasks | 5 |
+| Capture-time record sessions/tools | 5 / 5 |
+| Process nodes | 243 |
+| Raw effects | 508 |
+| Joined effects | 508 |
+| Orphan effects | 0 |
+| Raw join | 100.0% |
+
+All tasks succeeded and all five DBs contained
+`record_capture_time_agent_envelope` session/tool rows. The important systems
+change is session-scoped root-pid propagation in the capture path: 258 effects
+joined through the observed process family, and 250 effects joined through
+`root_pid_time_window`, covering short-lived helper processes whose intermediate
+fork nodes do not appear as process nodes.
 
 ## Dimension Projection Results
 
@@ -224,8 +246,9 @@ cross-agent cost claims until token normalization is audited.
 
 - C4 exact AgentSight lineage is partial. R112 DB-persisted backfill joins
   57.233% of raw live effects, while R113 implements capture-time
-  record-command session/tool rows. 136 raw effects remain orphaned, fresh live
-  R113 tasks are missing, and per-effect direct ancestry ids are still absent.
+  record-command session/tool rows. R113-live over five real Codex tasks now
+  joins 508/508 raw effects, but this is still a command-mode smoke rather than
+  a full-history benchmark or user utility result.
 - C5 user utility remains unsupported. Task packets and scoring scripts exist,
   but no real participant responses have been collected.
 - C6 semantic adequacy is partial. The grammar is strong, but labels such as
@@ -248,3 +271,4 @@ cross-agent cost claims until token normalization is audited.
 - `docs/visexp/out/native-lineage-r111.json` for native export C4 smoke status
 - `docs/visexp/out/native-lineage-r112.json` for DB-persisted backfill C4 smoke status
 - `docs/visexp/out/capture-time-r113.json` for capture-time record-command implementation status
+- `docs/visexp/out/live-record-r113.json` for fresh live Codex record lineage status

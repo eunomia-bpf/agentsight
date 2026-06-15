@@ -43,6 +43,9 @@ pub(crate) struct MaterializedView {
     sinks: Vec<Box<dyn ViewSink>>,
     pending: HashMap<(u32, u64), VecDeque<PendingRequest>>,
     active_processes: HashMap<u32, String>,
+    process_root_hint: Option<u32>,
+    process_root_hint_session_scoped: bool,
+    process_roots: HashMap<u32, u32>,
     counts: ViewCounts,
     start_timestamp_ms: Option<u64>,
     end_timestamp_ms: Option<u64>,
@@ -93,6 +96,9 @@ impl MaterializedView {
             sinks: Vec::new(),
             pending: HashMap::new(),
             active_processes: HashMap::new(),
+            process_root_hint: None,
+            process_root_hint_session_scoped: false,
+            process_roots: HashMap::new(),
             counts: ViewCounts::default(),
             start_timestamp_ms: None,
             end_timestamp_ms: None,
@@ -119,6 +125,41 @@ impl MaterializedView {
 
     pub(crate) fn set_source(&mut self, source: impl Into<String>) {
         self.source = source.into();
+    }
+
+    pub(crate) fn set_process_root_hint(&mut self, root_pid: u32) {
+        self.process_root_hint = Some(root_pid);
+        self.process_root_hint_session_scoped = false;
+        self.process_roots.entry(root_pid).or_insert(root_pid);
+    }
+
+    pub(crate) fn set_session_process_root_hint(&mut self, root_pid: u32) {
+        self.process_root_hint = Some(root_pid);
+        self.process_root_hint_session_scoped = true;
+        self.process_roots.entry(root_pid).or_insert(root_pid);
+    }
+
+    pub(crate) fn process_root_for_event(&mut self, pid: u32, ppid: Option<u32>) -> Option<u32> {
+        let root = self
+            .process_roots
+            .get(&pid)
+            .copied()
+            .or_else(|| ppid.and_then(|parent| self.process_roots.get(&parent).copied()))
+            .or_else(|| {
+                let root_pid = self.process_root_hint?;
+                if pid == root_pid
+                    || ppid == Some(root_pid)
+                    || self.process_root_hint_session_scoped
+                {
+                    Some(root_pid)
+                } else {
+                    None
+                }
+            });
+        if let Some(root) = root {
+            self.process_roots.entry(pid).or_insert(root);
+        }
+        root
     }
 
     pub(crate) fn emit_llm_call(&mut self, row: LlmCallRow) -> ViewResult<()> {

@@ -34,7 +34,7 @@ AI 编程 agent 的可观测性问题不只是 ``模型调用了哪个 tool''，
 在本机 AgentSight 仓库的 205 个可读 Codex/Claude 真实 session 上，AgentFlame 标注 2,463 个 prompt 和 90,930 个 LLM call，0 个最终标签失败；它把 167,005 个系统观测折叠成 24,295 条语义系统栈。
 去掉 session/prompt 语义后，nonsemantic baseline 有 90.219\% 的观测权重落入混合多个语义区域的 buckets；flat effect baseline 的混合权重为 90.770\%。
 这些结果支持一个机制性结论：语义帧能分开传统 trace 或 process summary 会合并的 task-effect 区域。
-本文也明确边界：当前 full run 仍基于 agent-native session 历史；R112 的 DB-persisted backfill smoke 只 join 了 182/318 个 live raw effects（57.233\% raw join），仍有 136 个 orphan effects；R113 已把 command-mode \texttt{record} 的 session/tool rows 移到 capture-time 写入，但还没有 fresh live rerun 或 per-effect direct ancestry；用户任务实验也尚未完成，因此不能声称用户效用或完整系统 provenance 已被证明。
+本文也明确边界：当前 full run 仍基于 agent-native session 历史；R112 的 DB-persisted backfill smoke 只 join 了 182/318 个 live raw effects（57.233\% raw join），仍有 136 个 orphan effects；R113 已把 command-mode \texttt{record} 的 session/tool rows 移到 capture-time 写入；R113-live 在 5 个真实 \texttt{codex exec} 任务上创建了 5/5 个 capture-time sessions/tools，并 join 508/508 个 raw effects（100.0\%）；但用户任务实验、跨任务规模和 full-history exact integration 仍未完成，因此不能声称用户效用或完整系统 provenance 已被证明。
 \end{abstract}
 
 \section{问题}
@@ -153,7 +153,7 @@ AgentFlame 没有 heuristic fallback：如果 LLM server 缺失，或模型重�
 AgentFlame 的第一模式是零 instrumentation 的历史分析。
 AgentSight 的独特点是运行时 exact provenance：\texttt{tool\_call -> shell -> child process -> file/network effect}。
 正确集成后，AgentFlame 负责语义帧，AgentSight 负责系统效应事实，两者通过 tool/session/prompt ancestry 连接。
-当前 full run 还不是 live exact-effect 结果。R110 增加了一个 live in-scope smoke；R111 把最小 session/tool envelope 移入 native \texttt{collector report export}；R112 把该 envelope 显式 backfill 到 SQLite \texttt{sessions} 和 \texttt{tool\_calls} 表，并用 \texttt{--no-observed-projection} 验证 persisted-only export；R113 在 \texttt{record -- <command>} 启动目标进程时写入 capture-time session/tool rows。但 raw join 仍只有 57.233\%，因此 C4 仍是 partial。
+当前 full run 还不是 live exact-effect 结果。R110 增加了一个 live in-scope smoke；R111 把最小 session/tool envelope 移入 native \texttt{collector report export}；R112 把该 envelope 显式 backfill 到 SQLite \texttt{sessions} 和 \texttt{tool\_calls} 表，并用 \texttt{--no-observed-projection} 验证 persisted-only export；R113 在 \texttt{record -- <command>} 启动目标进程时写入 capture-time session/tool rows；R113-live 用 5 个真实 Codex 任务验证该路径，并在 command-mode smoke 中达到 100.0\% raw join。C4 仍是 partial，因为它还不是 full-history 或跨仓库 benchmark。
 
 \section{评估}
 
@@ -268,12 +268,13 @@ R110 进一步导出了 3 个真实 AgentSight SQLite DB，使用 \texttt{docs/v
 R111 将这个最小 envelope 移入 native \texttt{collector report export}：导出的 snapshots 自身包含 3 个 sessions 和 3 个 tool calls。
 R112 将这些 envelope 显式写入 DB 副本中的 \texttt{sessions} 和 \texttt{tool\_calls} 表，再关闭 observed projection 导出；persisted-only snapshots 仍包含 3 个 DB sessions/tools。
 R113 进一步把 \texttt{record -- <command>} 的 agent-run envelope 放到 capture path：目标 child PID 一旦确定，collector 立即写入 \texttt{sessions} 和 \texttt{tool\_calls}，退出时更新 duration、status 和 exit code；unit smoke 在临时 SQLite DB 中验证 1 个 session 和 1 个 tool row。
-在完整 raw snapshot 上，checker 验证 182/318 raw effects joined，raw join 为 57.233\%，仍有 136 个 orphans。
+R113-live 运行 5 个真实只读 \texttt{codex exec} 任务；5/5 个任务成功，导出的 DB 中有 5 个 capture-time sessions/tools。checker 在 508 个 raw effects 中 join 508 个，raw join 为 100.0\%；其中 258 个 effects 通过 \texttt{pid\_family\_time\_window} join，250 个 effects 通过 \texttt{root\_pid\_time\_window} join。
+与此不同，R111/R112 的旧 DB snapshots 仍只能验证 182/318 raw effects joined，raw join 为 57.233\%，仍有 136 个 orphans。
 aggregate join methods 是 \texttt{related\_event\_id=3}、\texttt{pid\_family\_time\_window=179} 和 \texttt{none=136}。
 
 这个结果比 fixture 强，但还不是完整 C4。
-原因是最新 live lineage 数字仍来自 R112，R113 尚未在 fresh live 任务上降低 orphan rate；同时 136 个 raw effects 仍然无法 join，且缺少 per-effect direct ancestry id。
-OSDI 版本必须继续降低 orphan rate，并在更多任务上报告 raw coverage、orphan reason、child-process depth、path/domain specificity 和 redaction failures。
+原因是 R113-live 只覆盖 command-mode record 的 5 个只读 Codex 任务；完整 OSDI artifact 还需要更多任务、更多仓库、child-process depth、path/domain specificity、redaction failures，以及用户任务结果。
+它的系统含义是明确的：capture-time root-pid propagation 解决了短生命周期 helper processes 中间 fork node 缺失导致的 lineage 断裂。
 
 \subsection{RQ4：用户效用是否成立？}
 
@@ -288,6 +289,50 @@ Full run 证明 3B 模型可用，但没有证明 0.6B 或 1B 足够。
 已有 model benchmark 入口可以跑 0.6B/1B/3B latency、success 和 invalid rate。
 OSDI 版本还需要人工 adequacy labels。
 一词标签应该被定位为 lossy navigation frames，而不是 semantic truth。
+
+\subsection{评估完整性审计}
+
+表~\ref{tab:gates} 把当前证据按 claim gate 汇总。
+这个表的作用不是装饰，而是防止论文把 smoke evidence 写成系统结论。
+OSDI reviewer 最可能挑战的点是 C4、C5 和 C6：C4 要证明 live exact lineage 可跨真实 agent 工作负载稳定成立；C5 要证明用户能更快或更准确地回答 forensic questions；C6 要证明一词标签不是偶然可读。
+因此当前最诚实的定位是 ``supported mechanism plus partial systems artifact''。
+
+\begin{table*}[t]
+  \centering
+  \small
+  \caption{当前 claim gate。Supported 表示已有 committed artifact 支持；partial 表示机制成立但 scope 仍窄；unsupported 表示缺少必要实验。}
+  \label{tab:gates}
+  \begin{tabular}{p{0.18\linewidth}p{0.31\linewidth}p{0.13\linewidth}p{0.28\linewidth}}
+    \toprule
+    Claim & 当前证据 & Verdict & 缺口 \\
+    \midrule
+    C1 folded aggregation &
+    167,005 system observations 折叠为 24,295 semantic stacks；sampled artifact verifier 通过。 &
+    supported &
+    需要把 full-run artifact packaging 固化成 release command。 \\
+    C2 one-word tags &
+    2,463 prompt rows 和 90,930 LLM calls 全部满足一词 grammar；0 final tag failures。 &
+    supported &
+    Syntax 不等于 adequacy；需要人工标签质量评估。 \\
+    C3 semantic value &
+    Nonsemantic/flat baselines 分别有 90.219\% 和 90.770\% mixed weight。 &
+    supported &
+    需要更多仓库证明不是单仓库 workload 特例。 \\
+    C4 exact lineage &
+    R113-live 在 5 个真实 \texttt{codex exec} tasks 上 join 508/508 raw effects，0 orphan。 &
+    partial &
+    需要 full-history integration、更多任务、child-depth/path/domain/redaction breakdown。 \\
+    C5 user utility &
+    已有 task packet 和 scorer；尚无 participant responses。 &
+    unsupported &
+    需要 trace tree/span flamegraph/flat/semantic 视图的 paired user benchmark。 \\
+    C6 tag adequacy &
+    Cache/stability smoke 和 syntax gate 已通过；可观察到少量 noisy tags。 &
+    partial &
+    需要 0.6B/1B/3B latency-cost-quality benchmark 与人工 adequacy labels。 \\
+    \bottomrule
+  \end{tabular}
+\end{table*}
 
 \section{相关工作}
 
@@ -310,7 +355,7 @@ AgentFlame 包含 token flamegraph，但当前只作为 source-local accounting�
 \section{局限与下一步}
 
 当前版本仍不到 OSDI weak accept。
-第一，exact lineage 是最强系统贡献；R113 已实现 command-mode capture-time rows，但最新 live raw join 仍是 57.233\%，还没有完整 AgentSight capture-time provenance 证据。
+第一，exact lineage 是最强系统贡献；R113-live 已在 5 个 command-mode Codex 任务上通过，但还没有 full-history exact integration 或跨仓库 benchmark。
 第二，用户效用没有实验。
 第三，标签 adequacy 没有人工评估。
 第四，当前结果来自一个本机仓库，且历史是 observational，不是 paired benchmark。
