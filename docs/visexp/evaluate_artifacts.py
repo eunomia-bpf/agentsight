@@ -18,6 +18,9 @@ from pathlib import Path
 from typing import Any
 
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+REPO_ROOT = SCRIPT_DIR.parents[1]
+DEFAULT_HEADLINE_ARTIFACT = REPO_ROOT / ".agentsight" / "agentflame" / "latest" / "agentflame.json"
 TAG_RE = re.compile(r"^[a-z][a-z0-9]{1,15}$")
 MIN_MIXED_WEIGHT_SHARE_PCT = 5.0
 GENERIC_TAGS = {
@@ -63,6 +66,13 @@ def read_folded(path: Path) -> Counter[str]:
 def read_csv_rows(path: Path) -> list[dict[str, str]]:
     with path.open("r", encoding="utf-8", newline="") as handle:
         return list(csv.DictReader(handle))
+
+
+def rel(path: Path) -> str:
+    try:
+        return str(path.resolve().relative_to(REPO_ROOT.resolve()))
+    except Exception:
+        return str(path)
 
 
 def frame_value(frames: list[str], prefix: str, default: str = "unknown") -> str:
@@ -306,6 +316,47 @@ def user_task_evidence(
     )
 
 
+def headline_reference(path: Path = DEFAULT_HEADLINE_ARTIFACT) -> dict[str, Any] | None:
+    if not path.exists():
+        return None
+    try:
+        artifact = read_json(path)
+    except Exception:
+        return None
+    summary = artifact.get("summary") or {}
+    system = summary.get("system") or {}
+    mixing = summary.get("semantic_mixing") or {}
+    nonsemantic = mixing.get("nonsemantic") or {}
+    flat = mixing.get("flat") or {}
+    prompt_tags = artifact.get("prompt_tags") or []
+    llm_tagger = artifact.get("llm_tagger") or {}
+    return {
+        "scope": "full_local_history_agentflame_rust",
+        "path": rel(path),
+        "generated_at": artifact.get("generated_at"),
+        "session_count": summary.get("session_count"),
+        "source_counts": summary.get("source_counts"),
+        "raw_tool_events": summary.get("raw_tool_events"),
+        "raw_llm_events": summary.get("raw_llm_events"),
+        "prompt_rows": len(prompt_tags),
+        "unique_prompt_tags": len(
+            {str(row.get("prompt_tag") or "") for row in prompt_tags if isinstance(row, dict)}
+        ),
+        "system_observations": system.get("total_weight"),
+        "semantic_system_stacks": system.get("unique_stacks"),
+        "semantic_system_compression": system.get("compression_ratio"),
+        "nonsemantic_mixed_weight_pct": nonsemantic.get("mixed_weight_pct"),
+        "flat_mixed_weight_pct": flat.get("mixed_weight_pct"),
+        "llm_tagger": {
+            "requests": llm_tagger.get("requests"),
+            "cache_hits": llm_tagger.get("cache_hits"),
+            "llm_calls": llm_tagger.get("llm_calls"),
+            "llm_successes": llm_tagger.get("llm_successes"),
+            "failure_count": len(llm_tagger.get("failures") or []),
+        },
+    }
+
+
 def live_lineage_supported(live_lineage: dict[str, Any] | None) -> bool:
     if not live_lineage:
         return False
@@ -386,8 +437,20 @@ def db_lineage_evidence(db_lineage: dict[str, Any] | None) -> str:
         f"joined={aggregate.get('joined_effect_events')} "
         f"orphans={aggregate.get('orphan_effect_events')} "
         f"raw_join_pct={aggregate.get('raw_join_pct')} "
-        f"join_methods={aggregate.get('join_methods', {})} "
-        "capture_time_ancestry=pending"
+        f"join_methods={aggregate.get('join_methods', {})}"
+    )
+
+
+def capture_time_evidence(capture_time: dict[str, Any] | None) -> str:
+    if not capture_time:
+        return "capture_time_ancestry=pending"
+    return (
+        f"capture_time_ancestry={capture_time.get('status', 'unknown')} "
+        f"scope={capture_time.get('scope', 'unknown')} "
+        f"sessions={capture_time.get('sessions')} "
+        f"tool_calls={capture_time.get('tool_calls')} "
+        f"view_source={capture_time.get('view_source')} "
+        f"live_rerun={capture_time.get('live_rerun', 'pending')}"
     )
 
 
@@ -396,12 +459,14 @@ def effect_lineage_evidence(
     live_lineage: dict[str, Any] | None = None,
     native_lineage: dict[str, Any] | None = None,
     db_lineage: dict[str, Any] | None = None,
+    capture_time: dict[str, Any] | None = None,
 ) -> str:
     live = live_lineage_evidence(live_lineage)
     native = native_lineage_evidence(native_lineage)
     db = db_lineage_evidence(db_lineage)
+    capture = capture_time_evidence(capture_time)
     if not lineage:
-        return f"effect_lineage_smoke=missing {live} {native} {db}"
+        return f"effect_lineage_smoke=missing {live} {native} {db} {capture}"
     return (
         f"effect_lineage_smoke={lineage.get('status', 'unknown')} "
         f"source={lineage.get('source', 'unknown')} "
@@ -411,7 +476,8 @@ def effect_lineage_evidence(
         f"orphan_reasons={lineage.get('orphan_reasons', {})} "
         f"{live} "
         f"{native} "
-        f"{db}"
+        f"{db} "
+        f"{capture}"
     )
 
 
@@ -429,6 +495,7 @@ def build_claim_gates(
     live_lineage: dict[str, Any] | None = None,
     native_lineage: dict[str, Any] | None = None,
     db_lineage: dict[str, Any] | None = None,
+    capture_time: dict[str, Any] | None = None,
 ) -> list[dict[str, str]]:
     c1_ok = compression["compression_ratio"] > 1 and compression["repeated_stack_count"] > 0
     c2_ok = (
@@ -501,6 +568,7 @@ def build_claim_gates(
                 live_lineage,
                 native_lineage,
                 db_lineage,
+                capture_time,
             ),
         },
         {
@@ -560,30 +628,64 @@ def write_summary_md(path: Path, result: dict[str, Any]) -> None:
     flat = result["semantic_information_gain"]["flat_effect_mixing"]
     quality = result["tag_quality"]
     gates = result["claim_gates"]
+    headline = result.get("headline_reference")
     lines = [
         "# Semantic Flamegraph Evaluation",
         "",
         "This report is generated by `evaluate_artifacts.py` from committed `out/` artifacts.",
         "It is an artifact audit, not a substitute for the planned human and paired-agent experiments.",
         "",
-        "## Current Artifact Metrics",
+        "## Artifact Scope",
         "",
-        f"- Semantic system compression: {compression['compression_ratio']}x "
-        f"({compression['total_observations']} observations, {compression['unique_stacks']} stacks).",
-        f"- Collapsed observation share: {compression['collapsed_observation_share_pct']}%.",
-        f"- Non-semantic baseline mixed buckets: {nonsemantic['mixed_bucket_count']} "
-        f"({nonsemantic['mixed_weight_share_pct']}% of observation weight).",
-        f"- Flat effect baseline mixed buckets: {flat['mixed_bucket_count']} "
-        f"({flat['mixed_weight_share_pct']}% of observation weight).",
-        f"- Prompt tags: {quality['unique_prompt_tags']} unique, "
-        f"{quality['generic_prompt_row_share_pct']}% generic rows, "
-        f"{quality['same_hash_multi_tag_count']} same-hash tag conflicts.",
-        "",
-        "## Claim Gates",
-        "",
-        "| Claim | Verdict | Evidence |",
-        "|-------|---------|----------|",
+        "- Sampled audit scope: committed `docs/visexp/out/` artifacts generated by the Python pipeline "
+        "(default 36 sessions). These rows feed the claim-gate smoke checks below.",
     ]
+    if headline:
+        lines.extend(
+            [
+                f"- Headline reference scope: `{headline['path']}` from the Rust full local-history run. "
+                "These metrics are reported to avoid provenance drift, but the sampled claim gates below "
+                "do not recompute over the ignored local artifact.",
+                f"- Headline full run: {headline['session_count']} sessions, "
+                f"{headline['raw_tool_events']} raw tool events, "
+                f"{headline['raw_llm_events']} raw LLM events, "
+                f"{headline['system_observations']} system observations, "
+                f"{headline['semantic_system_stacks']} semantic stacks, "
+                f"{headline['semantic_system_compression']}x compression, "
+                f"nonsemantic mixed weight {headline['nonsemantic_mixed_weight_pct']}%, "
+                f"flat mixed weight {headline['flat_mixed_weight_pct']}%.",
+            ]
+        )
+    else:
+        lines.append(
+            "- Headline reference scope: missing locally; see `docs/visexp/RESULTS_SUMMARY.md`."
+        )
+    lines.extend(
+        [
+            "",
+            "## Sampled Artifact Metrics",
+            "",
+        ]
+    )
+    lines.extend(
+        [
+            f"- Semantic system compression: {compression['compression_ratio']}x "
+            f"({compression['total_observations']} observations, {compression['unique_stacks']} stacks).",
+            f"- Collapsed observation share: {compression['collapsed_observation_share_pct']}%.",
+            f"- Non-semantic baseline mixed buckets: {nonsemantic['mixed_bucket_count']} "
+            f"({nonsemantic['mixed_weight_share_pct']}% of observation weight).",
+            f"- Flat effect baseline mixed buckets: {flat['mixed_bucket_count']} "
+            f"({flat['mixed_weight_share_pct']}% of observation weight).",
+            f"- Prompt tags: {quality['unique_prompt_tags']} unique, "
+            f"{quality['generic_prompt_row_share_pct']}% generic rows, "
+            f"{quality['same_hash_multi_tag_count']} same-hash tag conflicts.",
+            "",
+            "## Claim Gates",
+            "",
+            "| Claim | Verdict | Evidence |",
+            "|-------|---------|----------|",
+        ]
+    )
     for gate in gates:
         lines.append(
             f"| {gate['claim']} | {gate['verdict']} | {gate['evidence']} |"
@@ -595,7 +697,7 @@ def write_summary_md(path: Path, result: dict[str, Any]) -> None:
             "",
             "1. Collect a B4 response CSV and score it with `score_user_task_results.py` to test C5.",
             "2. Expand B5 with manual adequacy labels and a larger multi-model tag stability run for C6.",
-            "3. Move R112 DB-persisted backfill into capture-time ancestry and reduce native-export orphans.",
+            "3. Run R113 on fresh live `record` tasks and reduce native-export orphans.",
         ]
     )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -639,6 +741,8 @@ def run(out_dir: Path, write_outputs: bool = True) -> dict[str, Any]:
     native_lineage = read_json(native_lineage_path) if native_lineage_path.exists() else None
     db_lineage_path = out_dir / "native-lineage-r112.json"
     db_lineage = read_json(db_lineage_path) if db_lineage_path.exists() else None
+    capture_time_path = out_dir / "capture-time-r113.json"
+    capture_time = read_json(capture_time_path) if capture_time_path.exists() else None
     gates = build_claim_gates(
         aggregation,
         semantic_compression,
@@ -653,15 +757,19 @@ def run(out_dir: Path, write_outputs: bool = True) -> dict[str, Any]:
         live_lineage,
         native_lineage,
         db_lineage,
+        capture_time,
     )
 
     result = {
         "schema_version": 1,
         "source_artifact": {
+            "scope": "sampled_python_pipeline_artifact_audit",
             "out_dir": str(out_dir),
             "session_fingerprint": aggregation.get("session_fingerprint"),
             "input_manifest_sha256": aggregation.get("input_manifest_sha256"),
+            "not_headline_scale": True,
         },
+        "headline_reference": headline_reference(),
         "aggregation_strength": {
             "semantic_system": semantic_compression,
             "nonsemantic_system": nonsemantic_compression,
@@ -684,6 +792,7 @@ def run(out_dir: Path, write_outputs: bool = True) -> dict[str, Any]:
         "live_lineage_r110": live_lineage,
         "native_lineage_r111": native_lineage,
         "db_lineage_r112": db_lineage,
+        "capture_time_r113": capture_time,
         "claim_gates": gates,
     }
 

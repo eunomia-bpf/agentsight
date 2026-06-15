@@ -245,6 +245,7 @@ def write_effect_lineage_svg(
     live_lineage: dict[str, Any] | None = None,
     native_lineage: dict[str, Any] | None = None,
     db_lineage: dict[str, Any] | None = None,
+    capture_time: dict[str, Any] | None = None,
 ) -> Path:
     total = int(lineage.get("effect_events") or 0)
     joined = int(lineage.get("joined_effect_events") or 0)
@@ -289,6 +290,17 @@ def write_effect_lineage_svg(
             f"db_tools={db_aggregate.get('db_tool_rows')}"
         )
         db_color = PARTIAL if db_orphan else SUPPORTED
+    capture_ready = 1 if capture_time else 0
+    capture_note = "capture-time record-command smoke missing"
+    capture_color = UNSUPPORTED
+    if capture_time:
+        capture_note = (
+            f"{capture_time.get('status', 'unknown')}; "
+            f"sessions={capture_time.get('sessions')}, "
+            f"tools={capture_time.get('tool_calls')}; "
+            f"live_rerun={capture_time.get('live_rerun', 'pending')}"
+        )
+        capture_color = PARTIAL
     rows = [
         (
             "Fixture effects joined",
@@ -325,6 +337,13 @@ def write_effect_lineage_svg(
             db_color,
             db_note,
         ),
+        (
+            "R113 capture-time rows",
+            capture_ready,
+            1,
+            capture_color,
+            capture_note,
+        ),
     ]
     parts = [
         f'<line x1="36" y1="96" x2="1084" y2="96" stroke="{GRID}"/>',
@@ -336,6 +355,8 @@ def write_effect_lineage_svg(
         elif label == "R111 native raw effects" and not native_total:
             metric = "missing"
         elif label == "R112 DB persisted raw effects" and not db_total:
+            metric = "missing"
+        elif label == "R113 capture-time rows" and not capture_time:
             metric = "missing"
         else:
             metric = f"{value}/{maximum}"
@@ -355,9 +376,9 @@ def write_effect_lineage_svg(
     path.write_text(
         svg_page(
             "Exact Effect Lineage",
-            "Fixture checker plus R110/R111/R112 lineage smokes; C4 remains partial.",
+            "Fixture checker plus R110/R111/R112 raw-effect smokes and R113 capture-time row smoke; C4 remains partial.",
             1120,
-            546,
+            624,
             "\n".join(parts),
         ),
         encoding="utf-8",
@@ -447,10 +468,14 @@ def run(out_dir: Path) -> list[Path]:
     native_lineage = read_json(native_path) if native_path.exists() else None
     db_path = out_dir / "native-lineage-r112.json"
     db_lineage = read_json(db_path) if db_path.exists() else None
+    capture_path = out_dir / "capture-time-r113.json"
+    capture_time = read_json(capture_path) if capture_path.exists() else None
     return [
         write_claim_gates_svg(out_dir, gates),
         write_semantic_mixing_svg(out_dir, evaluation),
-        write_effect_lineage_svg(out_dir, lineage, live_lineage, native_lineage, db_lineage),
+        write_effect_lineage_svg(
+            out_dir, lineage, live_lineage, native_lineage, db_lineage, capture_time
+        ),
         write_visual_summary_html(out_dir),
     ]
 

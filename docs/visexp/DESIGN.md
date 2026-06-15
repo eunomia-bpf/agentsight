@@ -154,10 +154,11 @@ agent-native artifact. It is only a placeholder for AgentSight's precise
 system-effect stream.
 
 The exact-effect checker currently has fixture evidence, R110 harness evidence,
-R111 native-export smoke evidence, and R112 DB-persisted backfill evidence. It
-proves that the join rules and stack grammar can connect detected agent-root
-process families to prompt/session ancestry, not that collector capture already
-preserves complete process/file/network attribution. For in-scope live
+R111 native-export smoke evidence, R112 DB-persisted backfill evidence, and R113
+capture-time record-command row evidence. It proves that the join rules and
+stack grammar can connect detected agent-root process families to
+prompt/session ancestry, not that collector capture already preserves complete
+process/file/network attribution. For in-scope live
 AgentSight events, an unjoined process/file/network effect is a collector or
 join bug, not an acceptable "unknown prompt" category.
 
