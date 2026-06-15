@@ -58,6 +58,7 @@ pub(crate) struct TraceConfig {
     pub(crate) ssl_http: bool,
     pub(crate) ssl_raw_data: bool,
     pub(crate) process: bool,
+    pub(crate) process_trace_net: bool,
     pub(crate) process_seed_pids: Vec<PidSeed>,
     pub(crate) stdio: bool,
     pub(crate) stdio_uid: Option<u32>,
@@ -87,6 +88,7 @@ impl TraceConfig {
             ssl_filter: vec![DEFAULT_SSL_FILTER.to_string()],
             ssl_http: true,
             process: true,
+            process_trace_net: true,
             stdio_max_bytes: DEFAULT_RECORD_STDIO_MAX_BYTES,
             system: true,
             system_interval: 2,
@@ -315,7 +317,36 @@ fn build_process_args(cfg: &TraceConfig) -> Vec<String> {
     if let Some(mode) = cfg.mode {
         args.extend(["-m".to_string(), mode.to_string()]);
     }
+    if cfg.process_trace_net {
+        args.push("--trace-net".to_string());
+    }
     args
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{TraceConfig, build_process_args};
+
+    #[test]
+    fn record_profile_enables_process_network_tracing() {
+        let args = build_process_args(&TraceConfig {
+            pid: Some(123),
+            ..TraceConfig::for_record()
+        });
+
+        assert!(args.contains(&"--trace-net".to_string()));
+    }
+
+    #[test]
+    fn default_trace_profile_leaves_network_tracing_off() {
+        let args = build_process_args(&TraceConfig {
+            pid: Some(123),
+            process: true,
+            ..TraceConfig::default()
+        });
+
+        assert!(!args.contains(&"--trace-net".to_string()));
+    }
 }
 
 /// Trace monitoring with configurable runners and analyzers

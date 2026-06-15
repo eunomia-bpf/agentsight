@@ -220,13 +220,23 @@ Current evidence:
   in-scope effects join, precision and recall are both 100.0%, 3170
   negative-control effects are observed with 0 joined, and child-depth/path/
   redaction analysis passes.
+- R182 exposes and fixes a record-mode network-capture gap by enabling process
+  `--trace-net` for `agentsight record`. Two loopback-network Codex tasks then
+  complete with 35/35 low-level `codex` process network audit rows joined, 0
+  network orphans, 100.0% precision/recall, and 0/604 observed negative-control
+  effects joined. The target-specific oracle sees 0/0 loopback or expected
+  child-process network rows, so this is record-mode `--trace-net`
+  implementation evidence, not target-specific network workload coverage or
+  full HTTP payload/URL reconstruction.
 
 Remaining gap:
 
 - The strongest exact-lineage evidence now covers a fixed 20-task command-mode
-  suite with negative controls. C4 still should not be stated as a broad
-  cross-repo/full-history claim until the artifact covers more repositories,
-  agent types, and user-task outcomes.
+  suite with negative controls plus a partial record-mode network tracing
+  smoke. C4 still should not be stated as a broad cross-repo/full-history or
+  target-specific network workload claim until the artifact covers more
+  repositories, more agent types, broader network workloads, and user-task
+  outcomes.
 
 ### RQ4. Developer Utility
 
@@ -363,7 +373,7 @@ Remaining gap:
 | C1 | AgentFlame can generate semantic folded stacks and dashboards over real local agent histories. | supported | verifier for full run and reproducibility script |
 | C2 | Local one-word LLM tagging is feasible for session/prompt/LLM-call contexts. | supported for local 0.6B-/1B-/3B-class syntax/latency; partial for adequacy | human adequacy labels; controlled same-family scaling only if claimed |
 | C3 | Semantic frames expose task-effect mixtures hidden by nonsemantic and flat summaries. | supported as mechanism | stronger examples and task benchmark |
-| C4 | Exact AgentSight lineage connects semantic intent to process/file/network effects. | supported for fixed command-mode suite; partial broadly | cross-repo/full-history exact integration and user-task outcomes |
+| C4 | Exact AgentSight lineage connects semantic intent to process/file/network effects. | supported for fixed command-mode suite; partial broadly and partial for target-specific network workloads | cross-repo/full-history exact integration, target-specific network workloads, broader agent coverage, and user-task outcomes |
 | C5 | Developers answer debugging/audit questions better with semantic effect flamegraphs. | unsupported; R142 packet/scorer/preregistration exists | user/task benchmark responses with valid response contract passing the Holm-corrected paper-scale C5 gate |
 | C6 | One-word tags are stable and adequate enough for navigation. | partial; R180 syntax/stability exists, R124 scorer/join protocol exists, labels are empty | human adequacy labels with thresholds |
 | C7 | The approach is practical as an open-source developer tool. | partial | one-command install/run, runtime/cost, docs, artifact hygiene |
@@ -374,7 +384,7 @@ Remaining gap:
 |-------|----|------------|--------------------|---------|--------|----------|
 | B1 | RQ1 | Full local-session characterization | 3B local llama.cpp, cache on/off where feasible | sessions, tags, invalids, runtime, cache hit rate | tag grammar checker and complete report | done, must repeat after changes |
 | B2 | RQ2 | Semantic partitioning audit | semantic, nonsemantic, flat process/effect summary | mixed buckets, mixed weight, entropy, examples | deterministic stack comparison | done |
-| B3 | RQ3 | Live exact AgentSight lineage | agent-native proxy vs exact effect stream plus negative controls | recall, precision, orphan rate, path/domain specificity | lineage checker with false-positive controls | fixed command-mode suite passed; broader replication should |
+| B3 | RQ3 | Live exact AgentSight lineage | agent-native proxy vs exact effect stream plus negative controls | recall, precision, orphan rate, path/domain specificity | lineage checker with false-positive controls | fixed command-mode suite passed; record-mode network tracing smoke is partial because target-specific network rows are absent |
 | B4 | RQ4 | Developer task benchmark | trace tree, event-count proxy, flat summary, nonsemantic stack, semantic stack; optional true span-duration baseline if reconstructed from timestamps | time, accuracy, false positives, confidence | hidden answer key plus frozen preregistration | packet scaffold, baseline naming, and preregistration done; participant responses missing |
 | B5 | RQ5 | Small-model and tag-stability benchmark | local 0.6B-/1B-/3B-class models, optional larger reference | latency, invalid rate, identical-input stability, adequacy | repeated run + human labels | syntax/stability done by R180; adequacy labels missing |
 | B6 | RQ2 | Ablations | no semantic, session-only, prompt-only, prompt+LLM-call, full | information gain, stack explosion; noisy-tag burden and B4 task accuracy/time deferred | same observations, total-weight equality, report/folded cross-checks | done for C3 mechanism; C6/B4 deferred |

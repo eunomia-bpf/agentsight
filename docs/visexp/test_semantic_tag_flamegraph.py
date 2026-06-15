@@ -24,6 +24,7 @@ from evaluate_artifacts import (
     model_benchmark_evidence,
     model_benchmark_size_classes,
     model_benchmark_valid,
+    network_lineage_supported,
     tag_quality,
 )
 from tag_stability_smoke import (
@@ -42,6 +43,7 @@ from user_task_benchmark import (
 from effect_lineage_smoke import lineage_rows
 from live_lineage_harness import synthesize
 from r114_live_record_suite import Task, precision_recall_summary, task_command
+from r182_network_record_suite import aggregate_network, network_gate
 from r124_blinded_label_sheet import (
     VISIBLE_FIELDS as R124_BLINDED_FIELDS,
     blinded_row as r124_blinded_row,
@@ -823,6 +825,138 @@ class AggregationTests(unittest.TestCase):
         self.assertEqual(summary["false_negatives"], 0)
         self.assertEqual(summary["negative_joined_effect_events"], 0)
         self.assertEqual(summary["recall_pct"], 100.0)
+
+    def test_r182_network_aggregate_counts_joined_and_orphan_rows(self) -> None:
+        rows = [
+            {
+                "network_lineage": {
+                    "network_effect_events": 2,
+                    "joined_network_effect_events": 1,
+                    "orphan_network_effect_events": 1,
+                    "target_specific_network_effect_events": 1,
+                    "joined_target_specific_network_effect_events": 1,
+                    "orphan_target_specific_network_effect_events": 0,
+                    "network_target_groups": {"127.0.0.1:3000": 2},
+                    "target_specific_network_target_groups": {"127.0.0.1:3000": 1},
+                    "network_actions": {"connect": 2},
+                    "network_join_methods": {"pid_family_time_window": 1, "orphan": 1},
+                    "network_process_comms": {"python3": 1, "codex": 1},
+                }
+            },
+            {
+                "network_lineage": {
+                    "network_effect_events": 1,
+                    "joined_network_effect_events": 1,
+                    "orphan_network_effect_events": 0,
+                    "target_specific_network_effect_events": 1,
+                    "joined_target_specific_network_effect_events": 1,
+                    "orphan_target_specific_network_effect_events": 0,
+                    "network_target_groups": {"localhost:8080": 1},
+                    "target_specific_network_target_groups": {"localhost:8080": 1},
+                    "network_actions": {"accept": 1},
+                    "network_join_methods": {"root_pid_time_window": 1},
+                    "network_process_comms": {"python3": 1},
+                }
+            },
+        ]
+
+        summary = aggregate_network(rows)
+
+        self.assertEqual(summary["network_effect_events"], 3)
+        self.assertEqual(summary["joined_network_effect_events"], 2)
+        self.assertEqual(summary["orphan_network_effect_events"], 1)
+        self.assertEqual(summary["target_specific_network_effect_events"], 2)
+        self.assertEqual(summary["joined_target_specific_network_effect_events"], 2)
+        self.assertEqual(summary["orphan_target_specific_network_effect_events"], 0)
+        self.assertEqual(summary["tasks_with_network_effects"], 2)
+        self.assertEqual(summary["tasks_with_joined_network_effects"], 2)
+        self.assertEqual(summary["tasks_with_target_specific_network_effects"], 2)
+        self.assertAlmostEqual(summary["network_join_pct"], 66.667)
+        self.assertAlmostEqual(summary["target_specific_network_join_pct"], 100.0)
+        self.assertEqual(summary["network_target_groups"]["127.0.0.1:3000"], 2)
+        self.assertEqual(summary["network_process_comms"]["python3"], 2)
+
+    def test_r182_gate_requires_network_rows_and_clean_negative_controls(self) -> None:
+        aggregate_result = {
+            "target_statuses": {"completed": 2},
+            "precision_pct": 100.0,
+            "recall_pct": 100.0,
+            "negative_effect_events_observed": 12,
+            "negative_joined_effect_events": 0,
+            "negative_control_tasks_observed": 2,
+        }
+        network_result = {
+            "network_effect_events": 4,
+            "joined_network_effect_events": 4,
+            "orphan_network_effect_events": 0,
+            "target_specific_network_effect_events": 2,
+            "joined_target_specific_network_effect_events": 2,
+            "orphan_target_specific_network_effect_events": 0,
+        }
+
+        self.assertTrue(network_gate(aggregate_result, network_result, 2))
+
+        self.assertFalse(network_gate(aggregate_result, {**network_result, "network_effect_events": 0}, 2))
+        self.assertFalse(network_gate(aggregate_result, {**network_result, "orphan_network_effect_events": 1}, 2))
+        self.assertFalse(network_gate(aggregate_result, {**network_result, "target_specific_network_effect_events": 0}, 2))
+        self.assertFalse(network_gate(aggregate_result, {**network_result, "joined_target_specific_network_effect_events": 1}, 2))
+        self.assertFalse(network_gate({**aggregate_result, "negative_joined_effect_events": 1}, network_result, 2))
+
+    def test_evaluator_network_lineage_support_requires_negative_controls(self) -> None:
+        artifact = {
+            "status": "ok",
+            "aggregate": {
+                "tasks": 2,
+                "precision_pct": 100.0,
+                "recall_pct": 100.0,
+                "negative_effect_events_observed": 9,
+                "negative_joined_effect_events": 0,
+                "negative_control_tasks_observed": 2,
+            },
+            "network_aggregate": {
+                "network_effect_events": 4,
+                "joined_network_effect_events": 4,
+                "orphan_network_effect_events": 0,
+                "target_specific_network_effect_events": 2,
+                "joined_target_specific_network_effect_events": 2,
+                "orphan_target_specific_network_effect_events": 0,
+            },
+        }
+
+        self.assertTrue(network_lineage_supported(artifact))
+        self.assertFalse(
+            network_lineage_supported(
+                {
+                    **artifact,
+                    "aggregate": {
+                        **artifact["aggregate"],
+                        "negative_effect_events_observed": 0,
+                    },
+                }
+            )
+        )
+        self.assertFalse(
+            network_lineage_supported(
+                {
+                    **artifact,
+                    "network_aggregate": {
+                        **artifact["network_aggregate"],
+                        "target_specific_network_effect_events": 0,
+                    },
+                }
+            )
+        )
+        self.assertFalse(
+            network_lineage_supported(
+                {
+                    **artifact,
+                    "aggregate": {
+                        **artifact["aggregate"],
+                        "negative_control_tasks_observed": 1,
+                    },
+                }
+            )
+        )
 
     def test_live_lineage_harness_scopes_detected_agent_process_family(self) -> None:
         snapshot = {

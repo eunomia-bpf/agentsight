@@ -679,6 +679,52 @@ def live_record_evidence(live_record: dict[str, Any] | None) -> str:
     )
 
 
+def network_lineage_supported(network_lineage: dict[str, Any] | None) -> bool:
+    if not network_lineage:
+        return False
+    aggregate = network_lineage.get("aggregate") or {}
+    network = network_lineage.get("network_aggregate") or {}
+    task_count = int(aggregate.get("tasks") or 0)
+    return (
+        network_lineage.get("status") == "ok"
+        and task_count > 0
+        and int(network.get("network_effect_events") or 0) > 0
+        and int(network.get("joined_network_effect_events") or 0) > 0
+        and int(network.get("orphan_network_effect_events") or 0) == 0
+        and int(network.get("target_specific_network_effect_events") or 0) > 0
+        and int(network.get("joined_target_specific_network_effect_events") or 0)
+        == int(network.get("target_specific_network_effect_events") or 0)
+        and int(network.get("orphan_target_specific_network_effect_events") or 0) == 0
+        and float(aggregate.get("precision_pct") or 0.0) >= 98.0
+        and float(aggregate.get("recall_pct") or 0.0) >= 95.0
+        and int(aggregate.get("negative_effect_events_observed") or 0) > 0
+        and int(aggregate.get("negative_joined_effect_events") or 0) == 0
+        and int(aggregate.get("negative_control_tasks_observed") or 0) == task_count
+    )
+
+
+def network_lineage_evidence(network_lineage: dict[str, Any] | None) -> str:
+    if not network_lineage:
+        return "r182_network=missing"
+    aggregate = network_lineage.get("aggregate") or {}
+    network = network_lineage.get("network_aggregate") or {}
+    return (
+        f"r182_network={network_lineage.get('status', 'unknown')} "
+        f"tasks={aggregate.get('tasks')} "
+        f"network_effects={network.get('network_effect_events')} "
+        f"network_joined={network.get('joined_network_effect_events')} "
+        f"network_orphans={network.get('orphan_network_effect_events')} "
+        f"network_join_pct={network.get('network_join_pct')} "
+        f"target_specific_network_effects={network.get('target_specific_network_effect_events')} "
+        f"target_specific_network_joined={network.get('joined_target_specific_network_effect_events')} "
+        f"target_specific_network_orphans={network.get('orphan_target_specific_network_effect_events')} "
+        f"precision={aggregate.get('precision_pct')} "
+        f"recall={aggregate.get('recall_pct')} "
+        f"negative_observed={aggregate.get('negative_effect_events_observed')} "
+        f"negative_joined={aggregate.get('negative_joined_effect_events')}"
+    )
+
+
 def effect_lineage_evidence(
     lineage: dict[str, Any] | None,
     live_lineage: dict[str, Any] | None = None,
@@ -686,14 +732,16 @@ def effect_lineage_evidence(
     db_lineage: dict[str, Any] | None = None,
     capture_time: dict[str, Any] | None = None,
     live_record: dict[str, Any] | None = None,
+    network_lineage: dict[str, Any] | None = None,
 ) -> str:
     live = live_lineage_evidence(live_lineage)
     native = native_lineage_evidence(native_lineage)
     db = db_lineage_evidence(db_lineage)
     capture = capture_time_evidence(capture_time)
     record = live_record_evidence(live_record)
+    network = network_lineage_evidence(network_lineage)
     if not lineage:
-        return f"effect_lineage_smoke=missing {live} {native} {db} {capture} {record}"
+        return f"effect_lineage_smoke=missing {live} {native} {db} {capture} {record} {network}"
     return (
         f"effect_lineage_smoke={lineage.get('status', 'unknown')} "
         f"source={lineage.get('source', 'unknown')} "
@@ -705,7 +753,8 @@ def effect_lineage_evidence(
         f"{native} "
         f"{db} "
         f"{capture} "
-        f"{record}"
+        f"{record} "
+        f"{network}"
     )
 
 
@@ -726,6 +775,7 @@ def build_claim_gates(
     db_lineage: dict[str, Any] | None = None,
     capture_time: dict[str, Any] | None = None,
     live_record: dict[str, Any] | None = None,
+    network_lineage: dict[str, Any] | None = None,
     headline: dict[str, Any] | None = None,
     tag_adequacy: dict[str, Any] | None = None,
     tag_join: dict[str, Any] | None = None,
@@ -847,6 +897,7 @@ def build_claim_gates(
                 db_lineage,
                 capture_time,
                 live_record,
+                network_lineage,
             ),
         },
         {
@@ -1055,6 +1106,8 @@ def run(out_dir: Path, write_outputs: bool = True) -> dict[str, Any]:
     capture_time = read_json(capture_time_path) if capture_time_path.exists() else None
     live_record_path = out_dir / "live-record-r113.json"
     live_record = read_json(live_record_path) if live_record_path.exists() else None
+    network_lineage_path = out_dir / "live-network-r182.json"
+    network_lineage = read_json(network_lineage_path) if network_lineage_path.exists() else None
     headline = headline_reference()
     gates = build_claim_gates(
         aggregation,
@@ -1073,6 +1126,7 @@ def run(out_dir: Path, write_outputs: bool = True) -> dict[str, Any]:
         db_lineage,
         capture_time,
         live_record,
+        network_lineage,
         headline,
         tag_adequacy,
         tag_join,
@@ -1091,6 +1145,17 @@ def run(out_dir: Path, write_outputs: bool = True) -> dict[str, Any]:
         },
         "headline_reference": headline,
         "full_history_refresh_r170": full_refresh,
+        "network_lineage_r182": {
+            "schema_version": network_lineage.get("schema_version"),
+            "run_id": network_lineage.get("run_id"),
+            "status": network_lineage.get("status"),
+            "scope": network_lineage.get("scope"),
+            "aggregate": network_lineage.get("aggregate"),
+            "network_aggregate": network_lineage.get("network_aggregate"),
+            "boundary": network_lineage.get("boundary"),
+        }
+        if network_lineage
+        else None,
         "aggregation_strength": {
             "semantic_system": semantic_compression,
             "nonsemantic_system": nonsemantic_compression,

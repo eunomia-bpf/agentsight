@@ -122,6 +122,83 @@
       "script_sha256": "c5d7946710a19f9d53501060d0073dceda00f7e6d7468a40e225b9a725df327b"
     }
   },
+  "network_lineage_r182": {
+    "schema_version": 1,
+    "run_id": "R182",
+    "status": "partial",
+    "scope": "real_codex_exec_loopback_network_under_agentsight_record_with_negative_controls",
+    "aggregate": {
+      "tasks": 2,
+      "task_statuses": {
+        "lineage_precision_ok": 2
+      },
+      "record_statuses": {
+        "ok": 2
+      },
+      "target_statuses": {
+        "completed": 2
+      },
+      "lineage_statuses": {
+        "precision_ok": 2
+      },
+      "sessions": 2,
+      "tool_calls": 2,
+      "process_nodes": 93,
+      "audit_events": 841,
+      "effect_events": 841,
+      "joined_effect_events": 117,
+      "orphan_effect_events": 724,
+      "true_positives": 117,
+      "false_positives": 0,
+      "false_negatives": 0,
+      "in_scope_effect_events": 117,
+      "out_of_scope_effect_events": 120,
+      "negative_effect_events_observed": 604,
+      "negative_joined_effect_events": 0,
+      "negative_control_tasks_observed": 2,
+      "raw_join_pct": 13.912,
+      "precision_pct": 100.0,
+      "recall_pct": 100.0,
+      "negative_control_statuses": {
+        "observed": 2
+      },
+      "join_methods": {
+        "none": 724,
+        "pid_family_time_window": 117
+      }
+    },
+    "network_aggregate": {
+      "network_effect_events": 35,
+      "joined_network_effect_events": 35,
+      "orphan_network_effect_events": 0,
+      "target_specific_network_effect_events": 0,
+      "joined_target_specific_network_effect_events": 0,
+      "orphan_target_specific_network_effect_events": 0,
+      "tasks_with_network_effects": 2,
+      "tasks_with_joined_network_effects": 2,
+      "network_join_pct": 100.0,
+      "target_specific_network_join_pct": 0.0,
+      "network_target_groups": {
+        "0.0.0.0:0": 7,
+        "172.64.155.209:65535": 7,
+        "104.18.32.47:65535": 7,
+        "172.64.155.209:443": 7,
+        "family=10": 7
+      },
+      "target_specific_network_target_groups": {},
+      "network_actions": {
+        "NET_BIND": 7,
+        "NET_CONNECT": 28
+      },
+      "network_join_methods": {
+        "pid_family_time_window": 35
+      },
+      "network_process_comms": {
+        "codex": 35
+      }
+    },
+    "boundary": "R182 is partial: it records the network lineage outcome for loopback-task runs, but C4 network-workload coverage should not be widened unless target-specific loopback or expected child-process network rows are observed, joined, and negative-control precision remains clean. Low-level agent-process network rows alone are implementation evidence for record-mode `--trace-net`, not proof of child-process loopback network capture. It does not provide C5 or C6 evidence."
+  },
   "aggregation_strength": {
     "semantic_system": {
       "total_observations": 601,
@@ -6318,7 +6395,7 @@
       "claim": "C4 exact AgentSight effect stream preserves value",
       "verdict": "partial",
       "oracle": "requires high raw join plus capture-time session/tool ancestry",
-      "evidence": "effect_lineage_smoke=fixture_lineage_smoke_passed source=fixture effect_events=4 join_rate_pct=100.0 orphans=0 orphan_reasons={} live_lineage=partial_supported_for_in_scope_live_smoke runs=3 synthetic_sessions=8 synthetic_tool_calls=8 raw_effects=318 in_scope_effects=182 raw_coverage_pct=57.233 joined=182 orphans=0 in_scope_join_rate_pct=100.0 join_methods={'related_event_id': 8, 'pid_family_time_window': 174} out_of_scope=136 native_export=see_R111 native_lineage=partial_supported_for_native_export_smoke runs=3 sessions=3 tool_calls=3 raw_effects=318 joined=182 orphans=136 raw_join_pct=57.233 join_methods={'related_event_id': 3, 'pid_family_time_window': 179, 'none': 136} db_persisted_backfill=see_R112 db_lineage=partial_supported_for_db_persisted_backfill_smoke runs=3 db_sessions=3 db_tool_calls=3 raw_effects=318 joined=182 orphans=136 raw_join_pct=57.233 join_methods={'related_event_id': 3, 'pid_family_time_window': 179, 'none': 136} capture_time_ancestry=implementation_smoke_passed scope=record_command_capture_time_session_tool_rows sessions=1 tool_calls=1 view_source=record_capture_time_agent_envelope live_rerun=covered_by_R113_live r113_live_record=ok tasks=5 record_sessions=5 record_tool_calls=5 raw_effects=508 joined=508 orphans=0 raw_join_pct=100.0 join_methods={'pid_family_time_window': 258, 'root_pid_time_window': 250} orphan_reasons={}"
+      "evidence": "effect_lineage_smoke=fixture_lineage_smoke_passed source=fixture effect_events=4 join_rate_pct=100.0 orphans=0 orphan_reasons={} live_lineage=partial_supported_for_in_scope_live_smoke runs=3 synthetic_sessions=8 synthetic_tool_calls=8 raw_effects=318 in_scope_effects=182 raw_coverage_pct=57.233 joined=182 orphans=0 in_scope_join_rate_pct=100.0 join_methods={'related_event_id': 8, 'pid_family_time_window': 174} out_of_scope=136 native_export=see_R111 native_lineage=partial_supported_for_native_export_smoke runs=3 sessions=3 tool_calls=3 raw_effects=318 joined=182 orphans=136 raw_join_pct=57.233 join_methods={'related_event_id': 3, 'pid_family_time_window': 179, 'none': 136} db_persisted_backfill=see_R112 db_lineage=partial_supported_for_db_persisted_backfill_smoke runs=3 db_sessions=3 db_tool_calls=3 raw_effects=318 joined=182 orphans=136 raw_join_pct=57.233 join_methods={'related_event_id': 3, 'pid_family_time_window': 179, 'none': 136} capture_time_ancestry=implementation_smoke_passed scope=record_command_capture_time_session_tool_rows sessions=1 tool_calls=1 view_source=record_capture_time_agent_envelope live_rerun=covered_by_R113_live r113_live_record=ok tasks=5 record_sessions=5 record_tool_calls=5 raw_effects=508 joined=508 orphans=0 raw_join_pct=100.0 join_methods={'pid_family_time_window': 258, 'root_pid_time_window': 250} orphan_reasons={} r182_network=partial tasks=2 network_effects=35 network_joined=35 network_orphans=0 network_join_pct=100.0 target_specific_network_effects=0 target_specific_network_joined=0 target_specific_network_orphans=0 precision=100.0 recall=100.0 negative_observed=604 negative_joined=0"
     },
     {
       "claim": "C6 tag stability and adequacy",
