@@ -1,8 +1,8 @@
 # Claim Ledger: AgentFlame
 
-Last updated: 2026-06-14
-Stage at update: claims
-Source/command: `.agentsight/agentflame/latest/agentflame.json`
+Last updated: 2026-06-15
+Stage at update: claim-gate / supplement
+Source/command: `.agentsight/agentflame/latest/agentflame.json`, `docs/visexp/out/live-record-r114-analysis.json`, `docs/visexp/out/model-benchmarks-r123.json`, `docs/visexp/out/user-task-results.json`
 Completeness: partial
 
 This ledger separates current evidence from OSDI-level claims. The paper should
@@ -49,7 +49,14 @@ Evidence:
 - 2,463 prompt rows, 303 unique prompt tags, 0 invalid prompt tags.
 - 90,930 LLM-call tags, 1,250 unique LLM-call tags, 0 invalid LLM-call tags.
 
-Status: supported for syntax and feasibility; partial for cost and adequacy.
+Additional evidence:
+
+- R123 ran 300 real redacted fragments from R122 through the available 3B
+  llama.cpp server with 3 identical repeats each: 900/900 valid tags, p95
+  request latency 31 ms after load, and 285/300 exact-stable fragments.
+
+Status: supported for 3B syntax/latency; partial for model-size coverage and
+adequacy.
 
 ### C3: Semantic frames expose task-effect mixtures hidden by nonsemantic and flat summaries.
 
@@ -67,6 +74,10 @@ Evidence:
 - High-volume examples include `git read`, `cargo test`, `python3 process`,
   `docker process`, and `tool write/process` effects that split across
   `refactor`, `review`, `design`, `research`, `analyze`, and `test` regions.
+- R131 semantic-axis ablation preserves total weight for every projection and
+  shows prompt tags carry most system-effect separation: no-semantic mixes
+  90.219% of full semantic bucket weight, session-only leaves 84.180%,
+  prompt-only leaves 37.687%, and session+prompt leaves 0.000% by construction.
 
 Status: supported as a partitioning claim.
 
@@ -102,7 +113,7 @@ Limitation:
 
 Status: diagnostic only.
 
-## Partially Supported
+## Supported With Scope Limits
 
 ### C4: AgentSight exact system effects preserve semantic attribution value.
 
@@ -140,13 +151,18 @@ Current evidence:
   record`. It creates 5/5 capture-time sessions/tools and joins 508/508 raw
   effects; 258 effects join through process-family ancestry and 250 through
   `root_pid_time_window`.
-- The full Rust AgentFlame run still uses agent-native session histories.
+- Full R114 runs 20 real Codex command-mode tasks under `agentsight record`,
+  including read-only, edit, test/debug, dependency, failure/retry, and
+  disposable-workspace write tasks. It observes negative controls in all 20
+  tasks, joins 1273/1273 in-scope effects, reports 100.0% precision and
+  100.0% recall, attributes 0/3170 observed negative-control effects, and
+  passes child-depth/path/redaction analysis.
+- The full Rust AgentFlame history characterization still uses agent-native
+  session histories rather than full live exact-effect history.
 
-Status: partial. The lineage checker works on live effects and native export now
-emits session/tool envelope rows. R112 proves DB-persisted backfill rows, and
-R113 adds capture-time record-command rows. R113-live gives fresh Codex evidence,
-but complete full-history exact lineage, larger task coverage, and user utility
-remain unproven.
+Status: supported for the fixed command-mode Codex suite; partial broadly.
+Complete full-history exact lineage, cross-repo coverage, more agent types, and
+user utility remain unproven.
 
 ## Not Yet Supported
 
@@ -161,8 +177,17 @@ Needed:
 
 Current partial setup:
 
-- Legacy `docs/visexp/out` includes task packet and scorer prototypes.
-- No real participant responses exist.
+- R142-packet generated 14 blinded forensic tasks from R114/R123/R131/full-run
+  artifacts: 8 primary utility tasks, 6 limitation/comprehension tasks, five
+  conditions, 70 participant packets, hidden answer key, P01-P05
+  counterbalanced assignment template, recursive leak check, and same-event
+  `slice_id` fairness across conditions.
+- R142-scoring validates response contract, rejects duplicate/partial/bad
+  measurement CSVs, keeps task-level deltas as diagnostics, and gates
+  paper-scale C5 with Holm-corrected participant/task fixed-effect blocked
+  permutation tests.
+- Current scored output is `participant_results_empty`,
+  `c5_supported=false`, and `pilot_ready=false`.
 
 Status: unsupported as a user-outcome claim.
 
@@ -180,12 +205,37 @@ Current partial evidence:
 - Full 3B run has 0 malformed tags.
 - Some noisy tags exist, such as `agentsightsm`, `testcodex`, and
   `bashoutput`.
-- R122 creates a redacted 300-fragment label packet, and R124-scoring now
-  scores that packet without fabricating labels. The packet now includes
-  300/300 candidate tags from the R123 llama.cpp benchmark. The current output
-  is `human_labels_empty` with 0 final labels, so adequacy remains unproven.
+- R122 creates a redacted 300-fragment label packet.
+- R123 provides 300/300 candidate tags from the 3B real-fragment benchmark.
+- R124-scoring scores that packet without fabricating labels. The current
+  output is `human_labels_empty` with 0 final labels, so adequacy remains
+  unproven.
 
 Status: partial. Syntax is strong; adequacy is unproven.
+
+### C7: AgentFlame is practical as an open-source developer tool.
+
+Needed:
+
+- Fresh-clone or clean-worktree run using documented commands.
+- llama.cpp server/model setup or connection instructions.
+- Expected output files and dashboard path.
+- Runtime/cache summary.
+- Artifact hygiene check: no raw traces committed, no writes outside the output
+  directory, and explicit warnings for skipped/unreadable traces.
+
+Current partial evidence:
+
+- The Rust CLI can generate `.agentsight/agentflame/latest/agentflame.json`,
+  folded stack files, SVGs, and an HTML dashboard over this local workspace.
+- R160 now has a planned command and verifier script,
+  `docs/visexp/artifact_usability_r160.py`, which checks expected artifacts,
+  folded totals, redacted previews, output-dir containment, and raw-trace-like
+  dirty paths. A smoke run of the verifier over the existing full-run output
+  passed to `/tmp`, but no fresh-clone R160 result has been committed.
+
+Status: partial. The artifact path exists; community-developer reproducibility
+is not yet proven.
 
 ## Paper Wording Rule
 
@@ -204,11 +254,20 @@ Allowed current wording:
 - "Explicit `collector report materialize-observed` backfill can persist those
   envelopes into SQLite `sessions` and `tool_calls` rows on DB copies; persisted-only
   export still joins 182/318 raw effects."
+- "R114 validates exact semantic-effect lineage for a fixed 20-task Codex
+  command-mode suite: 1273/1273 in-scope effects joined, 100.0% precision and
+  recall, and 0/3170 negative-control effects attributed."
+- "R142 provides a ready but empty developer-task benchmark packet and scorer;
+  no C5 user-outcome evidence exists until real participant responses pass the
+  paper-scale gate."
+- "R160 is planned for artifact usability; the current repository should not
+  claim a verified fresh-clone community workflow yet."
 
 Disallowed current wording:
 
 - "AgentFlame proves developers debug faster."
 - "AgentFlame has validated native full-run exact file/network provenance."
-- "AgentSight already captures complete session/tool ancestry at runtime."
+- "AgentSight captures complete session/tool ancestry for arbitrary histories."
 - "One-word tags are semantically correct."
 - "AgentFlame is the first flamegraph for agents."
+- "AgentFlame is already a verified community-ready tool."
