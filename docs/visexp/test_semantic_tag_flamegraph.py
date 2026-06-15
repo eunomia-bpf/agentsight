@@ -45,6 +45,8 @@ from r124_blinded_label_sheet import (
 from r124_join_blinded_labels import join_rows as join_r124_label_rows
 from r124_join_blinded_labels import read_labeler_sheet as read_r124_labeler_sheet
 from r124_join_blinded_labels import status_for as r124_join_status
+from r170_full_history_refresh import counter_summary as r170_counter_summary
+from r170_full_history_refresh import read_folded_total as r170_read_folded_total
 from r142_preregistration import validate_preregistration as validate_r142_preregistration
 from score_user_task_results import (
     BASELINE_CONDITIONS,
@@ -1315,6 +1317,27 @@ class AggregationTests(unittest.TestCase):
 
             with self.assertRaisesRegex(AssertionError, "hidden fields"):
                 read_r124_labeler_sheet(sheet, source_rows)
+
+    def test_r170_folded_integrity_summary_detects_mismatch(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            folded = Path(tmp) / "semantic-system.folded.txt"
+            folded.write_text("project:x;session:a 2\nproject:x;session:b 3\n", encoding="utf-8")
+
+            totals = r170_read_folded_total(folded)
+            matching = r170_counter_summary(
+                {"summary": {"system": {"unique_stacks": 2, "total_weight": 5}}},
+                "system",
+                totals,
+            )
+            mismatching = r170_counter_summary(
+                {"summary": {"system": {"unique_stacks": 2, "total_weight": 6}}},
+                "system",
+                totals,
+            )
+
+            self.assertEqual(totals, {"unique_stacks": 2, "total_weight": 5})
+            self.assertTrue(matching["matches_folded"])
+            self.assertFalse(mismatching["matches_folded"])
 
     def test_visual_summary_helpers_keep_svg_values_bounded(self) -> None:
         self.assertEqual(verdict_color("supported"), "#2f855a")

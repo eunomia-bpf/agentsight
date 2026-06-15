@@ -314,6 +314,22 @@ def tag_join_evidence(join: dict[str, Any] | None) -> str:
     )
 
 
+def full_refresh_evidence(refresh: dict[str, Any] | None) -> str:
+    if not refresh:
+        return "r170_refresh=missing"
+    summary = refresh.get("summary") or {}
+    llm = refresh.get("llm_tagger") or {}
+    integrity = refresh.get("integrity") or {}
+    return (
+        f"r170_refresh={refresh.get('status', 'unknown')} "
+        f"r170_sessions={summary.get('session_count')} "
+        f"r170_system_observations={summary.get('system_observations')} "
+        f"r170_llm_calls={llm.get('llm_calls')} "
+        f"r170_cache_hits={llm.get('cache_hits')} "
+        f"r170_folded_match={integrity.get('all_folded_totals_match_report')}"
+    )
+
+
 def compact_tag_adequacy(adequacy: dict[str, Any] | None) -> dict[str, Any] | None:
     if not adequacy:
         return None
@@ -612,6 +628,7 @@ def build_claim_gates(
     headline: dict[str, Any] | None = None,
     tag_adequacy: dict[str, Any] | None = None,
     tag_join: dict[str, Any] | None = None,
+    full_refresh: dict[str, Any] | None = None,
 ) -> list[dict[str, str]]:
     c1_ok = compression["compression_ratio"] > 1 and compression["repeated_stack_count"] > 0
     c2_ok = (
@@ -658,7 +675,8 @@ def build_claim_gates(
             "oracle": "system folded total exceeds unique stacks and repeated stacks exist",
             "evidence": (
                 f"compression={compression['compression_ratio']} "
-                f"repeated={compression['repeated_stack_count']}"
+                f"repeated={compression['repeated_stack_count']} "
+                f"{full_refresh_evidence(full_refresh)}"
             ),
         },
         {
@@ -667,19 +685,24 @@ def build_claim_gates(
             "oracle": "all committed tags match the one-word grammar and vocabulary is non-trivial",
             "evidence": (
                 f"invalid={quality['invalid_prompt_tag_count']} "
-                f"unique_prompt_tags={quality['unique_prompt_tags']}"
+                f"unique_prompt_tags={quality['unique_prompt_tags']} "
+                f"{full_refresh_evidence(full_refresh)}"
             ),
         },
         {
             "claim": "C3 semantic stacks add information beyond flat/nonsemantic baselines",
             "verdict": "supported" if (headline_c3_ok or c3_ok) else "partial",
             "oracle": "baseline buckets mix multiple session/prompt tags that semantic stacks separate",
-            "evidence": headline_c3_evidence
-            or (
-                f"sampled_nonsemantic_mixed={nonsemantic_mixing['mixed_bucket_count']} "
-                f"sampled_nonsemantic_weight_pct={nonsemantic_mixing['mixed_weight_share_pct']} "
-                f"sampled_flat_mixed={flat_mixing['mixed_bucket_count']} "
-                f"sampled_flat_weight_pct={flat_mixing['mixed_weight_share_pct']}"
+            "evidence": (
+                f"{headline_c3_evidence} {full_refresh_evidence(full_refresh)}"
+                if headline_c3_evidence
+                else (
+                    f"sampled_nonsemantic_mixed={nonsemantic_mixing['mixed_bucket_count']} "
+                    f"sampled_nonsemantic_weight_pct={nonsemantic_mixing['mixed_weight_share_pct']} "
+                    f"sampled_flat_mixed={flat_mixing['mixed_bucket_count']} "
+                    f"sampled_flat_weight_pct={flat_mixing['mixed_weight_share_pct']} "
+                    f"{full_refresh_evidence(full_refresh)}"
+                )
             ),
         },
         {
@@ -779,6 +802,7 @@ def write_summary_md(path: Path, result: dict[str, Any]) -> None:
     quality = result["tag_quality"]
     gates = result["claim_gates"]
     headline = result.get("headline_reference")
+    full_refresh = result.get("full_history_refresh_r170")
     lines = [
         "# Semantic Flamegraph Evaluation",
         "",
@@ -809,6 +833,20 @@ def write_summary_md(path: Path, result: dict[str, Any]) -> None:
     else:
         lines.append(
             "- Headline reference scope: missing locally; see `docs/visexp/RESULTS_SUMMARY.md`."
+        )
+    if full_refresh:
+        refresh_summary = full_refresh.get("summary") or {}
+        refresh_llm = full_refresh.get("llm_tagger") or {}
+        lines.extend(
+            [
+                f"- Current R170 refresh: {refresh_summary.get('session_count')} sessions, "
+                f"{refresh_summary.get('raw_tool_events')} raw tool events, "
+                f"{refresh_summary.get('system_observations')} system observations, "
+                f"{refresh_summary.get('semantic_system_stacks')} semantic stacks, "
+                f"{refresh_llm.get('llm_calls')} new llama.cpp tag calls, "
+                f"{refresh_llm.get('cache_hits')} cache hits. This is mechanism/artifact "
+                "evidence only, not C5/C6 outcome evidence.",
+            ]
         )
     lines.extend(
         [
@@ -891,6 +929,8 @@ def run(out_dir: Path, write_outputs: bool = True) -> dict[str, Any]:
     tag_adequacy = read_json(tag_adequacy_path) if tag_adequacy_path.exists() else None
     tag_join_path = out_dir / "tag-adequacy-label-join-r124.json"
     tag_join = read_json(tag_join_path) if tag_join_path.exists() else None
+    full_refresh_path = out_dir / "full-history-r170.json"
+    full_refresh = read_json(full_refresh_path) if full_refresh_path.exists() else None
     effect_lineage_path = out_dir / "effect-lineage-smoke.json"
     effect_lineage = read_json(effect_lineage_path) if effect_lineage_path.exists() else None
     live_lineage_path = out_dir / "live-lineage-r110.json"
@@ -924,6 +964,7 @@ def run(out_dir: Path, write_outputs: bool = True) -> dict[str, Any]:
         headline,
         tag_adequacy,
         tag_join,
+        full_refresh,
     )
 
     result = {
@@ -936,6 +977,7 @@ def run(out_dir: Path, write_outputs: bool = True) -> dict[str, Any]:
             "not_headline_scale": True,
         },
         "headline_reference": headline,
+        "full_history_refresh_r170": full_refresh,
         "aggregation_strength": {
             "semantic_system": semantic_compression,
             "nonsemantic_system": nonsemantic_compression,

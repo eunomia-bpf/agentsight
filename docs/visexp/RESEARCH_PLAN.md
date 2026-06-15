@@ -100,6 +100,11 @@ Current evidence:
 - 93,598 tag requests, 64,297 cache hits, 29,302 llama.cpp HTTP calls, 29,301
   successful final tags, no final tag failures. The one-call difference is
   consistent with a retry that recovered before final failure.
+- R170 reran the current full-history path against the local 3B llama.cpp
+  server without overwriting `latest`: 325 sessions, 118,021 tag requests,
+  82,886 cache hits, 35,136 fresh llama.cpp calls, 64,477 final cache entries,
+  0 tagger failures, and folded totals matching the generated report. This is
+  mechanism/artifact refresh evidence, not human adequacy evidence.
 - R121 started a real local llama.cpp server, repeated three fixed synthetic
   fragments three times each, and produced 9/9 valid 3B tags with 7-41 ms
   request latency after a 1002 ms load. Exact fixed-input stability was mixed:
@@ -321,6 +326,11 @@ Current evidence:
 - R160 records that `.agentsight/agentflame/*/agentflame.json` is a local,
   private report because it includes trace roots and session file metadata. The
   public audit artifact is `docs/visexp/out/artifact-usability-r160.json`.
+- R170 records a current full-history refresh in
+  `docs/visexp/out/full-history-r170.json`: 325 sessions, 142,468 raw tool
+  events, 114,837 raw LLM events, 183,714 system observations, 35,136 fresh
+  llama.cpp tag calls, and folded-total integrity. The private generated report
+  stays under `.agentsight/agentflame/r170-full-current`.
 - Raw local traces are not committed. The full run records skipped unreadable
   files instead of requiring elevated privileges.
 

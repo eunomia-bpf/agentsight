@@ -53,6 +53,8 @@ utility.
 | R142-packet/scoring | Same-event-slice C5 task benchmark packet, response-contract checker, and empty paper-scale scorer gate over R114/R123/R131/full-run artifacts | `docs/visexp/out/user-task-benchmark.json`, `docs/visexp/out/user-task-assignments.csv`, `docs/visexp/out/user-task-results.json` | packet/scorer only; no participants |
 | R142-preregistration | Frozen C5 analysis contract before participant collection | `docs/visexp/out/user-task-preregistration-r142.json` | done/protocol; no participants |
 | R160 | Bounded fixed-session artifact-usability smoke over 8 historical Codex sessions, with clean and cached AgentFlame runs | `docs/visexp/out/artifact-usability-r160.json` | done/bounded; C7 remains partial |
+| R170 | Current full-history AgentFlame refresh over all discovered repo sessions with real llama.cpp annotation calls | `docs/visexp/out/full-history-r170.json` | done/mechanism; not C5/C6 |
+| R171 | Read-only subagent OSDI gate review after R170/R124-join planning | `docs/visexp/out/osdi-gate-review-r171.md` | done/review |
 | R060 | legacy Python prototype pipeline over sampled sessions | `docs/visexp/out/pipeline-report.json` | legacy, superseded for headline scale |
 | R020a | fixture exact-effect lineage checker | `docs/visexp/out/effect-lineage-smoke.json` | partial, fixture only |
 
@@ -373,6 +375,15 @@ provenance.
   template. These are protocol artifacts, not adequacy evidence.
 - R131 is a mechanism ablation, not a usability result. It supports C3 and
   figure design, but not the C5 developer-utility claim.
+- R170 refreshes the current full-history path without overwriting `latest`:
+  325 sessions, 142,468 raw tool events, 114,837 raw LLM events, 183,714 system
+  observations, 26,829 semantic system stacks, 82,886 tag-cache hits, 35,136
+  fresh llama.cpp tag calls, 0 tagger failures, and folded totals matching the
+  generated report. This strengthens mechanism reproducibility, not user
+  utility or human tag adequacy.
+- R171 independently re-reviewed the gate and still finds Level 3 evidence:
+  R124-labels and R142/R151 participant responses remain the smallest path to
+  weak accept.
 - One root-owned Claude session could not be read. The run records this as a
   warning rather than claiming perfect trace coverage.
 
@@ -399,3 +410,5 @@ provenance.
 - `docs/visexp/out/model-benchmarks-r123.json` for real-fragment stability
 - `docs/visexp/out/semantic-ablation-r131.json` for semantic-axis ablation
 - `docs/visexp/out/user-task-benchmark.json`, `docs/visexp/out/user-task-participant-packets.json`, `docs/visexp/out/user-task-assignments.csv`, `docs/visexp/out/user-task-manifest.json`, `docs/visexp/out/user-task-preregistration-r142.json`, and `docs/visexp/out/user-task-results.json` for the R142-packet C5 benchmark bundle
+- `docs/visexp/out/full-history-r170.json` and `.md` for the current full-history refresh summary
+- `docs/visexp/out/osdi-gate-review-r171.md` for the latest read-only subagent OSDI gate review
