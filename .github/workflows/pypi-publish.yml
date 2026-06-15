@@ -1,0 +1,46 @@
+name: Publish PyPI Package
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    name: Publish agentsight-py
+    runs-on: ubuntu-latest
+    environment: pypi
+
+    defaults:
+      run:
+        working-directory: python/agentsight-py
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Build package
+        run: |
+          python -m pip install --upgrade pip build twine
+          python -m build
+          python -m twine check dist/*
+
+      - name: Smoke test package
+        run: |
+          python -m pip install dist/*.whl
+          agentsight-py --version
+          agentsight-py summary ../../docs/sample-snapshot.json
+          agentsight-py summary ../../docs/sample-snapshot.json --json
+
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: python/agentsight-py/dist
+
