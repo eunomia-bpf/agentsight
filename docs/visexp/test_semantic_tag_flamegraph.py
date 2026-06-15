@@ -47,6 +47,8 @@ from r182_network_record_suite import aggregate_network, network_gate
 from r184_weak_accept_gate import c5_gate as r184_c5_gate
 from r184_weak_accept_gate import c6_gate as r184_c6_gate
 from r184_weak_accept_gate import overall_gate as r184_overall_gate
+from r187_prepare_pilot_materials import group_assignments as r187_group_assignments
+from r187_prepare_pilot_materials import scan_forbidden_keys as r187_scan_forbidden_keys
 from r124_blinded_label_sheet import (
     VISIBLE_FIELDS as R124_BLINDED_FIELDS,
     blinded_row as r124_blinded_row,
@@ -414,6 +416,33 @@ class AggregationTests(unittest.TestCase):
 
         with self.assertRaises(AssertionError):
             participant_packets(tasks)
+
+    def test_r187_launch_scan_recurses_for_forbidden_keys(self) -> None:
+        payload = {
+            "participant_id": "P01",
+            "tasks": [
+                {
+                    "packet_id": "UT01-semantic-stack",
+                    "view_excerpt": [{"rows": [{"slice_id": "a", "oracle": {"answer": 7}}]}],
+                }
+            ],
+        }
+
+        hits = r187_scan_forbidden_keys(payload)
+
+        self.assertEqual(hits, ["$.tasks[0].view_excerpt[0].rows[0].oracle"])
+
+    def test_r187_launch_assignment_grouping_sorts_by_order(self) -> None:
+        rows = [
+            {"participant_id": "P02", "order_index": "2", "packet_id": "UT02-flat-summary"},
+            {"participant_id": "P01", "order_index": "1", "packet_id": "UT01-semantic-stack"},
+            {"participant_id": "P02", "order_index": "1", "packet_id": "UT01-trace-tree"},
+        ]
+
+        grouped = r187_group_assignments(rows)
+
+        self.assertEqual(list(grouped), ["P01", "P02"])
+        self.assertEqual([row["packet_id"] for row in grouped["P02"]], ["UT01-trace-tree", "UT02-flat-summary"])
 
     def test_user_task_assignments_cover_one_condition_per_task(self) -> None:
         tasks = [

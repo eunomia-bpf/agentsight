@@ -11,6 +11,26 @@ import re
 from pathlib import Path
 
 
+R187_FORBIDDEN_LAUNCH_KEYS = {
+    "answer_format",
+    "answer_json",
+    "answer_key",
+    "baseline_contrast",
+    "oracle",
+    "oracle_sources",
+    "projected_stack_hash",
+    "scoring",
+    "skill",
+    "top_full_semantic_variants",
+    "top_semantic_variants",
+    "full_semantic_variant_count",
+    "semantic_variant_count",
+    "variant_count",
+    "mixing_against_full_semantics",
+    "projection",
+}
+
+
 def read_folded(path: Path) -> tuple[int, int]:
     count = 0
     total = 0
@@ -45,6 +65,20 @@ def assert_no_sensitive_text(path: Path) -> None:
     match = pattern.search(text)
     if match:
         raise AssertionError(f"sensitive-looking text in {path}: {match.group(0)}")
+
+
+def scan_forbidden_launch_keys(value: object, path: str = "$") -> list[str]:
+    hits: list[str] = []
+    if isinstance(value, dict):
+        for key, child in value.items():
+            child_path = f"{path}.{key}"
+            if key in R187_FORBIDDEN_LAUNCH_KEYS:
+                hits.append(child_path)
+            hits.extend(scan_forbidden_launch_keys(child, child_path))
+    elif isinstance(value, list):
+        for idx, child in enumerate(value):
+            hits.extend(scan_forbidden_launch_keys(child, f"{path}[{idx}]"))
+    return hits
 
 
 def run(out_dir: Path) -> dict[str, int | str]:
@@ -237,6 +271,68 @@ def run(out_dir: Path) -> dict[str, int | str]:
             c5 = gates.get("C5 user utility over trace tree/process logs")
             if not c5 or f"c5_supported={gate.get('c5_supported')}" not in c5.get("evidence", ""):
                 raise AssertionError("C5 claim gate does not include current scorer status")
+
+    r187_manifest_path = out_dir / "user-task-pilot-r142" / "launch" / "manifest.json"
+    if r187_manifest_path.exists():
+        launch_dir = r187_manifest_path.parent
+        r187 = json.loads(r187_manifest_path.read_text(encoding="utf-8"))
+        if r187.get("run_id") != "R187":
+            raise AssertionError("R187 launch manifest has the wrong run_id")
+        if r187.get("status") != "pilot_launch_ready_no_responses":
+            raise AssertionError("R187 launch manifest has the wrong status")
+        if r187.get("source_protocol") != "R142":
+            raise AssertionError("R187 must package the R142 protocol")
+        if r187.get("participant_count") != 5 or r187.get("participant_ids") != ["P01", "P02", "P03", "P04", "P05"]:
+            raise AssertionError("R187 participant IDs must be exactly P01-P05")
+        if r187.get("task_count") != 14 or r187.get("assignment_count") != 70 or r187.get("packet_count") != 70:
+            raise AssertionError("R187 launch counts do not match the frozen R142 packet")
+        if r187.get("response_template_rows") != 70 or r187.get("real_response_count") != 0:
+            raise AssertionError("R187 must contain a blank 70-row response template and zero responses")
+        gate = r187.get("claim_gate") or {}
+        if not gate.get("launch_ready") or gate.get("pilot_ready") or gate.get("c5_supported"):
+            raise AssertionError("R187 launch package must not support pilot or C5 outcome claims")
+        if not gate.get("requires_real_participants"):
+            raise AssertionError("R187 must require real participants before C5 can advance")
+        leak_scan = r187.get("leak_scan") or {}
+        if leak_scan.get("status") != "ok" or leak_scan.get("answer_key_included"):
+            raise AssertionError("R187 launch leak scan failed or included the answer key")
+        if leak_scan.get("forbidden_key_hits"):
+            raise AssertionError("R187 launch manifest records forbidden participant keys")
+        if any(path.name == "user-task-answer-key.csv" for path in launch_dir.rglob("*") if path.is_file()):
+            raise AssertionError("R187 launch directory must not include the answer key")
+
+        response_template_path = launch_dir / "responses" / "user-task-response-template-r142-pilot.csv"
+        if not response_template_path.exists():
+            raise AssertionError("R187 response template is missing")
+        with response_template_path.open("r", encoding="utf-8", newline="") as handle:
+            response_rows = list(csv.DictReader(handle))
+        if len(response_rows) != 70:
+            raise AssertionError("R187 response template must have 70 rows")
+        if any(
+            row.get("response_json") != "{}"
+            or row.get("task_time_seconds")
+            or row.get("confidence")
+            or row.get("notes")
+            for row in response_rows
+        ):
+            raise AssertionError("R187 response template must remain blank")
+
+        participants_dir = launch_dir / "participants"
+        for participant_id in ["P01", "P02", "P03", "P04", "P05"]:
+            json_path = participants_dir / f"{participant_id}.json"
+            md_path = participants_dir / f"{participant_id}.md"
+            if not json_path.exists() or not md_path.exists():
+                raise AssertionError(f"R187 participant files are missing for {participant_id}")
+            packet = json.loads(json_path.read_text(encoding="utf-8"))
+            if packet.get("participant_id") != participant_id or packet.get("assignment_count") != 14:
+                raise AssertionError(f"R187 participant packet has wrong metadata for {participant_id}")
+            if len(packet.get("tasks") or []) != 14:
+                raise AssertionError(f"R187 participant packet has wrong task count for {participant_id}")
+            hits = scan_forbidden_launch_keys(packet)
+            if hits:
+                raise AssertionError(f"R187 participant packet leaks forbidden keys: {hits[:5]}")
+            assert_no_sensitive_text(json_path)
+            assert_no_sensitive_text(md_path)
 
     tag_packet_path = out_dir / "tag-adequacy-label-packet-r122.csv"
     tag_results_path = out_dir / "tag-adequacy-results-r124.json"
