@@ -46,9 +46,9 @@ utility.
 | R122 | Redacted human adequacy label packet over 100 session, 100 prompt, and 100 LLM-call fragments | `docs/visexp/out/tag-adequacy-label-packet-r122.json` | packet only |
 | R123 | 3B llama.cpp real-fragment stability benchmark over the R122 packet | `docs/visexp/out/model-benchmarks-r123.json` | done |
 | R131 | Semantic-axis ablation over the same folded observations | `docs/visexp/out/semantic-ablation-r131.json` | done |
+| R141-packet | Deterministic C5 task benchmark draft and empty scorer check over R114/R123/R131/full-run artifacts | `docs/visexp/out/user-task-benchmark.json`, `docs/visexp/out/user-task-assignments.csv`, `docs/visexp/out/user-task-results.json` | draft only; no participants |
 | R060 | legacy Python prototype pipeline over sampled sessions | `docs/visexp/out/pipeline-report.json` | legacy, superseded for headline scale |
 | R020a | fixture exact-effect lineage checker | `docs/visexp/out/effect-lineage-smoke.json` | partial, fixture only |
-| R025 | user-task benchmark packet generation | `docs/visexp/out/user-task-benchmark.json` | protocol only |
 
 ## Current Full-Run Metrics
 
@@ -315,7 +315,11 @@ provenance.
   3,170 observed negative-control effects, but it is still not a full-history
   or cross-repo benchmark.
 - C5 user utility remains unsupported. Task packets and scoring scripts exist,
-  but no real participant responses have been collected.
+  and R141-packet now provides 14 tasks, 8 primary utility tasks, 6
+  limitation/comprehension tasks, 5 conditions, 70 leak-checked blinded packets,
+  a P01-P05 assignment template, a hidden answer key, manifests, and an empty
+  scorer output with null aggregate metrics. No real participant responses have
+  been collected, and same-event-slice baseline fairness remains unresolved.
 - C6 semantic adequacy is partial. The grammar is strong, but labels such as
   `agentsightsm`, `testcodex`, and `bashoutput` show that one-word tags need
   human adequacy measurement and possibly prompt repair.
@@ -343,3 +347,4 @@ provenance.
 - `docs/visexp/out/tag-adequacy-label-packet-r122.json` for the redacted adequacy-label packet
 - `docs/visexp/out/model-benchmarks-r123.json` for real-fragment stability
 - `docs/visexp/out/semantic-ablation-r131.json` for semantic-axis ablation
+- `docs/visexp/out/user-task-benchmark.json`, `docs/visexp/out/user-task-participant-packets.json`, `docs/visexp/out/user-task-assignments.csv`, `docs/visexp/out/user-task-manifest.json`, and `docs/visexp/out/user-task-results.json` for the R141-packet C5 draft benchmark bundle

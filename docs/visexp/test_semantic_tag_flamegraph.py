@@ -26,7 +26,14 @@ from tag_stability_smoke import (
     cross_annotator_metrics,
     smoke_verdict,
 )
-from user_task_benchmark import parse_variants, participant_packets, stack_frame
+from user_task_benchmark import (
+    build_assignments,
+    CONDITION_ORDER,
+    parse_variants,
+    participant_packets,
+    percentile_nearest_rank,
+    stack_frame,
+)
 from effect_lineage_smoke import lineage_rows
 from live_lineage_harness import synthesize
 from r114_live_record_suite import Task, precision_recall_summary, task_command
@@ -228,6 +235,12 @@ class AggregationTests(unittest.TestCase):
         self.assertEqual(stack_frame(stack, "prompt:"), "debug")
         self.assertEqual(stack_frame(stack, "model:", "none"), "none")
 
+    def test_user_task_percentile_uses_nearest_rank(self) -> None:
+        values = [42, 13, 8, 18, 10, 10, 53, 38, 39, 67]
+
+        self.assertEqual(percentile_nearest_rank(values, 50), 18)
+        self.assertEqual(percentile_nearest_rank(values, 95), 67)
+
     def test_participant_packets_exclude_oracles(self) -> None:
         tasks = [
             {
@@ -237,7 +250,11 @@ class AggregationTests(unittest.TestCase):
                 "title": "Demo",
                 "question": "Find the answer.",
                 "participant_view_conditions": [
-                    {"condition": "semantic", "views": ["system-flamegraph.svg"]},
+                    {
+                        "condition": "semantic-stack",
+                        "views": ["semantic folded excerpt"],
+                        "view_excerpt": [{"title": "semantic", "rows": [{"weight": 7}]}],
+                    },
                 ],
                 "answer_format": {"weight": "int"},
             }
@@ -245,8 +262,57 @@ class AggregationTests(unittest.TestCase):
 
         packets = participant_packets(tasks)
 
+        self.assertIn("semantic-stack", CONDITION_ORDER)
+        self.assertEqual(packets[0]["packet_id"], "UTX-semantic-stack")
+        self.assertNotIn("skill", packets[0])
+        self.assertEqual(packets[0]["view_excerpt"][0]["rows"][0]["weight"], 7)
         self.assertEqual(packets[0]["contains_oracle"], False)
         self.assertNotIn("oracle", packets[0])
+
+    def test_participant_packets_reject_oracle_only_excerpt_keys(self) -> None:
+        tasks = [
+            {
+                "task_id": "UTX",
+                "claim": "C5",
+                "skill": "demo",
+                "title": "Demo",
+                "question": "Find the answer.",
+                "participant_view_conditions": [
+                    {
+                        "condition": "nonsemantic-stack",
+                        "views": ["nonsemantic folded excerpt"],
+                        "view_excerpt": [
+                            {
+                                "title": "bad",
+                                "rows": [{"variant_count": 133}],
+                            }
+                        ],
+                    },
+                ],
+                "answer_format": {"weight": "int"},
+            }
+        ]
+
+        with self.assertRaises(AssertionError):
+            participant_packets(tasks)
+
+    def test_user_task_assignments_cover_one_condition_per_task(self) -> None:
+        tasks = [
+            {
+                "task_id": f"UT{idx:02d}",
+                "participant_view_conditions": [{"condition": condition} for condition in CONDITION_ORDER],
+            }
+            for idx in range(1, 6)
+        ]
+
+        assignments = build_assignments(tasks)
+
+        self.assertEqual(len(assignments), 25)
+        self.assertEqual(len([row for row in assignments if row["participant_id"] == "P01"]), 5)
+        self.assertEqual(
+            sorted(row["condition"] for row in assignments if row["task_id"] == "UT01"),
+            sorted(CONDITION_ORDER),
+        )
 
     def test_effect_lineage_joins_child_process_effects_to_tool(self) -> None:
         snapshot = {
@@ -690,14 +756,24 @@ class AggregationTests(unittest.TestCase):
         self.assertEqual(summary["by_condition"]["semantic"]["exact_accuracy_pct"], 100.0)
         self.assertEqual(summary["by_condition"]["flat"]["false_positive_count"], 1)
 
+    def test_user_task_empty_summary_uses_null_metrics(self) -> None:
+        summary = summarize([])
+
+        self.assertEqual(summary["overall"]["response_count"], 0)
+        self.assertIsNone(summary["overall"]["exact_accuracy_pct"])
+        self.assertIsNone(summary["overall"]["mean_time_seconds"])
+        self.assertIsNone(summary["overall"]["false_positive_count"])
+
     def test_user_task_scoring_ignores_empty_template_rows(self) -> None:
         self.assertTrue(
             is_placeholder_response(
                 {
-                    "participant_id": "",
+                    "participant_id": "P01",
                     "task_id": "UT1",
                     "condition": "semantic",
                     "response_json": "{}",
+                    "task_time_seconds": "",
+                    "confidence": "",
                 }
             )
         )
@@ -708,6 +784,8 @@ class AggregationTests(unittest.TestCase):
                     "task_id": "UT1",
                     "condition": "semantic",
                     "response_json": "{}",
+                    "task_time_seconds": "12",
+                    "confidence": "3",
                 }
             )
         )
