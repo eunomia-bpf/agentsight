@@ -1,0 +1,101 @@
+name: Windows (eBPF-for-Windows)
+
+# Builds and gates the Windows port of AgentSight:
+#   1. collector: cargo check/build for the MSVC target (native SQLite builds here,
+#      unlike the Linux cross-build sandbox which lacks a mingw C compiler).
+#   2. TLS shim (Detours) build.
+#   3. eBPF-for-Windows programs: clang compile + PREVAIL verification.
+#   4. conformance harness (runtime ISA + per-program verification).
+#
+# Steps 3-4 require the eBPF-for-Windows runtime and test-signing; they run on a
+# self-hosted/specialized runner when available and are otherwise skipped with a
+# clear notice (never silently passed).
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+
+jobs:
+  conformance-local:
+    name: ISA conformance on uBPF (Linux reference)
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build uBPF + conformance plugin
+        run: |
+          git clone --depth 1 --recurse-submodules https://github.com/iovisor/ubpf /tmp/ubpf
+          cd /tmp/ubpf
+          cmake -B build -S . -DUBPF_ENABLE_TESTS=ON -DUBPF_SKIP_EXTERNAL=OFF -DCMAKE_BUILD_TYPE=Release || \
+          cmake -B build -S . -DUBPF_ENABLE_TESTS=ON -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --target ubpf -j4
+          g++ -std=c++20 -O2 -o /tmp/ubpf_plugin ubpf_plugin/ubpf_plugin.cc \
+              -Ivm -Ivm/inc -Ibuild/vm -Iubpf_plugin build/lib/libubpf.a
+      - name: Run ISA vectors on uBPF
+        run: python3 bpf/windows/conformance/run_local_ubpf.py --plugin /tmp/ubpf_plugin
+
+  collector-windows:
+    name: Collector (windows-latest, MSVC)
+    runs-on: windows-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: 'recursive'
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          target: x86_64-pc-windows-msvc
+      - name: cargo check (windows runners + cfg-gated common)
+        working-directory: collector
+        run: cargo check --target x86_64-pc-windows-msvc
+      - name: cargo test (OS-portable unit tests)
+        working-directory: collector
+        run: cargo test --target x86_64-pc-windows-msvc --lib
+
+  native-producers:
+    name: Native producers (Detours / ConPTY / ETW)
+    runs-on: windows-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Detours (vcpkg)
+        run: vcpkg install detours:x64-windows-static
+      # Builds win-ssl-shim, win-stdio-cap, win-file-etw. win-ebpf-loader needs
+      # the eBPF-for-Windows SDK (ebpfapi import lib); it builds on a provisioned
+      # runner where EBPF_FOR_WINDOWS_INCLUDE/LIB are set.
+      - name: Build producers
+        working-directory: shim
+        run: |
+          cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
+          cmake --build build --config Release --target agentsight-ssl-shim ssl_shim agentsight-stdio-cap agentsight-file-etw
+
+  ebpf-programs:
+    name: eBPF programs + conformance
+    runs-on: windows-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install LLVM (clang with bpf target)
+        run: choco install llvm -y
+      - name: Compile eBPF programs to bytecode
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force build | Out-Null
+          $hdr = "$env:EBPF_FOR_WINDOWS_INCLUDE"
+          if (-not $hdr) {
+            Write-Host "::notice::eBPF-for-Windows headers not present on this runner; compiling without them will fail. Set EBPF_FOR_WINDOWS_INCLUDE on a provisioned runner."
+          }
+          foreach ($p in @("process_win","sockaddr_win","sockops_win")) {
+            clang -target bpf -O2 -g -I bpf/windows -I "$hdr" -c "bpf/windows/$p.bpf.c" -o "build/$p.o"
+          }
+      - name: Verify + run conformance (requires eBPF-for-Windows runtime)
+        shell: pwsh
+        run: |
+          if (-not (Get-Command netsh -ErrorAction SilentlyContinue) -or -not $env:EBPF_CONFORMANCE_PLUGIN) {
+            Write-Host "::warning::eBPF-for-Windows runtime / conformance plugin not provisioned on this runner. Skipping live verification. Provision a runner with the MSI + test-signing to gate on it."
+            exit 0
+          }
+          pwsh bpf/windows/conformance/run_conformance.ps1 -BuildDir build

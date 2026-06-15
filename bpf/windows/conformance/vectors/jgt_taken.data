@@ -1,0 +1,8 @@
+# ISA: jgt taken (5 > 3) skips the override.
+-- asm
+mov64 %r0, 5
+jgt %r0, 3, +1
+mov64 %r0, 0
+exit
+-- result
+0x5

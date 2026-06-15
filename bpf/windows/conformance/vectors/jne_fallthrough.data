@@ -1,0 +1,8 @@
+# ISA: jne not taken (r0==1) falls through.
+-- asm
+mov64 %r0, 1
+jne %r0, 1, +1
+mov64 %r0, 9
+exit
+-- result
+0x9

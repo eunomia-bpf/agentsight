@@ -98,20 +98,20 @@ Applications that statically link SSL (Claude/Bun uses BoringSSL, NVM Node.js us
 1. sslsniff tries symbol lookup first, then falls back to **BoringSSL byte-pattern detection** for stripped binaries
 2. The `--comm` filter is **NOT passed to sslsniff** (only to the process runner) — because `bpf_get_current_comm()` returns the thread name, not the process name. Claude's SSL traffic runs on an "HTTP Client" thread, so `-c claude` would filter out all SSL traffic.
 
-This logic is in `build_trace_agent()` in `collector/src/cmd_trace.rs`.
+This logic is in `build_trace_agent_with_view()` in `collector/src/cmd_trace.rs`.
 
 ## Development Patterns
 
 ### Adding a New Analyzer
 
-1. Implement `Analyzer` trait in `collector/src/framework/analyzers/`
-2. Core method: `async fn analyze(&self, events: EventStream) -> EventStream`
+1. Implement `Analyzer` trait in `collector/src/analyzers/`
+2. Core method: `async fn process(&mut self, stream: EventStream) -> Result<EventStream, AnalyzerError>`
 3. Export in `analyzers/mod.rs`
 4. Attach via `.add_analyzer(Box::new(MyAnalyzer::new()))` on any runner
 
 ### Adding a New Runner
 
-1. Implement `Runner` trait in `collector/src/framework/runners/`
+1. Implement `Runner` trait in `collector/src/runners/` (core method `async fn run(&mut self) -> Result<EventStream, RunnerError>`)
 2. Use `BinaryExecutor` for running external binaries and parsing JSON output
 3. Use fluent builder pattern for configuration
 4. Export in `runners/mod.rs`
@@ -123,18 +123,45 @@ This logic is in `build_trace_agent()` in `collector/src/cmd_trace.rs`.
 3. Use CO-RE pattern with architecture-specific `vmlinux.h` from `vmlinux/`
 4. Output JSON to stdout; debug info to stderr
 
+## Windows Port (eBPF-for-Windows)
+
+A Windows port is in progress; see `docs/windows-migration.md` for the full plan and
+gap analysis. Key facts that override naive assumptions:
+
+- **eBPF-for-Windows has no uprobe/kprobe/tracepoint/syscall hooks** — only network
+  hooks (XDP/sock_addr/sock_ops) + a process create/exit extension. So `sslsniff`'s
+  uprobe-on-SSL technique, `stdiocap`, and the syscall parts of `process` have **no
+  eBPF equivalent on Windows.**
+- **The stable seam is the JSONL stdout contract.** Every Windows producer emits the
+  exact line shapes the collector already parses, so the entire analyzer → view →
+  sink pipeline is reused unchanged.
+- Mapping: process lifecycle + network → eBPF (`bpf/windows/*.bpf.c`); TLS plaintext →
+  Detours shim (`shim/win-ssl-shim/`, emits the identical `sslsniff` JSONL); stdio →
+  ConPTY (future). Rust runners: `collector/src/runners/windows_ssl.rs` and
+  `windows_ebpf.rs` (both `#[cfg(windows)]`, wrap `BinaryRunner`).
+- **"Conformance" is the runtime's ISA, not our programs.** `bpf_conformance` tests a
+  runtime's instruction set (eBPF-for-Windows already passes). Our programs' gate is
+  PREVAIL verification (`netsh ebpf show verification`); the harness is in
+  `bpf/windows/conformance/`.
+- Build Windows with the **MSVC** target (`x86_64-pc-windows-msvc`) — the
+  `windows-gnu` cross-build fails in `libsqlite3-sys` without a mingw C compiler. See
+  `build-windows.ps1` and `.github/workflows/windows.yml`.
+- The Linux-only privilege path in `runners/common.rs` (`geteuid`/`sudo`/
+  `process_group`/`killpg`) is `#[cfg(unix)]`-gated; keep new Linux-isms gated so the
+  Windows target stays buildable.
+
 ## CLI Subcommands
 
 - **`top`** — Primary live view. Run as `sudo ./agentsight top`; it loads eBPF probes and also reads agent-native sessions when present.
 - **`record`** — Optimized recording. Use `sudo ./agentsight record -- <command>` to launch and trace a command, or `sudo ./agentsight record -c <comm>` / `-p <pid>` to attach. It enables SSL, process, stdio when applicable, system monitoring, materialized view sinks, and the web UI by default.
 - **`stat`** — Query the latest saved session, or run `sudo ./agentsight stat -- <command>` and print counters when the command exits.
-- **`report [summary|token|audit|prompts|export|list]`** — Query saved local SQLite sessions; these usually do not need sudo. `report` with no subcommand defaults to `summary`.
+- **`report [summary|token|audit|prompts|export|list|serve]`** — Query saved local SQLite sessions; these usually do not need sudo. `report` with no subcommand defaults to `summary`. `report serve` serves the web UI for a saved session.
 - **`debug trace`** — Most flexible live capture. Toggle `--ssl`, `--process`, `--stdio`, `--system`, and `--server` independently. Supports `--ssl-filter`, `--http-filter`, `--binary-path`, and `--otel`.
 - **`debug ssl` / `debug process` / `debug stdio` / `debug system`** — Raw component-level debug entrypoints. Use `sudo` because they load eBPF probes or inspect privileged process state.
 
 ## SSL Binary Auto-Discovery (record/debug trace)
 
-In `build_trace_agent()`, when SSL is enabled and `--binary-path` is absent, the binary is auto-discovered from `--comm`: `resolve_binary_path(comm)` resolves the binary, and it is adopted **only if `binary_embeds_ssl()` returns true** (the binary contains the `SSL_write` symbol-name string). This fixes `record -c node` (Node statically links OpenSSL — no system `libssl.so` to hook) while leaving dynamically-linked runtimes like Python on sslsniff's system-libssl + comm-filter path. `record -- <command>` resolves the launched command directly because it targets one known process tree.
+In `build_trace_agent_with_view()`, when SSL is enabled and `--binary-path` is absent, the binary is auto-discovered from `--comm`: `resolve_binary_path(comm)` resolves the binary, and it is adopted **only if `binary_embeds_ssl()` returns true** (the binary contains the `SSL_write` symbol-name string). This fixes `record -c node` (Node statically links OpenSSL — no system `libssl.so` to hook) while leaving dynamically-linked runtimes like Python on sslsniff's system-libssl + comm-filter path. `record -- <command>` resolves the launched command directly because it targets one known process tree.
 
 ## Containerized Agents: `docker://` Binary Path
 

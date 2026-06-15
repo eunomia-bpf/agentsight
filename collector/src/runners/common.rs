@@ -64,23 +64,37 @@ pub fn runner_error_from_event(event: &Event) -> Option<RunnerError> {
     })
 }
 
+/// Best-effort termination of the spawned probe process group.
+///
+/// On Unix the probe (often wrapped in `sudo`) leads its own process group, so
+/// we signal the whole group. On Windows there is no process-group/`killpg`
+/// concept and no `sudo`; `kill_on_drop(true)` on the `TokioCommand` already
+/// tears the child down, so the guard is a no-op there.
 struct ProbeProcessGuard {
+    #[cfg(unix)]
     pgid: Option<libc::pid_t>,
+    #[allow(dead_code)]
     needs_sudo: bool,
 }
 
 impl ProbeProcessGuard {
+    #[allow(unused_variables)]
     fn new(pid: Option<u32>, needs_sudo: bool) -> Self {
         Self {
+            #[cfg(unix)]
             pgid: pid.map(|pid| pid as libc::pid_t),
             needs_sudo,
         }
     }
 
     fn disarm(&mut self) {
-        self.pgid = None;
+        #[cfg(unix)]
+        {
+            self.pgid = None;
+        }
     }
 
+    #[cfg(unix)]
     fn terminate(&mut self) {
         let Some(pgid) = self.pgid.take() else {
             return;
@@ -95,6 +109,9 @@ impl ProbeProcessGuard {
             }
         }
     }
+
+    #[cfg(not(unix))]
+    fn terminate(&mut self) {}
 }
 
 impl Drop for ProbeProcessGuard {
@@ -203,7 +220,14 @@ impl BinaryExecutor {
     /// eBPF programs get the privileges they need while the parent process
     /// (and the user's agent) stay unprivileged.
     pub async fn get_json_stream(&self) -> Result<JsonStream, RunnerError> {
+        // On Unix, eBPF probes need root; wrap in `sudo` when we are not euid 0
+        // so the parent (and the user's agent) stay unprivileged. On Windows
+        // there is no `sudo` — elevation is handled by the host/manifest — so
+        // we always run the producer directly.
+        #[cfg(unix)]
         let needs_sudo = unsafe { libc::geteuid() } != 0;
+        #[cfg(not(unix))]
+        let needs_sudo = false;
 
         if needs_sudo {
             log::info!(
@@ -230,6 +254,9 @@ impl BinaryExecutor {
         };
         cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
         cmd.kill_on_drop(true);
+        // Lead a new process group so we can signal the whole probe tree on
+        // teardown. Unix-only; on Windows `kill_on_drop` covers cleanup.
+        #[cfg(unix)]
         cmd.process_group(0);
 
         // Add additional arguments if any

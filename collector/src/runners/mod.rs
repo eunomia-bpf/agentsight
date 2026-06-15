@@ -30,6 +30,12 @@ pub mod common;
 pub mod fake;
 pub mod process;
 pub mod system;
+#[cfg(windows)]
+pub mod windows_ebpf;
+#[cfg(windows)]
+pub mod windows_ssl;
+#[cfg(windows)]
+pub mod windows_stdio;
 
 pub use agent::AgentRunner;
 pub use common::BinaryRunner;
@@ -37,3 +43,9 @@ pub use common::BinaryRunner;
 pub use fake::FakeRunner;
 pub use process::ProcessRunner;
 pub use system::SystemRunner;
+#[cfg(windows)]
+pub use windows_ebpf::{WindowsEbpfProgram, WindowsEbpfRunner};
+#[cfg(windows)]
+pub use windows_ssl::{WindowsSslRunner, WindowsSslTarget};
+#[cfg(windows)]
+pub use windows_stdio::WindowsStdioRunner;
