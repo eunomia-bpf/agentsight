@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-15
 Stage at update: claim-gate / supplement
-Source/command: `.agentsight/agentflame/latest/agentflame.json`, `docs/visexp/out/live-record-r114-analysis.json`, `docs/visexp/out/model-benchmarks-r123.json`, `docs/visexp/out/user-task-results.json`
+Source/command: `.agentsight/agentflame/latest/agentflame.json`, `docs/visexp/out/live-record-r114-analysis.json`, `docs/visexp/out/model-benchmarks-r123.json`, `docs/visexp/out/user-task-results.json`, `docs/visexp/out/artifact-usability-r160.json`
 Completeness: partial
 
 This ledger separates current evidence from OSDI-level claims. The paper should
@@ -221,21 +221,38 @@ Needed:
 - llama.cpp server/model setup or connection instructions.
 - Expected output files and dashboard path.
 - Runtime/cache summary.
-- Artifact hygiene check: no raw traces committed, no writes outside the output
-  directory, and explicit warnings for skipped/unreadable traces.
+- Artifact hygiene check: no raw traces committed, raw-trace git status remains
+  clean, generated report path stays under `.agentsight/agentflame`, and skipped
+  or unreadable traces are explicit.
 
 Current partial evidence:
 
 - The Rust CLI can generate `.agentsight/agentflame/latest/agentflame.json`,
   folded stack files, SVGs, and an HTML dashboard over this local workspace.
-- R160 now has a planned command and verifier script,
-  `docs/visexp/artifact_usability_r160.py`, which checks expected artifacts,
-  folded totals, redacted previews, output-dir containment, and raw-trace-like
-  dirty paths. A smoke run of the verifier over the existing full-run output
-  passed to `/tmp`, but no fresh-clone R160 result has been committed.
+- R160 passed a bounded fixed-session smoke using 8 historical Codex sessions
+  and LLM-call tags. The clean run wrote
+  `.agentsight/agentflame/r160-smoke-fixed`, made 60 uncached llama.cpp calls
+  over 76 tag requests, and took 1.64 s. The cached rerun reused `tags.json`,
+  served 76/76 tag requests from cache, made 0 LLM calls, and took 0.11 s.
+- `docs/visexp/artifact_usability_r160.py` verified expected artifacts, folded
+  totals, redacted previews, generated report path containment, 0 dirty
+  raw-trace-like paths, a sanitized fixed-input manifest
+  (`11ae4fb2c96a2d1478aa1525`), clean/cached input equality, and the
+  cached-rerun gate. The audit result is
+  `docs/visexp/out/artifact-usability-r160.json`.
+- The local `.agentsight/agentflame/*/agentflame.json` reports are private
+  workstation artifacts because they include local trace roots and session file
+  metadata. The committed/public artifact is the redacted R160 audit JSON, not
+  those local reports.
+- A broader 36-session discovery run was informative but not used as the final
+  cache gate: its clean run took 173.05 s for 9,600 uncached llama.cpp calls,
+  and its rerun made 34 new model calls because the live Codex session changed
+  between discovery runs. Fixed `--session-file` inputs are therefore required
+  for a meaningful cached-rerun artifact test.
 
-Status: partial. The artifact path exists; community-developer reproducibility
-is not yet proven.
+Status: partial. A bounded local artifact path is verified; fresh-clone setup,
+stable default sampling, and community-developer reproducibility are not yet
+proven.
 
 ## Paper Wording Rule
 
@@ -260,12 +277,14 @@ Allowed current wording:
 - "R142 provides a ready but empty developer-task benchmark packet and scorer;
   no C5 user-outcome evidence exists until real participant responses pass the
   paper-scale gate."
-- "R160 is planned for artifact usability; the current repository should not
-  claim a verified fresh-clone community workflow yet."
+- "R160 verifies an auditable bounded local artifact path with fixed historical
+  sessions, a sanitized input manifest, expected output files, redacted
+  previews, and a fully cached rerun."
 
 Disallowed current wording:
 
 - "AgentFlame proves developers debug faster."
+- "AgentFlame is already a validated community developer tool."
 - "AgentFlame has validated native full-run exact file/network provenance."
 - "AgentSight captures complete session/tool ancestry for arbitrary histories."
 - "One-word tags are semantically correct."

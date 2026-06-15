@@ -285,25 +285,40 @@ Required evidence:
 - Generated artifacts for the three core views: attribution model evidence,
   semantic flamegraph, and baseline-failure comparison.
 - Runtime/resource/cost summary for local use, including cache behavior.
-- Artifact hygiene: no committed raw traces, no writes outside the project
-  output directory, and explicit warnings for unreadable/skipped traces.
+- Artifact hygiene: no committed raw traces, generated report path containment,
+  raw-trace git hygiene, and explicit warnings for unreadable/skipped traces.
 
 Current evidence:
 
 - The Rust CLI can generate `.agentsight/agentflame/latest/agentflame.json`,
   folded stacks, SVGs, and dashboard artifacts over the local AgentSight
   history.
+- R160 verifies a bounded fixed-session local artifact path:
+  `.agentsight/agentflame/r160-smoke-fixed` contains the dashboard, folded
+  stacks, SVGs, and tag cache for 8 historical Codex sessions; the clean run
+  took 1.64 s with 60 uncached llama.cpp calls, and the cached rerun took
+  0.11 s with 76/76 cache hits and 0 LLM calls.
 - `docs/visexp/verify_artifacts.py` checks committed evaluation artifacts, C5
   response-contract fields, R124 tag-adequacy boundaries, and folded totals.
+- `docs/visexp/artifact_usability_r160.py` checks expected artifact files,
+  folded-total equality, redacted previews, generated report path containment,
+  dirty raw-trace-like paths, a sanitized fixed-input manifest, clean/cached
+  input equality, and the cached-rerun gate.
+- R160 records that `.agentsight/agentflame/*/agentflame.json` is a local,
+  private report because it includes trace roots and session file metadata. The
+  public audit artifact is `docs/visexp/out/artifact-usability-r160.json`.
 - Raw local traces are not committed. The full run records skipped unreadable
   files instead of requiring elevated privileges.
 
 Remaining gap:
 
-- There is no fresh-clone artifact smoke that a community developer could
-  rerun end-to-end with clear expected runtime and outputs. This is not a core
-  scientific result, but it is important for turning the research prototype
-  into a credible open-source project.
+- There is still no fresh-clone or clean-install smoke that a community
+  developer could rerun end-to-end with public setup docs. R160 is a bounded
+  local artifact check, not a community adoption result. It also does not prove
+  public-release readiness of the local `.agentsight` reports or full pre/post
+  write-set containment. This is not a core scientific result, but it is
+  important for turning the research prototype into a credible open-source
+  project.
 
 ## Claim Ledger Snapshot
 
@@ -370,8 +385,8 @@ The fastest route to weak accept is now a gate-ordered plan:
    syntax/stability evidence into adequacy evidence without changing the system.
 2. Run a small but real B4x user/task benchmark using the generated R142 answer
    keys and blinded condition packets.
-3. Add an R160 fresh-clone/open-source usability smoke for RQ6, after the core
-   claims stop moving.
+3. Turn the bounded R160 artifact smoke into a fresh-clone/clean-install
+   community workflow, after the core claims stop moving.
 4. Rewrite the paper around "semantic attribution of agent system effects," not
    around "agent flamegraph UI," and keep C5/C6 limitations explicit unless the
    new results pass their gates.

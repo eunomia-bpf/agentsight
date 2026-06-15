@@ -48,6 +48,23 @@ cargo run --manifest-path agentflame/Cargo.toml -- run \
 The Rust path has no heuristic fallback. If the LLM server is unavailable, or
 if the model cannot return one valid lowercase word after retry, the run fails.
 
+Bounded artifact-usability smoke:
+
+```bash
+python3 docs/visexp/artifact_usability_r160.py \
+  --agentflame-dir .agentsight/agentflame/r160-smoke-fixed \
+  --clean-agentflame-json .agentsight/agentflame/r160-smoke-fixed/agentflame.clean.json \
+  --out docs/visexp/out/artifact-usability-r160.json
+```
+
+R160 uses fixed historical session files rather than dynamic discovery, because
+live Codex session files can grow between clean and cached runs. The committed
+audit JSON records only sanitized input fingerprints and verifies clean/cached
+input equality. The generated `.agentsight/agentflame/*/agentflame.json` reports
+are local/private because they can include trace roots and session file
+metadata. R160 is a bounded local artifact-path check, not a fresh-clone,
+public-release, or community-adoption result.
+
 Legacy Python prototype pipeline:
 
 ```bash
@@ -156,6 +173,10 @@ headline results come from `.agentsight/agentflame/latest`.
   user-utility evidence.
 - `out/user-task-results.csv`: per-response scored C5 rows.
 - `out/user-task-results.md`: human-readable C5 scoring summary.
+- `out/artifact-usability-r160.json`: bounded R160 artifact-usability smoke,
+  including expected-file checks, redaction, folded-total equality, clean/cached
+  runtime, sanitized fixed-input manifest, input-equality check, local-report
+  privacy boundary, and cached-rerun tagger stats.
 - `out/prompt-tags.csv`: sanitized prompt hashes, previews, and one-word tags.
 - `out/sessions.json`: per-session counts and tag summaries.
 
@@ -192,6 +213,7 @@ python3 docs/visexp/verify_artifacts.py --out docs/visexp/out
 python3 docs/visexp/tag_stability_smoke.py --out docs/visexp/out
 python3 docs/visexp/score_tag_adequacy.py --labels docs/visexp/out/tag-adequacy-label-packet-r122.csv
 python3 docs/visexp/user_task_benchmark.py --out docs/visexp/out
+python3 docs/visexp/artifact_usability_r160.py --agentflame-dir .agentsight/agentflame/r160-smoke-fixed --clean-agentflame-json .agentsight/agentflame/r160-smoke-fixed/agentflame.clean.json --out docs/visexp/out/artifact-usability-r160.json
 python3 docs/visexp/evaluate_artifacts.py --out docs/visexp/out
 python3 docs/visexp/visual_summary.py --out docs/visexp/out
 ```

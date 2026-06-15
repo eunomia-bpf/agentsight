@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-15
 Stage at update: audit / supplement
-Source/command: OSDI rubric audit over `docs/visexp/STATE.md`, `docs/visexp/CLAIM_VERDICT.md`, `docs/visexp/out/evaluation.json`, `docs/visexp/out/live-record-r114-analysis.json`, `docs/visexp/out/model-benchmarks-r123.json`, `docs/visexp/out/tag-adequacy-results-r124.json`, and `docs/visexp/out/user-task-results.json`
+Source/command: OSDI rubric audit over `docs/visexp/STATE.md`, `docs/visexp/CLAIM_VERDICT.md`, `docs/visexp/out/evaluation.json`, `docs/visexp/out/live-record-r114-analysis.json`, `docs/visexp/out/model-benchmarks-r123.json`, `docs/visexp/out/tag-adequacy-results-r124.json`, `docs/visexp/out/user-task-results.json`, and `docs/visexp/out/artifact-usability-r160.json`
 Completeness: partial
 
 ## Audit Verdict
@@ -15,7 +15,8 @@ AgentFlame now has a credible systems mechanism story:
 - local LLM semantic control-plane labeling at full-history scale;
 - deterministic folded-stack projections and semantic/nonsemantic ablations;
 - fixed command-mode exact lineage with negative controls;
-- executable but empty user-task and tag-adequacy gates.
+- executable but empty user-task and tag-adequacy gates;
+- bounded artifact-usability smoke with a verified cached rerun.
 
 It is not OSDI weak accept yet because two reviewer-facing claims remain
 unsupported by outcome data:
@@ -37,7 +38,7 @@ semantic correctness yet.
 | C4 exact semantic-effect lineage | supported for fixed 20-task Codex command-mode suite; partial broadly | `docs/visexp/out/live-record-r114.json`, `docs/visexp/out/live-record-r114-analysis.json` | warn |
 | C5 developer utility | unsupported | `docs/visexp/out/user-task-results.json` | fail for outcome claim |
 | C6 tag adequacy | partial; syntax/stability only | `docs/visexp/out/tag-adequacy-results-r124.json`, `docs/visexp/out/tag-adequacy-label-packet-r122.csv` | fail for adequacy claim |
-| C7 open-source usefulness | partial | generated CLI/dashboard artifacts and `artifact_usability_r160.py` verifier; no committed fresh-clone smoke | warn |
+| C7 open-source usefulness | partial | `docs/visexp/out/artifact-usability-r160.json`: bounded fixed-session smoke passed, with expected artifacts, redacted previews, folded-total checks, generated report path containment, sanitized input manifest `11ae4fb2c96a2d1478aa1525`, clean/cached input equality, and a 76/76 cached rerun | warn |
 
 ## Result Integrity Checks
 
@@ -50,6 +51,9 @@ semantic correctness yet.
 | C5 empty participant template cannot support utility | `user-task-results.json` is `participant_results_empty`, `c5_supported=false`, `pilot_ready=false` | pass |
 | C5 future real response CSV contract is enforced | scorer validates assignments, packets, duplicate rows, partial files, timing, and confidence | pass |
 | C6 empty human-label packet cannot support adequacy | R124 is `human_labels_empty`, `adequacy_supported=false` | pass |
+| C7 bounded artifact smoke is not a community result | R160 uses 8 fixed historical sessions and records `claim_boundary`; it does not replace fresh-clone install testing or external developer feedback | pass |
+| C7 local report privacy boundary | R160 records that `.agentsight/agentflame/*/agentflame.json` is local/private and not public-release-ready because it contains trace roots/session metadata; the committed artifact is the redacted audit JSON | pass |
+| C7 write-set scope is not overclaimed | R160 records raw-trace git hygiene and report path containment, but explicitly does not claim full pre/post write-set containment | pass |
 | 0.6B/1B small-model claims | no local real 0.6B/1B weights/results currently exist | fail if claimed |
 
 ## Reviewer-Risk Ranking
@@ -84,10 +88,20 @@ paper wording must call tags lossy navigation hints.
 Reviewer concern: the project may be a one-off local analysis rather than a
 community developer tool.
 
-Concrete fix: run R160 as a fresh-clone or clean-worktree smoke using the
-documented CLI command, connect to a llama.cpp-compatible server, write
-`.agentsight/agentflame/r160-smoke`, verify expected outputs with
-`artifact_usability_r160.py`, and record runtime/cache behavior.
+Current status: R160 now passes as a bounded fixed-session local smoke. It
+connects to a llama.cpp-compatible server, writes
+`.agentsight/agentflame/r160-smoke-fixed`, verifies expected outputs with
+`artifact_usability_r160.py`, records clean/cached runtime behavior, records a
+sanitized fixed-input manifest, checks clean/cached input equality, and proves
+that a fixed-input rerun is fully cached.
+
+Remaining concrete fix: run a fresh-clone or clean-install smoke with public
+setup instructions, choose a stable default sampling mode, and collect feedback
+from external developers. The failed 36-session cached attempt is informative:
+dynamic discovery can see new live Codex session fragments between runs, so
+cache experiments must pin `--session-file` inputs. A future release artifact
+also needs sanitized public reports and a real pre/post write-set audit if it
+wants to claim no writes outside the output directory.
 
 Decision gate: needed for artifact strength and open-source positioning, but
 not a substitute for C5/C6 evidence.
@@ -106,6 +120,9 @@ Allowed:
 - R114 validates exact semantic-effect lineage for a fixed 20-task Codex
   command-mode suite with 100.0% precision/recall and 0/3170
   negative-control effects attributed.
+- R160 verifies an auditable bounded local artifact path with fixed historical
+  sessions, a sanitized input manifest, expected output files, redacted
+  previews, and a fully cached rerun.
 
 Disallowed:
 
@@ -113,6 +130,7 @@ Disallowed:
 - One-word tags are semantically correct.
 - AgentSight/AgentFlame has complete exact provenance for arbitrary
   full-history traces.
+- AgentFlame is already validated as a community developer tool.
 - AgentFlame is novel because it is a flamegraph for agents.
 
 ## Next Tracker Rows
@@ -121,4 +139,4 @@ Disallowed:
 |--------|-------|---------|----------------|-----------|--------|---------------|-------------|--------|
 | R124-labels | C6 | Human adequacy labeling for one-word tags. | collect labels over `docs/visexp/out/tag-adequacy-label-packet-r122.csv`; rerun `python3 docs/visexp/score_tag_adequacy.py --labels docs/visexp/out/tag-adequacy-label-packet-r122.csv --out-json docs/visexp/out/tag-adequacy-results-r124.json --out-csv docs/visexp/out/tag-adequacy-results-r124.csv --out-md docs/visexp/out/tag-adequacy-results-r124.md` | 300 fragments, >=2 labelers preferred | adequate/generic-noisy/misleading rubric plus agreement/adjudication | >=80% adequate, <=20% generic/noisy, kappa >=0.6 or narrowed wording | `docs/visexp/out/tag-adequacy-results-r124.json` | planned |
 | R142-pilot | C5 | Pilot developer forensic task benchmark. | fill a pilot copy of `docs/visexp/out/user-task-response-template.csv` with real participant responses; rerun `python3 docs/visexp/score_user_task_results.py --responses <pilot-response.csv> --bundle docs/visexp/out/user-task-benchmark.json --answer-key docs/visexp/out/user-task-answer-key.csv --out docs/visexp/out/user-task-pilot-r142` | 5 participants for complete condition coverage | hidden answer key, timing, false positives, confidence, response-contract checker | pilot only; protocol must work before paper-scale C5 claim | `docs/visexp/out/user-task-pilot-r142/user-task-results.json` | planned |
-| R160 | C7 | Fresh-clone/open-source usability smoke. | `cargo run --manifest-path agentflame/Cargo.toml -- run --project-root . --scan-files 10000 --max-sessions 10000 --llama-url http://127.0.0.1:18080 --model local --timeout 60 --out .agentsight/agentflame/r160-smoke`; then `python3 docs/visexp/artifact_usability_r160.py --agentflame-dir .agentsight/agentflame/r160-smoke --out docs/visexp/out/artifact-usability-r160.json` | one clean run plus cached rerun | expected files, runtime/cache summary, no raw-trace commit, no writes outside output dir | project can be evaluated as a community tool artifact | `docs/visexp/out/artifact-usability-r160.json` | planned; verifier script exists and passed on existing `.agentsight/agentflame/latest` output only |
+| R160 | C7 | Bounded fixed-session open-source usability smoke. | `cargo run --manifest-path agentflame/Cargo.toml -- run --project-root . --llama-url http://127.0.0.1:18080 --model local --timeout 60 --out .agentsight/agentflame/r160-smoke-fixed --session-file <8 fixed historical Codex sessions>`; repeat same command; verify with `artifact_usability_r160.py` and clean-run report. | 8 fixed historical Codex sessions; one clean run plus cached rerun | expected files, runtime/cache summary, fully cached rerun, sanitized input manifest, clean/cached input equality, no raw-trace git dirt, generated report path containment | bounded local artifact path is audited; fresh-clone/community claim still open | `docs/visexp/out/artifact-usability-r160.json` | done/bounded |
