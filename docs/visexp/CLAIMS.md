@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-15
 Stage at update: claim-gate / supplement
-Source/command: `.agentsight/agentflame/latest/agentflame.json`, `docs/visexp/out/live-record-r114-analysis.json`, `docs/visexp/out/model-benchmarks-r123.json`, `docs/visexp/out/user-task-results.json`, `docs/visexp/out/artifact-usability-r160.json`
+Source/command: `.agentsight/agentflame/latest/agentflame.json`, `docs/visexp/out/live-record-r114-analysis.json`, `docs/visexp/out/model-benchmarks-r180.json`, `docs/visexp/out/user-task-results.json`, `docs/visexp/out/artifact-usability-r160.json`
 Completeness: partial
 
 This ledger separates current evidence from OSDI-level claims. The paper should
@@ -36,7 +36,10 @@ Status: supported as a local-history artifact claim.
 
 Scope:
 
-- 3B Qwen2.5 Instruct Q4_K_M through llama.cpp HTTP.
+- 3B Qwen2.5 Instruct Q4_K_M through llama.cpp HTTP for the full local-history
+  path.
+- Local 0.6B-, 1B-, and 3B-class GGUFs for the R180 redacted-fragment
+  syntax/stability benchmark.
 - Temperature 0, one-word grammar, retry-on-invalid.
 
 Evidence:
@@ -54,9 +57,12 @@ Additional evidence:
 - R123 ran 300 real redacted fragments from R122 through the available 3B
   llama.cpp server with 3 identical repeats each: 900/900 valid tags, p95
   request latency 31 ms after load, and 285/300 exact-stable fragments.
+- R180 ran the same 300 R122 fragments over local 0.6b, TinyLlama 1.1b, and 3b
+  GGUFs with `--reasoning off`: 2700/2700 valid tags, per-model exact stability
+  299/300, 279/300, and 285/300, and p95 latency 23/18/32 ms.
 
-Status: supported for 3B syntax/latency; partial for model-size coverage and
-adequacy.
+Status: supported for local syntax/latency over available 0.6B-/1B-/3B-class
+models; partial for semantic adequacy.
 
 ### C3: Semantic frames expose task-effect mixtures hidden by nonsemantic and flat summaries.
 
@@ -198,10 +204,10 @@ Status: unsupported as a user-outcome claim.
 
 Needed:
 
-- 0.6B/1B/3B model comparison over the same fragments.
-- Repeated-run stability.
 - Human adequacy labels.
 - Generic/noisy-tag rate.
+- Controlled same-family model-size comparison only if the paper wants a model
+  scaling claim rather than a local deployment smoke.
 
 Current partial evidence:
 
@@ -210,6 +216,10 @@ Current partial evidence:
   `bashoutput`.
 - R122 creates a redacted 300-fragment label packet.
 - R123 provides 300/300 candidate tags from the 3B real-fragment benchmark.
+- R180 provides local multi-model syntax/stability over the same fragments:
+  2700/2700 valid tags and aggregate 863/900 exact-stable fragments.
+- The R180 TinyLlama 1.1b run is a negative adequacy signal because most tags
+  collapse to localization/localized variants.
 - R124-scoring scores that packet without fabricating labels. The current
   output is `human_labels_empty` with 0 final labels, so adequacy remains
   unproven.
@@ -265,7 +275,8 @@ Allowed current wording:
   histories."
 - "In our local full-history run, removing semantic frames causes more than 90%
   of system observation weight to fall into mixed semantic buckets."
-- "Local one-word tagging is syntactically feasible with a 3B llama.cpp model."
+- "Local one-word tagging is syntactically feasible with the available
+  0.6B-/1B-/3B-class llama.cpp models on the R122 redacted fragment sample."
 - "On three real AgentSight DB exports, the C4 checker covers and joins 182/318
   raw effects; within that covered scope it joins 182/182 effects after a
   harness-synthesized agent-run envelope is added."

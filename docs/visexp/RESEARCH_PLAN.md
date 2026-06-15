@@ -115,12 +115,16 @@ Current evidence:
 - R123 ran the R122 fragment file through the local 3B llama.cpp server with
   3 identical repeats per fragment: 900/900 valid tags, 1002 ms load, p95
   request latency 31 ms, and 285/300 exact-stable fragments.
+- R180 ran the same 300 R122 fragments through local 0.6b, TinyLlama 1.1b, and
+  3b GGUFs with `--reasoning off`: 2700/2700 valid tags; exact stability
+  299/300, 279/300, and 285/300; p95 latency 23/18/32 ms.
 
 Remaining gap:
 
-- The full run and B5x benchmark used only a 3B local model. No local 0.6B/1B
-  real model GGUF was available. Paper-level C6 still needs human adequacy
-  labels over the R122 packet.
+- R180 is a local operational smoke over different model families and
+  quantization paths, not a controlled same-family scaling result. Paper-level
+  C6 still needs human adequacy labels over the R122 packet; the TinyLlama 1.1b
+  localization-like collapse shows why syntax/stability is not enough.
 
 ### RQ2. Semantic Partitioning Beyond Traditional Tools
 
@@ -267,14 +271,20 @@ models, sessions, and prompt distributions?
 
 Required evidence:
 
-- 0.6B/1B/3B local model comparison.
-- Repeated-run stability at temperature 0 and at a small nonzero temperature.
+- Local 0.6B-/1B-/3B-class model comparison for syntax, latency, and
+  temperature-0 repeated-run stability.
+- Optional robustness at a small nonzero temperature or a controlled
+  same-family scaling curve, if the paper wants those claims.
 - Human adequacy labels over session/prompt/LLM-call fragments.
 - Generic-tag and malformed-tag rates.
 
 Current evidence:
 
 - The full 3B run has 0 malformed prompt and LLM-call tags.
+- R180 covers local 0.6B-/1B-/3B-class syntax/stability on the R122 redacted
+  fragment sample: 2700/2700 valid outputs, per-model exact stability
+  299/300, 279/300, and 285/300, and p95 latency 23/18/32 ms. It is not a
+  controlled same-family scaling curve.
 - R124-scoring now reads the R122 human-label packet and emits an auditable
   empty result when no labels exist: 300 packet rows, 300 candidate tags, 0
   final labels, `human_labels_empty`, and `adequacy_supported=false`. This
@@ -286,6 +296,8 @@ Current evidence:
 - Some tags are clearly useful (`refactor`, `review`, `test`, `analyze`,
   `design`, `research`), but some are noisy or over-specific
   (`agentsightsm`, `testcodex`, `designcodex`, `bashoutput`).
+- TinyLlama 1.1b in R180 is syntactically valid but collapses most outputs to
+  localization-like labels, showing why grammar/stability is not adequacy.
 
 Remaining gap:
 
@@ -349,11 +361,11 @@ Remaining gap:
 | ID | Claim | Current Status | Evidence Needed For OSDI |
 |----|-------|----------------|--------------------------|
 | C1 | AgentFlame can generate semantic folded stacks and dashboards over real local agent histories. | supported | verifier for full run and reproducibility script |
-| C2 | Local one-word LLM tagging is feasible for session/prompt/LLM-call contexts. | supported for 3B syntax/latency; partial for size/adequacy | 0.6B/1B evidence if claimed and adequacy labels |
+| C2 | Local one-word LLM tagging is feasible for session/prompt/LLM-call contexts. | supported for local 0.6B-/1B-/3B-class syntax/latency; partial for adequacy | human adequacy labels; controlled same-family scaling only if claimed |
 | C3 | Semantic frames expose task-effect mixtures hidden by nonsemantic and flat summaries. | supported as mechanism | stronger examples and task benchmark |
 | C4 | Exact AgentSight lineage connects semantic intent to process/file/network effects. | supported for fixed command-mode suite; partial broadly | cross-repo/full-history exact integration and user-task outcomes |
 | C5 | Developers answer debugging/audit questions better with semantic effect flamegraphs. | unsupported; R142 packet/scorer/preregistration exists | user/task benchmark responses with valid response contract passing the Holm-corrected paper-scale C5 gate |
-| C6 | One-word tags are stable and adequate enough for navigation. | partial; R124 scorer/join protocol exists but labels are empty | human adequacy labels with thresholds and 0.6B/1B evidence if claimed |
+| C6 | One-word tags are stable and adequate enough for navigation. | partial; R180 syntax/stability exists, R124 scorer/join protocol exists, labels are empty | human adequacy labels with thresholds |
 | C7 | The approach is practical as an open-source developer tool. | partial | one-command install/run, runtime/cost, docs, artifact hygiene |
 
 ## Experiment Matrix
@@ -364,7 +376,7 @@ Remaining gap:
 | B2 | RQ2 | Semantic partitioning audit | semantic, nonsemantic, flat process/effect summary | mixed buckets, mixed weight, entropy, examples | deterministic stack comparison | done |
 | B3 | RQ3 | Live exact AgentSight lineage | agent-native proxy vs exact effect stream plus negative controls | recall, precision, orphan rate, path/domain specificity | lineage checker with false-positive controls | fixed command-mode suite passed; broader replication should |
 | B4 | RQ4 | Developer task benchmark | trace tree, event-count proxy, flat summary, nonsemantic stack, semantic stack; optional true span-duration baseline if reconstructed from timestamps | time, accuracy, false positives, confidence | hidden answer key plus frozen preregistration | packet scaffold, baseline naming, and preregistration done; participant responses missing |
-| B5 | RQ5 | Small-model and tag-stability benchmark | 0.6B, 1B, 3B, optional larger reference | latency, invalid rate, identical-input stability, adequacy | repeated run + human labels | must |
+| B5 | RQ5 | Small-model and tag-stability benchmark | local 0.6B-/1B-/3B-class models, optional larger reference | latency, invalid rate, identical-input stability, adequacy | repeated run + human labels | syntax/stability done by R180; adequacy labels missing |
 | B6 | RQ2 | Ablations | no semantic, session-only, prompt-only, prompt+LLM-call, full | information gain, stack explosion; noisy-tag burden and B4 task accuracy/time deferred | same observations, total-weight equality, report/folded cross-checks | done for C3 mechanism; C6/B4 deferred |
 | B7 | RQ6 | Open-source usability smoke | fresh clone, install, run, view dashboard | setup time, commands, failure modes | artifact checklist | should |
 

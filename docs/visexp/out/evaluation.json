@@ -1458,6 +1458,130 @@
     },
     "smoke_verdict": "smoke_supported"
   },
+  "model_benchmark": {
+    "schema_version": 1,
+    "run_id": "R180",
+    "generated_at": "2026-06-15T10:43:04Z",
+    "source": ".agentsight/agentflame/model-benchmarks-r180.json",
+    "provenance": {
+      "repo_commit": "ee8b5db01fffa17011e6aa378bbd3c993cc71f4a",
+      "repo_dirty": true,
+      "command": "cargo run --manifest-path agentflame/Cargo.toml -- bench --llama-server $HOME/workspace/llama.cpp-latest/build/bin/llama-server --server-arg=--reasoning --server-arg=off --server-arg=--ctx-size --server-arg=2048 --runs 3 --load-timeout 240 --request-timeout 60 --fragment-file .agentsight/agentflame/r122-real-fragments.txt --out .agentsight/agentflame/model-benchmarks-r180.json --model 0.6b=$HOME/workspace/gpu/xpu-perf/test/qwen3.cu/Qwen3-0.6B-FP32.gguf --model 1.1b=$HOME/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf --model 3b=$HOME/workspace/llama.cpp-latest/models/qwen2.5-3b-instruct-q4_k_m.gguf",
+      "source_sha256": "b659fe0b7e80818cb8cfbf9ff4aefd9d10b1826994be3b179efda4f4874de721",
+      "fragment_file": ".agentsight/agentflame/r122-real-fragments.txt",
+      "fragment_file_sha256": "cb38ffc8047b1a710e8930aa705fd1d9dba93affeb476a3299bf2a7cf0fc3e5b",
+      "summary_script_sha256": "4f77ff9fbfcbd186b8804f226b92eb4704362687d742eaecccb5311f3062ff74",
+      "llama_server_sha256": "c6bf46749973fbb1ab32ccec3df93c01d51f2c22cb503da32e800101968a5905",
+      "llama_server_version": null
+    },
+    "model_discovery": {
+      "bench_models": [
+        {
+          "label": "0.6b",
+          "size_class": "0.6b",
+          "path": "$HOME/workspace/gpu/xpu-perf/test/qwen3.cu/Qwen3-0.6B-FP32.gguf"
+        },
+        {
+          "label": "1.1b",
+          "size_class": "1b",
+          "path": "$HOME/workspace/gpu/gpu_ext/workloads/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf"
+        },
+        {
+          "label": "3b",
+          "size_class": "3b",
+          "path": "$HOME/workspace/llama.cpp-latest/models/qwen2.5-3b-instruct-q4_k_m.gguf"
+        }
+      ],
+      "missing_size_classes": [],
+      "vocab_only_gguf_count": 17
+    },
+    "bench": {
+      "runs_per_model": 3,
+      "repeats_per_fragment": 3,
+      "fragments_per_model": 300,
+      "fragment_previews_included": false,
+      "models": [
+        {
+          "label": "0.6b",
+          "size_class": "0.6b",
+          "load_ms": 2529,
+          "total_runs": 900,
+          "ok_runs": 900,
+          "failed_runs": 0,
+          "valid_tags": 900,
+          "invalid_tag_count": 0,
+          "stability": {
+            "exact_stability_pct": 99.667,
+            "exact_stable_fragments": 299,
+            "fragment_count": 300,
+            "requested_runs": 900,
+            "valid_run_pct": 100.0
+          },
+          "llm_calls": 900,
+          "llm_successes": 900,
+          "latency_p50_ms": 9,
+          "latency_p95_ms": 23
+        },
+        {
+          "label": "1.1b",
+          "size_class": "1b",
+          "load_ms": 1002,
+          "total_runs": 900,
+          "ok_runs": 900,
+          "failed_runs": 0,
+          "valid_tags": 900,
+          "invalid_tag_count": 0,
+          "stability": {
+            "exact_stability_pct": 93.0,
+            "exact_stable_fragments": 279,
+            "fragment_count": 300,
+            "requested_runs": 900,
+            "valid_run_pct": 100.0
+          },
+          "llm_calls": 900,
+          "llm_successes": 900,
+          "latency_p50_ms": 11,
+          "latency_p95_ms": 18
+        },
+        {
+          "label": "3b",
+          "size_class": "3b",
+          "load_ms": 1003,
+          "total_runs": 900,
+          "ok_runs": 900,
+          "failed_runs": 0,
+          "valid_tags": 900,
+          "invalid_tag_count": 0,
+          "stability": {
+            "exact_stability_pct": 95.0,
+            "exact_stable_fragments": 285,
+            "fragment_count": 300,
+            "requested_runs": 900,
+            "valid_run_pct": 100.0
+          },
+          "llm_calls": 900,
+          "llm_successes": 900,
+          "latency_p50_ms": 10,
+          "latency_p95_ms": 32
+        }
+      ]
+    },
+    "aggregate": {
+      "total_runs": 2700,
+      "ok_runs": 2700,
+      "failed_runs": 0,
+      "valid_run_pct": 100.0,
+      "exact_stable_fragments": 863,
+      "fragment_count": 900,
+      "exact_stability_pct": 95.889
+    },
+    "interpretation": [
+      "Local llama.cpp benchmark paths produced syntactically valid one-word tags for 0.6b, 1.1b, 3b.",
+      "Fixed-input exact stability over 300 redacted R122 session/prompt/LLM-call fragments: 0.6b 299/300, 1.1b 279/300, 3b 285/300.",
+      "The compared GGUFs are locally available models with different families or quantization paths; use this as a deployment-cost smoke, not a controlled model-family scaling result.",
+      "This run does not measure human adequacy; R124 remains required before C6 can become stronger than partial."
+    ]
+  },
   "tag_adequacy_results": {
     "schema_version": 1,
     "run_id": "R124-scoring",
@@ -6170,7 +6294,7 @@
       "claim": "C2 one-word tags in stack grammar",
       "verdict": "supported",
       "oracle": "all committed tags match the one-word grammar and vocabulary is non-trivial",
-      "evidence": "invalid=0 unique_prompt_tags=10 r170_refresh=full_history_refresh_passed r170_sessions=325 r170_system_observations=183714 r170_llm_calls=35136 r170_cache_hits=82886 r170_folded_match=True"
+      "evidence": "invalid=0 unique_prompt_tags=10 model_classes=['0.6b', '1b', '3b'] model_benchmark_valid=True model_benchmark=R180 runs=2700 ok=2700 failed=0 valid_pct=100.0 0.6b_class=0.6b_ok=900_stable=299/300_p95=23 1.1b_class=1b_ok=900_stable=279/300_p95=18 3b_class=3b_ok=900_stable=285/300_p95=32 r170_refresh=full_history_refresh_passed r170_sessions=325 r170_system_observations=183714 r170_llm_calls=35136 r170_cache_hits=82886 r170_folded_match=True"
     },
     {
       "claim": "C3 semantic stacks add information beyond flat/nonsemantic baselines",
@@ -6200,7 +6324,7 @@
       "claim": "C6 tag stability and adequacy",
       "verdict": "partial",
       "oracle": "smoke checks repeated-run syntax/stability plus R124 human adequacy scoring",
-      "evidence": "same_hash_multi_tag_count=0 smoke_verdict=smoke_supported fallback_stable_pct=100.0 fallback_generic_pct=4.167 llama_stable_pct=100.0 llama_generic_pct=12.5 fallback_vs_llama_exact_pct=0.0 tag_adequacy=human_labels_empty candidate_tags=300 final_labels=0 packet_rows=300 adequate_pct=None generic_noisy_pct=None misleading_pct=None kappa=None adequacy_supported=False tag_join=ready_for_independent_label_collection join_rows=300 labeler_1=0 labeler_2=0 paired=0 missing_adjudication=0"
+      "evidence": "same_hash_multi_tag_count=0 smoke_verdict=smoke_supported fallback_stable_pct=100.0 fallback_generic_pct=4.167 llama_stable_pct=100.0 llama_generic_pct=12.5 fallback_vs_llama_exact_pct=0.0 model_benchmark=R180 runs=2700 ok=2700 failed=0 valid_pct=100.0 0.6b_class=0.6b_ok=900_stable=299/300_p95=23 1.1b_class=1b_ok=900_stable=279/300_p95=18 3b_class=3b_ok=900_stable=285/300_p95=32 tag_adequacy=human_labels_empty candidate_tags=300 final_labels=0 packet_rows=300 adequate_pct=None generic_noisy_pct=None misleading_pct=None kappa=None adequacy_supported=False tag_join=ready_for_independent_label_collection join_rows=300 labeler_1=0 labeler_2=0 paired=0 missing_adjudication=0"
     }
   ]
 }

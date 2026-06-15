@@ -25,6 +25,7 @@ DEFAULT_OUT_JSON = SCRIPT_DIR / "out" / "model-benchmarks-r121.json"
 DEFAULT_OUT_MD = SCRIPT_DIR / "out" / "model-benchmarks-r121.md"
 DEFAULT_MODEL_DIR = Path.home() / "workspace" / "llama.cpp-latest" / "models"
 TAG_RE = re.compile(r"^[a-z][a-z]{2,11}$")
+EXPECTED_SIZE_CLASSES = ("0.6b", "1b", "3b")
 
 
 def read_json(path: Path) -> dict[str, Any]:
@@ -90,9 +91,12 @@ def pct(part: int | float, whole: int | float) -> float:
 
 def model_size_class(name: str, label: str = "") -> str | None:
     text = f"{label} {name}".lower()
-    for size in ("0.6b", "1b", "3b"):
-        if size in text:
-            return size
+    if any(token in text for token in ("0.6b", "0_6b", "0-6b", "600m")):
+        return "0.6b"
+    if any(token in text for token in ("1.1b", "1.0b", "1b", "1000m", "1100m")):
+        return "1b"
+    if any(token in text for token in ("3b", "3.0b", "3000m")):
+        return "3b"
     return None
 
 
@@ -110,16 +114,27 @@ def discover_models(model_dir: Path, bench: dict[str, Any]) -> dict[str, Any]:
         entry["label"] = size_class or path.stem
         real_models.append(entry)
 
-    present_classes = {str(item.get("label")) for item in real_models}
+    present_classes = {
+        str(item.get("label")) for item in real_models if item.get("label") in EXPECTED_SIZE_CLASSES
+    }
+    bench_classes = []
     for model in bench.get("models") or []:
         size_class = model_size_class(scrub(model.get("path", "")), str(model.get("label", "")))
         if size_class:
             present_classes.add(size_class)
+        bench_classes.append(
+            {
+                "label": model.get("label"),
+                "size_class": size_class,
+                "path": scrub(model.get("path", "")),
+            }
+        )
     return {
         "directory": scrub(model_dir),
         "real_model_ggufs": real_models,
+        "bench_models": bench_classes,
         "vocab_only_gguf_count": len(vocab_only),
-        "missing_size_classes": [size for size in ("0.6b", "1b") if size not in present_classes],
+        "missing_size_classes": [size for size in EXPECTED_SIZE_CLASSES if size not in present_classes],
     }
 
 
@@ -154,6 +169,7 @@ def summarize_model(model: dict[str, Any]) -> dict[str, Any]:
     model_bytes = model_path.stat().st_size if model_path.exists() else None
     return {
         "label": model.get("label"),
+        "size_class": model_size_class(str(model.get("path") or ""), str(model.get("label") or "")),
         "path": scrub(model.get("path", "")),
         "path_bytes": model_bytes,
         "path_sha256": file_sha256(model_path) if model_path.exists() else None,
@@ -170,6 +186,67 @@ def summarize_model(model: dict[str, Any]) -> dict[str, Any]:
         "llm_calls": (model.get("tagger_stats") or {}).get("llm_calls", 0),
         "llm_successes": (model.get("tagger_stats") or {}).get("llm_successes", 0),
     }
+
+
+def interpretation_lines(
+    models: list[dict[str, Any]],
+    workload_label: str,
+    human_label_run_id: str,
+    missing_size_classes: list[str],
+) -> list[str]:
+    runnable = [model for model in models if int(model.get("total_runs") or 0) > 0]
+    all_valid = [
+        str(model.get("label"))
+        for model in runnable
+        if int(model.get("ok_runs") or 0) == int(model.get("total_runs") or 0)
+        and not model.get("invalid_tags")
+    ]
+    failed = [
+        str(model.get("label"))
+        for model in models
+        if int(model.get("failed_runs") or 0) > 0 or int(model.get("total_runs") or 0) == 0
+    ]
+    stable = [
+        (
+            str(model.get("label")),
+            int((model.get("stability") or {}).get("exact_stable_fragments") or 0),
+            int((model.get("stability") or {}).get("fragment_count") or 0),
+        )
+        for model in runnable
+    ]
+    lines = []
+    if all_valid:
+        lines.append(
+            "Local llama.cpp benchmark paths produced syntactically valid one-word tags for "
+            + ", ".join(all_valid)
+            + "."
+        )
+    if failed:
+        lines.append(
+            "Some configured model paths did not produce a full valid benchmark: "
+            + ", ".join(failed)
+            + "."
+        )
+    if stable:
+        stability_text = ", ".join(f"{label} {ok}/{total}" for label, ok, total in stable)
+        lines.append(f"Fixed-input exact stability over {workload_label}: {stability_text}.")
+    if missing_size_classes:
+        lines.append(
+            "This run still lacks real benchmark coverage for size classes: "
+            + ", ".join(missing_size_classes)
+            + "."
+        )
+    if len(runnable) > 1:
+        lines.append(
+            "The compared GGUFs are locally available models with different families or "
+            "quantization paths; use this as a deployment-cost smoke, not a controlled "
+            "model-family scaling result."
+        )
+    lines.append(
+        f"This run does not measure human adequacy; {human_label_run_id} remains required "
+        "before C6 can become stronger than partial."
+    )
+    return lines
 
 
 def summarize(
@@ -194,6 +271,7 @@ def summarize(
     )
     generated_at = bench.get("generated_at") or date.today().isoformat()
     llama_server = Path(str(bench.get("llama_server") or ""))
+    discovery = discover_models(model_dir, bench)
     summary = {
         "schema_version": 1,
         "run_id": run_id,
@@ -210,7 +288,7 @@ def summarize(
             "llama_server_sha256": file_sha256(llama_server) if llama_server.exists() else None,
             "llama_server_version": command_text([str(llama_server), "--version"]) if llama_server.exists() else None,
         },
-        "model_discovery": discover_models(model_dir, bench),
+        "model_discovery": discovery,
         "bench": {
             "llama_server": scrub(bench.get("llama_server", "")),
             "runs_per_model": bench.get("runs_per_model"),
@@ -228,12 +306,12 @@ def summarize(
             "fragment_count": fragment_count,
             "exact_stability_pct": pct(stable_fragments, fragment_count),
         },
-        "interpretation": [
-            "The 3B local llama.cpp benchmark path works and produced syntactically valid one-word tags in every run.",
-            f"The fixed-input stability result is {stable_fragments}/{fragment_count} exact-stable fragments over {workload_label}.",
-            "No locally available 0.6B or 1B real model GGUF was found, so this run cannot support claims about those size classes.",
-            f"This run does not measure human adequacy; {human_label_run_id} remains required before C6 can become stronger than partial.",
-        ],
+        "interpretation": interpretation_lines(
+            models,
+            workload_label,
+            human_label_run_id,
+            discovery["missing_size_classes"],
+        ),
     }
     return scrub_tree(summary)
 
@@ -293,6 +371,11 @@ def md_table(summary: dict[str, Any]) -> str:
 
 def write_markdown(summary: dict[str, Any], path: Path, command: str, fragment_limit: int) -> None:
     model_discovery = summary["model_discovery"]
+    bench_classes = ", ".join(
+        f"{item.get('label')}->{item.get('size_class') or 'unknown'}"
+        for item in model_discovery.get("bench_models", [])
+    )
+    interpretation = "\n".join(f"- {line}" for line in summary.get("interpretation", []))
     fragments = []
     for model in summary["bench"]["models"]:
         model_fragments = model.get("fragments", [])
@@ -332,19 +415,20 @@ Result:
 Model discovery found {len(model_discovery['real_model_ggufs'])} real model GGUF(s).
 The remaining {model_discovery['vocab_only_gguf_count']} GGUF files in
 `{model_discovery['directory']}` are vocab fixtures or too small to be usable
-model weights for this benchmark. Missing size classes:
+model weights for this benchmark. Bench model classes:
+{bench_classes or "none"}.
+
+Missing size classes:
 {", ".join(model_discovery["missing_size_classes"]) or "none"}.
 
 {fragment_markdown}
 
 Interpretation:
 
-- Supported: the 3B local llama.cpp benchmark path works and produced valid
-  one-word tags in {summary['aggregate']['ok_runs']}/{summary['aggregate']['total_runs']} runs.
-- Mixed: fixed-input exact stability is {summary['aggregate']['exact_stable_fragments']}/{summary['aggregate']['fragment_count']} fragments ({summary['aggregate']['exact_stability_pct']:.3f}%).
-- Not supported: 0.6B/1B feasibility and human adequacy.
-- Claim impact: C2 can cite 3B syntax/latency feasibility; C6 remains partial
-  until human adequacy labels exist.
+{interpretation}
+
+Claim impact: C2 can cite only the model classes that actually ran. C6 remains
+partial until human adequacy labels exist.
 """
     path.write_text(text, encoding="utf-8")
 

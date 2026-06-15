@@ -74,7 +74,7 @@ Weak accept requires all four gates below:
 |------|----------|-------------------|---------------|--------|
 | G1 full-history semantic characterization | C1-C3 | all repo-related readable sessions annotated by real llama.cpp model, with redacted output and baseline-mixing analysis | 205 sessions, 29,302 llama.cpp HTTP calls, 0 final tag failures, 90.219%/90.770% mixed baseline weights | pass |
 | G2 live exact semantic-effect lineage | C4 | broader live `agentsight record` suite, recall/precision table, join/orphan table, child-depth and path specificity, negative controls | R114 fixed 20-task suite: 20/20 targets completed, 20/20 tasks observed negative controls, 1273/1273 in-scope effects joined, 100.0% precision/recall, 3170 observed negative-control effects with 0 joined, child-depth/path/redaction tables generated | pass for fixed suite |
-| G3 small-model and tag adequacy | C2,C6 | 0.6B/1B/3B llama.cpp benchmark, repeated-run stability, human adequacy labels | 3B syntax/full-run evidence plus R123 real redacted stability: 900/900 valid tags, 285/300 exact-stable fragments, p95 31 ms; no local 0.6B/1B weights; human adequacy still missing | partial |
+| G3 small-model and tag adequacy | C2,C6 | 0.6B/1B/3B llama.cpp benchmark, repeated-run stability, human adequacy labels | R180 covers local 0.6B-/1B-/3B-class syntax/stability over the 300 R122 redacted fragments: 2700/2700 valid tags; per-model exact stability is 299/300, 279/300, and 285/300 with p95 23/18/32 ms. This is not controlled same-family scaling, and TinyLlama 1.1B collapses semantically toward localization-like tags; human adequacy still missing | partial |
 | G4 developer task utility | C5 | head-to-head task benchmark against trace tree, true span-duration flamegraph or explicitly named event-count proxy, flat summary, nonsemantic stack, semantic stack | R142-packet generated 14 tasks, 8 primary utility tasks, 6 limitation/comprehension tasks, 5 conditions, 70 leak-checked blinded packets, P01-P05 counterbalanced assignments, hidden answer key, manifests, and per-task same-event-slice `slice_id` checks. The former span-like event-weight condition is now explicitly named `event-count-proxy`, so the packet no longer claims to be a span-duration baseline. R142-scoring adds response-contract checks, task-level diagnostic deltas, Holm-corrected participant/task/order fixed-effect paper gates, false-positive guardrails, and C5 support/pilot gates. R142-preregistration is now frozen before collection and records source hashes, task roles, response schema, exclusions, conditions, and success thresholds; no participants | missing outcome data |
 
 ## Weak-Accept Execution Protocol
@@ -274,8 +274,9 @@ more false positives than baselines.
 
 ### RQ5: Are one-word tags stable and adequate as navigation frames?
 
-Are 0.6B/1B/3B local models fast and stable enough to produce useful one-word
-labels for session/prompt/LLM-call navigation?
+Are local small models fast and stable enough to produce one-word labels for
+session/prompt/LLM-call navigation, and are those labels semantically adequate
+for humans?
 
 Primary oracle: repeated model benchmark plus human adequacy labels.
 
@@ -326,16 +327,21 @@ fragments, or latency/cost too high for local developer use.
 - Workload: 300 fragments sampled from the full run: 100 session summaries, 100
   prompt texts, 100 LLM-call previews. Store only hashes, redacted previews, and
   labels in committed artifacts.
-- Models: at minimum 3B and every locally available 1B/0.6B-class GGUF; R121
-  found only one real 3B model locally, while 0.6B/1B were absent, so any paper
-  claim about those size classes requires downloading or adding real weights.
+- Models: at minimum the available local 0.6B-, 1B-, and 3B-class GGUFs. R180
+  covers 0.6b, TinyLlama 1.1b, and 3b, but it is a local operational smoke over
+  different model families/quantization paths, not a controlled same-family
+  scaling curve.
 - Command skeleton:
 
 ```bash
 cargo run --manifest-path agentflame/Cargo.toml -- bench \
   --llama-server /home/yunwei37/workspace/llama.cpp-latest/build/bin/llama-server \
+  --server-arg=--reasoning --server-arg=off --server-arg=--ctx-size --server-arg=2048 \
   --runs 3 \
-  --out .agentsight/agentflame/model-benchmarks.json \
+  --fragment-file .agentsight/agentflame/r122-real-fragments.txt \
+  --out .agentsight/agentflame/model-benchmarks-r180.json \
+  --model 0.6b=/path/to/model-0.6b.gguf \
+  --model 1.1b=/path/to/model-1.1b.gguf \
   --model 3b=/home/yunwei37/workspace/llama.cpp-latest/models/qwen2.5-3b-instruct-q4_k_m.gguf
 ```
 
@@ -360,15 +366,19 @@ cargo run --manifest-path agentflame/Cargo.toml -- bench \
   session summaries, 100 prompt fragments, and 100 LLM-call fragments. R123 ran
   those fragments through the available 3B llama.cpp server with 3 identical
   repeats each and produced 900/900 valid tags, p95 request latency 31 ms after
-  load, and 285/300 exact-stable fragments (95.000%).
+  load, and 285/300 exact-stable fragments (95.000%). R180 reran the same
+  fragments over local 0.6b, TinyLlama 1.1b, and 3b GGUFs with 3 repeats each:
+  2700/2700 valid tags, exact stability 299/300, 279/300, and 285/300, and p95
+  latency 23/18/32 ms. The 1.1b run collapses toward localization-like tags,
+  which is an adequacy warning despite syntactic success.
 - Privacy guard: `agentflame bench` now omits fragment previews by default; R121
   used `--include-fragment-previews` only because the three smoke fragments are
   synthetic.
 - Remaining gap: paper-level C6 still needs human adequacy labels over the R122
-  packet and any added 0.6B/1B real model weights if the paper wants to claim
-  smaller size classes.
-- Result path: `.agentsight/agentflame/model-benchmarks.json`,
-  `docs/visexp/out/model-benchmarks-r123.json`, and
+  packet. A controlled same-family 0.6B/1B/3B scaling curve is optional and
+  should be claimed only if run separately.
+- Result path: `.agentsight/agentflame/model-benchmarks-r180.json`,
+  `docs/visexp/out/model-benchmarks-r180.json`, and
   `docs/visexp/out/tag-adequacy-label-packet-r122.csv`.
 
 ### B6x: Semantic Axis Ablation
@@ -456,6 +466,7 @@ cargo run --manifest-path agentflame/Cargo.toml -- bench \
 | R121 | C2,C6 | B5x | Real llama.cpp model benchmark. | `agentflame bench --runs 3 --model ...` using available GGUF models | 3 fixed fragments x 3 identical repeats | grammar/stability/latency checker | done for 3B smoke: 9/9 valid tags, 2/3 exact-stable fragments; no claims for missing size classes; adequacy labels required | `.agentsight/agentflame/model-benchmarks.json`, `docs/visexp/out/model-benchmarks-r121.json` | done |
 | R122 | C6 | B5x | Redacted label packet. | create redacted label packet | 300 fragments | redaction scan + stratified counts | packet ready; labels still required | `docs/visexp/out/tag-adequacy-label-packet-r122.csv` | done/packet |
 | R123 | C2,C6 | B5x | Real redacted fragment stability. | `agentflame bench --fragment-file .agentsight/agentflame/r122-real-fragments.txt --runs 3 --model ...` | 300 fragments x 3 repeats | grammar/stability/latency checker | done for 3B: 900/900 valid, 285/300 exact-stable, p95 31 ms; adequacy labels required | `.agentsight/agentflame/model-benchmarks-r123.json`, `docs/visexp/out/model-benchmarks-r123.json` | done |
+| R180 | C2,C6 | B5x | Local multi-model syntax/stability smoke. | `agentflame bench --fragment-file .agentsight/agentflame/r122-real-fragments.txt --runs 3 --server-arg=--reasoning --server-arg=off --model 0.6b=... --model 1.1b=... --model 3b=...` | 3 models x 300 fragments x 3 repeats | grammar/stability/latency checker plus explicit non-adequacy boundary | done: 2700/2700 valid, exact stability 299/300, 279/300, 285/300, p95 23/18/32 ms; 1.1b semantic collapse means adequacy still unproven | `.agentsight/agentflame/model-benchmarks-r180.json`, `docs/visexp/out/model-benchmarks-r180.json` | done/syntax-stability |
 | R124-scoring | C6 | B5x | Adequacy scorer and empty-result gate. | `python3 docs/visexp/score_tag_adequacy.py --labels docs/visexp/out/tag-adequacy-label-packet-r122.csv ...`; then `python3 docs/visexp/evaluate_artifacts.py --out docs/visexp/out` | deterministic over 300 packet rows | candidate-tag coverage, empty/partial/scored status, adequacy/kappa thresholds | done as protocol only: current output is `human_labels_empty`, 300 candidate tags, 0 final labels, `adequacy_supported=false`; C6 remains partial | `docs/visexp/out/tag-adequacy-results-r124.json` | done/empty |
 | R124-join | C6 | B5x | Blinded label join and adjudication protocol. | `python3 docs/visexp/r124_join_blinded_labels.py` | deterministic over 300 packet rows | source/blinded row match, hidden-field contract, no committed human labels, empty adjudication template | protocol passed: ready for independent label collection; does not support C6 until real labels are joined and scored | `docs/visexp/out/tag-adequacy-label-join-r124.json`, `docs/visexp/out/tag-adequacy-adjudication-template-r124.csv` | done/protocol |
 | R124 | C6 | B5x | Human adequacy labeling over sampled fragments. | collect two independent completed copies of `docs/visexp/out/tag-adequacy-blinded-label-sheet-r124.csv`; join them with `python3 docs/visexp/r124_join_blinded_labels.py --labeler-1 ... --labeler-2 ... --adjudication ...`; score with `python3 docs/visexp/score_tag_adequacy.py --labels docs/visexp/out/tag-adequacy-label-packet-r124-joined.csv --out-json docs/visexp/out/tag-adequacy-results-r124.json --out-csv docs/visexp/out/tag-adequacy-results-r124.csv --out-md docs/visexp/out/tag-adequacy-results-r124.md` | 300 fragments, >=2 labelers | adequacy/generic/misleading rubric plus agreement/adjudication | scored gate has >=80% adequate, <=20% generic/noisy, <=5% misleading, kappa >=0.6 or limited claim | `docs/visexp/out/tag-adequacy-results-r124.json`, `docs/visexp/out/tag-adequacy-results-r124.csv`, `docs/visexp/out/tag-adequacy-results-r124.md` | planned |
@@ -469,6 +480,7 @@ cargo run --manifest-path agentflame/Cargo.toml -- bench \
 | R160 | C7 | B7 | Bounded fixed-session open-source usability smoke. | `cargo run --manifest-path agentflame/Cargo.toml -- run --project-root . --llama-url http://127.0.0.1:18080 --model local --timeout 60 --out .agentsight/agentflame/r160-smoke-fixed --session-file <8 fixed historical Codex sessions>`; repeat same command against the same output dir; then `python3 docs/visexp/artifact_usability_r160.py --agentflame-dir .agentsight/agentflame/r160-smoke-fixed --clean-agentflame-json .agentsight/agentflame/r160-smoke-fixed/agentflame.clean.json --out docs/visexp/out/artifact-usability-r160.json ...` | one clean run plus cached rerun over fixed inputs | expected files + runtime/cache summary + sanitized input manifest + clean/cached input equality + 76/76 cached rerun + no raw-trace git dirt + generated report path containment | bounded local artifact path is auditable without the internal harness; fresh-clone/community usefulness, public report sanitization, and full write-set containment remain open | `docs/visexp/out/artifact-usability-r160.json` | done/bounded |
 | R170 | C1,C2,C3,C7 | B1/B5/B7 | Current full-history refresh. | seed R170 tag cache from `latest`, run AgentFlame over current repo sessions against local 3B llama.cpp server, summarize with `python3 docs/visexp/r170_full_history_refresh.py` | all discovered repo sessions under scan cap | AgentFlame ok + 0 tagger failures + folded totals match report + redacted committed summary | done as mechanism/artifact evidence: 325 sessions, 35,136 fresh llama.cpp tag calls, 0 failures; does not support C5/C6 | `docs/visexp/out/full-history-r170.json` | done/mechanism |
 | R171 | C5,C6 | gate | Read-only subagent OSDI gate review. | inspect current plan/tracker/results/verdict/audit/followup/paper/gate outputs | one independent review | strict OSDI rubric | review says Level 3, not weak accept; R124-labels and R142/R151 remain the must-fix outcome artifacts | `docs/visexp/out/osdi-gate-review-r171.md` | done/review |
+| R181 | C2,C5,C6 | gate | Read-only subagent OSDI gate review after R180. | inspect R180 model benchmark, claim gates, paper wording, and current audit | one independent review | strict OSDI rubric | review says R180 is correctly scoped as syntax/stability only; still Level 3, not weak accept, with C6 labels and C5 responses missing | `docs/visexp/out/osdi-gate-review-r181.md` | done/review |
 
 ## Paper Revision Rule
 
@@ -485,7 +497,7 @@ It may not say:
 
 - "comprehensive" live exact provenance;
 - "improves developer productivity";
-- "0.6B is enough";
+- "0.6B/1B are semantically adequate";
 - "semantic tags are correct."
 
 ## Immediate Next Action

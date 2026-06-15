@@ -18,8 +18,12 @@ from semantic_tag_flamegraph import (
     project_folded,
 )
 from evaluate_artifacts import (
+    compact_model_benchmark,
     compression_summary,
     mixing_summary,
+    model_benchmark_evidence,
+    model_benchmark_size_classes,
+    model_benchmark_valid,
     tag_quality,
 )
 from tag_stability_smoke import (
@@ -45,6 +49,7 @@ from r124_blinded_label_sheet import (
 from r124_join_blinded_labels import join_rows as join_r124_label_rows
 from r124_join_blinded_labels import read_labeler_sheet as read_r124_labeler_sheet
 from r124_join_blinded_labels import status_for as r124_join_status
+from r121_model_benchmark_summary import model_size_class as r121_model_size_class
 from r170_full_history_refresh import counter_summary as r170_counter_summary
 from r170_full_history_refresh import read_folded_total as r170_read_folded_total
 from r142_preregistration import validate_preregistration as validate_r142_preregistration
@@ -69,6 +74,61 @@ from visual_summary import bar_width, label_lines, verdict_color, verdict_score
 
 
 class AggregationTests(unittest.TestCase):
+    def test_model_benchmark_size_class_accepts_local_small_models(self) -> None:
+        self.assertEqual(r121_model_size_class("Qwen3-0.6B-FP32.gguf"), "0.6b")
+        self.assertEqual(r121_model_size_class("tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf"), "1b")
+        self.assertEqual(r121_model_size_class("qwen2.5-3b-instruct-q4_k_m.gguf"), "3b")
+
+    def test_model_benchmark_gate_evidence_includes_classes(self) -> None:
+        bench = {
+            "run_id": "R180",
+            "aggregate": {"total_runs": 6, "ok_runs": 6, "failed_runs": 0, "valid_run_pct": 100.0},
+            "bench": {
+                "models": [
+                    {
+                        "label": "0.6b",
+                        "size_class": "0.6b",
+                        "ok_runs": 3,
+                        "latency_ms": [8, 9, 23],
+                        "stability": {"exact_stable_fragments": 1, "fragment_count": 1},
+                    },
+                    {
+                        "label": "1.1b",
+                        "size_class": "1b",
+                        "ok_runs": 3,
+                        "latency_ms": [10, 11, 18],
+                        "stability": {"exact_stable_fragments": 1, "fragment_count": 1},
+                    },
+                ]
+            },
+        }
+
+        self.assertTrue(model_benchmark_valid(bench))
+        self.assertEqual(model_benchmark_size_classes(bench), {"0.6b", "1b"})
+        evidence = model_benchmark_evidence(bench)
+        self.assertIn("model_benchmark=R180", evidence)
+        self.assertIn("1.1b_class=1b", evidence)
+        compact = compact_model_benchmark(
+            {
+                **bench,
+                "bench": {
+                    "runs_per_model": 3,
+                    "fragments_per_model": 1,
+                    "models": [
+                        {
+                            **bench["bench"]["models"][0],
+                            "total_runs": 3,
+                            "failed_runs": 0,
+                            "valid_tags": 3,
+                            "invalid_tags": [],
+                            "fragments": [{"fragment_id": "f0", "preview": "redacted"}],
+                        }
+                    ],
+                },
+            }
+        )
+        self.assertNotIn("fragments", compact["bench"]["models"][0])
+
     def test_repeated_system_stack_is_collapsed(self) -> None:
         session = SessionRecord(source="codex", path=Path("session.jsonl"), session_id="s1")
         session.session_tag = "design"

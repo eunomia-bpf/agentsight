@@ -362,6 +362,53 @@ def run(out_dir: Path) -> dict[str, int | str]:
             if not c6 or f"tag_adequacy={tag_results.get('status')}" not in c6.get("evidence", ""):
                 raise AssertionError("C6 claim gate does not include current R124 status")
 
+    r180_path = out_dir / "model-benchmarks-r180.json"
+    if r180_path.exists():
+        r180 = json.loads(r180_path.read_text(encoding="utf-8"))
+        if r180.get("run_id") != "R180":
+            raise AssertionError("R180 model benchmark has the wrong run_id")
+        aggregate = r180.get("aggregate") or {}
+        if aggregate.get("total_runs") != 2700 or aggregate.get("ok_runs") != 2700:
+            raise AssertionError("R180 model benchmark must contain 2700/2700 successful runs")
+        if aggregate.get("failed_runs") != 0:
+            raise AssertionError("R180 model benchmark has failed runs")
+        bench = r180.get("bench") or {}
+        if bench.get("fragment_previews_included"):
+            raise AssertionError("R180 committed benchmark summary must omit fragment previews")
+        models = bench.get("models") or []
+        labels = {model.get("label") for model in models}
+        if labels != {"0.6b", "1.1b", "3b"}:
+            raise AssertionError("R180 model labels do not match the expected local models")
+        size_classes = {model.get("size_class") for model in models}
+        if size_classes != {"0.6b", "1b", "3b"}:
+            raise AssertionError("R180 size classes do not cover 0.6b/1b/3b")
+        for model in models:
+            stability = model.get("stability") or {}
+            if model.get("total_runs") != 900 or model.get("ok_runs") != 900:
+                raise AssertionError(f"R180 {model.get('label')} did not run 900/900 valid requests")
+            if stability.get("fragment_count") != 300:
+                raise AssertionError(f"R180 {model.get('label')} does not cover 300 fragments")
+            if model.get("invalid_tags"):
+                raise AssertionError(f"R180 {model.get('label')} has invalid tags")
+            if any(fragment.get("preview") for fragment in model.get("fragments", [])):
+                raise AssertionError("R180 committed fragments must not include previews")
+        discovery = r180.get("model_discovery") or {}
+        if discovery.get("missing_size_classes"):
+            raise AssertionError("R180 should not report missing 0.6b/1b/3b size classes")
+        interpretation = " ".join(str(item) for item in r180.get("interpretation") or [])
+        if "human adequacy" not in interpretation or "not a controlled" not in interpretation:
+            raise AssertionError("R180 interpretation must preserve adequacy and comparability limits")
+        claim_gates_path = out_dir / "claim-gates.csv"
+        if claim_gates_path.exists():
+            with claim_gates_path.open("r", encoding="utf-8", newline="") as handle:
+                gates = {row.get("claim"): row for row in csv.DictReader(handle)}
+            c2 = gates.get("C2 one-word tags in stack grammar")
+            c6 = gates.get("C6 tag stability and adequacy")
+            if not c2 or "model_benchmark=R180" not in c2.get("evidence", ""):
+                raise AssertionError("C2 claim gate does not include current R180 benchmark")
+            if not c6 or "model_benchmark=R180" not in c6.get("evidence", ""):
+                raise AssertionError("C6 claim gate does not include current R180 benchmark")
+
     r170_path = out_dir / "full-history-r170.json"
     if r170_path.exists():
         r170 = json.loads(r170_path.read_text(encoding="utf-8"))

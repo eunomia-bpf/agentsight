@@ -28,7 +28,7 @@ hypothesis that requires C5 participant evidence.
 | ID | Claim | Scope | Metric/evidence needed | Status |
 |----|-------|-------|------------------------|--------|
 | C1 | AgentFlame generates semantic folded stacks over real local agent histories. | This repository's readable Codex/Claude sessions. | Session/tool/LLM counts, folded totals, generated artifacts. | supported |
-| C2 | Local one-word LLM tagging is syntactically feasible. | 3B llama.cpp full run; later 0.6B/1B/3B. | Invalid rate, cache, latency, failures, tag coverage. | supported for 3B syntax |
+| C2 | Local one-word LLM tagging is syntactically feasible. | 3B llama.cpp full run plus local 0.6B-/1B-/3B-class R180 benchmark. | Invalid rate, cache, latency, failures, tag coverage. | supported for syntax/latency; adequacy separate |
 | C3 | Semantic frames expose task-effect mixtures hidden by nonsemantic/flat baselines. | Full local run. | Mixed-bucket count/weight, examples, ablations. | supported as mechanism |
 | C4 | Exact AgentSight lineage connects semantic intent to process/file/network effects. | Live AgentSight traces. | Join coverage, orphan rate, path/domain specificity. | fixed command-mode suite passed |
 | C5 | Developers answer forensic questions better with semantic effect flamegraphs. | User/task benchmark. | Time, accuracy, false positives, confidence. | unsupported |
@@ -40,7 +40,7 @@ hypothesis that requires C5 participant evidence.
 | Claim | Required evidence | Primary block | Falsifying result | Supported wording if partial |
 |-------|-------------------|---------------|-------------------|------------------------------|
 | C1 | Full run with consistent folded outputs. | B1 | Folded totals mismatch or report cannot be regenerated. | Prototype supports only sampled/local histories. |
-| C2 | Low invalid/failure rate and practical local runtime. | B1, B5 | Small models fail often or latency is prohibitive. | 3B works; smaller models remain optional. |
+| C2 | Low invalid/failure rate and practical local runtime. | B1, B5 | Small models fail often or latency is prohibitive. | R180 supports local syntax/latency for available 0.6B-/1B-/3B-class models, not semantic adequacy. |
 | C3 | Semantic frames split mixed nonsemantic/flat buckets. | B2, B6 | Mixed weight is negligible or examples are not useful. | Semantic frames are a label overlay, not strong information gain. |
 | C4 | Live exact effects inherit prompt/session ancestry. | B3 | Raw orphan rate is mistaken for recall or lineage cannot cross process trees. | R114 passes on a fixed 20-task command-mode Codex suite; broader and full-history exact coverage remain open. |
 | C5 | Users solve tasks better with semantic views. | B4 | No time/accuracy/confidence improvement. | Semantic flamegraphs are expert exploratory views. |
@@ -250,9 +250,10 @@ hypothesis that requires C5 participant evidence.
 | R111 | decision | exact lineage native export smoke | same 3 DB exports | 3 tasks | native sessions/tools plus raw join/orphan report | low | done/partial |
 | R112 | decision | exact lineage DB-persisted backfill smoke | same 3 DB copies | 3 tasks | persisted sessions/tools plus raw join/orphan report | low | done/partial |
 | R114 | decision | broader live exact-lineage suite | 20 `agentsight record` tasks, disposable repos for writes | fixed task manifest | C4 scope can widen only if join/orphan/path/domain/redaction gates pass | medium | live task variance |
-| R121 | decision | real local model benchmark | `agentflame bench` over available 0.6B/1B/3B-class GGUF models | 3 fixed fragments x 3 identical repeats | C2 can cite only models that actually ran; C6 remains partial unless stability and adequacy pass | medium | missing model sizes and small smoke sample |
+| R121 | decision | real local model benchmark | `agentflame bench` over available GGUF models | 3 fixed fragments x 3 identical repeats | Historical 3B smoke; superseded by R180 for local model-size coverage | medium | small synthetic sample |
 | R122 | decision | redacted tag adequacy packet | 100 session + 100 prompt + 100 LLM-call fragments | deterministic sample | label packet and redaction gate | low | trace privacy |
-| R123 | decision | real-fragment stability benchmark | R122 fragment file through 3B llama.cpp server | 300 fragments x 3 identical repeats | C2/C6 can cite 3B stability only if grammar/latency/stability pass | low | missing model sizes |
+| R123 | decision | real-fragment stability benchmark | R122 fragment file through 3B llama.cpp server | 300 fragments x 3 identical repeats | C2/C6 can cite 3B stability only if grammar/latency/stability pass | low | superseded for model-size coverage by R180 |
+| R180 | decision | local multi-model syntax/stability smoke | R122 fragment file through local 0.6b, TinyLlama 1.1b, and 3b GGUFs with `--reasoning off` | 3 models x 300 fragments x 3 identical repeats | C2 can cite local 0.6B/1B/3B-class syntax/latency only; C6 remains partial because 1.1b semantic collapse and no human labels | low | done; not controlled same-family scaling |
 | R124-scoring | decision | tag adequacy scorer and empty-result gate | R122 label packet with no human labels yet | deterministic scorer over 300 rows | output must have 300/300 candidate tags, stay `human_labels_empty`, and keep C6 partial until labels exist | low | evidence boundary |
 | R124-blinding | decision | blinded human labeler sheet | R122 label packet with candidate tags | deterministic export | labelers see row id, level, redacted preview, candidate tag, rubric, label, notes; model/source/stability columns hidden | low | done; labels still missing |
 | R124 | decision | human tag adequacy labels | blinded R124 labeler sheet | >=2 labelers if possible | tag adequacy wording | medium | subjective labels |
@@ -331,9 +332,9 @@ hypothesis that requires C5 participant evidence.
 | Claim | Evidence file(s) | Verdict | Supported wording |
 |-------|------------------|---------|-------------------|
 | C1 | `.agentsight/agentflame/latest/agentflame.json` | supported | local-history semantic folded stacks |
-| C2 | `.agentsight/agentflame/latest/tags.json` | partial | 3B syntactic feasibility |
+| C2 | `.agentsight/agentflame/latest/tags.json`, `docs/visexp/out/model-benchmarks-r180.json` | supported for syntax/latency; partial for adequacy | local 0.6B-/1B-/3B-class syntactic feasibility on the redacted R122 sample |
 | C3 | `.agentsight/agentflame/latest/agentflame.json` | supported | semantic partitioning in local workload |
 | C4 | `docs/visexp/out/native-lineage-r112.json`, `docs/visexp/out/live-record-r114.json`, `docs/visexp/out/live-record-r114-analysis.json` | supported for fixed command-mode suite; partial broadly | exact lineage over the fixed 20-task command-mode suite; full-history and cross-repo provenance pending |
 | C5 | `docs/visexp/out/user-task-benchmark.json`, `docs/visexp/out/user-task-preregistration-r142.json`, `docs/visexp/out/user-task-results.json` | unsupported | same-slice packet and frozen preregistration exist; no user outcome claim |
-| C6 | `docs/visexp/out/model-benchmarks-r123.json`, `docs/visexp/out/tag-adequacy-results-r124.json` | partial | 3B syntactic/stability evidence; adequacy scorer ready but labels empty |
+| C6 | `docs/visexp/out/model-benchmarks-r180.json`, `docs/visexp/out/tag-adequacy-results-r124.json` | partial | multi-model syntactic/stability evidence; adequacy scorer ready but labels empty |
 | C7 | `docs/visexp/out/artifact-usability-r160.json` | partial | bounded fixed-session artifact smoke passed; no broad community-tool claim until fresh-clone setup and external-developer feedback exist |

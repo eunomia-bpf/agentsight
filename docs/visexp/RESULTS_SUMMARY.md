@@ -45,6 +45,7 @@ utility.
 | R114 | Twenty fixed Codex tasks under `agentsight record` with negative controls and scoped precision/recall analysis | `docs/visexp/out/live-record-r114.json`, `docs/visexp/out/live-record-r114-analysis.json` | done |
 | R122 | Redacted human adequacy label packet over 100 session, 100 prompt, and 100 LLM-call fragments | `docs/visexp/out/tag-adequacy-label-packet-r122.json` | packet only |
 | R123 | 3B llama.cpp real-fragment stability benchmark over the R122 packet | `docs/visexp/out/model-benchmarks-r123.json` | done |
+| R180 | Local 0.6B-/1B-/3B-class llama.cpp benchmark over the same R122 redacted fragments | `docs/visexp/out/model-benchmarks-r180.json`, `docs/visexp/out/model-benchmarks-r180.md` | done/syntax-stability; not adequacy |
 | R124-scoring | Human tag-adequacy scorer over the current blank R122 packet | `docs/visexp/out/tag-adequacy-results-r124.json` | done/empty |
 | R124-blinding | Blinded labeler-facing sheet that hides model/source/stability columns from R122 packet rows | `docs/visexp/out/tag-adequacy-blinded-label-sheet-r124.json` | done/protocol |
 | R124-join | Join/adjudication protocol for two frozen blinded human-label sheets | `docs/visexp/out/tag-adequacy-label-join-r124.json` | done/protocol |
@@ -55,6 +56,7 @@ utility.
 | R160 | Bounded fixed-session artifact-usability smoke over 8 historical Codex sessions, with clean and cached AgentFlame runs | `docs/visexp/out/artifact-usability-r160.json` | done/bounded; C7 remains partial |
 | R170 | Current full-history AgentFlame refresh over all discovered repo sessions with real llama.cpp annotation calls | `docs/visexp/out/full-history-r170.json` | done/mechanism; not C5/C6 |
 | R171 | Read-only subagent OSDI gate review after R170/R124-join planning | `docs/visexp/out/osdi-gate-review-r171.md` | done/review |
+| R181 | Read-only subagent OSDI gate review after R180 local multi-model benchmark | `docs/visexp/out/osdi-gate-review-r181.md` | done/review; still not weak accept |
 | R060 | legacy Python prototype pipeline over sampled sessions | `docs/visexp/out/pipeline-report.json` | legacy, superseded for headline scale |
 | R020a | fixture exact-effect lineage checker | `docs/visexp/out/effect-lineage-smoke.json` | partial, fixture only |
 
@@ -129,6 +131,17 @@ fragments with three identical repeats each. R123 produced 900/900 valid tags,
 285/300 exact-stable fragments (95.000%), p95 request latency 31 ms after a
 1002 ms model load, and no committed fragment previews in the benchmark summary.
 This supports 3B syntax/latency/stability, but not human adequacy.
+
+R180 reruns the same 300 redacted R122 fragments over three locally available
+GGUFs with `--reasoning off`: 0.6b produced 900/900 valid tags, 299/300
+exact-stable fragments, and p95 23 ms latency after a 2529 ms load; TinyLlama
+1.1b produced 900/900 valid tags, 279/300 exact-stable fragments, and p95 18 ms
+after a 1002 ms load; the 3b model reproduced 900/900 valid tags, 285/300
+exact-stable fragments, and p95 32 ms after a 1003 ms load. This removes the
+previous "no 0.6B/1B local result" gap for syntax/stability, but it is not a
+controlled same-family scaling experiment. It also exposes an adequacy warning:
+the 1.1b run collapses most outputs to localization/localized variants despite
+passing the one-word grammar.
 
 R124-scoring adds the missing scorer path for human adequacy labels without
 inventing labels. On the current blank R122 packet it reports
@@ -407,8 +420,10 @@ provenance.
 - `docs/visexp/out/tag-adequacy-results-r124.json` for the empty human-label scorer gate
 - `docs/visexp/out/tag-adequacy-blinded-label-sheet-r124.json` and `.csv` for the blinded labeler-facing R124 sheet
 - `docs/visexp/out/tag-adequacy-label-join-r124.json`, `.md`, and `docs/visexp/out/tag-adequacy-adjudication-template-r124.csv` for the R124 human-label join protocol
-- `docs/visexp/out/model-benchmarks-r123.json` for real-fragment stability
+- `docs/visexp/out/model-benchmarks-r180.json` and `.md` for local multi-model
+  real-fragment syntax/stability; `model-benchmarks-r123.json` remains the
+  original 3B-only stability run
 - `docs/visexp/out/semantic-ablation-r131.json` for semantic-axis ablation
 - `docs/visexp/out/user-task-benchmark.json`, `docs/visexp/out/user-task-participant-packets.json`, `docs/visexp/out/user-task-assignments.csv`, `docs/visexp/out/user-task-manifest.json`, `docs/visexp/out/user-task-preregistration-r142.json`, and `docs/visexp/out/user-task-results.json` for the R142-packet C5 benchmark bundle
 - `docs/visexp/out/full-history-r170.json` and `.md` for the current full-history refresh summary
-- `docs/visexp/out/osdi-gate-review-r171.md` for the latest read-only subagent OSDI gate review
+- `docs/visexp/out/osdi-gate-review-r181.md` for the latest read-only subagent OSDI gate review
