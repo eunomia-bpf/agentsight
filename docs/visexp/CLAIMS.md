@@ -133,12 +133,16 @@ Current evidence:
   of the same DBs, writes 3 SQLite `sessions` rows and 3 `tool_calls` rows, then
   exports with `--no-observed-projection`. The persisted-only snapshots still
   join 182/318 raw effects and leave 136 orphans.
-- The full Rust AgentFlame run still uses agent-native session histories, and
-  current DB capture does not yet create session/tool ancestry at capture time.
+- R113 implements capture-time `record -- <command>` session/tool rows with
+  `view_source=record_capture_time_agent_envelope` and verifies the row shape in
+  a temp SQLite DB. Fresh live tasks and per-effect direct ancestry ids are
+  still pending.
+- The full Rust AgentFlame run still uses agent-native session histories.
 
 Status: partial. The lineage checker works on live effects and native export now
-emits session/tool envelope rows. R112 proves DB-persisted backfill rows, but raw
-coverage is only 57.233% on this smoke and capture-time
+emits session/tool envelope rows. R112 proves DB-persisted backfill rows, and
+R113 adds capture-time record-command rows, but raw coverage is only 57.233% on
+the latest live smoke and complete
 `session -> tool_call -> process* -> effect` remains unproven.
 
 ## Not Yet Supported

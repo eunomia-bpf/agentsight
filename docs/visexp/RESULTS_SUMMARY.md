@@ -22,8 +22,9 @@ semantic regions for 90.219% of observation weight, and flat effect buckets mix
 This supports the mechanism claim that semantic frames separate system-effect
 regions that ordinary process summaries or nonsemantic folded stacks merge. R110
 adds a live in-scope exact-lineage smoke; R112 adds DB-persisted backfill rows
-for the observed envelope. The project still does not prove capture-time
-full-run exact file/network lineage or user utility.
+for the observed envelope; R113 implements capture-time record-command
+session/tool rows. The project still does not prove high-coverage full-run exact
+file/network lineage or user utility.
 
 ## Completed Runs
 
@@ -34,6 +35,7 @@ full-run exact file/network lineage or user utility.
 | R110 | Live exact-lineage smoke over real AgentSight DB exports with harness-synthesized agent-run envelopes and llama.cpp root tags | `docs/visexp/out/live-lineage-r110.json` | partial |
 | R111 | Native export exact-lineage smoke over the same real AgentSight DB exports after moving the envelope into `collector report export` | `docs/visexp/out/native-lineage-r111.json` | partial |
 | R112 | DB-persisted backfill smoke over copies of the same real DB exports, then persisted-only export with observed projection disabled | `docs/visexp/out/native-lineage-r112.json` | partial |
+| R113 | Capture-time `record -- <command>` session/tool envelope implementation smoke | `docs/visexp/out/capture-time-r113.json` | partial |
 | R060 | legacy Python prototype pipeline over sampled sessions | `docs/visexp/out/pipeline-report.json` | legacy, superseded for headline scale |
 | R020a | fixture exact-effect lineage checker | `docs/visexp/out/effect-lineage-smoke.json` | partial, fixture only |
 | R025 | user-task benchmark packet generation | `docs/visexp/out/user-task-benchmark.json` | protocol only |
@@ -193,6 +195,17 @@ backfill rows. It does not improve the C4 verdict because raw join remains
 182/318, and the session/tool rows are still produced by explicit backfill
 rather than capture-time instrumentation.
 
+R113 adds capture-time instrumentation for the command-recording path. When
+`agentsight record -- <command>` starts a target child, the collector now writes
+a SQLite `sessions` row and matching `tool_calls` row with
+`view_source=record_capture_time_agent_envelope`, `tool_name=agent-run`, and
+`related_pid=<target child pid>` before the child is continued. On target exit,
+the same row ids are updated with end time, duration, status, and exit code.
+The unit smoke verifies 1 session and 1 tool row in a temp SQLite DB. This fixes
+the narrow "no capture-time row" objection for command-mode `record`, but it is
+not yet a live C4 proof: no fresh eBPF task has been rerun, no orphan count has
+changed, and per-effect direct ancestry ids are still absent.
+
 ## Dimension Projection Results
 
 | View | Unique stacks | Total weight | Compression | Max reuse |
@@ -210,8 +223,9 @@ cross-agent cost claims until token normalization is audited.
 ## Negative And Mixed Evidence
 
 - C4 exact AgentSight lineage is partial. R112 DB-persisted backfill joins
-  57.233% of raw live effects, but 136 raw effects remain orphaned and
-  capture-time complete session/tool ancestry is still missing.
+  57.233% of raw live effects, while R113 implements capture-time
+  record-command session/tool rows. 136 raw effects remain orphaned, fresh live
+  R113 tasks are missing, and per-effect direct ancestry ids are still absent.
 - C5 user utility remains unsupported. Task packets and scoring scripts exist,
   but no real participant responses have been collected.
 - C6 semantic adequacy is partial. The grammar is strong, but labels such as
@@ -233,3 +247,4 @@ cross-agent cost claims until token normalization is audited.
 - `docs/visexp/out/live-lineage-r110.json` for live in-scope C4 smoke status
 - `docs/visexp/out/native-lineage-r111.json` for native export C4 smoke status
 - `docs/visexp/out/native-lineage-r112.json` for DB-persisted backfill C4 smoke status
+- `docs/visexp/out/capture-time-r113.json` for capture-time record-command implementation status

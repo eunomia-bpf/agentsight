@@ -118,6 +118,9 @@ headline results come from `.agentsight/agentflame/latest`.
 - `out/native-lineage-r112.json`: R112 DB-persisted backfill C4 smoke summary
   over copies of the same DB exports, verified with persisted-only export.
 - `out/native-lineage-r112.md`: human-readable R112 boundary and result table.
+- `out/capture-time-r113.json`: R113 capture-time `record -- <command>`
+  session/tool row implementation smoke.
+- `out/capture-time-r113.md`: human-readable R113 boundary and result table.
 - `out/tag-stability-smoke.json`: local-only repeated-run tag stability smoke
   summary over hashed session/prompt/LLM fragments.
 - `out/tag-stability-smoke.csv`: sanitized per-fragment tag outputs.
@@ -154,7 +157,9 @@ joining 182/318 raw effects from three real AgentSight DB exports after
 envelope into native `collector report export`: exported snapshots contain
 session/tool rows and join the same 182/318 raw effects. R112 persists that
 envelope into SQLite `sessions` and `tool_calls` rows on DB copies and verifies
-persisted-only export. C4 still requires lower orphan rates and capture-time
+persisted-only export. R113 implements capture-time `record -- <command>`
+session/tool rows with `related_pid`, but fresh live tasks and lower orphan
+rates are still required before claiming complete
 session -> tool_call -> shell -> child process -> file/network ancestry.
 
 ## Test

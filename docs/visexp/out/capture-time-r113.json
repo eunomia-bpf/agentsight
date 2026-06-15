@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "run_id": "R113",
+  "status": "implementation_smoke_passed",
+  "scope": "record_command_capture_time_session_tool_rows",
+  "last_updated": "2026-06-14",
+  "source_command": "cargo test --manifest-path collector/Cargo.toml cmd_exec::tests::record_agent_envelope_start_and_end_persist_to_sqlite",
+  "source_files": [
+    "collector/src/cmd_exec.rs",
+    "collector/src/sinks/sqlite.rs",
+    "collector/src/sources/sqlite.rs"
+  ],
+  "view_source": "record_capture_time_agent_envelope",
+  "sessions": 1,
+  "tool_calls": 1,
+  "related_pid": "target child PID known by agentsight record",
+  "related_event_id": null,
+  "live_rerun": "pending",
+  "fresh_task_count": 0,
+  "direct_effect_id_join": false,
+  "boundary": "This proves that `agentsight record -- <command>` can persist first-class session/tool ancestry rows at capture time and update them on target exit. It does not rerun live eBPF workloads, reduce the 136 R112 orphan effects, or add per-effect direct tool ancestry ids."
+}

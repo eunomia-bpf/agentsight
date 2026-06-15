@@ -16,8 +16,9 @@ deterministic system-effect provenance and folded-stack aggregation.
 - Type: systems-for-ML observability and measurement tooling.
 - Target venue: OSDI/SOSP-style systems venue.
 - Artifact status: Rust CLI prototype with a full local-history run; exact
-  AgentSight live lineage has harness, native-export, and DB-persisted backfill
-  smokes, while capture-time complete provenance is pending.
+  AgentSight live lineage has harness, native-export, DB-persisted backfill,
+  and capture-time record-command smokes, while high-coverage live provenance is
+  pending.
 - Main reviewer risk: the work will be rejected as "just another agent
   trace/flamegraph UI" unless the evaluation proves semantic attribution answers
   questions that span-duration traces and process summaries cannot.
@@ -40,7 +41,7 @@ deterministic system-effect provenance and folded-stack aggregation.
 | C1 | Full run with consistent folded outputs. | B1 | Folded totals mismatch or report cannot be regenerated. | Prototype supports only sampled/local histories. |
 | C2 | Low invalid/failure rate and practical local runtime. | B1, B5 | Small models fail often or latency is prohibitive. | 3B works; smaller models remain optional. |
 | C3 | Semantic frames split mixed nonsemantic/flat buckets. | B2, B6 | Mixed weight is negligible or examples are not useful. | Semantic frames are a label overlay, not strong information gain. |
-| C4 | Live exact effects inherit prompt/session ancestry. | B3 | Raw orphan rate remains high or lineage cannot cross process trees. | DB-persisted backfill smoke only; capture-time ancestry and higher raw join remain future work. |
+| C4 | Live exact effects inherit prompt/session ancestry. | B3 | Raw orphan rate remains high or lineage cannot cross process trees. | Capture-time record-command rows exist; high raw join and per-effect ancestry remain future work. |
 | C5 | Users solve tasks better with semantic views. | B4 | No time/accuracy/confidence improvement. | Semantic flamegraphs are expert exploratory views. |
 | C6 | Tags are stable and adequate. | B5 | High instability, generic/noisy tags, poor adequacy. | Tags are lossy hints only. |
 
@@ -55,8 +56,10 @@ deterministic system-effect provenance and folded-stack aggregation.
   committed; reports should contain hashes, tags, counts, and redacted previews.
 - Workloads: local real Codex/Claude histories for AgentSight; future paired
   benchmark tasks run under AgentSight collection.
-- Observability: session/prompt/LLM-call tags now; exact
-  `tool_call -> shell -> child process -> file/network effect` later.
+- Observability: session/prompt/LLM-call tags now; capture-time record-command
+  session/tool rows exist; exact per-effect
+  `tool_call -> shell -> child process -> file/network effect` remains the next
+  live-capture target.
 - Assumptions: a tool/effect inherits semantic intent through session/prompt
   ancestry; the LLM does not classify low-level effects directly.
 
