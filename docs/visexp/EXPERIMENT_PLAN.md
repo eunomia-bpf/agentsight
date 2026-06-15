@@ -57,10 +57,11 @@ deterministic system-effect provenance and folded-stack aggregation.
 - Workloads: local real Codex/Claude histories for AgentSight; future paired
   benchmark tasks run under AgentSight collection.
 - Observability: session/prompt/LLM-call tags now; capture-time record-command
-  session/tool rows exist and have been exercised on five real Codex tasks;
-  exact per-effect
-  `tool_call -> shell -> child process -> file/network effect` remains the next
-  live-capture target.
+  session/tool rows exist and have been exercised on the 20-task R114 fixed
+  Codex suite; exact per-effect
+  `tool_call -> shell -> child process -> file/network effect` is supported for
+  that command-mode suite, while broader full-history/cross-repo capture remains
+  future work.
 - Assumptions: a tool/effect inherits semantic intent through session/prompt
   ancestry; the LLM does not classify low-level effects directly.
 
@@ -73,7 +74,7 @@ deterministic system-effect provenance and folded-stack aggregation.
 | B3 | C4 | Live exact-effect lineage | agent-native proxy vs AgentSight exact stream plus negative controls | recall, precision, orphan rate, path/domain specificity | lineage checker with false-positive controls | Fig. 3/Table 2 | fixed-suite done |
 | B4 | C5 | Developer task benchmark | trace tree, span flamegraph, flat summary, nonsemantic stack, semantic stack | time, accuracy, confidence, false positives | hidden answer key | Table 3 | must |
 | B5 | C2,C6 | Small-model/stability/adequacy | 0.6B, 1B, 3B, repeated runs | latency, invalid rate, exact stability, adequacy | grammar + human labels | Table 4 | must |
-| B6 | C3 | Semantic-axis ablation | no semantic, session-only, prompt-only, prompt+LLM-call | information gain, stack explosion, noisy tags | same observations and baseline queries | Fig. 4 | must |
+| B6 | C3 | Semantic-axis ablation | no semantic, session-only, prompt-only, prompt+LLM-call | information gain and stack growth; noisy-tag burden and task accuracy/time deferred | same observations, report/folded cross-checks, baseline queries | Fig. 4 | done for C3 mechanism |
 | B7 | C6 | Artifact usability smoke | fresh clone/run, documented setup | setup time, errors, output completeness | artifact checklist | Appendix | should |
 
 ## Experiment Blocks
@@ -195,17 +196,34 @@ deterministic system-effect provenance and folded-stack aggregation.
 
 ### B6. Semantic-Axis Ablation
 
-- Claim tested: C3; auxiliary visual-noise evidence for C6.
+- Claim tested: C3. Auxiliary C6 visual-noise evidence and B4 task
+  accuracy/time remain deferred.
 - Hypothesis: prompt-level tags carry most system-effect partitioning, while
   LLM-call tags mostly help token/accounting views.
 - Workload: same full run and B4 tasks.
 - Compared systems: no semantic, session-only, prompt-only, prompt+LLM-call,
   session+prompt+LLM-call.
-- Metrics: mixed weight, unique stack growth, task accuracy/time, noisy-tag
-  burden.
-- Oracle: same raw observations and total-weight equality checker.
+- Metrics: mixed bucket weight, non-dominant residual mixed weight, unique stack
+  growth, max stack reuse. Task accuracy/time and noisy-tag burden are deferred
+  to B4/R124.
+- Oracle: same folded observations, total-weight equality checker,
+  `agentflame.json` total cross-check, and exact counter match against the
+  already generated nonsemantic/session/prompt folded files.
 - Success criterion: semantic axes improve information gain more than they
   increase visual noise.
+- Current result: R131 reads the existing full folded artifacts without
+  rescanning raw traces and preserves total weight for all projections. It also
+  records that `agentflame.json` totals match the folded inputs and that
+  generated nonsemantic/session/prompt folded files exactly match the script's
+  projections. For system effects, no-semantic stacks mix 90.219% of full
+  semantic bucket weight with 44.639% non-dominant residual weight; session-only
+  leaves 84.180% bucket / 34.138% residual; prompt-only leaves 37.687% bucket /
+  7.526% residual. Full session+prompt semantics leaves 0.000% by construction.
+  Prompt tags therefore carry most of the system-effect separation. For token
+  accounting, prompt+LLM-call still mixes 95.765% of full
+  session/prompt/LLM-call bucket weight but only 0.027% residual weight, so
+  LLM-call tags should be presented as token-navigation frames rather than
+  system-effect attribution frames.
 
 ## Run Order
 
@@ -220,7 +238,7 @@ deterministic system-effect provenance and folded-stack aggregation.
 | R122 | decision | redacted tag adequacy packet | 100 session + 100 prompt + 100 LLM-call fragments | deterministic sample | label packet and redaction gate | low | trace privacy |
 | R123 | decision | real-fragment stability benchmark | R122 fragment file through 3B llama.cpp server | 300 fragments x 3 identical repeats | C2/C6 can cite 3B stability only if grammar/latency/stability pass | low | missing model sizes |
 | R124 | decision | human tag adequacy labels | R122 label packet | >=2 labelers if possible | tag adequacy wording | medium | subjective labels |
-| R131 | decision | semantic-axis ablation | no/session/prompt/full variants | deterministic | C3 mechanism isolation | low | artifact churn |
+| R131 | decision | semantic-axis ablation | no/session/prompt/full variants plus token LLM-call projections | deterministic | passed for C3 mechanism: totals and external folded cross-checks preserved; system prompt-only reduces mixed full semantic bucket weight from 90.219% to 37.687% and residual from 44.639% to 7.526%; token prompt+LLM-call remains 95.765% bucket mixed but only 0.027% residual | low | done for C3; C6/B4 deferred |
 | R141 | main | user task pilot | 4 developers, five conditions | counterbalanced | protocol and answer keys work | medium | recruiting |
 | R151 | main | user task paper run | 12-20 developers or scoped expert study | counterbalanced | C5 verdict | high | strongest missing evidence |
 

@@ -20,12 +20,16 @@ semantic regions for 90.219% of observation weight, and flat effect buckets mix
 90.770%.
 
 This supports the mechanism claim that semantic frames separate system-effect
-regions that ordinary process summaries or nonsemantic folded stacks merge. R110
-adds a live in-scope exact-lineage smoke; R112 adds DB-persisted backfill rows
-for the observed envelope; R113 implements capture-time record-command
-session/tool rows; R113-live runs five real Codex tasks under `agentsight
-record`. The project still does not prove high-coverage full-run exact
-file/network lineage or user utility.
+regions that ordinary process summaries or nonsemantic folded stacks merge.
+R131 further isolates which semantic axes matter: with the same system-effect
+total preserved, no-semantic stacks mix 90.219% of full semantic weight,
+session-only leaves 84.180%, prompt-only leaves 37.687%, and full
+session+prompt semantics leaves 0.000% by construction. Its non-dominant
+residual mixed weight drops from 44.639% with no semantic axis to 7.526% with
+prompt-only. R114 adds fixed-suite live exact
+lineage over 20 real Codex tasks with negative controls. The project still does
+not prove broad cross-repo/full-history exact file/network lineage or user
+utility.
 
 ## Completed Runs
 
@@ -38,6 +42,10 @@ file/network lineage or user utility.
 | R112 | DB-persisted backfill smoke over copies of the same real DB exports, then persisted-only export with observed projection disabled | `docs/visexp/out/native-lineage-r112.json` | partial |
 | R113 | Capture-time `record -- <command>` session/tool envelope implementation smoke | `docs/visexp/out/capture-time-r113.json` | partial |
 | R113-live | Five real read-only `codex exec` tasks wrapped with `agentsight record`, then exported and checked for lineage | `docs/visexp/out/live-record-r113.json` | partial |
+| R114 | Twenty fixed Codex tasks under `agentsight record` with negative controls and scoped precision/recall analysis | `docs/visexp/out/live-record-r114.json`, `docs/visexp/out/live-record-r114-analysis.json` | done |
+| R122 | Redacted human adequacy label packet over 100 session, 100 prompt, and 100 LLM-call fragments | `docs/visexp/out/tag-adequacy-label-packet-r122.json` | packet only |
+| R123 | 3B llama.cpp real-fragment stability benchmark over the R122 packet | `docs/visexp/out/model-benchmarks-r123.json` | done |
+| R131 | Semantic-axis ablation over the same folded observations | `docs/visexp/out/semantic-ablation-r131.json` | done |
 | R060 | legacy Python prototype pipeline over sampled sessions | `docs/visexp/out/pipeline-report.json` | legacy, superseded for headline scale |
 | R020a | fixture exact-effect lineage checker | `docs/visexp/out/effect-lineage-smoke.json` | partial, fixture only |
 | R025 | user-task benchmark packet generation | `docs/visexp/out/user-task-benchmark.json` | protocol only |
@@ -236,6 +244,31 @@ joined through the observed process family, and 250 effects joined through
 `root_pid_time_window`, covering short-lived helper processes whose intermediate
 fork nodes do not appear as process nodes.
 
+R114 scales this command-mode path to a fixed 20-task Codex suite with negative
+controls. The suite includes read-only, edit, test/debug, dependency,
+failure/retry, and disposable-workspace write tasks. The analysis scopes recall
+to the retargeted agent process family and uses per-task negative-control
+bursts to catch over-attribution:
+
+| Metric | Value |
+|--------|------:|
+| Target tasks completed | 20 / 20 |
+| Tasks with observed negative controls | 20 / 20 |
+| In-scope effect events | 1,273 |
+| Joined in-scope effect events | 1,273 |
+| False positives | 0 |
+| False negatives | 0 |
+| Precision | 100.0% |
+| Recall | 100.0% |
+| Observed negative-control effects | 3,170 |
+| Negative-control effects joined | 0 |
+| Raw join | 22.055% |
+
+The raw join stays low by design because wrapper, sibling, and out-of-scope
+effects remain orphaned rather than being attributed to the agent. This is the
+right evidence for the paper's exact-lineage claim only within the fixed
+command-mode suite; it is not yet broad full-history provenance.
+
 ## Dimension Projection Results
 
 | View | Unique stacks | Total weight | Compression | Max reuse |
@@ -250,18 +283,44 @@ fork nodes do not appear as process nodes.
 Token views are useful for source-local accounting but should not be used for
 cross-agent cost claims until token normalization is audited.
 
+R131 turns these projections into a mechanism ablation by grouping each
+projection against the full semantic key. It checks total-weight equality,
+matches `agentflame.json` report totals against folded inputs, and verifies
+that generated folded files exactly match the script projections. Mixed bucket
+weight counts the whole projected bucket if it contains more than one full
+semantic key; residual mixed weight counts only the non-dominant variants
+inside such buckets.
+
+| Family | Variant | Total | Unique stacks | Mixed bucket weight | Residual mixed weight |
+|--------|---------|------:|--------------:|--------------------:|----------------------:|
+| system | no semantic | 167,005 | 10,641 | 90.219% | 44.639% |
+| system | session only | 167,005 | 13,328 | 84.180% | 34.138% |
+| system | prompt only | 167,005 | 22,341 | 37.687% | 7.526% |
+| system | session + prompt | 167,005 | 24,295 | 0.000% | 0.000% |
+| token | no semantic | 28,486,605,753,818 | 32 | 100.000% | 34.344% |
+| token | prompt + LLM-call | 28,486,605,753,818 | 6,802 | 95.765% | 0.027% |
+| token | session + prompt + LLM-call | 28,486,605,753,818 | 7,902 | 0.000% | 0.000% |
+
+The system-effect result supports the paper's mechanism claim: prompt tags
+carry most of the system-effect partitioning, while session tags add remaining
+provenance context. The full 0.000% rows are construction checks, not
+independent evidence of user value. The token result is narrower: LLM-call tags
+help token navigation, but they do not replace the session axis for full token
+provenance.
+
 ## Negative And Mixed Evidence
 
-- C4 exact AgentSight lineage is partial. R112 DB-persisted backfill joins
-  57.233% of raw live effects, while R113 implements capture-time
-  record-command session/tool rows. R113-live over five real Codex tasks now
-  joins 508/508 raw effects, but this is still a command-mode smoke rather than
-  a full-history benchmark or user utility result.
+- C4 exact AgentSight lineage is supported for the fixed command-mode suite but
+  partial broadly. R114 joins 1,273/1,273 scoped in-scope effects and rejects
+  3,170 observed negative-control effects, but it is still not a full-history
+  or cross-repo benchmark.
 - C5 user utility remains unsupported. Task packets and scoring scripts exist,
   but no real participant responses have been collected.
 - C6 semantic adequacy is partial. The grammar is strong, but labels such as
   `agentsightsm`, `testcodex`, and `bashoutput` show that one-word tags need
   human adequacy measurement and possibly prompt repair.
+- R131 is a mechanism ablation, not a usability result. It supports C3 and
+  figure design, but not the C5 developer-utility claim.
 - One root-owned Claude session could not be read. The run records this as a
   warning rather than claiming perfect trace coverage.
 
@@ -280,3 +339,7 @@ cross-agent cost claims until token normalization is audited.
 - `docs/visexp/out/native-lineage-r112.json` for DB-persisted backfill C4 smoke status
 - `docs/visexp/out/capture-time-r113.json` for capture-time record-command implementation status
 - `docs/visexp/out/live-record-r113.json` for fresh live Codex record lineage status
+- `docs/visexp/out/live-record-r114.json` and `docs/visexp/out/live-record-r114-analysis.json` for fixed-suite live exact lineage
+- `docs/visexp/out/tag-adequacy-label-packet-r122.json` for the redacted adequacy-label packet
+- `docs/visexp/out/model-benchmarks-r123.json` for real-fragment stability
+- `docs/visexp/out/semantic-ablation-r131.json` for semantic-axis ablation
