@@ -7,9 +7,9 @@ Completeness: partial
 
 ## Thesis
 
-AgentFlame is better for forensic debugging and audit of AI coding agents in a
-local developer repository because it combines semantic intent frames with
-deterministic system-effect provenance and folded-stack aggregation.
+AgentFlame's current proven contribution is semantic attribution and
+aggregation of AI coding-agent system effects. Its user-debugging benefit is a
+hypothesis that requires C5 participant evidence.
 
 ## Paper Type
 
@@ -33,6 +33,7 @@ deterministic system-effect provenance and folded-stack aggregation.
 | C4 | Exact AgentSight lineage connects semantic intent to process/file/network effects. | Live AgentSight traces. | Join coverage, orphan rate, path/domain specificity. | fixed command-mode suite passed |
 | C5 | Developers answer forensic questions better with semantic effect flamegraphs. | User/task benchmark. | Time, accuracy, false positives, confidence. | unsupported |
 | C6 | One-word tags are stable and adequate enough for navigation. | Multi-model repeated runs and human labels. | Invalid rate, stability, adequacy, noisy-tag rate. | partial |
+| C7 | The approach is practical as an open-source developer tool. | Fresh clone or clean-worktree run. | Setup/run commands, expected files, runtime/cache, artifact hygiene. | partial |
 
 ## Claim-To-Experiment Map
 
@@ -44,6 +45,7 @@ deterministic system-effect provenance and folded-stack aggregation.
 | C4 | Live exact effects inherit prompt/session ancestry. | B3 | Raw orphan rate is mistaken for recall or lineage cannot cross process trees. | R114 passes on a fixed 20-task command-mode Codex suite; broader and full-history exact coverage remain open. |
 | C5 | Users solve tasks better with semantic views. | B4 | No time/accuracy/confidence improvement. | Semantic flamegraphs are expert exploratory views. |
 | C6 | Tags are stable and adequate. | B5 | High instability, generic/noisy tags, poor adequacy. | Tags are lossy hints only. |
+| C7 | Community developers can reproduce the core views without internal harness knowledge. | B7 | Fresh-clone smoke cannot produce expected files or leaks raw traces/artifacts outside the output dir. | Prototype remains a research artifact, not a packaged community tool. |
 
 ## System-Under-Test Model
 
@@ -75,7 +77,7 @@ deterministic system-effect provenance and folded-stack aggregation.
 | B4 | C5 | Developer task benchmark | trace tree, span flamegraph, flat summary, nonsemantic stack, semantic stack | time, accuracy, confidence, false positives | hidden answer key | Table 3 | must |
 | B5 | C2,C6 | Small-model/stability/adequacy | 0.6B, 1B, 3B, repeated runs | latency, invalid rate, exact stability, adequacy | grammar + human labels | Table 4 | must |
 | B6 | C3 | Semantic-axis ablation | no semantic, session-only, prompt-only, prompt+LLM-call | information gain and stack growth; noisy-tag burden and task accuracy/time deferred | same observations, report/folded cross-checks, baseline queries | Fig. 4 | done for C3 mechanism |
-| B7 | C6 | Artifact usability smoke | fresh clone/run, documented setup | setup time, errors, output completeness | artifact checklist | Appendix | should |
+| B7 | C7 | Artifact usability smoke | fresh clone/run, documented setup | setup time, runtime/cache, output completeness, artifact hygiene | artifact checklist | Appendix | should |
 
 ## Experiment Blocks
 
@@ -257,6 +259,7 @@ deterministic system-effect provenance and folded-stack aggregation.
 | R142-scoring | decision | response-contract and paper-scale user-task scorer gate | `score_user_task_results.py` over response template | deterministic empty-template check | C5 must stay unsupported until real responses; real runs use contract checks, diagnostic paired deltas, fixed-effect blocked permutation tests, and Holm correction | low | done/empty |
 | R142 | main | user task pilot | 5 developers, five conditions | counterbalanced P01-P05 template | protocol and answer keys work on real responses | medium | recruiting |
 | R151 | main | user task paper run | 12-20 developers or scoped expert study | counterbalanced | C5 verdict | high | strongest missing evidence |
+| R160 | polish | open-source usability smoke | `cargo run --manifest-path agentflame/Cargo.toml -- run --project-root . --scan-files 10000 --max-sessions 10000 --llama-url http://127.0.0.1:18080 --model local --timeout 60 --out .agentsight/agentflame/r160-smoke`; then `python3 docs/visexp/artifact_usability_r160.py --agentflame-dir .agentsight/agentflame/r160-smoke --out docs/visexp/out/artifact-usability-r160.json` | one clean run plus cached rerun | expected files, runtime/cache summary, no raw trace commit, no writes outside output dir | medium | artifact/community usefulness |
 
 ## Tracker Handoff
 
@@ -326,3 +329,4 @@ deterministic system-effect provenance and folded-stack aggregation.
 | C4 | `docs/visexp/out/native-lineage-r112.json`, `docs/visexp/out/live-record-r114.json`, `docs/visexp/out/live-record-r114-analysis.json` | supported for fixed command-mode suite; partial broadly | exact lineage over the fixed 20-task command-mode suite; full-history and cross-repo provenance pending |
 | C5 | `docs/visexp/out/user-task-benchmark.json`, `docs/visexp/out/user-task-results.json` | unsupported | same-slice packet exists; no user outcome claim |
 | C6 | `docs/visexp/out/model-benchmarks-r123.json`, `docs/visexp/out/tag-adequacy-results-r124.json` | partial | 3B syntactic/stability evidence; adequacy scorer ready but labels empty |
+| C7 | `docs/visexp/out/artifact-usability-r160.json` | planned | no community-tool claim until a fresh-clone smoke passes |

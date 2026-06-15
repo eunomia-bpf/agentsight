@@ -253,24 +253,37 @@ def paired_sign_flip_p_value(deltas: list[float], alternative: str = "greater") 
 
 def solve_linear_system(matrix: list[list[float]], vector: list[float]) -> list[float] | None:
     size = len(vector)
-    augmented = [row[:] + [vector[idx]] for idx, row in enumerate(matrix)]
-    for col in range(size):
-        pivot = max(range(col, size), key=lambda row: abs(augmented[row][col]))
-        if abs(augmented[pivot][col]) < 1e-9:
+    if len(matrix) != size:
+        return None
+    coefficients = []
+    for idx, matrix_row in enumerate(matrix):
+        if not isinstance(matrix_row, list) or len(matrix_row) != size:
             return None
-        augmented[col], augmented[pivot] = augmented[pivot], augmented[col]
-        pivot_value = augmented[col][col]
-        for idx in range(col, size + 1):
-            augmented[col][idx] /= pivot_value
-        for row in range(size):
-            if row == col:
+        coefficients.append([float(value) for value in matrix_row])
+    rhs = [float(value) for value in vector]
+    for col in range(size):
+        pivot = max(range(col, size), key=lambda row_idx: abs(coefficients[row_idx][col]))
+        if abs(coefficients[pivot][col]) < 1e-9:
+            return None
+        coefficients[col], coefficients[pivot] = coefficients[pivot], coefficients[col]
+        rhs[col], rhs[pivot] = rhs[pivot], rhs[col]
+        pivot_value = coefficients[col][col]
+        pivot_row = [value / pivot_value for value in coefficients[col]]
+        pivot_rhs = rhs[col] / pivot_value
+        coefficients[col] = pivot_row
+        rhs[col] = pivot_rhs
+        for row_idx in range(size):
+            if row_idx == col:
                 continue
-            factor = augmented[row][col]
+            factor = coefficients[row_idx][col]
             if factor == 0:
                 continue
-            for idx in range(col, size + 1):
-                augmented[row][idx] -= factor * augmented[col][idx]
-    return [augmented[row][size] for row in range(size)]
+            coefficients[row_idx] = [
+                value - factor * pivot_row[idx]
+                for idx, value in enumerate(coefficients[row_idx])
+            ]
+            rhs[row_idx] -= factor * pivot_rhs
+    return rhs
 
 
 def metric_value(row: dict[str, Any], metric: str) -> float | None:

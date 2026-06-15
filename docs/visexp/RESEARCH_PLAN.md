@@ -7,9 +7,11 @@ Completeness: partial
 
 ## Thesis
 
-AgentFlame is better for forensic debugging and audit of AI coding agents in a
-local developer repository because it joins user-level semantic intent with
-system-level provenance and flamegraph-style aggregation:
+AgentFlame's current proven contribution is semantic attribution and
+aggregation of AI coding-agent system effects: it joins user-level semantic
+intent with system-level provenance and flamegraph-style aggregation. The
+stronger claim that this improves developer forensics remains a C5 hypothesis
+until participant evidence exists.
 
 ```text
 sessionTag;promptTag;llmcall/tool;process*;effect
@@ -270,6 +272,39 @@ Remaining gap:
 
 - The one-word grammar is solved; semantic adequacy is not solved.
 
+### RQ6. Open-Source Developer Usefulness
+
+Can a community developer run AgentFlame on a local agent-history workspace and
+obtain the three paper views without learning the internal experiment harness?
+
+Required evidence:
+
+- Fresh-clone or clean-worktree smoke using documented commands.
+- One command that either starts or connects to a llama.cpp-compatible server
+  and writes `.agentsight/agentflame/latest`.
+- Generated artifacts for the three core views: attribution model evidence,
+  semantic flamegraph, and baseline-failure comparison.
+- Runtime/resource/cost summary for local use, including cache behavior.
+- Artifact hygiene: no committed raw traces, no writes outside the project
+  output directory, and explicit warnings for unreadable/skipped traces.
+
+Current evidence:
+
+- The Rust CLI can generate `.agentsight/agentflame/latest/agentflame.json`,
+  folded stacks, SVGs, and dashboard artifacts over the local AgentSight
+  history.
+- `docs/visexp/verify_artifacts.py` checks committed evaluation artifacts, C5
+  response-contract fields, R124 tag-adequacy boundaries, and folded totals.
+- Raw local traces are not committed. The full run records skipped unreadable
+  files instead of requiring elevated privileges.
+
+Remaining gap:
+
+- There is no fresh-clone artifact smoke that a community developer could
+  rerun end-to-end with clear expected runtime and outputs. This is not a core
+  scientific result, but it is important for turning the research prototype
+  into a credible open-source project.
+
 ## Claim Ledger Snapshot
 
 | ID | Claim | Current Status | Evidence Needed For OSDI |
@@ -328,10 +363,15 @@ the weak-accept gate as four requirements: G1 full-history semantic
 characterization, G2 broader live exact lineage, G3 small-model/tag adequacy,
 and G4 developer task utility.
 
-The fastest route to weak accept is:
+The fastest route to weak accept is now a gate-ordered plan:
 
-1. Collect and adjudicate R124 human adequacy labels over the R122 packet.
+1. Collect and adjudicate R124 human adequacy labels over the R122 packet. This
+   is the smallest remaining local/manual step that can turn C6 from partial
+   syntax/stability evidence into adequacy evidence without changing the system.
 2. Run a small but real B4x user/task benchmark using the generated R142 answer
    keys and blinded condition packets.
-3. Rewrite the paper around "semantic attribution of agent system effects," not
-   around "agent flamegraph UI."
+3. Add an R160 fresh-clone/open-source usability smoke for RQ6, after the core
+   claims stop moving.
+4. Rewrite the paper around "semantic attribution of agent system effects," not
+   around "agent flamegraph UI," and keep C5/C6 limitations explicit unless the
+   new results pass their gates.
