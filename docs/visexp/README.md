@@ -113,6 +113,9 @@ headline results come from `.agentsight/agentflame/latest`.
 - `out/osdi-gate-review-r185.md`: read-only subagent OSDI gate review after
   R184; it identifies the real R142 developer pilot as the highest-value next
   artifact.
+- `out/osdi-plan-review-r186.md`: read-only OSDI plan/RQ review and cleanup
+  gate; it makes R142 pilot the next executable human study and keeps R124
+  labels as parallel/second C6 work.
 - `out/index.html`: legacy Python report page.
 - `out/visual-summary.html`: compact visual progress gallery.
 - `out/system-flamegraph.svg`: system/tool footprint flamegraph.

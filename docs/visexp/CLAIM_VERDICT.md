@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-15
 Stage at update: claim-gate
-Source/command: `.agentsight/agentflame/latest/agentflame.json`, `docs/visexp/out/full-history-r170.json`, `docs/visexp/out/artifact-usability-r160.json`, `docs/visexp/out/live-network-r182.json`, `docs/visexp/out/weak-accept-gate-r184.json`
+Source/command: `.agentsight/agentflame/latest/agentflame.json`, `docs/visexp/out/full-history-r170.json`, `docs/visexp/out/artifact-usability-r160.json`, `docs/visexp/out/live-network-r182.json`, `docs/visexp/out/weak-accept-gate-r184.json`, `docs/visexp/out/osdi-plan-review-r186.md`
 Completeness: partial
 
 | Claim | Verdict | Evidence | Supported wording | Missing evidence |
@@ -34,6 +34,10 @@ two central systems-paper gaps remain:
 R184 encodes the current human-evidence gate directly: while either C5 or C6 is
 missing, the readiness status is `not_weak_accept`, and subagent/LLM/mock
 substitutes do not count.
+
+R186 cleans up the plan/RQ order before human collection, but it is not outcome
+evidence. The next executable study is R142 pilot; R124 labels remain required
+for C6, and R151 remains blocked until R142 passes.
 
 ## Paper Wording Rule
 

@@ -34,8 +34,10 @@ for multi-agent workflows. The claim must be narrower and stronger:
   histories; AgentSight exact-effect integration has harness and native-export
   smokes but is not yet the primary full-run input.
 - Current maturity: stronger than a workshop demo for characterization and
-  artifact-internal claims, but not OSDI weak-accept until live exact lineage and
-  user/task benchmarks exist.
+  artifact-internal claims, but not OSDI weak-accept. R184 mechanically reports
+  `not_weak_accept` because C5 has no participant responses and C6 has no
+  independent human labels; R185 says the highest-value next artifact is a real
+  R142 developer pilot.
 - Main reviewer risk: reviewers may see the work as a restyled trace UI unless
   the paper proves semantic attribution plus system provenance answers questions
   that span flamegraphs and flat process summaries cannot answer.
@@ -241,8 +243,10 @@ Remaining gap:
 ### RQ4. Developer Utility
 
 Do developers answer forensic questions faster or more accurately with semantic
-effect flamegraphs than with trace trees, span-duration flamegraphs, or flat
-process/file/network summaries?
+effect flamegraphs than with trace trees, the explicitly named
+`event-count-proxy`, flat process/file/network summaries, and nonsemantic folded
+stacks? A true span-duration flamegraph is an optional additional baseline only
+if regenerated from timestamps and preregistered separately.
 
 Required evidence:
 
@@ -378,6 +382,47 @@ Remaining gap:
 | C6 | One-word tags are stable and adequate enough for navigation. | partial; R180 syntax/stability exists, R124 scorer/join protocol exists, labels are empty | human adequacy labels with thresholds |
 | C7 | The approach is practical as an open-source developer tool. | partial | one-command install/run, runtime/cost, docs, artifact hygiene |
 
+## Claim-To-Experiment Map
+
+| Claim | Required evidence | Primary block | Falsifying result | Supported wording if partial |
+|-------|-------------------|---------------|-------------------|------------------------------|
+| C1 | Full-history run over real local sessions, folded outputs, verifier coverage, no raw-trace commit | B1, B7 | Tagger/report cannot complete without manual trace editing, raw trace leaks into committed artifacts, or folded totals do not match reports | "AgentFlame generated semantic folded-stack artifacts for this repository's local histories." |
+| C2 | Local llama.cpp annotation validity, latency, stability, cache behavior, and explicit adequacy boundary | B1, B5 | Small models frequently emit invalid tags, unstable tags break navigation, or human adequacy labels reject tags | "Local models can produce syntactically valid one-word navigation tags on this workload; adequacy is bounded by R124." |
+| C3 | Same observations projected into semantic and nonsemantic baselines with total-weight equality and mixed-bucket reduction | B2, B6 | Removing semantic frames does not increase mixing, or prompt/session axes fail to isolate any real system-effect buckets | "Semantic frames partition system-effect buckets that traditional summaries merge in this repository." |
+| C4 | Live AgentSight lineage with negative controls, process ancestry, file/network effects, and scoped precision/recall | B3 | In-scope recall below threshold, negative controls join, target-specific network rows remain absent for a network claim, or redaction/path checks fail | "Exact lineage is supported for the fixed command-mode suite; broad and target-specific network claims remain partial." |
+| C5 | Preregistered developer task benchmark against named baselines with accuracy/time/false-positive/confidence outcomes | B4 | Semantic view does not improve accuracy or time, increases false positives, fails response contract, or only pilot-scale evidence exists | "The task benchmark is a protocol or pilot result only; no paper-scale user-utility claim." |
+| C6 | Two independent human label sheets plus adjudication and scorer thresholds over R122/R124 fragments | B5 | Adequacy below threshold, high generic/misleading rate, low agreement without adjudication, or only LLM/subagent labels exist | "Tags are lossy navigation hints with measured syntax/stability; adequacy remains unsupported." |
+| C7 | Clean one-command public workflow, fixed-input cache behavior, write-set/report containment, and external usability evidence | B7 | Fresh clone fails, run requires internal state, raw traces leak, runtime/cost is unacceptable, or external users cannot reproduce outputs | "The artifact path is bounded-local only, not community-ready." |
+
+## System-Under-Test Model
+
+- Components: `agentflame` Rust CLI, `normalize-chat-sessions` parser,
+  llama.cpp-compatible local tagger, tag cache, folded-stack generator, SVG/HTML
+  report generator, AgentSight record/export lineage artifacts, and verification
+  scripts under `docs/visexp`.
+- Durable state: local agent histories under user-controlled trace roots,
+  generated private reports under `.agentsight/agentflame/*`, committed redacted
+  summaries under `docs/visexp/out`, R124/R142 human-input templates, and
+  experiment trackers/plans.
+- Trust boundaries: LLM labels are untrusted navigation hints; file/process/
+  network effects must come from parser or AgentSight provenance; human C5/C6
+  evidence must come from completed participant/labeler CSVs, not from LLM,
+  subagent, author mock data, or placeholder rows.
+- Failure boundaries: unreadable traces must be recorded as skipped, not read
+  with elevated privileges; out-of-scope sibling/wrapper effects must remain
+  orphaned; active-session drift must be isolated with fixed `--session-file`
+  manifests for cache/usability measurements.
+- Workloads: current local Codex/Claude histories for full-run mechanism
+  evidence; R114/R182 live Codex command-mode suites for exact-lineage evidence;
+  R122/R124 redacted fragments for tag adequacy; R142/R151 blinded task packets
+  for developer utility.
+- Observability: folded stack totals, tag contract counters, cache/latency
+  counters, lineage precision/recall, negative-control joins, task response
+  accuracy/time/false positives/confidence, and artifact hygiene checks.
+- Assumptions: committed outputs must be redacted; local `.agentsight` reports
+  remain private unless a separate public sanitization path is verified; current
+  C5/C6 claims stay unsupported until R184's human-evidence gate clears.
+
 ## Experiment Matrix
 
 | Block | RQ | Experiment | Baselines/Variants | Metrics | Oracle | Priority |
@@ -406,6 +451,28 @@ Remaining gap:
   session/prompt frames. This isolates the contribution of semantic frames from
   flamegraph folding itself.
 
+## Run Order And Tracker Handoff
+
+| Run ID | Stage | Purpose | Config | Seed/reps | Decision gate | Cost | Risk |
+|--------|-------|---------|--------|-----------|---------------|------|------|
+| R186 | plan-review | Independent OSDI review of revised RQ/experiment plan | read-only review over `RESEARCH_PLAN`, `FOLLOWUP_PLAN`, `STATE`, R184/R185, and paper RQs | one subagent review | review says plan is executable and names remaining blockers; otherwise revise plan before new claims | done | confirmed Level 3 only |
+| R142-pilot | execute | Five-participant developer pilot using frozen packets | completed copy of `docs/visexp/out/user-task-response-template.csv`, scored into `docs/visexp/out/user-task-pilot-r142` | P01-P05 counterbalanced assignments | response contract valid, no leakage, interpretable task-level deltas; still not paper-scale C5 unless gate says so | human time | cannot be synthesized by LLM/subagent |
+| R124-labels | execute | Independent human tag adequacy labels | two completed blinded sheets plus adjudication, joined/scored by R124 scripts | 300 rows x 2 labelers | `adequacy_supported=true`, agreement/adjudication recorded; otherwise C6 wording narrows | human time | label noise may falsify adequacy |
+| R151 | execute | Paper-scale developer utility run | 12-20 developers or deliberately narrowed expert population | preregistered participant/task/order blocking | Holm-corrected C5 gate passes and false positives stay within threshold | high | likely reviewer-critical |
+| R190 | supplement | Target-specific network lineage hardening | expanded loopback/HTTP child-process workloads under `agentsight record --trace-net` | fixed manifest plus negative controls | target-specific network rows observed and joined, 0 joined negatives | medium | may require collector changes |
+| R200 | artifact | Fresh-clone/community smoke | documented install/run path on fixed public-safe inputs | clean + cached rerun | one-command output, no raw trace leak, bounded write set | medium | lower priority than C5/C6 |
+
+Tracker handoff:
+
+- Update path: `docs/visexp/EXPERIMENT_TRACKER.md`.
+- Result path convention: committed redacted summaries under `docs/visexp/out`;
+  private full reports remain under `.agentsight/agentflame/*`.
+- Required tracker columns: Run ID, Claim, Block, Purpose, Command/config,
+  Commit, Machine, Seed/reps, Oracle, Decision gate, Result path, Status.
+- R186 plan review is recorded in `docs/visexp/out/osdi-plan-review-r186.md`.
+- Next rows to execute: R142-pilot first, then R124-labels in parallel or
+  immediately after.
+
 ## Figure Plan
 
 1. Attribution Model: `sessionTag/promptTag/llmcall` generated by small LLM;
@@ -421,6 +488,8 @@ Remaining gap:
 ## Next Gate
 
 Current OSDI review posture: weak reject / promising measurement-tooling idea.
+R184 reports `not_weak_accept`; R185 says the plan is still Level 3 until real
+C5/C6 human evidence exists.
 
 The canonical follow-up artifact is `docs/visexp/FOLLOWUP_PLAN.md`. It freezes
 the weak-accept gate as four requirements: G1 full-history semantic
@@ -429,26 +498,29 @@ and G4 developer task utility.
 
 The fastest route to weak accept is now a gate-ordered plan:
 
-1. Collect and adjudicate human adequacy labels using the blinded R124 labeler
+1. R186 read-only OSDI plan review is complete for this revision. If the plan or
+   RQ wording changes again, rerun the same gate before new human collection.
+2. Run a real R142 five-participant developer pilot using the frozen
+   preregistration, corrected answer keys, blinded condition packets, and the
+   existing response template. The pilot validates packet wording and the
+   response contract; it must stay labeled as pilot evidence unless the scorer's
+   paper-scale gate passes.
+3. Collect and adjudicate human adequacy labels using the blinded R124 labeler
    sheet, join frozen sheets with `docs/visexp/r124_join_blinded_labels.py`,
-   and score `docs/visexp/out/tag-adequacy-label-packet-r124-joined.csv`. This
-   is the smallest remaining local/manual step that can turn C6 from partial
-   syntax/stability evidence into adequacy evidence without changing the
-   system. The packet must receive two independent human labels per row plus
-   adjudication for disagreements; LLM or subagent labels can only review the
-   protocol and cannot count as C6 evidence.
-2. Run a small but real B4x user/task benchmark using the frozen R142
-   preregistration, corrected answer
-   keys and blinded condition packets. The pilot validates packet wording and
-   the response contract; it does not support C5 unless the scorer's paper-scale
-   gate passes.
+   and score `docs/visexp/out/tag-adequacy-label-packet-r124-joined.csv`. The
+   packet must receive two independent human labels per row plus adjudication
+   for disagreements; LLM or subagent labels can only review the protocol and
+   cannot count as C6 evidence.
 4. If the pilot passes, run R151 with 12-20 developers or a deliberately
    narrowed expert-study population. C5 can be claimed only if the
-   Holm-corrected participant/task/order fixed-effect gate passes and false positives
-   do not increase beyond the preregistered threshold.
-5. Turn the bounded R160 artifact smoke into a fresh-clone/clean-install
-   community workflow, after the core claims stop moving.
-6. Rewrite the paper around "semantic attribution of agent system effects," not
+   Holm-corrected participant/task/order fixed-effect gate passes and false
+   positives do not increase beyond the preregistered threshold.
+5. Run target-specific network lineage hardening only for claims that extend C4
+   beyond the fixed command-mode suite; do not let C4 hardening substitute for
+   C5/C6.
+6. Turn the bounded R160 artifact smoke into a fresh-clone/clean-install
+   community workflow after the core claims stop moving.
+7. Rewrite the paper around "semantic attribution of agent system effects," not
    around "agent flamegraph UI," and keep C5/C6 limitations explicit unless the
    new results pass their gates.
 
