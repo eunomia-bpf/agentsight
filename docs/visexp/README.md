@@ -94,6 +94,17 @@ headline results come from `.agentsight/agentflame/latest`.
   an explicit boundary that this is not human adequacy or controlled
   same-family scaling evidence.
 - `out/model-benchmarks-r180.md`: human-readable R180 benchmark summary.
+- `out/live-network-r182.json`: scrubbed R182 network exact-lineage supplement
+  over two real `codex exec` loopback-task runs under `agentsight record`.
+  It records 35/35 joined low-level `codex` process network rows, 0 network
+  orphans, and 0/604 joined negative-control effects after record-mode process
+  `--trace-net` is enabled. It also records 0/0 target-specific loopback or
+  expected child-process network rows, so loopback workload capture remains
+  partial.
+- `out/live-network-r182.md`: human-readable R182 network supplement summary.
+- `out/osdi-gate-review-r183.md`: read-only subagent OSDI gate review that
+  downgraded the initial R182 overclaim and keeps the network result scoped as
+  a partial record-mode `--trace-net` smoke.
 - `out/index.html`: legacy Python report page.
 - `out/visual-summary.html`: compact visual progress gallery.
 - `out/system-flamegraph.svg`: system/tool footprint flamegraph.

@@ -27,9 +27,14 @@ session-only leaves 84.180%, prompt-only leaves 37.687%, and full
 session+prompt semantics leaves 0.000% by construction. Its non-dominant
 residual mixed weight drops from 44.639% with no semantic axis to 7.526% with
 prompt-only. R114 adds fixed-suite live exact
-lineage over 20 real Codex tasks with negative controls. The project still does
-not prove broad cross-repo/full-history exact file/network lineage or user
-utility.
+lineage over 20 real Codex tasks with negative controls. R182 exposed and fixed
+that `agentsight record` was not enabling process `--trace-net`; after the fix,
+2/2 loopback-task runs completed and 35/35 low-level `codex` process network
+rows joined with 0 network orphans and 0/604 negative-control joins. However,
+target-specific loopback or expected child-process network rows were 0/0, so
+R182 is a partial implementation smoke rather than proof of loopback workload
+network capture. The project still does not prove broad cross-repo/full-history
+exact lineage or user utility.
 
 ## Completed Runs
 
@@ -43,6 +48,7 @@ utility.
 | R113 | Capture-time `record -- <command>` session/tool envelope implementation smoke | `docs/visexp/out/capture-time-r113.json` | partial |
 | R113-live | Five real read-only `codex exec` tasks wrapped with `agentsight record`, then exported and checked for lineage | `docs/visexp/out/live-record-r113.json` | partial |
 | R114 | Twenty fixed Codex tasks under `agentsight record` with negative controls and scoped precision/recall analysis | `docs/visexp/out/live-record-r114.json`, `docs/visexp/out/live-record-r114-analysis.json` | done |
+| R182 | Loopback-task Codex runs under `agentsight record` after enabling process `--trace-net`, with R114-style negative-control accounting and target-specific network oracle | `docs/visexp/out/live-network-r182.json`, `docs/visexp/out/live-network-r182.md` | partial/network flag smoke |
 | R122 | Redacted human adequacy label packet over 100 session, 100 prompt, and 100 LLM-call fragments | `docs/visexp/out/tag-adequacy-label-packet-r122.json` | packet only |
 | R123 | 3B llama.cpp real-fragment stability benchmark over the R122 packet | `docs/visexp/out/model-benchmarks-r123.json` | done |
 | R180 | Local 0.6B-/1B-/3B-class llama.cpp benchmark over the same R122 redacted fragments | `docs/visexp/out/model-benchmarks-r180.json`, `docs/visexp/out/model-benchmarks-r180.md` | done/syntax-stability; not adequacy |
@@ -360,8 +366,13 @@ provenance.
 
 - C4 exact AgentSight lineage is supported for the fixed command-mode suite but
   partial broadly. R114 joins 1,273/1,273 scoped in-scope effects and rejects
-  3,170 observed negative-control effects, but it is still not a full-history
-  or cross-repo benchmark.
+  3,170 observed negative-control effects. R182 then exposed and fixed a
+  missing record-mode network capture flag. The stricter rerun observed 35/35
+  joined low-level `codex` process network rows and 0/604 negative-control
+  joins, but target-specific loopback or expected child-process network rows
+  remained 0/0. C4 network-workload coverage therefore remains open; R182 is
+  implementation evidence for record-mode `--trace-net`, not proof of HTTP
+  payload/URL reconstruction or child-process loopback capture.
 - C5 user utility remains unsupported. Task packets and scoring scripts exist,
   and R142-packet now provides 14 tasks, 8 primary utility tasks, 6
   limitation/comprehension tasks, 5 conditions, 70 leak-checked blinded packets,
@@ -416,6 +427,9 @@ provenance.
 - `docs/visexp/out/capture-time-r113.json` for capture-time record-command implementation status
 - `docs/visexp/out/live-record-r113.json` for fresh live Codex record lineage status
 - `docs/visexp/out/live-record-r114.json` and `docs/visexp/out/live-record-r114-analysis.json` for fixed-suite live exact lineage
+- `docs/visexp/out/live-network-r182.json` and `.md` for fixed-suite network
+  exact-lineage smoke after enabling record-mode process `--trace-net`; current
+  target-specific loopback/child-process network coverage remains partial
 - `docs/visexp/out/tag-adequacy-label-packet-r122.json` for the redacted adequacy-label packet
 - `docs/visexp/out/tag-adequacy-results-r124.json` for the empty human-label scorer gate
 - `docs/visexp/out/tag-adequacy-blinded-label-sheet-r124.json` and `.csv` for the blinded labeler-facing R124 sheet

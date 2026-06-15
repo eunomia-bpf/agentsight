@@ -409,6 +409,49 @@ def run(out_dir: Path) -> dict[str, int | str]:
             if not c6 or "model_benchmark=R180" not in c6.get("evidence", ""):
                 raise AssertionError("C6 claim gate does not include current R180 benchmark")
 
+    r182_path = out_dir / "live-network-r182.json"
+    if r182_path.exists():
+        r182 = json.loads(r182_path.read_text(encoding="utf-8"))
+        if r182.get("run_id") != "R182":
+            raise AssertionError("R182 network lineage artifact has the wrong run_id")
+        if r182.get("status") not in {"ok", "partial"}:
+            raise AssertionError("R182 network lineage artifact has an unexpected status")
+        boundary = str(r182.get("boundary") or "")
+        if "C5" not in boundary or "C6" not in boundary:
+            raise AssertionError("R182 boundary must explicitly exclude C5/C6 outcome evidence")
+        aggregate = r182.get("aggregate") or {}
+        network = r182.get("network_aggregate") or {}
+        tasks = r182.get("tasks") or []
+        task_count = aggregate.get("tasks")
+        if task_count != len(tasks):
+            raise AssertionError("R182 aggregate task count does not match task rows")
+        if len(r182.get("manifest") or []) != len(tasks):
+            raise AssertionError("R182 manifest task count does not match task rows")
+        for row in tasks:
+            if "network_lineage" not in row:
+                raise AssertionError("R182 task row is missing network_lineage")
+        if r182.get("status") == "ok":
+            if network.get("network_effect_events", 0) <= 0:
+                raise AssertionError("R182 ok status requires observed network effects")
+            if network.get("joined_network_effect_events", 0) <= 0:
+                raise AssertionError("R182 ok status requires joined network effects")
+            if network.get("orphan_network_effect_events", 0) != 0:
+                raise AssertionError("R182 ok status requires zero orphan network effects")
+            if network.get("target_specific_network_effect_events", 0) <= 0:
+                raise AssertionError("R182 ok status requires target-specific loopback or child-process network effects")
+            if network.get("joined_target_specific_network_effect_events", 0) != network.get("target_specific_network_effect_events", 0):
+                raise AssertionError("R182 ok status requires all target-specific network effects to join")
+            if network.get("orphan_target_specific_network_effect_events", 0) != 0:
+                raise AssertionError("R182 ok status requires zero target-specific network orphans")
+            if aggregate.get("precision_pct", 0.0) < 98.0 or aggregate.get("recall_pct", 0.0) < 95.0:
+                raise AssertionError("R182 ok status requires precision/recall thresholds")
+            if aggregate.get("negative_effect_events_observed", 0) <= 0:
+                raise AssertionError("R182 ok status requires observed negative controls")
+            if aggregate.get("negative_joined_effect_events", 0) != 0:
+                raise AssertionError("R182 ok status requires zero joined negative-control effects")
+            if aggregate.get("negative_control_tasks_observed", 0) != len(tasks):
+                raise AssertionError("R182 ok status requires negative controls for every task")
+
     r170_path = out_dir / "full-history-r170.json"
     if r170_path.exists():
         r170 = json.loads(r170_path.read_text(encoding="utf-8"))

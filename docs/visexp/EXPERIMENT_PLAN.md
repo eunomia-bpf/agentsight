@@ -250,6 +250,7 @@ hypothesis that requires C5 participant evidence.
 | R111 | decision | exact lineage native export smoke | same 3 DB exports | 3 tasks | native sessions/tools plus raw join/orphan report | low | done/partial |
 | R112 | decision | exact lineage DB-persisted backfill smoke | same 3 DB copies | 3 tasks | persisted sessions/tools plus raw join/orphan report | low | done/partial |
 | R114 | decision | broader live exact-lineage suite | 20 `agentsight record` tasks, disposable repos for writes | fixed task manifest | C4 scope can widen only if join/orphan/path/domain/redaction gates pass | medium | live task variance |
+| R182 | decision | network exact-lineage smoke | 2 `agentsight record` loopback-task runs after record-mode process `--trace-net` fix | fixed task manifest plus negative controls and target-specific oracle | C4 network-workload scope can widen only if loopback or expected child-process rows are observed and joined; low-level agent-process rows alone are implementation evidence | low | partial/network flag smoke |
 | R121 | decision | real local model benchmark | `agentflame bench` over available GGUF models | 3 fixed fragments x 3 identical repeats | Historical 3B smoke; superseded by R180 for local model-size coverage | medium | small synthetic sample |
 | R122 | decision | redacted tag adequacy packet | 100 session + 100 prompt + 100 LLM-call fragments | deterministic sample | label packet and redaction gate | low | trace privacy |
 | R123 | decision | real-fragment stability benchmark | R122 fragment file through 3B llama.cpp server | 300 fragments x 3 identical repeats | C2/C6 can cite 3B stability only if grammar/latency/stability pass | low | superseded for model-size coverage by R180 |
@@ -314,9 +315,13 @@ hypothesis that requires C5 participant evidence.
 - Current full run is single-repo and observational.
 - Current exact lineage evidence is split: the R111/R112 DB snapshot/backfill
   smoke still joins only 182/318 raw effects (57.233%), while R114 command-mode
-  capture-time record passes on 20 fixed Codex tasks. The remaining uncertainty
-  is full-history, cross-repo, and broader workload coverage, not command-mode
-  capture-time row creation.
+  capture-time record passes on 20 fixed Codex tasks. R182 adds record-mode
+  process `--trace-net` and observes joined low-level `codex` process network
+  rows, but target-specific loopback/expected child-process network rows remain
+  0/0 and HTTP payload/URL reconstruction is absent. The remaining uncertainty
+  is full-history, cross-repo, more agent types, target-specific network
+  workloads, and broader workload coverage, not command-mode capture-time row
+  creation.
 - Current user utility outcome evidence is absent. R142-packet makes the B4
   packet/scorer executable for a pilot, but no participant responses have been
   collected.
@@ -334,7 +339,7 @@ hypothesis that requires C5 participant evidence.
 | C1 | `.agentsight/agentflame/latest/agentflame.json` | supported | local-history semantic folded stacks |
 | C2 | `.agentsight/agentflame/latest/tags.json`, `docs/visexp/out/model-benchmarks-r180.json` | supported for syntax/latency; partial for adequacy | local 0.6B-/1B-/3B-class syntactic feasibility on the redacted R122 sample |
 | C3 | `.agentsight/agentflame/latest/agentflame.json` | supported | semantic partitioning in local workload |
-| C4 | `docs/visexp/out/native-lineage-r112.json`, `docs/visexp/out/live-record-r114.json`, `docs/visexp/out/live-record-r114-analysis.json` | supported for fixed command-mode suite; partial broadly | exact lineage over the fixed 20-task command-mode suite; full-history and cross-repo provenance pending |
+| C4 | `docs/visexp/out/native-lineage-r112.json`, `docs/visexp/out/live-record-r114.json`, `docs/visexp/out/live-record-r114-analysis.json`, `docs/visexp/out/live-network-r182.json` | supported for fixed command-mode suite; partial broadly and partial for target-specific network workloads | exact lineage over the fixed 20-task command-mode suite; R182 validates record-mode `--trace-net` for low-level agent-process rows but not loopback child-process capture |
 | C5 | `docs/visexp/out/user-task-benchmark.json`, `docs/visexp/out/user-task-preregistration-r142.json`, `docs/visexp/out/user-task-results.json` | unsupported | same-slice packet and frozen preregistration exist; no user outcome claim |
 | C6 | `docs/visexp/out/model-benchmarks-r180.json`, `docs/visexp/out/tag-adequacy-results-r124.json` | partial | multi-model syntactic/stability evidence; adequacy scorer ready but labels empty |
 | C7 | `docs/visexp/out/artifact-usability-r160.json` | partial | bounded fixed-session artifact smoke passed; no broad community-tool claim until fresh-clone setup and external-developer feedback exist |

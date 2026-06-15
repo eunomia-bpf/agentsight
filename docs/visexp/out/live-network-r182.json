@@ -1,0 +1,641 @@
+{
+  "schema_version": 1,
+  "run_id": "R182",
+  "status": "partial",
+  "scope": "real_codex_exec_loopback_network_under_agentsight_record_with_negative_controls",
+  "artifact_boundary": "Raw SQLite DBs and exported snapshots stay in the local work dir and are not committed; rerun this suite to reproduce per-event evidence.",
+  "generated_at": "2026-06-15",
+  "work_dir": "/tmp/agentsight-r182-network",
+  "agentsight_bin": "collector/target/debug/agentsight",
+  "codex_bin": "$HOME/.nvm/versions/node/v22.22.0/bin/codex",
+  "task_limit": 2,
+  "manifest": [
+    {
+      "task_id": "r182-loopback-python",
+      "category": "network",
+      "sandbox": "danger-full-access",
+      "workspace": "json_write",
+      "prompt": "In the current directory only, create network_payload.txt containing exactly 'agentflame-loopback'. Then run a Python script using http.server.ThreadingHTTPServer bound to 127.0.0.1 with port 0, fetch /network_payload.txt with urllib.request.urlopen, shut the server down cleanly, and answer exactly one line: loopback_status=<status> bytes=<n>."
+    },
+    {
+      "task_id": "r182-http-server",
+      "category": "network",
+      "sandbox": "danger-full-access",
+      "workspace": "json_write",
+      "prompt": "In the current directory only, create served.json containing exactly {\"status\":\"ok\"}. Start `python3 -m http.server 0 --bind 127.0.0.1` or an equivalent Python http.server on a loopback port, fetch /served.json with Python urllib, stop the server, and answer exactly one line: server_status=<status> bytes=<n>."
+    }
+  ],
+  "aggregate": {
+    "tasks": 2,
+    "task_statuses": {
+      "lineage_precision_ok": 2
+    },
+    "record_statuses": {
+      "ok": 2
+    },
+    "target_statuses": {
+      "completed": 2
+    },
+    "lineage_statuses": {
+      "precision_ok": 2
+    },
+    "sessions": 2,
+    "tool_calls": 2,
+    "process_nodes": 93,
+    "audit_events": 841,
+    "effect_events": 841,
+    "joined_effect_events": 117,
+    "orphan_effect_events": 724,
+    "true_positives": 117,
+    "false_positives": 0,
+    "false_negatives": 0,
+    "in_scope_effect_events": 117,
+    "out_of_scope_effect_events": 120,
+    "negative_effect_events_observed": 604,
+    "negative_joined_effect_events": 0,
+    "negative_control_tasks_observed": 2,
+    "raw_join_pct": 13.912,
+    "precision_pct": 100.0,
+    "recall_pct": 100.0,
+    "negative_control_statuses": {
+      "observed": 2
+    },
+    "join_methods": {
+      "none": 724,
+      "pid_family_time_window": 117
+    }
+  },
+  "network_aggregate": {
+    "network_effect_events": 35,
+    "joined_network_effect_events": 35,
+    "orphan_network_effect_events": 0,
+    "target_specific_network_effect_events": 0,
+    "joined_target_specific_network_effect_events": 0,
+    "orphan_target_specific_network_effect_events": 0,
+    "tasks_with_network_effects": 2,
+    "tasks_with_joined_network_effects": 2,
+    "network_join_pct": 100.0,
+    "target_specific_network_join_pct": 0.0,
+    "network_target_groups": {
+      "0.0.0.0:0": 7,
+      "172.64.155.209:65535": 7,
+      "104.18.32.47:65535": 7,
+      "172.64.155.209:443": 7,
+      "family=10": 7
+    },
+    "target_specific_network_target_groups": {},
+    "network_actions": {
+      "NET_BIND": 7,
+      "NET_CONNECT": 28
+    },
+    "network_join_methods": {
+      "pid_family_time_window": 35
+    },
+    "network_process_comms": {
+      "codex": 35
+    }
+  },
+  "tasks": [
+    {
+      "task_id": "r182-loopback-python",
+      "category": "network",
+      "workspace": "json_write",
+      "sandbox": "danger-full-access",
+      "status": "lineage_precision_ok",
+      "record_status": "ok",
+      "duration_seconds": 26.907,
+      "db": "/tmp/agentsight-r182-network/runs/r182-loopback-python/r182-loopback-python.db",
+      "record_returncode": 0,
+      "negative_control": {
+        "marker": "R114_NEGATIVE_CONTROL_r182-loopback-python",
+        "negative_dir": "/tmp/agentsight-r182-network/negative-controls/r182-loopback-python",
+        "sibling_dir": "/tmp/agentsight-r182-network/sibling-repo-negative/r182-loopback-python",
+        "stop_file": "/tmp/agentsight-r182-network/negative-controls/r182-loopback-python/stop",
+        "worker": "/tmp/agentsight-r182-network/negative-controls/r182-loopback-python/negative_worker.py",
+        "mode": "wrapper",
+        "returncode": null
+      },
+      "answer": "loopback_status=200 bytes=19",
+      "export_returncode": 0,
+      "snapshot": "/tmp/agentsight-r182-network/runs/r182-loopback-python/r182-loopback-python.snapshot.json",
+      "lineage_returncode": 1,
+      "lineage": {
+        "schema_version": 1,
+        "status": "lineage_smoke_failed",
+        "source": "snapshot",
+        "snapshot": "r182-loopback-python.snapshot.json",
+        "effect_events": 424,
+        "joined_effect_events": 56,
+        "orphan_effect_events": 368,
+        "join_rate_pct": 13.208,
+        "folded_stack_count": 19,
+        "join_methods": {
+          "none": 368,
+          "pid_family_time_window": 56
+        },
+        "orphan_reasons": {
+          "missing_tool_ancestry": 368
+        },
+        "orphan_examples": [
+          {
+            "event_id": "audit-canon-event-1781522880809-process-532459-4",
+            "audit_type": "process",
+            "action": "exec",
+            "effect": "process.exec",
+            "target_group": "usr/bin",
+            "pid": 532459,
+            "process_id": "process-532459-1781522880809",
+            "process_comm": "bash",
+            "tool_id": null,
+            "session_id": null,
+            "session_tag": null,
+            "prompt_tag": null,
+            "join_method": "none",
+            "orphan_reason": "missing_tool_ancestry",
+            "joined": false
+          },
+          {
+            "event_id": "audit-canon-event-1781522880811-process-532470-67",
+            "audit_type": "process",
+            "action": "exec",
+            "effect": "process.exec",
+            "target_group": "usr/bin",
+            "pid": 532470,
+            "process_id": "process-532470-1781522880811",
+            "process_comm": "locale-check",
+            "tool_id": null,
+            "session_id": null,
+            "session_tag": null,
+            "prompt_tag": null,
+            "join_method": "none",
+            "orphan_reason": "missing_tool_ancestry",
+            "joined": false
+          },
+          {
+            "event_id": "audit-canon-event-1781522880813-process-532470-129",
+            "audit_type": "process",
+            "action": "exit",
+            "effect": "process.exit",
+            "target_group": "exit code 0 (1ms)",
+            "pid": 532470,
+            "process_id": "process-532470-1781522880811",
+            "process_comm": "locale-check",
+            "tool_id": null,
+            "session_id": null,
+            "session_tag": null,
+            "prompt_tag": null,
+            "join_method": "none",
+            "orphan_reason": "missing_tool_ancestry",
+            "joined": false
+          },
+          {
+            "event_id": "audit-canon-event-1781522880814-process-532471-133",
+            "audit_type": "process",
+            "action": "exec",
+            "effect": "process.exec",
+            "target_group": "usr/bin",
+            "pid": 532471,
+            "process_id": "process-532471-1781522880814",
+            "process_comm": "locale",
+            "tool_id": null,
+            "session_id": null,
+            "session_tag": null,
+            "prompt_tag": null,
+            "join_method": "none",
+            "orphan_reason": "missing_tool_ancestry",
+            "joined": false
+          },
+          {
+            "event_id": "audit-canon-event-1781522880814-process-532471-195",
+            "audit_type": "process",
+            "action": "exit",
+            "effect": "process.exit",
+            "target_group": "exit code 0 (0ms)",
+            "pid": 532471,
+            "process_id": "process-532471-1781522880814",
+            "process_comm": "locale",
+            "tool_id": null,
+            "session_id": null,
+            "session_tag": null,
+            "prompt_tag": null,
+            "join_method": "none",
+            "orphan_reason": "missing_tool_ancestry",
+            "joined": false
+          },
+          {
+            "event_id": "audit-canon-event-1781522880816-process-532473-199",
+            "audit_type": "process",
+            "action": "exec",
+            "effect": "process.exec",
+            "target_group": "usr/bin",
+            "pid": 532473,
+            "process_id": "process-532473-1781522880816",
+            "process_comm": "python3",
+            "tool_id": null,
+            "session_id": null,
+            "session_tag": null,
+            "prompt_tag": null,
+            "join_method": "none",
+            "orphan_reason": "missing_tool_ancestry",
+            "joined": false
+          },
+          {
+            "event_id": "audit-canon-event-1781522880816-process-532474-247",
+            "audit_type": "process",
+            "action": "exec",
+            "effect": "process.exec",
+            "target_group": "$HOME",
+            "pid": 532474,
+            "process_id": "process-532474-1781522880816",
+            "process_comm": "node",
+            "tool_id": null,
+            "session_id": null,
+            "session_tag": null,
+            "prompt_tag": null,
+            "join_method": "none",
+            "orphan_reason": "missing_tool_ancestry",
+            "joined": false
+          },
+          {
+            "event_id": "audit-canon-event-1781522880816-process-532474-317",
+            "audit_type": "process",
+            "action": "exec",
+            "effect": "process.exec",
+            "target_group": "$HOME",
+            "pid": 532474,
+            "process_id": "process-532474-1781522880816",
+            "process_comm": "node",
+            "tool_id": null,
+            "session_id": null,
+            "session_tag": null,
+            "prompt_tag": null,
+            "join_method": "none",
+            "orphan_reason": "missing_tool_ancestry",
+            "joined": false
+          },
+          {
+            "event_id": "audit-canon-event-1781522880854-process-532512-443",
+            "audit_type": "process",
+            "action": "exec",
+            "effect": "process.exec",
+            "target_group": "usr/bin",
+            "pid": 532512,
+            "process_id": "process-532512-1781522880854",
+            "process_comm": "cut",
+            "tool_id": null,
+            "session_id": null,
+            "session_tag": null,
+            "prompt_tag": null,
+            "join_method": "none",
+            "orphan_reason": "missing_tool_ancestry",
+            "joined": false
+          },
+          {
+            "event_id": "audit-canon-event-1781522880854-process-532512-567",
+            "audit_type": "process",
+            "action": "exit",
+            "effect": "process.exit",
+            "target_group": "exit code 0 (0ms)",
+            "pid": 532512,
+            "process_id": "process-532512-1781522880854",
+            "process_comm": "cut",
+            "tool_id": null,
+            "session_id": null,
+            "session_tag": null,
+            "prompt_tag": null,
+            "join_method": "none",
+            "orphan_reason": "missing_tool_ancestry",
+            "joined": false
+          }
+        ],
+        "claim_boundary": "live snapshot evidence with orphan effects; broader exact-lineage claim still needs lower orphan rates, capture-time ancestry, and more tasks"
+      },
+      "target_status": "completed",
+      "target_exit_code": 0,
+      "precision_recall": {
+        "agent_tool_ids": [
+          "record:bash:532459:1781522880416:agent-run"
+        ],
+        "agent_process_count": 19,
+        "in_scope_effect_events": 56,
+        "out_of_scope_effect_events": 66,
+        "negative_effect_events_observed": 302,
+        "negative_joined_effect_events": 0,
+        "true_positives": 56,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "precision_pct": 100.0,
+        "recall_pct": 100.0,
+        "negative_control_status": "observed",
+        "negative_join_examples": []
+      },
+      "snapshot_counts": {
+        "sessions": 1,
+        "tool_calls": 1,
+        "process_nodes": 50,
+        "audit_events": 424,
+        "resource_samples": 11
+      },
+      "lineage_status": "precision_ok",
+      "network_lineage": {
+        "network_effect_events": 15,
+        "joined_network_effect_events": 15,
+        "orphan_network_effect_events": 0,
+        "target_specific_network_effect_events": 0,
+        "joined_target_specific_network_effect_events": 0,
+        "orphan_target_specific_network_effect_events": 0,
+        "network_target_groups": {
+          "0.0.0.0:0": 3,
+          "172.64.155.209:65535": 3,
+          "104.18.32.47:65535": 3,
+          "172.64.155.209:443": 3,
+          "family=10": 3
+        },
+        "target_specific_network_target_groups": {},
+        "network_actions": {
+          "NET_BIND": 3,
+          "NET_CONNECT": 12
+        },
+        "network_join_methods": {
+          "pid_family_time_window": 15
+        },
+        "network_process_comms": {
+          "codex": 15
+        },
+        "network_orphan_examples": [],
+        "target_specific_network_examples": []
+      }
+    },
+    {
+      "task_id": "r182-http-server",
+      "category": "network",
+      "workspace": "json_write",
+      "sandbox": "danger-full-access",
+      "status": "lineage_precision_ok",
+      "record_status": "ok",
+      "duration_seconds": 51.425,
+      "db": "/tmp/agentsight-r182-network/runs/r182-http-server/r182-http-server.db",
+      "record_returncode": 0,
+      "negative_control": {
+        "marker": "R114_NEGATIVE_CONTROL_r182-http-server",
+        "negative_dir": "/tmp/agentsight-r182-network/negative-controls/r182-http-server",
+        "sibling_dir": "/tmp/agentsight-r182-network/sibling-repo-negative/r182-http-server",
+        "stop_file": "/tmp/agentsight-r182-network/negative-controls/r182-http-server/stop",
+        "worker": "/tmp/agentsight-r182-network/negative-controls/r182-http-server/negative_worker.py",
+        "mode": "wrapper",
+        "returncode": null
+      },
+      "answer": "server_status=ok bytes=15",
+      "export_returncode": 0,
+      "snapshot": "/tmp/agentsight-r182-network/runs/r182-http-server/r182-http-server.snapshot.json",
+      "lineage_returncode": 1,
+      "lineage": {
+        "schema_version": 1,
+        "status": "lineage_smoke_failed",
+        "source": "snapshot",
+        "snapshot": "r182-http-server.snapshot.json",
+        "effect_events": 417,
+        "joined_effect_events": 61,
+        "orphan_effect_events": 356,
+        "join_rate_pct": 14.628,
+        "folded_stack_count": 25,
+        "join_methods": {
+          "none": 356,
+          "pid_family_time_window": 61
+        },
+        "orphan_reasons": {
+          "missing_tool_ancestry": 356
+        },
+        "orphan_examples": [
+          {
+            "event_id": "audit-canon-event-1781522907823-process-533037-101",
+            "audit_type": "process",
+            "action": "exec",
+            "effect": "process.exec",
+            "target_group": "usr/bin",
+            "pid": 533037,
+            "process_id": "process-533037-1781522907823",
+            "process_comm": "bash",
+            "tool_id": null,
+            "session_id": null,
+            "session_tag": null,
+            "prompt_tag": null,
+            "join_method": "none",
+            "orphan_reason": "missing_tool_ancestry",
+            "joined": false
+          },
+          {
+            "event_id": "audit-canon-event-1781522907830-process-533050-102",
+            "audit_type": "process",
+            "action": "exec",
+            "effect": "process.exec",
+            "target_group": "usr/bin",
+            "pid": 533050,
+            "process_id": "process-533050-1781522907830",
+            "process_comm": "python3",
+            "tool_id": null,
+            "session_id": null,
+            "session_tag": null,
+            "prompt_tag": null,
+            "join_method": "none",
+            "orphan_reason": "missing_tool_ancestry",
+            "joined": false
+          },
+          {
+            "event_id": "audit-canon-event-1781522907831-process-533051-104",
+            "audit_type": "process",
+            "action": "exec",
+            "effect": "process.exec",
+            "target_group": "$HOME",
+            "pid": 533051,
+            "process_id": "process-533051-1781522907831",
+            "process_comm": "node",
+            "tool_id": null,
+            "session_id": null,
+            "session_tag": null,
+            "prompt_tag": null,
+            "join_method": "none",
+            "orphan_reason": "missing_tool_ancestry",
+            "joined": false
+          },
+          {
+            "event_id": "audit-canon-event-1781522907831-process-533051-106",
+            "audit_type": "process",
+            "action": "exec",
+            "effect": "process.exec",
+            "target_group": "$HOME",
+            "pid": 533051,
+            "process_id": "process-533051-1781522907831",
+            "process_comm": "node",
+            "tool_id": null,
+            "session_id": null,
+            "session_tag": null,
+            "prompt_tag": null,
+            "join_method": "none",
+            "orphan_reason": "missing_tool_ancestry",
+            "joined": false
+          },
+          {
+            "event_id": "audit-canon-event-1781522908046-process-533050-113",
+            "audit_type": "file",
+            "action": "write",
+            "effect": "file.write",
+            "target_group": "tmp/agentsight-r182-network",
+            "pid": 533050,
+            "process_id": "process-533050-1781522907830",
+            "process_comm": "python3",
+            "tool_id": null,
+            "session_id": null,
+            "session_tag": null,
+            "prompt_tag": null,
+            "join_method": "none",
+            "orphan_reason": "missing_tool_ancestry",
+            "joined": false
+          },
+          {
+            "event_id": "audit-canon-event-1781522908448-process-533050-115",
+            "audit_type": "file",
+            "action": "write",
+            "effect": "file.write",
+            "target_group": "tmp/agentsight-r182-network",
+            "pid": 533050,
+            "process_id": "process-533050-1781522907830",
+            "process_comm": "python3",
+            "tool_id": null,
+            "session_id": null,
+            "session_tag": null,
+            "prompt_tag": null,
+            "join_method": "none",
+            "orphan_reason": "missing_tool_ancestry",
+            "joined": false
+          },
+          {
+            "event_id": "audit-canon-event-1781522908448-process-533050-117",
+            "audit_type": "file",
+            "action": "write",
+            "effect": "file.write",
+            "target_group": "tmp/agentsight-r182-network",
+            "pid": 533050,
+            "process_id": "process-533050-1781522907830",
+            "process_comm": "python3",
+            "tool_id": null,
+            "session_id": null,
+            "session_tag": null,
+            "prompt_tag": null,
+            "join_method": "none",
+            "orphan_reason": "missing_tool_ancestry",
+            "joined": false
+          },
+          {
+            "event_id": "audit-canon-event-1781522908498-process-533050-121",
+            "audit_type": "file",
+            "action": "write",
+            "effect": "file.write",
+            "target_group": "tmp/agentsight-r182-network",
+            "pid": 533050,
+            "process_id": "process-533050-1781522907830",
+            "process_comm": "python3",
+            "tool_id": null,
+            "session_id": null,
+            "session_tag": null,
+            "prompt_tag": null,
+            "join_method": "none",
+            "orphan_reason": "missing_tool_ancestry",
+            "joined": false
+          },
+          {
+            "event_id": "audit-canon-event-1781522908498-process-533050-122",
+            "audit_type": "file",
+            "action": "write",
+            "effect": "file.write",
+            "target_group": "tmp/agentsight-r182-network",
+            "pid": 533050,
+            "process_id": "process-533050-1781522907830",
+            "process_comm": "python3",
+            "tool_id": null,
+            "session_id": null,
+            "session_tag": null,
+            "prompt_tag": null,
+            "join_method": "none",
+            "orphan_reason": "missing_tool_ancestry",
+            "joined": false
+          },
+          {
+            "event_id": "audit-canon-event-1781522908548-process-533050-123",
+            "audit_type": "file",
+            "action": "write",
+            "effect": "file.write",
+            "target_group": "tmp/agentsight-r182-network",
+            "pid": 533050,
+            "process_id": "process-533050-1781522907830",
+            "process_comm": "python3",
+            "tool_id": null,
+            "session_id": null,
+            "session_tag": null,
+            "prompt_tag": null,
+            "join_method": "none",
+            "orphan_reason": "missing_tool_ancestry",
+            "joined": false
+          }
+        ],
+        "claim_boundary": "live snapshot evidence with orphan effects; broader exact-lineage claim still needs lower orphan rates, capture-time ancestry, and more tasks"
+      },
+      "target_status": "completed",
+      "target_exit_code": 0,
+      "precision_recall": {
+        "agent_tool_ids": [
+          "record:bash:533037:1781522907434:agent-run"
+        ],
+        "agent_process_count": 18,
+        "in_scope_effect_events": 61,
+        "out_of_scope_effect_events": 54,
+        "negative_effect_events_observed": 302,
+        "negative_joined_effect_events": 0,
+        "true_positives": 61,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "precision_pct": 100.0,
+        "recall_pct": 100.0,
+        "negative_control_status": "observed",
+        "negative_join_examples": []
+      },
+      "snapshot_counts": {
+        "sessions": 1,
+        "tool_calls": 1,
+        "process_nodes": 43,
+        "audit_events": 417,
+        "resource_samples": 23
+      },
+      "lineage_status": "precision_ok",
+      "network_lineage": {
+        "network_effect_events": 20,
+        "joined_network_effect_events": 20,
+        "orphan_network_effect_events": 0,
+        "target_specific_network_effect_events": 0,
+        "joined_target_specific_network_effect_events": 0,
+        "orphan_target_specific_network_effect_events": 0,
+        "network_target_groups": {
+          "104.18.32.47:65535": 4,
+          "172.64.155.209:65535": 4,
+          "family=10": 4,
+          "0.0.0.0:0": 4,
+          "172.64.155.209:443": 4
+        },
+        "target_specific_network_target_groups": {},
+        "network_actions": {
+          "NET_CONNECT": 16,
+          "NET_BIND": 4
+        },
+        "network_join_methods": {
+          "pid_family_time_window": 20
+        },
+        "network_process_comms": {
+          "codex": 20
+        },
+        "network_orphan_examples": [],
+        "target_specific_network_examples": []
+      }
+    }
+  ],
+  "boundary": "R182 is partial: it records the network lineage outcome for loopback-task runs, but C4 network-workload coverage should not be widened unless target-specific loopback or expected child-process network rows are observed, joined, and negative-control precision remains clean. Low-level agent-process network rows alone are implementation evidence for record-mode `--trace-net`, not proof of child-process loopback network capture. It does not provide C5 or C6 evidence."
+}

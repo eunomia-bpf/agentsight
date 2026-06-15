@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-15
 Stage at update: claim-gate / supplement
-Source/command: `.agentsight/agentflame/latest/agentflame.json`, `docs/visexp/out/live-record-r114-analysis.json`, `docs/visexp/out/model-benchmarks-r180.json`, `docs/visexp/out/user-task-results.json`, `docs/visexp/out/artifact-usability-r160.json`
+Source/command: `.agentsight/agentflame/latest/agentflame.json`, `docs/visexp/out/live-record-r114-analysis.json`, `docs/visexp/out/live-network-r182.json`, `docs/visexp/out/model-benchmarks-r180.json`, `docs/visexp/out/user-task-results.json`, `docs/visexp/out/artifact-usability-r160.json`
 Completeness: partial
 
 This ledger separates current evidence from OSDI-level claims. The paper should
@@ -163,12 +163,17 @@ Current evidence:
   tasks, joins 1273/1273 in-scope effects, reports 100.0% precision and
   100.0% recall, attributes 0/3170 observed negative-control effects, and
   passes child-depth/path/redaction analysis.
+- R182 enables record-mode process `--trace-net` and reruns two loopback-task
+  Codex commands. It joins 35/35 low-level `codex` process network rows with
+  0 network orphans and 0/604 negative-control joins, but target-specific
+  loopback or expected child-process network rows remain 0/0.
 - The full Rust AgentFlame history characterization still uses agent-native
   session histories rather than full live exact-effect history.
 
-Status: supported for the fixed command-mode Codex suite; partial broadly.
-Complete full-history exact lineage, cross-repo coverage, more agent types, and
-user utility remain unproven.
+Status: supported for the fixed command-mode Codex suite; partial broadly and
+partial for network workloads. Complete full-history exact lineage, cross-repo
+coverage, more agent types, target-specific child-process network capture,
+full HTTP payload/URL reconstruction, and user utility remain unproven.
 
 ## Not Yet Supported
 
@@ -288,6 +293,10 @@ Allowed current wording:
 - "R114 validates exact semantic-effect lineage for a fixed 20-task Codex
   command-mode suite: 1273/1273 in-scope effects joined, 100.0% precision and
   recall, and 0/3170 negative-control effects attributed."
+- "R182 validates the record-mode `--trace-net` implementation path: 35/35
+  low-level `codex` process network rows joined and 0/604 negative-control
+  effects were attributed, while target-specific loopback child-process network
+  capture remains unproven."
 - "R142 provides a ready but empty developer-task benchmark packet and scorer;
   no C5 user-outcome evidence exists until real participant responses pass the
   paper-scale gate."

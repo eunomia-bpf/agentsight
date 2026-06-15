@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-15
 Stage at update: audit / supplement
-Source/command: OSDI rubric audit over `docs/visexp/STATE.md`, `docs/visexp/CLAIM_VERDICT.md`, `docs/visexp/out/evaluation.json`, `docs/visexp/out/live-record-r114-analysis.json`, `docs/visexp/out/model-benchmarks-r180.json`, `docs/visexp/out/tag-adequacy-results-r124.json`, `docs/visexp/out/tag-adequacy-label-join-r124.json`, `docs/visexp/out/user-task-results.json`, `docs/visexp/out/artifact-usability-r160.json`, `docs/visexp/out/full-history-r170.json`, and `docs/visexp/out/osdi-gate-review-r181.md`
+Source/command: OSDI rubric audit over `docs/visexp/STATE.md`, `docs/visexp/CLAIM_VERDICT.md`, `docs/visexp/out/evaluation.json`, `docs/visexp/out/live-record-r114-analysis.json`, `docs/visexp/out/live-network-r182.json`, `docs/visexp/out/model-benchmarks-r180.json`, `docs/visexp/out/tag-adequacy-results-r124.json`, `docs/visexp/out/tag-adequacy-label-join-r124.json`, `docs/visexp/out/user-task-results.json`, `docs/visexp/out/artifact-usability-r160.json`, `docs/visexp/out/full-history-r170.json`, and `docs/visexp/out/osdi-gate-review-r181.md`
 Completeness: partial
 
 ## Audit Verdict
@@ -64,6 +64,16 @@ human adequacy or controlled scaling. It still classifies the work as Level 3,
 not weak accept, because C6 human labels and C5 participant responses remain
 missing.
 
+R182 adds a scoped network-capture smoke. The first loopback run exposed that
+`agentsight record` was not passing process `--trace-net`; after enabling that
+flag and rebuilding, two real loopback-task Codex runs completed with 35/35
+low-level `codex` process network rows joined, 0 network orphans, 100.0%
+precision/recall, and 0/604 observed negative-control effects joined. The
+target-specific oracle found 0/0 loopback or expected child-process network
+rows, so R182 is implementation evidence for record-mode network tracing, not
+proof of loopback workload capture. It does not affect the C5/C6 outcome
+blockers.
+
 ## Claim-Evidence Alignment
 
 | Claim | Evidence status | Result files | Audit decision |
@@ -71,7 +81,7 @@ missing.
 | C1 semantic folded stacks over real histories | supported for this local repository | `.agentsight/agentflame/latest/agentflame.json`, `docs/visexp/out/evaluation.json` | pass |
 | C2 local one-word tagging feasibility | supported for available local 0.6B-/1B-/3B-class syntax/latency; partial for semantic adequacy | `docs/visexp/out/model-benchmarks-r180.json`, `.agentsight/agentflame/latest/agentflame.json` | warn |
 | C3 semantic partitioning beyond baselines | supported as mechanism | `docs/visexp/out/semantic-ablation-r131.json`, `.agentsight/agentflame/latest/agentflame.json` | pass |
-| C4 exact semantic-effect lineage | supported for fixed 20-task Codex command-mode suite; partial broadly | `docs/visexp/out/live-record-r114.json`, `docs/visexp/out/live-record-r114-analysis.json` | warn |
+| C4 exact semantic-effect lineage | supported for fixed 20-task Codex command-mode suite; partial broadly and partial for target-specific network workloads | `docs/visexp/out/live-record-r114.json`, `docs/visexp/out/live-record-r114-analysis.json`, `docs/visexp/out/live-network-r182.json` | warn |
 | C5 developer utility | unsupported | `docs/visexp/out/user-task-preregistration-r142.json`, `docs/visexp/out/user-task-results.json` | fail for outcome claim |
 | C6 tag adequacy | partial; syntax/stability only | `docs/visexp/out/tag-adequacy-results-r124.json`, `docs/visexp/out/tag-adequacy-label-packet-r122.csv`, `docs/visexp/out/tag-adequacy-label-join-r124.json` | fail for adequacy claim |
 | C7 open-source usefulness | partial | `docs/visexp/out/artifact-usability-r160.json`: bounded fixed-session smoke passed, with expected artifacts, redacted previews, folded-total checks, generated report path containment, sanitized input manifest `11ae4fb2c96a2d1478aa1525`, clean/cached input equality, and a 76/76 cached rerun | warn |
@@ -85,6 +95,7 @@ missing.
 | R170 full-current refresh keeps local reports private | committed R170 artifact is a sanitized summary; the 100MB local `agentflame.json` remains under `.agentsight/agentflame/r170-full-current` and is not committed | pass |
 | C3 ablation preserves totals | R131 records preserved system/token totals and folded-file projection matches | pass |
 | C4 precision is not raw join rate | R114 reports scoped in-scope precision/recall plus observed negative controls; raw out-of-scope effects remain orphaned | pass |
+| C4 network supplement is scoped | R182 records 35/35 joined low-level `codex` process network rows and 0/604 negative-control joins after enabling record-mode `--trace-net`, but target-specific loopback/child-process rows are 0/0, so it must not claim network workload coverage, HTTP payload/URL reconstruction, or broad full-history coverage | pass |
 | C5 empty participant template cannot support utility | `user-task-results.json` is `participant_results_empty`, `c5_supported=false`, `pilot_ready=false` | pass |
 | C5 future real response CSV contract is enforced | scorer validates assignments, packets, duplicate rows, partial files, timing, and confidence | pass |
 | C6 empty human-label packet cannot support adequacy | R124 is `human_labels_empty`, `adequacy_supported=false` | pass |
