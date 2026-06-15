@@ -85,10 +85,12 @@ execution order is:
 
 1. **R124-labels for C6.** Use
    `docs/visexp/out/tag-adequacy-blinded-label-sheet-r124.csv` to collect two
-   independent human labels for every row, adjudicate disagreements into the
-   scoring packet, and rerun `score_tag_adequacy.py`. Subagents or LLMs may
-   review the rubric and spot-check leakage, but their labels do not count as
-   human adequacy evidence.
+   independent human labels for every row, join the frozen sheets with
+   `docs/visexp/r124_join_blinded_labels.py`, adjudicate disagreements into
+   `docs/visexp/out/tag-adequacy-adjudication-template-r124.csv`, and rerun
+   `score_tag_adequacy.py` on the joined packet. Subagents or LLMs may review
+   the rubric and spot-check leakage, but their labels do not count as human
+   adequacy evidence.
 2. **R142-pilot for C5.** The current packet has been rescoped to use an
    explicitly named `event-count-proxy` baseline rather than a misleading
    span-duration condition. The C5 analysis preregistration is now frozen in
@@ -141,6 +143,24 @@ R124 can support a narrowed C6 claim only if:
 - `misleading_share_pct <= 5.0`;
 - Cohen's kappa is `>= 0.6`, or the paper explicitly narrows the adequacy
   wording and reports the disagreement pattern.
+
+Protocol command after both independent sheets are frozen:
+
+```bash
+python3 docs/visexp/r124_join_blinded_labels.py \
+  --labeler-1 path/to/labeler1.csv \
+  --labeler-2 path/to/labeler2.csv \
+  --adjudication path/to/adjudication.csv
+python3 docs/visexp/score_tag_adequacy.py \
+  --labels docs/visexp/out/tag-adequacy-label-packet-r124-joined.csv \
+  --out-json docs/visexp/out/tag-adequacy-results-r124.json \
+  --out-csv docs/visexp/out/tag-adequacy-results-r124.csv \
+  --out-md docs/visexp/out/tag-adequacy-results-r124.md
+```
+
+The default R124 join manifest is intentionally protocol-only:
+`ready_for_independent_label_collection`, 300 source rows, 0 labeler rows, no
+joined label output, and an empty adjudication template.
 
 ### R142/R151 Participant Contract
 
@@ -437,7 +457,8 @@ cargo run --manifest-path agentflame/Cargo.toml -- bench \
 | R122 | C6 | B5x | Redacted label packet. | create redacted label packet | 300 fragments | redaction scan + stratified counts | packet ready; labels still required | `docs/visexp/out/tag-adequacy-label-packet-r122.csv` | done/packet |
 | R123 | C2,C6 | B5x | Real redacted fragment stability. | `agentflame bench --fragment-file .agentsight/agentflame/r122-real-fragments.txt --runs 3 --model ...` | 300 fragments x 3 repeats | grammar/stability/latency checker | done for 3B: 900/900 valid, 285/300 exact-stable, p95 31 ms; adequacy labels required | `.agentsight/agentflame/model-benchmarks-r123.json`, `docs/visexp/out/model-benchmarks-r123.json` | done |
 | R124-scoring | C6 | B5x | Adequacy scorer and empty-result gate. | `python3 docs/visexp/score_tag_adequacy.py --labels docs/visexp/out/tag-adequacy-label-packet-r122.csv ...`; then `python3 docs/visexp/evaluate_artifacts.py --out docs/visexp/out` | deterministic over 300 packet rows | candidate-tag coverage, empty/partial/scored status, adequacy/kappa thresholds | done as protocol only: current output is `human_labels_empty`, 300 candidate tags, 0 final labels, `adequacy_supported=false`; C6 remains partial | `docs/visexp/out/tag-adequacy-results-r124.json` | done/empty |
-| R124 | C6 | B5x | Human adequacy labeling over sampled fragments. | collect labels in `docs/visexp/out/tag-adequacy-label-packet-r122.csv`; score with `python3 docs/visexp/score_tag_adequacy.py --labels docs/visexp/out/tag-adequacy-label-packet-r122.csv --out-json docs/visexp/out/tag-adequacy-results-r124.json --out-csv docs/visexp/out/tag-adequacy-results-r124.csv --out-md docs/visexp/out/tag-adequacy-results-r124.md` | 300 fragments, >=2 labelers if possible | adequacy/generic/misleading rubric plus agreement | scored gate has >=80% adequate, <=20% generic/noisy, kappa >=0.6 or limited claim | `docs/visexp/out/tag-adequacy-results-r124.json`, `docs/visexp/out/tag-adequacy-results-r124.csv`, `docs/visexp/out/tag-adequacy-results-r124.md` | planned |
+| R124-join | C6 | B5x | Blinded label join and adjudication protocol. | `python3 docs/visexp/r124_join_blinded_labels.py` | deterministic over 300 packet rows | source/blinded row match, hidden-field contract, no committed human labels, empty adjudication template | protocol passed: ready for independent label collection; does not support C6 until real labels are joined and scored | `docs/visexp/out/tag-adequacy-label-join-r124.json`, `docs/visexp/out/tag-adequacy-adjudication-template-r124.csv` | done/protocol |
+| R124 | C6 | B5x | Human adequacy labeling over sampled fragments. | collect two independent completed copies of `docs/visexp/out/tag-adequacy-blinded-label-sheet-r124.csv`; join them with `python3 docs/visexp/r124_join_blinded_labels.py --labeler-1 ... --labeler-2 ... --adjudication ...`; score with `python3 docs/visexp/score_tag_adequacy.py --labels docs/visexp/out/tag-adequacy-label-packet-r124-joined.csv --out-json docs/visexp/out/tag-adequacy-results-r124.json --out-csv docs/visexp/out/tag-adequacy-results-r124.csv --out-md docs/visexp/out/tag-adequacy-results-r124.md` | 300 fragments, >=2 labelers | adequacy/generic/misleading rubric plus agreement/adjudication | scored gate has >=80% adequate, <=20% generic/noisy, <=5% misleading, kappa >=0.6 or limited claim | `docs/visexp/out/tag-adequacy-results-r124.json`, `docs/visexp/out/tag-adequacy-results-r124.csv`, `docs/visexp/out/tag-adequacy-results-r124.md` | planned |
 | R131 | C3 | B6x | Semantic-axis ablation. | `python3 docs/visexp/r131_semantic_ablation.py --input .agentsight/agentflame/latest --local-out .agentsight/agentflame/ablations-r131/summary.json --out-dir docs/visexp/out` | deterministic | total-weight equality + report/folded cross-checks + mixed/residual delta | passed for C3 mechanism: all totals preserved; generated folded files match projections; system prompt-only reduced mixed full semantic bucket weight from 90.219% to 37.687% and residual from 44.639% to 7.526%; C6/B4 deferred | `.agentsight/agentflame/ablations-r131/summary.json`, `docs/visexp/out/semantic-ablation-r131.json` | done for C3; C6/B4 deferred |
 | R141-packet | C5 | B4x | Superseded deterministic user-task packet draft. | `python3 docs/visexp/user_task_benchmark.py ...` before same-slice enforcement | 14 tasks x 5 conditions; P01-P05 assignments; 0 responses | leak check + assignment coverage + scorer status | superseded by R142 same-slice packet | `docs/visexp/out/user-task-benchmark.json` historical commit | superseded |
 | R142-packet | C5 | B4x | Same-event-slice user-task packet and empty scorer check. | `python3 docs/visexp/user_task_benchmark.py --out docs/visexp/out --agentflame-dir .agentsight/agentflame/latest`; scorer over `user-task-response-template.csv` | 14 tasks x 5 conditions; P01-P05 assignments; 0 responses | hidden answer key + leak-checked blinded packets + assignment coverage + per-task common `slice_id` + explicit `event-count-proxy` baseline naming + scorer status | packet ready for preregistered pilot collection; no C5 claim without participants | `docs/visexp/out/user-task-benchmark.json`, `docs/visexp/out/user-task-assignments.csv`, `docs/visexp/out/user-task-results.json` | done/packet |

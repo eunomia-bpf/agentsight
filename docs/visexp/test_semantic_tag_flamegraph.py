@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import tempfile
 import unittest
 from collections import Counter
 from pathlib import Path
@@ -41,6 +42,9 @@ from r124_blinded_label_sheet import (
     VISIBLE_FIELDS as R124_BLINDED_FIELDS,
     blinded_row as r124_blinded_row,
 )
+from r124_join_blinded_labels import join_rows as join_r124_label_rows
+from r124_join_blinded_labels import read_labeler_sheet as read_r124_labeler_sheet
+from r124_join_blinded_labels import status_for as r124_join_status
 from r142_preregistration import validate_preregistration as validate_r142_preregistration
 from score_user_task_results import (
     BASELINE_CONDITIONS,
@@ -1205,6 +1209,112 @@ class AggregationTests(unittest.TestCase):
         self.assertNotIn("candidate_model", row)
         self.assertNotIn("candidate_exact_stable", row)
         self.assertNotIn("source", row)
+
+    def test_r124_label_join_reaches_ready_for_scoring_when_complete(self) -> None:
+        source_rows = [
+            {
+                "fragment_index": "0",
+                "fragment_hash": "h0",
+                "kind": "prompt",
+                "source": "codex",
+                "model": "gpt-5",
+                "candidate_tag": "review",
+                "labeler_1": "",
+                "labeler_2": "",
+                "adjudicated_label": "",
+                "notes": "",
+            },
+            {
+                "fragment_index": "1",
+                "fragment_hash": "h1",
+                "kind": "session",
+                "source": "claude",
+                "model": "opus",
+                "candidate_tag": "debug",
+                "labeler_1": "",
+                "labeler_2": "",
+                "adjudicated_label": "",
+                "notes": "",
+            },
+        ]
+        labeler_1 = {
+            "R124-000": {"label": "adequate", "notes": "clear"},
+            "R124-001": {"label": "generic_noisy", "notes": ""},
+        }
+        labeler_2 = {
+            "R124-000": {"label": "adequate", "notes": ""},
+            "R124-001": {"label": "generic_noisy", "notes": "broad"},
+        }
+
+        joined, disagreements, summary = join_r124_label_rows(source_rows, labeler_1, labeler_2, {})
+
+        self.assertEqual(disagreements, [])
+        self.assertEqual(r124_join_status(True, summary), "ready_for_scoring")
+        self.assertEqual(joined[0]["labeler_1"], "adequate")
+        self.assertEqual(joined[1]["labeler_2"], "generic_noisy")
+        self.assertIn("labeler_1: clear", joined[0]["notes"])
+        self.assertIn("labeler_2: broad", joined[1]["notes"])
+
+    def test_r124_label_join_requires_adjudication_for_disagreements(self) -> None:
+        source_rows = [
+            {
+                "fragment_index": "0",
+                "fragment_hash": "h0",
+                "kind": "prompt",
+                "source": "codex",
+                "model": "gpt-5",
+                "candidate_tag": "review",
+                "labeler_1": "",
+                "labeler_2": "",
+                "adjudicated_label": "",
+                "notes": "",
+            }
+        ]
+        labeler_1 = {"R124-000": {"label": "adequate", "notes": ""}}
+        labeler_2 = {"R124-000": {"label": "misleading", "notes": ""}}
+
+        joined, disagreements, summary = join_r124_label_rows(source_rows, labeler_1, labeler_2, {})
+
+        self.assertEqual(r124_join_status(True, summary), "needs_adjudication")
+        self.assertEqual(summary["missing_adjudication_count"], 1)
+        self.assertEqual(disagreements[0]["row_id"], "R124-000")
+        self.assertEqual(joined[0]["adjudicated_label"], "")
+
+        joined, disagreements, summary = join_r124_label_rows(
+            source_rows,
+            labeler_1,
+            labeler_2,
+            {"R124-000": {"label": "adequate", "notes": "keeps intent"}},
+        )
+
+        self.assertEqual(r124_join_status(True, summary), "ready_for_scoring")
+        self.assertEqual(summary["adjudicated_disagreement_count"], 1)
+        self.assertEqual(joined[0]["adjudicated_label"], "adequate")
+        self.assertIn("adjudication: keeps intent", joined[0]["notes"])
+
+    def test_r124_label_join_rejects_unblinded_labeler_sheet(self) -> None:
+        source_rows = [
+            {
+                "fragment_index": "0",
+                "kind": "prompt",
+                "candidate_tag": "review",
+            }
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            sheet = Path(tmp) / "labeler.csv"
+            sheet.write_text(
+                "\n".join(
+                    [
+                        "row_id,fragment_index,fragment_level,redacted_preview,candidate_tag,rubric,label,notes,source",
+                        "R124-000,0,prompt,redacted,review,rubric,adequate,,codex",
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaisesRegex(AssertionError, "hidden fields"):
+                read_r124_labeler_sheet(sheet, source_rows)
 
     def test_visual_summary_helpers_keep_svg_values_bounded(self) -> None:
         self.assertEqual(verdict_color("supported"), "#2f855a")

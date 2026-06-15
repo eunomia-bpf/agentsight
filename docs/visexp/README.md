@@ -156,6 +156,13 @@ headline results come from `.agentsight/agentflame/latest`.
 - `out/tag-adequacy-results-r124.csv`: per-fragment normalized label state.
 - `out/tag-adequacy-results-r124.md`: human-readable C6 adequacy scoring
   boundary.
+- `out/tag-adequacy-label-join-r124.json`: C6 protocol manifest for joining
+  two frozen blinded human-label sheets back into a scoring packet. The current
+  committed manifest has no labeler inputs and does not support adequacy.
+- `out/tag-adequacy-adjudication-template-r124.csv`: empty adjudication
+  template. It is populated only for real rows where two completed labeler
+  sheets disagree.
+- `out/tag-adequacy-label-join-r124.md`: human-readable R124 join protocol.
 - `out/user-task-benchmark.json`: C5 user-task benchmark bundle with sanitized
   tasks and source-view references.
 - `out/user-task-answer-key.csv`: machine-readable answer key for the C5 tasks.
@@ -218,6 +225,7 @@ python3 docs/visexp/effect_lineage_smoke.py --fixture --out docs/visexp/out
 python3 docs/visexp/verify_artifacts.py --out docs/visexp/out
 python3 docs/visexp/tag_stability_smoke.py --out docs/visexp/out
 python3 docs/visexp/score_tag_adequacy.py --labels docs/visexp/out/tag-adequacy-label-packet-r122.csv
+python3 docs/visexp/r124_join_blinded_labels.py
 python3 docs/visexp/user_task_benchmark.py --out docs/visexp/out
 python3 docs/visexp/r142_preregistration.py
 python3 docs/visexp/artifact_usability_r160.py --agentflame-dir .agentsight/agentflame/r160-smoke-fixed --clean-agentflame-json .agentsight/agentflame/r160-smoke-fixed/agentflame.clean.json --out docs/visexp/out/artifact-usability-r160.json
@@ -250,3 +258,23 @@ real-response CSVs. Task-level paired deltas remain diagnostic; paper-scale
 support requires the Holm-corrected participant/task/order fixed-effect gate in
 `claim_analysis.claim_gate` to pass. Pilot-scale output should not be cited as
 a user-utility result.
+
+After collecting real C6 human label sheets:
+
+```bash
+python3 docs/visexp/r124_join_blinded_labels.py \
+  --labeler-1 path/to/labeler1.csv \
+  --labeler-2 path/to/labeler2.csv \
+  --adjudication path/to/adjudication.csv
+
+python3 docs/visexp/score_tag_adequacy.py \
+  --labels docs/visexp/out/tag-adequacy-label-packet-r124-joined.csv \
+  --out-json docs/visexp/out/tag-adequacy-results-r124.json \
+  --out-csv docs/visexp/out/tag-adequacy-results-r124.csv \
+  --out-md docs/visexp/out/tag-adequacy-results-r124.md
+```
+
+The C6 join script refuses single-labeler input, checks that labeler sheets keep
+the blinded column contract, writes disagreement rows into the adjudication
+template, and only produces a joined scoring packet when both frozen sheets are
+provided. LLM or subagent labels are not valid C6 evidence.

@@ -47,6 +47,7 @@ utility.
 | R123 | 3B llama.cpp real-fragment stability benchmark over the R122 packet | `docs/visexp/out/model-benchmarks-r123.json` | done |
 | R124-scoring | Human tag-adequacy scorer over the current blank R122 packet | `docs/visexp/out/tag-adequacy-results-r124.json` | done/empty |
 | R124-blinding | Blinded labeler-facing sheet that hides model/source/stability columns from R122 packet rows | `docs/visexp/out/tag-adequacy-blinded-label-sheet-r124.json` | done/protocol |
+| R124-join | Join/adjudication protocol for two frozen blinded human-label sheets | `docs/visexp/out/tag-adequacy-label-join-r124.json` | done/protocol |
 | R131 | Semantic-axis ablation over the same folded observations | `docs/visexp/out/semantic-ablation-r131.json` | done |
 | R141-packet | Superseded deterministic C5 task benchmark draft over R114/R123/R131/full-run artifacts | historical `docs/visexp/out/user-task-benchmark.json` at commit `80fc9fc` | superseded by R142 |
 | R142-packet/scoring | Same-event-slice C5 task benchmark packet, response-contract checker, and empty paper-scale scorer gate over R114/R123/R131/full-run artifacts | `docs/visexp/out/user-task-benchmark.json`, `docs/visexp/out/user-task-assignments.csv`, `docs/visexp/out/user-task-results.json` | packet/scorer only; no participants |
@@ -367,8 +368,9 @@ provenance.
   `agentsightsm`, `testcodex`, and `bashoutput` show that one-word tags need
   human adequacy measurement and possibly prompt repair. R124-scoring exists
   and currently records `human_labels_empty`; R124-blinding now gives labelers a
-  sheet without model/source/stability fields. These are protocol artifacts, not
-  adequacy evidence.
+  sheet without model/source/stability fields; R124-join now validates the
+  blinded sheet against the source packet and prepares an empty adjudication
+  template. These are protocol artifacts, not adequacy evidence.
 - R131 is a mechanism ablation, not a usability result. It supports C3 and
   figure design, but not the C5 developer-utility claim.
 - One root-owned Claude session could not be read. The run records this as a
@@ -393,6 +395,7 @@ provenance.
 - `docs/visexp/out/tag-adequacy-label-packet-r122.json` for the redacted adequacy-label packet
 - `docs/visexp/out/tag-adequacy-results-r124.json` for the empty human-label scorer gate
 - `docs/visexp/out/tag-adequacy-blinded-label-sheet-r124.json` and `.csv` for the blinded labeler-facing R124 sheet
+- `docs/visexp/out/tag-adequacy-label-join-r124.json`, `.md`, and `docs/visexp/out/tag-adequacy-adjudication-template-r124.csv` for the R124 human-label join protocol
 - `docs/visexp/out/model-benchmarks-r123.json` for real-fragment stability
 - `docs/visexp/out/semantic-ablation-r131.json` for semantic-axis ablation
 - `docs/visexp/out/user-task-benchmark.json`, `docs/visexp/out/user-task-participant-packets.json`, `docs/visexp/out/user-task-assignments.csv`, `docs/visexp/out/user-task-manifest.json`, `docs/visexp/out/user-task-preregistration-r142.json`, and `docs/visexp/out/user-task-results.json` for the R142-packet C5 benchmark bundle

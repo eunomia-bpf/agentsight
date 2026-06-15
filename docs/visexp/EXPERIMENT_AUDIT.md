@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-15
 Stage at update: audit / supplement
-Source/command: OSDI rubric audit over `docs/visexp/STATE.md`, `docs/visexp/CLAIM_VERDICT.md`, `docs/visexp/out/evaluation.json`, `docs/visexp/out/live-record-r114-analysis.json`, `docs/visexp/out/model-benchmarks-r123.json`, `docs/visexp/out/tag-adequacy-results-r124.json`, `docs/visexp/out/user-task-results.json`, and `docs/visexp/out/artifact-usability-r160.json`
+Source/command: OSDI rubric audit over `docs/visexp/STATE.md`, `docs/visexp/CLAIM_VERDICT.md`, `docs/visexp/out/evaluation.json`, `docs/visexp/out/live-record-r114-analysis.json`, `docs/visexp/out/model-benchmarks-r123.json`, `docs/visexp/out/tag-adequacy-results-r124.json`, `docs/visexp/out/tag-adequacy-label-join-r124.json`, `docs/visexp/out/user-task-results.json`, and `docs/visexp/out/artifact-usability-r160.json`
 Completeness: partial
 
 ## Audit Verdict
@@ -45,7 +45,7 @@ renamed it to the explicit `event-count proxy` baseline.
 | C3 semantic partitioning beyond baselines | supported as mechanism | `docs/visexp/out/semantic-ablation-r131.json`, `.agentsight/agentflame/latest/agentflame.json` | pass |
 | C4 exact semantic-effect lineage | supported for fixed 20-task Codex command-mode suite; partial broadly | `docs/visexp/out/live-record-r114.json`, `docs/visexp/out/live-record-r114-analysis.json` | warn |
 | C5 developer utility | unsupported | `docs/visexp/out/user-task-preregistration-r142.json`, `docs/visexp/out/user-task-results.json` | fail for outcome claim |
-| C6 tag adequacy | partial; syntax/stability only | `docs/visexp/out/tag-adequacy-results-r124.json`, `docs/visexp/out/tag-adequacy-label-packet-r122.csv` | fail for adequacy claim |
+| C6 tag adequacy | partial; syntax/stability only | `docs/visexp/out/tag-adequacy-results-r124.json`, `docs/visexp/out/tag-adequacy-label-packet-r122.csv`, `docs/visexp/out/tag-adequacy-label-join-r124.json` | fail for adequacy claim |
 | C7 open-source usefulness | partial | `docs/visexp/out/artifact-usability-r160.json`: bounded fixed-session smoke passed, with expected artifacts, redacted previews, folded-total checks, generated report path containment, sanitized input manifest `11ae4fb2c96a2d1478aa1525`, clean/cached input equality, and a 76/76 cached rerun | warn |
 
 ## Result Integrity Checks
@@ -59,6 +59,7 @@ renamed it to the explicit `event-count proxy` baseline.
 | C5 empty participant template cannot support utility | `user-task-results.json` is `participant_results_empty`, `c5_supported=false`, `pilot_ready=false` | pass |
 | C5 future real response CSV contract is enforced | scorer validates assignments, packets, duplicate rows, partial files, timing, and confidence | pass |
 | C6 empty human-label packet cannot support adequacy | R124 is `human_labels_empty`, `adequacy_supported=false` | pass |
+| C6 label join path does not fabricate labels | R124-join status is `ready_for_independent_label_collection`, records 0 labeler rows, exposes no joined-label output, and writes an empty adjudication template by default | pass |
 | C7 bounded artifact smoke is not a community result | R160 uses 8 fixed historical sessions and records `claim_boundary`; it does not replace fresh-clone install testing or external developer feedback | pass |
 | C7 local report privacy boundary | R160 records that `.agentsight/agentflame/*/agentflame.json` is local/private and not public-release-ready because it contains trace roots/session metadata; the committed artifact is the redacted audit JSON | pass |
 | C7 write-set scope is not overclaimed | R160 records raw-trace git hygiene and report path containment, but explicitly does not claim full pre/post write-set containment | pass |
@@ -86,7 +87,10 @@ over-specific, or misleading.
 
 Concrete fix: collect human labels with independent blank copies of
 `docs/visexp/out/tag-adequacy-blinded-label-sheet-r124.csv`, join frozen labels
-back into the scoring packet, then rerun `score_tag_adequacy.py`.
+with `docs/visexp/r124_join_blinded_labels.py`, adjudicate disagreements using
+`docs/visexp/out/tag-adequacy-adjudication-template-r124.csv`, then rerun
+`score_tag_adequacy.py` on
+`docs/visexp/out/tag-adequacy-label-packet-r124-joined.csv`.
 
 Decision gate: adequacy claim requires >=80% adequate labels, <=20%
 generic/noisy labels, and agreement/adjudication evidence. If labels fail,
@@ -146,6 +150,6 @@ Disallowed:
 
 | Run ID | Claim | Purpose | Command/config | Seed/reps | Oracle | Decision gate | Result path | Status |
 |--------|-------|---------|----------------|-----------|--------|---------------|-------------|--------|
-| R124-labels | C6 | Human adequacy labeling for one-word tags. | collect labels over independent copies of `docs/visexp/out/tag-adequacy-blinded-label-sheet-r124.csv`; join frozen labels into `docs/visexp/out/tag-adequacy-label-packet-r122.csv`; rerun `python3 docs/visexp/score_tag_adequacy.py --labels docs/visexp/out/tag-adequacy-label-packet-r122.csv --out-json docs/visexp/out/tag-adequacy-results-r124.json --out-csv docs/visexp/out/tag-adequacy-results-r124.csv --out-md docs/visexp/out/tag-adequacy-results-r124.md` | 300 fragments, >=2 labelers preferred | adequate/generic-noisy/misleading rubric plus agreement/adjudication | >=80% adequate, <=20% generic/noisy, kappa >=0.6 or narrowed wording | `docs/visexp/out/tag-adequacy-results-r124.json` | planned |
+| R124-labels | C6 | Human adequacy labeling for one-word tags. | collect labels over independent copies of `docs/visexp/out/tag-adequacy-blinded-label-sheet-r124.csv`; join frozen labels with `python3 docs/visexp/r124_join_blinded_labels.py --labeler-1 ... --labeler-2 ... --adjudication ...`; rerun `python3 docs/visexp/score_tag_adequacy.py --labels docs/visexp/out/tag-adequacy-label-packet-r124-joined.csv --out-json docs/visexp/out/tag-adequacy-results-r124.json --out-csv docs/visexp/out/tag-adequacy-results-r124.csv --out-md docs/visexp/out/tag-adequacy-results-r124.md` | 300 fragments, >=2 labelers preferred | adequate/generic-noisy/misleading rubric plus agreement/adjudication | >=80% adequate, <=20% generic/noisy, <=5% misleading, kappa >=0.6 or narrowed wording | `docs/visexp/out/tag-adequacy-results-r124.json` | planned |
 | R142-pilot | C5 | Pilot developer forensic task benchmark. | using the frozen preregistration in `docs/visexp/out/user-task-preregistration-r142.json`, fill a pilot copy of `docs/visexp/out/user-task-response-template.csv` with real participant responses; rerun `python3 docs/visexp/score_user_task_results.py --responses <pilot-response.csv> --bundle docs/visexp/out/user-task-benchmark.json --answer-key docs/visexp/out/user-task-answer-key.csv --assignments docs/visexp/out/user-task-assignments.csv --out docs/visexp/out/user-task-pilot-r142` | 5 participants for complete condition coverage | hidden answer key, timing, false positives, confidence, response-contract checker, prereg source-hash lock | pilot only; protocol must work before paper-scale C5 claim | `docs/visexp/out/user-task-pilot-r142/user-task-results.json` | planned |
 | R160 | C7 | Bounded fixed-session open-source usability smoke. | `cargo run --manifest-path agentflame/Cargo.toml -- run --project-root . --llama-url http://127.0.0.1:18080 --model local --timeout 60 --out .agentsight/agentflame/r160-smoke-fixed --session-file <8 fixed historical Codex sessions>`; repeat same command; verify with `artifact_usability_r160.py` and clean-run report. | 8 fixed historical Codex sessions; one clean run plus cached rerun | expected files, runtime/cache summary, fully cached rerun, sanitized input manifest, clean/cached input equality, no raw-trace git dirt, generated report path containment | bounded local artifact path is audited; fresh-clone/community claim still open | `docs/visexp/out/artifact-usability-r160.json` | done/bounded |
