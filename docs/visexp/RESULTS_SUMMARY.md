@@ -62,6 +62,7 @@ exact lineage or user utility.
 | R184 | Mechanical weak-accept human-evidence gate over R124/R142 artifacts | `docs/visexp/out/weak-accept-gate-r184.json`, `docs/visexp/out/weak-accept-gate-r184.md` | `not_weak_accept`; C5/C6 human evidence missing |
 | R185 | Read-only subagent OSDI gate review after R184 | `docs/visexp/out/osdi-gate-review-r185.md` | Level 3; next artifact is real R142 developer pilot |
 | R186 | Read-only OSDI plan/RQ review and cleanup before human collection | `docs/visexp/out/osdi-plan-review-r186.md` | Level 3; R142 pilot next, R124 labels parallel/second |
+| R187 | R142 pilot launch package with P01-P05 participant packets and a blank response CSV | `docs/visexp/out/user-task-pilot-r142/launch/manifest.json` | done/launch; no participants |
 | R160 | Bounded fixed-session artifact-usability smoke over 8 historical Codex sessions, with clean and cached AgentFlame runs | `docs/visexp/out/artifact-usability-r160.json` | done/bounded; C7 remains partial |
 | R170 | Current full-history AgentFlame refresh over all discovered repo sessions with real llama.cpp annotation calls | `docs/visexp/out/full-history-r170.json` | done/mechanism; not C5/C6 |
 | R171 | Read-only subagent OSDI gate review after R170/R124-join planning | `docs/visexp/out/osdi-gate-review-r171.md` | done/review |
@@ -390,7 +391,10 @@ provenance.
   correction. R142-preregistration freezes the current bundle, assignment,
   answer key, response schema, primary tasks, exclusion rules, source hashes,
   event-count proxy boundary, and scorer thresholds before participant
-  collection.
+  collection. R187 packages the frozen assignment into P01-P05 launch files and
+  a blank 70-row response CSV, with a manifest check for no answer key, no
+  forbidden oracle/scoring fields, zero real responses, and
+  `c5_supported=false`.
   The current output is `participant_results_empty`, `c5_supported=false`, and
   `pilot_ready=false`; no real participant responses have been collected.
 - C6 semantic adequacy is partial. The grammar is strong, but labels such as
@@ -442,6 +446,7 @@ provenance.
   original 3B-only stability run
 - `docs/visexp/out/semantic-ablation-r131.json` for semantic-axis ablation
 - `docs/visexp/out/user-task-benchmark.json`, `docs/visexp/out/user-task-participant-packets.json`, `docs/visexp/out/user-task-assignments.csv`, `docs/visexp/out/user-task-manifest.json`, `docs/visexp/out/user-task-preregistration-r142.json`, and `docs/visexp/out/user-task-results.json` for the R142-packet C5 benchmark bundle
+- `docs/visexp/out/user-task-pilot-r142/launch/manifest.json`, `participants/P01.md` through `participants/P05.md`, and `responses/user-task-response-template-r142-pilot.csv` for the R187 launch-only R142 pilot package
 - `docs/visexp/out/full-history-r170.json` and `.md` for the current full-history refresh summary
 - `docs/visexp/out/weak-accept-gate-r184.json` and `.md` for the current
   mechanical C5/C6 weak-accept human-evidence gate

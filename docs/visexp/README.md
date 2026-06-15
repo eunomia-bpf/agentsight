@@ -116,6 +116,9 @@ headline results come from `.agentsight/agentflame/latest`.
 - `out/osdi-plan-review-r186.md`: read-only OSDI plan/RQ review and cleanup
   gate; it makes R142 pilot the next executable human study and keeps R124
   labels as parallel/second C6 work.
+- `out/user-task-pilot-r142/launch/manifest.json`: R187 launch-only R142 pilot
+  package manifest. The launch directory contains P01-P05 blinded participant
+  packets and a blank response CSV, but no answer key or real responses.
 - `out/index.html`: legacy Python report page.
 - `out/visual-summary.html`: compact visual progress gallery.
 - `out/system-flamegraph.svg`: system/tool footprint flamegraph.
@@ -206,6 +209,15 @@ headline results come from `.agentsight/agentflame/latest`.
   summary.
 - `out/user-task-response-template.csv`: response CSV schema for collecting C5
   participant answers.
+- `out/user-task-pilot-r142/launch/participants/P01.md` through `P05.md`:
+  R187 launch-only per-participant pilot packets generated from the frozen R142
+  assignments.
+- `out/user-task-pilot-r142/launch/responses/user-task-response-template-r142-pilot.csv`:
+  blank R187 pilot response CSV to copy before collecting real participant
+  responses.
+- `out/user-task-pilot-r142/launch/manifest.json`: R187 manifest proving the
+  launch package has five participants, 70 blank response rows, no answer key,
+  and no forbidden oracle/scoring keys. It does not support C5 by itself.
 - `out/user-task-preregistration-r142.json`: frozen C5 analysis contract for
   the R142/R151 user-task benchmark. It records task counts, primary tasks,
   conditions, exclusion rules, response schema, scorer thresholds, and source
@@ -279,13 +291,17 @@ python3 docs/visexp/live_lineage_harness.py \
   --scope-covered-effects
 ```
 
-After collecting real C5 response rows:
+To start the R142 pilot, send each participant their matching R187 file under
+`out/user-task-pilot-r142/launch/participants/` and collect completed rows in a
+copy of the blank launch CSV. After collecting real C5 response rows:
 
 ```bash
 python3 docs/visexp/score_user_task_results.py \
   --responses path/to/responses.csv \
+  --bundle docs/visexp/out/user-task-benchmark.json \
+  --answer-key docs/visexp/out/user-task-answer-key.csv \
   --assignments docs/visexp/out/user-task-assignments.csv \
-  --out docs/visexp/out
+  --out docs/visexp/out/user-task-pilot-r142
 ```
 
 The C5 scorer compares `semantic-stack` against `trace-tree`,
