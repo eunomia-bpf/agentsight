@@ -1370,6 +1370,66 @@
     },
     "smoke_verdict": "smoke_supported"
   },
+  "tag_adequacy_results": {
+    "schema_version": 1,
+    "run_id": "R124-scoring",
+    "claim": "C6",
+    "status": "human_labels_empty",
+    "source": "tag-adequacy-label-packet-r122.csv",
+    "summary": {
+      "packet_row_count": 300,
+      "candidate_tag_count": 300,
+      "candidate_tag_coverage_pct": 100.0,
+      "final_label_count": 0,
+      "strong_final_label_count": 0,
+      "unlabeled_count": 300,
+      "single_label_count": 0,
+      "unadjudicated_disagreement_count": 0,
+      "both_labeler_count": 0,
+      "paired_label_coverage_pct": 0.0,
+      "inter_labeler_agreement_pct": null,
+      "cohen_kappa": null,
+      "final_source_counts": {
+        "empty": 300
+      },
+      "label_state_counts": {
+        "unlabeled": 300
+      },
+      "final_label_counts": {
+        "adequate": 0,
+        "generic_noisy": 0,
+        "misleading": 0
+      },
+      "adequate_share_pct": null,
+      "generic_noisy_share_pct": null,
+      "misleading_share_pct": null,
+      "by_kind": {},
+      "by_source": {}
+    },
+    "claim_gate": {
+      "adequacy_supported": false,
+      "requires_real_human_labels": true,
+      "complete_candidate_tags": true,
+      "complete_final_labels": false,
+      "complete_strong_final_labels": false,
+      "complete_paired_labels": false,
+      "agreement_ok": false,
+      "adequacy_ok": false,
+      "generic_ok": false,
+      "misleading_ok": false,
+      "success_criteria": {
+        "final_labels": "all packet rows",
+        "candidate_tags": "all packet rows",
+        "strong_final_labels": "all packet rows must be consensus or adjudicated, not single-label",
+        "paired_labels": "all packet rows must have labeler_1 and labeler_2 before adjudication",
+        "cohen_kappa": ">=0.6",
+        "adequate_share_pct": ">=80",
+        "generic_noisy_share_pct": "<=20",
+        "misleading_share_pct": "<=5"
+      }
+    },
+    "claim_boundary": "C6 semantic adequacy requires real human labels and agreement/adjudication"
+  },
   "user_task_benchmark": {
     "schema_version": 2,
     "claim": "C5",
@@ -5604,8 +5664,8 @@
     {
       "claim": "C6 tag stability and adequacy",
       "verdict": "partial",
-      "oracle": "smoke checks repeated-run syntax/stability; human adequacy remains required",
-      "evidence": "same_hash_multi_tag_count=0 smoke_verdict=smoke_supported fallback_stable_pct=100.0 fallback_generic_pct=4.167 llama_stable_pct=100.0 llama_generic_pct=12.5 fallback_vs_llama_exact_pct=0.0"
+      "oracle": "smoke checks repeated-run syntax/stability plus R124 human adequacy scoring",
+      "evidence": "same_hash_multi_tag_count=0 smoke_verdict=smoke_supported fallback_stable_pct=100.0 fallback_generic_pct=4.167 llama_stable_pct=100.0 llama_generic_pct=12.5 fallback_vs_llama_exact_pct=0.0 tag_adequacy=human_labels_empty candidate_tags=300 final_labels=0 packet_rows=300 adequate_pct=None generic_noisy_pct=None misleading_pct=None kappa=None adequacy_supported=False"
     }
   ]
 }

@@ -36,8 +36,10 @@ def file_sha256(path: Path) -> str:
 
 
 def assert_no_sensitive_text(path: Path) -> None:
+    # R122/R124 deliberately contain redacted prompt previews for human labels.
+    # The verifier checks secret/path shapes, not ordinary prompt wording.
     pattern = re.compile(
-        r"/home/yunwei37|Reply exactly|Bearer|api_key|sk-[A-Za-z0-9]{20,}|ANTHROPIC_API|OPENAI_API"
+        r"/home/[A-Za-z0-9._-]+|Bearer|api_key|sk-[A-Za-z0-9]{20,}|ANTHROPIC_API|OPENAI_API"
     )
     text = path.read_text(encoding="utf-8", errors="replace")
     match = pattern.search(text)
@@ -147,8 +149,60 @@ def run(out_dir: Path) -> dict[str, int | str]:
             raise AssertionError("response template row count does not match participant packets")
         if {row["packet_id"] for row in template_rows} != {packet["packet_id"] for packet in packets}:
             raise AssertionError("response template packet IDs do not match participant packets")
-        if any(row.get("participant_id") or row.get("response_json") != "{}" for row in template_rows):
+        if any(
+            row.get("response_json") != "{}"
+            or row.get("task_time_seconds")
+            or row.get("confidence")
+            or row.get("notes")
+            for row in template_rows
+        ):
             raise AssertionError("response template must not contain participant responses")
+
+    tag_packet_path = out_dir / "tag-adequacy-label-packet-r122.csv"
+    tag_results_path = out_dir / "tag-adequacy-results-r124.json"
+    tag_results_csv_path = out_dir / "tag-adequacy-results-r124.csv"
+    if tag_packet_path.exists():
+        if not tag_results_path.exists() or not tag_results_csv_path.exists():
+            raise AssertionError("R124 tag adequacy results are missing")
+        with tag_packet_path.open("r", encoding="utf-8", newline="") as handle:
+            tag_packet_rows = list(csv.DictReader(handle))
+        if tag_packet_rows:
+            required_tag_fields = {
+                "fragment_index",
+                "fragment_hash",
+                "kind",
+                "source",
+                "model",
+                "candidate_tag",
+                "candidate_model",
+                "candidate_exact_stable",
+                "candidate_distinct_tags",
+                "preview",
+                "labeler_1",
+                "labeler_2",
+                "adjudicated_label",
+            }
+            if not required_tag_fields.issubset(tag_packet_rows[0].keys()):
+                raise AssertionError("R122 tag adequacy packet is missing candidate tag columns")
+            if any(not row.get("candidate_tag") for row in tag_packet_rows):
+                raise AssertionError("R122 tag adequacy packet has rows without candidate tags")
+        tag_results = json.loads(tag_results_path.read_text(encoding="utf-8"))
+        tag_summary = tag_results.get("summary", {})
+        if tag_summary.get("packet_row_count") != len(tag_packet_rows):
+            raise AssertionError("R124 packet row count does not match R122 packet")
+        if tag_summary.get("candidate_tag_count") != len(tag_packet_rows):
+            raise AssertionError("R124 candidate tag count does not match R122 packet")
+        with tag_results_csv_path.open("r", encoding="utf-8", newline="") as handle:
+            tag_scored_rows = list(csv.DictReader(handle))
+        if len(tag_scored_rows) != len(tag_packet_rows):
+            raise AssertionError("R124 scored row count does not match R122 packet")
+        claim_gates_path = out_dir / "claim-gates.csv"
+        if claim_gates_path.exists():
+            with claim_gates_path.open("r", encoding="utf-8", newline="") as handle:
+                gates = {row.get("claim"): row for row in csv.DictReader(handle)}
+            c6 = gates.get("C6 tag stability and adequacy")
+            if not c6 or f"tag_adequacy={tag_results.get('status')}" not in c6.get("evidence", ""):
+                raise AssertionError("C6 claim gate does not include current R124 status")
 
     for path in out_dir.glob("*"):
         if path.suffix in {".json", ".csv", ".txt", ".html", ".svg"}:

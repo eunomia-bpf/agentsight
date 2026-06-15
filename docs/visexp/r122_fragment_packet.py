@@ -31,6 +31,7 @@ from semantic_tag_flamegraph import (  # noqa: E402
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_LOCAL_FRAGMENT_FILE = REPO_ROOT / ".agentsight" / "agentflame" / "r122-real-fragments.txt"
+DEFAULT_TAG_BENCHMARK = REPO_ROOT / ".agentsight" / "agentflame" / "model-benchmarks-r123.json"
 DEFAULT_OUT_CSV = SCRIPT_DIR / "out" / "tag-adequacy-label-packet-r122.csv"
 DEFAULT_OUT_JSON = SCRIPT_DIR / "out" / "tag-adequacy-label-packet-r122.json"
 DEFAULT_OUT_MD = SCRIPT_DIR / "out" / "tag-adequacy-label-packet-r122.md"
@@ -50,7 +51,7 @@ SHELL_PROMPT_RE = re.compile(r"\b[A-Za-z0-9._-]+@[A-Za-z0-9._-]+:[^\s$]*\$")
 
 def leak_patterns(include_long_ids: bool = False) -> list[tuple[str, re.Pattern[str]]]:
     patterns = [
-        ("home_path", re.compile(r"/home/yunwei37|home/yunwei37|-home-yunwei37")),
+        ("home_path", re.compile(r"/home/[A-Za-z0-9._-]+|home/[A-Za-z0-9._-]+|-home-[A-Za-z0-9._-]+")),
         ("shell_prompt", re.compile(r"\b[A-Za-z0-9._-]+@[A-Za-z0-9._-]+:[^\s$]*\$")),
         ("secret", SECRET_RE),
         ("email", EMAIL_RE),
@@ -69,18 +70,49 @@ class Fragment:
     kind: str
     source: str
     model: str
+    candidate_tag: str
+    candidate_model: str
+    candidate_exact_stable: str
+    candidate_distinct_tags: str
     text: str
     preview: str
     text_chars: int
 
 
+def load_candidate_tags(path: Path | None) -> tuple[dict[str, dict[str, str]], dict[str, Any]]:
+    if not path or not path.exists():
+        return {}, {"status": "missing", "path": rel(path) if path else ""}
+    data = json.loads(path.read_text(encoding="utf-8"))
+    candidates: dict[str, dict[str, str]] = {}
+    for model in data.get("models", []):
+        model_label = str(model.get("label") or "")
+        for fragment in model.get("fragments", []):
+            fragment_hash = str(fragment.get("fragment_hash") or "")
+            if not fragment_hash or fragment_hash in candidates:
+                continue
+            candidates[fragment_hash] = {
+                "candidate_tag": str(fragment.get("modal_tag") or ""),
+                "candidate_model": model_label,
+                "candidate_exact_stable": str(bool(fragment.get("exact_stable"))).lower(),
+                "candidate_distinct_tags": str(fragment.get("distinct_tags") or ""),
+            }
+    return candidates, {
+        "status": "loaded",
+        "path": rel(path),
+        "candidate_tags": len(candidates),
+        "model_labels": sorted({row["candidate_model"] for row in candidates.values()}),
+    }
+
+
 def scrub_text(text: str, limit: int) -> str:
-    text = clean_space(text, limit)
     home = str(Path.home())
     user = Path.home().name
     text = text.replace(home, "$HOME").replace(f"home/{Path.home().name}", "$HOME")
     text = text.replace(f"-home-{user}-", "$HOME-")
     text = text.replace(f"/home/{user}/", "$HOME/")
+    text = re.sub(r"/home/[A-Za-z0-9._-]+", "$HOME", text)
+    text = re.sub(r"\bhome/[A-Za-z0-9._-]+", "$HOME", text)
+    text = re.sub(r"-home-[A-Za-z0-9._-]+", "$HOME-", text)
     text = XML_ID_RE.sub(lambda m: f"<{m.group(1)}><id></{m.group(1)}>", text)
     text = SHELL_PROMPT_RE.sub("<shell-prompt>", text)
     text = SECRET_RE.sub("<secret>", text)
@@ -192,7 +224,12 @@ def collect_candidates(args: argparse.Namespace) -> tuple[list[dict[str, str]], 
     return candidates, warnings, fingerprint, parse_summary
 
 
-def build_fragments(candidates: list[dict[str, str]], per_kind: int, preview_chars: int) -> list[Fragment]:
+def build_fragments(
+    candidates: list[dict[str, str]],
+    per_kind: int,
+    preview_chars: int,
+    candidate_tags: dict[str, dict[str, str]] | None = None,
+) -> list[Fragment]:
     groups: dict[str, list[dict[str, str]]] = {"session": [], "prompt": [], "llm": []}
     for candidate in candidates:
         groups.setdefault(candidate["kind"], []).append(candidate)
@@ -203,13 +240,19 @@ def build_fragments(candidates: list[dict[str, str]], per_kind: int, preview_cha
     fragments: list[Fragment] = []
     for idx, item in enumerate(selected):
         text = item["text"]
+        fragment_hash = sha16(text)
+        tag = (candidate_tags or {}).get(fragment_hash, {})
         fragments.append(
             Fragment(
                 fragment_index=idx,
-                fragment_hash=sha16(text),
+                fragment_hash=fragment_hash,
                 kind=item["kind"],
                 source=item["source"],
                 model=item["model"],
+                candidate_tag=tag.get("candidate_tag", ""),
+                candidate_model=tag.get("candidate_model", ""),
+                candidate_exact_stable=tag.get("candidate_exact_stable", ""),
+                candidate_distinct_tags=tag.get("candidate_distinct_tags", ""),
                 text=text,
                 preview=clean_space(text, preview_chars),
                 text_chars=len(text),
@@ -231,6 +274,10 @@ def write_csv(path: Path, fragments: list[Fragment]) -> None:
         "kind",
         "source",
         "model",
+        "candidate_tag",
+        "candidate_model",
+        "candidate_exact_stable",
+        "candidate_distinct_tags",
         "text_chars",
         "preview",
         "labeler_1",
@@ -249,6 +296,10 @@ def write_csv(path: Path, fragments: list[Fragment]) -> None:
                     "kind": fragment.kind,
                     "source": fragment.source,
                     "model": fragment.model,
+                    "candidate_tag": fragment.candidate_tag,
+                    "candidate_model": fragment.candidate_model,
+                    "candidate_exact_stable": fragment.candidate_exact_stable,
+                    "candidate_distinct_tags": fragment.candidate_distinct_tags,
                     "text_chars": fragment.text_chars,
                     "preview": fragment.preview,
                     "labeler_1": "",
@@ -257,6 +308,55 @@ def write_csv(path: Path, fragments: list[Fragment]) -> None:
                     "notes": "",
                 }
             )
+
+
+def candidate_csv_fields(existing: list[str]) -> list[str]:
+    candidate_fields = [
+        "candidate_tag",
+        "candidate_model",
+        "candidate_exact_stable",
+        "candidate_distinct_tags",
+    ]
+    fields = [field for field in existing if field not in candidate_fields]
+    insert_after = fields.index("model") + 1 if "model" in fields else len(fields)
+    return fields[:insert_after] + candidate_fields + fields[insert_after:]
+
+
+def update_existing_candidate_tags(args: argparse.Namespace) -> dict[str, Any]:
+    candidate_tags, candidate_summary = load_candidate_tags(args.tag_benchmark)
+    with args.out_csv.open("r", encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle)
+        rows = list(reader)
+        fields = candidate_csv_fields(list(reader.fieldnames or []))
+    for row in rows:
+        tag = candidate_tags.get(row.get("fragment_hash", ""), {})
+        row["candidate_tag"] = tag.get("candidate_tag", "")
+        row["candidate_model"] = tag.get("candidate_model", "")
+        row["candidate_exact_stable"] = tag.get("candidate_exact_stable", "")
+        row["candidate_distinct_tags"] = tag.get("candidate_distinct_tags", "")
+    with args.out_csv.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=fields, lineterminator="\n")
+        writer.writeheader()
+        writer.writerows(rows)
+
+    result = json.loads(args.out_json.read_text(encoding="utf-8"))
+    result.setdefault("config", {})["tag_benchmark"] = rel(args.tag_benchmark)
+    result["candidate_tag_summary"] = {
+        **candidate_summary,
+        "matched_packet_rows": sum(1 for row in rows if row.get("candidate_tag")),
+        "missing_packet_rows": sum(1 for row in rows if not row.get("candidate_tag")),
+        "update_mode": "existing_packet_candidate_tag_join",
+    }
+    args.out_json.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    write_markdown(args.out_md, result)
+    scan = redaction_scan([args.out_csv, args.out_md, args.out_json])
+    result.setdefault("privacy", {})["redaction_scan"] = scan
+    args.out_json.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    write_markdown(args.out_md, result)
+    if scan["status"] != "ok":
+        raise SystemExit(f"redaction scan failed: {json.dumps(scan, ensure_ascii=False)}")
+    print(json.dumps(result, indent=2, ensure_ascii=False))
+    return result
 
 
 def rel(path: Path) -> str:
@@ -273,6 +373,7 @@ def write_json(
     warnings: list[str],
     fingerprint: str,
     parse_summary: dict[str, Any],
+    candidate_summary: dict[str, Any],
 ) -> dict[str, Any]:
     result = {
         "schema_version": 1,
@@ -285,6 +386,7 @@ def write_json(
             "per_kind": args.per_kind,
             "fragment_chars": args.fragment_chars,
             "preview_chars": args.preview_chars,
+            "tag_benchmark": rel(args.tag_benchmark),
         },
         "provenance": {
             "repo_commit": command_text(["git", "rev-parse", "HEAD"], REPO_ROOT),
@@ -296,6 +398,11 @@ def write_json(
         "parse_summary": parse_summary,
         "fragment_counts": dict(Counter(fragment.kind for fragment in fragments)),
         "fragment_count": len(fragments),
+        "candidate_tag_summary": {
+            **candidate_summary,
+            "matched_packet_rows": sum(1 for fragment in fragments if fragment.candidate_tag),
+            "missing_packet_rows": sum(1 for fragment in fragments if not fragment.candidate_tag),
+        },
         "warnings": warnings[:20],
         "outputs": {
             "label_packet_csv": rel(args.out_csv),
@@ -321,8 +428,9 @@ Date: {result['generated_at']}
 
 This artifact samples real local Codex/Claude session, prompt, and LLM-call
 fragments for human tag adequacy labeling. Raw traces are parsed read-only. The
-committed CSV contains redacted previews and blank label columns; the local
-fragment file used by automated stability runs is not committed.
+committed CSV contains redacted previews, the candidate one-word tag produced
+by the local llama.cpp benchmark when available, and blank label columns. The
+local fragment file used by automated stability runs is not committed.
 
 | Kind | Count |
 |------|------:|
@@ -334,19 +442,30 @@ Outputs:
 
 - Label packet: `{result['outputs']['label_packet_csv']}`
 - Local fragment file: `{result['provenance']['local_fragment_file']}`
+- Candidate tag source: `{result['config']['tag_benchmark']}`
+- Candidate tags matched: {result['candidate_tag_summary']['matched_packet_rows']} / {result['fragment_count']}
 
 Claim impact: this prepares R122 but does not by itself support human adequacy.
-The CSV still needs independent labels and agreement/adjudication.
+The CSV still needs independent labels and agreement/adjudication. Labelers
+judge whether `candidate_tag` preserves the main intent of the redacted preview;
+they should not invent replacement tags in the label columns.
+
+Privacy boundary: redacted previews intentionally keep enough prompt wording for
+human judgment, including ordinary exact-output directives. They must not contain
+home paths, secret-token patterns, email addresses, URL paths, or long raw ids.
 """
     path.write_text(text, encoding="utf-8")
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
+    if args.update_candidate_tags_only:
+        return update_existing_candidate_tags(args)
     candidates, warnings, fingerprint, parse_summary = collect_candidates(args)
-    fragments = build_fragments(candidates, args.per_kind, args.preview_chars)
+    candidate_tags, candidate_summary = load_candidate_tags(args.tag_benchmark)
+    fragments = build_fragments(candidates, args.per_kind, args.preview_chars, candidate_tags)
     write_local_fragment_file(args.local_fragment_file, fragments)
     write_csv(args.out_csv, fragments)
-    result = write_json(args.out_json, args, fragments, warnings, fingerprint, parse_summary)
+    result = write_json(args.out_json, args, fragments, warnings, fingerprint, parse_summary, candidate_summary)
     write_markdown(args.out_md, result)
     scan = redaction_scan([args.out_csv, args.out_md, args.out_json])
     result["privacy"]["redaction_scan"] = scan
@@ -368,6 +487,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--per-kind", type=int, default=100)
     parser.add_argument("--fragment-chars", type=int, default=700)
     parser.add_argument("--preview-chars", type=int, default=220)
+    parser.add_argument("--tag-benchmark", type=Path, default=DEFAULT_TAG_BENCHMARK)
+    parser.add_argument(
+        "--update-candidate-tags-only",
+        action="store_true",
+        help="join candidate tags into the existing CSV/JSON packet without resampling sessions",
+    )
     parser.add_argument("--local-fragment-file", type=Path, default=DEFAULT_LOCAL_FRAGMENT_FILE)
     parser.add_argument("--out-csv", type=Path, default=DEFAULT_OUT_CSV)
     parser.add_argument("--out-json", type=Path, default=DEFAULT_OUT_JSON)
