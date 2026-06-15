@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-15
 Stage at update: audit / supplement
-Source/command: OSDI rubric audit over `docs/visexp/STATE.md`, `docs/visexp/CLAIM_VERDICT.md`, `docs/visexp/out/evaluation.json`, `docs/visexp/out/live-record-r114-analysis.json`, `docs/visexp/out/live-network-r182.json`, `docs/visexp/out/model-benchmarks-r180.json`, `docs/visexp/out/tag-adequacy-results-r124.json`, `docs/visexp/out/tag-adequacy-label-join-r124.json`, `docs/visexp/out/user-task-results.json`, `docs/visexp/out/weak-accept-gate-r184.json`, `docs/visexp/out/artifact-usability-r160.json`, `docs/visexp/out/full-history-r170.json`, `docs/visexp/out/osdi-gate-review-r181.md`, and `docs/visexp/out/osdi-gate-review-r185.md`
+Source/command: OSDI rubric audit over `docs/visexp/STATE.md`, `docs/visexp/CLAIM_VERDICT.md`, `docs/visexp/out/evaluation.json`, `docs/visexp/out/live-record-r114-analysis.json`, `docs/visexp/out/live-network-r182.json`, `docs/visexp/out/model-benchmarks-r180.json`, `docs/visexp/out/tag-adequacy-results-r124.json`, `docs/visexp/out/tag-adequacy-label-join-r124.json`, `docs/visexp/out/user-task-results.json`, `docs/visexp/out/weak-accept-gate-r184.json`, `docs/visexp/out/artifact-usability-r160.json`, `docs/visexp/out/full-history-r170.json`, `docs/visexp/out/osdi-gate-review-r181.md`, `docs/visexp/out/osdi-gate-review-r185.md`, and `docs/visexp/out/osdi-plan-review-r186.md`
 Completeness: partial
 
 ## Audit Verdict
@@ -81,6 +81,12 @@ and R142 artifacts. It reports `not_weak_accept`: C5 is only
 mock responses, placeholder rows, and syntax-only tag validity are disallowed as
 C5/C6 evidence. R185 independently reviews that gate and again classifies the
 work as Level 3 rather than weak accept.
+
+R186 reviews the revised research plan and RQs against the OSDI plan-template
+rubric. It keeps the maturity at Level 3, makes the executable order R142 pilot
+first, R124 labels parallel/second, R151 only after R142 passes, and defers C4
+network hardening plus R160/R200 artifact polish until C5/C6 are no longer
+empty.
 
 ## Claim-Evidence Alignment
 

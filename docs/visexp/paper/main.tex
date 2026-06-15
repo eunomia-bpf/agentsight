@@ -329,8 +329,11 @@ R182 进一步检查 network-effect case。第一次 loopback run 暴露出 \tex
 
 当前答案是不成立，或者更准确地说：未验证。
 已有 task packet、answer key 和 scorer 原型，但没有真实参与者响应。
-下一步需要把 baseline 设为 trace tree、event-count proxy、flat process summary、nonsemantic folded stack 和 semantic folded stack，比较 accuracy、time、false positives 和 confidence。
+R184 机械 gate 把 C5 状态记录为 \texttt{ready\_for\_participant\_collection}，而不是 supported。
+R186 计划审查进一步确认：下一步应先运行真实 R142 五人 pilot，然后才进入 R151 纸面规模实验。
+当前 baseline 应设为 trace tree、\texttt{event-count-proxy}、flat process summary、nonsemantic folded stack 和 semantic folded stack，比较 accuracy、time、false positives 和 confidence。
 当前 R142 packet 中原来的 span-like 条件已经明确命名为 event-count proxy，因为 folded artifact 没有真实 duration；它不能直接当作 span-duration baseline。
+只有在从 timestamps 重新生成并预注册时，true span-duration flamegraph 才能作为额外 baseline。
 如果这个实验失败，AgentFlame 仍可能是专家 forensic 工具，但不能写成提升普通开发者效率。
 
 \subsection{RQ5：小模型成本和标签质量}
@@ -342,6 +345,7 @@ R180 用 \texttt{--reasoning off} 对同一个 R122 fragment file 分别运行�
 这支持本机小模型的 syntax、latency 和 repeated-input stability smoke，但不是同一模型家族的 scaling curve。
 更重要的是，TinyLlama 1.1b 虽然语法有效，却大多输出 localization/localized 一类标签，说明 stability 不能替代 adequacy。
 OSDI 版本还需要 R124 人工 adequacy labels。
+R184 当前把 C6 记录为 \texttt{ready\_for\_independent\_label\_collection}，不是 adequacy supported；R186 将 R124 labels 排在 R142 pilot 之后或并行执行。
 一词标签应该被定位为 lossy navigation frames，而不是 semantic truth。
 
 \subsection{RQ6：开源 artifact 路径是否可用？}
@@ -362,6 +366,7 @@ Cached rerun 使用同一组 \texttt{--session-file} 输入和同一个输出目
 表~\ref{tab:gates} 把当前证据按 claim gate 汇总。
 这个表的作用不是装饰，而是防止论文把 smoke evidence 写成系统结论。
 OSDI reviewer 最可能挑战的点是 C4、C5 和 C6：C4 已经有固定 command-mode suite 证据，但还要证明 scope 不是过窄；C5 要证明用户能更快或更准确地回答 forensic questions；C6 要证明一词标签不只是语法稳定，而是足够可用。
+R184/R186 的作用是防止过度声明：它们把当前状态固定为 \texttt{not\_weak\_accept}，并把下一步执行顺序限定为 R142 pilot、R124 labels、R151 paper run。
 因此当前最诚实的定位是 ``supported mechanism plus partial systems artifact''。
 
 \begin{table*}[t]

@@ -83,14 +83,10 @@ The next work should not add another visualization polish pass unless it
 directly unblocks C5 or C6. OSDI weak accept requires outcome evidence, so the
 execution order is:
 
-1. **R124-labels for C6.** Use
-   `docs/visexp/out/tag-adequacy-blinded-label-sheet-r124.csv` to collect two
-   independent human labels for every row, join the frozen sheets with
-   `docs/visexp/r124_join_blinded_labels.py`, adjudicate disagreements into
-   `docs/visexp/out/tag-adequacy-adjudication-template-r124.csv`, and rerun
-   `score_tag_adequacy.py` on the joined packet. Subagents or LLMs may review
-   the rubric and spot-check leakage, but their labels do not count as human
-   adequacy evidence.
+1. **R186 plan review.** This pass completed one read-only OSDI review over the
+   revised `RESEARCH_PLAN`, paper RQs, R184 gate, and current tracker/verdict/
+   audit artifacts. If the plan or RQ wording changes again, rerun this gate
+   before recruiting participants or labelers.
 2. **R142-pilot for C5.** The current packet has been rescoped to use an
    explicitly named `event-count-proxy` baseline rather than a misleading
    span-duration condition. The C5 analysis preregistration is now frozen in
@@ -98,12 +94,20 @@ execution order is:
    counterbalanced packet with real developers or scoped expert
    participants. The pilot can validate procedure and task wording, but it must
    stay labeled as pilot evidence unless the paper-scale C5 gate passes.
-3. **R151 paper run for C5.** Only after the pilot response contract passes and
+3. **R124-labels for C6.** Use
+   `docs/visexp/out/tag-adequacy-blinded-label-sheet-r124.csv` to collect two
+   independent human labels for every row, join the frozen sheets with
+   `docs/visexp/r124_join_blinded_labels.py`, adjudicate disagreements into
+   `docs/visexp/out/tag-adequacy-adjudication-template-r124.csv`, and rerun
+   `score_tag_adequacy.py` on the joined packet. Subagents or LLMs may review
+   the rubric and spot-check leakage, but their labels do not count as human
+   adequacy evidence.
+4. **R151 paper run for C5.** Only after the pilot response contract passes and
    the C5 analysis model is preregistered, collect 12-20 participant response
    rows or explicitly narrow to a scoped expert study. The scorer's
    Holm-corrected participant/task/order fixed-effect gate decides whether any
    user-utility claim is allowed.
-4. **C4/RQ6 replication and artifact polish.** Run cross-repo or clean-install
+5. **C4/RQ6 replication and artifact polish.** Run cross-repo or clean-install
    work only after C5/C6 are no longer empty. These runs strengthen scope and
    artifact positioning but cannot substitute for adequacy or utility evidence.
 
@@ -263,8 +267,9 @@ envelope.
 Do developers answer questions such as "which task caused repeated tests?",
 "which prompt introduced repo-outside reads?", or "which semantic region caused
 network calls?" more accurately or faster with semantic effect flamegraphs than
-with trace trees, span-duration flamegraphs, flat summaries, or nonsemantic
-folded stacks?
+with trace trees, the explicitly named `event-count-proxy`, flat summaries, or
+nonsemantic folded stacks? A true span-duration flamegraph is optional only if
+it is regenerated from timestamps and preregistered as a separate baseline.
 
 Primary oracle: preregistered answer-key task benchmark with accuracy, time,
 confidence, and false-positive metrics.
@@ -482,6 +487,7 @@ cargo run --manifest-path agentflame/Cargo.toml -- bench \
 | R142-scoring | C5 | B4x | Response-contract and paper-scale C5 scorer gate. | `python3 docs/visexp/score_user_task_results.py --responses docs/visexp/out/user-task-response-template.csv --bundle docs/visexp/out/user-task-benchmark.json --answer-key docs/visexp/out/user-task-answer-key.csv --assignments docs/visexp/out/user-task-assignments.csv --out docs/visexp/out` | deterministic empty-template check; real responses later | assignment/packet contract checks, diagnostic task-level deltas, Holm-corrected participant/task/order fixed-effect tests, false-positive guardrail, pilot/paper support gates | current output is `participant_results_empty`, `c5_supported=false`, `pilot_ready=false`; no C5 claim without participants | `docs/visexp/out/user-task-results.json` | done/empty |
 | R142-preregistration | C5 | B4x | Frozen analysis contract before participant collection. | `python3 docs/visexp/r142_preregistration.py` | deterministic over current bundle, assignments, answer key, response template, and scorer constants | source-hash lock, condition/schema/threshold validation, event-count proxy boundary, exclusion rules | prereg gate passed as `frozen_before_collection`; still no outcome evidence | `docs/visexp/out/user-task-preregistration-r142.json`, `docs/visexp/out/user-task-preregistration-r142.md` | done/protocol |
 | R184 | C5,C6 | gate | Mechanical weak-accept human-evidence gate over existing R124/R142 artifacts. | `python3 docs/visexp/r184_weak_accept_gate.py --out-dir docs/visexp/out` | deterministic over current R124/R142 outputs | C5 and C6 both must pass existing human-data scorers; subagent/LLM/mock/placeholder evidence is disallowed | current output is `not_weak_accept`; C5 is ready for participant collection and C6 is ready for independent label collection | `docs/visexp/out/weak-accept-gate-r184.json`, `docs/visexp/out/weak-accept-gate-r184.md` | done/gate |
+| R186 | C1-C7 | gate | Read-only OSDI review and cleanup of revised RQ/experiment plan before collecting new outcome data. | inspect `docs/visexp/RESEARCH_PLAN.md`, `docs/visexp/paper/main.tex`, R184/R185, tracker/verdict/audit/followup artifacts | one independent review | OSDI plan-template and evaluation-rubric gate: every claim has falsifying result, oracle, baseline, run order, and outcome-data boundary | review says Level 3/not weak accept; cleanup makes R142 pilot the next executable human study while R151 remains blocked until R142 passes | `docs/visexp/out/osdi-plan-review-r186.md` | done/review |
 | R142 | C5 | B4x | User-task pilot. | collect 5 developer participants using counterbalanced P01-P05 conditions; score with `python3 docs/visexp/score_user_task_results.py --responses <pilot-response.csv> --bundle docs/visexp/out/user-task-benchmark.json --answer-key docs/visexp/out/user-task-answer-key.csv --assignments docs/visexp/out/user-task-assignments.csv --out docs/visexp/out/user-task-pilot-r142` | 5 participants for complete condition coverage | answer key, timing data, false positives, confidence, response-contract checker | task protocol works before paper run; pilot is not paper-scale C5 support | `docs/visexp/out/user-task-pilot-r142/user-task-results.json` | planned |
 | R151 | C5 | B4x | User-task paper run. | 12-20 participants or scoped expert study | counterbalanced | accuracy/time/false-positive/confidence scorer | required for any user-utility claim | `docs/visexp/out/user-task-results.json` | planned |
 | R160 | C7 | B7 | Bounded fixed-session open-source usability smoke. | `cargo run --manifest-path agentflame/Cargo.toml -- run --project-root . --llama-url http://127.0.0.1:18080 --model local --timeout 60 --out .agentsight/agentflame/r160-smoke-fixed --session-file <8 fixed historical Codex sessions>`; repeat same command against the same output dir; then `python3 docs/visexp/artifact_usability_r160.py --agentflame-dir .agentsight/agentflame/r160-smoke-fixed --clean-agentflame-json .agentsight/agentflame/r160-smoke-fixed/agentflame.clean.json --out docs/visexp/out/artifact-usability-r160.json ...` | one clean run plus cached rerun over fixed inputs | expected files + runtime/cache summary + sanitized input manifest + clean/cached input equality + 76/76 cached rerun + no raw-trace git dirt + generated report path containment | bounded local artifact path is auditable without the internal harness; fresh-clone/community usefulness, public report sanitization, and full write-set containment remain open | `docs/visexp/out/artifact-usability-r160.json` | done/bounded |
@@ -510,16 +516,18 @@ It may not say:
 
 ## Immediate Next Action
 
-Move to G3/G4 next, but do not collect responses with the current protocol.
+Move to G3/G4 next. After R186 cleanup, R142 pilot collection may start using
+the frozen preregistration; do not collect R151 paper-run responses until R142
+passes its response-contract and pilot checks.
 R114/B3x now gives the paper concrete exact-lineage evidence that
 span-duration traces do not provide, but OSDI weak accept still needs evidence
 that the semantic labels are adequate and that developers actually answer
 forensic questions better with the visualization.
 
-1. collect/adjudicate human adequacy labels using the blinded R124 labeler
-   sheet, then rerun `score_tag_adequacy.py`;
-2. run the R142 developer task pilot using the frozen preregistration and the
+1. start the R142 developer task pilot using the frozen preregistration and the
    corrected trace tree, event-count proxy, flat summary, nonsemantic stack, and
    semantic stack assignment template;
+2. collect/adjudicate human adequacy labels using the blinded R124 labeler
+   sheet, then rerun `score_tag_adequacy.py`;
 3. after a successful pilot, run R151 or narrow the paper to a scoped expert
    study before making any user-utility claim.

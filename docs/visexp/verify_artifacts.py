@@ -473,6 +473,20 @@ def run(out_dir: Path) -> dict[str, int | str]:
         if not overall.get("human_evidence_supported") and r184.get("status") != "not_weak_accept":
             raise AssertionError("R184 must remain not_weak_accept while human evidence is missing")
 
+    r186_path = out_dir / "osdi-plan-review-r186.md"
+    if r186_path.exists():
+        r186_text = r186_path.read_text(encoding="utf-8")
+        required_r186_phrases = [
+            "Level 3",
+            "not C5/C6 outcome evidence",
+            "R142 five-participant",
+            "R124 human",
+            "not_weak_accept",
+        ]
+        for phrase in required_r186_phrases:
+            if phrase not in r186_text:
+                raise AssertionError(f"R186 plan review is missing required phrase: {phrase}")
+
     r170_path = out_dir / "full-history-r170.json"
     if r170_path.exists():
         r170 = json.loads(r170_path.read_text(encoding="utf-8"))
