@@ -1,4 +1,8 @@
-from agentsight_py.snapshot import summarize_snapshot
+import json
+
+import pytest
+
+from agentsight_py.snapshot import SnapshotError, load_snapshot, summarize_snapshot
 
 
 def test_summarize_snapshot_counts_top_level_lists():
@@ -31,3 +35,39 @@ def test_summarize_snapshot_counts_top_level_lists():
     assert summary.llm_calls == 3
     assert summary.total_tokens == 30
 
+
+def test_summarize_snapshot_preserves_empty_top_level_lists():
+    summary = summarize_snapshot(
+        {
+            "summary": {
+                "sessions": 7,
+                "audit_events": 9,
+            },
+            "sessions": [],
+            "audit_events": [],
+        }
+    )
+
+    assert summary.sessions == 0
+    assert summary.audit_events == 0
+
+
+def test_load_snapshot_wraps_common_read_errors(tmp_path):
+    directory = tmp_path / "snapshot-dir"
+    directory.mkdir()
+
+    with pytest.raises(SnapshotError, match="snapshot cannot be read"):
+        load_snapshot(directory)
+
+    invalid_utf8 = tmp_path / "invalid.json"
+    invalid_utf8.write_bytes(b"\xff")
+
+    with pytest.raises(SnapshotError, match="snapshot is not valid UTF-8"):
+        load_snapshot(invalid_utf8)
+
+
+def test_load_snapshot_reads_json_object(tmp_path):
+    snapshot = tmp_path / "snapshot.json"
+    snapshot.write_text(json.dumps({"schema_version": 1}), encoding="utf-8")
+
+    assert load_snapshot(snapshot) == {"schema_version": 1}

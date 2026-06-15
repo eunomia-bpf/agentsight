@@ -36,6 +36,10 @@ def load_snapshot(path: str | Path) -> dict[str, Any]:
             data = json.load(file)
     except FileNotFoundError as exc:
         raise SnapshotError(f"snapshot not found: {snapshot_path}") from exc
+    except OSError as exc:
+        raise SnapshotError(f"snapshot cannot be read: {snapshot_path}: {exc.strerror or exc}") from exc
+    except UnicodeDecodeError as exc:
+        raise SnapshotError(f"snapshot is not valid UTF-8: {snapshot_path}") from exc
     except json.JSONDecodeError as exc:
         raise SnapshotError(f"snapshot is not valid JSON: {snapshot_path}") from exc
 
@@ -44,14 +48,19 @@ def load_snapshot(path: str | Path) -> dict[str, Any]:
     return data
 
 
-def _count(data: dict[str, Any], key: str) -> int:
+def _count(data: dict[str, Any], key: str) -> int | None:
     value = data.get(key)
-    return len(value) if isinstance(value, list) else 0
+    return len(value) if isinstance(value, list) else None
 
 
 def _int_from_summary(summary: dict[str, Any], key: str) -> int:
     value = summary.get(key)
     return value if isinstance(value, int) else 0
+
+
+def _count_or_summary(data: dict[str, Any], summary: dict[str, Any], key: str) -> int:
+    count = _count(data, key)
+    return count if count is not None else _int_from_summary(summary, key)
 
 
 def summarize_snapshot(data: dict[str, Any]) -> SnapshotSummary:
@@ -70,15 +79,14 @@ def summarize_snapshot(data: dict[str, Any]) -> SnapshotSummary:
     return SnapshotSummary(
         schema_version=schema_version,
         generated_at=generated_at,
-        sessions=_count(data, "sessions") or _int_from_summary(summary, "sessions"),
-        process_nodes=_count(data, "process_nodes"),
-        tool_calls=_count(data, "tool_calls"),
-        audit_events=_count(data, "audit_events") or _int_from_summary(summary, "audit_events"),
-        network_targets=_count(data, "network_targets"),
-        resource_samples=_count(data, "resource_samples"),
+        sessions=_count_or_summary(data, summary, "sessions"),
+        process_nodes=_count(data, "process_nodes") or 0,
+        tool_calls=_count(data, "tool_calls") or 0,
+        audit_events=_count_or_summary(data, summary, "audit_events"),
+        network_targets=_count(data, "network_targets") or 0,
+        resource_samples=_count(data, "resource_samples") or 0,
         llm_calls=_int_from_summary(summary, "llm_calls"),
         input_tokens=_int_from_summary(summary, "input_tokens"),
         output_tokens=_int_from_summary(summary, "output_tokens"),
         total_tokens=_int_from_summary(summary, "total_tokens"),
     )
-
