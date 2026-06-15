@@ -115,6 +115,9 @@ headline results come from `.agentsight/agentflame/latest`.
   same DB exports after `collector report export` emits session/tool envelope
   rows.
 - `out/native-lineage-r111.md`: human-readable R111 boundary and result table.
+- `out/native-lineage-r112.json`: R112 DB-persisted backfill C4 smoke summary
+  over copies of the same DB exports, verified with persisted-only export.
+- `out/native-lineage-r112.md`: human-readable R112 boundary and result table.
 - `out/tag-stability-smoke.json`: local-only repeated-run tag stability smoke
   summary over hashed session/prompt/LLM fragments.
 - `out/tag-stability-smoke.csv`: sanitized per-fragment tag outputs.
@@ -149,9 +152,10 @@ over an AgentSight-shaped fixture. R110 shows the same checker covering and
 joining 182/318 raw effects from three real AgentSight DB exports after
 `live_lineage_harness.py` adds a minimal agent-run envelope. R111 moves that
 envelope into native `collector report export`: exported snapshots contain
-session/tool rows and join the same 182/318 raw effects. C4 still requires lower
-orphan rates and DB-persisted session -> tool_call -> shell -> child process ->
-file/network ancestry.
+session/tool rows and join the same 182/318 raw effects. R112 persists that
+envelope into SQLite `sessions` and `tool_calls` rows on DB copies and verifies
+persisted-only export. C4 still requires lower orphan rates and capture-time
+session -> tool_call -> shell -> child process -> file/network ancestry.
 
 ## Test
 

@@ -31,7 +31,8 @@ expected AgentSight materialized-view shape with sessions, tool calls, process
 nodes, and audit events. R110 applies the same checker to live in-scope effects
 from real AgentSight DB exports after a Python harness adds the missing
 agent-run envelope; R111 moves that minimal envelope into native
-`collector report export`.
+`collector report export`; R112 persists the envelope into SQLite `sessions` and
+`tool_calls` rows on DB copies and verifies persisted-only export.
 
 ## Semantic Contract
 
@@ -124,8 +125,10 @@ session, and prompt tag, then writes `effect-lineage.csv` and
 R110 adds live in-scope smoke evidence over three real DB exports using
 `live_lineage_harness.py`. R111 moves the envelope into native export. The
 denominator is split intentionally: 182/318 raw effects joined, while 136 raw
-effects remain orphaned. This is enough to prove the export path can carry
-session/tool ancestry, but not enough to claim complete exact provenance.
+effects remain orphaned. R112 persists the same envelope into SQLite and exports
+with observed projection disabled. This is enough to prove DB-persisted backfill
+rows can carry session/tool ancestry, but not enough to claim complete
+capture-time exact provenance.
 
 ## What Is New Here
 
@@ -151,12 +154,12 @@ agent-native artifact. It is only a placeholder for AgentSight's precise
 system-effect stream.
 
 The exact-effect checker currently has fixture evidence, R110 harness evidence,
-and R111 native-export smoke evidence. It proves that the join rules and stack
-grammar can connect detected agent-root process families to prompt/session
-ancestry, not that collector capture already preserves complete
-process/file/network attribution. For in-scope live AgentSight events, an
-unjoined process/file/network effect is a collector or join bug, not an
-acceptable "unknown prompt" category.
+R111 native-export smoke evidence, and R112 DB-persisted backfill evidence. It
+proves that the join rules and stack grammar can connect detected agent-root
+process families to prompt/session ancestry, not that collector capture already
+preserves complete process/file/network attribution. For in-scope live
+AgentSight events, an unjoined process/file/network effect is a collector or
+join bug, not an acceptable "unknown prompt" category.
 
 The local model is invoked once per uncached tag, so this is a reproducible
 offline experiment, not a collector hot-path architecture. The current full run

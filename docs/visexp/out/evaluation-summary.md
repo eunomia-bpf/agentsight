@@ -5,26 +5,26 @@ It is an artifact audit, not a substitute for the planned human and paired-agent
 
 ## Current Artifact Metrics
 
-- Semantic system compression: 2.363x (5317 observations, 2250 stacks).
-- Collapsed observation share: 57.683%.
-- Non-semantic baseline mixed buckets: 398 (64.021% of observation weight).
-- Flat effect baseline mixed buckets: 390 (70.547% of observation weight).
-- Prompt tags: 40 unique, 31.295% generic rows, 0 same-hash tag conflicts.
+- Semantic system compression: 2.353x (5498 observations, 2337 stacks).
+- Collapsed observation share: 57.494%.
+- Non-semantic baseline mixed buckets: 408 (65.424% of observation weight).
+- Flat effect baseline mixed buckets: 399 (71.644% of observation weight).
+- Prompt tags: 41 unique, 31.541% generic rows, 0 same-hash tag conflicts.
 
 ## Claim Gates
 
 | Claim | Verdict | Evidence |
 |-------|---------|----------|
-| C1 folded aggregation | supported | compression=2.363 repeated=953 |
-| C2 one-word tags in stack grammar | supported | invalid=0 unique_prompt_tags=40 |
-| C3 semantic stacks add information beyond flat/nonsemantic baselines | supported | nonsemantic_mixed=398 nonsemantic_weight_pct=64.021 flat_mixed=390 flat_weight_pct=70.547 |
-| D1 normalized agent differences | diagnostic | sources={'codex-subagent': 15, 'codex': 4, 'claude': 12, 'claude-subagent': 5} |
+| C1 folded aggregation | supported | compression=2.353 repeated=988 |
+| C2 one-word tags in stack grammar | supported | invalid=0 unique_prompt_tags=41 |
+| C3 semantic stacks add information beyond flat/nonsemantic baselines | supported | nonsemantic_mixed=408 nonsemantic_weight_pct=65.424 flat_mixed=399 flat_weight_pct=71.644 |
+| D1 normalized agent differences | diagnostic | sources={'codex-subagent': 16, 'codex': 4, 'claude': 11, 'claude-subagent': 5} |
 | C5 user utility over trace tree/process logs | unsupported | task_bundle=pilot_packet_ready_no_participants task_count=6 scorer=ready response_template=present participant_results=missing |
-| C4 exact AgentSight effect stream preserves value | partial | effect_lineage_smoke=fixture_lineage_smoke_passed source=fixture effect_events=4 join_rate_pct=100.0 orphans=0 orphan_reasons={} live_lineage=partial_supported_for_in_scope_live_smoke runs=3 synthetic_sessions=8 synthetic_tool_calls=8 raw_effects=318 in_scope_effects=182 raw_coverage_pct=57.233 joined=182 orphans=0 in_scope_join_rate_pct=100.0 join_methods={'related_event_id': 8, 'pid_family_time_window': 174} out_of_scope=136 native_export=see_R111 native_lineage=partial_supported_for_native_export_smoke runs=3 sessions=3 tool_calls=3 raw_effects=318 joined=182 orphans=136 raw_join_pct=57.233 join_methods={'related_event_id': 3, 'pid_family_time_window': 179, 'none': 136} db_persisted_ancestry=pending |
-| C6 tag stability and adequacy | partial | same_hash_multi_tag_count=0 smoke_verdict=smoke_supported fallback_stable_pct=100.0 fallback_generic_pct=0.0 llama_stable_pct=100.0 llama_generic_pct=16.667 fallback_vs_llama_exact_pct=0.0 |
+| C4 exact AgentSight effect stream preserves value | partial | effect_lineage_smoke=fixture_lineage_smoke_passed source=fixture effect_events=4 join_rate_pct=100.0 orphans=0 orphan_reasons={} live_lineage=partial_supported_for_in_scope_live_smoke runs=3 synthetic_sessions=8 synthetic_tool_calls=8 raw_effects=318 in_scope_effects=182 raw_coverage_pct=57.233 joined=182 orphans=0 in_scope_join_rate_pct=100.0 join_methods={'related_event_id': 8, 'pid_family_time_window': 174} out_of_scope=136 native_export=see_R111 native_lineage=partial_supported_for_native_export_smoke runs=3 sessions=3 tool_calls=3 raw_effects=318 joined=182 orphans=136 raw_join_pct=57.233 join_methods={'related_event_id': 3, 'pid_family_time_window': 179, 'none': 136} db_persisted_backfill=see_R112 db_lineage=partial_supported_for_db_persisted_backfill_smoke runs=3 db_sessions=3 db_tool_calls=3 raw_effects=318 joined=182 orphans=136 raw_join_pct=57.233 join_methods={'related_event_id': 3, 'pid_family_time_window': 179, 'none': 136} capture_time_ancestry=pending |
+| C6 tag stability and adequacy | partial | same_hash_multi_tag_count=0 smoke_verdict=smoke_supported fallback_stable_pct=100.0 fallback_generic_pct=4.167 llama_stable_pct=100.0 llama_generic_pct=12.5 fallback_vs_llama_exact_pct=0.0 |
 
 ## Highest-Value Next Runs
 
 1. Collect a B4 response CSV and score it with `score_user_task_results.py` to test C5.
 2. Expand B5 with manual adequacy labels and a larger multi-model tag stability run for C6.
-3. Reduce R111 native-export orphans and persist session/tool ancestry in the AgentSight DB.
+3. Move R112 DB-persisted backfill into capture-time ancestry and reduce native-export orphans.

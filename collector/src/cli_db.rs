@@ -10,6 +10,7 @@ use crate::output::{
 use crate::sources::agent_native as agent_native_sessions;
 use crate::sources::sqlite::{
     load_view as load_sqlite_view, load_view_with_observed_session_prompts,
+    persist_observed_agent_envelopes,
 };
 use crate::text::{clean_prompt_text, extract_prompt_text};
 use crate::view::MaterializedView;
@@ -90,8 +91,13 @@ pub(crate) fn run_export(
     db: Option<&str>,
     output: &str,
     audit_limit: usize,
+    observed_projection: bool,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let view = load_view_with_observed_session_prompts(db)?;
+    let view = if observed_projection {
+        load_view_with_observed_session_prompts(db)?
+    } else {
+        load_sqlite_view(db)?
+    };
     let snapshot = view.export_snapshot(SnapshotOptions { audit_limit });
     let json = serde_json::to_vec_pretty(&snapshot)?;
     if output == "-" {
@@ -101,6 +107,25 @@ pub(crate) fn run_export(
     } else {
         std::fs::write(output, json)?;
         print_exported_snapshot(output);
+    }
+    Ok(())
+}
+
+pub(crate) fn run_materialize_observed(
+    db: &str,
+    json: bool,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let result = persist_observed_agent_envelopes(db)?;
+    if json {
+        print_json(&result)?;
+    } else {
+        println!(
+            "Materialized observed agent envelopes: {} sessions, {} tool calls from {} local prompt rows into {}",
+            result.sessions_written,
+            result.tool_calls_written,
+            result.observed_prompt_rows,
+            result.db
+        );
     }
     Ok(())
 }

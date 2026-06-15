@@ -3,8 +3,8 @@
 
 use crate::json::{parse_optional_value as parse_optional_json, parse_value as parse_json_value};
 use crate::model::{
-    AuditEventRow, LlmCallRow, NetworkTargetRow, ProcessNodeRow, ResourceSampleRow, TokenUsageRow,
-    ToolCallRow, ViewResult, ViewSink,
+    AuditEventRow, LlmCallRow, NetworkTargetRow, ProcessNodeRow, ResourceSampleRow, SessionRow,
+    TokenUsageRow, ToolCallRow, ViewResult, ViewSink,
 };
 use rusqlite::{Connection, OpenFlags, params};
 use std::path::Path;
@@ -242,6 +242,46 @@ impl SqliteStore {
         Ok(())
     }
 
+    fn insert_session(&self, session: &SessionRow) -> ViewResult<()> {
+        self.conn.execute(
+            "INSERT INTO sessions (
+                id, agent_type, start_timestamp_ms, end_timestamp_ms, status, model,
+                input_tokens, output_tokens, total_tokens, view_source, confidence, attributes_json
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)
+             ON CONFLICT(id) DO UPDATE SET
+                agent_type = excluded.agent_type,
+                start_timestamp_ms = MIN(start_timestamp_ms, excluded.start_timestamp_ms),
+                end_timestamp_ms = CASE
+                    WHEN end_timestamp_ms IS NULL THEN excluded.end_timestamp_ms
+                    WHEN excluded.end_timestamp_ms IS NULL THEN end_timestamp_ms
+                    ELSE MAX(end_timestamp_ms, excluded.end_timestamp_ms)
+                END,
+                status = excluded.status,
+                model = COALESCE(excluded.model, model),
+                input_tokens = MAX(input_tokens, excluded.input_tokens),
+                output_tokens = MAX(output_tokens, excluded.output_tokens),
+                total_tokens = MAX(total_tokens, excluded.total_tokens),
+                view_source = excluded.view_source,
+                confidence = MAX(COALESCE(confidence, 0), COALESCE(excluded.confidence, 0)),
+                attributes_json = excluded.attributes_json",
+            params![
+                session.id,
+                session.agent_type,
+                session.start_timestamp_ms as i64,
+                session.end_timestamp_ms.map(|v| v as i64),
+                session.status,
+                session.model.as_deref(),
+                session.input_tokens,
+                session.output_tokens,
+                session.total_tokens,
+                session.view_source,
+                session.confidence.unwrap_or(1.0),
+                session.attributes.to_string(),
+            ],
+        )?;
+        Ok(())
+    }
+
     fn insert_tool_call(&self, tool: &ToolCallRow) -> ViewResult<()> {
         self.conn.execute(
             "INSERT OR REPLACE INTO tool_calls (
@@ -341,6 +381,49 @@ impl SqliteStore {
                     "view".to_string()
                 },
                 confidence: if has_view_source { row.get(14)? } else { None },
+            })
+        })?;
+        collect_rows(rows)
+    }
+
+    pub(crate) fn session_rows(&self) -> ViewResult<Vec<SessionRow>> {
+        let has_view_source = self.has_column("sessions", "view_source");
+        let extra_cols = if has_view_source {
+            ", view_source, confidence, attributes_json"
+        } else {
+            ""
+        };
+        let sql = format!(
+            "SELECT id, agent_type, start_timestamp_ms, end_timestamp_ms, status, model,
+                    input_tokens, output_tokens, total_tokens{extra_cols}
+             FROM sessions
+             ORDER BY start_timestamp_ms, id"
+        );
+        let mut stmt = self.conn.prepare(&sql)?;
+        let rows = stmt.query_map([], move |row| {
+            let attrs_json = if has_view_source {
+                row.get::<_, Option<String>>(11)?
+            } else {
+                None
+            };
+            Ok(SessionRow {
+                id: row.get(0)?,
+                agent_type: row.get(1)?,
+                start_timestamp_ms: row.get::<_, i64>(2)? as u64,
+                end_timestamp_ms: row.get::<_, Option<i64>>(3)?.map(|v| v as u64),
+                status: row.get(4)?,
+                model: row.get(5)?,
+                input_tokens: row.get(6)?,
+                output_tokens: row.get(7)?,
+                total_tokens: row.get(8)?,
+                view_source: if has_view_source {
+                    row.get::<_, Option<String>>(9)?
+                        .unwrap_or_else(|| "view".to_string())
+                } else {
+                    "view".to_string()
+                },
+                confidence: if has_view_source { row.get(10)? } else { None },
+                attributes: parse_optional_json(attrs_json.as_deref()),
             })
         })?;
         collect_rows(rows)
@@ -484,6 +567,10 @@ impl SqliteStore {
 }
 
 impl ViewSink for SqliteStore {
+    fn session(&mut self, row: &SessionRow) -> ViewResult<()> {
+        self.insert_session(row)
+    }
+
     fn llm_call(&mut self, row: &LlmCallRow) -> ViewResult<()> {
         self.insert_llm_call(row)
     }
@@ -682,6 +769,24 @@ CREATE TABLE IF NOT EXISTS process_nodes (
 
 CREATE INDEX IF NOT EXISTS idx_process_nodes_pid ON process_nodes(pid);
 CREATE INDEX IF NOT EXISTS idx_process_nodes_parent ON process_nodes(ppid);
+
+CREATE TABLE IF NOT EXISTS sessions (
+  id TEXT PRIMARY KEY,
+  agent_type TEXT NOT NULL,
+  start_timestamp_ms INTEGER NOT NULL,
+  end_timestamp_ms INTEGER,
+  status TEXT NOT NULL,
+  model TEXT,
+  input_tokens INTEGER DEFAULT 0,
+  output_tokens INTEGER DEFAULT 0,
+  total_tokens INTEGER DEFAULT 0,
+  view_source TEXT NOT NULL,
+  confidence REAL,
+  attributes_json TEXT NOT NULL DEFAULT '{}'
+);
+
+CREATE INDEX IF NOT EXISTS idx_sessions_time ON sessions(start_timestamp_ms);
+CREATE INDEX IF NOT EXISTS idx_sessions_agent_time ON sessions(agent_type, start_timestamp_ms);
 
 CREATE TABLE IF NOT EXISTS tool_calls (
   id TEXT PRIMARY KEY,
