@@ -166,6 +166,12 @@ headline results come from `.agentsight/agentflame/latest`.
   summary.
 - `out/user-task-response-template.csv`: response CSV schema for collecting C5
   participant answers.
+- `out/user-task-preregistration-r142.json`: frozen C5 analysis contract for
+  the R142/R151 user-task benchmark. It records task counts, primary tasks,
+  conditions, exclusion rules, response schema, scorer thresholds, and source
+  hashes before participant collection.
+- `out/user-task-preregistration-r142.md`: human-readable C5 preregistration
+  summary.
 - `out/user-task-results.json`: scored C5 participant results after running
   `score_user_task_results.py` on a real response CSV. It includes response
   contract status, diagnostic task-level deltas, and the paper-scale C5 claim
@@ -213,6 +219,7 @@ python3 docs/visexp/verify_artifacts.py --out docs/visexp/out
 python3 docs/visexp/tag_stability_smoke.py --out docs/visexp/out
 python3 docs/visexp/score_tag_adequacy.py --labels docs/visexp/out/tag-adequacy-label-packet-r122.csv
 python3 docs/visexp/user_task_benchmark.py --out docs/visexp/out
+python3 docs/visexp/r142_preregistration.py
 python3 docs/visexp/artifact_usability_r160.py --agentflame-dir .agentsight/agentflame/r160-smoke-fixed --clean-agentflame-json .agentsight/agentflame/r160-smoke-fixed/agentflame.clean.json --out docs/visexp/out/artifact-usability-r160.json
 python3 docs/visexp/evaluate_artifacts.py --out docs/visexp/out
 python3 docs/visexp/visual_summary.py --out docs/visexp/out
@@ -232,6 +239,7 @@ After collecting real C5 response rows:
 ```bash
 python3 docs/visexp/score_user_task_results.py \
   --responses path/to/responses.csv \
+  --assignments docs/visexp/out/user-task-assignments.csv \
   --out docs/visexp/out
 ```
 

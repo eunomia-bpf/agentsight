@@ -50,6 +50,7 @@ utility.
 | R131 | Semantic-axis ablation over the same folded observations | `docs/visexp/out/semantic-ablation-r131.json` | done |
 | R141-packet | Superseded deterministic C5 task benchmark draft over R114/R123/R131/full-run artifacts | historical `docs/visexp/out/user-task-benchmark.json` at commit `80fc9fc` | superseded by R142 |
 | R142-packet/scoring | Same-event-slice C5 task benchmark packet, response-contract checker, and empty paper-scale scorer gate over R114/R123/R131/full-run artifacts | `docs/visexp/out/user-task-benchmark.json`, `docs/visexp/out/user-task-assignments.csv`, `docs/visexp/out/user-task-results.json` | packet/scorer only; no participants |
+| R142-preregistration | Frozen C5 analysis contract before participant collection | `docs/visexp/out/user-task-preregistration-r142.json` | done/protocol; no participants |
 | R160 | Bounded fixed-session artifact-usability smoke over 8 historical Codex sessions, with clean and cached AgentFlame runs | `docs/visexp/out/artifact-usability-r160.json` | done/bounded; C7 remains partial |
 | R060 | legacy Python prototype pipeline over sampled sessions | `docs/visexp/out/pipeline-report.json` | legacy, superseded for headline scale |
 | R020a | fixture exact-effect lineage checker | `docs/visexp/out/effect-lineage-smoke.json` | partial, fixture only |
@@ -356,7 +357,10 @@ provenance.
   duplicate or partial real response CSVs, keeps paired task-level
   semantic-vs-baseline deltas as diagnostics, and gates paper-scale C5 on
   participant/task/order fixed-effect blocked permutation tests with Holm
-  correction.
+  correction. R142-preregistration freezes the current bundle, assignment,
+  answer key, response schema, primary tasks, exclusion rules, source hashes,
+  event-count proxy boundary, and scorer thresholds before participant
+  collection.
   The current output is `participant_results_empty`, `c5_supported=false`, and
   `pilot_ready=false`; no real participant responses have been collected.
 - C6 semantic adequacy is partial. The grammar is strong, but labels such as
@@ -391,4 +395,4 @@ provenance.
 - `docs/visexp/out/tag-adequacy-blinded-label-sheet-r124.json` and `.csv` for the blinded labeler-facing R124 sheet
 - `docs/visexp/out/model-benchmarks-r123.json` for real-fragment stability
 - `docs/visexp/out/semantic-ablation-r131.json` for semantic-axis ablation
-- `docs/visexp/out/user-task-benchmark.json`, `docs/visexp/out/user-task-participant-packets.json`, `docs/visexp/out/user-task-assignments.csv`, `docs/visexp/out/user-task-manifest.json`, and `docs/visexp/out/user-task-results.json` for the R142-packet C5 benchmark bundle
+- `docs/visexp/out/user-task-benchmark.json`, `docs/visexp/out/user-task-participant-packets.json`, `docs/visexp/out/user-task-assignments.csv`, `docs/visexp/out/user-task-manifest.json`, `docs/visexp/out/user-task-preregistration-r142.json`, and `docs/visexp/out/user-task-results.json` for the R142-packet C5 benchmark bundle

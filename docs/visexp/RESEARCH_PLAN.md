@@ -338,7 +338,7 @@ Remaining gap:
 | C2 | Local one-word LLM tagging is feasible for session/prompt/LLM-call contexts. | supported for 3B syntax/latency; partial for size/adequacy | 0.6B/1B evidence if claimed and adequacy labels |
 | C3 | Semantic frames expose task-effect mixtures hidden by nonsemantic and flat summaries. | supported as mechanism | stronger examples and task benchmark |
 | C4 | Exact AgentSight lineage connects semantic intent to process/file/network effects. | supported for fixed command-mode suite; partial broadly | cross-repo/full-history exact integration and user-task outcomes |
-| C5 | Developers answer debugging/audit questions better with semantic effect flamegraphs. | unsupported; R142 packet/scorer exists | user/task benchmark responses with valid response contract passing the Holm-corrected paper-scale C5 gate |
+| C5 | Developers answer debugging/audit questions better with semantic effect flamegraphs. | unsupported; R142 packet/scorer/preregistration exists | user/task benchmark responses with valid response contract passing the Holm-corrected paper-scale C5 gate |
 | C6 | One-word tags are stable and adequate enough for navigation. | partial; R124 scorer exists but labels are empty | human adequacy labels with thresholds and 0.6B/1B evidence if claimed |
 | C7 | The approach is practical as an open-source developer tool. | partial | one-command install/run, runtime/cost, docs, artifact hygiene |
 
@@ -349,7 +349,7 @@ Remaining gap:
 | B1 | RQ1 | Full local-session characterization | 3B local llama.cpp, cache on/off where feasible | sessions, tags, invalids, runtime, cache hit rate | tag grammar checker and complete report | done, must repeat after changes |
 | B2 | RQ2 | Semantic partitioning audit | semantic, nonsemantic, flat process/effect summary | mixed buckets, mixed weight, entropy, examples | deterministic stack comparison | done |
 | B3 | RQ3 | Live exact AgentSight lineage | agent-native proxy vs exact effect stream plus negative controls | recall, precision, orphan rate, path/domain specificity | lineage checker with false-positive controls | fixed command-mode suite passed; broader replication should |
-| B4 | RQ4 | Developer task benchmark | trace tree, event-count proxy, flat summary, nonsemantic stack, semantic stack; optional true span-duration baseline if reconstructed from timestamps | time, accuracy, false positives, confidence | hidden answer key plus preregistered thresholds | packet scaffold and baseline naming done; preregistration/participants missing |
+| B4 | RQ4 | Developer task benchmark | trace tree, event-count proxy, flat summary, nonsemantic stack, semantic stack; optional true span-duration baseline if reconstructed from timestamps | time, accuracy, false positives, confidence | hidden answer key plus frozen preregistration | packet scaffold, baseline naming, and preregistration done; participant responses missing |
 | B5 | RQ5 | Small-model and tag-stability benchmark | 0.6B, 1B, 3B, optional larger reference | latency, invalid rate, identical-input stability, adequacy | repeated run + human labels | must |
 | B6 | RQ2 | Ablations | no semantic, session-only, prompt-only, prompt+LLM-call, full | information gain, stack explosion; noisy-tag burden and B4 task accuracy/time deferred | same observations, total-weight equality, report/folded cross-checks | done for C3 mechanism; C6/B4 deferred |
 | B7 | RQ6 | Open-source usability smoke | fresh clone, install, run, view dashboard | setup time, commands, failure modes | artifact checklist | should |
@@ -399,10 +399,8 @@ The fastest route to weak accept is now a gate-ordered plan:
    system. The packet must receive two independent human labels per row plus
    adjudication for disagreements; LLM or subagent labels can only review the
    protocol and cannot count as C6 evidence.
-2. Freeze the C5 preregistration: response unit, primary task subset, condition
-   comparisons, exclusion rules, participant/task/order blocking, 12-20
-   participant rotation, and Holm correction family.
-3. Run a small but real B4x user/task benchmark using the corrected R142 answer
+2. Run a small but real B4x user/task benchmark using the frozen R142
+   preregistration, corrected answer
    keys and blinded condition packets. The pilot validates packet wording and
    the response contract; it does not support C5 unless the scorer's paper-scale
    gate passes.
