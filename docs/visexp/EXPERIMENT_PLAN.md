@@ -216,7 +216,7 @@ deterministic system-effect provenance and folded-stack aggregation.
 | R111 | decision | exact lineage native export smoke | same 3 DB exports | 3 tasks | native sessions/tools plus raw join/orphan report | low | done/partial |
 | R112 | decision | exact lineage DB-persisted backfill smoke | same 3 DB copies | 3 tasks | persisted sessions/tools plus raw join/orphan report | low | done/partial |
 | R114 | decision | broader live exact-lineage suite | 20 `agentsight record` tasks, disposable repos for writes | fixed task manifest | C4 scope can widen only if join/orphan/path/domain/redaction gates pass | medium | live task variance |
-| R121 | decision | real local model benchmark | `agentflame bench` over available 0.6B/1B/3B-class GGUF models | 3 repeats/model | C2/C6 can mention only models that actually ran | medium | missing model sizes |
+| R121 | decision | real local model benchmark | `agentflame bench` over available 0.6B/1B/3B-class GGUF models | 3 fixed fragments x 3 identical repeats | C2 can cite only models that actually ran; C6 remains partial unless stability and adequacy pass | medium | missing model sizes and small smoke sample |
 | R122 | decision | human tag adequacy labels | redacted 300-fragment packet | >=2 labelers if possible | tag adequacy wording | medium | subjective labels |
 | R131 | decision | semantic-axis ablation | no/session/prompt/full variants | deterministic | C3 mechanism isolation | low | artifact churn |
 | R141 | main | user task pilot | 4 developers, five conditions | counterbalanced | protocol and answer keys work | medium | recruiting |
@@ -228,7 +228,8 @@ deterministic system-effect provenance and folded-stack aggregation.
 - Result path convention:
   - `.agentsight/agentflame/latest` for local generated reports.
   - `.agentsight/agentflame/exact-lineage-*` for live AgentSight runs.
-  - `.agentsight/agentflame/model-benchmarks.json` for model cost.
+  - `.agentsight/agentflame/model-benchmarks.json` and
+    `docs/visexp/out/model-benchmarks-r121.json` for model cost/stability.
   - `.agentsight/agentflame/ablations-*` for semantic-axis ablations.
   - `docs/visexp/out/user-task-results.*` for benchmark scoring.
 - Required tracker columns: Run ID, Claim, Block, Purpose, Command/config,

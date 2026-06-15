@@ -93,15 +93,18 @@ Current evidence:
 - 93,598 tag requests, 64,297 cache hits, 29,302 llama.cpp HTTP calls, 29,301
   successful final tags, no final tag failures. The one-call difference is
   consistent with a retry that recovered before final failure.
-- R121 3B bench smoke started a real local llama.cpp server and produced valid
-  tags in 3/3 runs with 15-41 ms request latency after a 1004 ms load, but the
-  only real local model weight found was the 3B Qwen GGUF.
+- R121 started a real local llama.cpp server, repeated three fixed synthetic
+  fragments three times each, and produced 9/9 valid 3B tags with 7-41 ms
+  request latency after a 1002 ms load. Exact fixed-input stability was mixed:
+  2/3 fragments were exact-stable and one coding fragment drifted from
+  `refactor` to `test`.
 
 Remaining gap:
 
 - The full run and R121 bench used only a 3B local model. No local 0.6B/1B real
-  model GGUF was available. The current bench also changes the prompt per run,
-  so it is not yet a valid identical-input stability benchmark.
+  model GGUF was available. R121 is also only a three-fragment synthetic smoke,
+  so paper-level stability still needs a larger real redacted fragment sample
+  and human adequacy labels.
 
 ### RQ2. Semantic Partitioning Beyond Traditional Tools
 
@@ -241,11 +244,11 @@ Remaining gap:
 | ID | Claim | Current Status | Evidence Needed For OSDI |
 |----|-------|----------------|--------------------------|
 | C1 | AgentFlame can generate semantic folded stacks and dashboards over real local agent histories. | supported | verifier for full run and reproducibility script |
-| C2 | Local one-word LLM tagging is feasible for session/prompt/LLM-call contexts. | supported for 3B syntax; partial for cost/stability | 0.6B/1B/3B cost table and adequacy labels |
+| C2 | Local one-word LLM tagging is feasible for session/prompt/LLM-call contexts. | supported for 3B syntax; partial for size/cost/adequacy | 0.6B/1B evidence if claimed, larger cost table, and adequacy labels |
 | C3 | Semantic frames expose task-effect mixtures hidden by nonsemantic and flat summaries. | supported as mechanism | stronger examples and task benchmark |
 | C4 | Exact AgentSight lineage connects semantic intent to process/file/network effects. | supported for fixed command-mode suite; partial broadly | cross-repo/full-history exact integration and user-task outcomes |
 | C5 | Developers answer debugging/audit questions better with semantic effect flamegraphs. | unsupported | user/task benchmark with preregistered effect-size and statistics plan |
-| C6 | One-word tags are stable and adequate enough for navigation. | partial | 0.6B/1B/3B cost table, identical-fragment repeated-run stability, human adequacy labels with thresholds |
+| C6 | One-word tags are stable and adequate enough for navigation. | partial | larger real-fragment repeated-run stability, human adequacy labels with thresholds, and 0.6B/1B evidence if claimed |
 | C7 | The approach is practical as an open-source developer tool. | partial | one-command install/run, runtime/cost, docs, artifact hygiene |
 
 ## Experiment Matrix
@@ -296,7 +299,7 @@ and G4 developer task utility.
 
 The fastest route to weak accept is:
 
-1. Fix B5x stability benchmarking so it repeats identical redacted fragments;
+1. Expand B5x beyond the three-fragment 3B smoke to real redacted fragments;
    rerun 3B and any added 0.6B/1B real GGUF weights, keeping missing size
    classes explicit.
 2. Prepare R122 tag adequacy labels, then run B6x semantic-axis ablations over
