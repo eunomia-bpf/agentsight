@@ -29,7 +29,7 @@ from tag_stability_smoke import (
 from user_task_benchmark import parse_variants, participant_packets, stack_frame
 from effect_lineage_smoke import lineage_rows
 from live_lineage_harness import synthesize
-from r114_live_record_suite import precision_recall_summary
+from r114_live_record_suite import Task, precision_recall_summary, task_command
 from score_user_task_results import is_placeholder_response, score_response, summarize
 from visual_summary import bar_width, label_lines, verdict_color, verdict_score
 
@@ -297,6 +297,45 @@ class AggregationTests(unittest.TestCase):
         self.assertEqual(rows[0]["join_method"], "pid_family_time_window")
         self.assertEqual(sum(folded.values()), 1)
 
+    def test_effect_lineage_joins_child_when_related_process_node_is_missing(self) -> None:
+        snapshot = {
+            "project": "agentsight",
+            "sessions": [{"id": "s1", "agent_type": "codex", "attributes": {"session_tag": "record"}}],
+            "tool_calls": [
+                {
+                    "id": "t1",
+                    "session_id": "s1",
+                    "tool_name": "agent-run",
+                    "start_timestamp_ms": 10,
+                    "end_timestamp_ms": 100,
+                    "input": {"prompt_tag": "record"},
+                    "related_pid": 20,
+                }
+            ],
+            "process_nodes": [
+                {"id": "child", "pid": 21, "ppid": 20, "root_pid": 10, "start_timestamp_ms": 20, "end_timestamp_ms": 80, "comm": "git"},
+            ],
+            "audit_events": [
+                {
+                    "id": "a1",
+                    "timestamp_ms": 30,
+                    "audit_type": "process",
+                    "pid": 21,
+                    "action": "exec",
+                    "target": "/usr/bin/git",
+                    "status": "observed",
+                    "details": {},
+                }
+            ],
+        }
+
+        rows, orphans, folded = lineage_rows(snapshot)
+
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(orphans, [])
+        self.assertEqual(rows[0]["join_method"], "pid_family_time_window")
+        self.assertEqual(sum(folded.values()), 1)
+
     def test_effect_lineage_joins_root_pid_even_when_parent_node_is_missing(self) -> None:
         snapshot = {
             "project": "agentsight",
@@ -441,6 +480,96 @@ class AggregationTests(unittest.TestCase):
         self.assertEqual(summary["false_negatives"], 1)
         self.assertEqual(summary["precision_pct"], 50.0)
         self.assertEqual(summary["recall_pct"], 50.0)
+
+    def test_r114_task_command_skips_git_check_for_disposable_workspaces(self) -> None:
+        repo_task = Task("repo", "read", "prompt")
+        disposable_task = Task("tmp", "edit", "prompt", workspace="doc_note", sandbox="workspace-write")
+
+        repo_cmd = task_command(repo_task, Path("/repo"), Path("/tmp/answer.txt"), "codex")
+        disposable_cmd = task_command(disposable_task, Path("/tmp/task"), Path("/tmp/answer.txt"), "codex")
+
+        self.assertNotIn("--skip-git-repo-check", repo_cmd)
+        self.assertIn("--skip-git-repo-check", disposable_cmd)
+        self.assertLess(disposable_cmd.index("--skip-git-repo-check"), disposable_cmd.index("--output-last-message"))
+
+    def test_r114_precision_recall_scopes_agent_process_family(self) -> None:
+        tool_id = "record:codex:20:agent-run"
+        snapshot = {
+            "tool_calls": [
+                {
+                    "id": tool_id,
+                    "related_pid": 20,
+                    "view_source": "record_capture_time_agent_envelope",
+                }
+            ],
+            "process_nodes": [
+                {"id": "wrapper", "pid": 10, "ppid": 1, "start_timestamp_ms": 100, "end_timestamp_ms": 500},
+                {"id": "agent", "pid": 20, "ppid": 10, "start_timestamp_ms": 110, "end_timestamp_ms": 480},
+                {"id": "agent-child", "pid": 21, "ppid": 20, "start_timestamp_ms": 130, "end_timestamp_ms": 180},
+                {"id": "sibling", "pid": 30, "ppid": 10, "start_timestamp_ms": 120, "end_timestamp_ms": 470},
+            ],
+            "audit_events": [
+                {"id": "agent-event", "audit_type": "process", "target": "codex"},
+                {"id": "agent-child-event", "audit_type": "file", "target": "docs/visexp/STATE.md"},
+                {"id": "wrapper-event", "audit_type": "process", "target": "bash"},
+                {"id": "negative-event", "audit_type": "file", "target": "/tmp/R114_NEGATIVE_CONTROL_y/file.txt"},
+            ],
+        }
+        rows = [
+            {"event_id": "agent-event", "process_id": "agent", "tool_id": tool_id, "joined": "True"},
+            {"event_id": "agent-child-event", "process_id": "agent-child", "tool_id": tool_id, "joined": "True"},
+            {"event_id": "wrapper-event", "process_id": "wrapper", "tool_id": "", "joined": "False"},
+            {"event_id": "negative-event", "process_id": "sibling", "tool_id": "", "joined": "False"},
+        ]
+
+        summary = precision_recall_summary(snapshot, rows, ["R114_NEGATIVE_CONTROL_y"])
+
+        self.assertEqual(summary["agent_process_count"], 2)
+        self.assertEqual(summary["in_scope_effect_events"], 2)
+        self.assertEqual(summary["out_of_scope_effect_events"], 1)
+        self.assertEqual(summary["negative_effect_events_observed"], 1)
+        self.assertEqual(summary["negative_joined_effect_events"], 0)
+        self.assertEqual(summary["true_positives"], 2)
+        self.assertEqual(summary["false_negatives"], 0)
+        self.assertEqual(summary["precision_pct"], 100.0)
+        self.assertEqual(summary["recall_pct"], 100.0)
+
+    def test_r114_precision_recall_scopes_missing_agent_root_children(self) -> None:
+        tool_id = "record:codex:20:agent-run"
+        snapshot = {
+            "tool_calls": [
+                {
+                    "id": tool_id,
+                    "related_pid": 20,
+                    "view_source": "record_capture_time_agent_envelope",
+                }
+            ],
+            "process_nodes": [
+                {"id": "wrapper", "pid": 10, "ppid": 1, "start_timestamp_ms": 100, "end_timestamp_ms": 500},
+                {"id": "agent-child", "pid": 21, "ppid": 20, "start_timestamp_ms": 130, "end_timestamp_ms": 180},
+                {"id": "sibling", "pid": 30, "ppid": 10, "start_timestamp_ms": 120, "end_timestamp_ms": 470},
+            ],
+            "audit_events": [
+                {"id": "agent-child-event", "audit_type": "file", "target": "docs/visexp/STATE.md"},
+                {"id": "wrapper-event", "audit_type": "process", "target": "bash"},
+                {"id": "negative-event", "audit_type": "file", "target": "/tmp/R114_NEGATIVE_CONTROL_z/file.txt"},
+            ],
+        }
+        rows = [
+            {"event_id": "agent-child-event", "process_id": "agent-child", "tool_id": tool_id, "joined": "True"},
+            {"event_id": "wrapper-event", "process_id": "wrapper", "tool_id": "", "joined": "False"},
+            {"event_id": "negative-event", "process_id": "sibling", "tool_id": "", "joined": "False"},
+        ]
+
+        summary = precision_recall_summary(snapshot, rows, ["R114_NEGATIVE_CONTROL_z"])
+
+        self.assertEqual(summary["agent_process_count"], 1)
+        self.assertEqual(summary["in_scope_effect_events"], 1)
+        self.assertEqual(summary["out_of_scope_effect_events"], 1)
+        self.assertEqual(summary["true_positives"], 1)
+        self.assertEqual(summary["false_negatives"], 0)
+        self.assertEqual(summary["negative_joined_effect_events"], 0)
+        self.assertEqual(summary["recall_pct"], 100.0)
 
     def test_live_lineage_harness_scopes_detected_agent_process_family(self) -> None:
         snapshot = {

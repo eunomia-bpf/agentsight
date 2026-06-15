@@ -127,6 +127,14 @@ def related_process_keys_for_tool(tool: dict[str, Any], indexes: dict[str, Any])
     if related_pid is None:
         return set()
     candidates = indexes["processes_by_pid"].get(int(related_pid), [])
+    if not candidates:
+        return {
+            process_key(process)
+            for process in indexes["process_nodes"]
+            if process.get("ppid") is not None
+            and int(process["ppid"]) == int(related_pid)
+            and process_tool_overlaps(process, tool)
+        }
     tool_anchor = tool.get("start_timestamp_ms") or tool.get("timestamp_ms")
     if tool_anchor is not None:
         anchored = [

@@ -152,7 +152,7 @@ fn has_matching_ancestor(
     false
 }
 
-fn process_matches_comm(proc_info: &ProcInfo, wanted: &str) -> bool {
+pub(crate) fn process_matches_comm(proc_info: &ProcInfo, wanted: &str) -> bool {
     let wanted = wanted.to_ascii_lowercase();
     if proc_info.comm.to_ascii_lowercase().contains(&wanted) {
         return true;

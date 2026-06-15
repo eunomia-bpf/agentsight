@@ -30,7 +30,7 @@ deterministic system-effect provenance and folded-stack aggregation.
 | C1 | AgentFlame generates semantic folded stacks over real local agent histories. | This repository's readable Codex/Claude sessions. | Session/tool/LLM counts, folded totals, generated artifacts. | supported |
 | C2 | Local one-word LLM tagging is syntactically feasible. | 3B llama.cpp full run; later 0.6B/1B/3B. | Invalid rate, cache, latency, failures, tag coverage. | supported for 3B syntax |
 | C3 | Semantic frames expose task-effect mixtures hidden by nonsemantic/flat baselines. | Full local run. | Mixed-bucket count/weight, examples, ablations. | supported as mechanism |
-| C4 | Exact AgentSight lineage connects semantic intent to process/file/network effects. | Live AgentSight traces. | Join coverage, orphan rate, path/domain specificity. | partial live smoke |
+| C4 | Exact AgentSight lineage connects semantic intent to process/file/network effects. | Live AgentSight traces. | Join coverage, orphan rate, path/domain specificity. | fixed command-mode suite passed |
 | C5 | Developers answer forensic questions better with semantic effect flamegraphs. | User/task benchmark. | Time, accuracy, false positives, confidence. | unsupported |
 | C6 | One-word tags are stable and adequate enough for navigation. | Multi-model repeated runs and human labels. | Invalid rate, stability, adequacy, noisy-tag rate. | partial |
 
@@ -41,7 +41,7 @@ deterministic system-effect provenance and folded-stack aggregation.
 | C1 | Full run with consistent folded outputs. | B1 | Folded totals mismatch or report cannot be regenerated. | Prototype supports only sampled/local histories. |
 | C2 | Low invalid/failure rate and practical local runtime. | B1, B5 | Small models fail often or latency is prohibitive. | 3B works; smaller models remain optional. |
 | C3 | Semantic frames split mixed nonsemantic/flat buckets. | B2, B6 | Mixed weight is negligible or examples are not useful. | Semantic frames are a label overlay, not strong information gain. |
-| C4 | Live exact effects inherit prompt/session ancestry. | B3 | Raw orphan rate remains high or lineage cannot cross process trees. | R113-live passes on five command-mode Codex tasks; broader and full-history exact coverage remain open. |
+| C4 | Live exact effects inherit prompt/session ancestry. | B3 | Raw orphan rate is mistaken for recall or lineage cannot cross process trees. | R114 passes on a fixed 20-task command-mode Codex suite; broader and full-history exact coverage remain open. |
 | C5 | Users solve tasks better with semantic views. | B4 | No time/accuracy/confidence improvement. | Semantic flamegraphs are expert exploratory views. |
 | C6 | Tags are stable and adequate. | B5 | High instability, generic/noisy tags, poor adequacy. | Tags are lossy hints only. |
 
@@ -70,7 +70,7 @@ deterministic system-effect provenance and folded-stack aggregation.
 |-------|-------|------------|--------------------|---------|--------|--------------|----------|
 | B1 | C1,C2 | Full local-history characterization | 3B llama.cpp, cache enabled | sessions, events, tags, invalids, cache, unique stacks | JSON/folded consistency and tag grammar | Table 1 | done/must repeat |
 | B2 | C3 | Semantic information-gain audit | semantic, nonsemantic, flat summary | mixed buckets, mixed weight, examples | deterministic stack comparison | Fig. 2 | done |
-| B3 | C4 | Live exact-effect lineage | agent-native proxy vs AgentSight exact stream plus negative controls | recall, precision, orphan rate, path/domain specificity | lineage checker with false-positive controls | Fig. 3/Table 2 | smoke done/native partial |
+| B3 | C4 | Live exact-effect lineage | agent-native proxy vs AgentSight exact stream plus negative controls | recall, precision, orphan rate, path/domain specificity | lineage checker with false-positive controls | Fig. 3/Table 2 | fixed-suite done |
 | B4 | C5 | Developer task benchmark | trace tree, span flamegraph, flat summary, nonsemantic stack, semantic stack | time, accuracy, confidence, false positives | hidden answer key | Table 3 | must |
 | B5 | C2,C6 | Small-model/stability/adequacy | 0.6B, 1B, 3B, repeated runs | latency, invalid rate, exact stability, adequacy | grammar + human labels | Table 4 | must |
 | B6 | C3 | Semantic-axis ablation | no semantic, session-only, prompt-only, prompt+LLM-call | information gain, stack explosion, noisy tags | same observations and baseline queries | Fig. 4 | must |
@@ -131,22 +131,26 @@ deterministic system-effect provenance and folded-stack aggregation.
   persists those envelope rows into SQLite `sessions` and `tool_calls` tables on
   DB copies and verifies persisted-only export with the same 182/318 raw join.
   R113-live joins 508/508 raw effects across five real read-only Codex tasks.
-  R114-smoke adds wrapper negative controls and shows why join rate is
-  insufficient: 408/408 raw effects joined, but 302/302 negative-control effects
-  were over-attributed, yielding 25.98% precision.
+  R114-smoke adds wrapper negative controls and shows why raw join rate is the
+  wrong headline metric: after retargeting the envelope to the real `codex`
+  child, it joins 45/45 in-scope effects with 100.0% precision/recall and
+  attributes 0/306 observed negative-control effects, while raw join remains
+  11.392% because wrapper/sibling/out-of-scope effects stay orphaned. Full R114
+  then runs 20 fixed Codex tasks and passes the command-mode gate: 20/20 targets
+  completed, 20/20 tasks observed negative controls, 1273/1273 in-scope effects
+  joined, 100.0% precision/recall, 0/3170 negative-control effects joined, and
+  redaction scan passed.
 - Setup/config: run selected Codex/Claude tasks with AgentSight collector;
   export sanitized snapshot; join tags by session/tool/prompt IDs.
 - Run budget: smoke 3-5 tasks; paper 20 tasks.
 - Oracle: lineage checker rejects any in-scope effect without tool/prompt
   ancestry unless explicitly out of scope, and rejects any attribution of
   concurrent background or sibling-repository negative-control effects.
-- Success criterion: after fixing or explicitly scoping the R114-smoke false
-  positives, >=95% in-scope recall, >=98% precision, 0
-  negative-control over-attributions, 0 redaction failures, and concrete
-  examples where exact lineage adds path/network/process specificity beyond
-  agent-native logs.
-- Failure interpretation: paper becomes a local-history profiler, not an exact
-  system-effect provenance system.
+- Success criterion: >=95% in-scope recall, >=98% precision, 0 negative-control
+  over-attributions, 0 redaction failures, and concrete examples where exact
+  lineage adds path/process specificity beyond agent-native logs.
+- Failure interpretation: if broader replication fails, paper claims exact
+  provenance only for command-mode capture-time suites, not arbitrary histories.
 
 ### B4. Developer Task Benchmark
 
@@ -260,10 +264,10 @@ deterministic system-effect provenance and folded-stack aggregation.
 
 - Current full run is single-repo and observational.
 - Current exact lineage evidence is split: the R111/R112 DB snapshot/backfill
-  smoke still joins only 182/318 raw effects (57.233%), while R113-live
-  command-mode capture-time record joins 508/508 raw effects across five
-  read-only Codex tasks. The remaining uncertainty is full-history and broader
-  workload coverage, not command-mode capture-time row creation.
+  smoke still joins only 182/318 raw effects (57.233%), while R114 command-mode
+  capture-time record passes on 20 fixed Codex tasks. The remaining uncertainty
+  is full-history, cross-repo, and broader workload coverage, not command-mode
+  capture-time row creation.
 - Current user utility evidence is absent.
 - Current tag adequacy is unproven even though syntax validity is strong.
 - These limitations are acceptable for internal planning but not for OSDI final
@@ -276,6 +280,6 @@ deterministic system-effect provenance and folded-stack aggregation.
 | C1 | `.agentsight/agentflame/latest/agentflame.json` | supported | local-history semantic folded stacks |
 | C2 | `.agentsight/agentflame/latest/tags.json` | partial | 3B syntactic feasibility |
 | C3 | `.agentsight/agentflame/latest/agentflame.json` | supported | semantic partitioning in local workload |
-| C4 | `docs/visexp/out/native-lineage-r112.json`, `docs/visexp/out/live-record-r113.json` | partial | DB-persisted backfill smoke plus five-task command-mode capture-time smoke; full-history provenance pending |
+| C4 | `docs/visexp/out/native-lineage-r112.json`, `docs/visexp/out/live-record-r114.json`, `docs/visexp/out/live-record-r114-analysis.json` | supported for fixed command-mode suite; partial broadly | exact lineage over the fixed 20-task command-mode suite; full-history and cross-repo provenance pending |
 | C5 | user results pending | unsupported | no user outcome claim |
 | C6 | model benchmark and labels pending | partial | syntactic tags, adequacy unproven |

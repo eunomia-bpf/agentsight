@@ -22,8 +22,10 @@ use crate::output::{
 };
 use crate::runners::{Runner, RunnerError};
 use crate::sinks::sqlite::SqliteStore;
-use crate::view::MaterializedView;
+use crate::sources::proc::ProcSnapshot;
+use crate::view::{MaterializedView, process_select};
 use serde_json::{Value, json};
+use std::collections::HashSet;
 use std::path::Path;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -34,7 +36,9 @@ struct RecordAgentEnvelope {
     session_id: String,
     tool_id: String,
     pid: u32,
+    related_pid: u32,
     agent_type: String,
+    agent_comm: Option<String>,
     command: Vec<String>,
     start_timestamp_ms: u64,
 }
@@ -94,6 +98,7 @@ pub(crate) async fn run_exec(
     binary_extractor: &BinaryExtractor,
     command: &[String],
     binary_path_override: Option<&str>,
+    agent_comm: Option<&str>,
     db_path: Option<String>,
     enable_server: bool,
     server_listen: &str,
@@ -194,7 +199,7 @@ pub(crate) async fn run_exec(
     print_record_attribution_session(child_pid);
 
     let db_path_for_summary = db_path.clone();
-    let capture_envelope = db_path_for_summary.as_deref().and_then(|db| {
+    let mut capture_envelope = db_path_for_summary.as_deref().and_then(|db| {
         match persist_record_agent_envelope_start(db, child_pid, command) {
             Ok(envelope) => Some(envelope),
             Err(error) => {
@@ -296,6 +301,11 @@ pub(crate) async fn run_exec(
             None,
         );
         return Err(e);
+    }
+    if let Some(agent_comm) = agent_comm
+        && let Some(envelope) = capture_envelope.as_mut()
+    {
+        retarget_record_agent_envelope(envelope, child_pid, agent_comm).await;
     }
 
     let shutdown = crate::shutdown_notify();
@@ -488,10 +498,85 @@ fn record_agent_envelope(
         session_id,
         tool_id,
         pid,
+        related_pid: pid,
         agent_type,
+        agent_comm: None,
         command: command.to_vec(),
         start_timestamp_ms,
     }
+}
+
+async fn retarget_record_agent_envelope(
+    envelope: &mut RecordAgentEnvelope,
+    command_root_pid: u32,
+    agent_comm: &str,
+) {
+    for _ in 0..20 {
+        if let Some(pid) = find_agent_related_pid(command_root_pid, agent_comm, false) {
+            envelope.related_pid = pid;
+            envelope.agent_comm = Some(agent_comm.to_string());
+            return;
+        }
+        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+    }
+    if let Some(pid) = find_agent_related_pid(command_root_pid, agent_comm, true) {
+        envelope.related_pid = pid;
+    }
+    envelope.agent_comm = Some(agent_comm.to_string());
+}
+
+fn find_agent_related_pid(
+    command_root_pid: u32,
+    agent_comm: &str,
+    allow_root_fallback: bool,
+) -> Option<u32> {
+    let snapshot = ProcSnapshot::collect().ok()?;
+    find_agent_related_pid_in_snapshot(command_root_pid, agent_comm, &snapshot, allow_root_fallback)
+}
+
+fn find_agent_related_pid_in_snapshot(
+    command_root_pid: u32,
+    agent_comm: &str,
+    snapshot: &ProcSnapshot,
+    allow_root_fallback: bool,
+) -> Option<u32> {
+    let family: HashSet<u32> = snapshot
+        .process_family(command_root_pid)
+        .into_iter()
+        .collect();
+    if family.is_empty() {
+        return None;
+    }
+    let wanted = agent_comm.to_ascii_lowercase();
+    let mut exact_children = Vec::new();
+    let mut matching_children = Vec::new();
+    let mut matching_root = None;
+    for pid in family {
+        let Some(proc_info) = snapshot.procs.get(&pid) else {
+            continue;
+        };
+        if !process_select::process_matches_comm(proc_info, agent_comm) {
+            continue;
+        }
+        if pid == command_root_pid {
+            matching_root = Some((proc_info.starttime_ticks, pid));
+        } else if proc_info.comm.to_ascii_lowercase() == wanted {
+            exact_children.push((proc_info.starttime_ticks, pid));
+        } else {
+            matching_children.push((proc_info.starttime_ticks, pid));
+        }
+    }
+    exact_children.sort_unstable();
+    matching_children.sort_unstable();
+    exact_children
+        .first()
+        .or_else(|| matching_children.first())
+        .or_else(|| {
+            allow_root_fallback
+                .then_some(())
+                .and(matching_root.as_ref())
+        })
+        .map(|(_, pid)| *pid)
 }
 
 fn record_agent_envelope_rows(
@@ -506,13 +591,18 @@ fn record_agent_envelope_rows(
         "command": &command_string,
         "argv": &envelope.command,
         "capture_mode": "record_command",
+        "command_root_pid": envelope.pid,
+        "related_pid": envelope.related_pid,
+        "agent_comm": envelope.agent_comm,
         "prompt_tag": "record",
     });
     let attributes = json!({
         "root_pid": envelope.pid,
+        "related_pid": envelope.related_pid,
         "command": &command_string,
         "argv": &envelope.command,
         "capture_mode": "record_command",
+        "agent_comm": envelope.agent_comm,
         "session_tag": &envelope.agent_type,
         "cwd": std::env::current_dir()
             .ok()
@@ -545,7 +635,7 @@ fn record_agent_envelope_rows(
         status: Some(status.to_string()),
         input,
         output,
-        related_pid: Some(envelope.pid),
+        related_pid: Some(envelope.related_pid),
         related_event_id: None,
         view_source: RECORD_AGENT_ENVELOPE_SOURCE.to_string(),
         confidence: Some(0.95),
@@ -587,7 +677,9 @@ fn epoch_ms_now() -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::sources::proc::ProcInfo;
     use crate::sources::sqlite::load_view;
+    use std::collections::BTreeMap;
 
     #[test]
     fn default_record_db_path_uses_current_directory_style_name() {
@@ -662,5 +754,106 @@ mod tests {
             record_agent_envelope(7, &["/tmp/my agent".to_string(), "--flag".to_string()], 123);
         assert_eq!(envelope.agent_type, "my agent");
         assert_eq!(envelope.session_id, "record:my_agent:7:123");
+    }
+
+    #[test]
+    fn record_agent_envelope_rows_use_retargeted_related_pid() {
+        let mut envelope = record_agent_envelope(10, &["bash".to_string(), "-lc".to_string()], 123);
+        envelope.related_pid = 20;
+        envelope.agent_comm = Some("codex".to_string());
+
+        let (session, tool) =
+            record_agent_envelope_rows(&envelope, Some(456), "completed", Value::Null);
+
+        assert_eq!(tool.related_pid, Some(20));
+        assert_eq!(
+            session.attributes.get("root_pid").and_then(Value::as_u64),
+            Some(10)
+        );
+        assert_eq!(
+            session
+                .attributes
+                .get("related_pid")
+                .and_then(Value::as_u64),
+            Some(20)
+        );
+        assert_eq!(
+            tool.input.get("agent_comm").and_then(Value::as_str),
+            Some("codex")
+        );
+    }
+
+    #[test]
+    fn agent_related_pid_prefers_exact_agent_child_over_wrapper_root() {
+        let snapshot = ProcSnapshot {
+            procs: BTreeMap::from([
+                (
+                    10,
+                    ProcInfo {
+                        pid: 10,
+                        ppid: 1,
+                        comm: "node".to_string(),
+                        command: "node /opt/npm/bin/codex exec".to_string(),
+                        starttime_ticks: 10,
+                        ..Default::default()
+                    },
+                ),
+                (
+                    11,
+                    ProcInfo {
+                        pid: 11,
+                        ppid: 10,
+                        comm: "python3".to_string(),
+                        command: "python3 negative_worker.py".to_string(),
+                        starttime_ticks: 11,
+                        ..Default::default()
+                    },
+                ),
+                (
+                    12,
+                    ProcInfo {
+                        pid: 12,
+                        ppid: 10,
+                        comm: "codex".to_string(),
+                        command: "/opt/codex/bin/codex exec".to_string(),
+                        starttime_ticks: 12,
+                        ..Default::default()
+                    },
+                ),
+            ]),
+            ..Default::default()
+        };
+
+        assert_eq!(
+            find_agent_related_pid_in_snapshot(10, "codex", &snapshot, true),
+            Some(12)
+        );
+    }
+
+    #[test]
+    fn agent_related_pid_can_delay_root_fallback() {
+        let snapshot = ProcSnapshot {
+            procs: BTreeMap::from([(
+                10,
+                ProcInfo {
+                    pid: 10,
+                    ppid: 1,
+                    comm: "node".to_string(),
+                    command: "node /opt/npm/bin/codex exec".to_string(),
+                    starttime_ticks: 10,
+                    ..Default::default()
+                },
+            )]),
+            ..Default::default()
+        };
+
+        assert_eq!(
+            find_agent_related_pid_in_snapshot(10, "codex", &snapshot, false),
+            None
+        );
+        assert_eq!(
+            find_agent_related_pid_in_snapshot(10, "codex", &snapshot, true),
+            Some(10)
+        );
     }
 }
