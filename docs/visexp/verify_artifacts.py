@@ -583,6 +583,21 @@ def run(out_dir: Path) -> dict[str, int | str]:
             if phrase not in r186_text:
                 raise AssertionError(f"R186 plan review is missing required phrase: {phrase}")
 
+    r188_path = out_dir / "osdi-plan-review-r188.md"
+    if r188_path.exists():
+        r188_text = r188_path.read_text(encoding="utf-8")
+        required_r188_phrases = [
+            "Level 3",
+            "Not OSDI weak accept",
+            "real participant responses",
+            "independent human labels",
+            "R187 is launch material only",
+            "cannot count for C5 or C6",
+        ]
+        for phrase in required_r188_phrases:
+            if phrase not in r188_text:
+                raise AssertionError(f"R188 plan review is missing required phrase: {phrase}")
+
     r170_path = out_dir / "full-history-r170.json"
     if r170_path.exists():
         r170 = json.loads(r170_path.read_text(encoding="utf-8"))

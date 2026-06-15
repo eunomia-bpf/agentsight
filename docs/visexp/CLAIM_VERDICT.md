@@ -35,10 +35,11 @@ R184 encodes the current human-evidence gate directly: while either C5 or C6 is
 missing, the readiness status is `not_weak_accept`, and subagent/LLM/mock
 substitutes do not count.
 
-R186 cleans up the plan/RQ order before human collection, and R187 packages the
-R142 pilot launch materials, but neither is outcome evidence. The next
-executable study is real R142 pilot collection; R124 labels remain required for
-C6, and R151 remains blocked until R142 passes.
+R186 cleans up the plan/RQ order before human collection, R187 packages the
+R142 pilot launch materials, and R188 independently reviews the post-R187 plan,
+but none of these is outcome evidence. The next executable study is real R142
+pilot collection; R124 labels remain required for C6, and R151 remains blocked
+until R142 passes.
 
 ## Paper Wording Rule
 

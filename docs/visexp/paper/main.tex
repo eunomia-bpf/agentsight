@@ -38,7 +38,8 @@ AI 编程 agent 的可观测性问题不只是 ``模型调用了哪个 tool''，
 现有 LLM observability 工具擅长展示单次运行的 trace tree、span duration、tool call 和 cost；传统 profiler 和进程工具擅长聚合系统行为。
 二者分开时，一个用户常问的问题仍然难答：哪个任务语义造成了哪些重复、沉重或越界的系统足迹？
 本文提出 AgentFlame，一种语义系统效应剖析模型：本地小模型只给 session、prompt 和 LLM call 生成一个词标签；当前 full run 从 agent-native tool logs 继承这些标签，目标模式则让 tool、shell、child process 与 file/network effect 通过确定性 lineage 继承这些标签；最终以 folded stack 形式聚合为 flamegraph。
-在本机 AgentSight 仓库的 205 个可读 Codex/Claude 真实 session 上，AgentFlame 标注 2,463 个 prompt 和 90,930 个 LLM call，0 个最终标签失败；它把 167,005 个系统观测折叠成 24,295 条语义系统栈。
+在用于本文图表的 205 个可读 Codex/Claude 真实 session headline run 上，AgentFlame 标注 2,463 个 prompt 和 90,930 个 LLM call，0 个最终标签失败；它把 167,005 个系统观测折叠成 24,295 条语义系统栈。
+随后 R170 current refresh 覆盖当前可发现的 325 个本仓库 session，并记录 183,714 个 system observations、26,829 条 semantic system stacks 和 35,136 次真实 llama.cpp tag calls。
 去掉 session/prompt 语义后，nonsemantic baseline 有 90.219\% 的观测权重落入混合多个语义区域的 buckets；flat effect baseline 的混合权重为 90.770\%。
 R131 消融进一步显示：在保持同一 167,005 个系统观测总权重不变时，session-only 仍混合 84.180\% 的完整语义权重，prompt-only 降到 37.687\%，完整 session+prompt 降到 0.000\%。
 这些结果支持一个机制性结论：语义帧，尤其是 prompt 标签，能分开传统 trace 或 process summary 会合并的 task-effect 区域。
@@ -184,18 +185,20 @@ AgentSight 的独特点是运行时 exact provenance：\texttt{tool\_call -> she
 
 \subsection{RQ1：本地小模型能否全量标注？}
 
-表~\ref{tab:fullrun} 给出 full run 结果。
+表~\ref{tab:fullrun} 给出用于本文图表的 headline full run 结果。
 AgentFlame 分析了 205 个可读 session，其中 Codex 78 个、Claude 50 个、Claude subagent 77 个。
 它处理 2,463 个 prompt rows 和 90,930 个 LLM-call events。
 标签器共有 93,598 个请求，64,297 个命中 cache，29,302 次真实 llama.cpp HTTP calls，0 个最终失败。
 Prompt 和 LLM-call tag 的非法计数均为 0。
 这说明一词语法和本地 3B 模型路径在真实历史规模上可运行。
+R170 current refresh 在不覆盖 \texttt{latest} 图表输入的前提下重新扫描当前本机历史，覆盖 325 个 session、142,468 个 raw tool events、114,837 个 raw LLM events、183,714 个 system observations、26,829 条 semantic system stacks，并产生 35,136 次 fresh llama.cpp calls 且 0 个 tagger failures。
+因此，205-session run 是论文图表基准，R170 是当前全量本机历史刷新证据；二者都不是 C5/C6 outcome evidence。
 R180 进一步表明，在同一组 300 个 redacted fragments 上，本机可用的 0.6B、1.1B 和 3B GGUF 都能输出符合语法的一词标签；但该实验只支持 syntax/latency/stability，不支持 semantic adequacy。
 
 \begin{table}[t]
   \centering
   \small
-  \caption{全量本机 AgentSight session 运行指标。}
+  \caption{用于论文图表的本机 AgentSight headline session 运行指标。R170 另行记录当前 325-session refresh。}
   \label{tab:fullrun}
   \begin{tabular}{lr}
     \toprule
@@ -328,9 +331,10 @@ R182 进一步检查 network-effect case。第一次 loopback run 暴露出 \tex
 \subsection{RQ4：用户效用是否成立？}
 
 当前答案是不成立，或者更准确地说：未验证。
-已有 task packet、answer key 和 scorer 原型，但没有真实参与者响应。
+已有 task packet、answer key、scorer 和 launch package，但没有真实参与者响应。
 R184 机械 gate 把 C5 状态记录为 \texttt{ready\_for\_participant\_collection}，而不是 supported。
 R186 计划审查进一步确认：下一步应先运行真实 R142 五人 pilot，然后才进入 R151 纸面规模实验。
+R187 已把冻结的 R142 assignment 打包成 \texttt{P01}--\texttt{P05} 参与者文件和空白 70 行 response CSV；manifest 检查 launch 目录没有 answer key、参与者 payload 没有 oracle/scoring 字段，且 \texttt{real\_response\_count=0}、\texttt{c5\_supported=false}。
 当前 baseline 应设为 trace tree、\texttt{event-count-proxy}、flat process summary、nonsemantic folded stack 和 semantic folded stack，比较 accuracy、time、false positives 和 confidence。
 当前 R142 packet 中原来的 span-like 条件已经明确命名为 event-count proxy，因为 folded artifact 没有真实 duration；它不能直接当作 span-duration baseline。
 只有在从 timestamps 重新生成并预注册时，true span-duration flamegraph 才能作为额外 baseline。
@@ -339,7 +343,7 @@ R186 计划审查进一步确认：下一步应先运行真实 R142 五人 pilot
 \subsection{RQ5：小模型成本和标签质量}
 
 Full run 和 R123 证明 3B 模型路径可用；R180 进一步补上本机 0.6B/1B-class/3B-class syntax-stability smoke。
-R122 从本机 290 个 parsed sessions 中抽取 300 个 redacted fragments：100 个 session、100 个 prompt、100 个 LLM-call。
+R122 从本机 294 个 parsed sessions 中抽取 300 个 redacted fragments：100 个 session、100 个 prompt、100 个 LLM-call。
 R123 用本地 llama.cpp 3B server 对这 300 个 fragments 做三次 identical repeats，共 900 次请求；结果是 900/900 valid tags，285/300 exact-stable fragments（95.000\%），模型加载约 1,002 ms，请求延迟 p50/p95 为 11/31 ms。
 R180 用 \texttt{--reasoning off} 对同一个 R122 fragment file 分别运行本机 0.6b、TinyLlama 1.1b 和 3b GGUF：三者都是 900/900 valid tags；exact-stable fragments 分别是 299/300、279/300 和 285/300；p95 延迟分别为 23/18/32 ms。
 这支持本机小模型的 syntax、latency 和 repeated-input stability smoke，但不是同一模型家族的 scaling curve。
@@ -366,7 +370,7 @@ Cached rerun 使用同一组 \texttt{--session-file} 输入和同一个输出目
 表~\ref{tab:gates} 把当前证据按 claim gate 汇总。
 这个表的作用不是装饰，而是防止论文把 smoke evidence 写成系统结论。
 OSDI reviewer 最可能挑战的点是 C4、C5 和 C6：C4 已经有固定 command-mode suite 证据，但还要证明 scope 不是过窄；C5 要证明用户能更快或更准确地回答 forensic questions；C6 要证明一词标签不只是语法稳定，而是足够可用。
-R184/R186 的作用是防止过度声明：它们把当前状态固定为 \texttt{not\_weak\_accept}，并把下一步执行顺序限定为 R142 pilot、R124 labels、R151 paper run。
+R184/R186/R187/R188 的作用是防止过度声明：它们把当前状态固定为 \texttt{not\_weak\_accept}，把 launch material 与 outcome evidence 分开，并把下一步执行顺序限定为 R142 pilot、R124 labels、R151 paper run。
 因此当前最诚实的定位是 ``supported mechanism plus partial systems artifact''。
 
 \begin{table*}[t]
@@ -395,7 +399,7 @@ R184/R186 的作用是防止过度声明：它们把当前状态固定为 \textt
     fixed-suite supported &
     需要 full-history integration、跨仓库 replication、更多 agent 类型和更丰富的 target-specific network workloads；R182 不证明 child-process loopback capture 或 HTTP payload/URL reconstruction。 \\
     C5 user utility &
-    已有 task packet 和 scorer；尚无 participant responses。 &
+    已有 task packet、scorer、preregistration 和 R187 P01--P05 launch package；尚无 participant responses。 &
     unsupported &
     需要基于已冻结的 preregistration 运行 trace tree/event-count/flat/nonsemantic/semantic 视图的 user benchmark。 \\
     C6 tag adequacy &
@@ -442,7 +446,7 @@ AgentFlame 包含 token flamegraph，但当前只作为 source-local accounting�
 
 \section{局限与下一步}
 
-当前版本仍不到 OSDI weak accept。Exact lineage 是最强系统贡献：R114 已在 20 个固定 command-mode Codex 任务上通过，R182 只补上 record-mode \texttt{--trace-net} 的低层 agent-process network smoke；target-specific child-process network capture、full-history exact integration、跨仓库 benchmark 和更多 agent 类型仍缺。用户效用也没有 outcome data：R142 已冻结五种视图的任务包、answer key 和 scorer，但需要 12--20 个参与者或明确限定的 expert study。标签 adequacy 仍需使用 blinded R124 label sheet 对 300 个 session/prompt/LLM fragments 收集人工标签。R160 只验证本机固定输入下的 bounded local artifact path；fresh-clone 安装、public report sanitization、默认采样策略、write-set audit 和外部开发者反馈仍缺。
+当前版本仍不到 OSDI weak accept。Exact lineage 是最强系统贡献：R114 已在 20 个固定 command-mode Codex 任务上通过，R182 只补上 record-mode \texttt{--trace-net} 的低层 agent-process network smoke；target-specific child-process network capture、full-history exact integration、跨仓库 benchmark 和更多 agent 类型仍缺。用户效用也没有 outcome data：R142 已冻结五种视图的任务包、answer key 和 scorer，R187 已生成可发放的 P01--P05 pilot launch package，但仍需要真实参与者响应；纸面 C5 还需要 12--20 个参与者或明确限定的 expert study。标签 adequacy 仍需使用 blinded R124 label sheet 对 300 个 session/prompt/LLM fragments 收集人工标签。R160 只验证本机固定输入下的 bounded local artifact path；fresh-clone 安装、public report sanitization、默认采样策略、write-set audit 和外部开发者反馈仍缺。
 
 \section{结论}
 

@@ -119,6 +119,9 @@ headline results come from `.agentsight/agentflame/latest`.
 - `out/user-task-pilot-r142/launch/manifest.json`: R187 launch-only R142 pilot
   package manifest. The launch directory contains P01-P05 blinded participant
   packets and a blank response CSV, but no answer key or real responses.
+- `out/osdi-plan-review-r188.md`: read-only post-R187 OSDI plan review. It
+  keeps the project at Level 3/not weak accept and names real R142 participant
+  responses plus R124 human labels as the next evidence rows.
 - `out/index.html`: legacy Python report page.
 - `out/visual-summary.html`: compact visual progress gallery.
 - `out/system-flamegraph.svg`: system/tool footprint flamegraph.

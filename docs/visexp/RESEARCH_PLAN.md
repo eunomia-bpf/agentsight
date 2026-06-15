@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-15
 Stage at update: supplement / experiment-design plus completed full local-session characterization
-Source/command: `cargo run --manifest-path agentflame/Cargo.toml -- run --project-root . --scan-files 10000 --max-sessions 10000 --llama-url http://127.0.0.1:18080 --model local --timeout 60 --out .agentsight/agentflame/latest`
+Source/command: R170 full-history refresh plus R187 launch package generation; latest launch command `python3 docs/visexp/r187_prepare_pilot_materials.py --out docs/visexp/out/user-task-pilot-r142/launch`
 Completeness: partial
 
 ## Thesis
@@ -36,8 +36,9 @@ for multi-agent workflows. The claim must be narrower and stronger:
 - Current maturity: stronger than a workshop demo for characterization and
   artifact-internal claims, but not OSDI weak-accept. R184 mechanically reports
   `not_weak_accept` because C5 has no participant responses and C6 has no
-  independent human labels; R185 says the highest-value next artifact is a real
-  R142 developer pilot.
+  independent human labels; R187 has removed launch friction by packaging the
+  frozen R142 materials into P01-P05 participant packets and a blank response
+  CSV, but it is not outcome evidence.
 - Main reviewer risk: reviewers may see the work as a restyled trace UI unless
   the paper proves semantic attribution plus system provenance answers questions
   that span flamegraphs and flat process summaries cannot answer.
@@ -271,6 +272,12 @@ Current evidence:
 - The former span-like R142 condition now uses the explicit
   `event-count-proxy` name because folded artifacts do not expose real span
   durations. It must not be cited as a span-duration flamegraph baseline.
+- R187 packages the frozen R142 assignment into
+  `docs/visexp/out/user-task-pilot-r142/launch`: P01-P05 participant JSON/MD
+  files, a blank 70-row response CSV, and a manifest that checks five
+  participants, 14 assignments each, no answer key in the launch directory, no
+  forbidden oracle/scoring keys in participant payloads, zero real responses,
+  and `c5_supported=false`.
 - No real participant responses are available.
 
 Remaining gap:
@@ -378,7 +385,7 @@ Remaining gap:
 | C2 | Local one-word LLM tagging is feasible for session/prompt/LLM-call contexts. | supported for local 0.6B-/1B-/3B-class syntax/latency; partial for adequacy | human adequacy labels; controlled same-family scaling only if claimed |
 | C3 | Semantic frames expose task-effect mixtures hidden by nonsemantic and flat summaries. | supported as mechanism | stronger examples and task benchmark |
 | C4 | Exact AgentSight lineage connects semantic intent to process/file/network effects. | supported for fixed command-mode suite; partial broadly and partial for target-specific network workloads | cross-repo/full-history exact integration, target-specific network workloads, broader agent coverage, and user-task outcomes |
-| C5 | Developers answer debugging/audit questions better with semantic effect flamegraphs. | unsupported; R142 packet/scorer/preregistration exists | user/task benchmark responses with valid response contract passing the Holm-corrected paper-scale C5 gate |
+| C5 | Developers answer debugging/audit questions better with semantic effect flamegraphs. | unsupported; R142 packet/scorer/preregistration and R187 launch package exist | user/task benchmark responses with valid response contract passing the Holm-corrected paper-scale C5 gate |
 | C6 | One-word tags are stable and adequate enough for navigation. | partial; R180 syntax/stability exists, R124 scorer/join protocol exists, labels are empty | human adequacy labels with thresholds |
 | C7 | The approach is practical as an open-source developer tool. | partial | one-command install/run, runtime/cost, docs, artifact hygiene |
 
@@ -430,7 +437,7 @@ Remaining gap:
 | B1 | RQ1 | Full local-session characterization | 3B local llama.cpp, cache on/off where feasible | sessions, tags, invalids, runtime, cache hit rate | tag grammar checker and complete report | done, must repeat after changes |
 | B2 | RQ2 | Semantic partitioning audit | semantic, nonsemantic, flat process/effect summary | mixed buckets, mixed weight, entropy, examples | deterministic stack comparison | done |
 | B3 | RQ3 | Live exact AgentSight lineage | agent-native proxy vs exact effect stream plus negative controls | recall, precision, orphan rate, path/domain specificity | lineage checker with false-positive controls | fixed command-mode suite passed; record-mode network tracing smoke is partial because target-specific network rows are absent |
-| B4 | RQ4 | Developer task benchmark | trace tree, event-count proxy, flat summary, nonsemantic stack, semantic stack; optional true span-duration baseline if reconstructed from timestamps | time, accuracy, false positives, confidence | hidden answer key plus frozen preregistration | packet scaffold, baseline naming, and preregistration done; participant responses missing |
+| B4 | RQ4 | Developer task benchmark | trace tree, event-count proxy, flat summary, nonsemantic stack, semantic stack; optional true span-duration baseline if reconstructed from timestamps | time, accuracy, false positives, confidence | hidden answer key plus frozen preregistration | packet scaffold, baseline naming, preregistration, and R187 launch package done; participant responses missing |
 | B5 | RQ5 | Small-model and tag-stability benchmark | local 0.6B-/1B-/3B-class models, optional larger reference | latency, invalid rate, identical-input stability, adequacy | repeated run + human labels | syntax/stability done by R180; adequacy labels missing |
 | B6 | RQ2 | Ablations | no semantic, session-only, prompt-only, prompt+LLM-call, full | information gain, stack explosion; noisy-tag burden and B4 task accuracy/time deferred | same observations, total-weight equality, report/folded cross-checks | done for C3 mechanism; C6/B4 deferred |
 | B7 | RQ6 | Open-source usability smoke | fresh clone, install, run, view dashboard | setup time, commands, failure modes | artifact checklist | should |
@@ -456,7 +463,8 @@ Remaining gap:
 | Run ID | Stage | Purpose | Config | Seed/reps | Decision gate | Cost | Risk |
 |--------|-------|---------|--------|-----------|---------------|------|------|
 | R186 | plan-review | Independent OSDI review of revised RQ/experiment plan | read-only review over `RESEARCH_PLAN`, `FOLLOWUP_PLAN`, `STATE`, R184/R185, and paper RQs | one subagent review | review says plan is executable and names remaining blockers; otherwise revise plan before new claims | done | confirmed Level 3 only |
-| R142-pilot | execute | Five-participant developer pilot using frozen packets | completed copy of `docs/visexp/out/user-task-response-template.csv`, scored into `docs/visexp/out/user-task-pilot-r142` | P01-P05 counterbalanced assignments | response contract valid, no leakage, interpretable task-level deltas; still not paper-scale C5 unless gate says so | human time | cannot be synthesized by LLM/subagent |
+| R187 | launch | Package frozen R142 pilot materials for collection | `docs/visexp/out/user-task-pilot-r142/launch` generated from frozen bundle/assignments/templates | deterministic over 70 assignments | five P01-P05 packets, blank response CSV, no answer key, no forbidden keys, `c5_supported=false` | done | launch-only, cannot count as C5 |
+| R142-pilot | execute | Five-participant developer pilot using frozen packets | completed copy of `docs/visexp/out/user-task-pilot-r142/launch/responses/user-task-response-template-r142-pilot.csv`, scored into `docs/visexp/out/user-task-pilot-r142` | P01-P05 counterbalanced assignments | response contract valid, no leakage, interpretable task-level deltas; still not paper-scale C5 unless gate says so | human time | cannot be synthesized by LLM/subagent |
 | R124-labels | execute | Independent human tag adequacy labels | two completed blinded sheets plus adjudication, joined/scored by R124 scripts | 300 rows x 2 labelers | `adequacy_supported=true`, agreement/adjudication recorded; otherwise C6 wording narrows | human time | label noise may falsify adequacy |
 | R151 | execute | Paper-scale developer utility run | 12-20 developers or deliberately narrowed expert population | preregistered participant/task/order blocking | Holm-corrected C5 gate passes and false positives stay within threshold | high | likely reviewer-critical |
 | R190 | supplement | Target-specific network lineage hardening | expanded loopback/HTTP child-process workloads under `agentsight record --trace-net` | fixed manifest plus negative controls | target-specific network rows observed and joined, 0 joined negatives | medium | may require collector changes |
@@ -470,8 +478,10 @@ Tracker handoff:
 - Required tracker columns: Run ID, Claim, Block, Purpose, Command/config,
   Commit, Machine, Seed/reps, Oracle, Decision gate, Result path, Status.
 - R186 plan review is recorded in `docs/visexp/out/osdi-plan-review-r186.md`.
-- Next rows to execute: R142-pilot first, then R124-labels in parallel or
-  immediately after.
+- R187 launch package is recorded in
+  `docs/visexp/out/user-task-pilot-r142/launch/manifest.json`.
+- Next rows to execute: R142-pilot collection first, then R124-labels in
+  parallel or immediately after.
 
 ## Figure Plan
 
@@ -498,13 +508,14 @@ and G4 developer task utility.
 
 The fastest route to weak accept is now a gate-ordered plan:
 
-1. R186 read-only OSDI plan review is complete for this revision. If the plan or
-   RQ wording changes again, rerun the same gate before new human collection.
-2. Run a real R142 five-participant developer pilot using the frozen
-   preregistration, corrected answer keys, blinded condition packets, and the
-   existing response template. The pilot validates packet wording and the
-   response contract; it must stay labeled as pilot evidence unless the scorer's
-   paper-scale gate passes.
+1. R186 read-only OSDI plan review and R187 launch packaging are complete for
+   this revision. If the plan or RQ wording changes again, rerun the same
+   subagent gate before strengthening claims.
+2. Run a real R142 five-participant developer pilot using the R187 P01-P05
+   packets, the frozen preregistration, corrected answer keys, blinded
+   condition packets, and a completed copy of the blank launch response CSV.
+   The pilot validates packet wording and the response contract; it must stay
+   labeled as pilot evidence unless the scorer's paper-scale gate passes.
 3. Collect and adjudicate human adequacy labels using the blinded R124 labeler
    sheet, join frozen sheets with `docs/visexp/r124_join_blinded_labels.py`,
    and score `docs/visexp/out/tag-adequacy-label-packet-r124-joined.csv`. The

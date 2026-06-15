@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-15
 Stage at update: audit / supplement
-Source/command: OSDI rubric audit over `docs/visexp/STATE.md`, `docs/visexp/CLAIM_VERDICT.md`, `docs/visexp/out/evaluation.json`, `docs/visexp/out/live-record-r114-analysis.json`, `docs/visexp/out/live-network-r182.json`, `docs/visexp/out/model-benchmarks-r180.json`, `docs/visexp/out/tag-adequacy-results-r124.json`, `docs/visexp/out/tag-adequacy-label-join-r124.json`, `docs/visexp/out/user-task-results.json`, `docs/visexp/out/user-task-pilot-r142/launch/manifest.json`, `docs/visexp/out/weak-accept-gate-r184.json`, `docs/visexp/out/artifact-usability-r160.json`, `docs/visexp/out/full-history-r170.json`, `docs/visexp/out/osdi-gate-review-r181.md`, `docs/visexp/out/osdi-gate-review-r185.md`, and `docs/visexp/out/osdi-plan-review-r186.md`
+Source/command: OSDI rubric audit over `docs/visexp/STATE.md`, `docs/visexp/CLAIM_VERDICT.md`, `docs/visexp/out/evaluation.json`, `docs/visexp/out/live-record-r114-analysis.json`, `docs/visexp/out/live-network-r182.json`, `docs/visexp/out/model-benchmarks-r180.json`, `docs/visexp/out/tag-adequacy-results-r124.json`, `docs/visexp/out/tag-adequacy-label-join-r124.json`, `docs/visexp/out/user-task-results.json`, `docs/visexp/out/user-task-pilot-r142/launch/manifest.json`, `docs/visexp/out/weak-accept-gate-r184.json`, `docs/visexp/out/artifact-usability-r160.json`, `docs/visexp/out/full-history-r170.json`, `docs/visexp/out/osdi-gate-review-r181.md`, `docs/visexp/out/osdi-gate-review-r185.md`, `docs/visexp/out/osdi-plan-review-r186.md`, and `docs/visexp/out/osdi-plan-review-r188.md`
 Completeness: partial
 
 ## Audit Verdict
@@ -116,6 +116,7 @@ empty.
 | C6 empty human-label packet cannot support adequacy | R124 is `human_labels_empty`, `adequacy_supported=false` | pass |
 | C6 label join path does not fabricate labels | R124-join status is `ready_for_independent_label_collection`, records 0 labeler rows, exposes no joined-label output, and writes an empty adjudication template by default | pass |
 | C5/C6 weak-accept gate cannot be cleared by non-human substitutes | R184 status is `not_weak_accept`; both C5 and C6 must pass their existing human-data scorers, while subagent review, LLM labels, mock responses, placeholder rows, and syntax-only validity are disallowed | pass |
+| Post-R187 subagent review remains protocol evidence only | R188 reports Level 3/not weak accept and names R142-pilot plus R124-labels as next real evidence; it does not upgrade C5/C6 | pass |
 | C6/R180 model smoke is not adequacy evidence | R180 has 2700/2700 syntactically valid tags across local 0.6b/1.1b/3b models, but the interpretation explicitly says it does not measure human adequacy and is not controlled same-family scaling | pass |
 | C7 bounded artifact smoke is not a community result | R160 uses 8 fixed historical sessions and records `claim_boundary`; it does not replace fresh-clone install testing or external developer feedback | pass |
 | C7 local report privacy boundary | R160 records that `.agentsight/agentflame/*/agentflame.json` is local/private and not public-release-ready because it contains trace roots/session metadata; the committed artifact is the redacted audit JSON | pass |
