@@ -333,19 +333,29 @@ def user_task_evidence(
             "participant_results=missing"
         )
     if results.get("status") == "participant_results_empty":
+        analysis = results.get("claim_analysis") or {}
+        gate = analysis.get("claim_gate") or {}
         return (
             f"task_bundle={status} task_count={len(tasks)} "
             "scorer=ready "
             f"response_template={template} "
             f"ignored_placeholder_rows={results.get('ignored_placeholder_rows')} "
+            f"c5_supported={gate.get('c5_supported')} "
+            f"pilot_ready={gate.get('pilot_ready')} "
+            f"paper_model_ready={gate.get('paper_model_ready')} "
             "participant_results=missing"
         )
+    analysis = results.get("claim_analysis") or {}
+    gate = analysis.get("claim_gate") or {}
     return (
         f"task_bundle={status} task_count={len(tasks)} "
         f"scorer_results={results.get('status', 'unknown')} "
         f"participants={results.get('participant_count')} "
         f"responses={results.get('response_count')} "
-        f"exact_accuracy_pct={results.get('summary', {}).get('overall', {}).get('exact_accuracy_pct')}"
+        f"exact_accuracy_pct={results.get('summary', {}).get('overall', {}).get('exact_accuracy_pct')} "
+        f"c5_supported={gate.get('c5_supported')} "
+        f"pilot_ready={gate.get('pilot_ready')} "
+        f"paper_model_ready={gate.get('paper_model_ready')}"
     )
 
 
@@ -602,6 +612,7 @@ def build_claim_gates(
     agent_diff_exists = source_counts.get("codex", 0) or source_counts.get("claude", 0)
     c6_quality_ok = quality["same_hash_multi_tag_count"] == 0
     c6_adequacy_ok = bool((tag_adequacy or {}).get("claim_gate", {}).get("adequacy_supported"))
+    c5_supported = bool((user_task_results or {}).get("claim_analysis", {}).get("claim_gate", {}).get("c5_supported"))
     if not c6_quality_ok:
         c6_verdict = "unsupported"
     elif c6_adequacy_ok:
@@ -647,7 +658,7 @@ def build_claim_gates(
         },
         {
             "claim": "C5 user utility over trace tree/process logs",
-            "verdict": "unsupported",
+            "verdict": "supported" if c5_supported else "unsupported",
             "oracle": "requires scored participant responses with time, accuracy, false positives, and confidence",
             "evidence": user_task_evidence(user_tasks, user_task_results, response_template_exists),
         },

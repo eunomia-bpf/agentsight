@@ -48,7 +48,7 @@ utility.
 | R124-scoring | Human tag-adequacy scorer over the current blank R122 packet | `docs/visexp/out/tag-adequacy-results-r124.json` | done/empty |
 | R131 | Semantic-axis ablation over the same folded observations | `docs/visexp/out/semantic-ablation-r131.json` | done |
 | R141-packet | Superseded deterministic C5 task benchmark draft over R114/R123/R131/full-run artifacts | historical `docs/visexp/out/user-task-benchmark.json` at commit `80fc9fc` | superseded by R142 |
-| R142-packet | Same-event-slice C5 task benchmark packet and empty scorer check over R114/R123/R131/full-run artifacts | `docs/visexp/out/user-task-benchmark.json`, `docs/visexp/out/user-task-assignments.csv`, `docs/visexp/out/user-task-results.json` | packet only; no participants |
+| R142-packet/scoring | Same-event-slice C5 task benchmark packet, response-contract checker, and empty paper-scale scorer gate over R114/R123/R131/full-run artifacts | `docs/visexp/out/user-task-benchmark.json`, `docs/visexp/out/user-task-assignments.csv`, `docs/visexp/out/user-task-results.json` | packet/scorer only; no participants |
 | R060 | legacy Python prototype pipeline over sampled sessions | `docs/visexp/out/pipeline-report.json` | legacy, superseded for headline scale |
 | R020a | fixture exact-effect lineage checker | `docs/visexp/out/effect-lineage-smoke.json` | partial, fixture only |
 
@@ -326,9 +326,14 @@ provenance.
   and R142-packet now provides 14 tasks, 8 primary utility tasks, 6
   limitation/comprehension tasks, 5 conditions, 70 leak-checked blinded packets,
   a P01-P05 assignment template, a hidden answer key, manifests, and an empty
-  scorer output with null aggregate metrics. All five condition excerpts for
-  each task share one `slice_id`, so the packet clears the same-event-slice
-  fairness check. No real participant responses have been collected.
+  scorer output. All five condition excerpts for each task share one `slice_id`,
+  so the packet clears the same-event-slice fairness check. The scorer now
+  validates assignment/packet consistency, rejects duplicate or partial real
+  response CSVs, keeps paired task-level semantic-vs-baseline deltas as
+  diagnostics, and gates paper-scale C5 on participant/task fixed-effect
+  blocked permutation tests with Holm correction.
+  The current output is `participant_results_empty`, `c5_supported=false`, and
+  `pilot_ready=false`; no real participant responses have been collected.
 - C6 semantic adequacy is partial. The grammar is strong, but labels such as
   `agentsightsm`, `testcodex`, and `bashoutput` show that one-word tags need
   human adequacy measurement and possibly prompt repair. R124-scoring exists
