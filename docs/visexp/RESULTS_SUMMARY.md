@@ -49,8 +49,30 @@ utility.
 | R131 | Semantic-axis ablation over the same folded observations | `docs/visexp/out/semantic-ablation-r131.json` | done |
 | R141-packet | Superseded deterministic C5 task benchmark draft over R114/R123/R131/full-run artifacts | historical `docs/visexp/out/user-task-benchmark.json` at commit `80fc9fc` | superseded by R142 |
 | R142-packet/scoring | Same-event-slice C5 task benchmark packet, response-contract checker, and empty paper-scale scorer gate over R114/R123/R131/full-run artifacts | `docs/visexp/out/user-task-benchmark.json`, `docs/visexp/out/user-task-assignments.csv`, `docs/visexp/out/user-task-results.json` | packet/scorer only; no participants |
+| R160 | Bounded fixed-session artifact-usability smoke over 8 historical Codex sessions, with clean and cached AgentFlame runs | `docs/visexp/out/artifact-usability-r160.json` | done/bounded; C7 remains partial |
 | R060 | legacy Python prototype pipeline over sampled sessions | `docs/visexp/out/pipeline-report.json` | legacy, superseded for headline scale |
 | R020a | fixture exact-effect lineage checker | `docs/visexp/out/effect-lineage-smoke.json` | partial, fixture only |
+
+## Artifact Usability Smoke
+
+R160 verifies that the Rust CLI can regenerate a bounded local artifact package
+without the legacy Python harness. It uses 8 fixed historical Codex session
+files with LLM-call tags enabled. The clean run wrote
+`.agentsight/agentflame/r160-smoke-fixed`, produced the dashboard, folded stack
+files, SVGs, and tag cache, made 60 uncached llama.cpp calls over 76 tag
+requests, and took 1.64 s. The cached rerun used the same inputs and output
+directory, served 76/76 tag requests from `tags.json`, made 0 model calls, and
+took 0.11 s.
+
+The verifier result is `docs/visexp/out/artifact-usability-r160.json`. It
+checks expected artifact keys, folded-total equality, redacted prompt previews,
+generated report path containment, dirty raw-trace-like paths, a sanitized
+fixed-input manifest, and clean/cached input equality. The manifest hash is
+`11ae4fb2c96a2d1478aa1525`, and it contains no raw prompts, absolute session
+paths, or session filenames. This supports only an auditable bounded
+artifact-path claim. A fresh-clone install smoke, public-release sanitization of
+local `.agentsight` reports, full write-set audit, and external developer
+feedback are still missing.
 
 ## Current Full-Run Metrics
 

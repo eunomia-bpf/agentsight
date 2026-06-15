@@ -1,0 +1,154 @@
+{
+  "schema_version": 1,
+  "run_id": "R160",
+  "status": "artifact_usability_smoke_passed",
+  "agentflame_dir": ".agentsight/agentflame/r160-smoke-fixed",
+  "required_artifact_keys": [
+    "dashboard",
+    "llm_token",
+    "nonsemantic_system_folded",
+    "prompt_system",
+    "semantic_system_folded",
+    "session_system",
+    "system_flamegraph",
+    "tag_cache",
+    "token_flamegraph"
+  ],
+  "system_observations": 24,
+  "semantic_system_total": 24,
+  "nonsemantic_system_total": 24,
+  "session_count": 8,
+  "raw_tool_events": 24,
+  "raw_llm_events": 60,
+  "llm_tagger": {
+    "cache_hits": 76,
+    "failures": [],
+    "llm_calls": 0,
+    "llm_successes": 0,
+    "requests": 76
+  },
+  "input_manifest": {
+    "manifest_schema": "r160-sanitized-input-v1",
+    "manifest_hash": "11ae4fb2c96a2d1478aa1525",
+    "session_count": 8,
+    "scan_files": 160,
+    "max_sessions": 36,
+    "tag_llm_calls": true,
+    "session_fingerprints": [
+      {
+        "fingerprint": "202be76fe2231f86",
+        "source": "codex",
+        "prompt_count": 1,
+        "tool_count": 4,
+        "llm_count": 8,
+        "cwd_hash": "e58fce112c6ee25b"
+      },
+      {
+        "fingerprint": "2c107e43f06b015c",
+        "source": "codex",
+        "prompt_count": 1,
+        "tool_count": 2,
+        "llm_count": 7,
+        "cwd_hash": "e58fce112c6ee25b"
+      },
+      {
+        "fingerprint": "4e125bb718fe86fb",
+        "source": "codex",
+        "prompt_count": 1,
+        "tool_count": 4,
+        "llm_count": 8,
+        "cwd_hash": "e58fce112c6ee25b"
+      },
+      {
+        "fingerprint": "739e507bb8d507cc",
+        "source": "codex",
+        "prompt_count": 1,
+        "tool_count": 2,
+        "llm_count": 7,
+        "cwd_hash": "e58fce112c6ee25b"
+      },
+      {
+        "fingerprint": "86a6f183be34f4a1",
+        "source": "codex",
+        "prompt_count": 1,
+        "tool_count": 4,
+        "llm_count": 8,
+        "cwd_hash": "e58fce112c6ee25b"
+      },
+      {
+        "fingerprint": "c2fad8ef830b974e",
+        "source": "codex",
+        "prompt_count": 1,
+        "tool_count": 2,
+        "llm_count": 7,
+        "cwd_hash": "e58fce112c6ee25b"
+      },
+      {
+        "fingerprint": "edfffc1268b9754c",
+        "source": "codex",
+        "prompt_count": 1,
+        "tool_count": 4,
+        "llm_count": 8,
+        "cwd_hash": "e58fce112c6ee25b"
+      },
+      {
+        "fingerprint": "f61ec501345e2945",
+        "source": "codex",
+        "prompt_count": 1,
+        "tool_count": 2,
+        "llm_count": 7,
+        "cwd_hash": "e58fce112c6ee25b"
+      }
+    ],
+    "privacy": {
+      "contains_raw_prompts": false,
+      "contains_absolute_session_paths": false,
+      "contains_session_filenames": false
+    }
+  },
+  "clean_cached_input_equality": {
+    "checked": true,
+    "clean_manifest_hash": "11ae4fb2c96a2d1478aa1525",
+    "cached_manifest_hash": "11ae4fb2c96a2d1478aa1525",
+    "matches": true
+  },
+  "local_report_privacy": {
+    "local_agentflame_json_public_release_ready": false,
+    "contains_absolute_trace_roots": true,
+    "contains_absolute_session_inputs": true,
+    "session_file_name_count": 8,
+    "boundary": ".agentsight/agentflame/*/agentflame.json is a local/private report; commit the R160 audit JSON, not raw local reports."
+  },
+  "run_metadata": {
+    "scope": "bounded fixed-session local-history smoke: 8 historical Codex sessions, LLM-call tags enabled",
+    "clean_command": "cargo run --manifest-path agentflame/Cargo.toml -- run --project-root . --llama-url http://127.0.0.1:18080 --model local --timeout 60 --out .agentsight/agentflame/r160-smoke-fixed --session-file <8 fixed historical Codex sessions>",
+    "cached_command": "same command, same output directory, reused tags.json",
+    "clean_runtime_seconds": 1.64,
+    "cached_runtime_seconds": 0.11,
+    "clean_agentflame_json": ".agentsight/agentflame/r160-smoke-fixed/agentflame.clean.json",
+    "require_cached_rerun": true
+  },
+  "clean_llm_tagger": {
+    "requests": 76,
+    "cache_hits": 16,
+    "llm_calls": 60,
+    "llm_successes": 60,
+    "failure_count": 0
+  },
+  "cached_llm_tagger": {
+    "requests": 76,
+    "cache_hits": 76,
+    "llm_calls": 0,
+    "llm_successes": 0,
+    "failure_count": 0
+  },
+  "redaction": {
+    "prompt_preview_rows": 8,
+    "non_redacted_prompt_preview_count": 0,
+    "non_redacted_prompt_preview_hashes": []
+  },
+  "dirty_path_count": 21,
+  "dirty_raw_trace_path_count": 0,
+  "write_scope_boundary": "R160 checks output-directory containment for the report path and raw-trace git hygiene; it is not a full pre/post write-set audit.",
+  "claim_boundary": "R160 checks bounded artifact usability, fixed-input cacheability, and hygiene; it does not support C5 user utility, C6 tag adequacy, fresh-clone installation, or full write-set containment."
+}
