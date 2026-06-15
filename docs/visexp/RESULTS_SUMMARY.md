@@ -1,6 +1,6 @@
 # Results Summary: AgentFlame Semantic Effect Profiling
 
-Last updated: 2026-06-14
+Last updated: 2026-06-15
 Stage at update: analyze
 Source/command: `cargo run --manifest-path agentflame/Cargo.toml -- run --project-root . --scan-files 10000 --max-sessions 10000 --llama-url http://127.0.0.1:18080 --model local --timeout 60 --out .agentsight/agentflame/latest`
 Completeness: partial
@@ -84,6 +84,14 @@ The one-call difference between HTTP calls and final successes is consistent
 with a retry after one invalid intermediate output; no final tag failed. This is
 important for RQ1: syntax validity is strong in the completed run, while
 semantic adequacy still needs human labels.
+
+R122/R123 add a real-fragment stability check over the same local trace corpus:
+R122 sampled 300 redacted fragments from 290 parsed sessions (100 session, 100
+prompt, 100 LLM-call), and R123 ran the local 3B llama.cpp server over those
+fragments with three identical repeats each. R123 produced 900/900 valid tags,
+282/300 exact-stable fragments (94.000%), p95 request latency 30 ms after a
+1002 ms model load, and no committed fragment previews in the benchmark summary.
+This supports 3B syntax/latency/stability, but not human adequacy.
 
 Top prompt tags:
 
