@@ -18,27 +18,6 @@ pub(crate) struct ResourcePeaks {
     pub(crate) samples: usize,
 }
 
-#[derive(Debug, Serialize)]
-pub(crate) struct StatOutput {
-    pub(crate) db: String,
-    pub(crate) duration_s: f64,
-    pub(crate) view_events: i64,
-    pub(crate) llm_calls: i64,
-    pub(crate) input_tokens: i64,
-    pub(crate) output_tokens: i64,
-    pub(crate) total_tokens: i64,
-    pub(crate) process_execs: usize,
-    pub(crate) process_exits: usize,
-    pub(crate) process_exit_success: usize,
-    pub(crate) process_exit_failure: usize,
-    pub(crate) file_events: usize,
-    pub(crate) unique_files: usize,
-    pub(crate) network_hosts: usize,
-    pub(crate) http_errors: usize,
-    pub(crate) tool_calls: i64,
-    pub(crate) resources: ResourcePeaks,
-}
-
 pub(crate) type TopSection = (&'static str, &'static str, Vec<(String, i64)>);
 
 pub(crate) fn sorted_top_counts<T>(counts: BTreeMap<String, T>, limit: usize) -> Vec<(String, T)>
@@ -566,40 +545,6 @@ pub(crate) fn print_llm_prompts(rows: &[LlmCallRow]) {
     }
 }
 
-pub(crate) fn print_stat(stat: &StatOutput) {
-    println!("AgentSight stat");
-    field("db", &stat.db);
-    field("elapsed time", format!("{:.3} s", stat.duration_s));
-    field("view events", stat.view_events);
-    field("LLM calls", stat.llm_calls);
-    field(
-        "tokens",
-        format!(
-            "{} total (in: {}, out: {})",
-            stat.total_tokens, stat.input_tokens, stat.output_tokens
-        ),
-    );
-    field("tool calls", stat.tool_calls);
-    field("process execs", stat.process_execs);
-    field(
-        "process exits",
-        format!(
-            "{} (success: {}, failure: {})",
-            stat.process_exits, stat.process_exit_success, stat.process_exit_failure
-        ),
-    );
-    field(
-        "file events",
-        format!("{} (unique files: {})", stat.file_events, stat.unique_files),
-    );
-    field("network hosts", stat.network_hosts);
-    field("HTTP/LLM errors", stat.http_errors);
-    if stat.resources.samples > 0 {
-        field("max CPU", format!("{:.2}%", stat.resources.max_cpu_percent));
-        field("max RSS", format!("{} MB", stat.resources.max_rss_mb));
-    }
-}
-
 pub(crate) fn print_agent_top(top: &AgentTopOutput<'_>) {
     let generated_at = chrono::Local::now().format("%Y-%m-%d %H:%M:%S");
     let db = top.db.map(|db| format!(" · {db}")).unwrap_or_default();
@@ -856,12 +801,8 @@ pub(crate) fn print_discovery(
                 dir.display()
             );
         }
-        println!("\n  Run `agentsight report` or `agentsight stat` to analyze the latest session.");
+        println!("\n  Run `agentsight report` to analyze the latest session.");
     }
-}
-
-fn field(label: &str, value: impl std::fmt::Display) {
-    println!("  {:<20}{value}", format!("{label}:"));
 }
 
 fn print_count_map(label: &str, counts: &BTreeMap<String, usize>) {

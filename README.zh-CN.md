@@ -108,7 +108,7 @@ make build
 
 ### Web 界面
 
-`stat -- <command>` 和 `record` 默认启动 Web UI。低层 `debug trace` 需要传入 `--server`：
+`record -- <command>` 默认启动 Web UI。低层 `debug trace` 需要传入 `--server`：
 - **时间线视图**：http://127.0.0.1:7395/timeline
 - **进程树**：http://127.0.0.1:7395/tree
 - **原始日志**：http://127.0.0.1:7395/logs

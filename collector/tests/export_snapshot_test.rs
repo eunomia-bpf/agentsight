@@ -36,10 +36,9 @@ fn agentsight_stdout_with_env(args: &[&str], envs: &[(&str, &std::ffi::OsStr)]) 
 fn top_level_help_surfaces_perf_strace_flow() {
     let help = agentsight_stdout(&["--help"]);
     assert!(
-        help.contains("stat/top/record/report for AI agent runs"),
+        help.contains("top/record/report for AI agent runs"),
         "{help}"
     );
-    assert!(help.contains("stat"), "{help}");
     assert!(help.contains("top"), "{help}");
     assert!(help.contains("record"), "{help}");
     assert!(help.contains("report"), "{help}");

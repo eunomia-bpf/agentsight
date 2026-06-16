@@ -49,7 +49,7 @@ use cli_db::{
 use cli_discover::run_discover;
 use cmd_debug::{run_raw_process, run_raw_ssl, run_raw_stdio, run_system};
 use cmd_exec::{default_session_db_path, print_session_summary, run_exec};
-use cmd_perf::{run_stat_query, run_top_query};
+use cmd_perf::run_top_query;
 use cmd_perf_live::run_live_top_query;
 use cmd_perf_tui::run_live_top_tui;
 use cmd_trace::{
@@ -173,9 +173,8 @@ async fn setup_signal_handler(suppress_terminal_output: bool) {
 #[command(
     author,
     version,
-    about = "AgentSight: stat/top/record/report for AI agent runs.\n\n\
+    about = "AgentSight: top/record/report for AI agent runs.\n\n\
              Common flow:\n\
-               sudo agentsight stat -- claude\n\
                sudo agentsight record -- claude\n\
                sudo agentsight top\n\
                agentsight report\n\
@@ -194,28 +193,6 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Print counters for a recorded session, or run a command and print counters when it exits.
-    /// Examples: agentsight stat --db run.db     (or)  sudo agentsight stat -- claude
-    Stat {
-        /// SQLite database path (defaults to latest session when no command is passed)
-        #[arg(long)]
-        db: Option<String>,
-        /// Emit JSON output. For clean JSON, use this with --db instead of a live command.
-        #[arg(long)]
-        json: bool,
-        /// Override the auto-discovered SSL binary path when tracing a command
-        #[arg(long)]
-        binary_path: Option<String>,
-        /// Disable the web server while tracing a command
-        #[arg(long)]
-        no_server: bool,
-        /// Server port for the web UI while tracing a command
-        #[arg(long, default_value = "7395")]
-        server_port: u16,
-        /// Optional command to launch and trace before printing counters
-        #[arg(last = true)]
-        command: Vec<String>,
-    },
     /// Show live agent sessions, or a saved session with --db.
     Top {
         /// SQLite database path for saved session mode
@@ -646,12 +623,6 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             }
             Some(ReportCommands::List) => run_db_list()?,
         },
-        Commands::Stat {
-            db, json, command, ..
-        } if command.is_empty() => {
-            let db = resolve_db_or_latest(db)?;
-            run_stat_query(&db, *json)?;
-        }
         Commands::Top {
             db: Some(db),
             pid,
@@ -706,37 +677,6 @@ async fn run_with_extractor(
     binary_extractor: &BinaryExtractor,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     match &cli.command {
-        Commands::Stat {
-            binary_path,
-            db,
-            json,
-            no_server,
-            server_port,
-            command,
-        } => {
-            if command.is_empty() {
-                unreachable!("stat without a command is handled before binary extraction");
-            }
-            if *json {
-                return Err("stat --json currently requires --db for clean JSON output".into());
-            }
-            let recorded_db = run_exec(
-                binary_extractor,
-                command,
-                binary_path.as_deref(),
-                configured_db_path(db),
-                !*no_server,
-                &cli.listen,
-                *server_port,
-                false,
-            )
-            .await
-            .map_err(convert_runner_error)?;
-            let db = recorded_db
-                .as_deref()
-                .ok_or("stat command did not produce a SQLite session database")?;
-            run_stat_query(db, false)?;
-        }
         Commands::Record {
             comm,
             pid,
