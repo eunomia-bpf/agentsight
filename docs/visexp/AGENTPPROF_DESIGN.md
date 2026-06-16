@@ -94,25 +94,25 @@ process:<entrypoint>;
 domain:<domain>
 ```
 
-## Python vs. Rust
+## Rust vs. Python
 
-The old Rust `agentflame/` code is useful as a prototype and reference, but it
-should not be the long-term semantic layer.
+The published user entrypoint is the Rust `agentpprof/` CLI. It depends on the
+shared `agent-session` crate for local transcript discovery and normalized
+session summaries, then enriches those sessions into prompt/tool/LLM-call
+semantic stacks.
 
-Python is the better default for `agentpprof` because:
-
-- session parsing, clustering, embedding, and small-model tagging will move
-  faster in Python;
-- pprof export is an offline analysis path, not a collector hot path;
-- it can be shipped as a standalone package and imported by notebooks,
-  evaluation scripts, or AgentSight Web;
-- Rust can stay focused on low-overhead collection and exact system provenance.
+The Python implementation under `docs/visexp/agentpprof-python/` is retained as
+a research prototype for pprof export experiments, visualization experiments,
+and clustering/tagging iteration. It is not the default package boundary.
 
 The intended split is:
 
 ```text
 collector/      Rust: exact runtime capture and provenance
-agentpprof/     Python: local history parsing, semantic tags, pprof export
+agent-session/  Rust: shared local agent transcript parser and session IR
+agentpprof/     Rust: user CLI, semantic tags, folded stacks, reports
+docs/visexp/agentpprof-python/
+                Python: research prototype and pprof export experiments
 frontend/       TypeScript: pprof/artifact browsing inside AgentSight
 ```
 
@@ -127,8 +127,8 @@ render them correctly because the `profile.proto` structure is valid:
 - `Sample.label` stores drilldown identifiers such as source, session, prompt,
   effect, and tool.
 
-The current Python encoder writes the profile proto subset directly, with no
-runtime dependency on `protobuf` or `protoc`. The unit test uses
+The current Python prototype encoder writes the profile proto subset directly,
+with no runtime dependency on `protobuf` or `protoc`. The unit test uses
 `go tool pprof -top` as the compatibility oracle.
 
 The direct flamegraph renderer uses the same samples. It builds a prefix tree
@@ -157,4 +157,5 @@ Make `agentpprof` the source of truth for semantic exports:
 2. import AgentSight runtime lineage snapshots as exact process/effect samples;
 3. add `agentpprof diff` for comparing two sessions or two branches;
 4. add a frontend view that can open the generated pprof files and folded stacks;
-5. retire `agentflame/` after feature parity and migration tests.
+5. move the remaining useful Python prototype pieces into the Rust package or
+   keep them as explicit research artifacts.

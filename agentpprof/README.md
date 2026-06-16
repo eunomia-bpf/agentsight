@@ -1,69 +1,147 @@
 # agentpprof
 
-`agentpprof` builds pprof-compatible semantic profiles from local coding-agent
-sessions. It maps agent concepts such as session tags, prompt tags, LLM calls,
-tool calls, processes, and effects onto synthetic pprof stack frames, then
-writes gzip-compressed `profile.proto` files that `go tool pprof` can read.
+`agentpprof` is a Rust CLI for pprof-style semantic profiles over local AI
+coding-agent history. It reads local Codex and Claude JSONL sessions through
+AgentSight's `agent-session` crate, asks a llama.cpp-compatible server for one
+lowercase word per session, prompt, and LLM call, then writes reusable JSON,
+folded stacks, SVG flamegraphs, and a local dashboard.
 
-The files are semantic profiles, not CPU profiles. The sample value can be
-tokens, tool events, file events, or network events.
+The profiles are semantic profiles, not CPU profiles. Width can represent tool
+events or token counts, depending on the projection.
 
-## Run From This Repository
+## Install
 
 ```bash
-PYTHONPATH=agentpprof/src python3 -m agentpprof export \
+cargo install agentpprof
+```
+
+From this repository during development:
+
+```bash
+cargo run --manifest-path agentpprof/Cargo.toml -- run \
   --project-root . \
-  --out .agentsight/agentpprof/latest \
-  --max-sessions 12
+  --out .agentsight/agentpprof/latest
 ```
 
-The export writes:
+## Run
 
-- `tokens.pb.gz`
-- `tools.pb.gz`
-- `files.pb.gz`
-- `network.pb.gz`
-- matching folded stacks
-- `*.flame.svg` semantic flamegraphs
-- `agentpprof.json`
-- optional `*.top.txt` reports when `go tool pprof` is available
-
-Inspect with pprof:
+Start a local llama.cpp server with a real GGUF model:
 
 ```bash
-go tool pprof -top .agentsight/agentpprof/latest/tokens.pb.gz
-go tool pprof -traces .agentsight/agentpprof/latest/tools.pb.gz
-go tool pprof -http=:0 .agentsight/agentpprof/latest/files.pb.gz
+llama-server -m /path/to/model.gguf --port 8080
 ```
 
-Open the generated flamegraphs directly:
+Generate a report:
 
 ```bash
-xdg-open .agentsight/agentpprof/latest/tools.flame.svg
-xdg-open .agentsight/agentpprof/latest/tokens.flame.svg
+agentpprof run --project-root /path/to/repo
 ```
 
-## Stack Projections
+Pass repeated `--session-file /path/to/session.jsonl` values to analyze a
+specific set of local sessions instead of scanning the newest files under the
+Codex and Claude roots.
 
-Token profile:
+The default llama.cpp API endpoint is `http://127.0.0.1:8080`. Override it with:
+
+```bash
+agentpprof run \
+  --llama-url http://127.0.0.1:8080 \
+  --model local
+```
+
+`agentpprof` has no heuristic label path. If the LLM server is missing, or if
+the model does not return one valid lowercase word after retry, the run fails.
+The default scope is session + prompt for system-effect views, plus per-LLM-call
+tags for token views. For a faster exploratory run, pass
+`--tag-llm-calls false`; the default is `true`.
+
+## Outputs
+
+Default output directory:
 
 ```text
-project:<repo>;agent:<codex|claude>;session:<tag>;prompt:<tag>;call:llm/<tag>;model:<model>;token:<kind>
+.agentsight/agentpprof/latest/
 ```
 
-Width: token count.
+Important files:
 
-Tool/effect profile:
+- `agentpprof.json`: redacted machine-readable analysis for AgentSight or other
+  tools.
+- `tags.json`: reusable local tag cache containing one-word tags, hashes, and
+  LLM provenance, not raw prompt text.
+- `index.html`: dashboard with tag bars, command/effect bars, timeline,
+  semantic flamegraphs, dimension projections, and mixed baseline buckets.
+- `*.svg`: standalone charts.
+- `semantic-system.folded.txt`: prompt/session-tagged system footprint stacks.
+- `semantic-token.folded.txt`: prompt/session/LLM-tagged token stacks.
+- `session-system.folded.txt`, `prompt-system.folded.txt`,
+  `session-token.folded.txt`, `prompt-token.folded.txt`, `llm-token.folded.txt`:
+  dimension projections.
+
+## Folded Stack Shape
+
+System-effect stacks use:
 
 ```text
-project:<repo>;agent:<codex|claude>;session:<tag>;prompt:<tag>;call:tool/<tag>;tool:<kind>;process:<cmd>;effect:<effect>;target:<group>;status:<status>
+project:<repo>;agent:<agent>;session:<sessionTag>;prompt:<promptTag>;call:tool/<kind>;process:<p0>;process:<p1>;effect:<effect>;path:<group>;status:<status>
 ```
 
-Width: observed tool event count.
+Token stacks use:
 
-File and network profiles use the same semantic session/prompt context, but
-make `file:<group>` or `domain:<domain>` the leaf frame. Their widths are file
-target event count and network target event count.
+```text
+project:<repo>;agent:<agent>;session:<sessionTag>;prompt:<promptTag>;call:llm/<llmCallTag>;model:<model>;kind:<tokenKind>
+```
 
-The pprof exporter reverses these stacks when serializing samples because pprof
-stores the leaf frame first.
+The `process:*` segment can repeat. Offline session-history mode derives the
+visible process entrypoint from shell commands, including simple shell wrappers
+such as `bash -lc`. Exact child-process nesting is supplied by AgentSight runtime
+trace data when the report is correlated with a captured snapshot.
+
+## JSON Contract
+
+`agentpprof.json` uses stable top-level sections:
+
+- `project`: project name and root.
+- `inputs`: session roots and scan limits.
+- `llm_tagger`: LLM request/cache/failure stats.
+- `sessions`: per-session counts and redacted prompt tag rows.
+- `summary`: stack totals, top prompt tags, command summaries, timeline, and
+  baseline-mixing examples.
+- `prompt_tags`: prompt hash to tag mapping.
+- `artifacts`: relative paths to folded stacks and dashboard files.
+
+This contract is meant to be consumed by AgentSight Web without re-reading raw
+agent history.
+
+## Benchmark Models
+
+Benchmark real local models by letting `agentpprof` start one llama.cpp server
+per model:
+
+```bash
+cargo run --manifest-path agentpprof/Cargo.toml -- bench \
+  --llama-server /path/to/llama-server \
+  --runs 2 \
+  --out .agentsight/agentpprof/model-benchmarks.json \
+  --model 3b=/path/to/model-3b.gguf \
+  --model 1b=/path/to/model-1b.gguf \
+  --model 0.6b=/path/to/model-0.6b.gguf
+```
+
+Use repeated `--server-arg` values for model-specific llama.cpp options, for
+example `--server-arg=--reasoning --server-arg=off` for no-thinking tag runs.
+
+The benchmark writes latency, success count, and invalid-output errors for each
+real model. It does not synthesize model responses.
+
+## Python Prototype
+
+The earlier Python pprof exporter now lives under
+`docs/visexp/agentpprof-python/`. It is kept as research material and is not the
+default user entrypoint.
+
+## Development Test
+
+```bash
+cargo test --manifest-path agentpprof/Cargo.toml
+```
