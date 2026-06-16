@@ -125,12 +125,13 @@ agentpprof -o tokens.pb.gz --prompt-tag review
 No output directory is created unless the explicit `-o/--output` path contains
 one.
 
-## Python Exporter
+## Python Prototype
 
-This branch also contains an experimental Python exporter:
+The earlier experimental Python exporter now lives under
+`docs/visexp/agentpprof-python/` as research material:
 
 ```bash
-PYTHONPATH=agentpprof/src python3 -m agentpprof export \
+PYTHONPATH=docs/visexp/agentpprof-python/src python3 -m agentpprof export \
   --project-root . \
   --out .agentsight/agentpprof/latest \
   --max-sessions 12
@@ -183,5 +184,5 @@ because pprof stores the leaf frame first.
 
 ```bash
 cargo test --manifest-path agentpprof/Cargo.toml
-PYTHONPATH=agentpprof/src pytest agentpprof/tests
+PYTHONPATH=docs/visexp/agentpprof-python/src pytest docs/visexp/agentpprof-python/tests
 ```
