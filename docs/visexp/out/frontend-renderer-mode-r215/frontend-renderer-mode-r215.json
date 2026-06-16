@@ -1,0 +1,89 @@
+{
+  "claim": "C3 frontend display-mode consumer; C6 protocol/gate only",
+  "claim_boundary": "R215 compiles and runs the frontend TypeScript display-mode consumer over generated R209 artifacts. It is a renderer-model integration smoke, not a browser DOM, semantic adequacy, merge-quality, or developer-utility result.",
+  "claim_gate": {
+    "canonical_map_updated": false,
+    "canonicalization_quality_supported": false,
+    "community_adoption_supported": false,
+    "developer_utility_supported": false,
+    "frontend_dom_renderer_supported": false,
+    "frontend_renderer_model_smoke_supported": true,
+    "llm_called": false,
+    "negative_fixtures_rejected": true,
+    "pending_membership_unchanged": true,
+    "raw_trace_read": false,
+    "reads_generated_artifacts_only": true,
+    "semantic_adequacy_supported": false,
+    "support_preserved": true
+  },
+  "generated_at": "2026-06-16T06:42:17+00:00",
+  "input": {
+    "display_csv": "docs/visexp/out/reversible-display-map-r209/active-display-map-r209.csv",
+    "display_csv_sha256": "a9978cd43e2c8eb76a6d7129ad193e54b907967b3f64d09b9ab12ec1ab3951ed",
+    "drilldown_csv": "docs/visexp/out/reversible-display-map-r209/display-drilldown-r209.csv",
+    "drilldown_csv_sha256": "1bb63db3218035656cb0f97bbc1fc78232752da697439352060a298c06d54064",
+    "frontend_module": "frontend/src/utils/agentflameDisplayModes.ts",
+    "frontend_module_sha256": "deef0d466dd06c77708e263c0ceb3cb8e0ea2ad1a88de13ccd262a84f2acb3ab",
+    "r209_json": "docs/visexp/out/reversible-display-map-r209/reversible-display-map-r209.json",
+    "r209_json_sha256": "641656a3e97ecb3bf17a9028a9f86462e1a9062ab2173c094c19731189182fe6",
+    "r213_json": "docs/visexp/out/display-mode-drilldown-r213/display-mode-drilldown-r213.json",
+    "r213_json_sha256": "5eb201bdeeefd77561bde165c9444d30fb97317ffdadd062882058258b98722b",
+    "r214_json": "docs/visexp/out/long-tail-control-r214/long-tail-control-r214.json",
+    "r214_json_sha256": "cbd17c52ef3f8489d524494807a767609c0fb0c5321818fdf519dfe5d07069b9"
+  },
+  "method": {
+    "compile": "TypeScript module compiled with frontend node_modules/.bin/tsc",
+    "compile_info": {
+      "node_command": "node <compiled r215_harness.js> <fixture.json> <result.json>",
+      "node_ms": 39.167,
+      "node_stdout": "",
+      "tsc_command": "/home/yunwei37/workspace/agentsight/frontend/node_modules/.bin/tsc --target ES2020 --module commonjs --strict --esModuleInterop --skipLibCheck --types node --typeRoots /home/yunwei37/workspace/agentsight/frontend/node_modules/@types --outDir /tmp/agentsight-r215-i7clbc0o/build /tmp/agentsight-r215-i7clbc0o/src/agentflameDisplayModes.ts /tmp/agentsight-r215-i7clbc0o/src/r215_harness.ts",
+      "tsc_ms": 348.451,
+      "tsc_stdout": ""
+    },
+    "execute": "compiled Node harness renders raw/display/pending modes from R209 rows",
+    "frontend_module": "frontend/src/utils/agentflameDisplayModes.ts",
+    "negative_fixtures": [
+      "corrupt one drilldown raw_tags entry while preserving support/count shape",
+      "promote candidate_display_tag as active_display_tag before review"
+    ],
+    "quality_boundary": "renderer-model mechanics only; no DOM/browser, adequacy, quality, or utility claim"
+  },
+  "outputs": {
+    "mode_summary_csv": "docs/visexp/out/frontend-renderer-mode-r215/mode-summary-r215.csv",
+    "negative_fixtures_csv": "docs/visexp/out/frontend-renderer-mode-r215/negative-fixtures-r215.csv",
+    "sample_buckets_csv": "docs/visexp/out/frontend-renderer-mode-r215/sample-buckets-r215.csv",
+    "summary_json": "docs/visexp/out/frontend-renderer-mode-r215/frontend-renderer-mode-r215.json",
+    "summary_md": "docs/visexp/out/frontend-renderer-mode-r215/frontend-renderer-mode-r215.md"
+  },
+  "provenance": {
+    "repo_commit": "73ab7e840a558cbee590b0bbaa7e2436e4f597fe",
+    "repo_dirty": true,
+    "script_sha256": "90082eb8fcdffb245454107b81e3d439d78ec7ac903fa465bdb354689e5474e0"
+  },
+  "run_id": "R215",
+  "schema_version": 1,
+  "status": "frontend_renderer_mode_smoke_ready_no_quality_claims",
+  "summary": {
+    "active_merge_rows": 63,
+    "candidate_overlay_rows": 209,
+    "candidate_promotion_rejected": true,
+    "compiled_frontend_module": true,
+    "display_bucket_count": 1748,
+    "frontend_dom_renderer_exercised": false,
+    "hidden_other_rows": 0,
+    "membership_matches_display_map": true,
+    "node_harness_executed": true,
+    "node_ms": 39.167,
+    "pending_bucket_count": 1748,
+    "pending_membership_equals_display": true,
+    "r213_display_bucket_count": 1748,
+    "r214_pending_candidate_rows": 209,
+    "raw_bucket_count": 1811,
+    "review_required_rows": 323,
+    "review_required_support": 9293,
+    "total_support": 482398,
+    "tsc_ms": 348.451,
+    "wrong_drilldown_rejected": true
+  }
+}

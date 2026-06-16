@@ -2,20 +2,178 @@
 
 Last updated: 2026-06-15
 Stage at update: claim-gate
-Source/command: `.agentsight/agentflame/latest/agentflame.json`, `docs/visexp/out/full-history-r170.json`, `docs/visexp/out/artifact-usability-r160.json`, `docs/visexp/out/live-network-r182.json`, `docs/visexp/out/weak-accept-gate-r184.json`, `docs/visexp/out/osdi-plan-review-r186.md`
+Source/command: `.agentsight/agentflame/latest/agentflame.json`, `docs/visexp/out/full-history-r170.json`, `docs/visexp/out/tag-consolidation-r189/tag-consolidation-r189.json`, `docs/visexp/out/tag-consolidation-audit-r190/tag-consolidation-audit-r190.json`, `docs/visexp/out/tag-consolidation-audit-r190/merge-risk-audit-results-r190.json`, `docs/visexp/out/long-tail-governance-r196/long-tail-governance-r196.json`, `docs/visexp/out/long-tail-sensitivity-r201/long-tail-sensitivity-r201.json`, `docs/visexp/out/long-tail-regeneration-r202/long-tail-regeneration-r202.json`, `docs/visexp/out/long-tail-promotion-r203/long-tail-promotion-r203.json`, `docs/visexp/out/long-tail-compaction-r205/long-tail-compaction-r205.json`, `docs/visexp/out/reversible-display-map-r209/reversible-display-map-r209.json`, `docs/visexp/out/stack-examples-r211/stack-examples-r211.json`, `docs/visexp/out/display-compaction-ablation-r212/display-compaction-ablation-r212.json`, `docs/visexp/out/display-mode-drilldown-r213/display-mode-drilldown-r213.json`, `docs/visexp/out/long-tail-control-r214/long-tail-control-r214.json`, `docs/visexp/out/frontend-renderer-mode-r215/frontend-renderer-mode-r215.json`, `docs/visexp/out/browser-dom-mode-r216/browser-dom-mode-r216.json`, `docs/visexp/out/production-react-display-r217/production-react-display-r217.json`, `docs/visexp/out/display-map-update-gate-r218/display-map-update-gate-r218.json`, `docs/visexp/out/claim-readiness-r219/claim-readiness-r219.json`, `docs/visexp/out/human-evidence-r193/manifest.json`, `docs/visexp/out/human-evidence-preflight-r194.json`, `docs/visexp/out/human-evidence-pipeline-r195.json`, `docs/visexp/out/human-evidence-launch-r207/human-evidence-launch-r207.json`, `docs/visexp/out/artifact-usability-r160.json`, `docs/visexp/out/community-smoke-r200.json`, `docs/visexp/out/live-network-r182.json`, `docs/visexp/out/weak-accept-gate-r184.json`, `docs/visexp/out/osdi-plan-review-r186.md`, `docs/visexp/out/osdi-gate-review-r192.md`, `docs/visexp/out/osdi-gate-review-r204.md`, `docs/visexp/out/osdi-rq-gate-review-r206.md`, `docs/visexp/out/osdi-gate-review-r208.md`
 Completeness: partial
 
 | Claim | Verdict | Evidence | Supported wording | Missing evidence |
 |-------|---------|----------|-------------------|------------------|
 | C1 semantic folded stacks over real histories | supported | Original headline run: 205 readable sessions, 130,632 raw tool events, 167,005 system observations, 24,295 unique semantic stacks, generated dashboard/folded/SVG artifacts. R170 refreshed the current full-history path without overwriting `latest`: 325 sessions, 142,468 raw tool events, 183,714 system observations, 26,829 semantic system stacks, and folded totals matched the generated report. | AgentFlame emits semantic folded-stack artifacts over real local Codex/Claude histories for this repository. | More repositories and one-command artifact package. |
 | C2 local one-word tagging feasibility | supported for local syntax/latency across available 0.6B-, 1B-, and 3B-class GGUFs; partial for semantic adequacy | Original headline run: 93,598 tag requests, 64,297 cache hits, 29,302 llama.cpp HTTP calls, 0 final tag failures, 0 invalid prompt or LLM-call tags. R170 reran the current full-history path with a real local 3B llama.cpp server and recorded 118,021 tag requests, 82,886 cache hits, 35,136 fresh llama.cpp calls, 64,477 final cache entries, and 0 tagger failures. R123 used the local 3B server over 300 real redacted fragments, 3 identical repeats each: 900/900 valid tags, 1002 ms load, request latency min/p50/p95/max = 8/11/31/71 ms. R180 reran the same 300 R122 redacted fragments over three local models with `--reasoning off`: 0.6b 900/900 valid, 299/300 exact-stable, p95 23 ms; TinyLlama 1.1b 900/900 valid, 279/300 exact-stable, p95 18 ms; 3b 900/900 valid, 285/300 exact-stable, p95 32 ms. | Local llama.cpp models in the available 0.6B-, 1B-, and 3B-class configurations can produce syntactically valid one-word session/prompt/LLM-call tags with low per-fragment latency on this redacted real-fragment sample. | R180 is not a controlled same-family scaling study; TinyLlama 1.1b shows semantic collapse toward localization-like tags, and human adequacy labels remain missing. |
-| C3 semantic partitioning beyond baselines | supported | Original headline run: nonsemantic mixed weight 90.219%, flat mixed weight 90.770%; examples include `git`, `cargo`, `python3`, `docker`, and tool write/process buckets split by semantic tags. R170 current refresh found nonsemantic mixed weight 90.402% and flat mixed weight 90.918%. R131 preserved totals, matched `agentflame.json` report totals, and exactly matched already generated folded projections. In R131, no-semantic system stacks mix 90.219% of full semantic bucket weight with 44.639% residual; session-only leaves 84.180% / 34.138%; prompt-only leaves 37.687% / 7.526%. Full session+prompt leaves 0.000% by construction. | Semantic frames partition system-effect buckets that nonsemantic folded stacks and flat summaries merge in this local workload; prompt tags carry most of the system-effect separation, while session tags add remaining provenance context. | User-task benchmark and stronger case studies. |
+| C3 semantic partitioning beyond baselines | supported for semantic partitioning; display-map mechanics supported; merge/regeneration quality unsupported | Original headline run: nonsemantic mixed weight 90.219%, flat mixed weight 90.770%; examples include `git`, `cargo`, `python3`, `docker`, and tool write/process buckets split by semantic tags. R170 current refresh found nonsemantic mixed weight 90.402% and flat mixed weight 90.918%. R131 preserved totals, matched `agentflame.json` report totals, and exactly matched already generated folded projections. In R131, no-semantic system stacks mix 90.219% of full semantic bucket weight with 44.639% residual; session-only leaves 84.180% / 34.138%; prompt-only leaves 37.687% / 7.526%. Full session+prompt leaves 0.000% by construction. R189 preserves total folded weights while consolidating prompt-effect tags 263 -> 216 and system stacks 26,829 -> 26,067 over R170. R190 shows lexical-only consolidation is more aggressive than the current profile-guarded policy, with prompt-effect tags 200 vs 216 and LLM-event tags 868 vs 1254. R190-score confirms the merge-risk scorer currently stays `human_labels_empty` with `canonicalization_quality_supported=false`. R196 adds a long-tail governance packet with 231 existing canonical merges, 114 review-merge rows, 39 regeneration candidates, 2 contextual-split candidates, 1,241 kept rare distinct tags, and 184 kept head tags. R201 adds policy sensitivity: baseline review-required support is 1.926%, worst variant 1.931%, and high-tail threshold head stability 65.217%. R203 turns the R202 generated candidates into a 41-row promotion review packet with 0 final labels and no map update. R209 materializes the reversible display-map contract with 1,811/1,811 raw rows covered, 1,509 active display labels, 63 active alias rows, 168 pending lexical/profile merge candidates, 41 candidate regenerated labels, 0 reviewed diff rows, and 0 hidden `other` rows. R212 compares session/prompt display variants over generated system folded stacks with conserved 183,714 effect weight, 26,829 raw stacks, 26,612 alias-only/R209 stacks, and 26,067 hypothetical profile-guarded stacks; the hypothetical profile view would activate unreviewed profile merges over 2.532% of effect weight. R213 verifies the display-mode data-layer contract: raw/display/pending modes all preserve 482,398 support, raw has 1,811 buckets, display/pending have 1,748 buckets, pending overlays 209 candidates and 323 review-required rows, drilldown membership matches the active display map, and hidden `other` buckets remain 0. R214 turns that into a long-tail control loop: 63 deterministic alias rows active, 209 candidates pending, 323 review-required rows, prompt review support 3.258%, and failed triggers for `prompt_review_budget` and `head_stability_under_high_tail_threshold`. R215 compiles the frontend TypeScript display-mode consumer and runs a Node harness that renders R209 display-map/drilldown rows while cross-checking R213/R214 summary counts: raw/display/pending support stays 482,398, display/pending buckets stay 1,748, pending candidates do not alter membership, and corrupted drilldown/candidate-as-active negative fixtures are rejected. R216 runs the same display-mode module in a headless-browser DOM harness: raw/display/pending buttons update visible DOM state, pending mode shows 1,748 buckets, 482,398 support, 209 candidate overlays, and 323 review-required rows, and the same corrupted-drilldown/candidate-promotion negative fixtures are rejected. R217 builds the real Next frontend and checks production `AgentFlameView` default display rendering: `display` mode, 1,748 buckets, 482,398 support, 3 mode buttons, and matching raw membership. R218 checks the reviewed display-map update gate with synthetic review fixtures over real R209 pending rows: 2 final consensus/adjudicated preview diffs accepted, 4 unsafe rows rejected, 1,811 raw keys and 482,398 support preserved, 0 hidden `other` buckets, and no canonical-map update. R211 packages RQ2 figure inputs: `rg` spans 176 prompt tags, `sed` 180, `git` 147, `cargo` 68; `process:git;effect:read;status:ok` has 116 prompt tags and 75.023% non-top-prompt weight, while `process:cargo;effect:test;status:ok` has 48 prompt tags and 68.05% non-top-prompt weight. | Semantic frames partition system-effect buckets that nonsemantic folded stacks and flat summaries merge in this local workload; prompt tags carry most of the system-effect separation. R209/R212/R213/R214/R215/R216/R217/R218 support a reversible display-map data contract, conservative alias-only default display policy, display-mode data-layer drilldown, long-tail control-loop gates, frontend renderer/browser/production-render smokes, and reviewed-diff update-gate mechanics. R189/R190/R196/R201/R203/R205/R209/R212/R213/R214/R215/R216/R217/R218 are display/governance/harness mechanisms only; they do not support merge quality, regenerated-label quality, semantic adequacy, visual drilldown, developer utility, or community adoption. | User-task benchmark, visual drilldown/click-path integration, LLM/token display-compaction ablation, and human review of high-impact canonical merges and regenerated/split candidates. |
 | D1 Codex/Claude behavior comparison | diagnostic | Cohort summaries exist for Codex, Claude, and Claude subagents. | The full run can characterize local histories by cohort. | Paired same-task benchmark before making comparative claims. |
 | D2 token flamegraphs | diagnostic | Token projections exist and preserve total token weights. | Token views provide source-local accounting. | Token normalization across agents/models. |
 | C4 exact AgentSight effect lineage | supported for fixed command-mode suite; partial broadly and partial for target-specific network workloads | R110 live smoke over 3 real AgentSight DB exports: 8 detected agent roots, 8 synthetic sessions/tools, 318 raw effects, 182 covered and joined, 136 out of scope, 57.233% raw coverage, 182/182 in-scope join, 0 in-scope orphans. R111 moves the envelope into native `collector report export`: 3 exported sessions/tools, 182/318 raw effects joined, 136 orphans, 57.233% raw join. R112 persists those envelopes into SQLite `sessions`/`tool_calls` rows on DB copies and verifies persisted-only export: 3 DB sessions/tools, 182/318 raw effects joined, 136 orphans, 57.233% raw join. R113 implements capture-time `record -- <command>` session/tool rows and verifies 1 session + 1 tool row in a temp SQLite DB. R113-live runs 5 real `codex exec` tasks under `agentsight record`: 5/5 capture-time sessions/tools, 508 raw effects, 508 joined, 0 orphans, 100.0% raw join. Initial R114-smoke exposed the precision flaw: 302/302 wrapper negative-control effects were attributed. After `--agent-comm codex`, missing-root child fallback, per-task negative marker bursts, and scoped oracle accounting, full R114 ran 20 real Codex tasks: 20/20 targets completed, 20/20 tasks observed negative controls, 1273/1273 in-scope effects joined, 100.0% precision, 100.0% recall, 3170 negative-control effects observed with 0 joined, child-depth/path/redaction analysis generated, and raw join remained 22.055% because out-of-scope effects stayed orphaned. R182 exposed a missing `record` process `--trace-net` flag, fixed it, and reran two real loopback-task Codex commands: 2/2 targets completed, 35/35 low-level `codex` process network rows joined, 0 network orphans, 100.0% precision/recall, and 0/604 observed negative-control effects joined; target-specific loopback or expected child-process network rows remained 0/0. | AgentFlame can validate exact semantic-effect lineage for a fixed command-mode Codex suite by linking prompt/tool ancestry to the actual agent process family while rejecting concurrent negative controls. R182 additionally validates the record-mode `--trace-net` implementation path for low-level agent-process network rows, but not target-specific loopback workload capture. | Cross-repo/full-history exact integration, more agent types, target-specific network workloads, HTTP semantic reconstruction, and user-task evidence. |
-| C5 developer utility | unsupported | R142-packet defines a current pilot packet from R114/R123/R131/full-run artifacts: 14 tasks, 8 primary utility tasks, 6 limitation/comprehension tasks, five conditions (`trace-tree`, `event-count-proxy`, `flat-summary`, `nonsemantic-stack`, `semantic-stack`), 70 blinded packets, hidden answer key, P01-P05 counterbalanced assignment template, recursive participant-packet leak check, per-task common `slice_id` across all five condition excerpts, and script/output manifests. The former span-like event-weight view is explicitly named `event-count-proxy`, so it is not presented as a span-duration baseline. R142-preregistration now freezes the current bundle, assignments, answer key, response schema, scorer thresholds, primary tasks, exclusion rules, and source hashes before participant collection. R142-scoring validates assignment/packet consistency, rejects duplicate or partial real-response CSVs, keeps task-level paired deltas as diagnostics, and gates paper-scale support with thresholds: 12 participants, 8 primary task pairs per baseline, >=10 pp fixed-effect accuracy gain or >=20% median task-time reduction with Holm-corrected participant/task/order blocked-permutation p<=0.05, and <=5 pp false-positive increase. Current output is `participant_results_empty`, `c5_supported=false`, and `pilot_ready=false`. R184 independently records C5 as `ready_for_participant_collection`. R187 packages P01-P05 launch files and a blank 70-row response CSV, verifies no answer key or oracle/scoring fields in participant payloads, and records `c5_supported=false`. No participant responses exist. | No user-outcome claim should be made yet. | Real participant responses with time, accuracy, false positives, confidence, valid response contract, and paper-scale gate pass under the frozen preregistration. |
-| C6 tag adequacy/stability | partial | 0 malformed tags in the full 3B run; noisy tags remain. R122 created a redacted 300-fragment label packet with 300/300 candidate tags joined from R123. R123 found 285/300 exact-stable real redacted fragments (95.000%) over 3 identical repeats with 0 invalid outputs. R180 expands the syntax/stability smoke to local 0.6b/1.1b/3b models: 2700/2700 valid outputs, aggregate 863/900 exact-stable fragments, and per-model stability of 299/300, 279/300, and 285/300. The 1.1b run is a negative adequacy signal because most outputs collapse to localization/localized variants. R124-scoring runs over the blank packet and reports `human_labels_empty`, 300 packet rows, 300 candidate tags, 0 final labels, and `adequacy_supported=false`. R124-blinding generates a 300-row labeler-facing sheet with only row id, fragment level, redacted preview, candidate tag, rubric, label, and notes fields; model identity, source agent, fragment hash, stability metadata, and downstream result columns are hidden. R124-join validates the source/blinded row match, writes an empty adjudication template, records 0 labeler rows, and produces no joined label output by default. R184 records C6 as `ready_for_independent_label_collection`, not supported. | One-word tags are syntactically valid and often stable across the available local models, but stability is not adequacy; the 1.1b collapse shows why human adequacy remains a separate claim. | Human adequacy labels with explicit adequate/generic/misleading rubric, joined frozen label sheets, adjudicated disagreements, and agreement thresholds. |
-| C7 open-source developer usefulness | partial | R160 passed a bounded fixed-session local-history smoke over 8 historical Codex sessions with LLM-call tags enabled. The clean run produced local dashboard/folded/SVG/tag-cache artifacts in `.agentsight/agentflame/r160-smoke-fixed`, made 60 uncached llama.cpp calls over 76 tag requests, and took 1.64 s. The cached rerun reused the same `tags.json`, served 76/76 requests from cache, made 0 LLM calls, and took 0.11 s. The verifier found redacted previews, matching folded totals, generated report path containment, 0 dirty raw-trace-like paths, a sanitized fixed-input manifest hash `11ae4fb2c96a2d1478aa1525`, and clean/cached input equality. R170 reran the current full-history path with 35,136 fresh llama.cpp calls and wrote a sanitized committed summary, but the local `.agentsight` report is still private. A broader 36-session discovery run took 173.05 s and its cached rerun saw 34 new LLM calls because the live Codex session changed between runs. | AgentFlame has an auditable bounded local artifact path that can regenerate the three core views and reuse its tag cache on fixed inputs. | Fresh-clone/community install smoke, public-release sanitization of local reports, clearer llama.cpp setup docs, stable default sampling, full write-set audit, and real external developer feedback. |
+| C5 developer utility | unsupported | R142-packet defines a current pilot packet from R114/R123/R131/full-run artifacts: 14 tasks, 8 primary utility tasks, 6 limitation/comprehension tasks, five conditions (`trace-tree`, `event-count-proxy`, `flat-summary`, `nonsemantic-stack`, `semantic-stack`), 70 blinded packets, hidden answer key, P01-P05 counterbalanced assignment template, recursive participant-packet leak check, per-task common `slice_id` across all five condition excerpts, and script/output manifests. The former span-like event-weight view is explicitly named `event-count-proxy`, so it is not presented as a span-duration baseline. R142-preregistration now freezes the current bundle, assignments, answer key, response schema, scorer thresholds, primary tasks, exclusion rules, and source hashes before participant collection. R142-scoring validates assignment/packet consistency, rejects duplicate or partial real-response CSVs, keeps task-level paired deltas as diagnostics, and gates paper-scale support with thresholds: 12 participants, 8 primary task pairs per baseline, >=10 pp fixed-effect accuracy gain or >=20% median task-time reduction with Holm-corrected participant/task/order blocked-permutation p<=0.05, and <=5 pp false-positive increase. Current output is `participant_results_empty`, `c5_supported=false`, and `pilot_ready=false`. R184 independently records C5 as `ready_for_participant_collection`. R187 packages P01-P05 launch files and a blank 70-row response CSV, verifies no answer key or oracle/scoring fields in participant payloads, and records `c5_supported=false`. R193 points to the R187/R142 launch package and records 0 real responses. R195 awaits `r142-pilot-responses.csv`; the current default run has no inputs, no operations, and `c5_supported=false`. No participant responses exist. | No user-outcome claim should be made yet. | Real participant responses with time, accuracy, false positives, confidence, valid response contract, and paper-scale gate pass under the frozen preregistration. |
+| C6 tag adequacy/stability | partial for syntax/stability; protocol/gate artifacts only for canonicalization and long-tail review | 0 malformed tags in the full 3B run; noisy tags remain. R122 created a redacted 300-fragment label packet with 300/300 candidate tags joined from R123. R123 found 285/300 exact-stable real redacted fragments (95.000%) over 3 identical repeats with 0 invalid outputs. R180 expands the syntax/stability smoke to local 0.6b/1.1b/3b models: 2700/2700 valid outputs, aggregate 863/900 exact-stable fragments, and per-model stability of 299/300, 279/300, and 285/300. The 1.1b run is a negative adequacy signal because most outputs collapse to localization/localized variants. R189 shows deterministic vocabulary-hygiene potential by consolidating prompt-row tags 328 -> 279, LLM-event tags 1423 -> 1254, and token stacks 8569 -> 7661 while preserving raw tags in a mapping CSV. R190 writes a 160-row merge-risk packet with 80 over-merge proxy rows and 80 under-merge proxy rows. R190-score runs over the blank packet and reports `human_labels_empty`, 160 rows, 0 final labels, paired coverage 0.0%, and `canonicalization_quality_supported=false`. R196 adds a governance packet that keeps 1,241 rare distinct tags, sends 39 generic/noisy tags to regeneration, and flags 2 generic/noisy high-support tags for contextual split; its support gates still mark semantic adequacy and canonicalization quality unsupported. R201 sensitivity keeps those gates false while reporting that review-required support stays 1.926%-1.931% across seven variants and high-tail threshold head stability drops to 65.217%. R203 scores the R202 promotion packet as `human_labels_empty`: 41 rows, 0 final labels, `long_tail_promotion_review_supported=false`, `canonical_map_updated=false`, and `semantic_adequacy_supported=false`. R209 exports a reversible display map and drilldown index with 168 pending lexical/profile merge candidates, 41 regenerated candidates still inactive, and 0 reviewed diff rows. R212 adds a display-policy ablation with false-merge/missed-merge rates still `n/a`, keeping all adequacy/quality/map-update gates false. R124-scoring runs over the blank packet and reports `human_labels_empty`, 300 packet rows, 300 candidate tags, 0 final labels, and `adequacy_supported=false`. R124-blinding generates a 300-row labeler-facing sheet with only row id, fragment level, redacted preview, candidate tag, rubric, label, and notes fields; model identity, source agent, fragment hash, stability metadata, and downstream result columns are hidden. R124-join validates the source/blinded row match, writes an empty adjudication template, records 0 labeler rows, and produces no joined label output by default. R193 packages two blank R124 adequacy sheets, two blank R190 merge-risk sheets, and two blank R203 promotion sheets, all with 0 filled label cells. R194 confirms those sheets are blank and scorer outputs are empty. R195 awaits R124/R190/R203 labeler sheets; the current default run has no inputs, no operations, `c6_adequacy_supported=false`, `canonicalization_quality_supported=false`, `long_tail_promotion_review_supported=false`, and `canonical_map_updated=false`. R184 records C6 as `ready_for_independent_label_collection`, not supported. R204 confirms no must-fix overclaim for the long-tail protocol artifacts and keeps the gate at Level 3/not weak accept. | One-word tags are syntactically valid and often stable across the available local models; canonicalization, long-tail governance, policy sensitivity, regeneration, promotion review, and reversible display-map export are display-layer hygiene mechanisms with audit packets and scorers, but stability and canonicalization are not adequacy. | Human adequacy labels with explicit adequate/generic/misleading rubric, joined frozen label sheets, adjudicated disagreements, agreement thresholds, and review of high-support canonical merges plus R196/R202 regenerated/split candidates. |
+| C7 open-source developer usefulness | partial | R160 passed a bounded fixed-session local-history smoke over 8 historical Codex sessions with LLM-call tags enabled. The clean run produced local dashboard/folded/SVG/tag-cache artifacts in `.agentsight/agentflame/r160-smoke-fixed`, made 60 uncached llama.cpp calls over 76 tag requests, and took 1.64 s. The cached rerun reused the same `tags.json`, served 76/76 requests from cache, made 0 LLM calls, and took 0.11 s. The verifier found redacted previews, matching folded totals, generated report path containment, 0 dirty raw-trace-like paths, a sanitized fixed-input manifest hash `11ae4fb2c96a2d1478aa1525`, and clean/cached input equality. R200 adds a public-safe generated-fixture smoke: it starts a managed llama.cpp server, runs the Rust CLI on one temporary explicit Codex fixture with 5 clean tag calls, reruns with 0 model calls and 5/5 cache hits, verifies expected dashboard/folded/SVG/tag-cache artifacts and folded totals, records 0 non-redacted prompt previews, removes the fixture, and reports no new raw-trace-like dirty git paths. R170 reran the current full-history path with 35,136 fresh llama.cpp calls and wrote a sanitized committed summary, but the local `.agentsight` report is still private. A broader 36-session discovery run took 173.05 s and its cached rerun saw 34 new LLM calls because the live Codex session changed between runs. | AgentFlame has an auditable bounded local artifact path and a public-safe generated-fixture run that can regenerate the three core views and reuse its tag cache on fixed inputs. | Fresh-clone/community install on another machine, public-release sanitization of real local reports, clearer llama.cpp setup docs, stable default sampling, full write-set audit, and real external developer feedback. |
+
+R202 addendum: `docs/visexp/out/long-tail-regeneration-r202/long-tail-regeneration-r202.json`
+exercises optional llama.cpp regeneration for the R196 regenerate/split rows.
+It reports 41/41 attempted rows, 41 grammar-valid one-word candidate tags, 0 invalid
+outputs, 32 changed candidates, 9 unchanged candidates, and no canonical-map
+update. This strengthens only the display-layer mechanism evidence for C3/C6;
+it does not change the C5/C6 verdict because regenerated labels remain
+candidate-only and require human review. The top-level R202 summary and
+attempts CSV are public-oriented, but the nested `r196-with-regeneration/`
+detail directory is local-audit-only until sanitized or excluded.
+
+R203 addendum: `docs/visexp/out/long-tail-promotion-r203/long-tail-promotion-r203.json`
+turns the R202 generated candidates into a promotion review packet. It reports
+41 promotion rows, 41 grammar-valid regenerated candidates, 32 changed-from-raw
+candidates, 0 final labels, `long_tail_promotion_review_supported=false`, and
+`canonical_map_updated=false`. This creates the empty promotion-gate scaffold
+for candidate promotion workflow, but it does not change the C5/C6 verdict
+without real reviewer labels and a later reviewed display-map diff.
+
+R205 addendum: `docs/visexp/out/long-tail-compaction-r205/long-tail-compaction-r205.json`
+computes the compaction metrics required by the long-tail contract. It reports
+raw unique tag strings 1,546 -> canonical unique tag strings 1,364, top-20
+support coverage 93.683% -> 95.186%, long-tail support 1.746%, review-required
+support 1.926%, R189/R196 canonical mismatches 0, R203 final labels 0, and R190
+over/under-merge rates `n/a`.
+This supports only a measurable display-compaction mechanism; it does not
+support semantic adequacy, canonicalization quality, promotion quality, C5
+utility, or any canonical-map update.
+
+R209 addendum: `docs/visexp/out/reversible-display-map-r209/reversible-display-map-r209.json`
+materializes the reversible display-map layer. It reports 1,811 active display
+rows for 1,811 R196 raw-tag rows, 1,509 active display labels, 63 active alias
+rows, 168 pending lexical/profile merge candidates, 41 candidate regenerated
+labels, 0 reviewed diff rows, 0 hidden `other` rows, complete raw coverage,
+preserved drilldown support, and complete raw-tag membership in the drilldown
+CSV.
+It supports only the UI/data contract for reversible compaction; it does not
+activate regenerated labels, update the canonical map, or support adequacy,
+merge-quality, promotion-quality, or developer-utility claims.
+
+R212 addendum: `docs/visexp/out/display-compaction-ablation-r212/display-compaction-ablation-r212.json`
+compares raw, alias-only, profile-guarded-candidate-applied, and R209
+conservative display variants over the generated R170 system folded stacks. It
+conserves 183,714 total system-effect weight, reports 26,829 raw stacks,
+26,612 alias-only/R209 stacks, and 26,067 hypothetical profile-guarded stacks.
+The hypothetical profile view would activate unreviewed profile merges over
+2.532% of total effect weight. R212 supports the display-policy ablation and
+R209 alias-only active rule for session/prompt display labels; it does not
+cover LLM/token display compaction and does not support merge quality,
+adequacy, or developer utility.
+
+R213 addendum: `docs/visexp/out/display-mode-drilldown-r213/display-mode-drilldown-r213.json`
+verifies the raw/display/pending display-mode data-layer contract over generated
+R209 artifacts. It reports 1,811 raw buckets, 1,748 display buckets, 1,748
+pending buckets, 482,398 support preserved in all modes, 209 candidate overlay
+rows, 323 pending/review queue rows, 9,293 review-required support, unchanged
+pending membership, drilldown membership matching the active display map, and
+0 hidden `other` buckets. It supports only data-layer drilldown mechanics; it
+does not exercise the frontend renderer and does not support merge quality,
+adequacy, or developer utility.
+
+R214 addendum: `docs/visexp/out/long-tail-control-r214/long-tail-control-r214.json`
+specifies the adaptive long-tail control loop. It keeps 63 deterministic alias
+rows active, keeps 168 profile-merge candidates and 41 regenerated/split
+candidates pending, exposes 323 review-required rows, preserves 0 active
+candidate merges, writes a seven-bucket rollup preview that exactly preserves
+1,811 rows and 482,398 support, and records 0 promotable regeneration rows
+without human labels. It fails the current `prompt_review_budget` and
+`head_stability_under_high_tail_threshold` triggers. It supports only the
+auditable display-governance mechanism; it does not support candidate quality,
+semantic adequacy, frontend rendering, or canonical-map updates.
+
+R215 addendum: `docs/visexp/out/frontend-renderer-mode-r215/frontend-renderer-mode-r215.json`
+compiles the frontend display-mode TypeScript module and runs a Node harness
+that renders R209 display-map/drilldown rows and cross-checks R213/R214 summary
+counts. It reports `compiled_frontend_module=true`,
+`node_harness_executed=true`, 1,811 raw buckets, 1,748 display buckets, 1,748
+pending buckets, 482,398 support preserved, 209 candidate overlay rows, 323
+review-required rows, and 0 hidden `other` rows. The harness rejects both
+corrupted drilldown membership and candidate display tags promoted as active
+membership. It supports only a renderer-model smoke; it does not exercise a
+browser DOM, visual click path, merge quality, semantic adequacy, developer
+utility, or canonical-map updates.
+
+R216 addendum: `docs/visexp/out/browser-dom-mode-r216/browser-dom-mode-r216.json`
+compiles the same display-mode TypeScript module as browser ES modules and runs
+a temporary DOM harness in headless Chrome. It reports
+`browser_dom_renderer_exercised=true`, `mode_clicks_verified=true`, 1,811 raw
+buckets, 1,748 display buckets, 1,748 pending buckets, 482,398 support
+preserved, 209 candidate overlay rows, 323 review-required rows, and 0 hidden
+`other` rows. The DOM harness writes a screenshot and DOM dump and rejects both
+corrupted drilldown membership and candidate display tags promoted as active
+membership. It supports only a browser DOM harness smoke; it does not exercise
+the production React `AgentFlameView`, visual drilldown, merge quality,
+semantic adequacy, developer utility, or canonical-map updates.
+
+R217 addendum: `docs/visexp/out/production-react-display-r217/production-react-display-r217.json`
+builds the real Next static frontend and exercises the production
+`AgentFlameView` default display panel in headless Chrome. It reports
+`production_agentflame_view_exercised=true`, default mode `display`, 3 mode
+buttons, 1,748 visible buckets, 482,398 visible support, matching
+display/drilldown membership, and a saved DOM dump plus screenshot. It supports
+only production rendering of the default display mode; it does not click the
+controls, exercise visual drilldown, update the canonical map, or support
+quality/utility claims.
+
+R218 addendum: `docs/visexp/out/display-map-update-gate-r218/display-map-update-gate-r218.json`
+checks the reviewed display-map update gate with synthetic review fixtures over
+real R209 candidate rows. It accepts 2 preview diff rows, rejects 4 unsafe
+promotion rows, preserves 1,811 raw keys and 482,398 support, creates 0 hidden
+`other` buckets, and keeps `canonical_map_updated=false`. It supports update
+gate mechanics only; promotion quality still requires real R190/R203 labels.
+
+R219 addendum: `docs/visexp/out/claim-readiness-r219/claim-readiness-r219.json`
+mechanically summarizes the current claim and RQ readiness. It reads generated
+artifacts only and reports `osdi_weak_accept_not_supported`: C1 is supported,
+C2 is supported for syntax/latency, C3 is supported as a mechanism, C4 is
+supported for the fixed command-mode suite, C5 is unsupported, C6 is partial
+syntax/stability only, and C7 is partial. It records 0 C5 responses and 0 C6
+final adequacy labels, keeps `weak_accept_supported=false`, and lists
+`R142-pilot-return` plus `R124-labels-return` as the P0 next evidence rows.
+It is an audit artifact only and cannot upgrade any claim.
+
+R211 addendum: `docs/visexp/out/stack-examples-r211/stack-examples-r211.json`
+packages label distributions, process splits, baseline-collapse examples, and
+top semantic stacks from generated R170/R189 artifacts. It reports
+`raw_trace_read=false`, `llm_called=false`, six tag dimensions, 16 process-split
+rows, 14 baseline-collapse examples, and 12 top-stack examples. It supports
+only RQ2 figure/example selection; it does not support C5 utility, C6 adequacy,
+or exact-lineage breadth.
+
+R204 addendum: `docs/visexp/out/osdi-gate-review-r204.md` independently reviews
+the R203/R193/R194/R195/R202 integration. It finds no must-fix overclaim for
+those artifacts, recommends calling R202/R203 C6 protocol/gate artifacts rather
+than adequacy evidence, and keeps the project at Level 3/not weak accept until
+real C5 participant responses and C6 human labels exist.
+
+R206 addendum: `docs/visexp/out/osdi-rq-gate-review-r206.md` independently
+reviews the revised RQ summary and experiment-plan execution slice. It finds no
+material plan-wording blocker and agrees the novelty is framed as semantic
+attribution of system effects, but it does not change any claim verdict: C5
+still needs participant responses and C6 still needs human labels.
+
+R207 addendum:
+`docs/visexp/out/human-evidence-launch-r207/human-evidence-launch-r207.json`
+audits the launch handoff. It reports `launch_ready_no_outcomes` with five
+R142 participant packets, a blank 70-row response template, two 300-row R124
+sheets, two 160-row R190 sheets, two 41-row R203 sheets, and explicit R195
+return-file names. This supports only collection readiness; it does not change
+C5, C6, canonicalization, promotion, or map-update verdicts.
+
+R208 addendum: `docs/visexp/out/osdi-gate-review-r208.md` independently reviews
+the plan and paper after the reversible long-tail compaction boundary and
+R205/R207 alignment. It says the revisions materially improve scoping and
+collection readiness, but they do not change any claim verdict: C5 still needs
+real participant responses, C6 still needs R124 human adequacy labels, and
+compaction quality still needs R190/R203 labels before any merge-quality or
+promotion-quality claim.
 
 ## Current OSDI Readiness
 
@@ -31,9 +189,9 @@ two central systems-paper gaps remain:
    user-value claim has no scored user/task benchmark, and tag
    adequacy/stability is still incomplete.
 
-R184 encodes the current human-evidence gate directly: while either C5 or C6 is
-missing, the readiness status is `not_weak_accept`, and subagent/LLM/mock
-substitutes do not count.
+R184 encodes the current human-evidence gate directly, and R219 restates it as
+a full claim/RQ matrix: while either C5 or C6 is missing, the readiness status
+is not weak accept, and subagent/LLM/mock/synthetic substitutes do not count.
 
 R186 cleans up the plan/RQ order before human collection, R187 packages the
 R142 pilot launch materials, and R188 independently reviews the post-R187 plan,

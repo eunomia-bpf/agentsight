@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-15
 Stage at update: analyze
-Source/command: `cargo run --manifest-path agentflame/Cargo.toml -- run --project-root . --scan-files 10000 --max-sessions 10000 --llama-url http://127.0.0.1:18080 --model local --timeout 60 --out .agentsight/agentflame/latest`
+Source/command: R170 full-history run plus `python3 docs/visexp/r189_tag_consolidation.py`, `python3 docs/visexp/r190_tag_consolidation_audit.py`, `python3 docs/visexp/r190_score_merge_audit.py`, `python3 docs/visexp/r196_long_tail_governance.py`, `python3 docs/visexp/r201_long_tail_sensitivity.py`, `python3 docs/visexp/r202_long_tail_regeneration_smoke.py --regenerate-limit 50 --load-timeout 240 --llama-timeout 60`, `python3 docs/visexp/r203_long_tail_promotion_gate.py`, `python3 docs/visexp/r205_long_tail_compaction_metrics.py`, `python3 docs/visexp/r209_reversible_display_map.py`, `python3 docs/visexp/r211_stack_examples.py`, `python3 docs/visexp/r212_display_compaction_ablation.py`, `python3 docs/visexp/r213_display_mode_drilldown_smoke.py`, `python3 docs/visexp/r214_long_tail_control_loop.py`, `python3 docs/visexp/r215_frontend_renderer_mode_smoke.py`, `python3 docs/visexp/r216_browser_dom_mode_smoke.py`, `python3 docs/visexp/r217_production_react_display_mode_smoke.py`, `python3 docs/visexp/r218_display_map_update_gate.py`, `python3 docs/visexp/r219_claim_readiness_gap_gate.py`, `python3 docs/visexp/r193_prepare_human_evidence_package.py`, `python3 docs/visexp/r194_human_evidence_preflight.py`, `python3 docs/visexp/r195_human_evidence_pipeline.py`, `python3 docs/visexp/r207_human_launch_readiness.py`, `python3 docs/visexp/r200_community_smoke.py`, `docs/visexp/LONG_TAIL_COMPACTION.md`, `docs/visexp/out/osdi-gate-review-r204.md`, `docs/visexp/out/osdi-rq-gate-review-r206.md`, and `docs/visexp/out/osdi-gate-review-r208.md`
 Completeness: partial
 
 ## Headline Result
@@ -36,6 +36,198 @@ R182 is a partial implementation smoke rather than proof of loopback workload
 network capture. The project still does not prove broad cross-repo/full-history
 exact lineage or user utility.
 
+R189 adds a display-time canonical tag consolidation run over the R170
+full-history artifacts. It preserves all folded weights while reducing
+prompt-effect tags 263 -> 216, prompt-row tags 328 -> 279, LLM-event tags
+1423 -> 1254, system stacks 26,829 -> 26,067, and token stacks 8569 -> 7661.
+This is useful evidence for an auditable vocabulary-hygiene layer and a
+candidate display-noise reduction proxy. It is not human tag adequacy evidence
+and does not prove the merged tags are semantically redundant.
+
+R190 adds the missing consolidation-rule ablation and audit packet. Raw,
+alias-only, lexical-only, and profile-guarded variants produce prompt-effect
+tag counts of 263, 241, 200, and 216 respectively; LLM-event tag counts of
+1423, 1392, 868, and 1254; system-stack counts of 26,829, 26,612, 25,985, and
+26,067. The result clarifies that lexical-only consolidation is much more
+aggressive than the current profile-guarded policy. R190 exports 80
+over-merge proxy rows and 80 under-merge proxy rows with blank audit labels; it
+is an audit protocol, not correctness evidence.
+
+R190-score adds the scoring bridge for that audit packet. The current run over
+the blank 160-row packet reports `human_labels_empty`, 0 final labels, paired
+coverage 0.0%, and `canonicalization_quality_supported=false`; over-merge and
+under-merge rates remain `n/a` until two independent labeler sheets and any
+adjudication are supplied.
+
+R196 adds a long-tail governance pass over the R170/R189 artifacts. It preserves
+raw tags and classifies display actions instead of collapsing the tail into
+`other`: 231 existing canonical merges, 114 review-merge rows, 39 regeneration
+candidates, 2 contextual-split candidates, 1,241 kept rare distinct tags, and
+184 kept head tags. Review-required support is 0.938% for session tags, 3.258%
+for prompt tags, and 1.376% for LLM-call tags. This is a mechanism/review
+packet, not semantic adequacy or merge-quality evidence.
+
+R201 stress-tests the long-tail governance thresholds and generic/noisy
+vocabulary. Review-required support stays nearly flat at 1.926%-1.931% across
+seven variants, while the higher-tail-threshold variant drops baseline-head
+stability to 65.217%. R202 then exercises the optional regeneration path with
+the local llama.cpp server: all 41 regenerate/split rows return grammar-valid
+one-word candidate tags, with 32 changed from the raw tag and 9 unchanged. R203
+converts those candidates into a 41-row promotion-review protocol with two
+blank reviewer sheets, 0 final labels,
+`long_tail_promotion_review_supported=false`, and
+`canonical_map_updated=false`. These are semantic compaction and governance
+artifacts; they do not prove tag adequacy or merge quality.
+
+`docs/visexp/LONG_TAIL_COMPACTION.md` now defines the intended compaction
+contract: immutable raw tags, versioned canonical maps, fixed governance
+actions, bounded local-LLM regeneration packets, paired promotion review, and
+metrics for raw/canonical unique tags, tail mass, review-required support,
+head stability, regeneration validity, and promotion acceptance. This makes
+the long-tail mechanism explicit, but it does not change any human-evidence
+gate.
+
+R205 computes that metric packet over the current generated artifacts. Overall,
+raw unique tag strings are 1,546 and canonical unique tag strings are 1,364
+(11.772% reduction). Top-20 support coverage increases from 93.683% to 95.186%
+after the current canonical overlay. Long-tail support is 1.746% and
+review-required support is 1.926%. The same packet records 41/41 grammar-valid
+R202 regenerated candidates, 0 R203 final promotion labels, 0.0% R203 paired
+label coverage, and `n/a` R190 over/under-merge rates. Its input-consistency
+check matches all 1,811 R196 rows to R189 with 0 canonical mismatches and
+231/231 auto-canonicalize rows coming from R189 merge rows. This is a measurable
+compaction artifact, not a quality, adequacy, or utility claim.
+
+R209 makes that compaction layer directly consumable by renderers and reviewers.
+It reads only generated R196/R203/R205 artifacts and emits an active display
+map, a complete raw-tag drilldown index, and a reviewed display-map diff file. The
+current run covers 1,811/1,811 raw tag rows, exposes 1,509 active display
+labels, applies only 63 deterministic alias rows as active display merges, keeps
+168 R189 lexical/profile merges as pending merge candidates, keeps 41
+regenerated labels as candidate-only rows, emits 0 reviewed diff rows, records
+0 hidden `other` rows, preserves drilldown support, and stores complete raw-tag
+membership for every display bucket. It does not activate unreviewed profile
+merges, regenerated labels, or any canonical-map update.
+
+R212 then ablates that session/prompt display policy over the generated R170
+semantic-system folded stacks. It preserves the 183,714 total system-effect weight in all four
+variants. Raw stacks are 26,829; alias-only and R209 conservative display both
+produce 26,612 stacks with 48 session tags and 241 prompt tags; the hypothetical
+profile-guarded-candidate-applied view produces 26,067 stacks with 45 session
+tags and 216 prompt tags, but it would activate unreviewed profile merges over
+2.532% of system-effect weight. For selected collapsed behaviors, R209 reduces
+distinct prompt tags without changing top-prompt mass: `git/read/ok` moves from
+146 raw prompt tags to 133 under R209, while the hypothetical profile-guarded
+view would move to 116; `cargo/test/ok` moves from 62 to 57 under R209 and 52
+under profile-guarded. R212 is a display-policy ablation only; it does not
+cover LLM/token display compaction, and false-merge and missed-merge rates
+remain `n/a` until R190/R203 human labels exist.
+
+R213 turns the R209 contract into a display-mode data-layer smoke for
+raw/display/pending views. It reads generated R209 artifacts only and verifies
+that all three modes preserve 482,398 total support. Raw mode exposes 1,811
+buckets; display and pending modes expose 1,748 buckets; pending overlays 209
+candidate rows and 323 review-required rows with 9,293 support, without changing
+display membership. The strengthened oracle also checks that drilldown raw-tag
+membership exactly matches the active display map. This supports the data-layer
+drilldown contract only; it is not frontend-renderer, merge-quality, adequacy,
+or user-utility evidence.
+
+R214 makes the long-tail mechanism operational as a control loop rather than an
+implicit cleanup rule. It reads only generated R196/R201/R202/R205/R209/R213
+artifacts and emits dimension priorities, action gates, trigger gates, a
+review-priority queue, a non-default rollup preview, and a regeneration version
+policy. The current policy keeps 63 deterministic alias rows active, keeps 168
+profile-merge candidates and 41 regenerated/split candidates pending, preserves
+1,241 rare-distinct rows as raw labels, and exposes 323 review-required rows.
+The rollup preview exactly partitions 1,811 raw-tag rows and 482,398 support
+into seven governance buckets, but it is not default membership. Overall
+long-tail support is 1.746% and review-required support is 1.926%, but
+prompt-level review support is 3.258% and high-tail threshold head stability is
+only 65.217%, so R214 deliberately fails those two control triggers. This is
+the answer to the long-tail question: merge or regenerate candidates can be
+proposed, but they cannot change default display membership without reviewed
+display-map diffs.
+
+R215 adds a frontend renderer-model smoke for that contract. It compiles
+`frontend/src/utils/agentflameDisplayModes.ts` under TypeScript and runs a Node
+harness that renders from R209 display-map/drilldown rows and cross-checks
+R213/R214 summary counts. The frontend consumer sees the same raw/display/pending
+shape as R213: 1,811 raw buckets, 1,748 display buckets, 1,748 pending buckets,
+482,398 support preserved, 209 candidate
+overlays, 323 review-required rows, 63 active merges, and 0 hidden `other`
+rows. Two negative fixtures are rejected: corrupted raw drilldown membership
+and treating a candidate display tag as active membership. This supports only a
+frontend TypeScript renderer-model boundary, not a browser DOM, visual click
+path, merge-quality, adequacy, or user-utility claim.
+
+R216 moves that same display-mode contract into a real headless browser without
+claiming the production React view. The script compiles
+`frontend/src/utils/agentflameDisplayModes.ts` as ES browser modules, serves a
+temporary localhost DOM harness, clicks raw/display/pending controls, and writes
+both a DOM dump and screenshot. The browser-visible state preserves 482,398
+support, shows 1,748 pending buckets, 209 candidate overlays, 323
+review-required rows, and 63 active merges, while the same corrupted-drilldown
+and candidate-as-active fixtures are rejected. This closes the browser DOM
+harness gap, but production `AgentFlameView`, visual drilldown, merge quality,
+C5 utility, and C6 adequacy remain untested.
+
+R217 closes the production-rendering smoke for the default display view. It
+builds the real Next static frontend, serves a minimal AgentFlame API fixture
+with R209 display-map/drilldown artifacts, opens `/agentflame` in headless
+Chrome, and checks the production `AgentFlameView` DOM. The visible default
+mode is `display` with 1,748 buckets, 482,398 support, 3 mode buttons, 0
+candidate/review overlays in the default view, and display-map membership
+matching the raw drilldown. This is still not a click-path, visual drilldown,
+merge-quality, adequacy, or user-utility result.
+
+R218 turns the long-tail merge/regeneration answer into a checked update gate.
+It reads generated R209 artifacts only and uses synthetic review fixtures over
+real pending candidate rows. The gate accepts 2 final consensus/adjudicated
+promotion rows into a preview display-map diff, rejects 4 unsafe rows
+(`unclear`, weak single-label, hidden `other`, and missing-source cases),
+preserves 1,811 raw keys and 482,398 support in the preview, and keeps
+`canonical_map_updated=false`. This supports the reviewed-diff mechanism only;
+because the review labels are synthetic, it is not promotion-quality or human
+adequacy evidence.
+
+R211 packages the R170/R189 outputs into reviewer-facing stack examples and
+figure inputs. It reports that `rg` spans 176 prompt tags, `sed` spans 180,
+`git` spans 147, and `cargo` spans 68. The `process:git;effect:read;status:ok`
+bucket has 116 prompt tags and top-prompt share 24.977%, while
+`process:cargo;effect:test;status:ok` has 48 prompt tags and non-top-prompt
+weight 68.05%. This is RQ2 case-study evidence, not user-utility or tag-quality
+evidence.
+
+R193 packages the remaining human-evidence collection materials without adding
+outcome data: two blank R124 labeler sheets, two blank R190 labeler sheets, two
+blank R203 promotion labeler sheets, and a pointer to the already frozen R142
+launch package. Its manifest records 0 R124 final labels, 0 R190 final labels,
+0 R203 final labels, 0 R142 real responses, and all support gates false.
+
+R194 preflights that package and the existing scorer outputs. It reports
+`ready_for_human_collection_no_outcomes`: hashes match, R124/R190/R203 sheets
+are blank, the R142 response template is blank, existing scorers are empty, and
+all support gates remain false.
+
+R195 adds the post-collection ingestion/scoring pipeline. The default run has
+no returned CSV files in its inbox, so it reports `awaiting_human_inputs`, runs
+no scorers, writes no R195 scored results, and keeps `c5_supported=false`,
+`c6_adequacy_supported=false`, and
+`canonicalization_quality_supported=false`,
+`long_tail_promotion_review_supported=false`, and
+`canonical_map_updated=false`. When real R142 responses or R124/R190/R203 label
+sheets are supplied, R195 writes scored outputs under its own R195-specific
+directory rather than overwriting the canonical empty gates.
+
+R219 summarizes the current evidence as a mechanical claim/RQ readiness gate.
+It reads generated artifacts only, writes claim/RQ/next-experiment CSVs, and
+reports `osdi_weak_accept_not_supported`: C1 is supported, C2 is supported for
+syntax/latency, C3 is supported as mechanism, C4 is supported for the fixed
+command-mode suite, C5 is unsupported, C6 is partial syntax/stability only, and
+C7 is partial. It records 0 C5 participant responses and 0 C6 final adequacy
+labels, making `R142-pilot-return` and `R124-labels-return` the P0 next rows.
+
 ## Completed Runs
 
 | Run | Command/config | Result path | Status |
@@ -65,7 +257,34 @@ exact lineage or user utility.
 | R187 | R142 pilot launch package with P01-P05 participant packets and a blank response CSV | `docs/visexp/out/user-task-pilot-r142/launch/manifest.json` | done/launch; no participants |
 | R188 | Read-only OSDI plan review after R187 | `docs/visexp/out/osdi-plan-review-r188.md` | Level 3; still not weak accept; R142/R124 real evidence next |
 | R160 | Bounded fixed-session artifact-usability smoke over 8 historical Codex sessions, with clean and cached AgentFlame runs | `docs/visexp/out/artifact-usability-r160.json` | done/bounded; C7 remains partial |
+| R200 | Public-safe generated-fixture AgentFlame community smoke with managed llama.cpp clean/cached run | `docs/visexp/out/community-smoke-r200.json`, `docs/visexp/out/community-smoke-r200.md` | done/artifact-hygiene; no adoption claim |
 | R170 | Current full-history AgentFlame refresh over all discovered repo sessions with real llama.cpp annotation calls | `docs/visexp/out/full-history-r170.json` | done/mechanism; not C5/C6 |
+| R189 | Canonical tag consolidation over R170 folded stacks and tag profiles | `docs/visexp/out/tag-consolidation-r189/tag-consolidation-r189.json` | done/noise-control mechanism; not adequacy |
+| R190 | Canonical tag consolidation ablation and merge-risk audit packet | `docs/visexp/out/tag-consolidation-audit-r190/tag-consolidation-audit-r190.json` | done/audit-packet-ready; no labels |
+| R190-score | Merge-risk audit scorer and empty-label gate | `docs/visexp/out/tag-consolidation-audit-r190/merge-risk-audit-results-r190.json` | done/empty; no quality claim |
+| R196 | Long-tail tag governance packet over R170/R189 artifacts | `docs/visexp/out/long-tail-governance-r196/long-tail-governance-r196.json` | done/governance mechanism; no adequacy claim |
+| R201 | Long-tail governance sensitivity over R196 policy variants | `docs/visexp/out/long-tail-sensitivity-r201/long-tail-sensitivity-r201.json` | done/sensitivity; no adequacy claim |
+| R202 | Long-tail candidate regeneration smoke over R196 regenerate/split rows | `docs/visexp/out/long-tail-regeneration-r202/long-tail-regeneration-r202.json` | done/candidate-only regeneration smoke; no adequacy claim |
+| R203 | Human-gated promotion protocol for R202 regenerated long-tail candidates | `docs/visexp/out/long-tail-promotion-r203/long-tail-promotion-r203.json` | done/empty-promotion-gate; no adequacy or map-update claim |
+| R205 | Long-tail compaction metrics over R189/R190/R196/R201/R202/R203 artifacts | `docs/visexp/out/long-tail-compaction-r205/long-tail-compaction-r205.json` | done/metrics-only; no adequacy or quality claim |
+| R209 | Reversible display-map and raw drilldown contract over R196/R203/R205 artifacts | `docs/visexp/out/reversible-display-map-r209/reversible-display-map-r209.json` | done/display-map contract; no adequacy, quality, or map-update claim |
+| R211 | Reviewer-facing label distribution, stack examples, and baseline-collapse figure inputs over R170/R189 artifacts | `docs/visexp/out/stack-examples-r211/stack-examples-r211.json` | done/RQ2 examples only; no C5/C6 outcome claim |
+| R212 | Display-compaction ablation over R170 folded stacks and R196/R209 maps | `docs/visexp/out/display-compaction-ablation-r212/display-compaction-ablation-r212.json` | done/display-policy ablation; no merge-quality or utility claim |
+| R213 | Display-mode raw/display/pending drilldown data-layer smoke over R209 artifacts | `docs/visexp/out/display-mode-drilldown-r213/display-mode-drilldown-r213.json` | done/data-layer smoke; no frontend-renderer, merge-quality, or utility claim |
+| R214 | Adaptive long-tail control loop over R196/R201/R202/R205/R209/R213 artifacts | `docs/visexp/out/long-tail-control-r214/long-tail-control-r214.json` | done/control-loop plus rollup/regeneration-version gates; no semantic-quality or map-update claim |
+| R215 | Frontend TypeScript renderer-model smoke for raw/display/pending display modes | `docs/visexp/out/frontend-renderer-mode-r215/frontend-renderer-mode-r215.json` | done/renderer-model smoke; no DOM, quality, adequacy, or utility claim |
+| R216 | Headless-browser DOM harness smoke for raw/display/pending display modes | `docs/visexp/out/browser-dom-mode-r216/browser-dom-mode-r216.json` | done/browser-DOM harness smoke; no production React view, visual drilldown, adequacy, quality, or utility claim |
+| R217 | Production React `AgentFlameView` default display-mode smoke over R209 artifacts | `docs/visexp/out/production-react-display-r217/production-react-display-r217.json` | done/production-render smoke; no click path, visual drilldown, adequacy, quality, or utility claim |
+| R218 | Reviewed display-map update gate over real R209 candidate rows with synthetic review fixtures | `docs/visexp/out/display-map-update-gate-r218/display-map-update-gate-r218.json` | done/update-gate smoke; synthetic review only, no promotion-quality or map-update claim |
+| R219 | Claim/RQ readiness gap gate over generated evidence artifacts | `docs/visexp/out/claim-readiness-r219/claim-readiness-r219.json` | done/readiness audit; `weak_accept_supported=false`, P0 next rows are R142/R124 |
+| R204 | Read-only OSDI gate review after long-tail promotion and human-evidence integration | `docs/visexp/out/osdi-gate-review-r204.md` | Level 3/not weak accept; no must-fix overclaim found |
+| R206 | Read-only OSDI RQ/experiment-plan gate review after R205 and RQ summary revision | `docs/visexp/out/osdi-rq-gate-review-r206.md` | no material plan-wording blocker; Level 3/not weak accept because C5/C6 evidence missing |
+| R208 | Read-only OSDI gate review after R205/R207 paper-plan alignment | `docs/visexp/out/osdi-gate-review-r208.md` | Level 3/not weak accept; latest revisions improve scoping/readiness but not outcome evidence |
+| R192 | Read-only subagent OSDI gate review after R190-score | `docs/visexp/out/osdi-gate-review-r192.md` | Level 3; R190-score strengthens gate only |
+| R193 | Human-evidence collection package for R142/R124/R190/R203 | `docs/visexp/out/human-evidence-r193/manifest.json` | done/collection-ready; no outcome evidence |
+| R194 | Human-evidence collection preflight gate | `docs/visexp/out/human-evidence-preflight-r194.json` | done/preflight-ready; no outcome evidence |
+| R195 | Human-evidence ingestion/scoring pipeline | `docs/visexp/out/human-evidence-pipeline-r195.json` | awaiting inputs; no outcome evidence |
+| R207 | Human-evidence launch-readiness audit and R195 return-file mapping | `docs/visexp/out/human-evidence-launch-r207/human-evidence-launch-r207.json` | launch-ready/no outcomes; five packets, blank sheets/templates, clear return names |
 | R171 | Read-only subagent OSDI gate review after R170/R124-join planning | `docs/visexp/out/osdi-gate-review-r171.md` | done/review |
 | R181 | Read-only subagent OSDI gate review after R180 local multi-model benchmark | `docs/visexp/out/osdi-gate-review-r181.md` | done/review; still not weak accept |
 | R060 | legacy Python prototype pipeline over sampled sessions | `docs/visexp/out/pipeline-report.json` | legacy, superseded for headline scale |
@@ -88,9 +307,19 @@ generated report path containment, dirty raw-trace-like paths, a sanitized
 fixed-input manifest, and clean/cached input equality. The manifest hash is
 `11ae4fb2c96a2d1478aa1525`, and it contains no raw prompts, absolute session
 paths, or session filenames. This supports only an auditable bounded
-artifact-path claim. A fresh-clone install smoke, public-release sanitization of
-local `.agentsight` reports, full write-set audit, and external developer
-feedback are still missing.
+artifact-path claim.
+
+R200 adds a public-safe generated-fixture smoke that does not read real
+`.codex` or `.claude` traces. It starts a managed llama.cpp server, runs the
+Rust AgentFlame CLI against one temporary explicit Codex fixture, then reruns
+the same command to check fixed-input caching. The clean run made 5 llama.cpp
+tag calls, the cached rerun made 0 tag calls with 5/5 cache hits, the run
+produced the expected dashboard/folded/SVG/tag-cache artifacts, folded totals
+matched, prompt previews stayed redacted, no raw-trace-like git paths became
+dirty, and the committed summary redacts local paths. This strengthens C7
+artifact hygiene only: it is not a fresh-clone install on another machine, not
+public-release sanitization of real `.agentsight` reports, not full write-set
+containment, and not external developer feedback.
 
 ## Current Full-Run Metrics
 
@@ -159,6 +388,164 @@ inventing labels. On the current blank R122 packet it reports
 `human_labels_empty`, 300 packet rows, 300 candidate tags, 0 final labels, no
 adequacy percentage, and `adequacy_supported=false`. This keeps C6 partial while
 making the next human-label run mechanically auditable.
+
+## Canonical Tag Consolidation
+
+R189 reads only the generated R170 `agentflame.json`,
+`semantic-system.folded.txt`, and `semantic-token.folded.txt`; it does not
+rescan or mutate raw agent traces. It preserves raw one-word tags and writes an
+auditable `raw_tag -> canonical_tag` mapping.
+
+| Dimension | Raw unique | Canonical unique | Top-20 coverage before | Top-20 coverage after |
+|-----------|-----------:|-----------------:|-----------------------:|----------------------:|
+| Session effect | 53 | 45 | 99.465% | 99.714% |
+| Prompt effect | 263 | 216 | 90.445% | 92.720% |
+| Prompt rows | 328 | 279 | 79.573% | 83.666% |
+| LLM events | 1,423 | 1,254 | 94.546% | 95.337% |
+| LLM tokens | 1,423 | 1,254 | 99.999% | 100.000% |
+
+The canonical folded outputs preserve totals: system stacks reduce
+26,829 -> 26,067 with the same 183,714 system-effect weight; token stacks reduce
+8569 -> 7661 with the same token weight. Example high-confidence merges include
+`testcodex -> test`, `docsupdate -> docs`, `rootpidrefs -> trace`, and
+`jsonokno -> verify`. Rows below the auto-merge threshold stay as review
+suggestions.
+
+R189 reports merge mechanisms separately. Applied merges are 8 dictionary
+aliases and 3 lexical+profile merges for session tags, 24 aliases and 25
+lexical+profile merges for prompt tags, and 31 aliases plus 140
+lexical+profile merges for LLM-call tags. There are no profile-only merges in
+this prototype, so the result should be read as alias/lexical consolidation
+guarded by behavior profiles, not as proof of a learned semantic taxonomy.
+
+R190 compares consolidation rules directly:
+
+| Variant | Prompt-effect tags | LLM-event tags | System stacks | Token stacks |
+|---------|-------------------:|---------------:|--------------:|-------------:|
+| raw | 263 | 1,423 | 26,829 | 8,569 |
+| alias-only | 241 | 1,392 | 26,612 | 8,190 |
+| lexical-only | 200 | 868 | 25,985 | 7,169 |
+| profile-guarded current | 216 | 1,254 | 26,067 | 7,661 |
+
+The `merge-risk-audit-packet-r190.csv` file contains blank `audit_label` and
+`audit_notes` columns. R190-score reads the same packet and currently reports
+`human_labels_empty`: 160 rows, 0 final labels, paired coverage 0.0%,
+`canonicalization_quality_supported=false`, and no over-merge/under-merge rate.
+The required next step is human review of these rows to estimate merge quality.
+
+R196 extends this into an explicit long-tail governance packet. It classifies
+all 1,811 observed raw tags across session, prompt, and LLM-call dimensions:
+231 are existing R189 canonical merges, 114 are R189 review-merge rows, 39 are
+profile-only regeneration candidates, 2 are contextual-split candidates, 1,241
+are kept rare distinct tags, and 184 are kept head tags. The key design choice
+is conservative: multi-peak semantic head tags such as `refactor`, `review`,
+or `design` are not split automatically merely because they touch many
+process/path buckets. Regeneration and contextual split are reserved for
+generic/noisy tags such as `update`, `codex`, or `ignored`. The review packet is
+ready with 323 review-required rows and 0 accepted review labels, but it is not
+a human adequacy result.
+
+R201 adds a policy-sensitivity check for that governance layer. It reruns the
+R196 decision logic over seven threshold and generic-vocabulary variants.
+Baseline review-required support is 1.926% of total support; the worst variant
+is expanded generic vocabulary at 1.931%. Lower and higher tail thresholds move
+long-tail support from 0.921% to 3.030%. The higher-tail-threshold variant
+lowers baseline-head stability to 65.217%, which is a reported policy risk. The
+result strengthens the claim that review-required row/support counts are stable
+within this grid, but it does not measure reviewer time and does not prove
+adequacy or merge quality.
+
+R202 exercises the optional llama.cpp regeneration path for the R196 rows that
+were already routed to regeneration or contextual split. It attempts all 41
+candidate rows with the local qwen2.5-3B GGUF server: 41/41 outputs are
+grammar-valid one-word tags, 0 are invalid, 32 differ from the raw tag, 9 are
+unchanged, and 25 unique regenerated tags are proposed. The output is
+candidate-only mechanism evidence: raw tags remain preserved, the canonical map
+is not updated, and C5, C6, canonicalization quality, and community adoption
+gates remain false. Only the top-level R202 summary and attempts CSV are
+public-oriented; the nested `r196-with-regeneration/` details remain
+local-audit-only until sanitized or excluded.
+
+R203 adds the missing promotion gate for those R202 candidates. It consumes only
+the public-oriented R202 attempts CSV, writes a 41-row promotion packet plus two
+blank reviewer sheets and an adjudication template, and reports
+`human_labels_empty`: 0 final labels, `long_tail_promotion_review_supported=false`,
+`canonical_map_updated=false`, and `semantic_adequacy_supported=false`. This
+turns long-tail regeneration into a reviewable protocol rather than an automatic
+display-map mutation.
+
+R209 then exports the reversible display-map contract that a UI can consume
+without hiding the tail. `active-display-map-r209.csv` has one row for every
+R196 raw tag; `display-drilldown-r209.csv` groups those rows under the active
+display labels with support, review burden, top processes/effects/paths, and
+complete raw-tag lists; `reviewed-display-map-diff-r209.csv` is empty because R203 has
+0 final promotion labels. The committed artifact reports complete raw coverage,
+0 hidden `other` rows, 63 active alias rows, 168 pending merge candidates, 41
+candidate regenerated labels, and no map update.
+
+R212 checks the session/prompt display-policy consequences directly on the R170
+folded system stacks. It confirms R209's conservative display is exactly alias-only in the
+current artifact: both variants have 26,612 stacks and affect 1.188% of
+system-effect weight. Applying all profile-guarded candidates would reduce to
+26,067 stacks and affect 3.72% of weight, but 2.532% of total effect weight would
+come from unreviewed profile merges. This is useful reviewer evidence for why
+R209 keeps those merges pending; it is not a claim that the pending merges are
+correct, and it does not cover LLM/token display compaction.
+
+R213 checks the display-mode data-layer consequence of that contract. The raw
+mode has 1,811 buckets, display has 1,748 buckets, and pending has the same
+1,748 display buckets while overlaying 209 candidate rows and 323
+review-required rows. All modes preserve 482,398 support, pending membership is
+unchanged, drilldown membership matches the active display map, and hidden
+`other` buckets remain 0. This makes the display contract auditable, but it
+still does not exercise the frontend renderer and cannot support quality or
+utility claims.
+
+R214 turns the long-tail display contract into a control loop. The committed
+artifact keeps the default view active-alias-only with pending overlays: 63
+active alias rows, 209 pending candidate rows, 323 review-required rows, and 0
+candidate merges active by default. It also exposes a seven-bucket governance
+rollup preview that preserves all 1,811 rows and 482,398 support while remaining
+non-default, and it records that the 41 regenerated candidates have 0 promotable
+rows without human labels. Its trigger gates intentionally fail
+`prompt_review_budget` and `head_stability_under_high_tail_threshold`, which
+means the current evidence argues against automatically raising tail thresholds
+or promoting prompt-level candidates without human review.
+
+R215 takes the next step into the frontend code path without claiming browser
+coverage. The TypeScript display-mode module compiles under `tsc` and a Node
+harness renders raw/display/pending buckets from R209 display-map/drilldown rows
+while cross-checking expected R213/R214 summary counts. It preserves the same
+482,398 support across modes, exposes 1,811
+raw buckets and 1,748 display/pending buckets, overlays 209 candidates and 323
+review-required rows only in pending mode, and rejects both corrupted drilldown
+membership and candidate-as-active promotion. This closes the renderer-model
+consumer gap left by R213, but a DOM renderer, visual drilldown path, and user
+task utility remain untested.
+
+R216 adds the browser DOM harness that R215 deliberately avoided. The script
+compiles the same display-mode module as a browser ES module, serves a temporary
+localhost page, and runs it under headless Chrome. The DOM harness
+programmatically clicks raw, display, and pending controls; the final pending
+view exposes 1,748 buckets, 482,398 support, 209 candidate overlays, and 323
+review-required rows. The DOM checks verify these counts, re-run the membership
+oracle, and reject corrupted raw membership plus unreviewed candidate promotion;
+the screenshot is saved for manual inspection. R216 is still a harness, not the
+production React `AgentFlameView`, and it is not a C5/C6 outcome.
+
+R211 turns the same R170/R189 measurements into compact tables and SVG figure
+inputs for the baseline-failure story. The top label shares are deliberately
+shown as distributions, not as adequacy evidence: `review` is 25.231% of
+sessions, while `refactor` is 39.824% of prompt system-effect weight and
+83.575% of estimated LLM-token tag weight. The process split table shows why a
+flat process summary is insufficient: `rg`, `sed`, `git`, `find`, `python3`,
+and `cargo` each carry dozens to hundreds of distinct prompt tags. The
+baseline-collapse examples keep concrete stacks such as
+`process:git;effect:read;status:ok` and `process:cargo;effect:test;status:ok`
+with their semantic prompt splits for paper figures.
+
+The following top-tag tables are the original 205-session headline run, not the
+R189 canonical R170 counts.
 
 Top prompt tags:
 
@@ -406,7 +793,12 @@ provenance.
   and currently records `human_labels_empty`; R124-blinding now gives labelers a
   sheet without model/source/stability fields; R124-join now validates the
   blinded sheet against the source packet and prepares an empty adjudication
-  template. These are protocol artifacts, not adequacy evidence.
+  template. R190-score similarly records `human_labels_empty` for canonical
+  merge-risk labels. R196/R201/R202/R203 add governance, sensitivity,
+  candidate-only regeneration-smoke, and an empty promotion-gate protocol for
+  the display layer, but these
+  remain protocol/mechanism artifacts, not adequacy
+  evidence.
 - R131 is a mechanism ablation, not a usability result. It supports C3 and
   figure design, but not the C5 developer-utility claim.
 - R170 refreshes the current full-history path without overwriting `latest`:

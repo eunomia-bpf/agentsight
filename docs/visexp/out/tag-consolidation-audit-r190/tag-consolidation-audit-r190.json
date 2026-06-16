@@ -1,0 +1,486 @@
+{
+  "artifacts": {
+    "ablation_csv": "docs/visexp/out/tag-consolidation-audit-r190/consolidation-ablation-r190.csv",
+    "audit_packet_csv": "docs/visexp/out/tag-consolidation-audit-r190/merge-risk-audit-packet-r190.csv",
+    "summary_json": "docs/visexp/out/tag-consolidation-audit-r190/tag-consolidation-audit-r190.json",
+    "summary_md": "docs/visexp/out/tag-consolidation-audit-r190/tag-consolidation-audit-r190.md"
+  },
+  "claim_boundary": "R190 is an audit protocol and deterministic risk analysis. It does not prove merge correctness, tag adequacy, or developer utility without human audit labels.",
+  "generated_at": "2026-06-15T19:20:43+00:00",
+  "input": {
+    "agentflame_dir": ".agentsight/agentflame/r170-full-current",
+    "raw_trace_policy": "read generated AgentFlame artifacts only; do not mutate raw traces",
+    "report_sha256": "32a11de291ac11a8c8b79b4a616af72edb4cf6b9ab4ad95b9109baa1fac09924",
+    "system_folded_sha256": "350d716412792826368e9778d153ac7cbe7a717b7280c40b32f71ba8b6d1789d",
+    "token_folded_sha256": "fa8633e1fa7c6d3fdf1734d3de9cd98c7e466afe0930275e8a673e3005f2664e"
+  },
+  "merge_diagnostics": {
+    "llm": {
+      "applied_merges": 171,
+      "applied_merges_by_reason": {
+        "alias": 31,
+        "lexical+profile": 140
+      },
+      "applied_support_by_reason": {
+        "alias": 645,
+        "lexical+profile": 727
+      },
+      "dictionary_alias_merges": 31,
+      "lexical_profile_merges": 140,
+      "non_alias_profile_similarity": {
+        "count": 140,
+        "max": 1.0,
+        "min": 0.42,
+        "p50": 0.661,
+        "p90": 0.865
+      },
+      "profile_only_merges": 0,
+      "review_suggestions": 104
+    },
+    "prompt": {
+      "applied_merges": 49,
+      "applied_merges_by_reason": {
+        "alias": 24,
+        "lexical+profile": 25
+      },
+      "applied_support_by_reason": {
+        "alias": 2185,
+        "lexical+profile": 3404
+      },
+      "dictionary_alias_merges": 24,
+      "lexical_profile_merges": 25,
+      "non_alias_profile_similarity": {
+        "count": 25,
+        "max": 0.91,
+        "min": 0.456,
+        "p50": 0.64,
+        "p90": 0.736
+      },
+      "profile_only_merges": 0,
+      "review_suggestions": 9
+    },
+    "session": {
+      "applied_merges": 11,
+      "applied_merges_by_reason": {
+        "alias": 8,
+        "lexical+profile": 3
+      },
+      "applied_support_by_reason": {
+        "alias": 117,
+        "lexical+profile": 1566
+      },
+      "dictionary_alias_merges": 8,
+      "lexical_profile_merges": 3,
+      "non_alias_profile_similarity": {
+        "count": 3,
+        "max": 0.818,
+        "min": 0.538,
+        "p50": 0.668,
+        "p90": 0.668
+      },
+      "profile_only_merges": 0,
+      "review_suggestions": 1
+    }
+  },
+  "method": {
+    "human_labels_collected": 0,
+    "min_confidence": 0.72,
+    "risk_limit_per_class": 80,
+    "risk_proxy_only": true,
+    "variants": [
+      "raw",
+      "alias_only",
+      "lexical_only",
+      "profile_guarded_current"
+    ]
+  },
+  "provenance": {
+    "r189_script_sha256": "235aa9a6e43cc222d667c6bac20ae4501c685904bfd987cbf3e0be53fc5de7d2",
+    "repo_commit": "73ab7e840a558cbee590b0bbaa7e2436e4f597fe",
+    "repo_dirty": true,
+    "script_sha256": "a267b2848913093d8ce040c094a838568c78b35bcf64e59fef4282a0603bdc3e"
+  },
+  "risk_summary": {
+    "audit_packet_rows": 160,
+    "human_labels_collected": 0,
+    "overmerge_proxy_rows": 80,
+    "undermerge_proxy_rows": 80
+  },
+  "run_id": "R190",
+  "schema_version": 1,
+  "status": "tag_consolidation_audit_packet_ready",
+  "variants": {
+    "alias_only": {
+      "dimensions": {
+        "llm_events": {
+          "canonical_long_tail_weight_pct": 1.861,
+          "canonical_top20_coverage_pct": 94.946,
+          "canonical_unique_tags": 1392,
+          "changed_tags": 31,
+          "raw_long_tail_weight_pct": 1.903,
+          "raw_top20_coverage_pct": 94.546,
+          "raw_unique_tags": 1423,
+          "total_preserved": true,
+          "total_weight": 114837,
+          "unique_tag_reduction": 31,
+          "unique_tag_reduction_pct": 2.178
+        },
+        "llm_tokens": {
+          "canonical_long_tail_weight_pct": 0.0,
+          "canonical_top20_coverage_pct": 99.999,
+          "canonical_unique_tags": 1392,
+          "changed_tags": 31,
+          "raw_long_tail_weight_pct": 0.0,
+          "raw_top20_coverage_pct": 99.999,
+          "raw_unique_tags": 1423,
+          "total_preserved": true,
+          "total_weight": 62268120518718,
+          "unique_tag_reduction": 31,
+          "unique_tag_reduction_pct": 2.178
+        },
+        "prompt_effect": {
+          "canonical_long_tail_weight_pct": 2.608,
+          "canonical_top20_coverage_pct": 91.485,
+          "canonical_unique_tags": 241,
+          "changed_tags": 24,
+          "raw_long_tail_weight_pct": 2.933,
+          "raw_top20_coverage_pct": 90.445,
+          "raw_unique_tags": 263,
+          "total_preserved": true,
+          "total_weight": 183714,
+          "unique_tag_reduction": 22,
+          "unique_tag_reduction_pct": 8.365
+        },
+        "prompt_rows": {
+          "canonical_long_tail_weight_pct": 9.409,
+          "canonical_top20_coverage_pct": 81.777,
+          "canonical_unique_tags": 304,
+          "changed_tags": 24,
+          "raw_long_tail_weight_pct": 10.038,
+          "raw_top20_coverage_pct": 79.573,
+          "raw_unique_tags": 328,
+          "total_preserved": true,
+          "total_weight": 2859,
+          "unique_tag_reduction": 24,
+          "unique_tag_reduction_pct": 7.317
+        },
+        "session_effect": {
+          "canonical_long_tail_weight_pct": 0.334,
+          "canonical_top20_coverage_pct": 99.521,
+          "canonical_unique_tags": 48,
+          "changed_tags": 8,
+          "raw_long_tail_weight_pct": 0.39,
+          "raw_top20_coverage_pct": 99.465,
+          "raw_unique_tags": 53,
+          "total_preserved": true,
+          "total_weight": 183714,
+          "unique_tag_reduction": 5,
+          "unique_tag_reduction_pct": 9.434
+        }
+      },
+      "system_stack_consolidation": {
+        "canonical_compression": 6.903,
+        "canonical_top20_coverage_pct": 14.549,
+        "canonical_unique_stacks": 26612,
+        "raw_compression": 6.848,
+        "raw_top20_coverage_pct": 14.549,
+        "raw_unique_stacks": 26829,
+        "total_preserved": true,
+        "total_weight": 183714,
+        "unique_stack_reduction": 217,
+        "unique_stack_reduction_pct": 0.809
+      },
+      "token_stack_consolidation": {
+        "canonical_compression": 3883495840.921,
+        "canonical_top20_coverage_pct": 95.077,
+        "canonical_unique_stacks": 8190,
+        "raw_compression": 3711731933.381,
+        "raw_top20_coverage_pct": 95.039,
+        "raw_unique_stacks": 8569,
+        "total_preserved": true,
+        "total_weight": 31805830937143,
+        "unique_stack_reduction": 379,
+        "unique_stack_reduction_pct": 4.423
+      }
+    },
+    "lexical_only": {
+      "dimensions": {
+        "llm_events": {
+          "canonical_long_tail_weight_pct": 1.176,
+          "canonical_top20_coverage_pct": 95.69,
+          "canonical_unique_tags": 868,
+          "changed_tags": 557,
+          "raw_long_tail_weight_pct": 1.903,
+          "raw_top20_coverage_pct": 94.546,
+          "raw_unique_tags": 1423,
+          "total_preserved": true,
+          "total_weight": 114837,
+          "unique_tag_reduction": 555,
+          "unique_tag_reduction_pct": 39.002
+        },
+        "llm_tokens": {
+          "canonical_long_tail_weight_pct": 0.0,
+          "canonical_top20_coverage_pct": 100.0,
+          "canonical_unique_tags": 868,
+          "changed_tags": 557,
+          "raw_long_tail_weight_pct": 0.0,
+          "raw_top20_coverage_pct": 99.999,
+          "raw_unique_tags": 1423,
+          "total_preserved": true,
+          "total_weight": 62268120518718,
+          "unique_tag_reduction": 555,
+          "unique_tag_reduction_pct": 39.002
+        },
+        "prompt_effect": {
+          "canonical_long_tail_weight_pct": 2.079,
+          "canonical_top20_coverage_pct": 93.076,
+          "canonical_unique_tags": 200,
+          "changed_tags": 77,
+          "raw_long_tail_weight_pct": 2.933,
+          "raw_top20_coverage_pct": 90.445,
+          "raw_unique_tags": 263,
+          "total_preserved": true,
+          "total_weight": 183714,
+          "unique_tag_reduction": 63,
+          "unique_tag_reduction_pct": 23.954
+        },
+        "prompt_rows": {
+          "canonical_long_tail_weight_pct": 7.73,
+          "canonical_top20_coverage_pct": 84.575,
+          "canonical_unique_tags": 251,
+          "changed_tags": 77,
+          "raw_long_tail_weight_pct": 10.038,
+          "raw_top20_coverage_pct": 79.573,
+          "raw_unique_tags": 328,
+          "total_preserved": true,
+          "total_weight": 2859,
+          "unique_tag_reduction": 77,
+          "unique_tag_reduction_pct": 23.476
+        },
+        "session_effect": {
+          "canonical_long_tail_weight_pct": 0.334,
+          "canonical_top20_coverage_pct": 99.755,
+          "canonical_unique_tags": 44,
+          "changed_tags": 12,
+          "raw_long_tail_weight_pct": 0.39,
+          "raw_top20_coverage_pct": 99.465,
+          "raw_unique_tags": 53,
+          "total_preserved": true,
+          "total_weight": 183714,
+          "unique_tag_reduction": 9,
+          "unique_tag_reduction_pct": 16.981
+        }
+      },
+      "system_stack_consolidation": {
+        "canonical_compression": 7.07,
+        "canonical_top20_coverage_pct": 14.577,
+        "canonical_unique_stacks": 25985,
+        "raw_compression": 6.848,
+        "raw_top20_coverage_pct": 14.549,
+        "raw_unique_stacks": 26829,
+        "total_preserved": true,
+        "total_weight": 183714,
+        "unique_stack_reduction": 844,
+        "unique_stack_reduction_pct": 3.146
+      },
+      "token_stack_consolidation": {
+        "canonical_compression": 4436578454.058,
+        "canonical_top20_coverage_pct": 95.444,
+        "canonical_unique_stacks": 7169,
+        "raw_compression": 3711731933.381,
+        "raw_top20_coverage_pct": 95.039,
+        "raw_unique_stacks": 8569,
+        "total_preserved": true,
+        "total_weight": 31805830937143,
+        "unique_stack_reduction": 1400,
+        "unique_stack_reduction_pct": 16.338
+      }
+    },
+    "profile_guarded_current": {
+      "dimensions": {
+        "llm_events": {
+          "canonical_long_tail_weight_pct": 1.689,
+          "canonical_top20_coverage_pct": 95.337,
+          "canonical_unique_tags": 1254,
+          "changed_tags": 171,
+          "raw_long_tail_weight_pct": 1.903,
+          "raw_top20_coverage_pct": 94.546,
+          "raw_unique_tags": 1423,
+          "total_preserved": true,
+          "total_weight": 114837,
+          "unique_tag_reduction": 169,
+          "unique_tag_reduction_pct": 11.876
+        },
+        "llm_tokens": {
+          "canonical_long_tail_weight_pct": 0.0,
+          "canonical_top20_coverage_pct": 100.0,
+          "canonical_unique_tags": 1254,
+          "changed_tags": 171,
+          "raw_long_tail_weight_pct": 0.0,
+          "raw_top20_coverage_pct": 99.999,
+          "raw_unique_tags": 1423,
+          "total_preserved": true,
+          "total_weight": 62268120518718,
+          "unique_tag_reduction": 169,
+          "unique_tag_reduction_pct": 11.876
+        },
+        "prompt_effect": {
+          "canonical_long_tail_weight_pct": 2.275,
+          "canonical_top20_coverage_pct": 92.72,
+          "canonical_unique_tags": 216,
+          "changed_tags": 49,
+          "raw_long_tail_weight_pct": 2.933,
+          "raw_top20_coverage_pct": 90.445,
+          "raw_unique_tags": 263,
+          "total_preserved": true,
+          "total_weight": 183714,
+          "unique_tag_reduction": 47,
+          "unique_tag_reduction_pct": 17.871
+        },
+        "prompt_rows": {
+          "canonical_long_tail_weight_pct": 8.674,
+          "canonical_top20_coverage_pct": 83.666,
+          "canonical_unique_tags": 279,
+          "changed_tags": 49,
+          "raw_long_tail_weight_pct": 10.038,
+          "raw_top20_coverage_pct": 79.573,
+          "raw_unique_tags": 328,
+          "total_preserved": true,
+          "total_weight": 2859,
+          "unique_tag_reduction": 49,
+          "unique_tag_reduction_pct": 14.939
+        },
+        "session_effect": {
+          "canonical_long_tail_weight_pct": 0.334,
+          "canonical_top20_coverage_pct": 99.714,
+          "canonical_unique_tags": 45,
+          "changed_tags": 11,
+          "raw_long_tail_weight_pct": 0.39,
+          "raw_top20_coverage_pct": 99.465,
+          "raw_unique_tags": 53,
+          "total_preserved": true,
+          "total_weight": 183714,
+          "unique_tag_reduction": 8,
+          "unique_tag_reduction_pct": 15.094
+        }
+      },
+      "system_stack_consolidation": {
+        "canonical_compression": 7.048,
+        "canonical_top20_coverage_pct": 14.577,
+        "canonical_unique_stacks": 26067,
+        "raw_compression": 6.848,
+        "raw_top20_coverage_pct": 14.549,
+        "raw_unique_stacks": 26829,
+        "total_preserved": true,
+        "total_weight": 183714,
+        "unique_stack_reduction": 762,
+        "unique_stack_reduction_pct": 2.84
+      },
+      "token_stack_consolidation": {
+        "canonical_compression": 4151655258.732,
+        "canonical_top20_coverage_pct": 95.422,
+        "canonical_unique_stacks": 7661,
+        "raw_compression": 3711731933.381,
+        "raw_top20_coverage_pct": 95.039,
+        "raw_unique_stacks": 8569,
+        "total_preserved": true,
+        "total_weight": 31805830937143,
+        "unique_stack_reduction": 908,
+        "unique_stack_reduction_pct": 10.596
+      }
+    },
+    "raw": {
+      "dimensions": {
+        "llm_events": {
+          "canonical_long_tail_weight_pct": 1.903,
+          "canonical_top20_coverage_pct": 94.546,
+          "canonical_unique_tags": 1423,
+          "changed_tags": 0,
+          "raw_long_tail_weight_pct": 1.903,
+          "raw_top20_coverage_pct": 94.546,
+          "raw_unique_tags": 1423,
+          "total_preserved": true,
+          "total_weight": 114837,
+          "unique_tag_reduction": 0,
+          "unique_tag_reduction_pct": 0.0
+        },
+        "llm_tokens": {
+          "canonical_long_tail_weight_pct": 0.0,
+          "canonical_top20_coverage_pct": 99.999,
+          "canonical_unique_tags": 1423,
+          "changed_tags": 0,
+          "raw_long_tail_weight_pct": 0.0,
+          "raw_top20_coverage_pct": 99.999,
+          "raw_unique_tags": 1423,
+          "total_preserved": true,
+          "total_weight": 62268120518718,
+          "unique_tag_reduction": 0,
+          "unique_tag_reduction_pct": 0.0
+        },
+        "prompt_effect": {
+          "canonical_long_tail_weight_pct": 2.933,
+          "canonical_top20_coverage_pct": 90.445,
+          "canonical_unique_tags": 263,
+          "changed_tags": 0,
+          "raw_long_tail_weight_pct": 2.933,
+          "raw_top20_coverage_pct": 90.445,
+          "raw_unique_tags": 263,
+          "total_preserved": true,
+          "total_weight": 183714,
+          "unique_tag_reduction": 0,
+          "unique_tag_reduction_pct": 0.0
+        },
+        "prompt_rows": {
+          "canonical_long_tail_weight_pct": 10.038,
+          "canonical_top20_coverage_pct": 79.573,
+          "canonical_unique_tags": 328,
+          "changed_tags": 0,
+          "raw_long_tail_weight_pct": 10.038,
+          "raw_top20_coverage_pct": 79.573,
+          "raw_unique_tags": 328,
+          "total_preserved": true,
+          "total_weight": 2859,
+          "unique_tag_reduction": 0,
+          "unique_tag_reduction_pct": 0.0
+        },
+        "session_effect": {
+          "canonical_long_tail_weight_pct": 0.39,
+          "canonical_top20_coverage_pct": 99.465,
+          "canonical_unique_tags": 53,
+          "changed_tags": 0,
+          "raw_long_tail_weight_pct": 0.39,
+          "raw_top20_coverage_pct": 99.465,
+          "raw_unique_tags": 53,
+          "total_preserved": true,
+          "total_weight": 183714,
+          "unique_tag_reduction": 0,
+          "unique_tag_reduction_pct": 0.0
+        }
+      },
+      "system_stack_consolidation": {
+        "canonical_compression": 6.848,
+        "canonical_top20_coverage_pct": 14.549,
+        "canonical_unique_stacks": 26829,
+        "raw_compression": 6.848,
+        "raw_top20_coverage_pct": 14.549,
+        "raw_unique_stacks": 26829,
+        "total_preserved": true,
+        "total_weight": 183714,
+        "unique_stack_reduction": 0,
+        "unique_stack_reduction_pct": 0.0
+      },
+      "token_stack_consolidation": {
+        "canonical_compression": 3711731933.381,
+        "canonical_top20_coverage_pct": 95.039,
+        "canonical_unique_stacks": 8569,
+        "raw_compression": 3711731933.381,
+        "raw_top20_coverage_pct": 95.039,
+        "raw_unique_stacks": 8569,
+        "total_preserved": true,
+        "total_weight": 31805830937143,
+        "unique_stack_reduction": 0,
+        "unique_stack_reduction_pct": 0.0
+      }
+    }
+  }
+}
