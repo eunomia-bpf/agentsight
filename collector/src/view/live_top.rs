@@ -63,7 +63,8 @@ impl LiveView {
         options: &TopOptions,
     ) -> io::Result<AgentTopOutput<'static>> {
         let sample = LiveSample::collect()?;
-        let session_snapshot = self.session_cache.snapshot(
+        let session_snapshot = agent_native_sessions::snapshot(
+            &mut self.session_cache,
             options.pid,
             options.comm.as_deref(),
             limit,
@@ -234,7 +235,7 @@ impl LiveView {
         let mut notes = Vec::new();
         if has_agent_native {
             notes.push(
-                "agent-native sessions are the primary token/tool source (~/.claude, ~/.codex)"
+                "agent-native sessions are the primary token/tool source (~/.claude, ~/.codex, ~/.gemini)"
                     .to_string(),
             );
         }
@@ -266,7 +267,7 @@ impl LiveView {
                 );
             } else {
                 notes.push(
-                    "no active known agent process or agent-native Claude/Codex session found; use -c/-p, run an agent, or pass --db"
+                    "no active known agent process or agent-native Claude/Codex/Gemini session found; use -c/-p, run an agent, or pass --db"
                         .to_string(),
                 );
             }
@@ -482,7 +483,7 @@ fn live_process_candidates(
 fn session_process_trace(matched: &SessionProcessMatch, session_id: &str) -> String {
     debug_assert_eq!(matched.session_id, session_id);
     debug_assert!(matched.pid_starttime_ticks > 0);
-    debug_assert_eq!(matched.source, "view.session_process_match");
+    debug_assert_eq!(matched.source, agent_session::SOURCE_SESSION_PROCESS_MATCH);
     debug_assert!(matched.confidence > 0.0);
     format!("agent-native+proc+{}", matched.evidence)
 }

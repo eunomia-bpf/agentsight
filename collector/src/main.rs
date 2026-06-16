@@ -263,7 +263,7 @@ enum Commands {
         /// SQLite database path (defaults to latest session)
         #[arg(long)]
         db: Option<String>,
-        /// Read agent-native Claude/Codex sessions (for summary)
+        /// Read agent-native Claude/Codex/Gemini sessions (for summary)
         #[arg(long)]
         local: bool,
         #[command(subcommand)]
@@ -281,7 +281,7 @@ enum ReportCommands {
         /// SQLite database path (defaults to latest session)
         #[arg(long)]
         db: Option<String>,
-        /// Read agent-native Claude/Codex sessions
+        /// Read agent-native Claude/Codex/Gemini sessions
         #[arg(long)]
         local: bool,
     },

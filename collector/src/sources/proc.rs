@@ -7,6 +7,8 @@ use std::io;
 use std::path::PathBuf;
 use std::time::Instant;
 
+pub(crate) use agent_session::{ProcessKey, ProcessTree};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct PidSeed {
     pub(crate) pid: u32,
@@ -33,18 +35,6 @@ pub(crate) struct ProcInfo {
     pub(crate) rss_mb: u64,
     pub(crate) vsz_kb: u64,
     pub(crate) threads: u32,
-}
-
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) struct ProcessKey {
-    pub(crate) pid: u32,
-    pub(crate) starttime_ticks: u64,
-}
-
-#[derive(Debug, Clone, Default)]
-pub(crate) struct ProcessTree {
-    pub(crate) root: ProcessKey,
-    pub(crate) members: Vec<ProcessKey>,
 }
 
 impl ProcInfo {
