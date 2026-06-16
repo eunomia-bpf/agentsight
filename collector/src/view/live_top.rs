@@ -139,7 +139,12 @@ impl LiveView {
             let Some(matched) = matches.by_session_id.get(&session.id) else {
                 continue;
             };
-            let family = procfs::process_family(matched.root_pid, &children, &sample.procs);
+            let family = matched
+                .matched_pids
+                .iter()
+                .copied()
+                .filter(|pid| sample.procs.contains_key(pid))
+                .collect::<Vec<_>>();
             if family.is_empty() {
                 continue;
             }
@@ -565,13 +570,22 @@ fn live_process_candidates(
     live_rows: &[AgentTopRow],
     children: &HashMap<u32, Vec<u32>>,
 ) -> Vec<LiveProcessCandidate> {
+    let roots = live_rows
+        .iter()
+        .filter_map(|row| row.pid)
+        .collect::<HashSet<_>>();
     live_rows
         .iter()
         .filter_map(|row| {
             let root_pid = row.pid?;
-            let tree = sample.process_tree(root_pid, children)?;
+            let root = sample.procs.get(&root_pid)?.process_key();
+            let members =
+                procfs::process_family_excluding(root_pid, children, &sample.procs, &roots)
+                    .into_iter()
+                    .filter_map(|pid| sample.procs.get(&pid).map(procfs::ProcInfo::process_key))
+                    .collect();
             Some(LiveProcessCandidate {
-                tree,
+                tree: procfs::ProcessTree { root, members },
                 agent: row.agent.clone(),
                 age_s: row.age_s,
                 cwd: row.workspace.clone(),
@@ -595,10 +609,11 @@ fn live_process_rows(
     children: &HashMap<u32, Vec<u32>>,
 ) -> Vec<AgentTopRow> {
     let roots = process_select::live_root_pids(sample, options.pid, options.comm.as_deref());
+    let root_set = roots.iter().copied().collect::<HashSet<_>>();
     let mut rows = Vec::new();
 
     for root_pid in roots {
-        let family = procfs::process_family(root_pid, children, &sample.procs);
+        let family = procfs::process_family_excluding(root_pid, children, &sample.procs, &root_set);
         if family.is_empty() {
             continue;
         }
@@ -743,6 +758,79 @@ mod tests {
         assert_eq!(top.rows[0].session, "claude:cwd");
         assert_eq!(top.rows[0].pid, Some(42));
         assert_eq!(top.rows[0].trace, "agent-native+proc+cwd_recent");
+    }
+
+    #[test]
+    fn live_process_rows_split_nested_codex_exec_from_app_server() {
+        let options = TopOptions {
+            pid: None,
+            comm: None,
+            sort: "cpu".to_string(),
+            view: "all".to_string(),
+        };
+        let sample = LiveSample {
+            procs: BTreeMap::from([
+                (
+                    1,
+                    ProcInfo {
+                        pid: 1,
+                        comm: "node".to_string(),
+                        command: "node /opt/node/bin/codex app-server --listen sock".to_string(),
+                        ..Default::default()
+                    },
+                ),
+                (
+                    2,
+                    ProcInfo {
+                        pid: 2,
+                        ppid: 1,
+                        comm: "node".to_string(),
+                        command: "node /opt/node/bin/codex exec -C /work hello".to_string(),
+                        cwd: Some(PathBuf::from("/work")),
+                        ..Default::default()
+                    },
+                ),
+                (
+                    3,
+                    ProcInfo {
+                        pid: 3,
+                        ppid: 2,
+                        comm: "codex".to_string(),
+                        command: "/opt/node_modules/@openai/codex-linux-x64/bin/codex exec -C /work hello".to_string(),
+                        cwd: Some(PathBuf::from("/work")),
+                        ..Default::default()
+                    },
+                ),
+            ]),
+            ..Default::default()
+        };
+        let children = sample.children_by_ppid();
+        let rows = live_process_rows(&sample, None, &options, &children);
+        let candidates = live_process_candidates(&sample, &rows, &children);
+
+        assert_eq!(
+            rows.iter()
+                .filter_map(|row| row.pid.map(|pid| (pid, row.processes)))
+                .collect::<Vec<_>>(),
+            vec![(1, 1), (2, 2)]
+        );
+        assert_eq!(
+            candidates
+                .iter()
+                .map(|candidate| {
+                    (
+                        candidate.tree.root.pid,
+                        candidate
+                            .tree
+                            .members
+                            .iter()
+                            .map(|key| key.pid)
+                            .collect::<Vec<_>>(),
+                    )
+                })
+                .collect::<Vec<_>>(),
+            vec![(1, vec![1]), (2, vec![2, 3])]
+        );
     }
 
     #[test]

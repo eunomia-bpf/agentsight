@@ -102,22 +102,6 @@ impl ProcSnapshot {
         process_family(root, &self.children_by_ppid(), &self.procs)
     }
 
-    pub(crate) fn process_tree(
-        &self,
-        root: u32,
-        children: &HashMap<u32, Vec<u32>>,
-    ) -> Option<ProcessTree> {
-        let root_key = self.procs.get(&root)?.process_key();
-        let members = process_family(root, children, &self.procs)
-            .into_iter()
-            .filter_map(|pid| self.procs.get(&pid).map(ProcInfo::process_key))
-            .collect();
-        Some(ProcessTree {
-            root: root_key,
-            members,
-        })
-    }
-
     pub(crate) fn seeds_for_all(&self) -> Vec<PidSeed> {
         self.procs.values().map(ProcInfo::seed).collect()
     }
@@ -185,6 +169,15 @@ pub(crate) fn process_family(
     children: &HashMap<u32, Vec<u32>>,
     procs: &BTreeMap<u32, ProcInfo>,
 ) -> Vec<u32> {
+    process_family_excluding(root, children, procs, &HashSet::new())
+}
+
+pub(crate) fn process_family_excluding(
+    root: u32,
+    children: &HashMap<u32, Vec<u32>>,
+    procs: &BTreeMap<u32, ProcInfo>,
+    excluded_roots: &HashSet<u32>,
+) -> Vec<u32> {
     let mut out = Vec::new();
     let mut stack = vec![root];
     let mut seen = HashSet::new();
@@ -194,7 +187,12 @@ pub(crate) fn process_family(
         }
         out.push(pid);
         if let Some(child_pids) = children.get(&pid) {
-            stack.extend(child_pids.iter().copied());
+            stack.extend(
+                child_pids
+                    .iter()
+                    .copied()
+                    .filter(|child_pid| !excluded_roots.contains(child_pid)),
+            );
         }
     }
     out

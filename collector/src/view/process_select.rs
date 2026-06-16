@@ -88,8 +88,10 @@ fn root_pids_for_known_agents(snapshot: &ProcSnapshot) -> Vec<u32> {
         let Some(label) = known_agent_label(&proc_info.comm, &proc_info.command) else {
             continue;
         };
+        let nested_codex_exec = label == "codex" && is_codex_exec_invocation(proc_info);
         if has_matching_ancestor(snapshot, proc_info, |parent| {
             known_agent_label(&parent.comm, &parent.command) == Some(label)
+                && (!nested_codex_exec || is_codex_exec_invocation(parent))
         }) {
             continue;
         }
@@ -241,6 +243,35 @@ fn label_from_known_package_path(path: &str) -> Option<&'static str> {
     }
 }
 
+pub(crate) fn is_codex_exec_invocation(proc_info: &ProcInfo) -> bool {
+    known_agent_label(&proc_info.comm, &proc_info.command) == Some("codex")
+        && has_codex_exec_subcommand(&proc_info.command)
+}
+
+fn has_codex_exec_subcommand(command: &str) -> bool {
+    let mut previous = "";
+    for token in command.split_whitespace() {
+        if is_codex_executable_token(previous) && token == "exec" {
+            return true;
+        }
+        previous = token;
+    }
+    false
+}
+
+fn is_codex_executable_token(token: &str) -> bool {
+    let token = token.trim_matches(|ch| matches!(ch, '"' | '\''));
+    if token.is_empty() {
+        return false;
+    }
+    let lower = token.to_ascii_lowercase();
+    let basename = Path::new(&lower)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or(lower.as_str());
+    matches!(basename, "codex" | "codex-cli")
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -334,6 +365,42 @@ mod tests {
         };
 
         assert_eq!(live_root_pids(&snapshot, None, None), vec![1, 3]);
+    }
+
+    #[test]
+    fn live_roots_keep_nested_codex_exec_under_app_server() {
+        let procs = [
+            ProcInfo {
+                pid: 1,
+                comm: "node".to_string(),
+                command: "node /opt/node/bin/codex app-server --listen sock".to_string(),
+                ..Default::default()
+            },
+            ProcInfo {
+                pid: 2,
+                ppid: 1,
+                comm: "node".to_string(),
+                command: "node /opt/node/bin/codex exec -C /work hello".to_string(),
+                ..Default::default()
+            },
+            ProcInfo {
+                pid: 3,
+                ppid: 2,
+                comm: "codex".to_string(),
+                command: "/opt/node_modules/@openai/codex-linux-x64/bin/codex exec -C /work hello"
+                    .to_string(),
+                ..Default::default()
+            },
+        ];
+        let snapshot = ProcSnapshot {
+            procs: procs
+                .into_iter()
+                .map(|proc_info| (proc_info.pid, proc_info))
+                .collect(),
+            ..Default::default()
+        };
+
+        assert_eq!(live_root_pids(&snapshot, None, None), vec![1, 2]);
     }
 
     #[test]
