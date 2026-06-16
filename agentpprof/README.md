@@ -136,9 +136,45 @@ PYTHONPATH=agentpprof/src python3 -m agentpprof export \
   --max-sessions 12
 ```
 
-The export writes `tokens.pb.gz`, `tools.pb.gz`, `files.pb.gz`, `network.pb.gz`,
-matching folded stacks, `agentpprof.json`, and optional `*.top.txt` reports when
-`go tool pprof` is available.
+The export writes:
+
+- `tokens.pb.gz`
+- `tools.pb.gz`
+- `files.pb.gz`
+- `network.pb.gz`
+- matching folded stacks
+- `*.flame.svg` semantic flamegraphs
+- `agentpprof.json`
+- optional `*.top.txt` reports when `go tool pprof` is available
+
+Open the generated flamegraphs directly:
+
+```bash
+xdg-open .agentsight/agentpprof/latest/tools.flame.svg
+xdg-open .agentsight/agentpprof/latest/tokens.flame.svg
+```
+
+## Stack Projections
+
+Token profile:
+
+```text
+project:<repo>;agent:<codex|claude>;session:<tag>;prompt:<tag>;call:llm/<tag>;model:<model>;token:<kind>
+```
+
+Width: token count.
+
+Tool/effect profile:
+
+```text
+project:<repo>;agent:<codex|claude>;session:<tag>;prompt:<tag>;call:tool/<tag>;tool:<kind>;process:<cmd>;effect:<effect>;target:<group>;status:<status>
+```
+
+Width: observed tool event count.
+
+File and network profiles use the same semantic session/prompt context, but
+make `file:<group>` or `domain:<domain>` the leaf frame. Their widths are file
+target event count and network target event count.
 
 The Python pprof exporter reverses semantic stacks when serializing samples
 because pprof stores the leaf frame first.
