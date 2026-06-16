@@ -1,0 +1,30 @@
+[build-system]
+requires = ["hatchling>=1.21"]
+build-backend = "hatchling.build"
+
+[project]
+name = "agentpprof"
+version = "0.1.0"
+description = "pprof-style semantic profiling for local coding-agent sessions"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+  { name = "AgentSight contributors" }
+]
+keywords = ["ai-agents", "pprof", "flamegraph", "observability", "profiling"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Topic :: Software Development :: Debuggers",
+  "Topic :: System :: Monitoring",
+]
+
+[project.scripts]
+agentpprof = "agentpprof.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/agentpprof"]
