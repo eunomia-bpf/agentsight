@@ -464,9 +464,25 @@ pub(crate) fn print_record_shutdown() {
     println!("\n✓ Shutdown requested. Stopping target and monitoring.");
 }
 
-pub(crate) fn print_record_session_summary(summary: &SessionSummary) {
+pub(crate) fn print_record_session_summary(db_path: &str, summary: &SessionSummary) {
+    let api_calls: i64 = summary.models.iter().map(|m| m.4).sum();
+    let tokens: i64 = summary.models.iter().map(|m| m.3).sum();
+    let execs: usize = summary.processes.values().sum();
     println!();
-    print_session_summary(summary);
+    println!(
+        "Recorded {} to {}",
+        format_duration_compact(summary.duration_s),
+        db_path
+    );
+    println!(
+        "{} API calls · {} tokens · {} execs · {} files · {} network endpoints",
+        api_calls,
+        format_count(tokens),
+        execs,
+        summary.files.len(),
+        summary.endpoints.len()
+    );
+    println!("Run: agentsight report");
 }
 
 pub(crate) fn print_record_target_status_error(error: impl std::fmt::Display) {

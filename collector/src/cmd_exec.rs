@@ -68,7 +68,7 @@ pub(crate) fn print_session_summary(db_path: &str) {
         return;
     };
     if let Ok(summary) = SessionSummary::from_view(&view) {
-        print_record_session_summary(&summary);
+        print_record_session_summary(db_path, &summary);
     }
 }
 
