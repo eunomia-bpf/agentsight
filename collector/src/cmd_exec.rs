@@ -20,7 +20,6 @@ use crate::output::{
     print_record_target_status_error, print_record_target_wait_error, print_record_web_ui,
 };
 use crate::runners::{Runner, RunnerError};
-use crate::sources::session_db::sessions_dir;
 use crate::view::MaterializedView;
 
 /// Launch a target command and automatically trace it with eBPF.
@@ -50,17 +49,19 @@ pub(crate) fn sudo_cached() -> bool {
 }
 
 pub(crate) fn default_session_db_path() -> Result<String, RunnerError> {
-    let dir = sessions_dir()
-        .ok_or_else(|| RunnerError::from("cannot determine home directory for session DB"))?;
-    std::fs::create_dir_all(&dir).map_err(|e| {
-        RunnerError::from(format!(
-            "failed to create session directory {}: {}",
-            dir.display(),
-            e
-        ))
-    })?;
+    let dir = std::env::current_dir()
+        .map_err(|e| RunnerError::from(format!("cannot determine current directory: {e}")))?;
     let ts = chrono::Local::now().format("%Y%m%d-%H%M%S");
-    Ok(dir.join(format!("{}.db", ts)).to_string_lossy().to_string())
+    Ok(session_db_path_for_dir(&dir, ts)
+        .to_string_lossy()
+        .to_string())
+}
+
+fn session_db_path_for_dir(
+    dir: &std::path::Path,
+    timestamp: impl std::fmt::Display,
+) -> std::path::PathBuf {
+    dir.join(format!("agentsight-{timestamp}.db"))
 }
 
 pub(crate) fn print_session_summary(db_path: &str) {
@@ -92,10 +93,7 @@ pub(crate) async fn run_exec(
         db_path
     } else {
         match default_session_db_path() {
-            Ok(p) => {
-                crate::sources::session_db::cleanup_old_sessions();
-                Some(p)
-            }
+            Ok(p) => Some(p),
             Err(e) => {
                 print_record_session_db_error(e);
                 None
@@ -302,5 +300,20 @@ pub(crate) async fn stop_child(child: &mut tokio::process::Child) {
 
     if let Err(e) = child.kill().await {
         print_record_kill_error(e);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_record_db_path_uses_current_directory_style_name() {
+        let path =
+            session_db_path_for_dir(std::path::Path::new("/work/project"), "20260616-161500");
+        assert_eq!(
+            path,
+            std::path::PathBuf::from("/work/project/agentsight-20260616-161500.db")
+        );
     }
 }

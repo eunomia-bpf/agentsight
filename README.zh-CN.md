@@ -77,7 +77,10 @@ AgentSight 能捕获应用级工具遗漏的关键交互：
 
 #### Cargo 或 Release Binary
 
-本地使用优先安装 CLI，然后运行 `sudo agentsight top`。需要记录某个具体命令或查看历史 session 时，再参考下面的使用示例。
+本地使用优先安装 CLI，然后运行 `sudo agentsight top`。需要记录某个具体命令时运行
+`sudo agentsight record -- <command>`；默认会在当前目录生成 `agentsight-*.db`，
+随后 `agentsight report` 和 `agentsight report list` 也默认查看当前目录里的记录。
+如果要查看 Claude/Codex/Gemini 的原生日志总览，显式运行 `agentsight report --local`。
 
 #### Docker
 

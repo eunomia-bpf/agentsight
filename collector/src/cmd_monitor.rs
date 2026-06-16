@@ -10,6 +10,7 @@ use rusqlite::{Connection, OpenFlags, params};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::{self, Write};
+use std::net::{Ipv4Addr, Ipv6Addr};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::Duration;
@@ -17,6 +18,8 @@ use std::time::Duration;
 const MONITOR_INTERVAL_SECS: u64 = 2;
 const SESSION_SCAN_LIMIT: usize = 25;
 const MONITOR_SERVICE_NAME: &str = "agentsight-monitor.service";
+const DETAIL_EDGE_LIMIT: usize = 5;
+const DETAIL_SAMPLE_INTERVAL_SECS: u64 = 30;
 
 #[derive(Debug, Clone)]
 struct MonitorSample {
@@ -43,6 +46,34 @@ struct MonitorSessionSample {
     read_bytes: u64,
     write_bytes: u64,
     file_targets: usize,
+    network_targets: usize,
+    process_samples: Vec<MonitorProcessSample>,
+    file_samples: Vec<MonitorTargetSample>,
+    network_samples: Vec<MonitorTargetSample>,
+}
+
+#[derive(Debug, Clone)]
+struct MonitorProcessSample {
+    rank_kind: &'static str,
+    pid: u32,
+    pid_starttime_ticks: u64,
+    ppid: u32,
+    depth: usize,
+    comm: String,
+    command: String,
+    cwd: Option<String>,
+    cpu_ms: u64,
+    cpu_percent: f64,
+    rss_bytes: u64,
+    read_bytes: u64,
+    write_bytes: u64,
+}
+
+#[derive(Debug, Clone)]
+struct MonitorTargetSample {
+    rank_kind: &'static str,
+    target: String,
+    count: usize,
 }
 
 #[derive(Debug, Default)]
@@ -237,12 +268,17 @@ fn load_monitor_top_rows(
     options: &TopOptions,
 ) -> rusqlite::Result<Vec<AgentTopRow>> {
     let conn = Connection::open_with_flags(db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
+    let network_targets_expr = if monitor_windows_has_network_targets_column(&conn)? {
+        "w.network_targets"
+    } else {
+        "0"
+    };
     let now_ms = now_epoch_ms();
-    let mut stmt = conn.prepare(
+    let sql = format!(
         "SELECT
             t.session_id, t.display_id, t.agent_type, t.root_pid, t.first_seen_ms,
             t.command, t.cwd, w.window_start_ms, w.window_end_ms, w.process_count,
-            w.cpu_ms, w.rss_bytes, w.file_targets
+            w.cpu_ms, w.rss_bytes, w.file_targets, {network_targets_expr}
          FROM monitor_windows w
          JOIN tracked_sessions t USING(session_id, root_pid, root_starttime_ticks)
          WHERE w.id IN (
@@ -250,8 +286,9 @@ fn load_monitor_top_rows(
             FROM monitor_windows
             GROUP BY session_id, root_pid, root_starttime_ticks
          )
-         ORDER BY w.window_end_ms DESC",
-    )?;
+         ORDER BY w.window_end_ms DESC"
+    );
+    let mut stmt = conn.prepare(&sql)?;
     let rows = stmt.query_map([], |row| {
         let session_id: String = row.get(0)?;
         let display_id: String = row.get(1)?;
@@ -266,6 +303,7 @@ fn load_monitor_top_rows(
         let cpu_ms: u64 = row.get::<_, i64>(10)? as u64;
         let rss_bytes: u64 = row.get::<_, i64>(11)? as u64;
         let file_targets: usize = row.get::<_, i64>(12)? as usize;
+        let network_targets: usize = row.get::<_, i64>(13)? as usize;
         let window_ms = window_end_ms.saturating_sub(window_start_ms).max(1);
         let cpu_percent = cpu_ms as f64 / window_ms as f64 * 100.0;
         Ok(AgentTopRow {
@@ -286,7 +324,7 @@ fn load_monitor_top_rows(
             execs: 0,
             failures: 0,
             files: file_targets,
-            network: 0,
+            network: network_targets,
             unattributed: 0,
             trace: "proc+db".to_string(),
             command,
@@ -310,18 +348,23 @@ fn load_monitor_top_rows(
 fn build_monitor_sample(live: &LiveMonitorSample, io_state: &mut MonitorIoState) -> MonitorSample {
     let window_end_ms = live.at_ms;
     let window_start_ms = window_end_ms.saturating_sub(MONITOR_INTERVAL_SECS * 1000);
+    let include_detail_samples = should_store_detail_samples(window_start_ms, window_end_ms);
     let mut sessions = Vec::new();
     let mut current_io = BTreeMap::new();
 
     for session in &live.sessions {
-        let file_targets = collect_fd_file_target_count(&session.family, &live.current);
-        let (cpu_ms, rss_bytes, read_bytes, write_bytes) = aggregate_process_metrics(
+        let (file_target_counts, socket_inodes_by_pid) =
+            collect_fd_target_counts(&session.family, &live.current);
+        let network_target_counts = collect_network_target_counts(&socket_inodes_by_pid);
+        let process_samples = collect_process_samples(
             &session.family,
             &live.current,
             live.previous.as_ref(),
             io_state,
             &mut current_io,
         );
+        let (cpu_ms, rss_bytes, read_bytes, write_bytes) =
+            aggregate_process_samples(&process_samples);
 
         sessions.push(MonitorSessionSample {
             session_id: session.session_id.clone(),
@@ -342,7 +385,23 @@ fn build_monitor_sample(live: &LiveMonitorSample, io_state: &mut MonitorIoState)
             rss_bytes,
             read_bytes,
             write_bytes,
-            file_targets,
+            file_targets: file_target_counts.len(),
+            network_targets: network_target_counts.len(),
+            process_samples: if include_detail_samples {
+                bounded_process_samples(process_samples)
+            } else {
+                Vec::new()
+            },
+            file_samples: if include_detail_samples {
+                bounded_target_samples(file_target_counts)
+            } else {
+                Vec::new()
+            },
+            network_samples: if include_detail_samples {
+                bounded_target_samples(network_target_counts)
+            } else {
+                Vec::new()
+            },
         });
     }
     io_state.previous = current_io;
@@ -354,38 +413,106 @@ fn build_monitor_sample(live: &LiveMonitorSample, io_state: &mut MonitorIoState)
     }
 }
 
-fn aggregate_process_metrics(
+fn should_store_detail_samples(window_start_ms: u64, window_end_ms: u64) -> bool {
+    let interval_ms = DETAIL_SAMPLE_INTERVAL_SECS * 1000;
+    window_start_ms / interval_ms != window_end_ms / interval_ms
+}
+
+fn collect_process_samples(
     family: &[u32],
     current: &ProcSnapshot,
     previous: Option<&ProcSnapshot>,
     io_state: &MonitorIoState,
     current_io: &mut BTreeMap<procfs::ProcessKey, (u64, u64)>,
-) -> (u64, u64, u64, u64) {
-    let mut cpu_ms = 0u64;
-    let mut rss_bytes = 0u64;
-    let mut read_bytes = 0u64;
-    let mut write_bytes = 0u64;
+) -> Vec<MonitorProcessSample> {
+    let family_set = family.iter().copied().collect::<BTreeSet<_>>();
+    let mut out = Vec::new();
 
     for proc_info in family.iter().filter_map(|pid| current.procs.get(pid)) {
-        cpu_ms = cpu_ms.saturating_add(procfs::process_cpu_ms_delta(proc_info, previous));
-        rss_bytes = rss_bytes.saturating_add(proc_info.rss_kb.saturating_mul(1024));
+        let cpu_ms = procfs::process_cpu_ms_delta(proc_info, previous);
+        let rss_bytes = proc_info.rss_kb.saturating_mul(1024);
         let key = proc_info.process_key();
-        let Some((current_read, current_write)) = procfs::read_process_io_bytes(proc_info.pid)
-        else {
-            continue;
-        };
-        current_io.insert(key, (current_read, current_write));
-        if let Some((previous_read, previous_write)) = io_state.previous.get(&key) {
-            read_bytes = read_bytes.saturating_add(current_read.saturating_sub(*previous_read));
-            write_bytes = write_bytes.saturating_add(current_write.saturating_sub(*previous_write));
-        }
+        let (read_bytes, write_bytes) = process_io_delta(proc_info.pid, key, io_state, current_io);
+        out.push(MonitorProcessSample {
+            rank_kind: "all",
+            pid: proc_info.pid,
+            pid_starttime_ticks: proc_info.starttime_ticks,
+            ppid: proc_info.ppid,
+            depth: process_depth(proc_info, current, &family_set),
+            comm: truncate_field(&proc_info.comm, 128),
+            command: truncate_field(&proc_info.command, 512),
+            cwd: proc_info
+                .cwd
+                .as_ref()
+                .map(|path| truncate_field(&path.to_string_lossy(), 512)),
+            cpu_ms,
+            cpu_percent: procfs::process_cpu_percent(proc_info, previous, current),
+            rss_bytes,
+            read_bytes,
+            write_bytes,
+        });
     }
 
-    (cpu_ms, rss_bytes, read_bytes, write_bytes)
+    out
 }
 
-fn collect_fd_file_target_count(family: &[u32], current: &ProcSnapshot) -> usize {
-    let mut files = BTreeSet::new();
+fn aggregate_process_samples(samples: &[MonitorProcessSample]) -> (u64, u64, u64, u64) {
+    samples.iter().fold((0, 0, 0, 0), |acc, sample| {
+        (
+            acc.0.saturating_add(sample.cpu_ms),
+            acc.1.saturating_add(sample.rss_bytes),
+            acc.2.saturating_add(sample.read_bytes),
+            acc.3.saturating_add(sample.write_bytes),
+        )
+    })
+}
+
+fn process_io_delta(
+    pid: u32,
+    key: procfs::ProcessKey,
+    io_state: &MonitorIoState,
+    current_io: &mut BTreeMap<procfs::ProcessKey, (u64, u64)>,
+) -> (u64, u64) {
+    let Some((current_read, current_write)) = procfs::read_process_io_bytes(pid) else {
+        return (0, 0);
+    };
+    current_io.insert(key, (current_read, current_write));
+    io_state
+        .previous
+        .get(&key)
+        .map(|(previous_read, previous_write)| {
+            (
+                current_read.saturating_sub(*previous_read),
+                current_write.saturating_sub(*previous_write),
+            )
+        })
+        .unwrap_or((0, 0))
+}
+
+fn process_depth(
+    proc_info: &procfs::ProcInfo,
+    current: &ProcSnapshot,
+    family_set: &BTreeSet<u32>,
+) -> usize {
+    let mut depth = 0;
+    let mut parent_pid = proc_info.ppid;
+    let mut seen = BTreeSet::new();
+    while family_set.contains(&parent_pid) && seen.insert(parent_pid) {
+        depth += 1;
+        let Some(parent) = current.procs.get(&parent_pid) else {
+            break;
+        };
+        parent_pid = parent.ppid;
+    }
+    depth
+}
+
+fn collect_fd_target_counts(
+    family: &[u32],
+    current: &ProcSnapshot,
+) -> (BTreeMap<String, usize>, BTreeMap<u32, BTreeSet<u64>>) {
+    let mut files = BTreeMap::new();
+    let mut sockets_by_pid = BTreeMap::new();
 
     for pid in family {
         let Some(proc_info) = current.procs.get(pid) else {
@@ -395,23 +522,207 @@ fn collect_fd_file_target_count(family: &[u32], current: &ProcSnapshot) -> usize
             continue;
         }
         let mut pid_files = BTreeSet::new();
+        let mut pid_sockets = BTreeSet::new();
         for target in procfs::scan_proc_fd_paths(*pid) {
             let raw = target.to_string_lossy();
             if is_file_target(&raw) {
                 pid_files.insert(truncate_field(&raw, 768));
+            } else if let Some(inode) = socket_inode(&raw) {
+                pid_sockets.insert(inode);
             }
         }
         if procfs::process_starttime_ticks(*pid) != Some(proc_info.starttime_ticks) {
             continue;
         }
-        files.extend(pid_files);
+        for target in pid_files {
+            *files.entry(target).or_insert(0) += 1;
+        }
+        if !pid_sockets.is_empty() {
+            sockets_by_pid.insert(*pid, pid_sockets);
+        }
     }
 
-    files.len()
+    (files, sockets_by_pid)
 }
 
 fn is_file_target(target: &str) -> bool {
     target.starts_with('/') && !target.starts_with("/dev/null") && !target.starts_with("/dev/zero")
+}
+
+fn socket_inode(target: &str) -> Option<u64> {
+    target
+        .strip_prefix("socket:[")?
+        .strip_suffix(']')?
+        .parse()
+        .ok()
+}
+
+fn collect_network_target_counts(
+    sockets_by_pid: &BTreeMap<u32, BTreeSet<u64>>,
+) -> BTreeMap<String, usize> {
+    let mut targets = BTreeMap::new();
+    for (pid, socket_inodes) in sockets_by_pid {
+        for table in ["tcp", "tcp6"] {
+            let Ok(text) = std::fs::read_to_string(format!("/proc/{pid}/net/{table}")) else {
+                continue;
+            };
+            let is_ipv6 = table == "tcp6";
+            for line in text.lines().skip(1) {
+                let Some((inode, endpoint)) = parse_tcp_endpoint_line(line, is_ipv6) else {
+                    continue;
+                };
+                if socket_inodes.contains(&inode) {
+                    *targets.entry(endpoint).or_insert(0) += 1;
+                }
+            }
+        }
+    }
+    targets
+}
+
+fn parse_tcp_endpoint_line(line: &str, is_ipv6: bool) -> Option<(u64, String)> {
+    let fields = line.split_whitespace().collect::<Vec<_>>();
+    let local = *fields.get(1)?;
+    let remote = *fields.get(2)?;
+    let inode = fields.get(9)?.parse().ok()?;
+    let endpoint = parse_tcp_endpoint(remote, is_ipv6)
+        .filter(|(_, port)| *port != 0)
+        .or_else(|| parse_tcp_endpoint(local, is_ipv6).filter(|(_, port)| *port != 0))?;
+    Some((inode, format!("{}:{}", endpoint.0, endpoint.1)))
+}
+
+fn parse_tcp_endpoint(value: &str, is_ipv6: bool) -> Option<(String, u16)> {
+    let (addr_hex, port_hex) = value.split_once(':')?;
+    let port = u16::from_str_radix(port_hex, 16).ok()?;
+    if is_ipv6 {
+        Some((parse_tcp6_addr(addr_hex)?, port))
+    } else {
+        Some((parse_tcp4_addr(addr_hex)?, port))
+    }
+}
+
+fn parse_tcp4_addr(value: &str) -> Option<String> {
+    let raw = u32::from_str_radix(value, 16).ok()?;
+    Some(Ipv4Addr::from(raw.to_le_bytes()).to_string())
+}
+
+fn parse_tcp6_addr(value: &str) -> Option<String> {
+    if value.len() != 32 {
+        return None;
+    }
+    let mut bytes = [0u8; 16];
+    for (index, chunk) in value.as_bytes().chunks(8).enumerate() {
+        let chunk = std::str::from_utf8(chunk).ok()?;
+        let raw = u32::from_str_radix(chunk, 16).ok()?;
+        bytes[index * 4..index * 4 + 4].copy_from_slice(&raw.to_le_bytes());
+    }
+    Some(Ipv6Addr::from(bytes).to_string())
+}
+
+fn bounded_process_samples(samples: Vec<MonitorProcessSample>) -> Vec<MonitorProcessSample> {
+    if samples.len() <= DETAIL_EDGE_LIMIT * 2 {
+        return samples;
+    }
+    let mut selected = BTreeSet::new();
+    let mut out = Vec::new();
+
+    let mut top = samples.iter().enumerate().collect::<Vec<_>>();
+    top.sort_by(|(left_index, left), (right_index, right)| {
+        process_sample_score(right)
+            .cmp(&process_sample_score(left))
+            .then_with(|| left.pid.cmp(&right.pid))
+            .then_with(|| left_index.cmp(right_index))
+    });
+    for (index, sample) in top.into_iter().take(DETAIL_EDGE_LIMIT) {
+        selected.insert(index);
+        let mut sample = sample.clone();
+        sample.rank_kind = "top";
+        out.push(sample);
+    }
+
+    let mut bottom = samples.iter().enumerate().collect::<Vec<_>>();
+    bottom.sort_by(|(left_index, left), (right_index, right)| {
+        process_sample_score(left)
+            .cmp(&process_sample_score(right))
+            .then_with(|| left.pid.cmp(&right.pid))
+            .then_with(|| left_index.cmp(right_index))
+    });
+    for (index, sample) in bottom {
+        if out.len() >= DETAIL_EDGE_LIMIT * 2 {
+            break;
+        }
+        if selected.insert(index) {
+            let mut sample = sample.clone();
+            sample.rank_kind = "bottom";
+            out.push(sample);
+        }
+    }
+    out
+}
+
+fn process_sample_score(sample: &MonitorProcessSample) -> (u64, u64, u64) {
+    (
+        sample.cpu_ms,
+        sample.rss_bytes,
+        sample.read_bytes.saturating_add(sample.write_bytes),
+    )
+}
+
+fn bounded_target_samples(counts: BTreeMap<String, usize>) -> Vec<MonitorTargetSample> {
+    let rows = counts.into_iter().collect::<Vec<_>>();
+    if rows.len() <= DETAIL_EDGE_LIMIT * 2 {
+        return rows
+            .into_iter()
+            .map(|(target, count)| MonitorTargetSample {
+                rank_kind: "all",
+                target,
+                count,
+            })
+            .collect();
+    }
+
+    let mut selected = BTreeSet::new();
+    let mut out = Vec::new();
+    let mut top = rows.iter().enumerate().collect::<Vec<_>>();
+    top.sort_by(
+        |(left_index, (left_target, left_count)), (right_index, (right_target, right_count))| {
+            right_count
+                .cmp(left_count)
+                .then_with(|| left_target.cmp(right_target))
+                .then_with(|| left_index.cmp(right_index))
+        },
+    );
+    for (index, (target, count)) in top.into_iter().take(DETAIL_EDGE_LIMIT) {
+        selected.insert(index);
+        out.push(MonitorTargetSample {
+            rank_kind: "top",
+            target: target.clone(),
+            count: *count,
+        });
+    }
+
+    let mut bottom = rows.iter().enumerate().collect::<Vec<_>>();
+    bottom.sort_by(
+        |(left_index, (left_target, left_count)), (right_index, (right_target, right_count))| {
+            left_count
+                .cmp(right_count)
+                .then_with(|| left_target.cmp(right_target))
+                .then_with(|| left_index.cmp(right_index))
+        },
+    );
+    for (index, (target, count)) in bottom {
+        if out.len() >= DETAIL_EDGE_LIMIT * 2 {
+            break;
+        }
+        if selected.insert(index) {
+            out.push(MonitorTargetSample {
+                rank_kind: "bottom",
+                target: target.clone(),
+                count: *count,
+            });
+        }
+    }
+    out
 }
 
 fn truncate_field(value: &str, max: usize) -> String {
@@ -568,7 +879,6 @@ fn run_systemctl_user<const N: usize>(args: [&str; N]) -> io::Result<()> {
 struct MonitorStore {
     path: PathBuf,
     conn: Connection,
-    has_network_targets_column: bool,
 }
 
 impl MonitorStore {
@@ -585,12 +895,8 @@ impl MonitorStore {
         conn.pragma_update(None, "journal_mode", "WAL").ok();
         conn.pragma_update(None, "foreign_keys", "ON")?;
         conn.execute_batch(MONITOR_SCHEMA)?;
-        let has_network_targets_column = monitor_windows_has_network_targets_column(&conn)?;
-        Ok(Self {
-            path,
-            conn,
-            has_network_targets_column,
-        })
+        ensure_monitor_schema(&conn)?;
+        Ok(Self { path, conn })
     }
 
     fn path(&self) -> &Path {
@@ -598,7 +904,6 @@ impl MonitorStore {
     }
 
     fn insert_sample(&mut self, sample: &MonitorSample) -> rusqlite::Result<MonitorWriteStats> {
-        let has_network_targets_column = self.has_network_targets_column;
         let tx = self.conn.transaction()?;
         let mut stats = MonitorWriteStats::default();
 
@@ -635,50 +940,29 @@ impl MonitorStore {
                 ],
             )?;
 
-            if has_network_targets_column {
-                tx.execute(
-                    "INSERT INTO monitor_windows (
-                        session_id, root_pid, root_starttime_ticks, window_start_ms, window_end_ms,
-                        process_count, cpu_ms, rss_bytes, read_bytes, write_bytes,
-                        file_targets, network_targets
-                     ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, 0)",
-                    params![
-                        session.session_id,
-                        session.root_pid as i64,
-                        session.root_starttime_ticks as i64,
-                        sample.window_start_ms as i64,
-                        sample.window_end_ms as i64,
-                        session.process_count as i64,
-                        session.cpu_ms as i64,
-                        session.rss_bytes as i64,
-                        session.read_bytes as i64,
-                        session.write_bytes as i64,
-                        session.file_targets as i64,
-                    ],
-                )?;
-            } else {
-                tx.execute(
-                    "INSERT INTO monitor_windows (
-                        session_id, root_pid, root_starttime_ticks, window_start_ms, window_end_ms,
-                        process_count, cpu_ms, rss_bytes, read_bytes, write_bytes,
-                        file_targets
-                     ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
-                    params![
-                        session.session_id,
-                        session.root_pid as i64,
-                        session.root_starttime_ticks as i64,
-                        sample.window_start_ms as i64,
-                        sample.window_end_ms as i64,
-                        session.process_count as i64,
-                        session.cpu_ms as i64,
-                        session.rss_bytes as i64,
-                        session.read_bytes as i64,
-                        session.write_bytes as i64,
-                        session.file_targets as i64,
-                    ],
-                )?;
-            }
+            tx.execute(
+                "INSERT INTO monitor_windows (
+                    session_id, root_pid, root_starttime_ticks, window_start_ms, window_end_ms,
+                    process_count, cpu_ms, rss_bytes, read_bytes, write_bytes,
+                    file_targets, network_targets
+                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+                params![
+                    session.session_id,
+                    session.root_pid as i64,
+                    session.root_starttime_ticks as i64,
+                    sample.window_start_ms as i64,
+                    sample.window_end_ms as i64,
+                    session.process_count as i64,
+                    session.cpu_ms as i64,
+                    session.rss_bytes as i64,
+                    session.read_bytes as i64,
+                    session.write_bytes as i64,
+                    session.file_targets as i64,
+                    session.network_targets as i64,
+                ],
+            )?;
             let window_id = tx.last_insert_rowid();
+            insert_detail_samples(&tx, window_id, session)?;
 
             stats.sessions += 1;
             stats.windows += usize::from(window_id > 0);
@@ -693,6 +977,78 @@ impl MonitorStore {
             .execute_batch("PRAGMA wal_checkpoint(TRUNCATE);")
             .map(|_| ())
     }
+}
+
+fn insert_detail_samples(
+    tx: &rusqlite::Transaction<'_>,
+    window_id: i64,
+    session: &MonitorSessionSample,
+) -> rusqlite::Result<()> {
+    for (rank, sample) in session.process_samples.iter().enumerate() {
+        tx.execute(
+            "INSERT INTO process_samples (
+                window_id, rank, rank_kind, pid, pid_starttime_ticks, ppid, depth,
+                comm, command, cwd, cpu_ms, cpu_percent, rss_bytes, read_bytes,
+                write_bytes, live_count
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, 1)",
+            params![
+                window_id,
+                rank as i64,
+                sample.rank_kind,
+                sample.pid as i64,
+                sample.pid_starttime_ticks as i64,
+                sample.ppid as i64,
+                sample.depth as i64,
+                sample.comm,
+                sample.command,
+                sample.cwd.as_deref(),
+                sample.cpu_ms as i64,
+                sample.cpu_percent,
+                sample.rss_bytes as i64,
+                sample.read_bytes as i64,
+                sample.write_bytes as i64,
+            ],
+        )?;
+    }
+
+    insert_target_samples(tx, "file_samples", window_id, &session.file_samples)?;
+    insert_target_samples(tx, "network_samples", window_id, &session.network_samples)?;
+    Ok(())
+}
+
+fn insert_target_samples(
+    tx: &rusqlite::Transaction<'_>,
+    table: &str,
+    window_id: i64,
+    samples: &[MonitorTargetSample],
+) -> rusqlite::Result<()> {
+    let sql = format!(
+        "INSERT INTO {table} (window_id, rank, rank_kind, target, count)
+         VALUES (?1, ?2, ?3, ?4, ?5)"
+    );
+    for (rank, sample) in samples.iter().enumerate() {
+        tx.execute(
+            &sql,
+            params![
+                window_id,
+                rank as i64,
+                sample.rank_kind,
+                sample.target,
+                sample.count as i64,
+            ],
+        )?;
+    }
+    Ok(())
+}
+
+fn ensure_monitor_schema(conn: &Connection) -> rusqlite::Result<()> {
+    if !monitor_windows_has_network_targets_column(conn)? {
+        conn.execute_batch(
+            "ALTER TABLE monitor_windows
+             ADD COLUMN network_targets INTEGER NOT NULL DEFAULT 0;",
+        )?;
+    }
+    Ok(())
 }
 
 fn monitor_windows_has_network_targets_column(conn: &Connection) -> rusqlite::Result<bool> {
@@ -755,11 +1111,56 @@ CREATE TABLE IF NOT EXISTS monitor_windows (
     rss_bytes INTEGER NOT NULL,
     read_bytes INTEGER NOT NULL,
     write_bytes INTEGER NOT NULL,
-    file_targets INTEGER NOT NULL
+    file_targets INTEGER NOT NULL,
+    network_targets INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE INDEX IF NOT EXISTS idx_monitor_windows_session_time
     ON monitor_windows(session_id, window_start_ms);
+
+CREATE TABLE IF NOT EXISTS process_samples (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    window_id INTEGER NOT NULL REFERENCES monitor_windows(id) ON DELETE CASCADE,
+    rank INTEGER NOT NULL,
+    rank_kind TEXT NOT NULL,
+    pid INTEGER,
+    pid_starttime_ticks INTEGER,
+    ppid INTEGER,
+    depth INTEGER NOT NULL,
+    comm TEXT NOT NULL,
+    command TEXT NOT NULL,
+    cwd TEXT,
+    cpu_ms INTEGER NOT NULL,
+    cpu_percent REAL NOT NULL,
+    rss_bytes INTEGER NOT NULL,
+    read_bytes INTEGER NOT NULL,
+    write_bytes INTEGER NOT NULL,
+    live_count INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_process_samples_window
+    ON process_samples(window_id);
+
+CREATE TABLE IF NOT EXISTS file_samples (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    window_id INTEGER NOT NULL REFERENCES monitor_windows(id) ON DELETE CASCADE,
+    rank INTEGER NOT NULL,
+    rank_kind TEXT NOT NULL,
+    target TEXT NOT NULL,
+    count INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_file_samples_window
+    ON file_samples(window_id);
+
+CREATE TABLE IF NOT EXISTS network_samples (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    window_id INTEGER NOT NULL REFERENCES monitor_windows(id) ON DELETE CASCADE,
+    rank INTEGER NOT NULL,
+    rank_kind TEXT NOT NULL,
+    target TEXT NOT NULL,
+    count INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_network_samples_window
+    ON network_samples(window_id);
 "#;
 
 #[cfg(test)]
@@ -810,8 +1211,8 @@ mod tests {
         let temp = tempfile::tempdir().unwrap();
         let mut store = MonitorStore::open_path(temp.path().join("monitor.db")).unwrap();
         let sample = MonitorSample {
-            window_start_ms: 10,
-            window_end_ms: 20,
+            window_start_ms: 29_000,
+            window_end_ms: 31_000,
             sessions: vec![MonitorSessionSample {
                 session_id: "local:codex:test".to_string(),
                 display_id: "codex:test".to_string(),
@@ -829,6 +1230,32 @@ mod tests {
                 read_bytes: 11,
                 write_bytes: 13,
                 file_targets: 2,
+                network_targets: 1,
+                process_samples: vec![MonitorProcessSample {
+                    rank_kind: "all",
+                    pid: 42,
+                    pid_starttime_ticks: 100,
+                    ppid: 1,
+                    depth: 0,
+                    comm: "codex".to_string(),
+                    command: "codex exec".to_string(),
+                    cwd: Some("/tmp".to_string()),
+                    cpu_ms: 7,
+                    cpu_percent: 3.5,
+                    rss_bytes: 4096,
+                    read_bytes: 11,
+                    write_bytes: 13,
+                }],
+                file_samples: vec![MonitorTargetSample {
+                    rank_kind: "all",
+                    target: "/tmp/session.jsonl".to_string(),
+                    count: 1,
+                }],
+                network_samples: vec![MonitorTargetSample {
+                    rank_kind: "all",
+                    target: "203.0.113.10:443".to_string(),
+                    count: 1,
+                }],
             }],
         };
 
@@ -839,9 +1266,23 @@ mod tests {
             .unwrap();
         let file_targets: i64 = store
             .conn
-            .query_row("SELECT file_targets FROM monitor_windows", [], |row| {
-                row.get(0)
-            })
+            .query_row(
+                "SELECT file_targets + network_targets FROM monitor_windows",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        let process_samples: i64 = store
+            .conn
+            .query_row("SELECT COUNT(*) FROM process_samples", [], |row| row.get(0))
+            .unwrap();
+        let file_samples: i64 = store
+            .conn
+            .query_row("SELECT COUNT(*) FROM file_samples", [], |row| row.get(0))
+            .unwrap();
+        let network_samples: i64 = store
+            .conn
+            .query_row("SELECT COUNT(*) FROM network_samples", [], |row| row.get(0))
             .unwrap();
         let top = build_monitor_top(
             store.path(),
@@ -857,9 +1298,62 @@ mod tests {
 
         assert_eq!(stats.sessions, 1);
         assert_eq!(stats.windows, 1);
-        assert_eq!((windows, file_targets), (1, 2));
+        assert_eq!((windows, file_targets), (1, 3));
+        assert_eq!((process_samples, file_samples, network_samples), (1, 1, 1));
         assert_eq!(top.rows.len(), 1);
         assert_eq!(top.rows[0].files, 2);
+        assert_eq!(top.rows[0].network, 1);
+    }
+
+    #[test]
+    fn detail_sampling_only_crosses_interval_boundary() {
+        assert!(!should_store_detail_samples(10_000, 12_000));
+        assert!(should_store_detail_samples(29_000, 31_000));
+    }
+
+    #[test]
+    fn tcp_endpoint_parser_decodes_proc_net_tcp_ipv4() {
+        let line = "0: 0100007F:9C4C 0A7100CB:01BB 01 00000000:00000000 00:00000000 00000000 1000 0 12345 1";
+        assert_eq!(
+            parse_tcp_endpoint_line(line, false),
+            Some((12345, "203.0.113.10:443".to_string()))
+        );
+        assert_eq!(socket_inode("socket:[12345]"), Some(12345));
+    }
+
+    #[test]
+    fn bounded_samples_keep_top_and_bottom_edges() {
+        let targets = (0..12)
+            .map(|index| (format!("/tmp/file-{index}"), index + 1))
+            .collect::<BTreeMap<_, _>>();
+        let samples = bounded_target_samples(targets);
+        assert_eq!(samples.len(), 10);
+        assert_eq!(samples[0].rank_kind, "top");
+        assert_eq!(samples[0].count, 12);
+        assert!(samples.iter().any(|sample| sample.rank_kind == "bottom"));
+
+        let processes = (0..12)
+            .map(|index| MonitorProcessSample {
+                rank_kind: "all",
+                pid: index,
+                pid_starttime_ticks: 100 + index as u64,
+                ppid: 0,
+                depth: 0,
+                comm: "test".to_string(),
+                command: "test".to_string(),
+                cwd: None,
+                cpu_ms: index as u64,
+                cpu_percent: index as f64,
+                rss_bytes: 0,
+                read_bytes: 0,
+                write_bytes: 0,
+            })
+            .collect::<Vec<_>>();
+        let samples = bounded_process_samples(processes);
+        assert_eq!(samples.len(), 10);
+        assert_eq!(samples[0].rank_kind, "top");
+        assert_eq!(samples[0].pid, 11);
+        assert!(samples.iter().any(|sample| sample.rank_kind == "bottom"));
     }
 
     #[test]

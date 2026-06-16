@@ -1,6 +1,8 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to coding agents working in this repository.
+`AGENTS.md` is a symlink to this file so Claude Code and other agents share the
+same repository instructions.
 
 ## Overview
 
@@ -58,6 +60,16 @@ sudo ./bpf/process -c python
 # Web UI available at http://127.0.0.1:7395 when using record/stat live capture.
 # debug trace needs --server.
 ```
+
+## Documentation Hygiene
+
+- Keep the README Quick Start stable. Do not update Quick Start unless the
+  primary onboarding command or first-run flow changes.
+- Put details about mode-specific behavior, persistence paths, storage formats,
+  and operational caveats in Usage, FAQ, or dedicated docs sections instead of
+  Quick Start.
+- When changing user-facing CLI behavior, update the focused reference docs and
+  examples that describe that behavior, but avoid broad README churn.
 
 ## Architecture
 

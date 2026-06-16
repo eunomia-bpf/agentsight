@@ -482,7 +482,35 @@ pub(crate) fn print_record_session_summary(db_path: &str, summary: &SessionSumma
         summary.files.len(),
         summary.endpoints.len()
     );
-    println!("Run: agentsight report --db {}", shell_quote(db_path));
+    println!("Run: {}", record_report_command(db_path));
+}
+
+fn record_report_command(db_path: &str) -> String {
+    let path = Path::new(db_path);
+    let Some(file_name) = path.file_name().and_then(|name| name.to_str()) else {
+        return format!("agentsight report --db {}", shell_quote(db_path));
+    };
+    if !file_name.starts_with("agentsight-") || path.extension().is_none_or(|ext| ext != "db") {
+        return format!("agentsight report --db {}", shell_quote(db_path));
+    }
+    if record_db_is_in_current_dir(path) {
+        "agentsight report".to_string()
+    } else {
+        format!("agentsight report --db {}", shell_quote(db_path))
+    }
+}
+
+fn record_db_is_in_current_dir(path: &Path) -> bool {
+    match path
+        .parent()
+        .filter(|parent| !parent.as_os_str().is_empty())
+    {
+        None => true,
+        Some(parent) if parent == Path::new(".") => true,
+        Some(parent) => std::env::current_dir()
+            .ok()
+            .is_some_and(|current_dir| parent == current_dir),
+    }
 }
 
 pub(crate) fn print_record_target_status_error(error: impl std::fmt::Display) {
@@ -919,6 +947,40 @@ pub(crate) fn prompt_text_chars(value: &Value) -> Option<usize> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn record_report_command_uses_default_for_current_directory_record_db() {
+        assert_eq!(
+            record_report_command("agentsight-20260616-161500.db"),
+            "agentsight report"
+        );
+        assert_eq!(
+            record_report_command("./agentsight-20260616-161500.db"),
+            "agentsight report"
+        );
+
+        let path = std::env::current_dir()
+            .unwrap()
+            .join("agentsight-20260616-161500.db");
+        let path = path.to_string_lossy();
+        assert_eq!(record_report_command(path.as_ref()), "agentsight report");
+    }
+
+    #[test]
+    fn record_report_command_keeps_db_flag_for_non_current_directory_db() {
+        let path = std::env::temp_dir()
+            .join("agentsight-other-dir")
+            .join("agentsight-20260616-161500.db");
+        let path = path.to_string_lossy();
+        assert_eq!(
+            record_report_command(path.as_ref()),
+            format!("agentsight report --db {}", shell_quote(path.as_ref()))
+        );
+        assert_eq!(
+            record_report_command("custom.db"),
+            "agentsight report --db custom.db"
+        );
+    }
 
     #[test]
     fn live_top_row_stays_live_when_child_process_failed() {

@@ -266,7 +266,7 @@ enum Commands {
     /// Query and report on recorded sessions: summary, tokens, audit, prompts, export, list.
     /// Defaults to summary when no subcommand is given.
     Report {
-        /// SQLite database path (defaults to latest session)
+        /// SQLite database path (defaults to latest agentsight-*.db in the current directory)
         #[arg(long)]
         db: Option<String>,
         /// Read agent-native Claude/Codex/Gemini sessions (for summary)
@@ -284,7 +284,7 @@ enum Commands {
 enum ReportCommands {
     /// Session summary: what the agent did, tokens, processes, files
     Summary {
-        /// SQLite database path (defaults to latest session)
+        /// SQLite database path (defaults to latest agentsight-*.db in the current directory)
         #[arg(long)]
         db: Option<String>,
         /// Read agent-native Claude/Codex/Gemini sessions
@@ -293,7 +293,7 @@ enum ReportCommands {
     },
     /// Query token usage from a SQLite database
     Token {
-        /// SQLite database path (defaults to latest session)
+        /// SQLite database path (defaults to latest agentsight-*.db in the current directory)
         #[arg(long)]
         db: Option<String>,
         /// Grouping key: model, provider, comm, pid
@@ -305,7 +305,7 @@ enum ReportCommands {
     },
     /// Query audit events from a SQLite database
     Audit {
-        /// SQLite database path (defaults to latest session)
+        /// SQLite database path (defaults to latest agentsight-*.db in the current directory)
         #[arg(long)]
         db: Option<String>,
         /// Audit type: llm, process, file
@@ -320,7 +320,7 @@ enum ReportCommands {
     },
     /// Show captured LLM prompts and responses when observable
     Prompts {
-        /// SQLite database path (defaults to latest session)
+        /// SQLite database path (defaults to latest agentsight-*.db in the current directory)
         #[arg(long)]
         db: Option<String>,
         /// Maximum rows
@@ -332,7 +332,7 @@ enum ReportCommands {
     },
     /// Export a web/demo snapshot from a SQLite database
     Export {
-        /// SQLite database path (defaults to latest session)
+        /// SQLite database path (defaults to latest agentsight-*.db in the current directory)
         #[arg(long)]
         db: Option<String>,
         /// Output snapshot path, or '-' for stdout
@@ -344,7 +344,7 @@ enum ReportCommands {
     },
     /// Serve the web UI for a saved SQLite session
     Serve {
-        /// SQLite database path (defaults to latest session)
+        /// SQLite database path (defaults to latest agentsight-*.db in the current directory)
         #[arg(long)]
         db: Option<String>,
         /// Server port for the web UI
@@ -585,11 +585,9 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                     Some(ReportCommands::Summary { db: d, local: l }) => (d, l),
                     _ => (db, local),
                 };
-                let resolved = if *local_ref {
-                    None
-                } else {
-                    resolve_db_or_latest(db_ref).ok()
-                };
+                let resolved = (!*local_ref)
+                    .then(|| resolve_db_or_latest(db_ref))
+                    .transpose()?;
                 run_db_summary(resolved.as_deref())?;
             }
             Some(ReportCommands::Token {
@@ -608,11 +606,8 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 json,
             }) => {
                 let effective = d.as_ref().or(db.as_ref()).cloned();
-                if let Ok(db) = resolve_db_or_latest(&effective) {
-                    run_audit_query(&db, audit_type.as_deref(), *limit, *json)?;
-                } else {
-                    cli_db::run_agent_native_audit(*json)?;
-                }
+                let db = resolve_db_or_latest(&effective)?;
+                run_audit_query(&db, audit_type.as_deref(), *limit, *json)?;
             }
             Some(ReportCommands::Prompts { db: d, limit, json }) => {
                 let effective = d.as_ref().or(db.as_ref()).cloned();
@@ -749,10 +744,7 @@ async fn run_with_extractor(
             let db_path = match configured_db_path(db) {
                 Some(path) => Some(path),
                 None => match default_session_db_path() {
-                    Ok(path) => {
-                        sources::session_db::cleanup_old_sessions();
-                        Some(path)
-                    }
+                    Ok(path) => Some(path),
                     Err(e) => {
                         print_record_session_db_error(e);
                         None

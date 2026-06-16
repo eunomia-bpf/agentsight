@@ -270,20 +270,6 @@ pub(crate) fn run_db_summary(
     Ok(())
 }
 
-pub(crate) fn run_agent_native_audit(
-    json: bool,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let view = load_agentsight_view(None)?;
-    if json {
-        print_json(&view.export_snapshot(SnapshotOptions {
-            audit_limit: 50_000,
-        }))?;
-    } else {
-        print_session_summary(&SessionSummary::from_view(&view)?);
-    }
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
