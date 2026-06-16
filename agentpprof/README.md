@@ -24,6 +24,7 @@ The export writes:
 - `files.pb.gz`
 - `network.pb.gz`
 - matching folded stacks
+- `*.flame.svg` semantic flamegraphs
 - `agentpprof.json`
 - optional `*.top.txt` reports when `go tool pprof` is available
 
@@ -35,6 +36,13 @@ go tool pprof -traces .agentsight/agentpprof/latest/tools.pb.gz
 go tool pprof -http=:0 .agentsight/agentpprof/latest/files.pb.gz
 ```
 
+Open the generated flamegraphs directly:
+
+```bash
+xdg-open .agentsight/agentpprof/latest/tools.flame.svg
+xdg-open .agentsight/agentpprof/latest/tokens.flame.svg
+```
+
 ## Stack Projections
 
 Token profile:
@@ -43,11 +51,19 @@ Token profile:
 project:<repo>;agent:<codex|claude>;session:<tag>;prompt:<tag>;call:llm/<tag>;model:<model>;token:<kind>
 ```
 
+Width: token count.
+
 Tool/effect profile:
 
 ```text
 project:<repo>;agent:<codex|claude>;session:<tag>;prompt:<tag>;call:tool/<tag>;tool:<kind>;process:<cmd>;effect:<effect>;target:<group>;status:<status>
 ```
+
+Width: observed tool event count.
+
+File and network profiles use the same semantic session/prompt context, but
+make `file:<group>` or `domain:<domain>` the leaf frame. Their widths are file
+target event count and network target event count.
 
 The pprof exporter reverses these stacks when serializing samples because pprof
 stores the leaf frame first.

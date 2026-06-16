@@ -7,6 +7,7 @@ import subprocess
 from pathlib import Path
 
 from . import __version__
+from .flamegraph import write_flamegraph_svg
 from .parser import annotate_sessions, discover_sessions
 from .pprof import write_pprof
 from .project import PROFILE_BUILDERS, folded_lines, project_name_from_root, summarize_sessions
@@ -112,6 +113,7 @@ def command_export(args: argparse.Namespace) -> int:
         samples = builder(project_name, sessions)
         profile_path = out_dir / f"{profile_name}.pb.gz"
         folded_path = out_dir / f"{profile_name}.folded.txt"
+        flamegraph_path = out_dir / f"{profile_name}.flame.svg"
         write_pprof(
             profile_path,
             sample_type,
@@ -124,10 +126,17 @@ def command_export(args: argparse.Namespace) -> int:
             ],
         )
         folded_path.write_text("\n".join(folded_lines(samples)) + ("\n" if samples else ""), encoding="utf-8")
+        write_flamegraph_svg(
+            flamegraph_path,
+            samples,
+            title=f"agentpprof {profile_name} flamegraph",
+            unit=sample_unit,
+        )
         warnings.extend(run_pprof_reports(out_dir, profile_name, profile_path, args.render))
         artifacts[profile_name] = {
             "profile": display_path(profile_path, out_dir),
             "folded": display_path(folded_path, out_dir),
+            "flamegraph": display_path(flamegraph_path, out_dir),
             "samples": len(samples),
             "total_value": sum(sample.value for sample in samples),
         }

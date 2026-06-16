@@ -30,11 +30,12 @@ tool_call -> process/effect/target
 llm_call -> token usage
 ```
 
-`agentpprof` exports multiple pprof projections from that graph.
+`agentpprof` exports multiple pprof projections from that graph. Each
+projection also emits a folded stack file and a direct SVG flamegraph.
 
 ### Token Profile
 
-Sample value: token count.
+Sample value and flamegraph width: token count.
 
 ```text
 project:<repo>;
@@ -48,7 +49,7 @@ token:<input|output|cache|estimate>
 
 ### Tool Profile
 
-Sample value: observed tool event count.
+Sample value and flamegraph width: observed tool event count.
 
 ```text
 project:<repo>;
@@ -67,7 +68,7 @@ commands, not `status:observed`.
 
 ### File Profile
 
-Sample value: observed file-target event count.
+Sample value and flamegraph width: observed file-target event count.
 
 ```text
 project:<repo>;
@@ -81,7 +82,7 @@ file:<group>
 
 ### Network Profile
 
-Sample value: observed network-target event count.
+Sample value and flamegraph width: observed network-target event count.
 
 ```text
 project:<repo>;
@@ -129,6 +130,11 @@ render them correctly because the `profile.proto` structure is valid:
 The current Python encoder writes the profile proto subset directly, with no
 runtime dependency on `protobuf` or `protoc`. The unit test uses
 `go tool pprof -top` as the compatibility oracle.
+
+The direct flamegraph renderer uses the same samples. It builds a prefix tree
+from root-to-leaf semantic stacks and draws rectangles whose width is the
+cumulative sample value for that projection. This avoids confusing pprof's
+`-svg` call graph output with a flamegraph.
 
 ## Current Limitations
 
