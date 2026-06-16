@@ -281,13 +281,6 @@ fn matches_filter(
             .contains(&filter)
 }
 
-pub(crate) fn count_sessions() -> Vec<(&'static str, PathBuf, usize, u64)> {
-    agent_session::count_session_dirs()
-        .into_iter()
-        .map(|stat| (stat.agent, stat.dir, stat.sessions, stat.bytes))
-        .collect()
-}
-
 #[cfg(test)]
 pub(crate) fn create_temp_session_path(agent: &str) -> (tempfile::TempDir, PathBuf) {
     let temp = tempfile::tempdir().unwrap();

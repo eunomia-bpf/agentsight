@@ -40,6 +40,20 @@ If you downloaded the binary into the current directory, run `sudo ./agentsight 
 agent behavior in real time. See the [Usage](#usage) section for more examples
 and details.
 
+For long-running local observation without keeping a terminal open, install the
+background monitor as a systemd user service:
+
+```bash
+agentsight monitor install-service
+```
+
+When the monitor service is active, `agentsight top` reads its stored monitor
+windows instead of starting another live probe session.
+The background monitor is intentionally lightweight: it records matched local
+agent sessions plus `/proc` CPU, memory, I/O, and file-target counts. It does
+not capture SSL/API payloads or other eBPF events; use `sudo agentsight top` or
+`sudo agentsight record -- <command>` when you need full live eBPF capture.
+
 ## 🚀 Why AgentSight?
 
 ### Traditional Observability vs. System-Level Monitoring
@@ -95,6 +109,7 @@ Every `record` session is automatically saved to SQLite. Start with the live and
 
 ```bash
 sudo agentsight top                          # live ranked view of current agent sessions
+agentsight monitor install-service           # install/start the background monitor service
 agentsight top --db run.db --once            # ranked view of a saved session
 sudo agentsight record -- claude             # record a command
 agentsight report                            # high-level run summary (default)
@@ -148,8 +163,6 @@ For a saved SQLite session, run `agentsight report serve --db run.db` and open t
 | Python (aider, open-interpreter, …) | `sudo ./agentsight record -c python` |
 | Docker containers (OpenClaw, …) | `sudo ./agentsight record -c node --binary-path docker://openclaw` |
 | Any command | `sudo ./agentsight record -- <command>` |
-
-Discover what's installed locally with `./agentsight discover`.
 
 See [docs/agents.md](https://github.com/eunomia-bpf/agentsight/blob/master/docs/agents.md) for agent-specific setup, SSL quirks, browser capture, MCP stdio, and advanced flags.
 

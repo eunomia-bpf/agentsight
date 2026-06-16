@@ -77,7 +77,7 @@ eBPF Programs (kernel) → JSON stdout → Rust Runners → Analyzer Chain → O
   - `output/` — CLI/TUI rendering of snapshots
   - `event.rs` — Standardized `Event` struct with JSON payloads; `model.rs` — view row types + ViewSink trait
   - `binary_extractor.rs` — Extracts embedded eBPF binaries to temp files at runtime
-- **`collector/src/main.rs`** — CLI entry point. Main subcommands: `stat`, `top`, `record`, `report` (`summary`, `token`, `audit`, `prompts`, `export`, `list`), `discover`, and `debug` (`ssl`, `process`, `stdio`, `trace`, `system`).
+- **`collector/src/main.rs`** — CLI entry point. Main subcommands: `top`, `monitor`, `record`, `report` (`summary`, `token`, `audit`, `prompts`, `export`, `list`), and `debug` (`ssl`, `process`, `stdio`, `trace`, `system`).
 - **`collector/src/server/`** — Hyper-based embedded web server serving frontend assets and `/api/events`
 - **`frontend/`** — Next.js/React/TypeScript visualization with timeline, process tree, and log views
 

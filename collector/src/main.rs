@@ -21,7 +21,6 @@ mod analyzers;
 mod binary_extractor;
 mod binary_resolver;
 mod cli_db;
-mod cli_discover;
 mod cmd_debug;
 mod cmd_exec;
 mod cmd_monitor;
@@ -47,10 +46,11 @@ use cli_db::{
     configured_db_path, run_audit_query, run_db_summary, run_export, run_prompts_query,
     run_token_query,
 };
-use cli_discover::run_discover;
 use cmd_debug::{run_raw_process, run_raw_ssl, run_raw_stdio, run_system};
 use cmd_exec::{default_session_db_path, print_session_summary, run_exec};
-use cmd_monitor::{active_monitor_db_path, run_monitor, run_monitor_top_query};
+use cmd_monitor::{
+    active_monitor_db_path, install_monitor_service, run_monitor, run_monitor_top_query,
+};
 use cmd_perf::run_top_query;
 use cmd_perf_live::run_live_top_query;
 use cmd_perf_tui::run_live_top_tui;
@@ -234,7 +234,10 @@ enum Commands {
         plain: bool,
     },
     /// Long-running bounded trace monitor for matched local agent sessions.
-    Monitor,
+    Monitor {
+        #[command(subcommand)]
+        command: Option<MonitorCommands>,
+    },
     /// Record a command, or attach to an already-running agent by command name or PID.
     /// Examples: sudo agentsight record -- claude     (or)  sudo agentsight record -c claude
     Record {
@@ -259,12 +262,6 @@ enum Commands {
         /// Optional command to launch and trace. Use -c/--comm or -p/--pid instead to attach.
         #[arg(last = true)]
         command: Vec<String>,
-    },
-    /// Discover supported local agent CLIs and recommended capture settings
-    Discover {
-        /// Emit JSON output
-        #[arg(long)]
-        json: bool,
     },
     /// Query and report on recorded sessions: summary, tokens, audit, prompts, export, list.
     /// Defaults to summary when no subcommand is given.
@@ -356,6 +353,12 @@ enum ReportCommands {
     },
     /// List session databases
     List,
+}
+
+#[derive(Subcommand)]
+enum MonitorCommands {
+    /// Install and start monitor as a systemd user service.
+    InstallService,
 }
 
 #[derive(Subcommand)]
@@ -674,12 +677,10 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             };
             run_monitor_top_query(*interval, *limit, count, &options).await?;
         }
-        Commands::Discover { json } => {
-            run_discover(*json)?;
-        }
-        Commands::Monitor => {
-            run_monitor().await?;
-        }
+        Commands::Monitor { command } => match command {
+            None => run_monitor().await?,
+            Some(MonitorCommands::InstallService) => install_monitor_service()?,
+        },
         // All remaining commands need the binary extractor.
         _ => {
             let binary_extractor = BinaryExtractor::new().await?;

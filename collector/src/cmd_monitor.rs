@@ -11,10 +11,12 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::time::Duration;
 
 const MONITOR_INTERVAL_SECS: u64 = 2;
 const SESSION_SCAN_LIMIT: usize = 25;
+const MONITOR_SERVICE_NAME: &str = "agentsight-monitor.service";
 
 #[derive(Debug, Clone)]
 struct MonitorSample {
@@ -113,6 +115,35 @@ pub(crate) async fn run_monitor() -> Result<(), Box<dyn std::error::Error + Send
     }
 
     store.checkpoint()?;
+    Ok(())
+}
+
+pub(crate) fn install_monitor_service() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    if !cfg!(target_os = "linux") {
+        return Err(
+            "monitor service install currently supports Linux systemd user services".into(),
+        );
+    }
+
+    let exe = std::env::current_exe()?;
+    let unit_dir = systemd_user_dir()?;
+    std::fs::create_dir_all(&unit_dir)?;
+    let unit_path = unit_dir.join(MONITOR_SERVICE_NAME);
+    std::fs::write(&unit_path, monitor_service_unit(&exe)?)?;
+
+    run_systemctl_user(["daemon-reload"])?;
+    run_systemctl_user(["enable", MONITOR_SERVICE_NAME])?;
+    run_systemctl_user(["restart", MONITOR_SERVICE_NAME]).map_err(|err| {
+        io::Error::other(format!(
+            "installed and enabled {MONITOR_SERVICE_NAME}, but failed to start it; \
+             inspect with `systemctl --user status {MONITOR_SERVICE_NAME}`: {err}"
+        ))
+    })?;
+
+    println!("Installed AgentSight monitor service");
+    println!("Unit: {}", unit_path.display());
+    println!("ExecStart: {} monitor", exe.display());
+    println!("Status: systemctl --user status {MONITOR_SERVICE_NAME}");
     Ok(())
 }
 
@@ -466,6 +497,74 @@ fn short_monitor_session_id(session_id: &str) -> String {
         .to_string()
 }
 
+fn systemd_user_dir() -> io::Result<PathBuf> {
+    if let Some(config_home) = std::env::var_os("XDG_CONFIG_HOME")
+        && !config_home.is_empty()
+    {
+        return Ok(PathBuf::from(config_home).join("systemd").join("user"));
+    }
+    let home = dirs::home_dir()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "home directory not found"))?;
+    Ok(home.join(".config").join("systemd").join("user"))
+}
+
+fn monitor_service_unit(exe: &Path) -> io::Result<String> {
+    let exe = exe.to_str().ok_or_else(|| {
+        io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "agentsight binary path is not valid UTF-8",
+        )
+    })?;
+    Ok(monitor_service_unit_for_exe(exe))
+}
+
+fn monitor_service_unit_for_exe(exe: &str) -> String {
+    format!(
+        "\
+[Unit]
+Description=AgentSight background monitor
+Documentation=https://github.com/eunomia-bpf/agentsight
+After=default.target
+
+[Service]
+Type=simple
+ExecStart={} monitor
+Restart=on-failure
+RestartSec=5
+KillSignal=SIGTERM
+
+[Install]
+WantedBy=default.target
+",
+        systemd_quote(exe)
+    )
+}
+
+fn systemd_quote(value: &str) -> String {
+    let escaped = value
+        .replace('%', "%%")
+        .replace('\\', "\\\\")
+        .replace('"', "\\\"");
+    format!("\"{escaped}\"")
+}
+
+fn run_systemctl_user<const N: usize>(args: [&str; N]) -> io::Result<()> {
+    let output = Command::new("systemctl")
+        .arg("--user")
+        .args(args)
+        .output()?;
+    if output.status.success() {
+        return Ok(());
+    }
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    Err(io::Error::other(format!(
+        "systemctl --user failed with status {}: {}{}",
+        output.status, stdout, stderr
+    )))
+}
+
 struct MonitorStore {
     path: PathBuf,
     conn: Connection,
@@ -677,6 +776,33 @@ mod tests {
             path,
             PathBuf::from("/home/user/.agentsight/monitor/monitor-2026-W25.db")
         );
+    }
+
+    #[test]
+    fn monitor_service_unit_runs_monitor_subcommand() {
+        let unit = monitor_service_unit(Path::new("/home/user/bin/agentsight")).unwrap();
+        assert!(unit.contains("ExecStart=\"/home/user/bin/agentsight\" monitor"));
+        assert!(unit.contains("Restart=on-failure"));
+        assert!(unit.contains("WantedBy=default.target"));
+    }
+
+    #[test]
+    fn systemd_quote_escapes_special_chars() {
+        assert_eq!(
+            systemd_quote("/tmp/a \"quoted\" path/%agentsight"),
+            "\"/tmp/a \\\"quoted\\\" path/%%agentsight\""
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn monitor_service_unit_rejects_non_utf8_path() {
+        use std::ffi::OsStr;
+        use std::os::unix::ffi::OsStrExt;
+
+        let path = Path::new(OsStr::from_bytes(b"/tmp/agentsight-\xff"));
+        let err = monitor_service_unit(path).unwrap_err();
+        assert_eq!(err.kind(), io::ErrorKind::InvalidInput);
     }
 
     #[test]

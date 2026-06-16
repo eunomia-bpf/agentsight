@@ -790,37 +790,6 @@ pub(crate) fn print_session_list(dir: &Path, entries: &[std::fs::DirEntry]) {
     }
 }
 
-pub(crate) fn print_discovery(
-    rows: &[crate::cli_discover::DiscoveryRow],
-    local: &[(&'static str, std::path::PathBuf, usize, u64)],
-) {
-    println!(
-        "{:<14} {:<10} {:<9} recommended",
-        "id", "command", "available"
-    );
-    for row in rows {
-        println!(
-            "{:<14} {:<10} {:<9} {}",
-            row.id,
-            row.command,
-            if row.available { "yes" } else { "no" },
-            row.recommended_capture
-        );
-    }
-
-    if !local.is_empty() {
-        println!("\nLocal session data:");
-        for (name, dir, count, bytes) in local {
-            println!(
-                "  {name:<10} {count} sessions, {:.0} MB  ({})",
-                *bytes as f64 / 1_048_576.0,
-                dir.display()
-            );
-        }
-        println!("\n  Run `agentsight report` to analyze the latest session.");
-    }
-}
-
 fn print_count_map(label: &str, counts: &BTreeMap<String, usize>) {
     if counts.is_empty() {
         return;

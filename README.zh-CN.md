@@ -27,6 +27,19 @@ AgentSight 在你忘记 sudo 时可以自动请求提权，但推荐命令仍然
 `sudo`。`top` 会加载 eBPF probes，也会优先读取 Claude、Codex、Gemini、OpenCode
 和 OpenClaw 的本地 session 日志。
 
+如果希望长期后台观察本机智能体，而不是一直开着终端，可以安装 systemd user
+service：
+
+```bash
+agentsight monitor install-service
+```
+
+当 monitor service 正在运行时，`agentsight top` 会直接读取后台 monitor 已保存的窗口数据，
+不会再启动另一套 live probes。
+后台 monitor 是轻量模式：记录匹配到的本地 agent session，以及 `/proc` 中的 CPU、内存、
+I/O 和文件目标数量。它不会捕获 SSL/API payload 或其它 eBPF 事件；如果需要完整 live
+eBPF capture，仍然使用 `sudo agentsight top` 或 `sudo agentsight record -- <command>`。
+
 ## 为什么选择 AgentSight？
 
 ### 传统可观测性 vs. 系统级监控
@@ -143,8 +156,6 @@ make build
 | Python（aider、open-interpreter 等） | `sudo ./agentsight record -c python` |
 | Docker 容器（OpenClaw 等） | `sudo ./agentsight record -c node --binary-path docker://openclaw` |
 | 任意命令 | `sudo ./agentsight record -- <command>` |
-
-使用 `./agentsight discover` 发现本地已安装的智能体。
 
 详见 [docs/agents.md](https://github.com/eunomia-bpf/agentsight/blob/master/docs/agents.md)，了解各智能体的详细设置、SSL 注意事项、浏览器捕获、MCP stdio 和高级选项。
 

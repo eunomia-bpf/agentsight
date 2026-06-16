@@ -4,14 +4,6 @@ AgentSight works with any process that makes TLS-encrypted API calls. This page 
 
 For general usage and the `record` command, see the [README](https://github.com/eunomia-bpf/agentsight#quick-start).
 
-## Agent Discovery
-
-```bash
-./agentsight discover
-```
-
-Lists supported agent installs and local session locations on the machine. Agent-specific session logs are read through local sources and materialized into the same view schema used by recorded traces.
-
 ## Zero-Config: `record`
 
 `record` is the simplest way to trace an agent. Put the command you want to run
