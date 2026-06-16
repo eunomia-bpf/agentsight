@@ -1,122 +1,53 @@
 # agentpprof
 
-`agentpprof` turns local AI coding-agent sessions into pprof-compatible semantic
-profiles. It reads Codex and Claude Code JSONL history through AgentSight's
-`agent-session` crate, assigns one-word tags to sessions, prompts, and LLM
-calls, and writes one explicit output file.
+`agentpprof` builds pprof-compatible semantic profiles from local coding-agent
+sessions. It maps agent concepts such as session tags, prompt tags, LLM calls,
+tool calls, processes, and effects onto synthetic pprof stack frames, then
+writes gzip-compressed `profile.proto` files that `go tool pprof` can read.
 
-The profiles are not CPU profiles. They are projections over agent activity:
-tool events, file effects, network effects, or token usage.
+The files are semantic profiles, not CPU profiles. The sample value can be
+tokens, tool events, file events, or network events.
 
-## Install
-
-```bash
-cargo install agentpprof
-```
-
-From this repository:
+## Run From This Repository
 
 ```bash
-cargo run --manifest-path agentpprof/Cargo.toml -- -o agent.pb.gz
+PYTHONPATH=agentpprof/src python3 -m agentpprof export \
+  --project-root . \
+  --out .agentsight/agentpprof/latest \
+  --max-sessions 12
 ```
 
-## pprof Output
+The export writes:
 
-Generate a semantic task profile for the current repository:
+- `tokens.pb.gz`
+- `tools.pb.gz`
+- `files.pb.gz`
+- `network.pb.gz`
+- matching folded stacks
+- `agentpprof.json`
+- optional `*.top.txt` reports when `go tool pprof` is available
+
+Inspect with pprof:
 
 ```bash
-agentpprof --project-root . -o agent.pb.gz
+go tool pprof -top .agentsight/agentpprof/latest/tokens.pb.gz
+go tool pprof -traces .agentsight/agentpprof/latest/tools.pb.gz
+go tool pprof -http=:0 .agentsight/agentpprof/latest/files.pb.gz
 ```
 
-Open it with standard Go pprof:
+## Stack Projections
 
-```bash
-go tool pprof -top agent.pb.gz
-go tool pprof -http=:0 agent.pb.gz
+Token profile:
+
+```text
+project:<repo>;agent:<codex|claude>;session:<tag>;prompt:<tag>;call:llm/<tag>;model:<model>;token:<kind>
 ```
 
-The default `tasks` view makes prompt tags the pprof leaf frame, so `pprof -top`
-shows where the agent spent most of its session activity semantically.
+Tool/effect profile:
 
-## Views
-
-Use `--view` to choose the projection:
-
-```bash
-agentpprof -o tasks.pb.gz --view tasks
-agentpprof -o tools.pb.gz --view tools
-agentpprof -o tokens.pb.gz --view tokens
-agentpprof -o files.pb.gz --view files
-agentpprof -o network.pb.gz --view network
+```text
+project:<repo>;agent:<codex|claude>;session:<tag>;prompt:<tag>;call:tool/<tag>;tool:<kind>;process:<cmd>;effect:<effect>;target:<group>;status:<status>
 ```
 
-Widths mean different things by view:
-
-- `tasks`: event count across tool and LLM-call activity.
-- `tools`: tool event count, including tool category, process chain, effect,
-  path/domain, and status frames.
-- `tokens`: token count when reported by the agent log; otherwise bounded text
-  estimates. Very large unsafe estimates are recorded as `unknown=1` so one
-  replayed transcript cannot dominate the profile with bogus token width.
-- `files`: file/path effect count.
-- `network`: network/domain effect count.
-
-## Other Formats
-
-The default format is pprof protobuf, gzipped when the output path ends in
-`.gz`. The output extension also selects common formats:
-
-```bash
-agentpprof -o tasks.folded --view tasks
-agentpprof -o tokens.svg --view tokens
-agentpprof -o files.json --view files
-```
-
-Folded stacks are compatible with common flamegraph tooling. SVG output is a
-single quick-look stack chart built from the folded stacks; use folded output
-with standard tools such as inferno or flamegraph.pl when you need canonical
-merged-prefix flamegraphs. JSON output includes redacted session summaries and
-the stack table.
-
-## Tags
-
-The default tagger is deterministic:
-
-```bash
-agentpprof -o agent.pb.gz --tagger regex
-```
-
-For model-produced one-word tags, run a llama.cpp-compatible server and use:
-
-```bash
-llama-server -m /path/to/model.gguf --port 8080
-agentpprof -o agent.pb.gz --tagger llm --llama-url http://127.0.0.1:8080
-```
-
-LLM tags are cached under the user cache directory by default, for example
-`$XDG_CACHE_HOME/agentpprof/tags.json`. Override with `--cache`, or pass
-`--no-cache` to avoid saving new entries.
-
-## Selecting Sessions
-
-By default, `agentpprof` scans recent local Codex and Claude Code sessions that
-match `--project-root`.
-
-Useful selectors:
-
-```bash
-agentpprof -o agent.pb.gz --session-file ~/.codex/sessions/.../session.jsonl
-agentpprof -o agent.pb.gz --agent codex
-agentpprof -o agent.pb.gz --session-id 019ec5
-agentpprof -o agent.pb.gz --session-tag profile
-agentpprof -o agent.pb.gz --prompt-tag review
-```
-
-No output directory is created unless the explicit `-o/--output` path contains
-one.
-
-## Development
-
-```bash
-cargo test --manifest-path agentpprof/Cargo.toml
-```
+The pprof exporter reverses these stacks when serializing samples because pprof
+stores the leaf frame first.
