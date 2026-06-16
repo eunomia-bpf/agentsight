@@ -45,6 +45,29 @@ pub(crate) struct LiveView {
     session_cache: agent_native_sessions::SessionCache,
 }
 
+#[derive(Debug, Clone)]
+pub(crate) struct LiveMonitorSample {
+    pub(crate) at_ms: u64,
+    pub(crate) current: LiveSample,
+    pub(crate) previous: Option<LiveSample>,
+    pub(crate) sessions: Vec<LiveMonitorSession>,
+}
+
+#[derive(Debug, Clone)]
+pub(crate) struct LiveMonitorSession {
+    pub(crate) session_id: String,
+    pub(crate) agent_type: String,
+    pub(crate) display_id: String,
+    pub(crate) session_path: Option<PathBuf>,
+    pub(crate) root_pid: u32,
+    pub(crate) root_starttime_ticks: u64,
+    pub(crate) evidence: &'static str,
+    pub(crate) confidence: f32,
+    pub(crate) command: String,
+    pub(crate) cwd: Option<String>,
+    pub(crate) family: Vec<u32>,
+}
+
 impl Default for LiveView {
     fn default() -> Self {
         Self {
@@ -73,6 +96,86 @@ impl LiveView {
         let top = self.build_top(&sample, capture, &session_snapshot, options);
         self.previous = Some(sample);
         Ok(top)
+    }
+
+    pub(crate) fn refresh_monitor_sample(&mut self, limit: usize) -> io::Result<LiveMonitorSample> {
+        let sample = LiveSample::collect()?;
+        let previous = self.previous.clone();
+        let session_snapshot = agent_native_sessions::snapshot(
+            &mut self.session_cache,
+            None,
+            None,
+            limit.max(1),
+            Duration::from_secs(2),
+        );
+        let options = TopOptions {
+            pid: None,
+            comm: None,
+            sort: "cpu".to_string(),
+            view: "all".to_string(),
+        };
+        let children = sample.children_by_ppid();
+        let live_rows = live_process_rows(&sample, self.previous.as_ref(), &options, &children);
+        let process_candidates = live_process_candidates(&sample, &live_rows, &children);
+        let process_trees = process_candidates
+            .iter()
+            .map(|candidate| candidate.tree.clone())
+            .collect::<Vec<_>>();
+        let fd_paths_by_process = procfs::collect_fd_paths(&process_trees);
+        let matches = self.matcher.match_sessions(
+            &session_snapshot.sessions,
+            &process_candidates,
+            &fd_paths_by_process,
+            &HashMap::new(),
+            now_ms(),
+        );
+        let live_rows_by_pid = live_rows
+            .iter()
+            .filter_map(|row| row.pid.map(|pid| (pid, row)))
+            .collect::<HashMap<_, _>>();
+        let mut sessions = Vec::new();
+
+        for session in &session_snapshot.sessions {
+            let Some(matched) = matches.by_session_id.get(&session.id) else {
+                continue;
+            };
+            let family = procfs::process_family(matched.root_pid, &children, &sample.procs);
+            if family.is_empty() {
+                continue;
+            }
+            let root = sample.procs.get(&matched.root_pid);
+            let row = live_rows_by_pid.get(&matched.root_pid);
+            sessions.push(LiveMonitorSession {
+                session_id: session.id.clone(),
+                agent_type: session.agent_type.clone(),
+                display_id: session_attr(session, "display_id")
+                    .unwrap_or(session.id.as_str())
+                    .to_string(),
+                session_path: session_attr(session, "path").map(PathBuf::from),
+                root_pid: matched.root_pid,
+                root_starttime_ticks: matched.pid_starttime_ticks,
+                evidence: matched.evidence,
+                confidence: matched.confidence,
+                command: row
+                    .map(|row| row.command.clone())
+                    .or_else(|| root.map(|proc_info| proc_info.command.clone()))
+                    .unwrap_or_else(|| "unknown".to_string()),
+                cwd: row.and_then(|row| row.workspace.clone()).or_else(|| {
+                    root.and_then(|proc_info| proc_info.cwd.clone())
+                        .map(|path| path.to_string_lossy().to_string())
+                }),
+                family,
+            });
+        }
+
+        let at_ms = now_ms();
+        self.previous = Some(sample.clone());
+        Ok(LiveMonitorSample {
+            at_ms,
+            current: sample,
+            previous,
+            sessions,
+        })
     }
 
     fn build_top<'a>(

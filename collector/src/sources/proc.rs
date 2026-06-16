@@ -344,6 +344,20 @@ pub(crate) fn process_start_timestamp_ms(starttime_ticks: u64) -> Option<u64> {
     Some(boot_ms.saturating_add(process_offset_ms))
 }
 
+pub(crate) fn process_cpu_ms_delta(proc_info: &ProcInfo, previous: Option<&ProcSnapshot>) -> u64 {
+    let Some(previous) = previous else {
+        return 0;
+    };
+    let Some(prev_proc) = previous.procs.get(&proc_info.pid) else {
+        return 0;
+    };
+    if prev_proc.starttime_ticks != proc_info.starttime_ticks {
+        return 0;
+    }
+    let delta_ticks = proc_info.ticks.saturating_sub(prev_proc.ticks);
+    ((delta_ticks as f64 / ticks_per_second()) * 1000.0).round() as u64
+}
+
 fn page_size_bytes() -> u64 {
     let value = unsafe { libc::sysconf(libc::_SC_PAGESIZE) };
     if value > 0 { value as u64 } else { 4096 }
@@ -358,6 +372,20 @@ fn read_thread_count(pid: u32) -> u32 {
     fs::read_dir(format!("/proc/{pid}/task"))
         .map(|entries| entries.count() as u32)
         .unwrap_or(1)
+}
+
+pub(crate) fn read_process_io_bytes(pid: u32) -> Option<(u64, u64)> {
+    let io = fs::read_to_string(format!("/proc/{pid}/io")).ok()?;
+    let mut read_bytes = 0;
+    let mut write_bytes = 0;
+    for line in io.lines() {
+        if let Some(value) = line.strip_prefix("read_bytes:") {
+            read_bytes = value.trim().parse().ok()?;
+        } else if let Some(value) = line.strip_prefix("write_bytes:") {
+            write_bytes = value.trim().parse().ok()?;
+        }
+    }
+    Some((read_bytes, write_bytes))
 }
 
 #[cfg(test)]

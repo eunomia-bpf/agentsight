@@ -24,6 +24,7 @@ mod cli_db;
 mod cli_discover;
 mod cmd_debug;
 mod cmd_exec;
+mod cmd_monitor;
 mod cmd_perf;
 mod cmd_perf_live;
 mod cmd_perf_tui;
@@ -49,6 +50,7 @@ use cli_db::{
 use cli_discover::run_discover;
 use cmd_debug::{run_raw_process, run_raw_ssl, run_raw_stdio, run_system};
 use cmd_exec::{default_session_db_path, print_session_summary, run_exec};
+use cmd_monitor::{active_monitor_db_path, run_monitor, run_monitor_top_query};
 use cmd_perf::run_top_query;
 use cmd_perf_live::run_live_top_query;
 use cmd_perf_tui::run_live_top_tui;
@@ -151,11 +153,16 @@ fn init_logging(suppress_terminal_output: bool) {
 async fn setup_signal_handler(suppress_terminal_output: bool) {
     let mut sigint = signal::unix::signal(signal::unix::SignalKind::interrupt())
         .expect("Failed to install SIGINT handler");
+    let mut sigterm = signal::unix::signal(signal::unix::SignalKind::terminate())
+        .expect("Failed to install SIGTERM handler");
 
     tokio::spawn(async move {
-        sigint.recv().await;
+        tokio::select! {
+            _ = sigint.recv() => {}
+            _ = sigterm.recv() => {}
+        }
         if !suppress_terminal_output {
-            println!("\n\nReceived SIGINT, shutting down...");
+            println!("\n\nReceived shutdown signal, shutting down...");
 
             // Print HTTP filter metrics using the global function
             print_global_http_filter_metrics();
@@ -226,6 +233,8 @@ enum Commands {
         #[arg(long)]
         plain: bool,
     },
+    /// Long-running bounded trace monitor for matched local agent sessions.
+    Monitor,
     /// Record a command, or attach to an already-running agent by command name or PID.
     /// Examples: sudo agentsight record -- claude     (or)  sudo agentsight record -c claude
     Record {
@@ -644,8 +653,32 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             };
             run_top_query(db, *interval, *limit, count, &options)?;
         }
+        Commands::Top {
+            db: None,
+            pid,
+            comm,
+            sort,
+            view,
+            interval,
+            limit,
+            count,
+            once,
+            plain: _,
+        } if active_monitor_db_path().is_some() => {
+            let count = if *once { Some(1) } else { *count };
+            let options = TopOptions {
+                pid: *pid,
+                comm: comm.clone(),
+                sort: sort.clone(),
+                view: view.clone(),
+            };
+            run_monitor_top_query(*interval, *limit, count, &options).await?;
+        }
         Commands::Discover { json } => {
             run_discover(*json)?;
+        }
+        Commands::Monitor => {
+            run_monitor().await?;
         }
         // All remaining commands need the binary extractor.
         _ => {
