@@ -103,10 +103,10 @@ fn report_total_tokens(db: &std::path::Path) -> i64 {
     );
     let value: serde_json::Value =
         serde_json::from_slice(&output.stdout).expect("token report JSON should parse");
-    value
+    let rows = value
         .as_array()
-        .into_iter()
-        .flatten()
+        .expect("token report JSON should be an array");
+    rows.iter()
         .filter_map(|row| row.get("total_tokens").and_then(|value| value.as_i64()))
         .sum()
 }

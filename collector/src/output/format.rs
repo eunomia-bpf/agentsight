@@ -482,7 +482,7 @@ pub(crate) fn print_record_session_summary(db_path: &str, summary: &SessionSumma
         summary.files.len(),
         summary.endpoints.len()
     );
-    println!("Run: agentsight report");
+    println!("Run: agentsight report --db {}", shell_quote(db_path));
 }
 
 pub(crate) fn print_record_target_status_error(error: impl std::fmt::Display) {
@@ -835,6 +835,17 @@ fn print_count_map(label: &str, counts: &BTreeMap<String, usize>) {
         .collect::<Vec<_>>()
         .join(", ");
     println!("\n{total} {label}: {top}");
+}
+
+fn shell_quote(value: &str) -> String {
+    if value
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || matches!(c, '/' | '.' | '-' | '_' | ':' | '+'))
+    {
+        value.to_string()
+    } else {
+        format!("'{}'", value.replace('\'', "'\\''"))
+    }
 }
 
 fn print_process_exits(counts: &BTreeMap<String, usize>) {
