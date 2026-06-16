@@ -1,6 +1,14 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
+//! Portable session IR, parsers, discovery, and process matching for local AI
+//! coding-agent transcripts.
+//!
+//! The crate currently normalizes Claude Code, Codex, and Gemini CLI sessions.
+//! It intentionally stops at session data and process/session correlation; UI,
+//! database storage, eBPF collection, and OpenTelemetry export belong in
+//! applications that consume this crate.
+
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};

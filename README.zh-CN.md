@@ -148,6 +148,17 @@ make build
 
 详见 [docs/agents.md](https://github.com/eunomia-bpf/agentsight/blob/master/docs/agents.md)，了解各智能体的详细设置、SSL 注意事项、浏览器捕获、MCP stdio 和高级选项。
 
+### OpenTelemetry 导出
+
+AgentSight 可以将捕获的 LLM 调用导出为 OpenTelemetry **GenAI**（`gen_ai.*`）span，
+通过 OTLP/HTTP 发送——无需任何进程内插桩即可获得符合标准的智能体遥测数据。
+
+```bash
+sudo ./agentsight debug trace --otel --otel-endpoint http://localhost:4318
+```
+
+详见 [docs/otel.md](https://github.com/eunomia-bpf/agentsight/blob/master/docs/otel.md)。
+
 ## 常见问题
 
 ### 通用问题

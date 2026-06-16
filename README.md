@@ -153,6 +153,19 @@ Discover what's installed locally with `./agentsight discover`.
 
 See [docs/agents.md](https://github.com/eunomia-bpf/agentsight/blob/master/docs/agents.md) for agent-specific setup, SSL quirks, browser capture, MCP stdio, and advanced flags.
 
+### OpenTelemetry Export
+
+AgentSight can export captured LLM calls as OpenTelemetry **GenAI**
+(`gen_ai.*`) spans over OTLP/HTTP — standards-compliant agent telemetry for any
+agent, with zero in-process instrumentation.
+
+```bash
+sudo ./agentsight debug trace --otel --otel-endpoint http://localhost:4318
+```
+
+See [docs/otel.md](https://github.com/eunomia-bpf/agentsight/blob/master/docs/otel.md) for
+collector setup and backend integration.
+
 ## ❓ Frequently Asked Questions
 
 **Q: What permissions does AgentSight need?**

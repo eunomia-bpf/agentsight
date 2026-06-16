@@ -203,13 +203,29 @@ jobs:
         done
 
         sed -i "s/^version = \".*\"/version = \"$VERSION\"/" collector/Cargo.toml
+        AGENT_SESSION_BASE_VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' agent-session/Cargo.toml | head -1)"
+        IFS=. read -r AGENT_SESSION_MAJOR AGENT_SESSION_MINOR AGENT_SESSION_PATCH <<EOF
+        $AGENT_SESSION_BASE_VERSION
+        EOF
+
+        AGENT_SESSION_VERSION="$AGENT_SESSION_BASE_VERSION"
+        while curl -fsS "https://crates.io/api/v1/crates/agent-session/${AGENT_SESSION_VERSION}" >/dev/null 2>&1; do
+          echo "::notice::crates.io agent-session ${AGENT_SESSION_VERSION} already exists; trying next patch version."
+          AGENT_SESSION_PATCH=$((AGENT_SESSION_PATCH + 1))
+          AGENT_SESSION_VERSION="${AGENT_SESSION_MAJOR}.${AGENT_SESSION_MINOR}.${AGENT_SESSION_PATCH}"
+        done
+
+        sed -i "s/^version = \".*\"/version = \"$AGENT_SESSION_VERSION\"/" agent-session/Cargo.toml
+        sed -i "s/agent-session = { version = \"[^\"]*\", path = \"..\\/agent-session\" }/agent-session = { version = \"$AGENT_SESSION_VERSION\", path = \"..\\/agent-session\" }/" collector/Cargo.toml
         cd collector
         cargo generate-lockfile
         cd ..
 
         echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
         echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+        echo "agent_session_version=${AGENT_SESSION_VERSION}" >> "$GITHUB_OUTPUT"
         echo "Using release version v${VERSION}"
+        echo "Using agent-session version ${AGENT_SESSION_VERSION}"
 
     - name: Setup Node.js
       uses: actions/setup-node@v3
@@ -238,7 +254,7 @@ jobs:
         # build.rs vendors generated BPF/frontend assets into collector/vendor.
         # Commit the full release snapshot before tagging or publishing so the
         # GitHub release, crates.io package, and master source agree.
-        git add collector/Cargo.toml collector/Cargo.lock collector/vendor
+        git add agent-session/Cargo.toml collector/Cargo.toml collector/Cargo.lock collector/vendor
         if git diff --cached --quiet; then
           echo "Release snapshot already matches ${VERSION}; no commit needed."
         else
@@ -246,9 +262,9 @@ jobs:
           git push origin "HEAD:${GITHUB_REF#refs/heads/}"
         fi
 
-        if [ -n "$(git status --porcelain --untracked-files=all -- collector)" ]; then
-          echo "::error::collector has uncommitted files after release snapshot commit."
-          git status --short --untracked-files=all -- collector
+        if [ -n "$(git status --porcelain --untracked-files=all -- agent-session collector)" ]; then
+          echo "::error::release snapshot has uncommitted files after commit."
+          git status --short --untracked-files=all -- agent-session collector
           exit 1
         fi
 
@@ -263,6 +279,8 @@ jobs:
         echo "Using Cargo package version: $VERSION_NO_V"
         grep "^version" collector/Cargo.toml
         grep -q "^version = \"$VERSION_NO_V\"" collector/Cargo.toml
+        grep -q "^version = \"${{ steps.set_version.outputs.agent_session_version }}\"" agent-session/Cargo.toml
+        grep -q "agent-session = { version = \"${{ steps.set_version.outputs.agent_session_version }}\", path = \"../agent-session\" }" collector/Cargo.toml
 
     - name: Smoke test local release binary
       run: |
@@ -292,7 +310,7 @@ jobs:
           exit 1
         fi
 
-        VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' agent-session/Cargo.toml | head -1)"
+        VERSION="${{ steps.set_version.outputs.agent_session_version }}"
         if curl -fsS "https://crates.io/api/v1/crates/agent-session/${VERSION}" >/dev/null 2>&1; then
           echo "agent-session ${VERSION} already exists on crates.io; skipping publish."
         else

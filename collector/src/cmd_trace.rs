@@ -21,6 +21,7 @@ use crate::runners::{
     AgentRunner, BinaryRunner, EventStream, ProcessRunner, Runner, RunnerError, SystemRunner,
 };
 use crate::server::WebServer;
+use crate::sinks::OtelExporter;
 use crate::sinks::sqlite::SqliteStore;
 use crate::sources::proc::{PidSeed, ProcSnapshot};
 use crate::view::{MaterializedView, SharedMaterializedView, process_select};
@@ -34,6 +35,15 @@ const DEFAULT_HTTP_FILTER: &str = "request.path_prefix=/v1/rgstr | response.stat
 pub(crate) struct StartedWebServer {
     pub(crate) url: String,
     pub(crate) _handle: tokio::task::JoinHandle<()>,
+}
+
+/// Configuration for exporting GenAI spans to an OpenTelemetry Collector.
+#[derive(Clone)]
+pub(crate) struct OtelConfig {
+    /// OTLP/HTTP base endpoint; `None` falls back to env vars / localhost.
+    pub(crate) endpoint: Option<String>,
+    /// Opt-in: include prompt/completion content in spans.
+    pub(crate) capture_content: bool,
 }
 
 #[derive(Default)]
@@ -60,6 +70,7 @@ pub(crate) struct TraceConfig {
     pub(crate) system_interval: u64,
     pub(crate) http_filter: Vec<String>,
     pub(crate) disable_auth_removal: bool,
+    pub(crate) otel: Option<OtelConfig>,
     /// SSL binary path; may be a `docker://` ref that `run_trace` resolves in place.
     pub(crate) binary_path: Option<String>,
     pub(crate) db_path: Option<String>,
@@ -234,6 +245,12 @@ pub(crate) fn build_trace_agent_with_view(
             materializer.add_view_sink(Box::new(SqliteStore::open(path).map_err(|e| {
                 RunnerError::from(format!("failed to open SQLite database '{}': {}", path, e))
             })?));
+    }
+    if let Some(otel_config) = &cfg.otel {
+        materializer = materializer.add_view_sink(Box::new(OtelExporter::new(
+            otel_config.endpoint.clone(),
+            otel_config.capture_content,
+        )));
     }
     agent = agent.add_global_analyzer(Box::new(materializer));
 
