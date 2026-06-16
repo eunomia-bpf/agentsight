@@ -3,6 +3,16 @@
 
 use std::process::{Command, Output};
 
+fn fixture_session_path(
+    agent: &str,
+    temp: &tempfile::TempDir,
+    file_name: &str,
+) -> std::path::PathBuf {
+    agent_session::fixture_session_path(agent, temp.path())
+        .unwrap()
+        .with_file_name(file_name)
+}
+
 fn agentsight_output(args: &[&str]) -> Output {
     agentsight_output_with_env(args, &[])
 }
@@ -49,10 +59,11 @@ fn top_level_help_surfaces_perf_strace_flow() {
 #[test]
 fn agent_native_summary_reads_codex_session_jsonl() {
     let temp = tempfile::tempdir().expect("tempdir");
-    let session_dir = temp.path().join(".codex/sessions/2026/06/02");
-    std::fs::create_dir_all(&session_dir).expect("session dir");
+    let session_path =
+        fixture_session_path(agent_session::AGENT_CODEX, &temp, "rollout-test.jsonl");
+    std::fs::create_dir_all(session_path.parent().unwrap()).expect("session dir");
     std::fs::write(
-        session_dir.join("rollout-test.jsonl"),
+        session_path,
         concat!(
             "{\"type\":\"turn_context\",\"payload\":{\"model\":\"gpt-5.5\"}}\n",
             "{\"type\":\"event_msg\",\"payload\":{\"type\":\"token_count\",\"info\":{\"total_token_usage\":{\"input_tokens\":11,\"output_tokens\":4,\"total_tokens\":15}}}}\n",
@@ -88,10 +99,11 @@ fn top_without_db_uses_live_process_view() {
 #[test]
 fn top_discovers_agent_native_sessions() {
     let temp = tempfile::tempdir().expect("tempdir");
-    let session_dir = temp.path().join(".codex/sessions/2026/06/02");
-    std::fs::create_dir_all(&session_dir).expect("session dir");
+    let session_path =
+        fixture_session_path(agent_session::AGENT_CODEX, &temp, "rollout-test.jsonl");
+    std::fs::create_dir_all(session_path.parent().unwrap()).expect("session dir");
     std::fs::write(
-        session_dir.join("rollout-test.jsonl"),
+        session_path,
         concat!(
             "{\"type\":\"turn_context\",\"payload\":{\"model\":\"gpt-5.5\"}}\n",
             "{\"type\":\"event_msg\",\"payload\":{\"type\":\"token_count\",\"info\":{\"total_token_usage\":{\"input_tokens\":11,\"output_tokens\":4,\"total_tokens\":15}}}}\n",
@@ -117,10 +129,11 @@ fn top_discovers_agent_native_sessions() {
 #[test]
 fn top_reads_active_claude_local_session_model_and_tokens() {
     let temp = tempfile::tempdir().expect("tempdir");
-    let session_dir = temp.path().join(".claude/projects/-tmp-project");
-    std::fs::create_dir_all(&session_dir).expect("session dir");
+    let session_path =
+        fixture_session_path(agent_session::AGENT_CLAUDE, &temp, "claude-active.jsonl");
+    std::fs::create_dir_all(session_path.parent().unwrap()).expect("session dir");
     std::fs::write(
-        session_dir.join("claude-active.jsonl"),
+        session_path,
         concat!(
             "{\"type\":\"user\",\"sessionId\":\"claude-active\",\"message\":{\"content\":\"inspect the trace\"}}\n",
             "{\"type\":\"assistant\",\"sessionId\":\"claude-active\",\"requestId\":\"req_1\",\"message\":{\"model\":\"claude-opus-4-6\",\"content\":[{\"type\":\"tool_use\",\"id\":\"toolu_1\",\"name\":\"Bash\",\"input\":{\"command\":\"true\"}}],\"usage\":{\"input_tokens\":3,\"cache_creation_input_tokens\":5,\"cache_read_input_tokens\":7,\"output_tokens\":11}}}\n",

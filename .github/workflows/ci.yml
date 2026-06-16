@@ -270,7 +270,7 @@ jobs:
         collector/target/release/agentsight --version
         collector/target/release/agentsight --help | tee /tmp/agentsight-local-help.txt
 
-        for cmd in stat top record report discover debug; do
+        for cmd in top record report discover debug; do
           if ! grep -Eq "^[[:space:]]+$cmd[[:space:]]" /tmp/agentsight-local-help.txt; then
             echo "::error::local release binary is missing '$cmd' in agentsight --help"
             exit 1
@@ -343,7 +343,7 @@ jobs:
         "$smoke_dir/agentsight" --version
         "$smoke_dir/agentsight" --help | tee "$smoke_dir/help.txt"
 
-        for cmd in stat top record report discover debug; do
+        for cmd in top record report discover debug; do
           if ! grep -Eq "^[[:space:]]+$cmd[[:space:]]" "$smoke_dir/help.txt"; then
             echo "::error::release artifact is missing '$cmd' in agentsight --help"
             exit 1
@@ -389,7 +389,7 @@ jobs:
         "$install_dir/bin/agentsight" --version
         "$install_dir/bin/agentsight" --help | tee /tmp/agentsight-cargo-install-help.txt
 
-        for cmd in stat top record report discover debug; do
+        for cmd in top record report discover debug; do
           if ! grep -Eq "^[[:space:]]+$cmd[[:space:]]" /tmp/agentsight-cargo-install-help.txt; then
             echo "::error::cargo-installed agentsight is missing '$cmd' in --help"
             exit 1

@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-use agent_session::{AgentSession, SessionCandidate};
+use agent_session::AgentSession;
 use serde_json::Value;
 use std::collections::HashSet;
-use std::fs;
 use std::path::PathBuf;
 use std::time::{Duration, UNIX_EPOCH};
+
+#[cfg(test)]
+use std::fs;
 
 use crate::model::{
     AGENT_NATIVE_SOURCE, AuditEventRow, SessionRow, Snapshot, SnapshotOptions, TokenUsageRow,
@@ -111,17 +113,7 @@ pub(crate) fn observed_session_prompt_rows(audit_rows: &[AuditEventRow]) -> Vec<
         if !seen.insert((path.clone(), pid)) {
             continue;
         };
-        let Some(agent) = agent_session::agent_source_for_path(&path) else {
-            continue;
-        };
-        let updated = fs::metadata(&path)
-            .and_then(|metadata| metadata.modified())
-            .unwrap_or(UNIX_EPOCH);
-        let Some(session) = agent_session::parse_session_file(&SessionCandidate {
-            agent,
-            path: path.clone(),
-            updated,
-        }) else {
+        let Some(session) = agent_session::parse_session_path(&path) else {
             continue;
         };
         let Some(prompt) = session.prompt_preview.as_ref() else {
@@ -156,18 +148,18 @@ pub(crate) fn observed_session_prompt_rows(audit_rows: &[AuditEventRow]) -> Vec<
 fn audit_session_path(row: &AuditEventRow) -> Option<PathBuf> {
     row.target
         .as_deref()
-        .and_then(session_log_path_from_str)
+        .and_then(agent_session::session_log_path_from_str)
         .or_else(|| {
             row.details
                 .get("filepath")
                 .and_then(Value::as_str)
-                .and_then(session_log_path_from_str)
+                .and_then(agent_session::session_log_path_from_str)
         })
         .or_else(|| {
             row.details
                 .get("path")
                 .and_then(Value::as_str)
-                .and_then(session_log_path_from_str)
+                .and_then(agent_session::session_log_path_from_str)
         })
 }
 
@@ -194,7 +186,6 @@ fn session_row(session: &LocalSession) -> SessionRow {
             "cwd": session.cwd.clone(),
             "last_message_at": session.last_message_at.clone(),
             "files": session.files,
-            "source_pointer": session.source,
         }),
     }
 }
@@ -295,15 +286,6 @@ pub(crate) fn count_sessions() -> Vec<(&'static str, PathBuf, usize, u64)> {
         .into_iter()
         .map(|stat| (stat.agent, stat.dir, stat.sessions, stat.bytes))
         .collect()
-}
-
-pub(crate) fn session_log_path_from_str(raw: &str) -> Option<PathBuf> {
-    agent_session::session_log_path_from_str(raw)
-}
-
-#[cfg(test)]
-pub(crate) fn normalize_session_log_path(path: &std::path::Path) -> PathBuf {
-    agent_session::normalize_session_log_path(path)
 }
 
 #[cfg(test)]

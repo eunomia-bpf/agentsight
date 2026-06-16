@@ -234,10 +234,7 @@ impl LiveView {
             .any(|row| row.evidence().has_session_path_link());
         let mut notes = Vec::new();
         if has_agent_native {
-            notes.push(
-                "agent-native sessions are the primary token/tool source (~/.claude, ~/.codex, ~/.gemini)"
-                    .to_string(),
-            );
+            notes.push("agent-native sessions are the primary token/tool source".to_string());
         }
         if has_proc {
             notes.push("proc evidence uses /proc for CPU/RSS/process families".to_string());
@@ -733,8 +730,8 @@ mod tests {
         let start_ms = procfs::process_start_timestamp_ms(starttime_ticks).unwrap();
         let (_temp_first, first_path) = agent_native_sessions::create_temp_session_path("codex");
         let (_temp_latest, latest_path) = agent_native_sessions::create_temp_session_path("codex");
-        let first_path = agent_native_sessions::normalize_session_log_path(&first_path);
-        let latest_path = agent_native_sessions::normalize_session_log_path(&latest_path);
+        let first_path = agent_session::normalize_session_log_path(&first_path);
+        let latest_path = agent_session::normalize_session_log_path(&latest_path);
         let capture = LiveCaptureSnapshot::new(
             Snapshot {
                 audit_events: vec![

@@ -52,9 +52,7 @@ use cmd_exec::{default_session_db_path, print_session_summary, run_exec};
 use cmd_perf::run_top_query;
 use cmd_perf_live::run_live_top_query;
 use cmd_perf_tui::run_live_top_tui;
-use cmd_trace::{
-    OtelConfig, TraceConfig, convert_runner_error, run_trace, start_web_server_if_enabled,
-};
+use cmd_trace::{TraceConfig, convert_runner_error, run_trace, start_web_server_if_enabled};
 use output::TopOptions;
 use output::print_record_session_db_error;
 use sources::session_db::{resolve_db_or_latest, run_db_list};
@@ -491,15 +489,6 @@ enum DebugCommands {
         /// Disable authorization header removal from HTTP traffic
         #[arg(long)]
         disable_auth_removal: bool,
-        /// Export GenAI spans to an OpenTelemetry Collector via OTLP/HTTP
-        #[arg(long)]
-        otel: bool,
-        /// OTLP/HTTP endpoint for --otel (default: $OTEL_EXPORTER_OTLP_ENDPOINT or http://localhost:4318)
-        #[arg(long)]
-        otel_endpoint: Option<String>,
-        /// Include prompt/completion content in exported GenAI spans (opt-in; off by default for privacy)
-        #[arg(long)]
-        otel_capture_content: bool,
         /// Path to the binary executable to monitor (e.g., ~/.nvm/versions/node/v20.0.0/bin/node)
         #[arg(long)]
         binary_path: Option<String>,
@@ -858,9 +847,6 @@ async fn run_with_extractor(
                 system_interval,
                 http_filter,
                 disable_auth_removal,
-                otel,
-                otel_endpoint,
-                otel_capture_content,
                 binary_path,
                 db,
                 quiet,
@@ -888,10 +874,6 @@ async fn run_with_extractor(
                     system_interval: *system_interval,
                     http_filter: http_filter.clone(),
                     disable_auth_removal: *disable_auth_removal,
-                    otel: otel.then(|| OtelConfig {
-                        endpoint: otel_endpoint.clone(),
-                        capture_content: *otel_capture_content,
-                    }),
                     binary_path: binary_path.clone(),
                     db_path: configured_db_path(db),
                     quiet: *quiet,

@@ -238,8 +238,7 @@ mod tests {
             sections: Vec::new(),
             failures: Vec::new(),
             notes: vec![
-                "agent-native sessions are the primary token/tool source (~/.claude, ~/.codex, ~/.gemini)"
-                    .to_string(),
+                "agent-native sessions are the primary token/tool source".to_string(),
                 "proc evidence uses /proc for CPU/RSS/process families".to_string(),
                 "live eBPF capture did not start: sudo unavailable".to_string(),
             ],

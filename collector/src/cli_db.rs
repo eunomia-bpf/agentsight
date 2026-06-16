@@ -451,9 +451,9 @@ mod tests {
     fn sqlite_summary_does_not_read_touched_local_claude_log_without_projection() {
         let temp = tempfile::tempdir().unwrap();
         let db = temp.path().join("local-log.db");
-        let session_dir = temp.path().join(".claude/projects/test");
-        std::fs::create_dir_all(&session_dir).unwrap();
-        let session_path = session_dir.join("session-1.jsonl");
+        let session_path =
+            agent_session::fixture_session_path(agent_session::AGENT_CLAUDE, temp.path()).unwrap();
+        std::fs::create_dir_all(session_path.parent().unwrap()).unwrap();
         std::fs::write(
             &session_path,
             concat!(
@@ -490,9 +490,9 @@ mod tests {
     fn sqlite_summary_uses_db_tokens_without_local_log_overlay() {
         let temp = tempfile::tempdir().unwrap();
         let db = temp.path().join("local-log-no-usage.db");
-        let session_dir = temp.path().join(".claude/projects/test");
-        std::fs::create_dir_all(&session_dir).unwrap();
-        let session_path = session_dir.join("session-1.jsonl");
+        let session_path =
+            agent_session::fixture_session_path(agent_session::AGENT_CLAUDE, temp.path()).unwrap();
+        std::fs::create_dir_all(session_path.parent().unwrap()).unwrap();
         std::fs::write(
             &session_path,
             "{\"type\":\"user\",\"message\":{\"content\":\"local prompt only\"}}\n",
@@ -528,7 +528,8 @@ mod tests {
     #[test]
     fn local_claude_summary_reads_active_message_usage() {
         let temp = tempfile::tempdir().unwrap();
-        let path = temp.path().join(".claude/projects/test/session.jsonl");
+        let path =
+            agent_session::fixture_session_path(agent_session::AGENT_CLAUDE, temp.path()).unwrap();
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
         let session = agent_native_sessions::parse_content_for_test(
             "claude",

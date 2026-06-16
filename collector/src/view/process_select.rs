@@ -295,7 +295,7 @@ mod tests {
     fn process_comm_matching_ignores_agent_names_in_data_paths_and_shell_args() {
         let proc_info = ProcInfo {
             comm: "docker".to_string(),
-            command: "docker run image bash -c claude --settings /root/.claude/settings.json"
+            command: "docker run image bash -c claude --settings /root/config/claude/settings.json"
                 .to_string(),
             ..Default::default()
         };

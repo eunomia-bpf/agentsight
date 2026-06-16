@@ -294,7 +294,11 @@ mod tests {
             comm: Some("claude".to_string()),
             subject: model.map(ToString::to_string),
             action: Some("request".to_string()),
-            target: Some("/home/user/.claude/session.jsonl".to_string()),
+            target: agent_session::fixture_session_path(
+                agent_session::AGENT_CLAUDE,
+                std::path::Path::new("/home/user"),
+            )
+            .map(|path| path.to_string_lossy().to_string()),
             status: Some("observed".to_string()),
             summary: Some(text.to_string()),
             details: json!({

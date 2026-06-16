@@ -43,12 +43,6 @@ impl TokenUsage {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub struct SourcePointer {
-    pub format: String,
-    pub path: PathBuf,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentSession {
     pub agent: String,
@@ -67,7 +61,6 @@ pub struct AgentSession {
     pub duration_ms: u64,
     pub cwd: Option<String>,
     pub last_message_at: Option<String>,
-    pub source: SourcePointer,
 }
 
 #[derive(Debug, Clone)]
@@ -218,6 +211,18 @@ pub fn parse_session_file(candidate: &SessionCandidate) -> Option<AgentSession> 
         candidate.updated,
         &content,
     )
+}
+
+pub fn parse_session_path(path: &Path) -> Option<AgentSession> {
+    let agent = agent_source_for_path(path)?;
+    let updated = fs::metadata(path)
+        .and_then(|metadata| metadata.modified())
+        .unwrap_or(UNIX_EPOCH);
+    parse_session_file(&SessionCandidate {
+        agent,
+        path: path.to_path_buf(),
+        updated,
+    })
 }
 
 pub fn parse_session_content(
@@ -538,7 +543,6 @@ struct SessionAccumulator {
     duration_ms: u64,
     cwd: Option<String>,
     last_message_at: Option<String>,
-    source: SourcePointer,
 }
 
 impl SessionAccumulator {
@@ -564,10 +568,6 @@ impl SessionAccumulator {
             duration_ms: 0,
             cwd: None,
             last_message_at: None,
-            source: SourcePointer {
-                format: agent.to_string(),
-                path: normalized,
-            },
         }
     }
 
@@ -652,7 +652,6 @@ impl SessionAccumulator {
             duration_ms: self.duration_ms,
             cwd: self.cwd,
             last_message_at: self.last_message_at,
-            source: self.source,
         })
     }
 }

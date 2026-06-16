@@ -100,7 +100,4 @@ collector/src/model.rs
 
 collector/src/sinks/sqlite.rs
   SQLite row store and ViewSink implementation.
-
-collector/src/sinks/otel.rs
-  OTel ViewSink for GenAI spans.
 ```
