@@ -14,6 +14,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 const MONITOR_INTERVAL_SECS: u64 = 2;
+const MONITOR_TOP_STALE_AFTER_SECS: u64 = MONITOR_INTERVAL_SECS * 5;
 const SESSION_SCAN_LIMIT: usize = 25;
 
 #[derive(Debug, Clone)]
@@ -207,6 +208,7 @@ fn load_monitor_top_rows(
 ) -> rusqlite::Result<Vec<AgentTopRow>> {
     let conn = Connection::open_with_flags(db_path, OpenFlags::SQLITE_OPEN_READ_ONLY)?;
     let now_ms = now_epoch_ms();
+    let min_window_end_ms = now_ms.saturating_sub(MONITOR_TOP_STALE_AFTER_SECS * 1000);
     let mut stmt = conn.prepare(
         "SELECT
             t.session_id, t.display_id, t.agent_type, t.root_pid, t.first_seen_ms,
@@ -219,9 +221,10 @@ fn load_monitor_top_rows(
             FROM monitor_windows
             GROUP BY session_id, root_pid, root_starttime_ticks
          )
+         AND w.window_end_ms >= ?1
          ORDER BY w.window_end_ms DESC",
     )?;
-    let rows = stmt.query_map([], |row| {
+    let rows = stmt.query_map(params![min_window_end_ms as i64], |row| {
         let session_id: String = row.get(0)?;
         let display_id: String = row.get(1)?;
         let agent_type: String = row.get(2)?;
@@ -683,9 +686,10 @@ mod tests {
     fn monitor_store_persists_session_window() {
         let temp = tempfile::tempdir().unwrap();
         let mut store = MonitorStore::open_path(temp.path().join("monitor.db")).unwrap();
+        let now = now_epoch_ms();
         let sample = MonitorSample {
-            window_start_ms: 10,
-            window_end_ms: 20,
+            window_start_ms: now.saturating_sub(2_000),
+            window_end_ms: now,
             sessions: vec![MonitorSessionSample {
                 session_id: "local:codex:test".to_string(),
                 display_id: "codex:test".to_string(),
@@ -734,6 +738,50 @@ mod tests {
         assert_eq!((windows, file_targets), (1, 2));
         assert_eq!(top.rows.len(), 1);
         assert_eq!(top.rows[0].files, 2);
+    }
+
+    #[test]
+    fn monitor_top_ignores_stale_windows() {
+        let temp = tempfile::tempdir().unwrap();
+        let mut store = MonitorStore::open_path(temp.path().join("monitor.db")).unwrap();
+        let now = now_epoch_ms();
+        let sample = MonitorSample {
+            window_start_ms: now.saturating_sub(60_000),
+            window_end_ms: now.saturating_sub(55_000),
+            sessions: vec![MonitorSessionSample {
+                session_id: "live:codex:42:100".to_string(),
+                display_id: "codex:exec:42".to_string(),
+                agent_type: "codex".to_string(),
+                root_pid: 42,
+                root_starttime_ticks: 100,
+                match_evidence: "process_exec".to_string(),
+                match_confidence: 0.5,
+                session_path: None,
+                command: "codex exec test".to_string(),
+                cwd: Some("/tmp".to_string()),
+                process_count: 1,
+                cpu_ms: 0,
+                rss_bytes: 4096,
+                read_bytes: 0,
+                write_bytes: 0,
+                file_targets: 0,
+            }],
+        };
+        store.insert_sample(&sample).unwrap();
+
+        let top = build_monitor_top(
+            store.path(),
+            10,
+            &TopOptions {
+                pid: None,
+                comm: None,
+                sort: "cpu".to_string(),
+                view: "all".to_string(),
+            },
+        )
+        .unwrap();
+
+        assert!(top.rows.is_empty());
     }
 
     #[test]

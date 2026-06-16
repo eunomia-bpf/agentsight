@@ -15,6 +15,8 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
+const TRACE_PROCESS_EXEC: &str = "process_exec";
+
 #[derive(Debug, Clone)]
 pub(crate) struct LiveCaptureSnapshot {
     snapshot: Snapshot,
@@ -167,6 +169,11 @@ impl LiveView {
                 family,
             });
         }
+        sessions.extend(live_codex_exec_monitor_sessions(
+            &sample,
+            &children,
+            &matches.by_pid,
+        ));
 
         let at_ms = now_ms();
         self.previous = Some(sample.clone());
@@ -588,6 +595,100 @@ fn session_process_trace(matched: &SessionProcessMatch, session_id: &str) -> Str
     format!("agent-native+proc+{}", matched.evidence)
 }
 
+fn live_codex_exec_monitor_sessions(
+    sample: &LiveSample,
+    children: &HashMap<u32, Vec<u32>>,
+    matched_pids: &HashMap<u32, String>,
+) -> Vec<LiveMonitorSession> {
+    sample
+        .procs
+        .values()
+        .filter(|proc_info| !matched_pids.contains_key(&proc_info.pid))
+        .filter(|proc_info| is_topmost_codex_exec_process(proc_info, sample))
+        .filter_map(|proc_info| live_codex_exec_monitor_session(proc_info, sample, children))
+        .collect()
+}
+
+fn live_codex_exec_monitor_session(
+    proc_info: &procfs::ProcInfo,
+    sample: &LiveSample,
+    children: &HashMap<u32, Vec<u32>>,
+) -> Option<LiveMonitorSession> {
+    let prompt = agent_session::codex_exec_prompt(&proc_info.command)?;
+    let root_pid = proc_info.pid;
+    let family = procfs::process_family(root_pid, children, &sample.procs);
+    if family.is_empty() {
+        return None;
+    }
+
+    let cwd = proc_info
+        .cwd
+        .as_ref()
+        .map(|path| path.to_string_lossy().to_string());
+
+    Some(LiveMonitorSession {
+        session_id: format!("live:codex:{}:{}", root_pid, proc_info.starttime_ticks),
+        agent_type: agent_session::AGENT_CODEX.to_string(),
+        display_id: format!("codex:exec:{root_pid}"),
+        session_path: None,
+        root_pid,
+        root_starttime_ticks: proc_info.starttime_ticks,
+        evidence: TRACE_PROCESS_EXEC,
+        confidence: 0.50,
+        command: format!("codex exec {prompt}"),
+        cwd,
+        family,
+    })
+}
+
+fn is_topmost_codex_exec_process(proc_info: &procfs::ProcInfo, sample: &LiveSample) -> bool {
+    if process_select::known_agent_label(&proc_info.comm, &proc_info.command)
+        != Some(agent_session::AGENT_CODEX)
+        || !has_codex_exec_subcommand(&proc_info.command)
+    {
+        return false;
+    }
+
+    let mut parent_pid = proc_info.ppid;
+    for _ in 0..128 {
+        if parent_pid == 0 {
+            break;
+        }
+        let Some(parent) = sample.procs.get(&parent_pid) else {
+            break;
+        };
+        if process_select::known_agent_label(&parent.comm, &parent.command)
+            == Some(agent_session::AGENT_CODEX)
+            && has_codex_exec_subcommand(&parent.command)
+        {
+            return false;
+        }
+        parent_pid = parent.ppid;
+    }
+    true
+}
+
+fn has_codex_exec_subcommand(command: &str) -> bool {
+    command
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .windows(2)
+        .any(|pair| is_codex_executable_token(pair[0]) && pair[1] == "exec")
+}
+
+fn is_codex_executable_token(token: &str) -> bool {
+    let token = token.trim_matches(|ch| matches!(ch, '"' | '\''));
+    if token.is_empty() {
+        return false;
+    }
+    let lower = token.to_ascii_lowercase();
+    let basename = Path::new(&lower)
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or(lower.as_str());
+    matches!(basename, "codex" | "codex-cli")
+}
+
 fn live_process_rows(
     sample: &LiveSample,
     previous: Option<&LiveSample>,
@@ -743,6 +844,74 @@ mod tests {
         assert_eq!(top.rows[0].session, "claude:cwd");
         assert_eq!(top.rows[0].pid, Some(42));
         assert_eq!(top.rows[0].trace, "agent-native+proc+cwd_recent");
+    }
+
+    #[test]
+    fn live_codex_exec_monitor_session_uses_process_fallback() {
+        let sample = LiveSample {
+            procs: BTreeMap::from([
+                (
+                    42,
+                    ProcInfo {
+                        pid: 42,
+                        comm: "node".to_string(),
+                        command: "node /opt/@openai/codex/bin/codex exec -C /work -s read-only AGENTSIGHT_DYNAMIC_CODEX_OK".to_string(),
+                        cwd: Some(PathBuf::from("/work")),
+                        starttime_ticks: 100,
+                        ..Default::default()
+                    },
+                ),
+                (
+                    43,
+                    ProcInfo {
+                        pid: 43,
+                        ppid: 42,
+                        comm: "codex".to_string(),
+                        command: "/opt/@openai/codex-linux-x64/bin/codex exec -C /work -s read-only AGENTSIGHT_DYNAMIC_CODEX_OK".to_string(),
+                        cwd: Some(PathBuf::from("/work")),
+                        starttime_ticks: 101,
+                        ..Default::default()
+                    },
+                ),
+            ]),
+            ..Default::default()
+        };
+        let children = sample.children_by_ppid();
+        let sessions = live_codex_exec_monitor_sessions(&sample, &children, &HashMap::new());
+
+        assert_eq!(sessions.len(), 1);
+        let session = &sessions[0];
+        assert_eq!(session.session_id, "live:codex:42:100");
+        assert_eq!(session.display_id, "codex:exec:42");
+        assert_eq!(session.evidence, TRACE_PROCESS_EXEC);
+        assert_eq!(session.command, "codex exec AGENTSIGHT_DYNAMIC_CODEX_OK");
+        assert_eq!(session.cwd.as_deref(), Some("/work"));
+        assert_eq!(session.family, vec![42, 43]);
+
+        let matched = HashMap::from([(42, "local:codex:test".to_string())]);
+        assert!(live_codex_exec_monitor_sessions(&sample, &children, &matched).is_empty());
+    }
+
+    #[test]
+    fn live_codex_exec_monitor_session_ignores_non_exec_subcommands() {
+        let sample = LiveSample {
+            procs: BTreeMap::from([(
+                42,
+                ProcInfo {
+                    pid: 42,
+                    comm: "node".to_string(),
+                    command: "node /opt/@openai/codex/bin/codex app-server prompt says exec later"
+                        .to_string(),
+                    cwd: Some(PathBuf::from("/work")),
+                    starttime_ticks: 100,
+                    ..Default::default()
+                },
+            )]),
+            ..Default::default()
+        };
+        let children = sample.children_by_ppid();
+
+        assert!(live_codex_exec_monitor_sessions(&sample, &children, &HashMap::new()).is_empty());
     }
 
     #[test]
