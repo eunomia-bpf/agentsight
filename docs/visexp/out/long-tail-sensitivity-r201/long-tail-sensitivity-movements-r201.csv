@@ -1,0 +1,49 @@
+variant,dimension,raw_tag,support,baseline_action,variant_action,baseline_requires_review,variant_requires_review,is_generic_or_noisy,is_multimodal,top_processes,top_context_tags
+aggressive_split,llm,check,294,regenerate_candidate,contextual_split_candidate,True,True,True,True,,refactor=2709619; review=1050982; merge=479675; metrics=159701; test=116453; docs=84193
+aggressive_split,prompt,codexcheck,176,regenerate_candidate,contextual_split_candidate,True,True,True,True,wc=54; rg=46; git=28; cargo=26; sed=18; nl=4,uxdesign=177
+aggressive_split,prompt,checkpoint,126,regenerate_candidate,contextual_split_candidate,True,True,True,True,rg=42; sed=22; git=18; nl=14; tool/tool=10; tool/plan=8,design=127
+aggressive_split,prompt,codexinteg,100,regenerate_candidate,contextual_split_candidate,True,True,True,True,wc=36; rg=30; sed=26; cargo=6; nl=2,uxdesign=101
+conservative_split,prompt,codex,402,contextual_split_candidate,regenerate_candidate,True,True,True,False,git=126; nl=78; rg=50; rustfmt=48; sed=44; cargo=22,docs=404
+expanded_generic_vocab,llm,output,9,keep_rare_distinct,regenerate_candidate,False,True,True,False,,refactor=137478; design=72; review=63; summary=54; analyze=40; restart=21
+expanded_generic_vocab,prompt,output,8,keep_rare_distinct,regenerate_candidate,False,True,True,False,printf=8,bash=12
+expanded_generic_vocab,session,output,4,keep_rare_distinct,regenerate_candidate,False,True,True,False,printf=4,runbash=4
+higher_tail_threshold,prompt,docx,198,keep_head,keep_rare_distinct,False,False,False,True,wc=64; git=48; cargo=36; sed=34; rg=16,uxdesign=199
+higher_tail_threshold,session,license,196,keep_head,keep_rare_distinct,False,False,False,True,git=56; rg=34; sed=32; tool/tool=12; printf=10; python3=10,test=73; refactor=60; doc=38; docgen=25
+higher_tail_threshold,prompt,audit,187,keep_head,keep_rare_distinct,False,False,False,True,git=65; nl=42; rg=19; sed=18; wc=14; jq=10,audit=141; analyze=32; design=20; test=1
+higher_tail_threshold,prompt,ignore,185,keep_head,keep_rare_distinct,False,False,False,True,rg=61; git=50; sed=14; find=11; nl=9; python3=9,refactor=145; review=34; test=12
+higher_tail_threshold,prompt,restart,185,keep_head,keep_rare_distinct,False,False,False,False,rg=115; sed=28; git=25; nl=9; wc=5; cargo=2,review=186
+higher_tail_threshold,prompt,workspace,180,keep_head,keep_rare_distinct,False,False,False,True,tool/read=48; git=38; grep=33; tool/edit=19; find=9; agentsight=6,refactor=181
+higher_tail_threshold,prompt,log,171,keep_head,keep_rare_distinct,False,False,False,True,git=35; rg=33; nl=23; sed=17; cargo=15; find=13,review=140; refactor=26; test=9
+higher_tail_threshold,prompt,metrics,168,keep_head,keep_rare_distinct,False,False,False,False,gh=47; agentsight=20; cd=19; ls=11; curl=10; tool/read=8,review=169
+higher_tail_threshold,prompt,diagram,158,keep_head,keep_rare_distinct,False,False,False,False,git=72; find=22; sed=20; rg=18; for=14; tool/plan=8,design=159
+higher_tail_threshold,prompt,cli,157,keep_head,keep_rare_distinct,False,False,False,False,tool/read=40; grep=20; git=20; uvx=14; find=12; cargo=8,cli=77; test=46; analyze=37; design=1
+higher_tail_threshold,prompt,install,151,keep_head,keep_rare_distinct,False,False,False,True,git=31; tool/tool=29; sed=24; gh=13; rg=13; rm=12,design=93; review=56; test=5
+higher_tail_threshold,prompt,graphrefine,146,keep_head,keep_rare_distinct,False,False,False,True,git=41; tool/tool=41; python3=15; jq=10; rg=9; sed=8,refactor=147
+higher_tail_threshold,prompt,analysis,143,keep_head,keep_rare_distinct,False,False,False,False,agentsight-userflow=42; rg=17; cp=12; find=12; sed=10; pwd=8,design=123; refactor=23
+higher_tail_threshold,prompt,serveevents,140,keep_head,keep_rare_distinct,False,False,False,False,cd=90; tool/edit=38; tool/read=12,review=141
+higher_tail_threshold,session,uximprove,140,keep_head,keep_rare_distinct,False,False,False,True,git=52; rg=52; sed=28; cargo=4; head=4,improve=102; clarify=38
+higher_tail_threshold,prompt,foldersetup,139,keep_head,keep_rare_distinct,False,False,False,True,git=28; sed=19; tool/tool=14; find=10; cargo=10; balancer_ingress=9,research=135; analyze=6
+higher_tail_threshold,prompt,serve,138,keep_head,keep_rare_distinct,False,False,False,True,tool/tool=40; du=28; find=14; ps=14; python3=10; ls=6,test=140
+higher_tail_threshold,prompt,maintain,134,keep_head,keep_rare_distinct,False,False,False,True,sed=43; rg=22; git=16; ls=13; make=13; rm=10,review=135
+higher_tail_threshold,prompt,docgen,131,keep_head,keep_rare_distinct,False,False,False,False,python3=19; cargo=16; rg=13; find=10; git=10; jq=10,visdesign=101; license=26; design=7
+higher_tail_threshold,prompt,flags,131,keep_head,keep_rare_distinct,False,False,False,True,sed=33; rg=23; git=19; python3=12; tool/tool=12; tool/plan=7,refactor=132
+lower_tail_threshold,prompt,readme,95,keep_rare_distinct,keep_head,False,False,False,True,git=34; tool/tool=18; sed=12; rg=8; for=8; find=3,refactor=86; design=11
+lower_tail_threshold,prompt,comment,90,keep_rare_distinct,keep_head,False,False,False,True,git=36; rg=24; cargo=8; find=4; sed=3; tool/tool=3,review=92
+lower_tail_threshold,prompt,marketdoc,90,keep_rare_distinct,keep_head,False,False,False,True,curl=26; rg=18; sed=16; git=10; tool/plan=6; ls=4,design=92
+lower_tail_threshold,prompt,refineui,84,keep_rare_distinct,keep_head,False,False,False,True,rg=36; sed=32; nl=8; test=4; git=2; ls=2,docs=85
+lower_tail_threshold,prompt,featurereq,82,keep_rare_distinct,keep_head,False,False,False,True,sed=48; rg=16; nl=12; find=4; git=2,design=87
+lower_tail_threshold,prompt,question,82,keep_rare_distinct,keep_head,False,False,False,True,cargo=20; sed=18; tmpdir_mktemp=17; rg=13; git=8; nl=4,design=83
+lower_tail_threshold,prompt,tokenize,80,keep_rare_distinct,keep_head,False,False,False,True,sed=21; rg=15; git=12; cargo=7; nl=7; tool/plan=4,review=81
+lower_tail_threshold,prompt,cisetup,78,keep_rare_distinct,keep_head,False,False,False,True,git=30; cd=16; rg=8; sed=8; tool/tool=3; tool/plan=2,design=79
+lower_tail_threshold,prompt,kinsn,78,keep_rare_distinct,keep_head,False,False,False,True,tool/tool=28; sed=16; rg=14; objdump=5; python3=4; tool/plan=3,refactor=79
+lower_tail_threshold,prompt,readcmd,76,keep_rare_distinct,keep_head,False,False,False,True,tool/read=34; grep=22; find=18; ls=2,readcmd=77
+lower_tail_threshold,session,cli,76,keep_rare_distinct,keep_head,False,False,False,False,tool/read=40; grep=20; find=12; wc=4,cli=76
+lower_tail_threshold,session,readcmd,76,keep_rare_distinct,keep_head,False,False,False,True,tool/read=34; grep=22; find=18; ls=2,readcmd=76
+lower_tail_threshold,session,verify,76,keep_rare_distinct,keep_head,False,False,False,True,tool/read=22; find=22; grep=16; git=8; python3=6; for=2,verify=76
+lower_tail_threshold,prompt,linksetup,75,keep_rare_distinct,keep_head,False,False,False,True,rg=15; sed=14; codex=10; python3=6; git=5; tool/tool=5,test=76
+lower_tail_threshold,prompt,network,74,keep_rare_distinct,keep_head,False,False,False,False,curl=13; sed=11; rg=6; lsof=5; setsid=5; old_pids_pgrep=4,review=76; test=1; research=1
+lower_tail_threshold,prompt,branching,71,keep_rare_distinct,keep_head,False,False,False,True,git=46; python3=14; find=8; cargo=2; mktemp=1,analyze=77; docs=1
+lower_tail_threshold,prompt,npmpr,71,keep_rare_distinct,keep_head,False,False,False,True,git=41; cat=7; set=6; tool/tool=6; sed=5; gh=3,branding=72
+lower_tail_threshold,prompt,stats,70,keep_rare_distinct,keep_head,False,False,False,False,git=36; rg=20; cargo=8; find=4; sed=2,design=71
+lower_tail_threshold,prompt,release,67,keep_rare_distinct,keep_head,False,False,False,True,git=19; sed=17; find=11; rg=11; cargo=2; if=2,design=50; test=19
+lower_tail_threshold,prompt,push,66,keep_rare_distinct,keep_head,False,False,False,False,curl=13; sed=8; lsof=5; setsid=5; git=4; old_pids_pgrep=4,review=67; test=1

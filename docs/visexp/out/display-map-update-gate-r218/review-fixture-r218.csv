@@ -1,0 +1,7 @@
+case,dimension,raw_tag,from_display_tag,to_display_tag,review_label,review_source,label_state,candidate_valid,expected_result,reason
+accept_reviewed_profile_merge,llm,analyzedocs,analyzedocs,analyze,promote,consensus,final,True,accepted,final consensus promote row for an existing profile-merge candidate
+accept_reviewed_llm_regeneration,llm,bpfanalyze,bpfanalyze,analyze,promote,adjudicated,final,True,accepted,final adjudicated promote row for an LLM-regenerated candidate
+reject_unclear_profile_merge,llm,analyzelog,analyzelog,analyze,unclear,consensus,final,True,rejected,unclear rows remain pending
+reject_single_label_regeneration,llm,check,check,review,promote,single_label,weak_final,True,rejected,single-label review is insufficient for default display promotion
+reject_hidden_other_bucket,llm,apiresource,apiresource,other,promote,consensus,final,True,rejected,display updates cannot create hidden other buckets
+reject_missing_source_row,prompt,__missing_raw_tag__,__missing_raw_tag__,review,promote,consensus,final,True,rejected,review rows must reference an existing R209 raw tag row

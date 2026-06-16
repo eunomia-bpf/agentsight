@@ -6,7 +6,16 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { AgentFlameReport, AgentFlameWeightedStack } from '@/types/agentflame';
 import type { AgentSightSnapshot, SnapshotAuditEvent, SnapshotToolCall } from '@/types/event';
-import { fetchAgentFlameReport } from '@/utils/agentflame';
+import { fetchAgentFlameArtifactText, fetchAgentFlameReport } from '@/utils/agentflame';
+import {
+  drilldownMembershipMatchesDisplayMap,
+  renderAgentFlameModes,
+  type AgentFlameDisplayMapRow,
+  type AgentFlameDisplayMode,
+  type AgentFlameDrilldownRow,
+  type AgentFlameRendererModeResult,
+} from '@/utils/agentflameDisplayModes';
+import { parseCsvRecords } from '@/utils/csv';
 
 interface AgentFlameViewProps {
   basePath?: string;
@@ -262,10 +271,141 @@ function StackList({ rows }: { rows: AgentFlameWeightedStack[] }) {
   );
 }
 
+function toDisplayMapRows(rows: Record<string, string>[]): AgentFlameDisplayMapRow[] {
+  return rows
+    .filter(row => row.dimension && row.raw_tag && row.active_display_tag)
+    .map(row => ({
+      dimension: row.dimension,
+      raw_tag: row.raw_tag,
+      active_display_tag: row.active_display_tag,
+      support: row.support || '0',
+      requires_review: row.requires_review,
+      is_long_tail: row.is_long_tail,
+      candidate_display_tag: row.candidate_display_tag,
+      candidate_source: row.candidate_source,
+      candidate_state: row.candidate_state,
+      governance_action: row.governance_action,
+      active_source: row.active_source,
+    }));
+}
+
+function toDrilldownRows(rows: Record<string, string>[]): AgentFlameDrilldownRow[] {
+  return rows
+    .filter(row => row.dimension && row.active_display_tag)
+    .map(row => ({
+      dimension: row.dimension,
+      active_display_tag: row.active_display_tag,
+      support: row.support || '0',
+      raw_tag_count: row.raw_tag_count || '0',
+      raw_tags: row.raw_tags || '',
+      review_required_rows: row.review_required_rows,
+      review_required_support: row.review_required_support,
+      candidate_rows: row.candidate_rows,
+      active_merge_rows: row.active_merge_rows,
+      top_processes: row.top_processes,
+      top_effects: row.top_effects,
+      top_paths: row.top_paths,
+      top_context_tags: row.top_context_tags,
+    }));
+}
+
+function DisplayModePanel({
+  result,
+  selectedMode,
+  onModeChange,
+  membershipMatches,
+}: {
+  result: AgentFlameRendererModeResult;
+  selectedMode: AgentFlameDisplayMode;
+  onModeChange: (mode: AgentFlameDisplayMode) => void;
+  membershipMatches: boolean;
+}) {
+  return (
+    <div
+      className="bg-white rounded-lg shadow-md p-4"
+      data-agentflame-display-panel="true"
+      data-display-mode={selectedMode}
+      data-bucket-count={result.bucketCount}
+      data-total-support={result.totalSupport}
+      data-candidate-overlay-rows={result.candidateOverlayRows}
+      data-review-required-rows={result.reviewRequiredRows}
+      data-membership-matches={String(membershipMatches)}
+    >
+      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <h3 className="text-lg font-semibold text-gray-900">Display modes</h3>
+        <div className="inline-flex overflow-hidden rounded-lg border border-gray-200 bg-white">
+          {(['raw', 'display', 'pending'] as AgentFlameDisplayMode[]).map(mode => (
+            <button
+              key={mode}
+              type="button"
+              data-agentflame-display-mode-button={mode}
+              aria-pressed={selectedMode === mode}
+              onClick={() => onModeChange(mode)}
+              className={`border-r border-gray-200 px-4 py-2 text-sm last:border-r-0 ${
+                selectedMode === mode ? 'bg-blue-600 text-white' : 'text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              {mode}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mb-4 grid grid-cols-2 gap-3 lg:grid-cols-5">
+        {[
+          ['Mode', selectedMode],
+          ['Buckets', formatNumber(result.bucketCount)],
+          ['Support', formatNumber(result.totalSupport)],
+          ['Candidates', formatNumber(result.candidateOverlayRows)],
+          ['Review rows', formatNumber(result.reviewRequiredRows)],
+        ].map(([label, value]) => (
+          <div key={label} className="border-b border-gray-100 pb-2">
+            <div className="text-xs uppercase tracking-wide text-gray-500">{label}</div>
+            <div className="mt-1 text-lg font-semibold text-gray-900">{value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200 text-sm">
+          <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
+            <tr>
+              <th className="px-3 py-2">Rank</th>
+              <th className="px-3 py-2">Dimension</th>
+              <th className="px-3 py-2">Tag</th>
+              <th className="px-3 py-2 text-right">Support</th>
+              <th className="px-3 py-2 text-right">Raw tags</th>
+              <th className="px-3 py-2 text-right">Pending</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {result.buckets.slice(0, 10).map((bucket, index) => (
+              <tr key={`${bucket.mode}-${bucket.dimension}-${bucket.displayTag}-${index}`}>
+                <td className="px-3 py-2 text-gray-600">{index + 1}</td>
+                <td className="px-3 py-2 text-gray-600">{bucket.dimension}</td>
+                <td className="px-3 py-2 font-medium text-gray-900">{bucket.displayTag}</td>
+                <td className="px-3 py-2 text-right text-gray-700">{formatNumber(bucket.support)}</td>
+                <td className="px-3 py-2 text-right text-gray-700">{formatNumber(bucket.rawTagCount)}</td>
+                <td className="px-3 py-2 text-right text-gray-700">
+                  {bucket.hasPendingOverlay ? formatNumber(bucket.candidateRows + bucket.reviewRequiredRows) : ''}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 export function AgentFlameView({ basePath = '', snapshot = null }: AgentFlameViewProps) {
   const [report, setReport] = useState<AgentFlameReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedArtifact, setSelectedArtifact] = useState<string>('system_flamegraph');
+  const [displayMode, setDisplayMode] = useState<AgentFlameDisplayMode>('display');
+  const [displayRows, setDisplayRows] = useState<AgentFlameDisplayMapRow[] | null>(null);
+  const [drilldownRows, setDrilldownRows] = useState<AgentFlameDrilldownRow[] | null>(null);
+  const [displayModeError, setDisplayModeError] = useState<string>('');
 
   useEffect(() => {
     let cancelled = false;
@@ -285,6 +425,34 @@ export function AgentFlameView({ basePath = '', snapshot = null }: AgentFlameVie
     };
   }, [basePath]);
 
+  useEffect(() => {
+    let cancelled = false;
+    const displayMapPath = report?.artifacts.active_display_map;
+    const drilldownPath = report?.artifacts.display_drilldown;
+    setDisplayRows(null);
+    setDrilldownRows(null);
+    setDisplayModeError('');
+    if (!displayMapPath || !drilldownPath) return () => {
+      cancelled = true;
+    };
+
+    Promise.all([
+      fetchAgentFlameArtifactText(basePath, displayMapPath),
+      fetchAgentFlameArtifactText(basePath, drilldownPath),
+    ])
+      .then(([displayCsv, drilldownCsv]) => {
+        if (cancelled) return;
+        setDisplayRows(toDisplayMapRows(parseCsvRecords(displayCsv)));
+        setDrilldownRows(toDrilldownRows(parseCsvRecords(drilldownCsv)));
+      })
+      .catch(error => {
+        if (!cancelled) setDisplayModeError(error instanceof Error ? error.message : 'display artifact unavailable');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [basePath, report]);
+
   const artifactChoices = useMemo(() => {
     if (!report) return [];
     return ARTIFACTS.filter(item => Boolean(report.artifacts[item.key]));
@@ -302,6 +470,13 @@ export function AgentFlameView({ basePath = '', snapshot = null }: AgentFlameVie
   const correlation = useMemo(() => {
     return report ? buildCorrelation(report, snapshot) : null;
   }, [report, snapshot]);
+
+  const displayModeResult = useMemo(() => {
+    if (!displayRows || !drilldownRows) return null;
+    const membershipMatches = drilldownMembershipMatchesDisplayMap(displayRows, drilldownRows);
+    if (!membershipMatches) return { membershipMatches, modes: null };
+    return { membershipMatches, modes: renderAgentFlameModes(displayRows, drilldownRows) };
+  }, [displayRows, drilldownRows]);
 
   if (loading) {
     return (
@@ -413,6 +588,21 @@ export function AgentFlameView({ basePath = '', snapshot = null }: AgentFlameVie
               No snapshot events matched the AgentFlame session ids in this report.
             </p>
           )}
+        </div>
+      )}
+
+      {displayModeResult?.modes && (
+        <DisplayModePanel
+          result={displayModeResult.modes[displayMode]}
+          selectedMode={displayMode}
+          onModeChange={setDisplayMode}
+          membershipMatches={displayModeResult.membershipMatches}
+        />
+      )}
+
+      {displayModeError && (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          {displayModeError}
         </div>
       )}
 

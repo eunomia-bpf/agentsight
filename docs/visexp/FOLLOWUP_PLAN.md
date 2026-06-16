@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-15
 Stage at update: supplement / experiment-design
-Source/command: auto-research-orchestrator + osdi-experiment-design gate review over `docs/visexp`
+Source/command: auto-research-orchestrator + osdi-experiment-design gate review over `docs/visexp`, plus R196 long-tail governance review packet, R201 sensitivity artifact, R202 candidate regeneration smoke, R203 promotion gate, R205 compaction metrics, R209 reversible display-map contract, R213 display-mode drilldown data-layer smoke, R214 long-tail control loop, R215 frontend renderer-model smoke, R216 browser DOM harness smoke, R217 production React display smoke, R218 display-map update gate, R219 claim-readiness gap gate, R195 human-evidence ingestion pipeline, R207 human-evidence launch-readiness audit, R200 public-safe community smoke, `docs/visexp/LONG_TAIL_COMPACTION.md`, R204 read-only gate review, R206 RQ/experiment-plan gate review, and R208 OSDI gate review after paper-plan alignment
 Completeness: partial
 
 ## Positioning
@@ -67,6 +67,10 @@ Current reviewer posture: promising systems tooling, not OSDI weak accept.
 The current evidence supports C1-C3 as mechanism/characterization claims and C4
 for a fixed 20-task command-mode suite. It does not yet support broad
 cross-repo/full-history exact provenance, user utility, or tag adequacy.
+R219 now encodes that boundary as a claim/RQ readiness matrix: C5 is
+unsupported with 0 participant responses, C6 is partial with 0 final labels,
+and `weak_accept_supported=false`. Its next-experiment table makes
+`R142-pilot-return` and `R124-labels-return` the two P0 rows.
 
 Weak accept requires all four gates below:
 
@@ -74,7 +78,7 @@ Weak accept requires all four gates below:
 |------|----------|-------------------|---------------|--------|
 | G1 full-history semantic characterization | C1-C3 | all repo-related readable sessions annotated by real llama.cpp model, with redacted output and baseline-mixing analysis | 205 sessions, 29,302 llama.cpp HTTP calls, 0 final tag failures, 90.219%/90.770% mixed baseline weights | pass |
 | G2 live exact semantic-effect lineage | C4 | broader live `agentsight record` suite, recall/precision table, join/orphan table, child-depth and path specificity, negative controls | R114 fixed 20-task suite: 20/20 targets completed, 1273/1273 in-scope effects joined, 100.0% precision/recall, 3170 observed negative-control effects with 0 joined; R182: record-mode `--trace-net` fixed and 35/35 low-level `codex` network rows joined with 0/604 negative-control joins, but target-specific loopback/child-process rows remain 0/0 | pass for fixed suite; broad full-history/cross-repo and target-specific network workloads still partial |
-| G3 small-model and tag adequacy | C2,C6 | 0.6B/1B/3B llama.cpp benchmark, repeated-run stability, human adequacy labels | R180 covers local 0.6B-/1B-/3B-class syntax/stability over the 300 R122 redacted fragments: 2700/2700 valid tags; per-model exact stability is 299/300, 279/300, and 285/300 with p95 23/18/32 ms. This is not controlled same-family scaling, and TinyLlama 1.1B collapses semantically toward localization-like tags; human adequacy still missing | partial |
+| G3 small-model and tag adequacy | C2,C6 | 0.6B/1B/3B llama.cpp benchmark, repeated-run stability, human adequacy labels | R180 covers local 0.6B-/1B-/3B-class syntax/stability over the 300 R122 redacted fragments: 2700/2700 valid tags; per-model exact stability is 299/300, 279/300, and 285/300 with p95 23/18/32 ms. R189/R190 add a total-preserving canonical display layer plus a 160-row merge-risk audit packet and scorer; R196 adds a long-tail governance packet with regenerate/split/keep actions; R201 adds threshold/generic-vocabulary sensitivity with review-required support 1.926%-1.931% and high-tail head stability 65.217%; R202 exercises candidate-only regeneration with 41/41 grammar-valid one-word outputs and 0 invalid outputs; R203 adds a 41-row promotion packet and blank paired-review gate with 0 final labels; R205 reports raw/canonical unique tags 1,546 -> 1,364, top-20 support coverage 93.683% -> 95.186%, and review-required support 1.926%; R213 verifies display-mode drilldown membership over R209; R214 exposes active/pending/review control gates, a non-default seven-bucket rollup preview, and a versioned regeneration policy while failing prompt review budget plus high-tail head stability; R215 verifies the frontend renderer-model consumer preserves membership and rejects corrupted/candidate-as-active fixtures; R216 verifies the same mode contract in a headless-browser DOM harness; R217 verifies production default rendering; R218 verifies reviewed-diff update-gate mechanics with synthetic review fixtures. These long-tail artifacts are C6 protocol/gate artifacts, not adequacy evidence. R190-score and R203 are still `human_labels_empty`. This is not controlled same-family scaling, and TinyLlama 1.1B collapses semantically toward localization-like tags; human adequacy still missing | partial |
 | G4 developer task utility | C5 | head-to-head task benchmark against trace tree, true span-duration flamegraph or explicitly named event-count proxy, flat summary, nonsemantic stack, semantic stack | R142-packet generated 14 tasks, 8 primary utility tasks, 6 limitation/comprehension tasks, 5 conditions, 70 leak-checked blinded packets, P01-P05 counterbalanced assignments, hidden answer key, manifests, and per-task same-event-slice `slice_id` checks. The former span-like event-weight condition is now explicitly named `event-count-proxy`, so the packet no longer claims to be a span-duration baseline. R142-scoring adds response-contract checks, task-level diagnostic deltas, Holm-corrected participant/task/order fixed-effect paper gates, false-positive guardrails, and C5 support/pilot gates. R142-preregistration is now frozen before collection and records source hashes, task roles, response schema, exclusions, conditions, and success thresholds; no participants | missing outcome data |
 
 ## Weak-Accept Execution Protocol
@@ -102,18 +106,95 @@ execution order is:
    `score_tag_adequacy.py` on the joined packet. Subagents or LLMs may review
    the rubric and spot-check leakage, but their labels do not count as human
    adequacy evidence.
-4. **R151 paper run for C5.** Only after the pilot response contract passes and
+4. **R190 merge-risk labels for canonical display.** If the paper claims that
+   long-tail semantic tags can be safely consolidated, label
+   `docs/visexp/out/tag-consolidation-audit-r190/merge-risk-audit-packet-r190.csv`
+   for `acceptable`, `overmerge`, `undermerge`, or `unclear`, then score the
+   two labeler sheets and any adjudication with
+   `python3 docs/visexp/r190_score_merge_audit.py --labeler-1 <sheet1> --labeler-2 <sheet2> --adjudication <adjudication.csv>`.
+   This is separate from R124: R190 evaluates the raw-to-canonical display
+   layer, while R124 evaluates whether the raw candidate tags are adequate for
+   the underlying prompt fragments.
+5. **R196 long-tail governance review.** If the paper discusses regeneration
+   or contextual splitting, use
+   `docs/visexp/out/long-tail-governance-r196/long-tail-review-packet-r196.csv`
+   as the review packet. R196 keeps 1,241 rare distinct tags rather than
+   collapsing them into `other`, routes 39 generic/noisy tags to regeneration,
+   and flags 2 generic/noisy high-support prompt tags for contextual split.
+   The packet has 323 review-required rows and 0 accepted review labels. It is
+   a governance packet only; optional LLM regeneration may propose candidate
+   tags, but it cannot satisfy C5 developer-utility evidence, C6 human adequacy
+   evidence, or R190 merge-quality evidence.
+   `docs/visexp/LONG_TAIL_COMPACTION.md` is the governing contract for this
+   step: report raw/canonical unique tags, top-K coverage, tail mass,
+   review-required support, head stability, regeneration validity/change rate,
+   and promotion acceptance or rejection once human labels exist.
+   R205 now reports the no-label version of these metrics: raw unique tag
+   strings 1,546 -> canonical unique tag strings 1,364, top-20 support coverage
+   93.683% -> 95.186%, and review-required support 1.926%. Treat this as
+   compaction observability, not tag-quality evidence.
+   R201 already checks policy sensitivity over seven variants: review-required
+   support remains 1.926%-1.931%, but higher tail thresholds reduce baseline
+   head stability to 65.217%. Treat that as a reviewer-facing design-risk
+   disclosure, not as a quality claim.
+   R202 now exercises the optional regeneration path: 41/41 regenerate/split
+   rows produce grammar-valid one-word candidate tags and 0 invalid outputs, but none
+   are promoted without review. Treat this as executability evidence, not as a
+   quality claim.
+6. **R193 collection package.** Use
+   `docs/visexp/out/human-evidence-r193` as the logistics handoff for R124 and
+   R190 labelers, and use its R142 pointer to the R187 launch package. R193
+   contains only blank sheets and pointers; it removes collection friction but
+   does not count as labels or responses.
+7. **R194 preflight.** Run
+   `python3 docs/visexp/r194_human_evidence_preflight.py` before distribution
+   or after any human data is returned. The current status is
+   `ready_for_human_collection_no_outcomes`; once real data exists, this gate
+   should stop being empty and the corresponding scorer must be rerun.
+8. **R195 ingestion/scoring.** After real completed files return, place or pass
+   them as `r142-pilot-responses.csv`, `r124-labeler-1.csv`,
+   `r124-labeler-2.csv`, `r190-labeler-1.csv`, `r190-labeler-2.csv`,
+   `r203-labeler-1.csv`, and `r203-labeler-2.csv`, then run
+   `python3 docs/visexp/r195_human_evidence_pipeline.py`. The current
+   default run is `awaiting_human_inputs`: no scorers ran, no scored evidence
+   was produced, and C5/C6/canonicalization gates remain false. R195 is only an
+   ingestion bridge; it cannot synthesize labels or participant responses.
+   R207 now audits the launch handoff directly: five R142 participant packets,
+   the blank 70-row response template, two 300-row R124 sheets, two 160-row R190
+   sheets, two 41-row R203 sheets, and the R195 return-file naming plan are all
+   present and launch-ready. R207 is still no-outcome evidence; it only removes
+   collection ambiguity.
+9. **R151 paper run for C5.** Only after the pilot response contract passes and
    the C5 analysis model is preregistered, collect 12-20 participant response
    rows or explicitly narrow to a scoped expert study. The scorer's
    Holm-corrected participant/task/order fixed-effect gate decides whether any
    user-utility claim is allowed.
-5. **C4/RQ6 replication and artifact polish.** Run cross-repo or clean-install
-   work only after C5/C6 are no longer empty. These runs strengthen scope and
-   artifact positioning but cannot substitute for adequacy or utility evidence.
+10. **C4/RQ6 replication and artifact polish.** R200 now covers a public-safe
+   generated-fixture clean/cached smoke with managed llama.cpp and no raw-trace
+   reads. External-machine fresh-clone testing, public setup docs, real report
+   sanitization, full write-set audit, and external developer feedback remain
+   future C7 work. These runs strengthen scope and artifact positioning but
+   cannot substitute for adequacy or utility evidence.
+
+R206 rechecks the revised RQ and experiment-plan wording after the R205
+compaction update. The review finds no material wording blocker: novelty is
+framed as semantic attribution of system effects, and baselines/falsifiers are
+clear enough for execution. It still reports Level 3/not weak accept because
+the blockers are evidence blockers: R142/R151 participant responses and R124
+human labels.
+
+R208 rechecks the plan and paper after adding the reversible long-tail
+compaction boundary and aligning R205/R207 in the paper. It again reports Level
+3/not weak accept. The revisions improve scoping/readiness, but they do not
+replace C5 participant responses, C6 adequacy labels, R190/R203 compaction
+quality labels, broader C4 lineage evidence, or external C7 artifact evidence.
 
 Hard evidence boundaries:
 
 - If R124 remains `human_labels_empty`, C6 can only claim syntax/stability.
+- If R190-score remains `human_labels_empty`, canonicalization can only be
+  claimed as an auditable display-layer mechanism, not as a proven long-tail
+  quality fix.
 - If R142/R151 remains `participant_results_empty`, C5 must remain
   unsupported.
 - If the R142 pilot fails the response contract, revise packets/scoring before
@@ -493,7 +574,32 @@ cargo run --manifest-path agentflame/Cargo.toml -- bench \
 | R142 | C5 | B4x | User-task pilot. | send R187 P01-P05 packets, collect 5 developer participants using counterbalanced conditions, and score with `python3 docs/visexp/score_user_task_results.py --responses <pilot-response.csv> --bundle docs/visexp/out/user-task-benchmark.json --answer-key docs/visexp/out/user-task-answer-key.csv --assignments docs/visexp/out/user-task-assignments.csv --out docs/visexp/out/user-task-pilot-r142` | 5 participants for complete condition coverage | answer key, timing data, false positives, confidence, response-contract checker | task protocol works before paper run; pilot is not paper-scale C5 support | `docs/visexp/out/user-task-pilot-r142/user-task-results.json` | planned/collection |
 | R151 | C5 | B4x | User-task paper run. | 12-20 participants or scoped expert study | counterbalanced | accuracy/time/false-positive/confidence scorer | required for any user-utility claim | `docs/visexp/out/user-task-results.json` | planned |
 | R160 | C7 | B7 | Bounded fixed-session open-source usability smoke. | `cargo run --manifest-path agentflame/Cargo.toml -- run --project-root . --llama-url http://127.0.0.1:18080 --model local --timeout 60 --out .agentsight/agentflame/r160-smoke-fixed --session-file <8 fixed historical Codex sessions>`; repeat same command against the same output dir; then `python3 docs/visexp/artifact_usability_r160.py --agentflame-dir .agentsight/agentflame/r160-smoke-fixed --clean-agentflame-json .agentsight/agentflame/r160-smoke-fixed/agentflame.clean.json --out docs/visexp/out/artifact-usability-r160.json ...` | one clean run plus cached rerun over fixed inputs | expected files + runtime/cache summary + sanitized input manifest + clean/cached input equality + 76/76 cached rerun + no raw-trace git dirt + generated report path containment | bounded local artifact path is auditable without the internal harness; fresh-clone/community usefulness, public report sanitization, and full write-set containment remain open | `docs/visexp/out/artifact-usability-r160.json` | done/bounded |
+| R200 | C7 | B7 | Public-safe generated-fixture community smoke. | `python3 docs/visexp/r200_community_smoke.py --command-timeout 360 --load-timeout 240` | one temporary synthetic Codex fixture; clean + cached rerun | no real `.codex`/`.claude` trace reads; expected artifacts; clean run has 5 llama.cpp calls; cached rerun has 0 model calls and 5/5 cache hits; no prompt-preview leakage; no raw-trace dirty paths | public-safe artifact path works on generated inputs, but external adoption, real-report public sanitization, and full write-set audit remain open | `docs/visexp/out/community-smoke-r200.json`, `docs/visexp/out/community-smoke-r200.md` | done/artifact-hygiene |
 | R170 | C1,C2,C3,C7 | B1/B5/B7 | Current full-history refresh. | seed R170 tag cache from `latest`, run AgentFlame over current repo sessions against local 3B llama.cpp server, summarize with `python3 docs/visexp/r170_full_history_refresh.py` | all discovered repo sessions under scan cap | AgentFlame ok + 0 tagger failures + folded totals match report + redacted committed summary | done as mechanism/artifact evidence: 325 sessions, 35,136 fresh llama.cpp tag calls, 0 failures; does not support C5/C6 | `docs/visexp/out/full-history-r170.json` | done/mechanism |
+| R189 | C3,C6 | B8 | Total-preserving canonical tag consolidation for long-tail display noise. | `python3 docs/visexp/r189_tag_consolidation.py` | deterministic over R170/R189 generated artifacts | raw totals preserved, raw-to-canonical map exported, merge reasons separated into dictionary alias, lexical+profile, profile-only, and review-only suggestions | done as display-layer mechanism: prompt-effect tags 263->216, LLM-event tags 1423->1254, system stacks 26,829->26,067, token stacks 8,569->7,661; does not prove adequacy | `docs/visexp/out/tag-consolidation-r189/tag-consolidation-r189.json` | done/mechanism |
+| R190 | C3,C6 | B8 | Merge-risk audit packet and consolidation ablation. | `python3 docs/visexp/r190_tag_consolidation_audit.py` | deterministic over R170/R189 generated artifacts | raw/alias-only/lexical-only/profile-guarded comparison plus over-merge/under-merge audit packet | packet ready: lexical-only is more aggressive than profile-guarded current policy, especially LLM-event tags 868 vs 1254; 160 audit rows exported with 0 human labels, so no over/under-merge rate is claimed | `docs/visexp/out/tag-consolidation-audit-r190/tag-consolidation-audit-r190.json` | done/audit-packet |
+| R190-score | C3,C6 | B8 | Merge-risk audit scorer and empty-evidence gate. | `python3 docs/visexp/r190_score_merge_audit.py` | deterministic over the 160-row R190 packet | two-labeler/adjudication scorer, kappa, unclear rate, over-merge rate, under-merge rate, empty-label boundary | current output is `human_labels_empty`: 160 rows, 0 final labels, `canonicalization_quality_supported=false`; protocol ready but no quality claim | `docs/visexp/out/tag-consolidation-audit-r190/merge-risk-audit-results-r190.json` | done/empty |
+| R196 | C3,C6 | B8 | Long-tail tag governance packet. | `python3 docs/visexp/r196_long_tail_governance.py` | deterministic over R170/R189 generated artifacts; optional regeneration disabled | raw tags preserved; semantic heads kept; generic/noisy tags routed to regenerate/split; review support measured | packet ready: 231 existing merges, 114 review merges, 39 regeneration candidates, 2 contextual-split candidates, 1,241 kept rare distinct tags, and 184 kept heads; no adequacy or merge-quality claim | `docs/visexp/out/long-tail-governance-r196/long-tail-governance-r196.json` | done/governance |
+| R201 | C3,C6 | B8 | Long-tail governance sensitivity. | `python3 docs/visexp/r201_long_tail_sensitivity.py` | deterministic 7-variant grid over R170/R189 generated artifacts; no raw-trace mutation; no LLM regeneration | threshold/generic-vocabulary variants report review-required row/support counts, long-tail support, action movement, and head stability while support gates remain false | sensitivity complete: baseline review-required support 1.926%, worst 1.931%, long-tail support 0.921%-3.030% under lower/higher thresholds, high-tail head stability 65.217%; no adequacy or merge-quality claim | `docs/visexp/out/long-tail-sensitivity-r201/long-tail-sensitivity-r201.json` | done/sensitivity |
+| R202 | C3; C6 protocol/gate only | B8 | Long-tail candidate regeneration smoke. | `python3 docs/visexp/r202_long_tail_regeneration_smoke.py --regenerate-limit 50 --load-timeout 240 --llama-timeout 60` | managed local llama.cpp server over R196 regenerate/split rows; no raw-trace mutation; no canonical-map update | attempted rows, grammar-valid/invalid regenerated tags, changed/unchanged candidates, gates remain false | smoke passed: 41/41 attempted rows, 41 grammar-valid one-word outputs, 0 invalid, 32 changed, 9 unchanged, 25 unique regenerated tags; top-level outputs are public-oriented, but nested `r196-with-regeneration/` details are local-audit-only; no adequacy or merge-quality claim | `docs/visexp/out/long-tail-regeneration-r202/long-tail-regeneration-r202.json` | done/regeneration-smoke |
+| R203 | C3; C6 protocol/gate only | B8 | Human-gated promotion protocol for regenerated long-tail candidates. | `python3 docs/visexp/r203_long_tail_promotion_gate.py` | deterministic over public-oriented R202 attempts; no raw-trace reads; no canonical-map update; 0 human labels | promotion packet, blank reviewer sheets, paired/adjudicated-label gate, and empty-label boundary | packet ready: 41 rows, 41 grammar-valid regenerated candidates, 32 changed-from-raw candidates, 0 final labels, `long_tail_promotion_review_supported=false`, `canonical_map_updated=false`; no adequacy or merge-quality claim | `docs/visexp/out/long-tail-promotion-r203/long-tail-promotion-r203.json` | done/empty-promotion-gate |
+| R205 | C3; C6 protocol/gate only | B8 | Long-tail compaction metrics. | `python3 docs/visexp/r205_long_tail_compaction_metrics.py` | deterministic over generated R189/R190/R196/R201/R202/R203 artifacts; no raw-trace reads; no canonical-map update | raw/canonical unique tags, top-K coverage, long-tail support, review-required support, regeneration validity, promotion-label coverage, and merge-risk rates must be reported without changing support gates | metrics ready: raw unique tag strings 1,546 -> canonical unique tag strings 1,364; top-20 support coverage 93.683% -> 95.186%; review-required support 1.926%; R203 labels 0; R190 rates `n/a`; no adequacy or quality claim | `docs/visexp/out/long-tail-compaction-r205/long-tail-compaction-r205.json` | done/metrics-only |
+| R209 | C3; C6 protocol/gate only | B8 | Reversible display-map and raw drilldown contract. | `python3 docs/visexp/r209_reversible_display_map.py` | deterministic over generated R196/R203/R205 artifacts; no raw-trace reads; no canonical-map update | every R196 raw tag has one active display row, no hidden `other` bucket, regenerated labels remain candidates, drilldown support is preserved, and reviewed diff stays empty without R203 labels | display-map contract ready: 1,811/1,811 raw rows covered, 1,509 active display labels, 41 candidate regenerated labels, 0 reviewed diff rows, 0 hidden `other` rows; no adequacy or quality claim | `docs/visexp/out/reversible-display-map-r209/reversible-display-map-r209.json` | done/display-map-contract |
+| R213 | C3; C6 protocol/gate only | B8 | Display-mode drilldown data-layer smoke. | `python3 docs/visexp/r213_display_mode_drilldown_smoke.py` | deterministic over R209 artifacts; no raw-trace reads; no LLM calls; no frontend renderer execution | raw/display/pending data modes preserve support, pending membership is unchanged, and drilldown membership matches active display membership | data-layer smoke ready: all modes preserve 482,398 support, raw has 1,811 buckets, display/pending 1,748 buckets, 323 review rows visible; no adequacy, quality, utility, or frontend claim | `docs/visexp/out/display-mode-drilldown-r213/display-mode-drilldown-r213.json` | done/data-layer-smoke |
+| R214 | C3; C6 protocol/gate only | B8 | Adaptive long-tail control loop. | `python3 docs/visexp/r214_long_tail_control_loop.py` | deterministic over R196/R201/R202/R205/R209/R213 artifacts; no raw-trace reads; no LLM calls; no canonical-map update | deterministic aliases stay active; profile/regenerated/split candidates stay pending; rollup preview preserves all rows/support but remains non-default; prompt review budget and head-stability gates expose unsafe automatic compaction | control loop ready: 63 active alias rows, 209 pending candidates, 323 review-required rows, 0 active candidate merges; 7 rollup buckets preserve 1,811 rows and 482,398 support; 41 regenerated candidates have 0 promotable rows without labels; prompt-review and high-tail-stability triggers fail | `docs/visexp/out/long-tail-control-r214/long-tail-control-r214.json` | done/control-loop |
+| R215 | C3; C6 protocol/gate only | B8 | Frontend display-mode renderer-model smoke. | `python3 docs/visexp/r215_frontend_renderer_mode_smoke.py` | deterministic over R209 display-map/drilldown rows plus R213/R214 summary cross-checks and TypeScript display-mode utility; no raw-trace reads; no LLM calls; no browser DOM | frontend consumer preserves raw/display/pending support and active membership; pending candidates remain overlays; corrupted drilldown and candidate-as-active fixtures are rejected | renderer-model smoke ready: raw/display/pending buckets 1,811/1,748/1,748, support 482,398, 209 candidate overlays, 323 review rows, 0 hidden `other`; no DOM, adequacy, quality, or utility claim | `docs/visexp/out/frontend-renderer-mode-r215/frontend-renderer-mode-r215.json` | done/renderer-model-smoke |
+| R216 | C3; C6 protocol/gate only | B8 | Browser DOM display-mode harness smoke. | `python3 docs/visexp/r216_browser_dom_mode_smoke.py` | deterministic over R209/R213/R214/R215 generated artifacts and TypeScript display-mode utility; no raw-trace reads; no LLM calls; no production React view | headless browser renders raw/display/pending controls, clicks all modes, preserves support/membership, and rejects corrupted drilldown plus candidate-as-active fixtures | browser-DOM harness ready: pending view shows 1,748 buckets, 482,398 support, 209 candidate overlays, 323 review rows, 63 active merges, 0 hidden `other`; no production UI, adequacy, quality, or utility claim | `docs/visexp/out/browser-dom-mode-r216/browser-dom-mode-r216.json` | done/browser-dom-harness-smoke |
+| R217 | C3; C6 protocol/gate only | B8 | Production React default display smoke. | `python3 docs/visexp/r217_production_react_display_mode_smoke.py` | deterministic over R209/R216 generated artifacts and real Next static frontend; no raw-trace reads; no LLM calls; no production click path | production `AgentFlameView` renders default display mode with 1,748 buckets, 482,398 support, 3 buttons, and matching raw membership | production-render smoke ready; no click path, visual drilldown, adequacy, quality, utility, or map-update claim | `docs/visexp/out/production-react-display-r217/production-react-display-r217.json` | done/production-render-smoke |
+| R218 | C3; C6 protocol/gate only | B8 | Reviewed display-map update gate. | `python3 docs/visexp/r218_display_map_update_gate.py` | deterministic over R209 generated artifacts; synthetic review fixtures only; no raw-trace reads; no LLM calls; no canonical-map update | final consensus/adjudicated rows can create preview diffs, unsafe rows are rejected, support/raw keys are preserved, hidden `other` is rejected | update-gate smoke ready; no promotion quality, adequacy, utility, or map-update claim | `docs/visexp/out/display-map-update-gate-r218/display-map-update-gate-r218.json` | done/update-gate-smoke |
+| R219 | C1-C7 audit | gate | Claim/RQ readiness gap gate. | `python3 docs/visexp/r219_claim_readiness_gap_gate.py` | deterministic over generated evidence artifacts; no raw-trace reads; no LLM calls; no labels/responses synthesized | C5 and C6 remain blockers, weak accept stays unsupported, synthetic/subagent evidence is disallowed, and R142/R124 are P0 next rows | readiness gate reports `osdi_weak_accept_not_supported` with C5 responses 0 and C6 final labels 0 | `docs/visexp/out/claim-readiness-r219/claim-readiness-r219.json` | done/readiness-audit |
+| R204 | C5,C6 | gate | Read-only OSDI gate review after R203/R193/R194/R195/R202 integration. | inspect current long-tail promotion and human-evidence pipeline artifacts plus claim-boundary docs | one independent review | strict OSDI rubric: empty promotion packets, LLM labels, and subagent review cannot substitute for human labels/responses | review says Level 3/not weak accept; no must-fix R203/R193/R194/R195/R202 overclaim; call R202/R203 C6 protocol/gate artifacts, not adequacy evidence | `docs/visexp/out/osdi-gate-review-r204.md` | done/review |
+| R206 | C1-C7 | gate | Read-only OSDI RQ/experiment-plan gate review after R205 and reviewer-facing RQ summary. | inspect revised RQ summary, execution-slice table, current gate docs, and paper | one independent review | strict OSDI rubric: novelty must be semantic attribution, baselines/falsifiers/oracles must be executable, and empty human gates must remain unsupported | review says no material plan-wording blocker; current maturity remains Level 3/not weak accept because C5 responses and C6 human labels are missing | `docs/visexp/out/osdi-rq-gate-review-r206.md` | done/review |
+| R208 | C1-C7 | gate | Read-only OSDI gate review after R205/R207 paper-plan alignment. | inspect revised plan, paper, long-tail compaction contract, R205 metrics, R207 launch readiness, and current gate docs | one independent review | strict OSDI rubric: readiness/scoping artifacts must not substitute for C5/C6 outcome evidence or compaction-quality labels | review says revisions materially improve scoping/readiness, but current maturity remains Level 3/not weak accept; next rows are real R142 responses, R124 labels, and optionally R190/R203 labels | `docs/visexp/out/osdi-gate-review-r208.md` | done/review |
+| R192 | C5,C6 | gate | Read-only OSDI gate review after R190-score. | inspect R190-score plus current plan/tracker/results/verdict/audit/followup/paper | one independent review | strict OSDI rubric: R190-score cannot count as human labels or participant evidence | review says Level 3/not weak accept; no major R190-score overclaim; next real evidence remains R142/R151 and R124 | `docs/visexp/out/osdi-gate-review-r192.md` | done/review |
+| R193 | C5,C6 | collection | Human-evidence collection package. | `python3 docs/visexp/r193_prepare_human_evidence_package.py` | deterministic over frozen R187/R124/R190/R203 artifacts | blank-sheet field checks, zero human evidence counts, no answer-key copying, support gates false | package ready: R124 has two blank 300-row sheets, R190 has two blank 160-row sheets, R203 has two blank 41-row promotion sheets, R142 pointer references R187 launch; no labels or responses | `docs/visexp/out/human-evidence-r193/manifest.json` | done/collection-ready |
+| R194 | C5,C6 | collection | Human-evidence collection preflight. | `python3 docs/visexp/r194_human_evidence_preflight.py` | deterministic over R193/R187/R124/R190/R203/R142 artifacts | file hashes, blank sheets, blank response template, empty scorers, false support gates | preflight passed as `ready_for_human_collection_no_outcomes`; R124/R190/R203 sheets and R142 template are blank; no labels or responses | `docs/visexp/out/human-evidence-preflight-r194.json` | done/preflight |
+| R195 | C5,C6 | collection | Human-evidence ingestion/scoring pipeline. | `python3 docs/visexp/r195_human_evidence_pipeline.py` | deterministic default over empty R195 inbox; real CSVs scored only when present | missing inputs must produce `awaiting_human_inputs`, no scorer operations, R195-specific scored outputs only, and false support gates | default run is `awaiting_human_inputs`; required inputs missing, no operations ran, and C5/C6/canonicalization/promotion gates remain false | `docs/visexp/out/human-evidence-pipeline-r195.json`, `docs/visexp/out/human-evidence-pipeline-r195.md` | done/pipeline-awaiting |
+| R207 | C5,C6 | collection | Human-evidence launch-readiness and return-file mapping. | `python3 docs/visexp/r207_human_launch_readiness.py` | deterministic over R187/R193/R195 generated artifacts; no raw-trace reads; no labels/responses filled | participant packets, label sheets, response template, READMEs, R195 inbox names, and false support gates | launch-ready/no outcomes: five R142 packets, blank 70-row response template, two 300-row R124 sheets, two 160-row R190 sheets, two 41-row R203 sheets, and clear R195 return names | `docs/visexp/out/human-evidence-launch-r207/human-evidence-launch-r207.json` | done/launch-ready |
 | R171 | C5,C6 | gate | Read-only subagent OSDI gate review. | inspect current plan/tracker/results/verdict/audit/followup/paper/gate outputs | one independent review | strict OSDI rubric | review says Level 3, not weak accept; R124-labels and R142/R151 remain the must-fix outcome artifacts | `docs/visexp/out/osdi-gate-review-r171.md` | done/review |
 | R181 | C2,C5,C6 | gate | Read-only subagent OSDI gate review after R180. | inspect R180 model benchmark, claim gates, paper wording, and current audit | one independent review | strict OSDI rubric | review says R180 is correctly scoped as syntax/stability only; still Level 3, not weak accept, with C6 labels and C5 responses missing | `docs/visexp/out/osdi-gate-review-r181.md` | done/review |
 | R185 | C5,C6 | gate | Read-only subagent OSDI gate review after R184. | inspect current research state, R184 gate, plan/tracker/results/verdict/audit/followup/paper | one independent review | strict OSDI rubric with no human-label or participant substitution | review says no claim reaches weak accept; the single highest-value next artifact is a real R142 five-participant developer pilot | `docs/visexp/out/osdi-gate-review-r185.md` | done/review |
@@ -531,5 +637,12 @@ forensic questions better with the visualization.
    rows in a copy of the blank launch CSV;
 2. collect/adjudicate human adequacy labels using the blinded R124 labeler
    sheet, then rerun `score_tag_adequacy.py`;
-3. after a successful pilot, run R151 or narrow the paper to a scoped expert
+3. if claiming canonicalized long-tail tags, label the R190 merge-risk audit
+   packet, run `r190_score_merge_audit.py`, and report over-merge/under-merge
+   rates separately from R124 adequacy;
+4. copy returned R142/R124/R190/R203 CSV files into
+   `docs/visexp/out/human-evidence-r195/inbox` or pass them to
+   `r195_human_evidence_pipeline.py` explicitly, then score through the R195
+   pipeline;
+5. after a successful pilot, run R151 or narrow the paper to a scoped expert
    study before making any user-utility claim.

@@ -1,0 +1,261 @@
+{
+  "claim": "Claim/RQ readiness gap gate for OSDI review",
+  "claim_boundary": "R219 is an audit/readiness artifact only. It cannot satisfy C5/C6, cannot replace human participant responses or independent labels, and cannot upgrade the paper to weak accept.",
+  "claim_gate": {
+    "claim_readiness_gap_gate_supported": true,
+    "llm_called": false,
+    "raw_trace_read": false,
+    "reads_generated_artifacts_only": true,
+    "requires_c5_human_participants": true,
+    "requires_c6_human_labels": true,
+    "synthetic_or_subagent_evidence_disallowed": true,
+    "weak_accept_supported": false
+  },
+  "claims": [
+    {
+      "blocking_gap": "multi-repo generalization and public package remain C7 scope",
+      "claim": "C1 semantic folded stacks over real histories",
+      "evidence_level": "mechanism/full-local-history",
+      "next_gate": "rerun only after parser/tagger changes",
+      "primary_evidence": "R170: 325 sessions, 183714 system observations, 26829 semantic system stacks",
+      "verdict": "supported"
+    },
+    {
+      "blocking_gap": "human semantic adequacy is C6, not C2",
+      "claim": "C2 local one-word tagging feasibility",
+      "evidence_level": "local-small-model-benchmark",
+      "next_gate": "collect R124 labels before claiming adequacy",
+      "primary_evidence": "R180: 2700/2700 valid outputs, 863/900 exact-stable fragments",
+      "verdict": "supported_for_syntax_latency"
+    },
+    {
+      "blocking_gap": "visual drilldown, developer utility, and merge quality are not proven",
+      "claim": "C3 semantic partitioning and display mechanics",
+      "evidence_level": "ablation/display-contract",
+      "next_gate": "C5 participant study and R190/R203 human review labels",
+      "primary_evidence": "R217 production default display: 1748 buckets, 482398 support; R218 accepted 2 preview diffs and rejected 4 unsafe rows",
+      "verdict": "supported_as_mechanism"
+    },
+    {
+      "blocking_gap": "target-specific network and cross-repo/full-history exact capture remain partial",
+      "claim": "C4 exact semantic-effect lineage",
+      "evidence_level": "controlled-live-lineage",
+      "next_gate": "R191 target-specific network lineage hardening",
+      "primary_evidence": "R114 status ok: precision 100.0%, recall 100.0%, negative joins 0/3170; R182 network status partial",
+      "verdict": "supported_for_fixed_command_mode_suite"
+    },
+    {
+      "blocking_gap": "real participant responses are missing",
+      "claim": "C5 developer utility",
+      "evidence_level": "launch_ready_no_outcomes",
+      "next_gate": "collect and score R142 pilot responses through R195",
+      "primary_evidence": "R184/R195: 0 participants, 0 responses, pipeline awaiting_human_inputs",
+      "verdict": "unsupported"
+    },
+    {
+      "blocking_gap": "independent adequacy, merge-risk, and promotion labels are missing",
+      "claim": "C6 tag adequacy and merge/promotion quality",
+      "evidence_level": "protocol_ready_no_human_labels",
+      "next_gate": "collect R124/R190/R203 paired labels and score through R195",
+      "primary_evidence": "R124 human_labels_empty, R190 human_labels_empty, R203 human_labels_empty, final adequacy labels 0",
+      "verdict": "partial_syntax_stability_only"
+    },
+    {
+      "blocking_gap": "no external fresh-clone run or external developer feedback",
+      "claim": "C7 community/open-source usefulness",
+      "evidence_level": "local-public-safe-smoke",
+      "next_gate": "fresh clone on another machine plus write-set/sanitization audit",
+      "primary_evidence": "R160 fixed-session smoke and R200 generated-fixture smoke pass",
+      "verdict": "partial"
+    }
+  ],
+  "generated_at": "2026-06-16T06:43:16+00:00",
+  "next_experiments": [
+    {
+      "block": "B4",
+      "claim": "C5/RQ4",
+      "command_or_input": "place r142-pilot-responses.csv in docs/visexp/out/human-evidence-r195/inbox and run python3 docs/visexp/r195_human_evidence_pipeline.py",
+      "oracle": "frozen answer key, response contract, Holm-corrected participant/task/order blocked permutation gate",
+      "priority": "P0",
+      "purpose": "Score real developer responses for the frozen semantic-vs-baseline forensic tasks.",
+      "result_path": "docs/visexp/out/human-evidence-r195/scored/",
+      "run_id": "R142-pilot-return"
+    },
+    {
+      "block": "B5",
+      "claim": "C6/RQ5",
+      "command_or_input": "return r124-labeler-1.csv and r124-labeler-2.csv, adjudicate disagreements, then run R195",
+      "oracle": "adequacy/generic/misleading rubric, paired label coverage, kappa/agreement and adequacy thresholds",
+      "priority": "P0",
+      "purpose": "Score independent human adequacy labels for one-word session/prompt/LLM-call tags.",
+      "result_path": "docs/visexp/out/human-evidence-r195/scored/",
+      "run_id": "R124-labels-return"
+    },
+    {
+      "block": "B8",
+      "claim": "C3/C6",
+      "command_or_input": "return r190-labeler-*.csv and r203-labeler-*.csv, adjudicate disagreements, then run R195",
+      "oracle": "overmerge/undermerge and promote/reject rubrics with no canonical-map update unless gates pass",
+      "priority": "P1",
+      "purpose": "Score merge-risk and regenerated-label promotion quality before any display-map promotion claim.",
+      "result_path": "docs/visexp/out/human-evidence-r195/scored/",
+      "run_id": "R190-R203-labels-return"
+    },
+    {
+      "block": "B3",
+      "claim": "C4/RQ3",
+      "command_or_input": "new fixed Codex network tasks under agentsight record --trace-net",
+      "oracle": "target-specific network events >0, all joined, zero negative-control joins",
+      "priority": "P1",
+      "purpose": "Harden exact lineage for target-specific network effects rather than low-level agent-process rows only.",
+      "result_path": "docs/visexp/out/live-network-r191.json",
+      "run_id": "R191-target-network-lineage"
+    },
+    {
+      "block": "B7",
+      "claim": "C7/RQ6",
+      "command_or_input": "fresh clone, documented install, generated fixture run, write-set audit",
+      "oracle": "expected files exist, no raw trace leaks, no writes outside declared output paths",
+      "priority": "P2",
+      "purpose": "Run a fresh-clone public setup and write-set/sanitization audit outside the current dirty artifact branch.",
+      "result_path": "docs/visexp/out/fresh-clone-community-r220.json",
+      "run_id": "R220-fresh-clone-community"
+    }
+  ],
+  "outputs": {
+    "claim_csv": "docs/visexp/out/claim-readiness-r219/claim-readiness-r219.csv",
+    "next_experiments_csv": "docs/visexp/out/claim-readiness-r219/next-experiments-r219.csv",
+    "rq_csv": "docs/visexp/out/claim-readiness-r219/rq-readiness-r219.csv",
+    "summary_md": "docs/visexp/out/claim-readiness-r219/claim-readiness-r219.md"
+  },
+  "overall": {
+    "blockers": [
+      "C5/RQ4 has no supported real participant outcome",
+      "C6/RQ5 has no supported independent human adequacy labels"
+    ],
+    "disallowed_evidence": [
+      "subagent review",
+      "LLM-filled labels",
+      "synthetic review fixtures",
+      "empty launch packets",
+      "syntax-only tag validity"
+    ],
+    "human_evidence_supported": false,
+    "status": "osdi_weak_accept_not_supported",
+    "weak_accept_supported": false
+  },
+  "rqs": [
+    {
+      "evidence_level": "full-history plus local model benchmark",
+      "falsifier_remaining": "parser/tagger changes could invalidate the run",
+      "next_gate": "rerun after implementation changes only",
+      "primary_evidence": "R170 full run and R180 2700/2700 valid model outputs",
+      "rq": "RQ1 feasibility/cost",
+      "verdict": "supported"
+    },
+    {
+      "evidence_level": "ablation plus display artifacts",
+      "falsifier_remaining": "developer tasks may show no practical benefit",
+      "next_gate": "R142 C5 outcomes",
+      "primary_evidence": "R131/R211 show baseline collapse; R209-R218 show reversible display mechanics",
+      "rq": "RQ2 semantic partitioning",
+      "verdict": "supported_as_mechanism"
+    },
+    {
+      "evidence_level": "controlled live AgentSight suite",
+      "falsifier_remaining": "target-specific network and arbitrary-history capture remain open",
+      "next_gate": "R191 target-specific network suite",
+      "primary_evidence": "R114 precision 100.0%, recall 100.0%",
+      "rq": "RQ3 exact lineage",
+      "verdict": "supported_for_fixed_command_mode_suite"
+    },
+    {
+      "evidence_level": "materials_ready_no_outcomes",
+      "falsifier_remaining": "semantic view may not improve accuracy/time or may increase false positives",
+      "next_gate": "collect real R142 responses",
+      "primary_evidence": "R142/R187/R207 launch materials; 0 scored responses",
+      "rq": "RQ4 developer utility",
+      "verdict": "unsupported"
+    },
+    {
+      "evidence_level": "syntax_stability_plus_empty_human_protocol",
+      "falsifier_remaining": "labels may be generic, misleading, or low agreement",
+      "next_gate": "collect paired R124/R190/R203 labels",
+      "primary_evidence": "R180 syntax/stability; R124/R190/R203 human-label gates all human_labels_empty/human_labels_empty/human_labels_empty",
+      "rq": "RQ5 tag adequacy",
+      "verdict": "partial"
+    },
+    {
+      "evidence_level": "local smoke only",
+      "falsifier_remaining": "fresh-clone or external developer run may fail",
+      "next_gate": "external fresh-clone run",
+      "primary_evidence": "R160 and R200 pass bounded local/generated-fixture smokes",
+      "rq": "RQ6 artifact/community",
+      "verdict": "partial"
+    }
+  ],
+  "run_id": "R219",
+  "schema_version": 1,
+  "source_artifacts": {
+    "r114_live_record": "docs/visexp/out/live-record-r114.json",
+    "r124_tag_adequacy": "docs/visexp/out/tag-adequacy-results-r124.json",
+    "r131_semantic_ablation": "docs/visexp/out/semantic-ablation-r131.json",
+    "r142_user_task_results": "docs/visexp/out/user-task-results.json",
+    "r160_artifact_usability": "docs/visexp/out/artifact-usability-r160.json",
+    "r170_full_history": "docs/visexp/out/full-history-r170.json",
+    "r180_model_benchmarks": "docs/visexp/out/model-benchmarks-r180.json",
+    "r182_live_network": "docs/visexp/out/live-network-r182.json",
+    "r184_weak_accept": "docs/visexp/out/weak-accept-gate-r184.json",
+    "r190_merge_quality": "docs/visexp/out/tag-consolidation-audit-r190/merge-risk-audit-results-r190.json",
+    "r195_human_pipeline": "docs/visexp/out/human-evidence-pipeline-r195.json",
+    "r200_community_smoke": "docs/visexp/out/community-smoke-r200.json",
+    "r203_promotion_quality": "docs/visexp/out/long-tail-promotion-r203/long-tail-promotion-r203.json",
+    "r207_launch_readiness": "docs/visexp/out/human-evidence-launch-r207/human-evidence-launch-r207.json",
+    "r209_display_map": "docs/visexp/out/reversible-display-map-r209/reversible-display-map-r209.json",
+    "r211_stack_examples": "docs/visexp/out/stack-examples-r211/stack-examples-r211.json",
+    "r212_display_ablation": "docs/visexp/out/display-compaction-ablation-r212/display-compaction-ablation-r212.json",
+    "r213_display_mode": "docs/visexp/out/display-mode-drilldown-r213/display-mode-drilldown-r213.json",
+    "r214_long_tail_control": "docs/visexp/out/long-tail-control-r214/long-tail-control-r214.json",
+    "r215_frontend_renderer": "docs/visexp/out/frontend-renderer-mode-r215/frontend-renderer-mode-r215.json",
+    "r216_browser_dom": "docs/visexp/out/browser-dom-mode-r216/browser-dom-mode-r216.json",
+    "r217_production_react": "docs/visexp/out/production-react-display-r217/production-react-display-r217.json",
+    "r218_update_gate": "docs/visexp/out/display-map-update-gate-r218/display-map-update-gate-r218.json"
+  },
+  "status": "osdi_weak_accept_not_supported",
+  "summary": {
+    "c5_participants": 0,
+    "c5_responses": 0,
+    "c5_supported": false,
+    "c6_final_labels": 0,
+    "c6_supported": false,
+    "r114_negative_joined": 0,
+    "r114_negative_observed": 3170,
+    "r114_precision_pct": 100.0,
+    "r114_recall_pct": 100.0,
+    "r114_status": "ok",
+    "r124_status": "human_labels_empty",
+    "r142_status": "participant_results_empty",
+    "r160_status": "artifact_usability_smoke_passed",
+    "r170_semantic_system_stacks": 26829,
+    "r170_sessions": 325,
+    "r170_system_observations": 183714,
+    "r180_exact_stable_fragments": 863,
+    "r180_fragment_count": 900,
+    "r180_ok_runs": 2700,
+    "r180_total_runs": 2700,
+    "r182_status": "partial",
+    "r184_status": "not_weak_accept",
+    "r190_status": "human_labels_empty",
+    "r195_status": "awaiting_human_inputs",
+    "r203_status": "human_labels_empty",
+    "r213_status": "display_mode_drilldown_smoke_ready_no_quality_claims",
+    "r214_status": "long_tail_control_loop_ready_no_quality_claims",
+    "r215_status": "frontend_renderer_mode_smoke_ready_no_quality_claims",
+    "r216_status": "browser_dom_mode_smoke_ready_no_quality_claims",
+    "r217_display_buckets": 1748,
+    "r217_support": 482398,
+    "r218_accepted_diff_rows": 2,
+    "r218_canonical_map_updated": false,
+    "r218_rejected_rows": 4
+  }
+}

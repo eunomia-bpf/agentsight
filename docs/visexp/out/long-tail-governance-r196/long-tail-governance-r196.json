@@ -1,0 +1,131 @@
+{
+  "artifacts": {
+    "governance_csv": "docs/visexp/out/long-tail-governance-r196/long-tail-governance-r196.csv",
+    "review_packet_csv": "docs/visexp/out/long-tail-governance-r196/long-tail-review-packet-r196.csv",
+    "summary_md": "docs/visexp/out/long-tail-governance-r196/long-tail-governance-r196.md"
+  },
+  "generated_at": "2026-06-15T20:00:14+00:00",
+  "input": {
+    "agentflame_dir": ".agentsight/agentflame/r170-full-current",
+    "agentflame_json": ".agentsight/agentflame/r170-full-current/agentflame.json",
+    "agentflame_json_sha256": "32a11de291ac11a8c8b79b4a616af72edb4cf6b9ab4ad95b9109baa1fac09924",
+    "missing_r189_mapping_rows": 0,
+    "r189_mapping": "docs/visexp/out/tag-consolidation-r189/canonical-tag-map-r189.csv",
+    "r189_mapping_sha256": "8c0e4cc33a6f3556e496b5564ae424a4fb52ff4fee2fb84fec29d6d7d8efb6c3",
+    "system_folded": ".agentsight/agentflame/r170-full-current/semantic-system.folded.txt",
+    "system_folded_sha256": "350d716412792826368e9778d153ac7cbe7a717b7280c40b32f71ba8b6d1789d",
+    "token_folded": ".agentsight/agentflame/r170-full-current/semantic-token.folded.txt",
+    "token_folded_sha256": "fa8633e1fa7c6d3fdf1734d3de9cd98c7e466afe0930275e8a673e3005f2664e"
+  },
+  "method": {
+    "governance_actions": [
+      "auto_canonicalize_existing",
+      "review_merge",
+      "contextual_split_candidate",
+      "regenerate_candidate",
+      "keep_rare_distinct",
+      "keep_head"
+    ],
+    "raw_tags_preserved": true,
+    "raw_trace_policy": "read generated AgentFlame/R189 artifacts only; do not mutate raw traces",
+    "regeneration_policy": "optional llama.cpp-compatible profile-only regeneration for generic/noisy or contextual-split candidates; disabled unless --llama-url and --regenerate-limit are set",
+    "tail_thresholds": {
+      "llm_events": 10,
+      "prompt_support": 100,
+      "session_support": 100
+    }
+  },
+  "provenance": {
+    "git_head": "73ab7e840a558cbee590b0bbaa7e2436e4f597fe",
+    "git_status_short": "M docs/visexp/CLAIMS.md\n M docs/visexp/CLAIM_VERDICT.md\n M docs/visexp/DESIGN.md\n M docs/visexp/EXPERIMENT_AUDIT.md\n M docs/visexp/EXPERIMENT_PLAN.md\n M docs/visexp/EXPERIMENT_TRACKER.md\n M docs/visexp/FOLLOWUP_PLAN.md\n M docs/visexp/RESEARCH_PLAN.md\n M docs/visexp/RESULTS_SUMMARY.md\n M docs/visexp/STATE.md\n M docs/visexp/paper/main.pdf\n M docs/visexp/paper/main.tex\n M docs/visexp/test_semantic_tag_flamegraph.py\n M frontend/tsconfig.tsbuildinfo\n?? collector/vendor/frontend/dist/_next/static/agentsight-413706b029585292/\n?? collector/vendor/frontend/dist/_next/static/chunks/app/layout-f5fd23fd61536b4f.js\n?? collector/vendor/frontend/dist/_next/static/chunks/app/page-6b87d8f1013e5360.js\n?? collector/vendor/frontend/dist/_next/static/chunks/main-app-fe6da39e771bd916.js\n?? collector/vendor/frontend/dist/images/\n?? collector/vendor/frontend/dist/sample-snapshot.json\n?? docs/visexp/out/human-evidence-preflight-r194.json\n?? docs/visexp/out/human-evidence-preflight-r194.md\n?? docs/visexp/out/human-evidence-r193/\n?? docs/visexp/out/long-tail-governance-r196/\n?? docs/visexp/out/osdi-gate-review-r192.md\n?? docs/visexp/out/tag-consolidation-audit-r190/\n?? docs/visexp/out/tag-consolidation-r189/\n?? docs/visexp/out/tag-stats-r189/\n?? docs/visexp/r189_tag_consolidation.py\n?? docs/visexp/r190_score_merge_audit.py\n?? docs/visexp/r190_tag_consolidation_audit.py\n?? docs/visexp/r193_prepare_human_evidence_package.py\n?? docs/visexp/r194_human_evidence_preflight.py\n?? docs/visexp/r196_long_tail_governance.py",
+    "script": "docs/visexp/r196_long_tail_governance.py",
+    "script_sha256": "c16297cc271e4391bb99f15b277de1d870d1f5210ac0c20fd07c41deb5bb1854"
+  },
+  "run_id": "R196",
+  "schema_version": 1,
+  "summary": {
+    "action_counts": {
+      "auto_canonicalize_existing": 231,
+      "contextual_split_candidate": 2,
+      "keep_head": 184,
+      "keep_rare_distinct": 1241,
+      "regenerate_candidate": 39,
+      "review_merge": 114
+    },
+    "claim_gate": {
+      "canonical_overlay_only": true,
+      "canonicalization_quality_supported": false,
+      "llm_regeneration_is_candidate_only": true,
+      "long_tail_governance_supported": true,
+      "raw_tags_preserved": true,
+      "requires_independent_review_for_regenerated_tags": true,
+      "requires_r190_labels_for_merge_quality": true,
+      "semantic_adequacy_supported": false
+    },
+    "dimensions": {
+      "llm": {
+        "actions": {
+          "auto_canonicalize_existing": 171,
+          "keep_head": 108,
+          "keep_rare_distinct": 1025,
+          "regenerate_candidate": 15,
+          "review_merge": 104
+        },
+        "long_tail_support": 2185,
+        "long_tail_support_pct": 1.903,
+        "long_tail_tags": 1284,
+        "review_required_support": 1580,
+        "review_required_support_pct": 1.376,
+        "review_required_tags": 259,
+        "support_total": 114837,
+        "unique_tags": 1423
+      },
+      "prompt": {
+        "actions": {
+          "auto_canonicalize_existing": 49,
+          "contextual_split_candidate": 2,
+          "keep_head": 58,
+          "keep_rare_distinct": 190,
+          "regenerate_candidate": 20,
+          "review_merge": 9
+        },
+        "long_tail_support": 5507,
+        "long_tail_support_pct": 2.996,
+        "long_tail_tags": 253,
+        "review_required_support": 5989,
+        "review_required_support_pct": 3.258,
+        "review_required_tags": 56,
+        "support_total": 183833,
+        "unique_tags": 328
+      },
+      "session": {
+        "actions": {
+          "auto_canonicalize_existing": 11,
+          "keep_head": 18,
+          "keep_rare_distinct": 26,
+          "regenerate_candidate": 4,
+          "review_merge": 1
+        },
+        "long_tail_support": 730,
+        "long_tail_support_pct": 0.397,
+        "long_tail_tags": 38,
+        "review_required_support": 1724,
+        "review_required_support_pct": 0.938,
+        "review_required_tags": 8,
+        "support_total": 183728,
+        "unique_tags": 60
+      }
+    },
+    "long_tail_tags": 1575,
+    "regeneration": {
+      "attempted": 0,
+      "enabled": false,
+      "failures": [],
+      "invalid": 0,
+      "valid": 0
+    },
+    "review_required_tags": 323,
+    "status": "long_tail_governance_candidates_ready_no_regeneration",
+    "tag_count": 1811
+  }
+}

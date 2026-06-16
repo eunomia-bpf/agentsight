@@ -222,6 +222,12 @@ R180 进一步表明，在同一组 300 个 redacted fragments 上，本机可�
 
 这个结果不等于标签语义充分。
 例如某些 tag 明显带噪声：\texttt{agentsightsm}、\texttt{testcodex}、\texttt{bashoutput}。
+因此系统需要区分 raw tag 和 canonical display tag。
+R189 在 R170 current refresh 上实现了第一版可审计合并层：raw tag 永远保留，图和聚合默认可使用 canonical tag。
+它把 prompt-effect tag 从 263 个合并到 216 个，把 prompt-row tag 从 328 个合并到 279 个，把 LLM-event tag 从 1,423 个合并到 1,254 个；同时保持 folded 总权重不变，system stacks 从 26,829 条降到 26,067 条，token stacks 从 8,569 条降到 7,661 条。
+这说明存在一个可审计的候选长尾降噪空间，但不能证明这些 raw tags 一定语义冗余。
+因此 AgentFlame 使用 semantic compaction lifecycle：raw tag 不变，canonical map 只作版本化展示层，pending actions 保存 keep/merge/regenerate/split，小模型生成的 \texttt{regenerated\_tag} 只有经过 R203 paired/adjudicated promotion review 和 display-map diff 后才能进入 canonical view。
+R209 将这个 lifecycle 落成可消费数据契约：active display map 每个 raw tag 一行，drilldown index 保留 raw 支持和 top system profile，reviewed diff 只在人工 promotion 后产生。
 因此 RQ1 支持的是 feasibility 和 syntax claim；tag adequacy 需要单独实验。
 
 \subsection{RQ2：语义帧是否分割 baseline 混合？}
@@ -264,6 +270,12 @@ Full run 产生 167,005 个 system observations，并折叠成 24,295 条 unique
 但是它不知道这些行为分别来自 \texttt{refactor}、\texttt{review}、\texttt{research}、\texttt{design} 还是 \texttt{test} prompt 区域。
 AgentFlame 的价值是把 heavy/repeated system effects 按任务语义拆开。
 
+R211 将当前 R170/R189 artifact 转成可放入论文的 label distribution 和 baseline-collapse examples。
+在 R170 full-history 刷新中，\texttt{rg} 覆盖 176 个 prompt tags，\texttt{sed} 覆盖 180 个，\texttt{git} 覆盖 147 个，\texttt{cargo} 覆盖 68 个。
+具体 collapsed key \texttt{process:git;effect:read;status:ok} 有 116 个 prompt tags，top prompt 只占 24.977\%；\texttt{process:cargo;effect:test;status:ok} 有 48 个 prompt tags，non-top-prompt weight 为 68.05\%。
+这说明传统 process/effect summary 不只是少了一层标签，而是把大量不同用户意图导致的相同行为合并成同一个 bucket。
+R211 同时输出 \texttt{tag-distribution-r211.svg} 和 \texttt{process-splits-r211.svg}，用于绘制本文的 baseline failure/semantic split 图；该 artifact 不调用 LLM，也不读取 raw trace。
+
 R131 把这个结论进一步做成轴级别消融。
 每个 variant 都从同一个 folded input 投影而来，并检查总权重保持 167,005 不变。
 同时，R131 记录 \texttt{agentflame.json} totals 与 folded inputs 匹配，并验证已有 nonsemantic/session/prompt folded files 与 projection exact match。
@@ -301,6 +313,8 @@ project:agentsight;agent:codex;session:refactor;prompt:refactor;call:tool/tool;e
 Flat summary 只会显示 2,903 次 successful \texttt{cargo test}。
 Nonsemantic stack 会保留 \texttt{call:tool/shell;process:cargo;effect:test;status:ok}，但仍把不同语义区域混在一起。
 Semantic stack 将它拆成多个区域，包括 \texttt{review/review}、\texttt{refactor/refactor}、\texttt{research/explain}、\texttt{research/refactor}、\texttt{design/review} 等。
+R211 的 R170 刷新版本进一步显示 \texttt{process:cargo;effect:test;status:ok} 在 48 个 prompt tags 中分布，\texttt{refactor} 只占 31.95\%，其余 68.05\% 来自 \texttt{review}、\texttt{research}、\texttt{commitlog}、\texttt{explain}、\texttt{test} 等 prompt。
+这正是 span-duration flamegraph 或 flat process table 难以回答的问题：同样是 test process，语义来源不同，调试结论也不同。
 
 这类结果生成可供检查的候选分解，用来辅助三类 developer questions：
 
@@ -335,6 +349,8 @@ R182 进一步检查 network-effect case。第一次 loopback run 暴露出 \tex
 R184 机械 gate 把 C5 状态记录为 \texttt{ready\_for\_participant\_collection}，而不是 supported。
 R186 计划审查进一步确认：下一步应先运行真实 R142 五人 pilot，然后才进入 R151 纸面规模实验。
 R187 已把冻结的 R142 assignment 打包成 \texttt{P01}--\texttt{P05} 参与者文件和空白 70 行 response CSV；manifest 检查 launch 目录没有 answer key、参与者 payload 没有 oracle/scoring 字段，且 \texttt{real\_response\_count=0}、\texttt{c5\_supported=false}。
+R193/R195/R207 进一步把这个收集路径变成可执行 handoff：R193 汇总空白 R124/R190/R203 label sheets 和 R142 launch 指针，R195 定义返回 CSV 的 ingestion/scoring contract，R207 检查五个 R142 participant packets、70 行空白 response template、两份 300 行 R124 sheets、两份 160 行 R190 sheets、两份 41 行 R203 sheets 以及 R195 inbox 文件名均有效。
+这些 artifact 只支持 launch readiness；它们仍记录 0 个参与者响应、0 个人工标签，不能支持 C5。
 当前 baseline 应设为 trace tree、\texttt{event-count-proxy}、flat process summary、nonsemantic folded stack 和 semantic folded stack，比较 accuracy、time、false positives 和 confidence。
 当前 R142 packet 中原来的 span-like 条件已经明确命名为 event-count proxy，因为 folded artifact 没有真实 duration；它不能直接当作 span-duration baseline。
 只有在从 timestamps 重新生成并预注册时，true span-duration flamegraph 才能作为额外 baseline。
@@ -348,6 +364,43 @@ R123 用本地 llama.cpp 3B server 对这 300 个 fragments 做三次 identical 
 R180 用 \texttt{--reasoning off} 对同一个 R122 fragment file 分别运行本机 0.6b、TinyLlama 1.1b 和 3b GGUF：三者都是 900/900 valid tags；exact-stable fragments 分别是 299/300、279/300 和 285/300；p95 延迟分别为 23/18/32 ms。
 这支持本机小模型的 syntax、latency 和 repeated-input stability smoke，但不是同一模型家族的 scaling curve。
 更重要的是，TinyLlama 1.1b 虽然语法有效，却大多输出 localization/localized 一类标签，说明 stability 不能替代 adequacy。
+R189 的 canonicalization 进一步说明，即使一个词标签语法有效，展示层仍需处理长尾碎片。
+该机制把 dictionary aliases、lexical+profile merges 和 review suggestions 分开报告；例如 \texttt{testcodex} 合并到 \texttt{test}，\texttt{docsupdate} 合并到 \texttt{docs}，\texttt{rootpidrefs} 合并到 \texttt{trace}。
+这些合并只能说明展示碎片和聚合抖动有可审计的降低 proxy，不能证明用户导航质量，也不能替代 R124 人工 adequacy labels。
+R190 进一步比较 raw、alias-only、lexical-only 和 profile-guarded variants，显示 lexical-only 对 LLM-event tags 过于激进（868 个 unique tags，而当前 profile-guarded 为 1,254）；同时导出 160 行 merge-risk audit packet。R190-score 当前为 \texttt{human\_labels\_empty}，因此 over-merge/under-merge rate 仍需人工标注后才能报告。
+R196 把剩余长尾显式拆成治理动作，而不是归入 \texttt{other}：231 个 existing canonical merges、114 个 review-merge rows、39 个 regeneration candidates、2 个 contextual-split candidates、1,241 个 kept rare distinct tags 和 184 个 kept head tags。
+这说明长尾机制可以保留罕见但具体的信号，同时把 \texttt{update}、\texttt{codex}、\texttt{ignored} 这类泛化或噪声标签送入重生成/拆分审核；但它仍只是治理 packet，不证明标签语义正确。
+R201 进一步做 policy sensitivity：在 7 个 tail/split/generic-vocabulary 变体中，baseline review-required support 为 1.926\%，最大为 expanded generic vocabulary 下的 1.931\%；lower/higher tail thresholds 使 long-tail support 在 0.921\% 到 3.030\% 间变化。
+这说明 review-required rows/support 在该 grid 中基本稳定，但并未测量人工审核时间；higher-tail-threshold 会把 baseline head stability 降到 65.217\%，因此阈值仍是需要报告的展示策略风险。
+R202 用本机 llama.cpp server 对全部 41 个 regenerate/split candidates 跑候选重标，得到 41/41 grammar-valid one-word outputs、0 invalid；但这些输出仍只是候选，不更新 canonical map。R202 的顶层 summary/attempts 面向公开 artifact，嵌套的 \texttt{r196-with-regeneration/} 是 local-audit-only，因为其中可能包含 path/profile buckets。
+R203 进一步把这些候选变成 promotion review protocol：41 行 promotion packet、两份空 reviewer sheets、0 final labels、\texttt{long\_tail\_promotion\_review\_supported=false}，且 \texttt{canonical\_map\_updated=false}。
+R205 把这套机制转化为 reviewer 可检查的 compaction metrics：raw unique tag strings 从 1,546 降到 canonical unique tag strings 1,364，top-20 support coverage 从 93.683\% 到 95.186\%，long-tail support 为 1.746\%，review-required support 为 1.926\%；同时 R203 final labels 仍为 0，R190 over/under-merge rates 仍为 \texttt{n/a}。
+R209 进一步导出可逆 display-map artifact：1,811/1,811 raw tag rows 有 active display rows，active display labels 为 1,509，63 个 deterministic alias rows 是 active display merges，168 个 lexical/profile merges 仍是 pending merge candidates，41 个 regenerated labels 仍为 candidate-only，reviewed display-map diff 为 0 行，隐藏 \texttt{other} rows 为 0，drilldown support preserved，且 drilldown CSV 包含每个 display bucket 的完整 raw-tag membership。
+R212 对这个 session/prompt 展示策略做 ablation：raw、alias-only、profile-guarded-candidate-applied 和 R209 conservative display 四个变体都保持 183,714 total system-effect weight 不变；raw 有 26,829 个 system stacks，alias-only 和 R209 conservative display 都有 26,612 个，假设激活所有 profile-guarded candidates 则为 26,067 个。
+但这个假设视图会在 2.532\% 的 total effect weight 上激活未人工审核的 profile merges。
+因此 R212 支持的是 R209 的保守默认策略：alias 可以 active，profile merge 在人工标签回来前必须 pending；它还没有覆盖 LLM/token display compaction。
+R213 进一步验证 display-mode data-layer contract：raw/display/pending 三种模式都保持 482,398 support，raw mode 有 1,811 个 buckets，display 和 pending mode 都有 1,748 个 buckets；pending mode 只叠加 209 个 candidate rows 和 323 个 review-required rows，不改变 display membership，且 drilldown membership 精确匹配 active display map。
+这组数字说明可逆 display overlay 能把长尾展示为可审计的聚合视图、提供 raw drilldown 并量化人工审核负担，但它没有执行前端 renderer，也不证明合并正确或标签足够好。
+R214 把这个长尾策略进一步变成控制环：默认 view 保持 active-alias-only with pending overlays，63 个 deterministic alias rows active，168 个 profile-merge candidates 和 41 个 regenerated/split candidates pending，323 个 rows 需要 review，0 个 candidate merges active。
+它还输出一个非默认的 seven-bucket rollup preview，将 1,811 个 raw-tag rows 和 482,398 support 按 governance state 精确分区；同时记录 regeneration version policy，当前 41 个 grammar-valid candidates 在没有 R203 human promotion labels 时有 0 个 promotable rows。
+更重要的是，R214 当前失败两个 gate：prompt-level review-required support 为 3.258\%，超过 3\% 预算；higher-tail-threshold 下 head stability 只有 65.217\%，低于 80\% gate。
+因此系统可以建议长尾合并或重生成，但不能为了让火焰图更干净就自动提高阈值或推广 prompt-level candidates。
+R215 进一步检查前端 renderer-model 是否遵守同一契约：\texttt{frontend/src/utils/agentflameDisplayModes.ts} 在 TypeScript 下编译，并由 Node harness 渲染 R209 display/drilldown rows，同时 cross-check R213/R214 summary counts。
+该 smoke 保持 482,398 support 不变，raw/display/pending buckets 为 1,811/1,748/1,748，pending 只叠加 209 个 candidate rows 和 323 个 review-required rows，0 个隐藏 \texttt{other} rows。
+两个负例也被拒绝：错误 raw drilldown membership，以及把 candidate display tag 当成 active membership。
+这说明 display contract 已能被前端 TypeScript 模型消费，但仍不是 browser DOM、visual click path、merge quality、adequacy 或 user utility 证据。
+R216 接着把同一 display contract 放入真实 headless browser：脚本把该 TypeScript 模块编译成 browser ES modules，启动临时 localhost DOM harness，用 Chrome 点击 raw/display/pending 三个模式，并保存 DOM dump 与 screenshot。
+浏览器可见状态仍保持 482,398 support，pending view 显示 1,748 buckets、209 candidate overlays、323 review-required rows 和 63 active merges；同样的 corrupted drilldown 与 candidate-promotion 负例也被拒绝。
+这支持的是 browser DOM harness smoke，而不是 visual drilldown、merge quality、adequacy 或 user utility 证据。
+R217 进一步构建真实 Next static frontend，提供一个由 R209 artifacts 支撑的最小 AgentFlame API fixture，并在 headless Chrome 中打开 \texttt{/agentflame}。
+生产 \texttt{AgentFlameView} 默认显示 \texttt{display} mode，包含 1,748 buckets、482,398 support、3 个 mode buttons，且 display/drilldown membership 匹配。
+这补上 production default rendering smoke，但仍没有点击 production controls 或验证 visual drilldown。
+R218 则把长尾 merge/regenerate 的 promotion 机制变成 checked gate：它用真实 R209 pending rows 构造 synthetic review fixtures，接受 2 个 final consensus/adjudicated preview diff rows，拒绝 4 个 unsafe rows（unclear、weak single-label、hidden \texttt{other}、missing source），保持 1,811 raw keys 和 482,398 support 不变，并保持 \texttt{canonical\_map\_updated=false}。
+因为 R218 的 review labels 是 synthetic，它只证明 reviewed display-map diff gate 的机制，不证明 promotion quality。
+R219 进一步把当前证据状态机械化成 claim/RQ readiness gate：C1 为 supported，C2 为 syntax/latency supported，C3 为 mechanism supported，C4 为 fixed-suite supported，C5 为 unsupported，C6 为 partial syntax/stability only，C7 为 partial。
+该 gate 读取已生成 artifacts，不读 raw traces，不调用 LLM；它记录 C5 responses 为 0、C6 final adequacy labels 为 0，并保持 \texttt{weak\_accept\_supported=false}。
+因此 R219 的价值是把下一步固定为 P0 的 R142 participant returns 和 R124 human labels，而不是提升论文 claim。
+R193/R194/R195 已把 R203 sheets 纳入 collection、preflight 和 scoring flow；默认 run 仍没有返回标签，promotion、map update、C5 和 C6 都为 false。
 OSDI 版本还需要 R124 人工 adequacy labels。
 R184 当前把 C6 记录为 \texttt{ready\_for\_independent\_label\_collection}，不是 adequacy supported；R186 将 R124 labels 排在 R142 pilot 之后或并行执行。
 一词标签应该被定位为 lossy navigation frames，而不是 semantic truth。
@@ -360,8 +413,12 @@ Clean run 写入 \texttt{.agentsight/agentflame/r160-smoke-fixed}，生成 dashb
 Cached rerun 使用同一组 \texttt{--session-file} 输入和同一个输出目录，76/76 tag requests 命中 cache，0 次 LLM call，耗时 0.11 s。
 \texttt{artifact\_usability\_r160.py} 进一步检查 expected files、folded total equality、redacted previews、generated report path containment、dirty raw-trace-like paths、sanitized input manifest 和 clean/cached input equality；结果写入 \texttt{docs/visexp/out/artifact-usability-r160.json}。
 
-这个结果说明 bounded local artifact path 在本机固定输入下是可审计、可重复的。
-但它不等于 fresh-clone install，也不等于社区开发者已经能顺利使用；本地 \texttt{.agentsight} report 仍包含 trace roots/session metadata，因此不是 public-release artifact。
+R200 进一步把输入换成临时 public-safe Codex fixture，并由脚本管理 llama.cpp server。
+Clean run 发起 5 次真实 tag calls；cached rerun 为 0 次模型调用和 5/5 cache hits。
+该脚本显式记录没有读取真实 \texttt{.codex}/\texttt{.claude} traces，临时 fixture 在运行后删除，committed summary 中 0 个非 redacted prompt previews，且没有新增 raw-trace-like dirty paths。
+
+这些结果说明 bounded local artifact path 和 public-safe fixture path 在本机固定输入下是可审计、可重复的。
+但它们不等于 external fresh-clone install，也不等于社区开发者已经能顺利使用；本地 \texttt{.agentsight} report 仍包含 trace roots/session metadata，因此不是 public-release artifact。
 一个更大的 36-session discovery run 首次标注耗时 173.05 s；其 cached rerun 又出现 34 次新 LLM call，因为当前 Codex session 在两次 discovery 之间增长。
 这暴露出默认体验问题：artifact smoke 和 cache benchmark 必须固定输入，而交互式工具的默认模式应该明确采样、缓存和活跃 session 漂移。
 
@@ -390,41 +447,36 @@ R184/R186/R187/R188 的作用是防止过度声明：它们把当前状态固定
     2,463 prompt rows 和 90,930 LLM calls 全部满足一词 grammar；0 final tag failures。 &
     supported &
     Syntax 不等于 adequacy；需要人工标签质量评估。 \\
-    C3 semantic value &
-    Nonsemantic/flat baselines 分别有 90.219\% 和 90.770\% mixed weight；R131 中 prompt-only 将 system bucket/residual mixed weight 降到 37.687\%/7.526\%。 &
-    supported &
-    需要更多仓库和用户任务证明不是单仓库 workload 特例。 \\
+    C3 semantic partitioning and display contract &
+    Nonsemantic/flat baselines 分别有 90.219\% 和 90.770\% mixed weight；R131 中 prompt-only 将 system bucket/residual mixed weight 降到 37.687\%/7.526\%；R189 在保持总权重不变时把 prompt-effect tags 从 263 降到 216；R205 显示 raw/canonical unique tag strings 为 1,546/1,364，top-20 support coverage 为 93.683\%/95.186\%；R209 显示 1,811/1,811 raw rows 可逆映射到 display/drilldown，且只激活 63 个 alias merge，168 个 lexical/profile merge 保持 pending；R212 显示 R209/alias-only 为 26,612 stacks，profile-guarded hypothetical 为 26,067 stacks 但会激活 2.532\% 未审查 effect weight；R213 显示 raw/display/pending display modes 都保持 482,398 support，pending 只叠加 209 candidates 和 323 review-required rows；R214 显示 long-tail control loop 保持 0 个 active candidate merges，七个 rollup buckets 精确覆盖 1,811 rows/482,398 support，且失败 prompt review budget 与 high-tail head-stability gates；R215 显示 frontend TypeScript renderer-model 保持 raw/display/pending membership，并拒绝 corrupted drilldown 与 candidate promotion 负例；R216 显示 headless-browser DOM harness 能点击 raw/display/pending 并保持相同 visible counts；R217 显示 production \texttt{AgentFlameView} 默认 display view 可渲染 1,748 buckets 和 482,398 support；R218 显示 synthetic-review update gate 接受 2 个 preview diffs、拒绝 4 个 unsafe rows，并保持 support/raw keys；R211 给出 RQ2 figure inputs，其中 \texttt{git/read/ok} 有 116 个 prompt tags，\texttt{cargo/test/ok} 有 48 个 prompt tags。 &
+    partitioning supported; display mechanics supported &
+    需要更多仓库和用户任务证明不是单仓库 workload 特例；R205/R209/R212/R213/R214/R215/R216/R217/R218 是可逆展示机制、策略消融、data-layer smoke、控制环和非默认 rollup/regeneration policy、renderer-model/browser/production-render smoke 和 synthetic-review update gate，不是合并质量、regeneration 质量、visual drilldown 或用户效用证据；还需要 LLM/token display-compaction ablation 和真实用户交互证据。 \\
     C4 exact lineage &
     R114 在 20 个固定 \texttt{codex} tasks 上 join 1,273/1,273 in-scope effects，0 false positives，0 false negatives，0/3,170 negative-control effects joined；R182 join 35/35 低层 \texttt{codex} process network rows，0 network orphans，0/604 negative-control effects joined，但 target-specific loopback/child-process rows 为 0/0。 &
     fixed-suite supported &
     需要 full-history integration、跨仓库 replication、更多 agent 类型和更丰富的 target-specific network workloads；R182 不证明 child-process loopback capture 或 HTTP payload/URL reconstruction。 \\
     C5 user utility &
-    已有 task packet、scorer、preregistration 和 R187 P01--P05 launch package；尚无 participant responses。 &
+    已有 task packet、scorer、preregistration、R187 P01--P05 launch package 和 R207 return-file handoff audit；尚无 participant responses。 &
     unsupported &
     需要基于已冻结的 preregistration 运行 trace tree/event-count/flat/nonsemantic/semantic 视图的 user benchmark。 \\
     C6 tag adequacy &
-    R180 在本机 0.6b/1.1b/3b GGUF 上得到 2,700/2,700 valid tags；exact-stable fragments 为 299/300、279/300、285/300，p95 为 23/18/32 ms；1.1b 存在 localization-like collapse。 &
+    R180 在本机 0.6b/1.1b/3b GGUF 上得到 2,700/2,700 valid tags；exact-stable fragments 为 299/300、279/300、285/300，p95 为 23/18/32 ms；1.1b 存在 localization-like collapse；R189/R196/R201/R202/R203/R205/R209/R212/R218 只支持 display-layer noise-control/governance/sensitivity/regeneration-smoke/promotion-protocol/compaction metrics/display-map contract/compaction ablation/update-gate mechanics。 &
     partial &
     需要 R124 人工 adequacy labels；若要声称 controlled model scaling 还需同族模型 benchmark。 \\
     C7 artifact usability &
-    R160 bounded smoke 生成 expected artifacts；clean run 1.64 s，60 uncached LLM calls；cached rerun 0.11 s，76/76 cache hits，0 LLM calls。 &
+    R160 bounded smoke 生成 expected artifacts；clean run 1.64 s，60 uncached LLM calls；cached rerun 0.11 s，76/76 cache hits，0 LLM calls。R200 public-safe fixture smoke clean run 5 次 tag calls，cached rerun 0 次模型调用和 5/5 cache hits。 &
     partial &
-    仍需要 fresh-clone/clean-install workflow、public report sanitization、稳定默认采样、write-set audit 和外部开发者反馈。 \\
+    仍需要 external fresh-clone/clean-install workflow、public report sanitization、稳定默认采样、full write-set audit 和外部开发者反馈。 \\
     \bottomrule
   \end{tabular}
 \end{table*}
 
 \subsection{R183：为什么降级本身重要}
 
-R183 subagent review 发现，R182 的 35 个 network rows 虽然全部 join，但 process command 全是 \texttt{codex}，target group 是 \texttt{0.0.0.0:0}、外部地址或 \texttt{family=10}，没有 \texttt{127.0.0.1}/localhost 或 Python/http.server child-process rows。
-如果只看传统网络审计，这些行已经足以说明 ``发生过网络事件''；如果只看 agent span trace，也能说明 ``agent 执行了 loopback task''。
-但二者都不能自动回答更强的问题：目标用户任务声称要制造的 loopback traffic，是否真的由目标 child process 产生并进入 lineage？
-因此 R183 把 gate 改成 target-specific oracle：只有观察到并 join 目标 loopback 或 expected child-process network rows，才允许把 C4 扩展到 network workload coverage。
-
-这个降级体现 AgentFlame/AgentSight 组合的研究价值。
-传统 profiler 的优势是事实完整但语义贫乏；agent observability 的优势是语义清楚但系统副作用通常停在 tool/span 边界。
-本工作真正 non-trivial 的地方不是把两张图并排展示，而是把 claim 也放在同一个 lineage model 下审计：哪些 effect 能由 prompt/tool/process ancestry 解释，哪些只是 root agent 自身的实现噪声，哪些应该保持 orphan。
-换句话说，AgentFlame 的 flamegraph 不是一个新的 trace viewer，而是一个可聚合的反事实边界：去掉 session、prompt 或 LLM-call 语义后，哪些系统热点会混在一起；加入 exact lineage 后，哪些系统事件才有资格进入用户任务栈。
+R183 的价值在于防止把 ``有网络事件'' 写成 ``目标 workload 的网络事件已被 lineage 捕获''。
+R182 的低层 \texttt{codex} network rows 已经能被 join，但 target-specific loopback/child-process rows 仍为 0/0。
+因此 gate 被降级为 target-specific oracle：只有观察到并 join 目标 loopback 或 expected child-process network rows，才允许把 C4 扩展到 network workload coverage。
+这体现本文的系统性：AgentFlame 不是把 trace 与 process summary 并排展示，而是把 claim 也放入同一 lineage model 下审计，区分用户任务 effect、agent runtime 噪声和必须保持 orphan 的事件。
 
 \section{相关工作}
 
@@ -446,14 +498,14 @@ AgentFlame 包含 token flamegraph，但当前只作为 source-local accounting�
 
 \section{局限与下一步}
 
-当前版本仍不到 OSDI weak accept。Exact lineage 是最强系统贡献：R114 已在 20 个固定 command-mode Codex 任务上通过，R182 只补上 record-mode \texttt{--trace-net} 的低层 agent-process network smoke；target-specific child-process network capture、full-history exact integration、跨仓库 benchmark 和更多 agent 类型仍缺。用户效用也没有 outcome data：R142 已冻结五种视图的任务包、answer key 和 scorer，R187 已生成可发放的 P01--P05 pilot launch package，但仍需要真实参与者响应；纸面 C5 还需要 12--20 个参与者或明确限定的 expert study。标签 adequacy 仍需使用 blinded R124 label sheet 对 300 个 session/prompt/LLM fragments 收集人工标签。R160 只验证本机固定输入下的 bounded local artifact path；fresh-clone 安装、public report sanitization、默认采样策略、write-set audit 和外部开发者反馈仍缺。
+当前版本仍不到 OSDI weak accept。Exact lineage 是最强系统贡献：R114 已在 20 个固定 command-mode Codex 任务上通过，R182 只补上 record-mode \texttt{--trace-net} 的低层 agent-process network smoke；target-specific child-process network capture、full-history exact integration、跨仓库 benchmark 和更多 agent 类型仍缺。用户效用也没有 outcome data：R142 已冻结五种视图的任务包、answer key 和 scorer，R187 已生成可发放的 P01--P05 pilot launch package，R207 已确认 launch handoff 和 R195 return-file mapping，但仍需要真实参与者响应；纸面 C5 还需要 12--20 个参与者或明确限定的 expert study。标签 adequacy 仍需使用 blinded R124 label sheet 对 300 个 session/prompt/LLM fragments 收集人工标签；R189/R190/R190-score/R196/R201/R202/R203/R205/R209/R211/R212/R213/R214/R215/R216/R217/R218 只能说明 canonical display layer、merge-risk audit protocol、long-tail governance、policy sensitivity、候选重标链路、promotion gate、compaction metrics、可逆 display-map contract、RQ2 figure/example inputs、display-compaction ablation、display data-layer smoke、long-tail control loop 与非默认 rollup/regeneration policy、frontend renderer-model smoke、browser DOM harness、production default render smoke 和 synthetic-review update gate 已具备，不能替代人工 adequacy、promotion quality、visual drilldown 或真实 user evidence。R160 验证本机固定输入下的 bounded local artifact path，R200 验证 public-safe generated fixture path；但 external fresh-clone 安装、真实 report public sanitization、默认采样策略、full write-set audit 和外部开发者反馈仍缺。
 
 \section{结论}
 
 AgentFlame 的核心不是再画一张 agent flamegraph，而是把用户语义意图、LLM/tool 历史和系统副作用放入同一个可折叠、可聚合、可审计的栈模型。
 当前 full run 说明该模型在真实本地 agent 历史上可运行，并且语义帧能分开 nonsemantic 和 flat baselines 大量混合的系统效应。
 R114 进一步说明固定 command-mode suite 中 exact semantic-effect lineage 可以做到高精度，并拒绝并发 negative controls；R182 说明同一路径在启用 record-mode \texttt{--trace-net} 后能 join 低层 agent-process network rows，但 target-specific network workload coverage 仍需继续证明。
-R160 说明 bounded artifact path 和 cache rerun 已经可审计，但还不是社区级 artifact 结论。
+R160 和 R200 说明 bounded artifact path、public-safe fixture path 和 cache rerun 已经可审计，但还不是社区级 artifact 结论。
 但顶会版本必须继续证明 broader/full-history exact lineage、标签 adequacy 和用户任务收益。
 在当前证据下，最诚实的论文定位是：一个有完整系统化方向和真实 characterization 的语义系统效应 profiler，而不是已经完成的 OSDI artifact。
 
