@@ -181,6 +181,22 @@ jobs:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         set -euo pipefail
+        CRATES_IO_USER_AGENT="agentsight-release-ci (${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}; run ${GITHUB_RUN_ID})"
+        crates_io_version_exists() {
+          local crate="$1"
+          local version="$2"
+          local status
+          status="$(curl --retry 3 --retry-delay 2 -A "$CRATES_IO_USER_AGENT" -sS -o /dev/null -w "%{http_code}" "https://crates.io/api/v1/crates/${crate}/${version}" || true)"
+          case "$status" in
+            200) return 0 ;;
+            404) return 1 ;;
+            *)
+              echo "::error::crates.io returned HTTP ${status} for ${crate} ${version}."
+              exit 1
+              ;;
+          esac
+        }
+
         BASE_VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' collector/Cargo.toml | head -1)"
         IFS=. read -r MAJOR MINOR PATCH <<EOF
         $BASE_VERSION
@@ -193,7 +209,7 @@ jobs:
             echo "::notice::GitHub release ${TAG} already exists; trying next patch version."
           elif git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
             echo "::notice::Git tag ${TAG} already exists; trying next patch version."
-          elif curl -fsS "https://crates.io/api/v1/crates/agentsight/${VERSION}" >/dev/null 2>&1; then
+          elif crates_io_version_exists "agentsight" "$VERSION"; then
             echo "::notice::crates.io agentsight ${VERSION} already exists; trying next patch version."
           else
             break
@@ -209,7 +225,7 @@ jobs:
         EOF
 
         AGENT_SESSION_VERSION="$AGENT_SESSION_BASE_VERSION"
-        while curl -fsS "https://crates.io/api/v1/crates/agent-session/${AGENT_SESSION_VERSION}" >/dev/null 2>&1; do
+        while crates_io_version_exists "agent-session" "$AGENT_SESSION_VERSION"; do
           echo "::notice::crates.io agent-session ${AGENT_SESSION_VERSION} already exists; trying next patch version."
           AGENT_SESSION_PATCH=$((AGENT_SESSION_PATCH + 1))
           AGENT_SESSION_VERSION="${AGENT_SESSION_MAJOR}.${AGENT_SESSION_MINOR}.${AGENT_SESSION_PATCH}"
@@ -305,20 +321,36 @@ jobs:
         CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
       run: |
         set -euo pipefail
+        CRATES_IO_USER_AGENT="agentsight-release-ci (${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}; run ${GITHUB_RUN_ID})"
+        crates_io_version_exists() {
+          local crate="$1"
+          local version="$2"
+          local status
+          status="$(curl --retry 3 --retry-delay 2 -A "$CRATES_IO_USER_AGENT" -sS -o /dev/null -w "%{http_code}" "https://crates.io/api/v1/crates/${crate}/${version}" || true)"
+          case "$status" in
+            200) return 0 ;;
+            404) return 1 ;;
+            *)
+              echo "::error::crates.io returned HTTP ${status} for ${crate} ${version}."
+              exit 1
+              ;;
+          esac
+        }
+
         if [ -z "${CARGO_REGISTRY_TOKEN:-}" ]; then
           echo "::error::CARGO_REGISTRY_TOKEN is not set; cannot publish to crates.io."
           exit 1
         fi
 
         VERSION="${{ steps.set_version.outputs.agent_session_version }}"
-        if curl -fsS "https://crates.io/api/v1/crates/agent-session/${VERSION}" >/dev/null 2>&1; then
+        if crates_io_version_exists "agent-session" "$VERSION"; then
           echo "agent-session ${VERSION} already exists on crates.io; skipping publish."
         else
           cargo publish --manifest-path agent-session/Cargo.toml
         fi
 
         for attempt in 1 2 3 4 5 6; do
-          if curl -fsS "https://crates.io/api/v1/crates/agent-session/${VERSION}" >/dev/null 2>&1; then
+          if crates_io_version_exists "agent-session" "$VERSION"; then
             exit 0
           fi
           sleep $((attempt * 10))
