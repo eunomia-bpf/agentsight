@@ -56,7 +56,8 @@ Widths mean different things by view:
 - `tools`: tool event count, including tool category, process chain, effect,
   path/domain, and status frames.
 - `tokens`: token count when reported by the agent log; otherwise bounded text
-  estimates or `unknown=1` for unsafe estimates.
+  estimates. Very large unsafe estimates are recorded as `unknown=1` so one
+  replayed transcript cannot dominate the profile with bogus token width.
 - `files`: file/path effect count.
 - `network`: network/domain effect count.
 
@@ -111,17 +112,6 @@ agentpprof -o agent.pb.gz --prompt-tag review
 
 No output directory is created unless the explicit `-o/--output` path contains
 one.
-
-## Research Bundle
-
-The older multi-file report remains available as an opt-in bundle:
-
-```bash
-agentpprof bundle --project-root . --out .agentsight/agentpprof/latest
-```
-
-This writes JSON, folded stacks, SVG charts, and an HTML dashboard. It is kept
-for research experiments; the normal user path is the single-file pprof export.
 
 ## Development
 
