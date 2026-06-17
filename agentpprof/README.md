@@ -73,8 +73,10 @@ agentpprof -o files.json --view files
 ```
 
 Folded stacks are compatible with common flamegraph tooling. SVG output is a
-single standalone flamegraph. JSON output includes redacted session summaries
-and the stack table.
+single quick-look stack chart built from the folded stacks; use folded output
+with standard tools such as inferno or flamegraph.pl when you need canonical
+merged-prefix flamegraphs. JSON output includes redacted session summaries and
+the stack table.
 
 ## Tags
 

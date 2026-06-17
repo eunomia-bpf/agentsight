@@ -137,7 +137,7 @@ struct LlmEvent {
 impl LlmEvent {
     fn token_components(&self) -> Vec<(&'static str, u64)> {
         const MAX_REPORTED_TOKEN_COMPONENT: u64 = 10_000_000;
-        const MAX_ESTIMATED_TOKEN_COMPONENT: u64 = 200_000;
+        const MAX_ESTIMATED_TOKEN_COMPONENT: u64 = 2_000_000;
         let mut out = Vec::new();
         if (1..=MAX_REPORTED_TOKEN_COMPONENT).contains(&self.input_tokens) {
             out.push(("input", self.input_tokens));
@@ -442,7 +442,7 @@ struct PprofProfile {
     time_nanos: i64,
     #[prost(int64, tag = "10")]
     duration_nanos: i64,
-    #[prost(int64, tag = "14")]
+    #[prost(int64, tag = "15")]
     default_sample_type: i64,
 }
 
@@ -2686,7 +2686,7 @@ mod tests {
 
         call.input_tokens = 0;
         call.output_tokens = 0;
-        call.estimated_tokens = 500_000;
+        call.estimated_tokens = 5_000_000;
         assert_eq!(call.token_components(), vec![("unknown", 1)]);
     }
 
