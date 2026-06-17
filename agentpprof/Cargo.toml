@@ -1,0 +1,32 @@
+[package]
+name = "agentpprof"
+version = "0.2.0"
+edition = "2024"
+rust-version = "1.87"
+license = "MIT"
+description = "pprof-style semantic profiler for local AI coding-agent sessions"
+repository = "https://github.com/eunomia-bpf/agentsight"
+homepage = "https://github.com/eunomia-bpf/agentsight/tree/master/agentpprof"
+documentation = "https://docs.rs/agentpprof"
+readme = "README.md"
+keywords = ["ai-agent", "pprof", "flamegraph", "observability", "profiling"]
+categories = ["command-line-utilities", "development-tools::profiling"]
+
+[dependencies]
+anyhow = "1"
+agent-session = { version = "0.3.3", path = "../agent-session" }
+chrono = { version = "0.4", features = ["serde"] }
+clap = { version = "4.5", features = ["derive"] }
+dirs = "6"
+hex = "0.4"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+shell-words = "1"
+flate2 = "1"
+prost = "0.13"
+ureq = { version = "2", features = ["json"] }
+walkdir = "2"
+
+[dev-dependencies]
+tempfile = "3"
