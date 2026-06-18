@@ -29,11 +29,11 @@
       "verdict": "supported_for_syntax_latency"
     },
     {
-      "blocking_gap": "visual drilldown, developer utility, and merge quality are not proven",
+      "blocking_gap": "visual drilldown, developer utility, true tool/LLM spans, and merge quality are not proven",
       "claim": "C3 semantic partitioning and display mechanics",
       "evidence_level": "ablation/display-contract",
       "next_gate": "C5 participant study and R190/R203 human review labels",
-      "primary_evidence": "R217 production default display: 1748 buckets, 482398 support; R218 accepted 2 preview diffs and rejected 4 unsafe rows",
+      "primary_evidence": "R223: no-semantic mixed 90.402%, prompt-only mixed/residual 36.722%/7.485%; R225: 2858 prompt spans, 859.019 h, covered effects 183714/183714 (100.0%), top-10 duration/effect overlap 7/10, Spearman 0.623; R217/R218 display/update gates pass",
       "verdict": "supported_as_mechanism"
     },
     {
@@ -69,7 +69,7 @@
       "verdict": "partial"
     }
   ],
-  "generated_at": "2026-06-16T06:43:16+00:00",
+  "generated_at": "2026-06-18T19:44:17+00:00",
   "next_experiments": [
     {
       "block": "B4",
@@ -219,7 +219,9 @@
     "r215_frontend_renderer": "docs/visexp/out/frontend-renderer-mode-r215/frontend-renderer-mode-r215.json",
     "r216_browser_dom": "docs/visexp/out/browser-dom-mode-r216/browser-dom-mode-r216.json",
     "r217_production_react": "docs/visexp/out/production-react-display-r217/production-react-display-r217.json",
-    "r218_update_gate": "docs/visexp/out/display-map-update-gate-r218/display-map-update-gate-r218.json"
+    "r218_update_gate": "docs/visexp/out/display-map-update-gate-r218/display-map-update-gate-r218.json",
+    "r223_projection_tradeoff": "docs/visexp/out/projection-tradeoff-r223/projection-tradeoff-r223.json",
+    "r225_prompt_span_duration": "docs/visexp/out/prompt-span-duration-r225/prompt-span-duration-r225.json"
   },
   "status": "osdi_weak_accept_not_supported",
   "summary": {
@@ -256,6 +258,17 @@
     "r217_support": 482398,
     "r218_accepted_diff_rows": 2,
     "r218_canonical_map_updated": false,
-    "r218_rejected_rows": 4
+    "r218_rejected_rows": 4,
+    "r223_no_semantic_mixed_pct": 90.402,
+    "r223_prompt_only_mixed_pct": 36.722,
+    "r223_prompt_only_residual_pct": 7.485,
+    "r225_covered_effect_share_pct": 100.0,
+    "r225_covered_effect_total": 183714,
+    "r225_duration_hours": 859.019,
+    "r225_effect_total": 183714,
+    "r225_prompt_spans": 2858,
+    "r225_spearman": 0.623,
+    "r225_top10_overlap": 7,
+    "r225_true_tool_or_llm_duration_supported": false
   }
 }

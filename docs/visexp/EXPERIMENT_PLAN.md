@@ -74,7 +74,7 @@ hypothesis that requires C5 participant evidence.
 | B1 | C1,C2 | Full local-history characterization | 3B llama.cpp, cache enabled | sessions, events, tags, invalids, cache, unique stacks | JSON/folded consistency and tag grammar | Table 1 | done/must repeat |
 | B2 | C3 | Semantic information-gain audit | semantic, nonsemantic, flat summary | mixed buckets, mixed weight, examples | deterministic stack comparison | Fig. 2 | done |
 | B3 | C4 | Live exact-effect lineage | agent-native proxy vs AgentSight exact stream plus negative controls | recall, precision, orphan rate, path/domain specificity | lineage checker with false-positive controls | Fig. 3/Table 2 | fixed-suite done |
-| B4 | C5 | Developer task benchmark | trace tree, event-count proxy, flat summary, nonsemantic stack, semantic stack; true span-duration remains future if reconstructed from timestamps | time, accuracy, confidence, false positives | hidden answer key plus frozen preregistration | Table 3 | must |
+| B4 | C5 | Developer task benchmark | trace tree, event-count proxy, flat summary, nonsemantic stack, semantic stack; R225 prompt wall-clock duration baseline available for next preregistered packet; true tool/LLM span-duration remains future | time, accuracy, confidence, false positives | hidden answer key plus frozen preregistration | Table 3 | must |
 | B5 | C2,C6 | Small-model/stability/adequacy | 0.6B, 1B, 3B, repeated runs | latency, invalid rate, exact stability, adequacy | grammar + human labels | Table 4 | must |
 | B6 | C3 | Semantic-axis and projection-tradeoff ablation | no semantic, session-only, prompt-only, full session+prompt, raw display, alias-only, profile-guarded candidate, R209 conservative display | information gain, stack growth, mixed/residual weight, review-required support, unreviewed active weight; noisy-tag burden and task accuracy/time deferred | same observations, report/folded cross-checks, baseline queries, R223 projection-tradeoff summary | Fig. 4/Table 5 | done for C3/RQ2 mechanism |
 | B7 | C7 | Artifact usability smoke | fresh clone/run, documented setup | setup time, runtime/cache, output completeness, artifact hygiene | artifact checklist | Appendix | should |
@@ -163,9 +163,11 @@ hypothesis that requires C5 participant evidence.
   for repeated/heavy/divergent system-effect questions.
 - Workload: 12-20 tasks generated from B1/B3 traces with hidden answer keys.
 - Compared systems: raw trace tree, explicitly named `event-count-proxy`, flat
-  process/effect summary, nonsemantic folded stack, semantic folded stack. A
-  true span-duration flamegraph remains a future stronger baseline if
-  reconstructed from timestamps.
+  process/effect summary, nonsemantic folded stack, semantic folded stack. R225
+  now supplies a timestamp-derived prompt wall-clock duration baseline for the
+  next preregistered packet; true tool/LLM span-duration remains future because
+  the historical artifact has event timestamps but no tool/LLM start-end spans,
+  and prompt wall-clock spans may include idle/user-wait time.
 - Metrics: answer accuracy, task time, false positives, confidence, subjective
   workload.
 - Setup/config: within-subject counterbalanced design; each task shown once per
@@ -436,6 +438,7 @@ the paper unless they protect one of these gates from overclaim.
 | R142-packet | decision | same-event-slice user-task packet and empty scorer check | `user_task_benchmark.py` over current artifacts; scorer over response template | deterministic 14 tasks x 5 conditions; P01-P05 assignments; 0 responses | packet ready only if leakage, assignment, same-slice, explicit event-count baseline naming, and scorer checks pass | low | done/packet |
 | R142-scoring | decision | response-contract and paper-scale user-task scorer gate | `score_user_task_results.py` over response template | deterministic empty-template check | C5 must stay unsupported until real responses; real runs use contract checks, diagnostic paired deltas, participant/task/order fixed-effect blocked permutation tests, and Holm correction | low | done/empty |
 | R142-preregistration | decision | freeze C5 analysis before collection | `python3 docs/visexp/r142_preregistration.py` | deterministic over bundle, assignments, answer key, response template, and scorer constants | prereg artifact is `frozen_before_collection`, validates conditions/schema/thresholds, and source hashes match | low | done/protocol |
+| R225 | decision | prompt wall-clock duration baseline from R170 timestamps | `python3 docs/visexp/r225_prompt_span_duration_baseline.py` | deterministic over generated R170 `agentflame.json` and `semantic-system.folded.txt`; no raw trace reads; no LLM calls | reconstruct prompt wall-clock spans, generate duration folded/SVG artifacts, compare duration ranking against system-effect ranking, and keep C5/C6 support false | low | done/prompt-span baseline; may include idle/wait time; update R142 packet only after prereg revision |
 | R142 | main | user task pilot | 5 developers, five conditions | counterbalanced P01-P05 template | protocol and answer keys work on real responses under the frozen preregistration | medium | recruiting |
 | R151 | main | user task paper run | 12-20 developers or scoped expert study | counterbalanced | C5 verdict | high | strongest missing evidence |
 | R160 | polish | bounded fixed-session open-source usability smoke | `cargo run --manifest-path agentflame/Cargo.toml -- run --project-root . --llama-url http://127.0.0.1:18080 --model local --timeout 60 --out .agentsight/agentflame/r160-smoke-fixed --session-file <8 fixed historical Codex sessions>`; repeat same command against the same output dir; then `python3 docs/visexp/artifact_usability_r160.py --agentflame-dir .agentsight/agentflame/r160-smoke-fixed --clean-agentflame-json .agentsight/agentflame/r160-smoke-fixed/agentflame.clean.json --out docs/visexp/out/artifact-usability-r160.json ...` | one clean run plus cached rerun over fixed inputs | expected files, runtime/cache summary, sanitized input manifest, clean/cached input equality, fully cached rerun, no raw trace commit, generated report path containment | low | done/bounded; full fresh-clone/community usefulness and pre/post write-set audit still open |
@@ -462,8 +465,11 @@ the paper unless they protect one of these gates from overclaim.
 - Named baselines:
   - event-count proxy: same event slice rendered with event/count weights and no
     semantic inheritance; this is not a duration baseline.
-  - true span-duration trace/flamegraph: OpenTelemetry-style span tree/flamegraph,
-    represented faithfully if timestamps are reconstructed in a later packet.
+  - prompt-span duration flamegraph: R225 reconstructs prompt-level wall-clock
+    intervals from timestamps; this may include idle/user-wait time and can be
+    used only after revising the preregistered packet.
+  - true span-duration trace/flamegraph: OpenTelemetry-style span tree/flamegraph
+    with tool/LLM start-end spans; historical R170 artifacts do not provide this.
   - raw trace tree: session/tool/LLM chronological tree.
   - flat process/effect summary: command/effect/path/domain counts.
   - nonsemantic folded stack: same folding mechanism, semantic frames removed.
