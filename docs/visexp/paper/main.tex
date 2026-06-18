@@ -472,8 +472,12 @@ R200 进一步把输入换成临时 public-safe Codex fixture，并由脚本管�
 Clean run 发起 5 次真实 tag calls；cached rerun 为 0 次模型调用和 5/5 cache hits。
 该脚本显式记录没有读取真实 \texttt{.codex}/\texttt{.claude} traces，临时 fixture 在运行后删除，committed summary 中 0 个非 redacted prompt previews，且没有新增 raw-trace-like dirty paths。
 
-这些结果说明 bounded local artifact path 和 public-safe fixture path 在本机固定输入下是可审计、可重复的。
-但它们不等于 external fresh-clone install，也不等于社区开发者已经能顺利使用；本地 \texttt{.agentsight} report 仍包含 trace roots/session metadata，因此不是 public-release artifact。
+R220 进一步把用户入口切到产品化的 \texttt{agentpprof}，并从临时 clean clone 运行。
+脚本在 clone 内创建 public synthetic Codex fixture，使用 deterministic regex tagger，不调用 LLM，也不读取真实 agent histories。
+它生成 \texttt{tasks.pb.gz}、\texttt{tools.folded}、\texttt{tokens.json}、\texttt{files.folded}、\texttt{network.folded} 和 \texttt{tools.svg}；五个 projection 的样本数为 6/4/190/3/1；\texttt{go tool pprof -top} 能读取 \texttt{tasks.pb.gz} 并报告 6/6 total samples；tools/files/network/token 的 expected-stack checks、output containment 和 privacy scan 均通过。
+
+这些结果说明 bounded local artifact path、public-safe fixture path 和本机 clean-clone \texttt{agentpprof} pprof readback 在固定输入下是可审计、可重复的。
+但它们不等于 external-machine install，也不等于社区开发者已经能顺利使用；本地 \texttt{.agentsight} report 仍包含 trace roots/session metadata，因此不是 public-release artifact。
 一个更大的 36-session discovery run 首次标注耗时 173.05 s；其 cached rerun 又出现 34 次新 LLM call，因为当前 Codex session 在两次 discovery 之间增长。
 这暴露出默认体验问题：artifact smoke 和 cache benchmark 必须固定输入，而交互式工具的默认模式应该明确采样、缓存和活跃 session 漂移。
 
@@ -519,9 +523,9 @@ R184/R186/R187/R188 的作用是防止过度声明：它们把当前状态固定
     partial &
     需要 R124 人工 adequacy labels；若要声称 controlled model scaling 还需同族模型 benchmark。 \\
     C7 artifact usability &
-    R160 bounded smoke 生成 expected artifacts；clean run 1.64 s，60 uncached LLM calls；cached rerun 0.11 s，76/76 cache hits，0 LLM calls。R200 public-safe fixture smoke clean run 5 次 tag calls，cached rerun 0 次模型调用和 5/5 cache hits。 &
+    R160 bounded smoke 生成 expected artifacts；clean run 1.64 s，60 uncached LLM calls；cached rerun 0.11 s，76/76 cache hits，0 LLM calls。R200 public-safe fixture smoke clean run 5 次 tag calls，cached rerun 0 次模型调用和 5/5 cache hits。R220 本机 clean-clone \texttt{agentpprof} smoke 生成 pprof/folded/JSON/SVG outputs，tasks/tools/tokens/files/network samples 为 6/4/190/3/1，\texttt{go tool pprof} readback 和 expected-stack checks 通过。 &
     partial &
-    仍需要 external fresh-clone/clean-install workflow、public report sanitization、稳定默认采样、full write-set audit 和外部开发者反馈。 \\
+    仍需要 external-machine clean-install workflow、real-report public sanitization、llama.cpp LLM-tag setup、稳定默认采样、full write-set audit 和外部开发者反馈。 \\
     \bottomrule
   \end{tabular}
 \end{table*}
@@ -553,14 +557,14 @@ AgentFlame 包含 token flamegraph，但当前只作为 source-local accounting�
 
 \section{局限与下一步}
 
-当前版本仍不到 OSDI weak accept。Exact lineage 是最强系统贡献：R114 已在 20 个固定 command-mode Codex 任务上通过，R182 只补上 record-mode \texttt{--trace-net} 的低层 agent-process network smoke；target-specific child-process network capture、full-history exact integration、跨仓库 benchmark 和更多 agent 类型仍缺。用户效用也没有 outcome data：R142 已冻结五种视图的任务包、answer key 和 scorer，R187 已生成可发放的 P01--P05 pilot launch package，R207 已确认 launch handoff 和 R195 return-file mapping，但仍需要真实参与者响应；纸面 C5 还需要 12--20 个参与者或明确限定的 expert study。标签 adequacy 仍需使用 blinded R124 label sheet 对 300 个 session/prompt/LLM fragments 收集人工标签；R189/R190/R190-score/R196/R201/R202/R203/R205/R209/R211/R212/R213/R214/R215/R216/R217/R218 只能说明 canonical display layer、merge-risk audit protocol、long-tail governance、policy sensitivity、候选重标链路、promotion gate、compaction metrics、可逆 display-map contract、RQ2 figure/example inputs、display-compaction ablation、display data-layer smoke、long-tail control loop 与非默认 rollup/regeneration policy、frontend renderer-model smoke、browser DOM harness、production default render smoke 和 synthetic-review update gate 已具备，不能替代人工 adequacy、promotion quality、visual drilldown 或真实 user evidence。R160 验证本机固定输入下的 bounded local artifact path，R200 验证 public-safe generated fixture path；但 external fresh-clone 安装、真实 report public sanitization、默认采样策略、full write-set audit 和外部开发者反馈仍缺。
+当前版本仍不到 OSDI weak accept。Exact lineage 是最强系统贡献：R114 已在 20 个固定 command-mode Codex 任务上通过，R182 只补上 record-mode \texttt{--trace-net} 的低层 agent-process network smoke；target-specific child-process network capture、full-history exact integration、跨仓库 benchmark 和更多 agent 类型仍缺。用户效用也没有 outcome data：R142 已冻结五种视图的任务包、answer key 和 scorer，R187 已生成可发放的 P01--P05 pilot launch package，R207 已确认 launch handoff 和 R195 return-file mapping，但仍需要真实参与者响应；纸面 C5 还需要 12--20 个参与者或明确限定的 expert study。标签 adequacy 仍需使用 blinded R124 label sheet 对 300 个 session/prompt/LLM fragments 收集人工标签；R189/R190/R190-score/R196/R201/R202/R203/R205/R209/R211/R212/R213/R214/R215/R216/R217/R218 只能说明 canonical display layer、merge-risk audit protocol、long-tail governance、policy sensitivity、候选重标链路、promotion gate、compaction metrics、可逆 display-map contract、RQ2 figure/example inputs、display-compaction ablation、display data-layer smoke、long-tail control loop 与非默认 rollup/regeneration policy、frontend renderer-model smoke、browser DOM harness、production default render smoke 和 synthetic-review update gate 已具备，不能替代人工 adequacy、promotion quality、visual drilldown 或真实 user evidence。R160 验证本机固定输入下的 bounded local artifact path，R200 验证 public-safe generated fixture path，R220 验证本机 clean-clone \texttt{agentpprof} pprof readback path；但 external-machine 安装、真实 report public sanitization、llama.cpp LLM-tag setup、默认采样策略、full write-set audit 和外部开发者反馈仍缺。
 
 \section{结论}
 
 AgentFlame 的核心不是再画一张 agent flamegraph，而是把用户语义意图、LLM/tool 历史和系统副作用放入同一个可折叠、可聚合、可审计的栈模型。
 当前 full run 说明该模型在真实本地 agent 历史上可运行，并且语义帧能分开 nonsemantic 和 flat baselines 大量混合的系统效应。
 R114 进一步说明固定 command-mode suite 中 exact semantic-effect lineage 可以做到高精度，并拒绝并发 negative controls；R182 说明同一路径在启用 record-mode \texttt{--trace-net} 后能 join 低层 agent-process network rows，但 target-specific network workload coverage 仍需继续证明。
-R160 和 R200 说明 bounded artifact path、public-safe fixture path 和 cache rerun 已经可审计，但还不是社区级 artifact 结论。
+R160、R200 和 R220 说明 bounded artifact path、public-safe fixture path、cache rerun 和本机 clean-clone pprof readback 已经可审计，但还不是社区级 artifact 结论。
 但顶会版本必须继续证明 broader/full-history exact lineage、标签 adequacy 和用户任务收益。
 在当前证据下，最诚实的论文定位是：一个有完整系统化方向和真实 characterization 的语义系统效应 profiler，而不是已经完成的 OSDI artifact。
 

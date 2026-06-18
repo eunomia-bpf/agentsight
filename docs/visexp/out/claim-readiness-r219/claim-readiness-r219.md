@@ -30,7 +30,7 @@ It does not read raw agent traces, does not call an LLM, and does not count synt
 - C4 exact semantic-effect lineage: `supported_for_fixed_command_mode_suite`. Next: R191 target-specific network lineage hardening
 - C5 developer utility: `unsupported`. Next: collect and score R142 pilot responses through R195
 - C6 tag adequacy and merge/promotion quality: `partial_syntax_stability_only`. Next: collect R124/R190/R203 paired labels and score through R195
-- C7 community/open-source usefulness: `partial`. Next: fresh clone on another machine plus write-set/sanitization audit
+- C7 community/open-source usefulness: `partial`. Next: external-machine fresh clone plus real-report sanitization and developer-feedback audit
 
 ## RQ Rows
 
@@ -39,7 +39,7 @@ It does not read raw agent traces, does not call an LLM, and does not count synt
 - RQ3 exact lineage: `supported_for_fixed_command_mode_suite`. Next: R191 target-specific network suite
 - RQ4 developer utility: `unsupported`. Next: collect real R142 responses
 - RQ5 tag adequacy: `partial`. Next: collect paired R124/R190/R203 labels
-- RQ6 artifact/community: `partial`. Next: external fresh-clone run
+- RQ6 artifact/community: `partial`. Next: external-machine smoke and public real-report audit
 
 ## Next Experiments
 
@@ -47,7 +47,7 @@ It does not read raw agent traces, does not call an LLM, and does not count synt
 - P0 R124-labels-return: Score independent human adequacy labels for one-word session/prompt/LLM-call tags.
 - P1 R190-R203-labels-return: Score merge-risk and regenerated-label promotion quality before any display-map promotion claim.
 - P1 R191-target-network-lineage: Harden exact lineage for target-specific network effects rather than low-level agent-process rows only.
-- P2 R220-fresh-clone-community: Run a fresh-clone public setup and write-set/sanitization audit outside the current dirty artifact branch.
+- P2 R227-external-community: Run agentpprof on an external machine or container with a real sanitized report audit and developer-feedback checklist.
 
 ## Disallowed Evidence
 

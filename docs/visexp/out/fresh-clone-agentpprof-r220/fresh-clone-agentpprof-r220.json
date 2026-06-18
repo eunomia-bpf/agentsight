@@ -1,0 +1,300 @@
+{
+  "agentpprof": {
+    "files": {
+      "format": "folded",
+      "sample_type": "file_events",
+      "samples": 3,
+      "sessions": 1,
+      "unique_stacks": 3,
+      "unit": "count",
+      "view": "files",
+      "warnings": []
+    },
+    "network": {
+      "format": "folded",
+      "sample_type": "network_events",
+      "samples": 1,
+      "sessions": 1,
+      "unique_stacks": 1,
+      "unit": "count",
+      "view": "network",
+      "warnings": []
+    },
+    "tasks": {
+      "format": "pprof",
+      "sample_type": "events",
+      "samples": 6,
+      "sessions": 1,
+      "unique_stacks": 6,
+      "unit": "count",
+      "view": "tasks",
+      "warnings": []
+    },
+    "tokens": {
+      "format": "json",
+      "sample_type": "tokens",
+      "samples": 190,
+      "sessions": 1,
+      "unique_stacks": 4,
+      "unit": "count",
+      "view": "tokens",
+      "warnings": []
+    },
+    "tools": {
+      "format": "folded",
+      "sample_type": "tool_events",
+      "samples": 4,
+      "sessions": 1,
+      "unique_stacks": 4,
+      "unit": "count",
+      "view": "tools",
+      "warnings": []
+    },
+    "tools_svg": {
+      "format": "svg",
+      "sample_type": "tool_events",
+      "samples": 4,
+      "sessions": 1,
+      "unique_stacks": 4,
+      "unit": "count",
+      "view": "tools",
+      "warnings": []
+    }
+  },
+  "boundary": "Fresh-clone public-fixture agentpprof smoke only; no llama.cpp setup, real-history privacy, external-machine adoption, C5 outcomes, or C6 labels.",
+  "c5_supported": false,
+  "c6_supported": false,
+  "c7_fresh_clone_agentpprof_smoke_supported": true,
+  "clone": {
+    "clean_before_fixture": true,
+    "head": "1d06372",
+    "status_after_run": [
+      "?? .codex/"
+    ]
+  },
+  "commands": {
+    "files": {
+      "cmd": [
+        "cargo",
+        "run",
+        "--manifest-path",
+        "agentpprof/Cargo.toml",
+        "--",
+        "--view",
+        "files",
+        "-o",
+        "files.folded"
+      ],
+      "elapsed_s": 0.062,
+      "returncode": 0,
+      "stderr_tail": ""
+    },
+    "network": {
+      "cmd": [
+        "cargo",
+        "run",
+        "--manifest-path",
+        "agentpprof/Cargo.toml",
+        "--",
+        "--view",
+        "network",
+        "-o",
+        "network.folded"
+      ],
+      "elapsed_s": 0.061,
+      "returncode": 0,
+      "stderr_tail": ""
+    },
+    "tasks": {
+      "cmd": [
+        "cargo",
+        "run",
+        "--manifest-path",
+        "agentpprof/Cargo.toml",
+        "--",
+        "--view",
+        "tasks",
+        "-o",
+        "tasks.pb.gz"
+      ],
+      "elapsed_s": 4.7,
+      "returncode": 0,
+      "stderr_tail": ""
+    },
+    "tokens": {
+      "cmd": [
+        "cargo",
+        "run",
+        "--manifest-path",
+        "agentpprof/Cargo.toml",
+        "--",
+        "--view",
+        "tokens",
+        "-o",
+        "tokens.json"
+      ],
+      "elapsed_s": 0.064,
+      "returncode": 0,
+      "stderr_tail": ""
+    },
+    "tools": {
+      "cmd": [
+        "cargo",
+        "run",
+        "--manifest-path",
+        "agentpprof/Cargo.toml",
+        "--",
+        "--view",
+        "tools",
+        "-o",
+        "tools.folded"
+      ],
+      "elapsed_s": 0.059,
+      "returncode": 0,
+      "stderr_tail": ""
+    },
+    "tools_svg": {
+      "cmd": [
+        "cargo",
+        "run",
+        "--manifest-path",
+        "agentpprof/Cargo.toml",
+        "--",
+        "--view",
+        "tools",
+        "-o",
+        "tools.svg"
+      ],
+      "elapsed_s": 0.062,
+      "returncode": 0,
+      "stderr_tail": ""
+    }
+  },
+  "fixture": {
+    "contains_public_prompts": true,
+    "fixture_path_shape": ".codex/sessions/2026/06/18/*.jsonl",
+    "fixture_rows": 13,
+    "fixture_sha256": "e6f3cecd51fd9f66a1c8d3a5c3b936db6fa50b4b9bf0e1c5d33be44900ee4bcc",
+    "reads_real_agent_history": false
+  },
+  "gates": {
+    "all_outputs_exist": true,
+    "all_views_nonzero": true,
+    "c5_supported": false,
+    "c6_supported": false,
+    "clone_clean_before_fixture": true,
+    "clone_head_matches_source": true,
+    "fixture_projection_expected_stacks": true,
+    "fixture_public_and_path_shaped": true,
+    "folded_json_totals_match_stdout": true,
+    "no_llm_calls": true,
+    "no_real_agent_history_reads": true,
+    "output_containment": true,
+    "pprof_readback": true,
+    "privacy_scan": true,
+    "source_clone_succeeded": true
+  },
+  "generated_at": "2026-06-18T20:06:39+00:00",
+  "outputs": {
+    "files": {
+      "exists": true,
+      "path": "docs/visexp/out/fresh-clone-agentpprof-r220/profiles/files.folded",
+      "sha256": "6a984c5654bb2ddde254226a33aa71b1b686d3b29b7a75f48b1f1167040440d8",
+      "size_bytes": 367
+    },
+    "network": {
+      "exists": true,
+      "path": "docs/visexp/out/fresh-clone-agentpprof-r220/profiles/network.folded",
+      "sha256": "77d783a5265fea148c9c56df22b3f1a0c137101719c61d657d4e707afd536e79",
+      "size_bytes": 120
+    },
+    "pprof_top": {
+      "exists": true,
+      "path": "docs/visexp/out/fresh-clone-agentpprof-r220/pprof-top-r220.txt",
+      "sha256": "033807e01f2746a2994e63b35a26a21544d7bfd7e98d2e3fa375030e2400431f",
+      "size_bytes": 1065
+    },
+    "tasks": {
+      "exists": true,
+      "path": "docs/visexp/out/fresh-clone-agentpprof-r220/profiles/tasks.pb.gz",
+      "sha256": "619b9ce812df50658e7ab005571b08f99b506a2adcb4719f98137d0d68dc763b",
+      "size_bytes": 424
+    },
+    "tokens": {
+      "exists": true,
+      "path": "docs/visexp/out/fresh-clone-agentpprof-r220/profiles/tokens.json",
+      "sha256": "e5836200ef9dc807c898fe1f1f383188b3be9a228cfa7fb4b8782e82bcc1bbf8",
+      "size_bytes": 5462
+    },
+    "tools": {
+      "exists": true,
+      "path": "docs/visexp/out/fresh-clone-agentpprof-r220/profiles/tools.folded",
+      "sha256": "c761b9a47fd08756babf357b370fd7e59b402ab692ba0680f6cc7d1736e26a97",
+      "size_bytes": 602
+    },
+    "tools_svg": {
+      "exists": true,
+      "path": "docs/visexp/out/fresh-clone-agentpprof-r220/profiles/tools.svg",
+      "sha256": "6ab3a6305fd1001ac14117c736445122e9176900d2b5aa767eaa9afa15d4227b",
+      "size_bytes": 7912
+    }
+  },
+  "pprof": {
+    "elapsed_s": 0.006,
+    "output_path": "docs/visexp/out/fresh-clone-agentpprof-r220/pprof-top-r220.txt",
+    "returncode": 0,
+    "top_total_samples": 6
+  },
+  "privacy": {
+    "forbidden_hits": [],
+    "scanned_paths": [
+      "docs/visexp/out/fresh-clone-agentpprof-r220/profiles/tasks.pb.gz",
+      "docs/visexp/out/fresh-clone-agentpprof-r220/profiles/tools.folded",
+      "docs/visexp/out/fresh-clone-agentpprof-r220/profiles/tokens.json",
+      "docs/visexp/out/fresh-clone-agentpprof-r220/profiles/files.folded",
+      "docs/visexp/out/fresh-clone-agentpprof-r220/profiles/network.folded",
+      "docs/visexp/out/fresh-clone-agentpprof-r220/profiles/tools.svg",
+      "docs/visexp/out/fresh-clone-agentpprof-r220/pprof-top-r220.txt"
+    ]
+  },
+  "projection_checks": {
+    "files_exact_expected": true,
+    "network_exact_expected": true,
+    "token_reported_components_expected": true,
+    "tools_exact_expected": true
+  },
+  "run_id": "R220",
+  "smoke_gate_names": [
+    "source_clone_succeeded",
+    "clone_clean_before_fixture",
+    "clone_head_matches_source",
+    "fixture_public_and_path_shaped",
+    "all_views_nonzero",
+    "all_outputs_exist",
+    "pprof_readback",
+    "folded_json_totals_match_stdout",
+    "fixture_projection_expected_stacks",
+    "output_containment",
+    "privacy_scan",
+    "no_llm_calls",
+    "no_real_agent_history_reads"
+  ],
+  "source": {
+    "branch": "research/semantic-flamegraph-artifacts",
+    "driver_worktree_dirty_count": 14,
+    "driver_worktree_dirty_recorded": false,
+    "head": "1d06372",
+    "provenance_note": "R220's clean-clone oracle is the temporary clone status before fixture creation; the parent worktree may contain the R220 script/artifacts being generated."
+  },
+  "status": "passed",
+  "totals": {
+    "files_folded": 3,
+    "network_folded": 1,
+    "pprof_top_total": 6,
+    "tasks_pprof_stdout": 6,
+    "tokens_json": 190,
+    "tools_folded": 4,
+    "tools_svg_size": 7912
+  },
+  "weak_accept_supported": false
+}

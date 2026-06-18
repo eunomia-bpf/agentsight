@@ -47,6 +47,7 @@ SOURCE_PATHS = {
     "r212_display_ablation": "docs/visexp/out/display-compaction-ablation-r212/display-compaction-ablation-r212.json",
     "r223_projection_tradeoff": "docs/visexp/out/projection-tradeoff-r223/projection-tradeoff-r223.json",
     "r225_prompt_span_duration": "docs/visexp/out/prompt-span-duration-r225/prompt-span-duration-r225.json",
+    "r220_fresh_clone_agentpprof": "docs/visexp/out/fresh-clone-agentpprof-r220/fresh-clone-agentpprof-r220.json",
 }
 
 
@@ -127,6 +128,7 @@ def artifact_statuses(artifacts: dict[str, dict[str, Any]]) -> dict[str, Any]:
     r218 = artifacts["r218_update_gate"]
     r223 = artifacts["r223_projection_tradeoff"]
     r225 = artifacts["r225_prompt_span_duration"]
+    r220 = artifacts["r220_fresh_clone_agentpprof"]
     r124 = artifacts["r124_tag_adequacy"]
     r190 = artifacts["r190_merge_quality"]
     r203 = artifacts["r203_promotion_quality"]
@@ -211,6 +213,16 @@ def artifact_statuses(artifacts: dict[str, dict[str, Any]]) -> dict[str, Any]:
         "r225_top10_overlap": as_int(r225.get("top10_overlap_count")),
         "r225_spearman": r225.get("spearman_rank_correlation", "n/a"),
         "r225_true_tool_or_llm_duration_supported": bool(r225.get("true_tool_or_llm_duration_supported")),
+        "r220_status": r220.get("status"),
+        "r220_tasks_samples": as_int((r220.get("agentpprof") or {}).get("tasks", {}).get("samples")),
+        "r220_tools_samples": as_int((r220.get("agentpprof") or {}).get("tools", {}).get("samples")),
+        "r220_tokens_samples": as_int((r220.get("agentpprof") or {}).get("tokens", {}).get("samples")),
+        "r220_files_samples": as_int((r220.get("agentpprof") or {}).get("files", {}).get("samples")),
+        "r220_network_samples": as_int((r220.get("agentpprof") or {}).get("network", {}).get("samples")),
+        "r220_pprof_readback": bool((r220.get("gates") or {}).get("pprof_readback")),
+        "r220_expected_stacks": bool((r220.get("gates") or {}).get("fixture_projection_expected_stacks")),
+        "r220_no_real_agent_history_reads": bool((r220.get("gates") or {}).get("no_real_agent_history_reads")),
+        "r220_no_llm_calls": bool((r220.get("gates") or {}).get("no_llm_calls")),
     }
 
 
@@ -296,10 +308,20 @@ def claim_rows(status: dict[str, Any]) -> list[dict[str, str]]:
         {
             "claim": "C7 community/open-source usefulness",
             "verdict": "partial",
-            "evidence_level": "local-public-safe-smoke",
-            "primary_evidence": "R160 fixed-session smoke and R200 generated-fixture smoke pass",
-            "blocking_gap": "no external fresh-clone run or external developer feedback",
-            "next_gate": "fresh clone on another machine plus write-set/sanitization audit",
+            "evidence_level": "local-public-safe-plus-fresh-clone-smoke",
+            "primary_evidence": (
+                "R160 fixed-session smoke and R200 generated-fixture smoke pass; "
+                f"R220 fresh-clone agentpprof {status['r220_status']}: "
+                f"tasks/tools/tokens/files/network samples "
+                f"{status['r220_tasks_samples']}/{status['r220_tools_samples']}/"
+                f"{status['r220_tokens_samples']}/{status['r220_files_samples']}/"
+                f"{status['r220_network_samples']}, pprof readback "
+                f"{str(status['r220_pprof_readback']).lower()}, "
+                f"expected stacks {str(status['r220_expected_stacks']).lower()}, "
+                f"no real agent-history reads {str(status['r220_no_real_agent_history_reads']).lower()}"
+            ),
+            "blocking_gap": "no external-machine run, real-history public sanitization audit, or external developer feedback",
+            "next_gate": "external-machine fresh clone plus real-report sanitization and developer-feedback audit",
         },
     ]
 
@@ -349,10 +371,15 @@ def rq_rows(status: dict[str, Any]) -> list[dict[str, str]]:
         {
             "rq": "RQ6 artifact/community",
             "verdict": "partial",
-            "evidence_level": "local smoke only",
-            "primary_evidence": "R160 and R200 pass bounded local/generated-fixture smokes",
-            "falsifier_remaining": "fresh-clone or external developer run may fail",
-            "next_gate": "external fresh-clone run",
+            "evidence_level": "local smoke plus clean-clone public-fixture readback",
+            "primary_evidence": (
+                "R160/R200 pass bounded local/generated-fixture smokes; "
+                f"R220 fresh-clone agentpprof {status['r220_status']} with pprof readback "
+                f"{str(status['r220_pprof_readback']).lower()} and expected stacks "
+                f"{str(status['r220_expected_stacks']).lower()}"
+            ),
+            "falsifier_remaining": "external-machine install, real-report sanitization, or developer run may fail",
+            "next_gate": "external-machine smoke and public real-report audit",
         },
     ]
 
@@ -401,13 +428,13 @@ def next_experiment_rows() -> list[dict[str, str]]:
         },
         {
             "priority": "P2",
-            "run_id": "R220-fresh-clone-community",
+            "run_id": "R227-external-community",
             "claim": "C7/RQ6",
             "block": "B7",
-            "purpose": "Run a fresh-clone public setup and write-set/sanitization audit outside the current dirty artifact branch.",
-            "command_or_input": "fresh clone, documented install, generated fixture run, write-set audit",
-            "oracle": "expected files exist, no raw trace leaks, no writes outside declared output paths",
-            "result_path": "docs/visexp/out/fresh-clone-community-r220.json",
+            "purpose": "Run agentpprof on an external machine or container with a real sanitized report audit and developer-feedback checklist.",
+            "command_or_input": "fresh clone or clean container, documented install, public fixture plus opt-in real-history report, write-set/sanitization audit, short developer feedback form",
+            "oracle": "expected files exist, pprof readback works, no raw trace leaks, no writes outside declared output paths, feedback records blockers",
+            "result_path": "docs/visexp/out/external-community-r227/",
         },
     ]
 

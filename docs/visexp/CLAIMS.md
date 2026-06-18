@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-18
 Stage at update: claim-gate / supplement
-Source/command: `.agentsight/agentflame/latest/agentflame.json`, `docs/visexp/out/live-record-r114-analysis.json`, `docs/visexp/out/live-network-r182.json`, `docs/visexp/out/model-benchmarks-r180.json`, `docs/visexp/out/long-tail-governance-r196/long-tail-governance-r196.json`, `docs/visexp/out/long-tail-sensitivity-r201/long-tail-sensitivity-r201.json`, `docs/visexp/out/long-tail-regeneration-r202/long-tail-regeneration-r202.json`, `docs/visexp/out/long-tail-promotion-r203/long-tail-promotion-r203.json`, `docs/visexp/out/long-tail-compaction-r205/long-tail-compaction-r205.json`, `docs/visexp/out/reversible-display-map-r209/reversible-display-map-r209.json`, `docs/visexp/out/display-mode-drilldown-r213/display-mode-drilldown-r213.json`, `docs/visexp/out/long-tail-control-r214/long-tail-control-r214.json`, `docs/visexp/out/frontend-renderer-mode-r215/frontend-renderer-mode-r215.json`, `docs/visexp/out/browser-dom-mode-r216/browser-dom-mode-r216.json`, `docs/visexp/out/production-react-display-r217/production-react-display-r217.json`, `docs/visexp/out/display-map-update-gate-r218/display-map-update-gate-r218.json`, `docs/visexp/out/claim-readiness-r219/claim-readiness-r219.json`, `docs/visexp/out/human-evidence-pipeline-r195.json`, `docs/visexp/out/user-task-results.json`, `docs/visexp/out/artifact-usability-r160.json`, `docs/visexp/out/community-smoke-r200.json`, `docs/visexp/LONG_TAIL_COMPACTION.md`, `docs/visexp/out/osdi-gate-review-r204.md`
+Source/command: `.agentsight/agentflame/latest/agentflame.json`, `docs/visexp/out/live-record-r114-analysis.json`, `docs/visexp/out/live-network-r182.json`, `docs/visexp/out/model-benchmarks-r180.json`, `docs/visexp/out/long-tail-governance-r196/long-tail-governance-r196.json`, `docs/visexp/out/long-tail-sensitivity-r201/long-tail-sensitivity-r201.json`, `docs/visexp/out/long-tail-regeneration-r202/long-tail-regeneration-r202.json`, `docs/visexp/out/long-tail-promotion-r203/long-tail-promotion-r203.json`, `docs/visexp/out/long-tail-compaction-r205/long-tail-compaction-r205.json`, `docs/visexp/out/reversible-display-map-r209/reversible-display-map-r209.json`, `docs/visexp/out/display-mode-drilldown-r213/display-mode-drilldown-r213.json`, `docs/visexp/out/long-tail-control-r214/long-tail-control-r214.json`, `docs/visexp/out/frontend-renderer-mode-r215/frontend-renderer-mode-r215.json`, `docs/visexp/out/browser-dom-mode-r216/browser-dom-mode-r216.json`, `docs/visexp/out/production-react-display-r217/production-react-display-r217.json`, `docs/visexp/out/display-map-update-gate-r218/display-map-update-gate-r218.json`, `docs/visexp/out/fresh-clone-agentpprof-r220/fresh-clone-agentpprof-r220.json`, `docs/visexp/out/claim-readiness-r219/claim-readiness-r219.json`, `docs/visexp/out/human-evidence-pipeline-r195.json`, `docs/visexp/out/user-task-results.json`, `docs/visexp/out/artifact-usability-r160.json`, `docs/visexp/out/community-smoke-r200.json`, `docs/visexp/LONG_TAIL_COMPACTION.md`, `docs/visexp/out/osdi-gate-review-r204.md`, `docs/visexp/out/osdi-gate-review-r228.md`
 Completeness: partial
 
 This ledger separates current evidence from OSDI-level claims. The paper should
@@ -159,6 +159,14 @@ Evidence:
   partial, and `weak_accept_supported=false`; its P0 next rows are real R142
   participant returns and R124 human labels. It is an audit artifact, not a new
   claim-supporting result.
+- R220 runs the productized Rust `agentpprof` entrypoint from a temporary clean
+  clone over a public synthetic Codex fixture. It produces nonzero
+  tasks/tools/tokens/files/network projections (6/4/190/3/1 samples), writes
+  pprof/folded/JSON/SVG artifacts, verifies `go tool pprof -top` reads the
+  protobuf with 6/6 samples, checks the expected fixture stacks for
+  tools/files/network/token components, and passes output-containment and privacy scans.
+  This is local clean-clone artifact evidence only; it does not read real
+  histories, call an LLM, prove external-machine adoption, or support C5/C6.
 - R224 reruns the semantic-axis ablation on the R170 current full-history
   folded artifacts, aligning the system-axis denominator with R212's 183,714
   effect weight. R223 consolidates the RQ2 projection tradeoff across
@@ -190,6 +198,10 @@ Evidence:
 - R204 independently reviews the R203/R193/R194/R195/R202 integration and finds
   no must-fix overclaim, but keeps the project at Level 3/not weak accept
   because C5 participant responses and C6 human labels are still missing.
+- R228 independently reviews the R220 integration and accepts only the narrow
+  local clean-clone/pprof-readback C7 claim. It keeps the project at not weak
+  accept because C5/C6 remain missing; its R220 oracle and provenance comments
+  were addressed by expected-stack checks and explicit clean-clone scoping.
 
 Status: supported as a partitioning claim.
 
@@ -426,11 +438,19 @@ Current partial evidence:
   prompt previews leaked; the generated fixture was removed; and no new
   raw-trace-like git paths became dirty. The committed summary is
   `docs/visexp/out/community-smoke-r200.json`.
+- R220 adds a clean-clone `agentpprof` smoke using the deterministic regex
+  tagger and a public synthetic fixture. It writes `tasks.pb.gz`,
+  `tools.folded`, `tokens.json`, `files.folded`, `network.folded`, and
+  `tools.svg`; `go tool pprof -top` reads the task protobuf and reports 6 total
+  samples; fixture-level expected-stack checks pass for tools/files/network and
+  reported token components. It does not call llama.cpp and does not read real
+  local histories.
 
-Status: partial. A bounded local artifact path and a public-safe generated
-fixture smoke are verified. Fresh-clone setup on another machine,
-public-release sanitization of real local reports, full write-set containment,
-and community-developer feedback are not yet proven.
+Status: partial. A bounded local artifact path, a public-safe generated fixture
+smoke, and a local clean-clone `agentpprof` pprof-readback smoke are verified.
+External-machine setup, llama.cpp setup for LLM tags, public-release
+sanitization of real local reports, full write-set containment, and
+community-developer feedback are not yet proven.
 
 ## Paper Wording Rule
 
@@ -466,6 +486,10 @@ Allowed current wording:
 - "R200 verifies a public-safe generated-fixture AgentFlame run with managed
   llama.cpp tagging, expected artifacts, redacted committed summary, and a fully
   cached fixed-input rerun."
+- "R220 verifies a local clean-clone `agentpprof` public-fixture run with
+  pprof/folded/JSON/SVG outputs, expected fixture-stack checks, and
+  `go tool pprof` readback, without reading real agent histories or calling an
+  LLM."
 
 Disallowed current wording:
 
