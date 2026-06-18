@@ -140,7 +140,7 @@ static const struct argp_option opts[] = {
 	{ "duration", 'd', "DURATION-MS", 0, "Minimum process duration (ms) to report" },
 	{ "commands", 'c', "COMMAND-LIST", 0, "Comma-separated list of commands to trace (e.g., \"claude,python\")" },
 	{ "pid", 'p', "PID", 0, "Trace this PID only" },
-	{ "session", SESSION_KEY, "SID", 0, "Trace this process session only" },
+	{ "session", SESSION_KEY, "SID", 0, "Trace this process session and tracked PID descendants" },
 	{ "mode", 'm', "FILTER-MODE", 0, "Filter mode: 0=all, 1=proc, 2=filter (default=1)" },
 	{ "all", 'a', NULL, 0, "Deprecated: use -m 0 instead" },
 	{ "trace-fs", OPT_TRACE_FS, NULL, 0, "Trace filesystem mutations (delete, rename, mkdir, write, truncate, chdir)" },
@@ -338,7 +338,7 @@ static bool should_track_event_process(struct pid_tracker *tracker,
 	if (process_in_target_session(pid))
 		return true;
 	if (env.session_id > 0)
-		return false;
+		return should_track_pid_lineage(tracker, pid, ppid);
 	return should_track_process(tracker, comm, pid, ppid);
 }
 

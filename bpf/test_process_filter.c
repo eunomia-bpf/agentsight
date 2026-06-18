@@ -246,6 +246,30 @@ void test_should_track_process_target_pid() {
                 "non-target PID should not be tracked");
 }
 
+void test_should_track_pid_lineage() {
+    printf("\n" BLUE "Testing should_track_pid_lineage:" RESET "\n");
+
+    struct pid_tracker tracker;
+    char *filters[] = {"python"};
+    pid_tracker_init(&tracker, filters, 1, FILTER_MODE_FILTER, 1234);
+
+    test_assert(should_track_pid_lineage(&tracker, 1234, 1000),
+                "target PID should be tracked by PID lineage");
+    test_assert(!should_track_pid_lineage(&tracker, 5678, 1000),
+                "unrelated PID should not be tracked by PID lineage");
+
+    pid_tracker_add(&tracker, 1234, 1000);
+    test_assert(should_track_pid_lineage(&tracker, 2000, 1234),
+                "child of tracked PID should be tracked by PID lineage");
+    test_assert(!should_track_pid_lineage(&tracker, 3000, 5555),
+                "child of non-tracked PID should not be tracked by PID lineage");
+
+    struct pid_tracker command_tracker;
+    pid_tracker_init(&command_tracker, filters, 1, FILTER_MODE_FILTER, 0);
+    test_assert(!should_track_pid_lineage(&command_tracker, 5678, 1000),
+                "configured command filter is ignored by PID lineage");
+}
+
 void test_should_report_file_ops() {
     printf("\n" BLUE "Testing should_report_file_ops function:" RESET "\n");
 
@@ -399,6 +423,7 @@ int main() {
     test_should_track_process_proc_mode();
     test_should_track_process_filter_mode();
     test_should_track_process_target_pid();
+    test_should_track_pid_lineage();
     test_should_report_file_ops();
     test_should_report_bash_readline();
     test_hash_collision_handling();

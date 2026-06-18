@@ -243,9 +243,9 @@ pub(crate) fn build_trace_agent_with_view(
 
     if let Ok(mut view) = view.lock() {
         if let Some(session_root) = cfg.session_id {
-            // Session-filtered runners only emit events from this process
-            // session; the hint preserves attribution when short-lived
-            // descendants are observed without intermediate fork nodes.
+            // Session-filtered runners emit this process session plus tracked
+            // target descendants; the hint preserves attribution when
+            // short-lived descendants lack intermediate fork nodes.
             view.set_session_process_root_hint(session_root);
         } else if let Some(root_pid) = cfg.pid {
             // A plain PID filter is narrower: only the root process and
@@ -331,9 +331,12 @@ mod tests {
     fn record_profile_enables_process_network_tracing() {
         let args = build_process_args(&TraceConfig {
             pid: Some(123),
+            session_id: Some(123),
             ..TraceConfig::for_record()
         });
 
+        assert!(args.contains(&"-p".to_string()));
+        assert!(args.contains(&"--session".to_string()));
         assert!(args.contains(&"--trace-net".to_string()));
     }
 
