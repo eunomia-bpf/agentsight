@@ -32,6 +32,7 @@ SOURCE_PATHS = {
     "r230_full_history_lineage": "docs/visexp/out/full-history-lineage-r230/full-history-lineage-r230.json",
     "r231_drift_root_cause": "docs/visexp/out/drift-root-cause-r231/drift-root-cause-r231.json",
     "r232_external_crossrepo": "docs/visexp/out/external-crossrepo-lineage-r232/external-crossrepo-lineage-r232.json",
+    "r233_prompt_row_lineage": "docs/visexp/out/prompt-row-lineage-r233/prompt-row-lineage-r233.json",
     "r184_weak_accept": "docs/visexp/out/weak-accept-gate-r184.json",
     "r195_human_pipeline": "docs/visexp/out/human-evidence-pipeline-r195.json",
     "r207_launch_readiness": "docs/visexp/out/human-evidence-launch-r207/human-evidence-launch-r207.json",
@@ -188,6 +189,7 @@ def artifact_statuses(artifacts: dict[str, dict[str, Any]]) -> dict[str, Any]:
     r230 = artifacts["r230_full_history_lineage"]
     r231 = artifacts["r231_drift_root_cause"]
     r232 = artifacts["r232_external_crossrepo"]
+    r233 = artifacts["r233_prompt_row_lineage"]
     r184 = artifacts["r184_weak_accept"]
     r195 = artifacts["r195_human_pipeline"]
     r160 = artifacts["r160_artifact_usability"]
@@ -222,6 +224,8 @@ def artifact_statuses(artifacts: dict[str, dict[str, Any]]) -> dict[str, Any]:
     r232_aggregate = r232.get("aggregate") or {}
     r232_normal = r232.get("normal_aggregate") or {}
     r232_network = r232.get("network_aggregate") or {}
+    r233_gate = r233.get("claim_gate") or {}
+    r233_summary = r233.get("summary") or {}
 
     r170_summary = r170.get("summary") or {}
     r180_aggregate = r180.get("aggregate") or {}
@@ -412,6 +416,56 @@ def artifact_statuses(artifacts: dict[str, dict[str, Any]]) -> dict[str, Any]:
         "r232_network_target_actions": required_field(
             r232_network, "target_network_actions", "R232.network_aggregate"
         ),
+        "r233_status": r233.get("status"),
+        "r233_normalized_semantic_supported": bool(
+            r233_gate.get("normalized_semantic_prompt_row_lineage_supported")
+        ),
+        "r233_strict_prompt_row_identity_supported": bool(
+            r233_gate.get("strict_prompt_row_identity_supported")
+        ),
+        "r233_duplicate_indexes_non_keyed": bool(
+            r233_gate.get("duplicate_prompt_indexes_explicitly_non_keyed")
+        ),
+        "r233_display_projection_exact": bool(
+            r233_gate.get("display_projection_matches_event_local_prompt_tags")
+        ),
+        "r233_prompt_rows": required_int(r233_summary, "prompt_rows", "R233.summary"),
+        "r233_duplicate_prompt_index_rows": required_int(
+            r233_summary, "duplicate_prompt_index_rows", "R233.summary"
+        ),
+        "r233_sessions_with_duplicate_prompt_indexes": required_int(
+            r233_summary, "sessions_with_duplicate_prompt_indexes", "R233.summary"
+        ),
+        "r233_duplicate_same_tag_groups": required_int(
+            r233_summary, "duplicate_same_tag_groups", "R233.summary"
+        ),
+        "r233_duplicate_mixed_tag_groups": required_int(
+            r233_summary, "duplicate_mixed_tag_groups", "R233.summary"
+        ),
+        "r233_legacy_field_tool_mismatch_weight": required_int(
+            r233_summary, "legacy_field_tool_mismatch_weight", "R233.summary"
+        ),
+        "r233_legacy_field_llm_mismatch_events": required_int(
+            r233_summary, "legacy_field_llm_mismatch_events", "R233.summary"
+        ),
+        "r233_normalized_tool_mismatch_weight": required_int(
+            r233_summary, "normalized_tool_mismatch_weight", "R233.summary"
+        ),
+        "r233_normalized_tool_mismatch_pct": required_field(
+            r233_summary, "normalized_tool_mismatch_pct", "R233.summary"
+        ),
+        "r233_normalized_llm_mismatch_events": required_int(
+            r233_summary, "normalized_llm_mismatch_events", "R233.summary"
+        ),
+        "r233_normalized_llm_mismatch_pct": required_field(
+            r233_summary, "normalized_llm_mismatch_pct", "R233.summary"
+        ),
+        "r233_same_tag_identity_ambiguous_tool_weight": required_int(
+            r233_summary, "duplicate_same_tag_identity_ambiguous_tool_weight", "R233.summary"
+        ),
+        "r233_same_tag_identity_ambiguous_llm_events": required_int(
+            r233_summary, "duplicate_same_tag_identity_ambiguous_llm_events", "R233.summary"
+        ),
         "r184_status": r184.get("status"),
         "r195_status": r195.get("status"),
         "r160_status": r160.get("status"),
@@ -505,9 +559,13 @@ def claim_rows(status: dict[str, Any]) -> list[dict[str, str]]:
         {
             "claim": "C4 exact semantic-effect lineage",
             "verdict": C4_CONTROLLED_LINEAGE_VERDICT if c4_ok else "partial_or_failed",
-            "evidence_level": "controlled-live-lineage" if c4_ok else "insufficient-controlled-live-lineage",
+            "evidence_level": (
+                "controlled-live-lineage-plus-generated-history-audit"
+                if c4_ok
+                else "insufficient-controlled-live-lineage-or-history-audit"
+            ),
             "primary_evidence": (
-                f"R114 status {status['r114_status']}: precision {status['r114_precision_pct']}%, "
+                f"Live lineage: R114 status {status['r114_status']}: precision {status['r114_precision_pct']}%, "
                 f"recall {status['r114_recall_pct']}%, negative joins "
                 f"{status['r114_negative_joined']}/{status['r114_negative_observed']}; "
                 f"R182 network status {status['r182_status']}; R191 status {status['r191_status']}: "
@@ -519,6 +577,16 @@ def claim_rows(status: dict[str, Any]) -> list[dict[str, str]]:
                 f"in-scope effects {status['r229_in_scope_effect_events']}, negative joins "
                 f"{status['r229_negative_joined']}/{status['r229_negative_observed']}, "
                 f"precision/recall {status['r229_precision_pct']}%/{status['r229_recall_pct']}%; "
+                f"R232 status {status['r232_status']}: external controlled tasks "
+                f"{status['r232_tasks']} ({status['r232_normal_tasks']} normal, "
+                f"{status['r232_network_tasks']} network), in-scope effects "
+                f"{status['r232_in_scope_effect_events']}, target network "
+                f"{status['r232_joined_target_network_effect_events']}/"
+                f"{status['r232_target_network_effect_events']} joined, negative joins "
+                f"{status['r232_negative_joined']}/{status['r232_negative_observed']}, "
+                f"precision/recall {status['r232_precision_pct']}%/{status['r232_recall_pct']}%, "
+                f"normal/network gates {str(status['r232_normal_gate']).lower()}/"
+                f"{str(status['r232_network_gate']).lower()}; Generated-history audit: "
                 f"R230 status {status['r230_status']}: full-history projection "
                 f"{str(status['r230_system_effect_history_projection_supported']).lower()}, "
                 f"folded weight {status['r230_folded_total_weight']}, missing frame weight "
@@ -539,24 +607,24 @@ def claim_rows(status: dict[str, Any]) -> list[dict[str, str]]:
                 f"{status['r231_field_unique_llm_mismatch_events']} LLM events, strict prompt-row lineage "
                 f"{str(status['r231_strict_prompt_row_lineage_supported']).lower()}, external cross-repo "
                 f"{str(status['r231_external_crossrepo_supported']).lower()}; "
-                f"R232 status {status['r232_status']}: external controlled tasks "
-                f"{status['r232_tasks']} ({status['r232_normal_tasks']} normal, "
-                f"{status['r232_network_tasks']} network), in-scope effects "
-                f"{status['r232_in_scope_effect_events']}, target network "
-                f"{status['r232_joined_target_network_effect_events']}/"
-                f"{status['r232_target_network_effect_events']} joined, negative joins "
-                f"{status['r232_negative_joined']}/{status['r232_negative_observed']}, "
-                f"precision/recall {status['r232_precision_pct']}%/{status['r232_recall_pct']}%, "
-                f"normal/network gates {str(status['r232_normal_gate']).lower()}/"
-                f"{str(status['r232_network_gate']).lower()}"
+                f"R233 status {status['r233_status']}: normalized semantic prompt-row lineage "
+                f"{str(status['r233_normalized_semantic_supported']).lower()}, legacy drift "
+                f"{status['r233_legacy_field_tool_mismatch_weight']} tool weight/"
+                f"{status['r233_legacy_field_llm_mismatch_events']} LLM events -> normalized drift "
+                f"{status['r233_normalized_tool_mismatch_weight']} tool weight "
+                f"({status['r233_normalized_tool_mismatch_pct']}%)/"
+                f"{status['r233_normalized_llm_mismatch_events']} LLM events "
+                f"({status['r233_normalized_llm_mismatch_pct']}%), duplicate rows "
+                f"{status['r233_duplicate_prompt_index_rows']} explicitly non-keyed, strict row identity "
+                f"{str(status['r233_strict_prompt_row_identity_supported']).lower()}"
             ),
             "blocking_gap": (
-                "strict prompt-row/full-history semantic lineage, arbitrary repositories, broader network workloads, and more agent types remain partial"
+                "strict prompt-row identity for same-tag duplicate rows, arbitrary repositories, broader network workloads, and more agent types remain partial"
                 if c4_ok
                 else "R114/R191/R229 lineage gates did not all pass; rerun controlled lineage before broader replication"
             ),
             "next_gate": (
-                "normalize/fix Claude duplicate prompt-index semantics and run broader multi-agent/network lineage replication"
+                "run broader multi-agent/network lineage replication and keep duplicate prompt-row identity non-keyed"
                 if c4_ok
                 else "rerun R114, R191, and R229, requiring target rows > 0, all joined, and negative joins = 0"
             ),
@@ -626,13 +694,23 @@ def rq_rows(status: dict[str, Any]) -> list[dict[str, str]]:
         {
             "rq": "RQ3 exact lineage",
             "verdict": C4_CONTROLLED_LINEAGE_VERDICT if c4_ok else "partial_or_failed",
-            "evidence_level": "controlled live AgentSight suite" if c4_ok else "insufficient controlled live suite",
+            "evidence_level": (
+                "controlled live AgentSight suite plus generated-history audit"
+                if c4_ok
+                else "insufficient controlled live suite or generated-history audit"
+            ),
             "primary_evidence": (
-                f"R114 precision {status['r114_precision_pct']}%, recall {status['r114_recall_pct']}%; "
+                f"Live lineage: R114 precision {status['r114_precision_pct']}%, recall {status['r114_recall_pct']}%; "
                 f"R191 target network {status['r191_joined_target_network_effect_events']}/"
                 f"{status['r191_target_network_effect_events']} joined; "
                 f"R229 {status['r229_tasks']} controlled multi-workspace tasks, "
                 f"{status['r229_in_scope_effect_events']} in-scope effects; "
+                f"R232 external {status['r232_tasks']} tasks, "
+                f"{status['r232_in_scope_effect_events']} in-scope effects, target network "
+                f"{status['r232_joined_target_network_effect_events']}/"
+                f"{status['r232_target_network_effect_events']} joined, negative joins "
+                f"{status['r232_negative_joined']}/{status['r232_negative_observed']}; "
+                f"Generated-history audit: "
                 f"R230 full-history projection weight {status['r230_folded_total_weight']} "
                 f"with duplicate prompt-index rows {status['r230_duplicate_prompt_index_rows']} "
                 f"and prompt-tag drift {status['r230_tool_prompt_tag_mismatch_weight_pct']}%/"
@@ -641,19 +719,17 @@ def rq_rows(status: dict[str, Any]) -> list[dict[str, str]]:
                 f"drift localized {str(status['r231_field_drift_localized']).lower()}, "
                 f"list-position drift {status['r231_position_tool_mismatch_pct']}%/"
                 f"{status['r231_position_llm_mismatch_pct']}% tool/LLM; "
-                f"R232 external {status['r232_tasks']} tasks, "
-                f"{status['r232_in_scope_effect_events']} in-scope effects, target network "
-                f"{status['r232_joined_target_network_effect_events']}/"
-                f"{status['r232_target_network_effect_events']} joined, negative joins "
-                f"{status['r232_negative_joined']}/{status['r232_negative_observed']}"
+                f"R233 normalized semantic drift {status['r233_normalized_tool_mismatch_weight']} tool weight/"
+                f"{status['r233_normalized_llm_mismatch_events']} LLM events, "
+                f"strict row identity {str(status['r233_strict_prompt_row_identity_supported']).lower()}"
             ),
             "falsifier_remaining": (
-                "strict prompt-row/full-history semantic consistency, arbitrary repositories, broader network workloads, and more agent types remain open"
+                "strict same-tag prompt-row identity, arbitrary repositories, broader network workloads, and more agent types remain open"
                 if c4_ok
                 else "controlled exact-lineage run failed before broader generalization"
             ),
             "next_gate": (
-                "normalize/fix Claude duplicate prompt-index semantics and run broader multi-agent/network lineage replication"
+                "run broader multi-agent/network lineage replication and keep duplicate prompt-row identity non-keyed"
                 if c4_ok
                 else "rerun R114/R191/R229 controlled exact-lineage gates"
             ),
@@ -723,16 +799,6 @@ def next_experiment_rows() -> list[dict[str, str]]:
             "result_path": "docs/visexp/out/human-evidence-r195/scored/",
         },
         {
-            "priority": "P1",
-            "run_id": "R233-prompt-row-lineage-normalization",
-            "claim": "C4/RQ3",
-            "block": "B3",
-            "purpose": "Normalize or fix Claude duplicate prompt-index semantics so generated reports can support strict prompt-row lineage.",
-            "command_or_input": "parser/generator change plus R230/R231 rerun over the same full-history artifacts",
-            "oracle": "duplicate prompt-index rows are removed or made explicitly non-keyed; field-index/list-position drift is zero or documented as non-lineage metadata",
-            "result_path": "docs/visexp/out/prompt-row-lineage-r233/",
-        },
-        {
             "priority": "P2",
             "run_id": "R234-broader-agent-network-lineage",
             "claim": "C4/RQ3",
@@ -768,7 +834,7 @@ def overall_status(claims: list[dict[str, str]], summary: dict[str, Any]) -> dic
     if not c6_ok:
         blockers.append("C6/RQ5 has no supported independent human adequacy labels")
     open_scope_gaps = [
-        "C4 strict prompt-row/full-history lineage remains open",
+        "C4 strict same-tag prompt-row identity remains intentionally non-keyed",
         "C4 arbitrary-repository, broader-network, and multi-agent lineage remain open",
         "C7 external-machine/community evidence remains open",
     ]
@@ -808,7 +874,11 @@ def claim_gate(overall: dict[str, Any], summary: dict[str, Any]) -> dict[str, bo
         "weak_accept_supported": bool(overall.get("weak_accept_supported")),
         "requires_c4_exact_lineage": "C4/RQ3 controlled exact lineage gates are not supported"
         in (overall.get("blockers") or []),
-        "requires_c4_strict_prompt_row_lineage": True,
+        "requires_c4_strict_prompt_row_lineage": not (
+            summary["r233_normalized_semantic_supported"]
+            and summary["r233_duplicate_indexes_non_keyed"]
+        ),
+        "requires_c4_strict_prompt_row_identity": not summary["r233_strict_prompt_row_identity_supported"],
         "requires_c4_external_crossrepo_lineage": not r232_ok,
         "requires_c5_human_participants": "C5/RQ4 has no supported real participant outcome"
         in (overall.get("blockers") or []),
@@ -878,6 +948,15 @@ def write_markdown(path: Path, result: dict[str, Any]) -> None:
             f"{summary['r232_negative_joined']}/{summary['r232_negative_observed']}, "
             f"precision/recall {summary['r232_precision_pct']}%/"
             f"{summary['r232_recall_pct']}%."
+        ),
+        (
+            f"- R233 prompt-row normalization: legacy drift "
+            f"{summary['r233_legacy_field_tool_mismatch_weight']} tool weight/"
+            f"{summary['r233_legacy_field_llm_mismatch_events']} LLM events -> normalized drift "
+            f"{summary['r233_normalized_tool_mismatch_weight']} tool weight/"
+            f"{summary['r233_normalized_llm_mismatch_events']} LLM events; "
+            f"duplicate rows {summary['r233_duplicate_prompt_index_rows']} non-keyed, "
+            f"strict row identity {str(summary['r233_strict_prompt_row_identity_supported']).lower()}."
         ),
         f"- R217 production display buckets/support: {summary['r217_display_buckets']}/{summary['r217_support']}.",
         f"- R218 preview accepted/rejected rows: {summary['r218_accepted_diff_rows']}/{summary['r218_rejected_rows']}.",

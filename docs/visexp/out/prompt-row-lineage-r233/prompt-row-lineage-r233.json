@@ -1,0 +1,79 @@
+{
+  "boundary": "R233 supports strict semantic prompt-row consistency for generated full-history artifacts after normalizing duplicate prompt indexes as non-keyed row identifiers. It does not prove strict prompt-row identity for same-tag duplicate rows, live eBPF provenance, arbitrary agents, C5 user utility, or C6 tag adequacy.",
+  "claim_gate": {
+    "counts_as_c5_or_c6_human_evidence": false,
+    "counts_as_live_exact_provenance": false,
+    "display_projection_matches_event_local_prompt_tags": true,
+    "duplicate_prompt_indexes_explicitly_non_keyed": true,
+    "llm_called": false,
+    "normalized_semantic_prompt_row_lineage_supported": true,
+    "raw_trace_read": false,
+    "reads_generated_artifacts_only": true,
+    "strict_prompt_row_identity_supported": false
+  },
+  "display_projection": {
+    "diff_tag_count": 0,
+    "event_total_weight": 183714,
+    "exact_match": true,
+    "folded_total_weight": 183714
+  },
+  "generated_at": "2026-06-18T22:28:53.435327+00:00",
+  "git": {
+    "branch": "research/semantic-flamegraph-artifacts",
+    "commit": "d69a87637d48c1022ca4c13da04224b7c7cd41ff",
+    "dirty": true
+  },
+  "inputs": {
+    "agentflame": ".agentsight/agentflame/r170-full-current/agentflame.json",
+    "agentflame_sha256": "32a11de291ac11a8c8b79b4a616af72edb4cf6b9ab4ad95b9109baa1fac09924",
+    "r231_json": "docs/visexp/out/drift-root-cause-r231/drift-root-cause-r231.json",
+    "r231_status": "ok_drift_root_cause_localized",
+    "semantic_folded": ".agentsight/agentflame/r170-full-current/semantic-system.folded.txt",
+    "semantic_folded_sha256": "350d716412792826368e9778d153ac7cbe7a717b7280c40b32f71ba8b6d1789d"
+  },
+  "mismatch_samples": [],
+  "normalization_contract": {
+    "agentpprof_json_fields": [
+      "prompt_key",
+      "prompt_index_status",
+      "row_ordinal"
+    ],
+    "bare_prompt_index_key_when_unique": true,
+    "duplicate_prompt_index_row_identity": "non_keyed",
+    "same_tag_duplicate_rows": "semantic_match_but_row_identity_ambiguous",
+    "semantic_prompt_key": "(prompt_index, prompt_tag)"
+  },
+  "outputs": {
+    "duplicate_prompt_index_csv": "docs/visexp/out/prompt-row-lineage-r233/duplicate-prompt-index-normalization-r233.csv",
+    "json": "docs/visexp/out/prompt-row-lineage-r233/prompt-row-lineage-r233.json",
+    "markdown": "docs/visexp/out/prompt-row-lineage-r233/prompt-row-lineage-r233.md"
+  },
+  "run_id": "R233",
+  "schema_version": 1,
+  "scope": "generated_artifact_prompt_row_semantic_normalization",
+  "status": "ok_normalized_semantic_lineage",
+  "summary": {
+    "duplicate_index_llm_events": 577,
+    "duplicate_index_tool_weight": 1026,
+    "duplicate_mixed_tag_groups": 3,
+    "duplicate_prompt_index_rows": 12,
+    "duplicate_same_tag_groups": 9,
+    "duplicate_same_tag_identity_ambiguous_llm_events": 432,
+    "duplicate_same_tag_identity_ambiguous_tool_weight": 575,
+    "duplicate_tag_disambiguated_llm_events": 145,
+    "duplicate_tag_disambiguated_tool_weight": 451,
+    "legacy_field_llm_mismatch_events": 93,
+    "legacy_field_tool_mismatch_weight": 346,
+    "llm_events": 114837,
+    "normalized_llm_mismatch_events": 0,
+    "normalized_llm_mismatch_pct": 0.0,
+    "normalized_tool_mismatch_pct": 0.0,
+    "normalized_tool_mismatch_weight": 0,
+    "prompt_rows": 2859,
+    "sessions": 325,
+    "sessions_with_duplicate_prompt_indexes": 5,
+    "tool_events": 142468,
+    "tool_weight": 183714,
+    "unique_prompt_indexes": 2847
+  }
+}

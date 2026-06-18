@@ -104,6 +104,12 @@ struct UserRequest {
     tag: String,
 }
 
+impl UserRequest {
+    fn prompt_key(&self) -> String {
+        format!("{}:{}", self.index, self.text_hash)
+    }
+}
+
 #[derive(Debug, Clone)]
 struct ToolEvent {
     ts_ms: Option<i64>,
@@ -630,21 +636,7 @@ fn filter_sessions_after_tagging(sessions: &mut Vec<SessionRecord>, args: &Cli) 
     }
     if let Some(tag) = args.prompt_tag.as_deref() {
         for session in sessions.iter_mut() {
-            let keep = session
-                .user_requests
-                .iter()
-                .filter(|req| req.tag == tag)
-                .map(|req| req.index)
-                .collect::<BTreeSet<_>>();
-            session
-                .tools
-                .retain(|event| keep.contains(&event.request_index));
-            session
-                .llm_calls
-                .retain(|call| keep.contains(&call.request_index));
-            session
-                .user_requests
-                .retain(|req| keep.contains(&req.index));
+            filter_session_by_prompt_tag(session, tag);
         }
         sessions.retain(|session| {
             !session.user_requests.is_empty()
@@ -652,6 +644,46 @@ fn filter_sessions_after_tagging(sessions: &mut Vec<SessionRecord>, args: &Cli) 
                 || !session.llm_calls.is_empty()
         });
     }
+}
+
+fn filter_session_by_prompt_tag(session: &mut SessionRecord, tag: &str) {
+    let selected = session
+        .user_requests
+        .iter()
+        .cloned()
+        .enumerate()
+        .filter(|(_, req)| req.tag == tag)
+        .collect::<Vec<_>>();
+    if selected.is_empty() {
+        session.user_requests.clear();
+        session.tools.clear();
+        session.llm_calls.clear();
+        return;
+    }
+
+    let row_map = selected
+        .iter()
+        .enumerate()
+        .map(|(new_ordinal, (old_ordinal, _))| (*old_ordinal, new_ordinal))
+        .collect::<HashMap<_, _>>();
+
+    session.tools = std::mem::take(&mut session.tools)
+        .into_iter()
+        .filter_map(|mut event| {
+            let new_ordinal = row_map.get(&event.request_index).copied()?;
+            event.request_index = new_ordinal;
+            Some(event)
+        })
+        .collect();
+    session.llm_calls = std::mem::take(&mut session.llm_calls)
+        .into_iter()
+        .filter_map(|mut call| {
+            let new_ordinal = row_map.get(&call.request_index).copied()?;
+            call.request_index = new_ordinal;
+            Some(call)
+        })
+        .collect();
+    session.user_requests = selected.into_iter().map(|(_, req)| req).collect();
 }
 
 fn annotate_sessions_with(sessions: &mut [SessionRecord], args: &Cli) -> Result<()> {
@@ -1860,7 +1892,19 @@ fn top_stacks(counter: &Counter, limit: usize) -> Vec<WeightedStack> {
     rows
 }
 
+fn prompt_index_status(count: usize) -> &'static str {
+    if count <= 1 {
+        "unique"
+    } else {
+        "duplicate_non_keyed"
+    }
+}
+
 fn session_to_json(session: &SessionRecord, include_previews: bool) -> Value {
+    let mut prompt_index_counts = HashMap::<usize, usize>::new();
+    for req in &session.user_requests {
+        *prompt_index_counts.entry(req.index).or_insert(0) += 1;
+    }
     json!({
         "source": session.source,
         "session_id": session.session_id,
@@ -1874,8 +1918,11 @@ fn session_to_json(session: &SessionRecord, include_previews: bool) -> Value {
         "prompt_count": session.user_requests.len(),
         "tool_count": session.tools.len(),
         "llm_count": session.llm_calls.len(),
-        "prompts": session.user_requests.iter().map(|req| json!({
+        "prompts": session.user_requests.iter().enumerate().map(|(ordinal, req)| json!({
+            "row_ordinal": ordinal,
             "index": req.index,
+            "prompt_key": req.prompt_key(),
+            "prompt_index_status": prompt_index_status(*prompt_index_counts.get(&req.index).unwrap_or(&0)),
             "ts_ms": req.ts_ms,
             "hash": req.text_hash,
             "tag": req.tag,
@@ -1886,6 +1933,8 @@ fn session_to_json(session: &SessionRecord, include_previews: bool) -> Value {
             json!({
                 "ts_ms": event.ts_ms,
                 "prompt_index": request.index,
+                "prompt_key": request.prompt_key(),
+                "prompt_index_status": prompt_index_status(*prompt_index_counts.get(&request.index).unwrap_or(&0)),
                 "prompt_tag": request.tag,
                 "tool_name": event.tool_name,
                 "category": event.category,
@@ -1905,6 +1954,8 @@ fn session_to_json(session: &SessionRecord, include_previews: bool) -> Value {
             json!({
                 "ts_ms": call.ts_ms,
                 "prompt_index": request.index,
+                "prompt_key": request.prompt_key(),
+                "prompt_index_status": prompt_index_status(*prompt_index_counts.get(&request.index).unwrap_or(&0)),
                 "prompt_tag": request.tag,
                 "llm_tag": call.tag,
                 "model": call.model,
@@ -2666,6 +2717,186 @@ mod tests {
             ),
             Some(&7)
         );
+    }
+
+    #[test]
+    fn json_report_exports_prompt_keys_when_prompt_indexes_repeat() {
+        let session = SessionRecord {
+            source: "claude".to_string(),
+            path: PathBuf::from("session.jsonl"),
+            session_id: "s1".to_string(),
+            cwd: "/repo".to_string(),
+            agent_role: "agent".to_string(),
+            model: "claude".to_string(),
+            title: "duplicate indexes".to_string(),
+            start_ts_ms: Some(1),
+            user_requests: vec![
+                UserRequest {
+                    index: 0,
+                    ts_ms: Some(1),
+                    text_hash: "h0".to_string(),
+                    preview: "first prompt".to_string(),
+                    tag: "review".to_string(),
+                },
+                UserRequest {
+                    index: 0,
+                    ts_ms: Some(2),
+                    text_hash: "h1".to_string(),
+                    preview: "second prompt".to_string(),
+                    tag: "test".to_string(),
+                },
+            ],
+            tools: vec![ToolEvent {
+                ts_ms: Some(3),
+                request_index: 1,
+                tool_name: "Bash".to_string(),
+                category: "shell".to_string(),
+                command: "cargo test".to_string(),
+                command_name: "cargo".to_string(),
+                effect: "test".to_string(),
+                process_chain: vec!["cargo".to_string()],
+                status: "ok".to_string(),
+                path_groups: Vec::new(),
+                domains: Vec::new(),
+                call_id: None,
+            }],
+            llm_calls: vec![LlmEvent {
+                ts_ms: Some(4),
+                request_index: 0,
+                model: "claude".to_string(),
+                text_hash: "l0".to_string(),
+                preview: "answer".to_string(),
+                input_tokens: 1,
+                output_tokens: 1,
+                cache_tokens: 0,
+                estimated_tokens: 0,
+                tag: "answer".to_string(),
+            }],
+            session_tag: "review".to_string(),
+        };
+
+        let payload = session_to_json(&session, false);
+        let prompts = payload["prompts"].as_array().expect("prompts array");
+        assert_eq!(prompts[0]["prompt_key"], "0:h0");
+        assert_eq!(prompts[1]["prompt_key"], "0:h1");
+        assert_eq!(prompts[0]["prompt_index_status"], "duplicate_non_keyed");
+        assert_eq!(prompts[1]["prompt_index_status"], "duplicate_non_keyed");
+
+        let tool = &payload["tool_events"].as_array().expect("tool events")[0];
+        assert_eq!(tool["prompt_index"], 0);
+        assert_eq!(tool["prompt_key"], "0:h1");
+        assert_eq!(tool["prompt_tag"], "test");
+        assert_eq!(tool["prompt_index_status"], "duplicate_non_keyed");
+
+        let llm = &payload["llm_events"].as_array().expect("llm events")[0];
+        assert_eq!(llm["prompt_index"], 0);
+        assert_eq!(llm["prompt_key"], "0:h0");
+        assert_eq!(llm["prompt_tag"], "review");
+        assert_eq!(llm["prompt_index_status"], "duplicate_non_keyed");
+    }
+
+    #[test]
+    fn prompt_tag_filter_uses_prompt_row_ordinal_not_bare_index() {
+        let mut session = SessionRecord {
+            source: "claude".to_string(),
+            path: PathBuf::from("session.jsonl"),
+            session_id: "s1".to_string(),
+            cwd: "/repo".to_string(),
+            agent_role: "agent".to_string(),
+            model: "claude".to_string(),
+            title: "duplicate indexes".to_string(),
+            start_ts_ms: Some(1),
+            user_requests: vec![
+                UserRequest {
+                    index: 0,
+                    ts_ms: Some(1),
+                    text_hash: "h0".to_string(),
+                    preview: "review prompt".to_string(),
+                    tag: "review".to_string(),
+                },
+                UserRequest {
+                    index: 0,
+                    ts_ms: Some(2),
+                    text_hash: "h1".to_string(),
+                    preview: "test prompt".to_string(),
+                    tag: "test".to_string(),
+                },
+            ],
+            tools: vec![
+                ToolEvent {
+                    ts_ms: Some(3),
+                    request_index: 0,
+                    tool_name: "Read".to_string(),
+                    category: "read".to_string(),
+                    command: String::new(),
+                    command_name: String::new(),
+                    effect: "read".to_string(),
+                    process_chain: Vec::new(),
+                    status: "ok".to_string(),
+                    path_groups: Vec::new(),
+                    domains: Vec::new(),
+                    call_id: None,
+                },
+                ToolEvent {
+                    ts_ms: Some(4),
+                    request_index: 1,
+                    tool_name: "Bash".to_string(),
+                    category: "shell".to_string(),
+                    command: "cargo test".to_string(),
+                    command_name: "cargo".to_string(),
+                    effect: "test".to_string(),
+                    process_chain: vec!["cargo".to_string()],
+                    status: "ok".to_string(),
+                    path_groups: Vec::new(),
+                    domains: Vec::new(),
+                    call_id: None,
+                },
+            ],
+            llm_calls: vec![
+                LlmEvent {
+                    ts_ms: Some(5),
+                    request_index: 0,
+                    model: "claude".to_string(),
+                    text_hash: "l0".to_string(),
+                    preview: "review answer".to_string(),
+                    input_tokens: 1,
+                    output_tokens: 1,
+                    cache_tokens: 0,
+                    estimated_tokens: 0,
+                    tag: "answer".to_string(),
+                },
+                LlmEvent {
+                    ts_ms: Some(6),
+                    request_index: 1,
+                    model: "claude".to_string(),
+                    text_hash: "l1".to_string(),
+                    preview: "test answer".to_string(),
+                    input_tokens: 2,
+                    output_tokens: 3,
+                    cache_tokens: 0,
+                    estimated_tokens: 0,
+                    tag: "answer".to_string(),
+                },
+            ],
+            session_tag: "review".to_string(),
+        };
+
+        filter_session_by_prompt_tag(&mut session, "test");
+
+        assert_eq!(session.user_requests.len(), 1);
+        assert_eq!(session.user_requests[0].text_hash, "h1");
+        assert_eq!(session.user_requests[0].index, 0);
+        assert_eq!(session.tools.len(), 1);
+        assert_eq!(session.tools[0].request_index, 0);
+        assert_eq!(session.tools[0].effect, "test");
+        assert_eq!(session.llm_calls.len(), 1);
+        assert_eq!(session.llm_calls[0].request_index, 0);
+        assert_eq!(session.llm_calls[0].text_hash, "l1");
+
+        let payload = session_to_json(&session, false);
+        let tool = &payload["tool_events"].as_array().expect("tool events")[0];
+        assert_eq!(tool["prompt_key"], "0:h1");
+        assert_eq!(tool["prompt_tag"], "test");
     }
 
     #[test]
