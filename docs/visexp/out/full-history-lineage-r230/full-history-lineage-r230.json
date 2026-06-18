@@ -1,0 +1,120 @@
+{
+  "claim_boundary": "R230 audits generated full-history AgentFlame artifacts, not raw agent sessions and not live eBPF provenance. It can support the weaker claim that folded system effects carry semantic session/prompt tag frames, call/effect frames, and match the R170 report totals. Raw event indexes are audited separately. Because prompt indexes can be duplicated and event-local prompt tags can drift from prompt-row tags, and because this is not a live negative-control run, it does not prove strict full-history exact semantic lineage, C5 developer utility, or C6 tag adequacy.",
+  "claim_gate": {
+    "counts_as_c5_or_c6_human_evidence": false,
+    "folded_required_frames_complete": true,
+    "folded_total_matches_r170": true,
+    "live_exact_provenance_supported": false,
+    "llm_called": false,
+    "prompt_index_unique_supported": false,
+    "raw_total_matches_folded": true,
+    "raw_trace_read": false,
+    "reads_generated_artifacts_only": true,
+    "strict_full_history_semantic_lineage_supported": false,
+    "strict_prompt_tag_consistency_supported": false,
+    "system_effect_history_projection_supported": true,
+    "system_effect_prompt_index_complete": true
+  },
+  "folded_audit": {
+    "agent_weight": {
+      "claude": 7467,
+      "claude-subagent": 5692,
+      "codex": 170555
+    },
+    "effect_weight": {
+      "network": 882,
+      "process": 64652,
+      "read": 109385,
+      "repo": 1475,
+      "test": 5324,
+      "write": 1996
+    },
+    "missing_total_weight": 0,
+    "missing_weight_by_frame": {},
+    "required_frames": [
+      "project",
+      "agent",
+      "session",
+      "prompt",
+      "call",
+      "effect",
+      "status"
+    ],
+    "sample_missing": [],
+    "session_prompt_tag_pair_count": 400,
+    "total_weight": 183714,
+    "unique_stacks": 26829
+  },
+  "generated_at": "2026-06-18T21:23:34+00:00",
+  "inputs": {
+    "agentflame_json": ".agentsight/agentflame/r170-full-current/agentflame.json",
+    "agentflame_json_sha256": "32a11de291ac11a8c8b79b4a616af72edb4cf6b9ab4ad95b9109baa1fac09924",
+    "r170_json": "docs/visexp/out/full-history-r170.json",
+    "r170_json_sha256": "7162bcdd8c9e9bb21cfe82816cd8f230181da8484103411d25dc316dc9e757c6",
+    "r225_json": "docs/visexp/out/prompt-span-duration-r225/prompt-span-duration-r225.json",
+    "r225_json_sha256": "c9c96112e0e4bc044fadd8da0336c1bf06e7244e08bab5d899fd66cf6695ea25",
+    "semantic_system_folded": ".agentsight/agentflame/r170-full-current/semantic-system.folded.txt",
+    "semantic_system_folded_sha256": "350d716412792826368e9778d153ac7cbe7a717b7280c40b32f71ba8b6d1789d"
+  },
+  "outputs": {
+    "json": "docs/visexp/out/full-history-lineage-r230/full-history-lineage-r230.json",
+    "markdown": "docs/visexp/out/full-history-lineage-r230/full-history-lineage-r230.md",
+    "semantic_drift_samples_csv": "docs/visexp/out/full-history-lineage-r230/semantic-drift-samples-r230.csv"
+  },
+  "provenance": {
+    "repo_commit": "90573a48fbb3cb7ecf8d23e9a2f99a005e85b06d",
+    "repo_dirty": true,
+    "script": "docs/visexp/r230_full_history_lineage_audit.py",
+    "script_sha256": "e0436a0e146b614bceccabea9176aa6e34eaced0c7b626a3723cb65b71651d36"
+  },
+  "r170_summary": {
+    "semantic_system_stacks": 26829,
+    "sessions": 325,
+    "system_observations": 183714
+  },
+  "r225_prompt_span_reference": {
+    "covered_effect_share_pct": 100.0,
+    "covered_effect_total_weight": 183714,
+    "expanded_effect_total_matches_folded": true,
+    "prompt_span_duration_is_wall_clock_interval": true,
+    "prompt_spans_total": 2858,
+    "true_tool_or_llm_duration_supported": false
+  },
+  "raw_event_index_audit": {
+    "duplicate_prompt_index_rows": 12,
+    "llm_ambiguous_prompt_index_events": 577,
+    "llm_events": 114837,
+    "llm_invalid_prompt_index_events": 0,
+    "llm_prompt_tag_mismatch_event_pct": 0.081,
+    "llm_prompt_tag_mismatch_events": 93,
+    "llm_valid_prompt_index_events": 114837,
+    "llm_valid_prompt_index_pct": 100.0,
+    "prompt_rows": 2859,
+    "sessions": 325,
+    "sessions_by_source": {
+      "claude": 50,
+      "claude-subagent": 77,
+      "codex": 198
+    },
+    "sessions_with_duplicate_prompt_indexes": 5,
+    "sessions_with_prompts": 325,
+    "system_observation_weight_from_raw": 183714,
+    "tool_ambiguous_prompt_index_events": 835,
+    "tool_ambiguous_prompt_index_weight": 1026,
+    "tool_ambiguous_prompt_index_weight_pct": 0.558,
+    "tool_events": 142468,
+    "tool_prompt_tag_mismatch_event_pct": 0.183,
+    "tool_prompt_tag_mismatch_events": 261,
+    "tool_prompt_tag_mismatch_weight": 346,
+    "tool_prompt_tag_mismatch_weight_pct": 0.188,
+    "tool_valid_prompt_index_events": 142468,
+    "tool_valid_prompt_index_pct": 100.0,
+    "tool_valid_prompt_index_weight": 183714,
+    "tool_valid_prompt_index_weight_pct": 100.0,
+    "unique_prompt_indexes": 2847
+  },
+  "run_id": "R230",
+  "schema_version": 1,
+  "scope": "generated_full_history_projection_lineage_audit",
+  "status": "partial_projection_indexed_with_semantic_drift"
+}
