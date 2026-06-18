@@ -7,7 +7,7 @@
     "raw_trace_read": false,
     "reads_generated_artifacts_only": true,
     "requires_c4_exact_lineage": false,
-    "requires_c4_external_crossrepo_lineage": true,
+    "requires_c4_external_crossrepo_lineage": false,
     "requires_c4_strict_prompt_row_lineage": true,
     "requires_c5_human_participants": true,
     "requires_c6_human_labels": true,
@@ -40,12 +40,12 @@
       "verdict": "supported_as_mechanism"
     },
     {
-      "blocking_gap": "strict prompt-row/full-history semantic lineage, broader network workloads, and external cross-repo replication remain partial",
+      "blocking_gap": "strict prompt-row/full-history semantic lineage, arbitrary repositories, broader network workloads, and more agent types remain partial",
       "claim": "C4 exact semantic-effect lineage",
       "evidence_level": "controlled-live-lineage",
-      "next_gate": "normalize/fix Claude duplicate prompt-index semantics and run external cross-repo live exact-lineage replication",
-      "primary_evidence": "R114 status ok: precision 100.0%, recall 100.0%, negative joins 0/3170; R182 network status partial; R191 status ok: target network 4/4 joined, negative joins 0/310, precision/recall 100.0%/100.0%; R229 status ok: 5 tasks, in-scope effects 394, negative joins 0/306, precision/recall 100.0%/100.0%; R230 status partial_projection_indexed_with_semantic_drift: full-history projection true, folded weight 183714, missing frame weight 0, tool prompt-index coverage 100.0%, duplicate prompt-index rows 12, prompt-tag drift 346 weight (0.188%), LLM drift 93 events (0.081%), strict full-history false; R231 status ok_drift_root_cause_localized: display projection event/folded weights 183714/183714 exact true, R230 drift reproduced true, field-index drift localized true, unique-index field drift 0 tool weight/0 LLM events, strict prompt-row lineage false, external cross-repo false",
-      "verdict": "supported_for_fixed_command_mode_suite"
+      "next_gate": "normalize/fix Claude duplicate prompt-index semantics and run broader multi-agent/network lineage replication",
+      "primary_evidence": "R114 status ok: precision 100.0%, recall 100.0%, negative joins 0/3170; R182 network status partial; R191 status ok: target network 4/4 joined, negative joins 0/310, precision/recall 100.0%/100.0%; R229 status ok: 5 tasks, in-scope effects 394, negative joins 0/306, precision/recall 100.0%/100.0%; R230 status partial_projection_indexed_with_semantic_drift: full-history projection true, folded weight 183714, missing frame weight 0, tool prompt-index coverage 100.0%, duplicate prompt-index rows 12, prompt-tag drift 346 weight (0.188%), LLM drift 93 events (0.081%), strict full-history false; R231 status ok_drift_root_cause_localized: display projection event/folded weights 183714/183714 exact true, R230 drift reproduced true, field-index drift localized true, unique-index field drift 0 tool weight/0 LLM events, strict prompt-row lineage false, external cross-repo false; R232 status ok: external controlled tasks 5 (4 normal, 1 network), in-scope effects 353, target network 4/4 joined, negative joins 0/480, precision/recall 100.0%/100.0%, normal/network gates true/true",
+      "verdict": "supported_for_controlled_live_lineage_suites"
     },
     {
       "blocking_gap": "real participant responses are missing",
@@ -72,7 +72,7 @@
       "verdict": "partial"
     }
   ],
-  "generated_at": "2026-06-18T21:43:31+00:00",
+  "generated_at": "2026-06-18T22:08:59+00:00",
   "next_experiments": [
     {
       "block": "B4",
@@ -107,22 +107,22 @@
     {
       "block": "B3",
       "claim": "C4/RQ3",
-      "command_or_input": "fresh controlled record runs outside the AgentSight repository with repo-read/edit-test/write/network tasks",
-      "oracle": "external-repo scoped effects join to the target task with zero negative-control joins and precision/recall thresholds matching R229",
-      "priority": "P1",
-      "purpose": "Replicate live exact-lineage on an external cross-repo controlled workload.",
-      "result_path": "docs/visexp/out/external-crossrepo-lineage-r232/",
-      "run_id": "R232-external-crossrepo-lineage"
-    },
-    {
-      "block": "B3",
-      "claim": "C4/RQ3",
       "command_or_input": "parser/generator change plus R230/R231 rerun over the same full-history artifacts",
       "oracle": "duplicate prompt-index rows are removed or made explicitly non-keyed; field-index/list-position drift is zero or documented as non-lineage metadata",
       "priority": "P1",
       "purpose": "Normalize or fix Claude duplicate prompt-index semantics so generated reports can support strict prompt-row lineage.",
       "result_path": "docs/visexp/out/prompt-row-lineage-r233/",
       "run_id": "R233-prompt-row-lineage-normalization"
+    },
+    {
+      "block": "B3",
+      "claim": "C4/RQ3",
+      "command_or_input": "controlled Claude/Node/Python agent runs plus additional bind/connect/DNS or multi-process network probes",
+      "oracle": "scoped target effects and target network rows join without negative-control joins; precision/recall thresholds match R232",
+      "priority": "P2",
+      "purpose": "Replicate exact-lineage gates across another agent family and broader target-network workloads.",
+      "result_path": "docs/visexp/out/broader-agent-network-lineage-r234/",
+      "run_id": "R234-broader-agent-network-lineage"
     },
     {
       "block": "B7",
@@ -156,7 +156,7 @@
     "human_evidence_supported": false,
     "open_scope_gaps": [
       "C4 strict prompt-row/full-history lineage remains open",
-      "C4 external cross-repo live exact-lineage replication remains open",
+      "C4 arbitrary-repository, broader-network, and multi-agent lineage remain open",
       "C7 external-machine/community evidence remains open"
     ],
     "status": "osdi_weak_accept_not_supported",
@@ -181,11 +181,11 @@
     },
     {
       "evidence_level": "controlled live AgentSight suite",
-      "falsifier_remaining": "strict prompt-row/full-history semantic consistency, broader network workloads, and external cross-repo replication remain open",
-      "next_gate": "normalize/fix Claude duplicate prompt-index semantics and run external cross-repo live exact-lineage replication",
-      "primary_evidence": "R114 precision 100.0%, recall 100.0%; R191 target network 4/4 joined; R229 5 controlled multi-workspace tasks, 394 in-scope effects; R230 full-history projection weight 183714 with duplicate prompt-index rows 12 and prompt-tag drift 0.188%/0.081% tool/LLM; R231 display projection exact true, drift localized true, list-position drift 1.115%/0.996% tool/LLM",
+      "falsifier_remaining": "strict prompt-row/full-history semantic consistency, arbitrary repositories, broader network workloads, and more agent types remain open",
+      "next_gate": "normalize/fix Claude duplicate prompt-index semantics and run broader multi-agent/network lineage replication",
+      "primary_evidence": "R114 precision 100.0%, recall 100.0%; R191 target network 4/4 joined; R229 5 controlled multi-workspace tasks, 394 in-scope effects; R230 full-history projection weight 183714 with duplicate prompt-index rows 12 and prompt-tag drift 0.188%/0.081% tool/LLM; R231 display projection exact true, drift localized true, list-position drift 1.115%/0.996% tool/LLM; R232 external 5 tasks, 353 in-scope effects, target network 4/4 joined, negative joins 0/480",
       "rq": "RQ3 exact lineage",
-      "verdict": "supported_for_fixed_command_mode_suite"
+      "verdict": "supported_for_controlled_live_lineage_suites"
     },
     {
       "evidence_level": "materials_ready_no_outcomes",
@@ -244,7 +244,8 @@
     "r225_prompt_span_duration": "docs/visexp/out/prompt-span-duration-r225/prompt-span-duration-r225.json",
     "r229_exact_lineage_replication": "docs/visexp/out/exact-lineage-replication-r229.json",
     "r230_full_history_lineage": "docs/visexp/out/full-history-lineage-r230/full-history-lineage-r230.json",
-    "r231_drift_root_cause": "docs/visexp/out/drift-root-cause-r231/drift-root-cause-r231.json"
+    "r231_drift_root_cause": "docs/visexp/out/drift-root-cause-r231/drift-root-cause-r231.json",
+    "r232_external_crossrepo": "docs/visexp/out/external-crossrepo-lineage-r232/external-crossrepo-lineage-r232.json"
   },
   "status": "osdi_weak_accept_not_supported",
   "summary": {
@@ -356,6 +357,29 @@
     "r231_r230_reproduced": true,
     "r231_sessions_with_duplicate_prompt_indexes": 5,
     "r231_status": "ok_drift_root_cause_localized",
-    "r231_strict_prompt_row_lineage_supported": false
+    "r231_strict_prompt_row_lineage_supported": false,
+    "r232_effect_events": 888,
+    "r232_external_crossrepo_supported": true,
+    "r232_in_scope_effect_events": 353,
+    "r232_joined_effect_events": 353,
+    "r232_joined_target_network_effect_events": 4,
+    "r232_negative_joined": 0,
+    "r232_negative_observed": 480,
+    "r232_network_gate": true,
+    "r232_network_target_actions": {
+      "NET_BIND": 1,
+      "NET_CONNECT": 2,
+      "NET_LISTEN": 1
+    },
+    "r232_network_tasks": 1,
+    "r232_normal_gate": true,
+    "r232_normal_in_scope_effect_events": 353,
+    "r232_normal_negative_observed": 242,
+    "r232_normal_tasks": 4,
+    "r232_precision_pct": 100.0,
+    "r232_recall_pct": 100.0,
+    "r232_status": "ok",
+    "r232_target_network_effect_events": 4,
+    "r232_tasks": 5
   }
 }

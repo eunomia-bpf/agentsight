@@ -31,6 +31,7 @@ SOURCE_PATHS = {
     "r229_exact_lineage_replication": "docs/visexp/out/exact-lineage-replication-r229.json",
     "r230_full_history_lineage": "docs/visexp/out/full-history-lineage-r230/full-history-lineage-r230.json",
     "r231_drift_root_cause": "docs/visexp/out/drift-root-cause-r231/drift-root-cause-r231.json",
+    "r232_external_crossrepo": "docs/visexp/out/external-crossrepo-lineage-r232/external-crossrepo-lineage-r232.json",
     "r184_weak_accept": "docs/visexp/out/weak-accept-gate-r184.json",
     "r195_human_pipeline": "docs/visexp/out/human-evidence-pipeline-r195.json",
     "r207_launch_readiness": "docs/visexp/out/human-evidence-launch-r207/human-evidence-launch-r207.json",
@@ -53,6 +54,8 @@ SOURCE_PATHS = {
     "r225_prompt_span_duration": "docs/visexp/out/prompt-span-duration-r225/prompt-span-duration-r225.json",
     "r220_fresh_clone_agentpprof": "docs/visexp/out/fresh-clone-agentpprof-r220/fresh-clone-agentpprof-r220.json",
 }
+
+C4_CONTROLLED_LINEAGE_VERDICT = "supported_for_controlled_live_lineage_suites"
 
 
 CLAIM_FIELDS = [
@@ -158,7 +161,21 @@ def c4_lineage_supported(status: dict[str, Any]) -> bool:
         and float(status["r229_precision_pct"]) >= 98.0
         and float(status["r229_recall_pct"]) >= 95.0
     )
-    return r114_ok and r191_ok and r229_ok
+    r232_ok = (
+        status["r232_status"] == "ok"
+        and bool(status["r232_external_crossrepo_supported"])
+        and bool(status["r232_normal_gate"])
+        and bool(status["r232_network_gate"])
+        and as_int(status["r232_in_scope_effect_events"]) > 0
+        and as_int(status["r232_target_network_effect_events"]) > 0
+        and as_int(status["r232_joined_target_network_effect_events"])
+        == as_int(status["r232_target_network_effect_events"])
+        and as_int(status["r232_negative_observed"]) > 0
+        and as_int(status["r232_negative_joined"]) == 0
+        and float(status["r232_precision_pct"]) >= 98.0
+        and float(status["r232_recall_pct"]) >= 95.0
+    )
+    return r114_ok and r191_ok and r229_ok and r232_ok
 
 
 def artifact_statuses(artifacts: dict[str, dict[str, Any]]) -> dict[str, Any]:
@@ -170,6 +187,7 @@ def artifact_statuses(artifacts: dict[str, dict[str, Any]]) -> dict[str, Any]:
     r229 = artifacts["r229_exact_lineage_replication"]
     r230 = artifacts["r230_full_history_lineage"]
     r231 = artifacts["r231_drift_root_cause"]
+    r232 = artifacts["r232_external_crossrepo"]
     r184 = artifacts["r184_weak_accept"]
     r195 = artifacts["r195_human_pipeline"]
     r160 = artifacts["r160_artifact_usability"]
@@ -201,6 +219,9 @@ def artifact_statuses(artifacts: dict[str, dict[str, Any]]) -> dict[str, Any]:
     r231_gate = r231.get("claim_gate") or {}
     r231_summary = r231.get("summary") or {}
     r231_display = r231.get("display_projection") or {}
+    r232_aggregate = r232.get("aggregate") or {}
+    r232_normal = r232.get("normal_aggregate") or {}
+    r232_network = r232.get("network_aggregate") or {}
 
     r170_summary = r170.get("summary") or {}
     r180_aggregate = r180.get("aggregate") or {}
@@ -356,6 +377,41 @@ def artifact_statuses(artifacts: dict[str, dict[str, Any]]) -> dict[str, Any]:
         "r231_field_unique_llm_mismatch_events": required_int(
             r231_summary, "field_mismatch_unique_session_llm_events", "R231.summary"
         ),
+        "r232_status": r232.get("status"),
+        "r232_external_crossrepo_supported": bool(r232.get("external_crossrepo_lineage_supported")),
+        "r232_normal_gate": bool(r232.get("normal_gate")),
+        "r232_network_gate": bool(r232.get("network_gate")),
+        "r232_tasks": required_int(r232_aggregate, "tasks", "R232.aggregate"),
+        "r232_normal_tasks": required_int(r232_aggregate, "normal_tasks", "R232.aggregate"),
+        "r232_network_tasks": required_int(r232_aggregate, "network_tasks", "R232.aggregate"),
+        "r232_in_scope_effect_events": required_int(
+            r232_aggregate, "in_scope_effect_events", "R232.aggregate"
+        ),
+        "r232_joined_effect_events": required_int(r232_aggregate, "joined_effect_events", "R232.aggregate"),
+        "r232_effect_events": required_int(r232_aggregate, "effect_events", "R232.aggregate"),
+        "r232_target_network_effect_events": required_int(
+            r232_aggregate, "target_network_effect_events", "R232.aggregate"
+        ),
+        "r232_joined_target_network_effect_events": required_int(
+            r232_aggregate, "joined_target_network_effect_events", "R232.aggregate"
+        ),
+        "r232_negative_observed": required_int(
+            r232_aggregate, "negative_effect_events_observed", "R232.aggregate"
+        ),
+        "r232_negative_joined": required_int(
+            r232_aggregate, "negative_joined_effect_events", "R232.aggregate"
+        ),
+        "r232_precision_pct": required_field(r232_aggregate, "precision_pct", "R232.aggregate"),
+        "r232_recall_pct": required_field(r232_aggregate, "recall_pct", "R232.aggregate"),
+        "r232_normal_in_scope_effect_events": required_int(
+            r232_normal, "in_scope_effect_events", "R232.normal_aggregate"
+        ),
+        "r232_normal_negative_observed": required_int(
+            r232_normal, "negative_effect_events_observed", "R232.normal_aggregate"
+        ),
+        "r232_network_target_actions": required_field(
+            r232_network, "target_network_actions", "R232.network_aggregate"
+        ),
         "r184_status": r184.get("status"),
         "r195_status": r195.get("status"),
         "r160_status": r160.get("status"),
@@ -448,7 +504,7 @@ def claim_rows(status: dict[str, Any]) -> list[dict[str, str]]:
         },
         {
             "claim": "C4 exact semantic-effect lineage",
-            "verdict": "supported_for_fixed_command_mode_suite" if c4_ok else "partial_or_failed",
+            "verdict": C4_CONTROLLED_LINEAGE_VERDICT if c4_ok else "partial_or_failed",
             "evidence_level": "controlled-live-lineage" if c4_ok else "insufficient-controlled-live-lineage",
             "primary_evidence": (
                 f"R114 status {status['r114_status']}: precision {status['r114_precision_pct']}%, "
@@ -482,15 +538,25 @@ def claim_rows(status: dict[str, Any]) -> list[dict[str, str]]:
                 f"{status['r231_field_unique_tool_mismatch_weight']} tool weight/"
                 f"{status['r231_field_unique_llm_mismatch_events']} LLM events, strict prompt-row lineage "
                 f"{str(status['r231_strict_prompt_row_lineage_supported']).lower()}, external cross-repo "
-                f"{str(status['r231_external_crossrepo_supported']).lower()}"
+                f"{str(status['r231_external_crossrepo_supported']).lower()}; "
+                f"R232 status {status['r232_status']}: external controlled tasks "
+                f"{status['r232_tasks']} ({status['r232_normal_tasks']} normal, "
+                f"{status['r232_network_tasks']} network), in-scope effects "
+                f"{status['r232_in_scope_effect_events']}, target network "
+                f"{status['r232_joined_target_network_effect_events']}/"
+                f"{status['r232_target_network_effect_events']} joined, negative joins "
+                f"{status['r232_negative_joined']}/{status['r232_negative_observed']}, "
+                f"precision/recall {status['r232_precision_pct']}%/{status['r232_recall_pct']}%, "
+                f"normal/network gates {str(status['r232_normal_gate']).lower()}/"
+                f"{str(status['r232_network_gate']).lower()}"
             ),
             "blocking_gap": (
-                "strict prompt-row/full-history semantic lineage, broader network workloads, and external cross-repo replication remain partial"
+                "strict prompt-row/full-history semantic lineage, arbitrary repositories, broader network workloads, and more agent types remain partial"
                 if c4_ok
                 else "R114/R191/R229 lineage gates did not all pass; rerun controlled lineage before broader replication"
             ),
             "next_gate": (
-                "normalize/fix Claude duplicate prompt-index semantics and run external cross-repo live exact-lineage replication"
+                "normalize/fix Claude duplicate prompt-index semantics and run broader multi-agent/network lineage replication"
                 if c4_ok
                 else "rerun R114, R191, and R229, requiring target rows > 0, all joined, and negative joins = 0"
             ),
@@ -559,7 +625,7 @@ def rq_rows(status: dict[str, Any]) -> list[dict[str, str]]:
         },
         {
             "rq": "RQ3 exact lineage",
-            "verdict": "supported_for_fixed_command_mode_suite" if c4_ok else "partial_or_failed",
+            "verdict": C4_CONTROLLED_LINEAGE_VERDICT if c4_ok else "partial_or_failed",
             "evidence_level": "controlled live AgentSight suite" if c4_ok else "insufficient controlled live suite",
             "primary_evidence": (
                 f"R114 precision {status['r114_precision_pct']}%, recall {status['r114_recall_pct']}%; "
@@ -574,15 +640,20 @@ def rq_rows(status: dict[str, Any]) -> list[dict[str, str]]:
                 f"R231 display projection exact {str(status['r231_display_projection_exact']).lower()}, "
                 f"drift localized {str(status['r231_field_drift_localized']).lower()}, "
                 f"list-position drift {status['r231_position_tool_mismatch_pct']}%/"
-                f"{status['r231_position_llm_mismatch_pct']}% tool/LLM"
+                f"{status['r231_position_llm_mismatch_pct']}% tool/LLM; "
+                f"R232 external {status['r232_tasks']} tasks, "
+                f"{status['r232_in_scope_effect_events']} in-scope effects, target network "
+                f"{status['r232_joined_target_network_effect_events']}/"
+                f"{status['r232_target_network_effect_events']} joined, negative joins "
+                f"{status['r232_negative_joined']}/{status['r232_negative_observed']}"
             ),
             "falsifier_remaining": (
-                "strict prompt-row/full-history semantic consistency, broader network workloads, and external cross-repo replication remain open"
+                "strict prompt-row/full-history semantic consistency, arbitrary repositories, broader network workloads, and more agent types remain open"
                 if c4_ok
                 else "controlled exact-lineage run failed before broader generalization"
             ),
             "next_gate": (
-                "normalize/fix Claude duplicate prompt-index semantics and run external cross-repo live exact-lineage replication"
+                "normalize/fix Claude duplicate prompt-index semantics and run broader multi-agent/network lineage replication"
                 if c4_ok
                 else "rerun R114/R191/R229 controlled exact-lineage gates"
             ),
@@ -653,16 +724,6 @@ def next_experiment_rows() -> list[dict[str, str]]:
         },
         {
             "priority": "P1",
-            "run_id": "R232-external-crossrepo-lineage",
-            "claim": "C4/RQ3",
-            "block": "B3",
-            "purpose": "Replicate live exact-lineage on an external cross-repo controlled workload.",
-            "command_or_input": "fresh controlled record runs outside the AgentSight repository with repo-read/edit-test/write/network tasks",
-            "oracle": "external-repo scoped effects join to the target task with zero negative-control joins and precision/recall thresholds matching R229",
-            "result_path": "docs/visexp/out/external-crossrepo-lineage-r232/",
-        },
-        {
-            "priority": "P1",
             "run_id": "R233-prompt-row-lineage-normalization",
             "claim": "C4/RQ3",
             "block": "B3",
@@ -670,6 +731,16 @@ def next_experiment_rows() -> list[dict[str, str]]:
             "command_or_input": "parser/generator change plus R230/R231 rerun over the same full-history artifacts",
             "oracle": "duplicate prompt-index rows are removed or made explicitly non-keyed; field-index/list-position drift is zero or documented as non-lineage metadata",
             "result_path": "docs/visexp/out/prompt-row-lineage-r233/",
+        },
+        {
+            "priority": "P2",
+            "run_id": "R234-broader-agent-network-lineage",
+            "claim": "C4/RQ3",
+            "block": "B3",
+            "purpose": "Replicate exact-lineage gates across another agent family and broader target-network workloads.",
+            "command_or_input": "controlled Claude/Node/Python agent runs plus additional bind/connect/DNS or multi-process network probes",
+            "oracle": "scoped target effects and target network rows join without negative-control joins; precision/recall thresholds match R232",
+            "result_path": "docs/visexp/out/broader-agent-network-lineage-r234/",
         },
         {
             "priority": "P2",
@@ -684,9 +755,9 @@ def next_experiment_rows() -> list[dict[str, str]]:
     ]
 
 
-def overall_status(claims: list[dict[str, str]]) -> dict[str, Any]:
+def overall_status(claims: list[dict[str, str]], summary: dict[str, Any]) -> dict[str, Any]:
     verdict_by_claim = {row["claim"].split()[0]: row["verdict"] for row in claims}
-    c4_ok = verdict_by_claim.get("C4") == "supported_for_fixed_command_mode_suite"
+    c4_ok = verdict_by_claim.get("C4") == C4_CONTROLLED_LINEAGE_VERDICT
     c5_ok = verdict_by_claim.get("C5") == "supported"
     c6_ok = verdict_by_claim.get("C6") == "supported"
     blockers: list[str] = []
@@ -696,16 +767,23 @@ def overall_status(claims: list[dict[str, str]]) -> dict[str, Any]:
         blockers.append("C5/RQ4 has no supported real participant outcome")
     if not c6_ok:
         blockers.append("C6/RQ5 has no supported independent human adequacy labels")
+    open_scope_gaps = [
+        "C4 strict prompt-row/full-history lineage remains open",
+        "C4 arbitrary-repository, broader-network, and multi-agent lineage remain open",
+        "C7 external-machine/community evidence remains open",
+    ]
+    if not (
+        summary["r232_external_crossrepo_supported"]
+        and summary["r232_normal_gate"]
+        and summary["r232_network_gate"]
+    ):
+        open_scope_gaps.insert(1, "C4 controlled external cross-repo live exact-lineage remains open")
     return {
         "status": "osdi_weak_accept_not_supported" if blockers else "human_evidence_ready_for_claim_audit",
         "weak_accept_supported": False,
         "human_evidence_supported": not blockers,
         "blockers": blockers,
-        "open_scope_gaps": [
-            "C4 strict prompt-row/full-history lineage remains open",
-            "C4 external cross-repo live exact-lineage replication remains open",
-            "C7 external-machine/community evidence remains open",
-        ],
+        "open_scope_gaps": open_scope_gaps,
         "disallowed_evidence": [
             "subagent review",
             "LLM-filled labels",
@@ -716,7 +794,12 @@ def overall_status(claims: list[dict[str, str]]) -> dict[str, Any]:
     }
 
 
-def claim_gate(overall: dict[str, Any]) -> dict[str, bool]:
+def claim_gate(overall: dict[str, Any], summary: dict[str, Any]) -> dict[str, bool]:
+    r232_ok = (
+        summary["r232_external_crossrepo_supported"]
+        and summary["r232_normal_gate"]
+        and summary["r232_network_gate"]
+    )
     return {
         "claim_readiness_gap_gate_supported": True,
         "reads_generated_artifacts_only": True,
@@ -726,7 +809,7 @@ def claim_gate(overall: dict[str, Any]) -> dict[str, bool]:
         "requires_c4_exact_lineage": "C4/RQ3 controlled exact lineage gates are not supported"
         in (overall.get("blockers") or []),
         "requires_c4_strict_prompt_row_lineage": True,
-        "requires_c4_external_crossrepo_lineage": True,
+        "requires_c4_external_crossrepo_lineage": not r232_ok,
         "requires_c5_human_participants": "C5/RQ4 has no supported real participant outcome"
         in (overall.get("blockers") or []),
         "requires_c6_human_labels": "C6/RQ5 has no supported independent human adequacy labels"
@@ -786,6 +869,16 @@ def write_markdown(path: Path, result: dict[str, Any]) -> None:
             f"{summary['r231_field_unique_llm_mismatch_events']} LLM events, "
             f"external cross-repo supported {str(summary['r231_external_crossrepo_supported']).lower()}."
         ),
+        (
+            f"- R232 external cross-repo lineage: {summary['r232_tasks']} controlled tasks "
+            f"({summary['r232_normal_tasks']} normal, {summary['r232_network_tasks']} network), "
+            f"{summary['r232_in_scope_effect_events']} in-scope effects, target network "
+            f"{summary['r232_joined_target_network_effect_events']}/"
+            f"{summary['r232_target_network_effect_events']} joined, negative joins "
+            f"{summary['r232_negative_joined']}/{summary['r232_negative_observed']}, "
+            f"precision/recall {summary['r232_precision_pct']}%/"
+            f"{summary['r232_recall_pct']}%."
+        ),
         f"- R217 production display buckets/support: {summary['r217_display_buckets']}/{summary['r217_support']}.",
         f"- R218 preview accepted/rejected rows: {summary['r218_accepted_diff_rows']}/{summary['r218_rejected_rows']}.",
         f"- C5 participant responses: {summary['c5_responses']}.",
@@ -821,8 +914,8 @@ def build_result(args: argparse.Namespace) -> dict[str, Any]:
     claims = claim_rows(summary)
     rqs = rq_rows(summary)
     next_rows = next_experiment_rows()
-    overall = overall_status(claims)
-    gate = claim_gate(overall)
+    overall = overall_status(claims, summary)
+    gate = claim_gate(overall, summary)
     return {
         "schema_version": 1,
         "run_id": "R219",
