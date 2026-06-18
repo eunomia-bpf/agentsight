@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-18
 Stage at update: analyze
-Source/command: R170 full-history run plus `python3 docs/visexp/r189_tag_consolidation.py`, `python3 docs/visexp/r190_tag_consolidation_audit.py`, `python3 docs/visexp/r190_score_merge_audit.py`, `python3 docs/visexp/r196_long_tail_governance.py`, `python3 docs/visexp/r201_long_tail_sensitivity.py`, `python3 docs/visexp/r202_long_tail_regeneration_smoke.py --regenerate-limit 50 --load-timeout 240 --llama-timeout 60`, `python3 docs/visexp/r203_long_tail_promotion_gate.py`, `python3 docs/visexp/r205_long_tail_compaction_metrics.py`, `python3 docs/visexp/r209_reversible_display_map.py`, `python3 docs/visexp/r211_stack_examples.py`, `python3 docs/visexp/r212_display_compaction_ablation.py`, `python3 docs/visexp/r213_display_mode_drilldown_smoke.py`, `python3 docs/visexp/r214_long_tail_control_loop.py`, `python3 docs/visexp/r215_frontend_renderer_mode_smoke.py`, `python3 docs/visexp/r216_browser_dom_mode_smoke.py`, `python3 docs/visexp/r217_production_react_display_mode_smoke.py`, `python3 docs/visexp/r218_display_map_update_gate.py`, `python3 docs/visexp/r219_claim_readiness_gap_gate.py`, `python3 docs/visexp/r193_prepare_human_evidence_package.py`, `python3 docs/visexp/r194_human_evidence_preflight.py`, `python3 docs/visexp/r195_human_evidence_pipeline.py`, `python3 docs/visexp/r207_human_launch_readiness.py`, `python3 docs/visexp/r200_community_smoke.py`, `python3 docs/visexp/r131_semantic_ablation.py --input .agentsight/agentflame/r170-full-current --local-out .agentsight/agentflame/ablations-r224-r170/summary.json --out-dir docs/visexp/out/semantic-ablation-r224-r170`, `python3 docs/visexp/r223_projection_tradeoff.py`, `python3 docs/visexp/r225_prompt_span_duration_baseline.py`, `docs/visexp/LONG_TAIL_COMPACTION.md`, `docs/visexp/out/osdi-gate-review-r204.md`, `docs/visexp/out/osdi-rq-gate-review-r206.md`, and `docs/visexp/out/osdi-gate-review-r208.md`
+Source/command: R170 full-history run plus `python3 docs/visexp/r189_tag_consolidation.py`, `python3 docs/visexp/r190_tag_consolidation_audit.py`, `python3 docs/visexp/r190_score_merge_audit.py`, `python3 docs/visexp/r196_long_tail_governance.py`, `python3 docs/visexp/r201_long_tail_sensitivity.py`, `python3 docs/visexp/r202_long_tail_regeneration_smoke.py --regenerate-limit 50 --load-timeout 240 --llama-timeout 60`, `python3 docs/visexp/r203_long_tail_promotion_gate.py`, `python3 docs/visexp/r205_long_tail_compaction_metrics.py`, `python3 docs/visexp/r209_reversible_display_map.py`, `python3 docs/visexp/r211_stack_examples.py`, `python3 docs/visexp/r212_display_compaction_ablation.py`, `python3 docs/visexp/r213_display_mode_drilldown_smoke.py`, `python3 docs/visexp/r214_long_tail_control_loop.py`, `python3 docs/visexp/r215_frontend_renderer_mode_smoke.py`, `python3 docs/visexp/r216_browser_dom_mode_smoke.py`, `python3 docs/visexp/r217_production_react_display_mode_smoke.py`, `python3 docs/visexp/r218_display_map_update_gate.py`, `python3 docs/visexp/r220_fresh_clone_agentpprof_smoke.py`, `python3 docs/visexp/r219_claim_readiness_gap_gate.py`, `python3 docs/visexp/r193_prepare_human_evidence_package.py`, `python3 docs/visexp/r194_human_evidence_preflight.py`, `python3 docs/visexp/r195_human_evidence_pipeline.py`, `python3 docs/visexp/r207_human_launch_readiness.py`, `python3 docs/visexp/r200_community_smoke.py`, `python3 docs/visexp/r131_semantic_ablation.py --input .agentsight/agentflame/r170-full-current --local-out .agentsight/agentflame/ablations-r224-r170/summary.json --out-dir docs/visexp/out/semantic-ablation-r224-r170`, `python3 docs/visexp/r223_projection_tradeoff.py`, `python3 docs/visexp/r225_prompt_span_duration_baseline.py`, `docs/visexp/LONG_TAIL_COMPACTION.md`, `docs/visexp/out/osdi-gate-review-r204.md`, `docs/visexp/out/osdi-rq-gate-review-r206.md`, `docs/visexp/out/osdi-gate-review-r208.md`, and `docs/visexp/out/osdi-gate-review-r228.md`
 Completeness: partial
 
 ## Headline Result
@@ -276,6 +276,25 @@ methodological issue. The current R225 revision addresses that issue by
 reconstructing covered prompt-index system effects from the same R170
 `agentflame.json` and checking them against the folded file.
 
+R220 adds a local clean-clone smoke for the new `agentpprof` user entrypoint.
+It clones the repository into a temporary checkout, creates a public synthetic
+Codex fixture under `.codex/sessions/...`, runs the real Rust CLI with the
+deterministic regex tagger, and reads the generated pprof protobuf with
+`go tool pprof -top`. It produces nonzero tasks/tools/tokens/files/network
+projections with samples 6/4/190/3/1, writes folded/SVG/JSON/profile artifacts,
+passes fixture-level expected-stack checks for tools/files/network/token
+components, passes output-containment and privacy scans, and records no real
+agent-history reads and no LLM calls. This strengthens C7 local artifact usability for
+`agentpprof`, but it is not external adoption, llama.cpp setup evidence,
+real-history public sanitization, C5 user utility, or C6 tag adequacy.
+
+R228 records the read-only OSDI subagent review after R220. The review accepts
+R220 only as narrow C7 local clean-clone/pprof-readback evidence, keeps the
+project at not weak accept because C5/C6 remain missing, and flags two R220
+polish points. The current R220 revision addresses them by adding
+fixture-level expected-stack checks and by making parent worktree dirtiness a
+non-gating provenance note.
+
 ## Completed Runs
 
 | Run | Command/config | Result path | Status |
@@ -306,6 +325,7 @@ reconstructing covered prompt-index system effects from the same R170
 | R188 | Read-only OSDI plan review after R187 | `docs/visexp/out/osdi-plan-review-r188.md` | Level 3; still not weak accept; R142/R124 real evidence next |
 | R160 | Bounded fixed-session artifact-usability smoke over 8 historical Codex sessions, with clean and cached AgentFlame runs | `docs/visexp/out/artifact-usability-r160.json` | done/bounded; C7 remains partial |
 | R200 | Public-safe generated-fixture AgentFlame community smoke with managed llama.cpp clean/cached run | `docs/visexp/out/community-smoke-r200.json`, `docs/visexp/out/community-smoke-r200.md` | done/artifact-hygiene; no adoption claim |
+| R220 | Fresh-clone `agentpprof` community smoke with public fixture and Go pprof readback | `docs/visexp/out/fresh-clone-agentpprof-r220/fresh-clone-agentpprof-r220.json`, `docs/visexp/out/fresh-clone-agentpprof-r220/pprof-top-r220.txt`, `docs/visexp/out/fresh-clone-agentpprof-r220/profiles/tasks.pb.gz` | done/local clean-clone smoke; C7 remains partial |
 | R170 | Current full-history AgentFlame refresh over all discovered repo sessions with real llama.cpp annotation calls | `docs/visexp/out/full-history-r170.json` | done/mechanism; not C5/C6 |
 | R189 | Canonical tag consolidation over R170 folded stacks and tag profiles | `docs/visexp/out/tag-consolidation-r189/tag-consolidation-r189.json` | done/noise-control mechanism; not adequacy |
 | R190 | Canonical tag consolidation ablation and merge-risk audit packet | `docs/visexp/out/tag-consolidation-audit-r190/tag-consolidation-audit-r190.json` | done/audit-packet-ready; no labels |
@@ -329,6 +349,7 @@ reconstructing covered prompt-index system effects from the same R170
 | R223 | Projection tradeoff summary over R224/R205/R209/R212/R219 generated artifacts | `docs/visexp/out/projection-tradeoff-r223/projection-tradeoff-r223.json`, `docs/visexp/out/projection-tradeoff-r223/projection-tradeoff-r223.md` | done/RQ2 tradeoff artifact; no C5/C6 outcome claim |
 | R225 | Prompt wall-clock duration baseline from R170 timestamps | `docs/visexp/out/prompt-span-duration-r225/prompt-span-duration-r225.json`, `docs/visexp/out/prompt-span-duration-r225/prompt-span-duration-r225.md`, `docs/visexp/out/prompt-span-duration-r225/prompt-span-duration.svg` | done/prompt-span duration baseline; covered effects 183,714/183,714; may include idle/wait time; no active runtime, true tool/LLM spans, or C5/C6 outcome claim |
 | R226 | Read-only OSDI review after R225 integration | `docs/visexp/out/osdi-gate-review-r226.md` | not weak accept; R225 useful but C5/C6 remain blockers |
+| R228 | Read-only OSDI review after R220 integration | `docs/visexp/out/osdi-gate-review-r228.md` | not weak accept; R220 useful for C7 local clean-clone scope but C5/C6 remain blockers |
 | R204 | Read-only OSDI gate review after long-tail promotion and human-evidence integration | `docs/visexp/out/osdi-gate-review-r204.md` | Level 3/not weak accept; no must-fix overclaim found |
 | R206 | Read-only OSDI RQ/experiment-plan gate review after R205 and RQ summary revision | `docs/visexp/out/osdi-rq-gate-review-r206.md` | no material plan-wording blocker; Level 3/not weak accept because C5/C6 evidence missing |
 | R208 | Read-only OSDI gate review after R205/R207 paper-plan alignment | `docs/visexp/out/osdi-gate-review-r208.md` | Level 3/not weak accept; latest revisions improve scoping/readiness but not outcome evidence |
@@ -372,6 +393,18 @@ dirty, and the committed summary redacts local paths. This strengthens C7
 artifact hygiene only: it is not a fresh-clone install on another machine, not
 public-release sanitization of real `.agentsight` reports, not full write-set
 containment, and not external developer feedback.
+
+R220 moves the public-fixture path to the productized `agentpprof` entrypoint
+and a clean local clone. It uses no llama.cpp server, so it validates the
+deterministic regex baseline and pprof export path rather than LLM tag quality.
+The smoke writes `tasks.pb.gz`, `tools.folded`, `tokens.json`, `files.folded`,
+`network.folded`, and `tools.svg`, then verifies `go tool pprof -top` reports
+6 total task samples and the expected fixture stacks are present for read/test,
+network, file, and token components. The clean clone was empty before fixture creation; the
+only clone-local dirty path after the run was the synthetic `.codex/` fixture;
+all committed outputs stayed under `docs/visexp/out/fresh-clone-agentpprof-r220`.
+This closes the local clean-clone/readback gap, but external-machine install,
+real report sanitization, llama.cpp setup, and developer feedback remain open.
 
 ## Current Full-Run Metrics
 
