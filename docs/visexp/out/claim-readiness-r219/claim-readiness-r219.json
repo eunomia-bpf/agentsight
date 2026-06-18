@@ -38,11 +38,11 @@
       "verdict": "supported_as_mechanism"
     },
     {
-      "blocking_gap": "full-history exact integration, cross-repo replication, and broader network workloads remain partial",
+      "blocking_gap": "true full-history exact integration, broader network workloads, and external cross-repo replication remain partial",
       "claim": "C4 exact semantic-effect lineage",
       "evidence_level": "controlled-live-lineage",
-      "next_gate": "full-history/cross-repo exact lineage replication",
-      "primary_evidence": "R114 status ok: precision 100.0%, recall 100.0%, negative joins 0/3170; R182 network status partial; R191 status ok: target network 4/4 joined, negative joins 0/310, precision/recall 100.0%/100.0%",
+      "next_gate": "full-history/cross-repo exact lineage integration",
+      "primary_evidence": "R114 status ok: precision 100.0%, recall 100.0%, negative joins 0/3170; R182 network status partial; R191 status ok: target network 4/4 joined, negative joins 0/310, precision/recall 100.0%/100.0%; R229 status ok: 5 tasks, in-scope effects 394, negative joins 0/306, precision/recall 100.0%/100.0%",
       "verdict": "supported_for_fixed_command_mode_suite"
     },
     {
@@ -70,7 +70,7 @@
       "verdict": "partial"
     }
   ],
-  "generated_at": "2026-06-18T20:46:15+00:00",
+  "generated_at": "2026-06-18T21:05:03+00:00",
   "next_experiments": [
     {
       "block": "B4",
@@ -105,12 +105,12 @@
     {
       "block": "B3",
       "claim": "C4/RQ3",
-      "command_or_input": "fresh controlled multi-repo runs plus a full-history exact-lineage integration pass",
+      "command_or_input": "fresh controlled external-repo runs plus a full-history exact-lineage integration pass",
       "oracle": "scoped in-history effects join without negative-control joins; target-network gate remains clean",
       "priority": "P1",
-      "purpose": "Replicate exact lineage beyond fixed command-mode tasks over full-history or cross-repo workloads.",
-      "result_path": "docs/visexp/out/full-history-lineage-r229/",
-      "run_id": "R229-full-history-exact-lineage"
+      "purpose": "Replicate exact lineage beyond controlled command-mode workspaces over full-history or external cross-repo workloads.",
+      "result_path": "docs/visexp/out/full-history-lineage-r230/",
+      "run_id": "R230-full-history-exact-lineage"
     },
     {
       "block": "B7",
@@ -164,9 +164,9 @@
     },
     {
       "evidence_level": "controlled live AgentSight suite",
-      "falsifier_remaining": "arbitrary-history capture, broader network workloads, and cross-repo replication remain open",
-      "next_gate": "full-history/cross-repo exact lineage replication",
-      "primary_evidence": "R114 precision 100.0%, recall 100.0%; R191 target network 4/4 joined",
+      "falsifier_remaining": "arbitrary-history capture, broader network workloads, and external cross-repo replication remain open",
+      "next_gate": "full-history/cross-repo exact lineage integration",
+      "primary_evidence": "R114 precision 100.0%, recall 100.0%; R191 target network 4/4 joined; R229 5 controlled multi-workspace tasks, 394 in-scope effects",
       "rq": "RQ3 exact lineage",
       "verdict": "supported_for_fixed_command_mode_suite"
     },
@@ -224,7 +224,8 @@
     "r218_update_gate": "docs/visexp/out/display-map-update-gate-r218/display-map-update-gate-r218.json",
     "r220_fresh_clone_agentpprof": "docs/visexp/out/fresh-clone-agentpprof-r220/fresh-clone-agentpprof-r220.json",
     "r223_projection_tradeoff": "docs/visexp/out/projection-tradeoff-r223/projection-tradeoff-r223.json",
-    "r225_prompt_span_duration": "docs/visexp/out/prompt-span-duration-r225/prompt-span-duration-r225.json"
+    "r225_prompt_span_duration": "docs/visexp/out/prompt-span-duration-r225/prompt-span-duration-r225.json",
+    "r229_exact_lineage_replication": "docs/visexp/out/exact-lineage-replication-r229.json"
   },
   "status": "osdi_weak_accept_not_supported",
   "summary": {
@@ -289,6 +290,17 @@
     "r225_prompt_spans": 2858,
     "r225_spearman": 0.623,
     "r225_top10_overlap": 7,
-    "r225_true_tool_or_llm_duration_supported": false
+    "r225_true_tool_or_llm_duration_supported": false,
+    "r229_effect_events": 1080,
+    "r229_in_scope_effect_events": 394,
+    "r229_joined_effect_events": 394,
+    "r229_negative_joined": 0,
+    "r229_negative_observed": 306,
+    "r229_out_of_scope_effect_events": 380,
+    "r229_precision_pct": 100.0,
+    "r229_raw_join_pct": 36.481,
+    "r229_recall_pct": 100.0,
+    "r229_status": "ok",
+    "r229_tasks": 5
   }
 }
