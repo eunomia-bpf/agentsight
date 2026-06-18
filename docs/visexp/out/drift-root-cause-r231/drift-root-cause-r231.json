@@ -1,0 +1,527 @@
+{
+  "claim_boundary": "R231 explains the R230 drift at the generated-artifact layer. The semantic flamegraph display projection exactly matches event-local tool prompt tags, but raw prompt-row lineage is not strict because a small set of Claude sessions contains duplicate prompt indexes and event-local tags can differ from prompt-row tags. R231 does not run fresh live eBPF capture, does not prove external cross-repo lineage, and does not provide C5/C6 human evidence.",
+  "claim_gate": {
+    "counts_as_c5_or_c6_human_evidence": false,
+    "display_projection_matches_event_local_prompt_tags": true,
+    "external_crossrepo_live_lineage_supported": false,
+    "field_index_drift_localized_to_duplicate_index_sessions": true,
+    "llm_called": false,
+    "r230_field_index_drift_reproduced": true,
+    "raw_trace_read": false,
+    "reads_generated_artifacts_only": true,
+    "strict_prompt_row_lineage_supported": false
+  },
+  "display_projection": {
+    "diff_sample": [],
+    "diff_tag_count": 0,
+    "event_total_weight": 183714,
+    "exact_match": true,
+    "folded_total_weight": 183714
+  },
+  "duplicate_prompt_index_sessions": [
+    {
+      "duplicate_indexes": "18,19,20",
+      "duplicate_prompt_index_rows": 3,
+      "prompt_rows": 21,
+      "session_id_hash": "06e833bf9c34",
+      "session_tag": "refactor",
+      "source": "claude",
+      "unique_prompt_indexes": 18
+    },
+    {
+      "duplicate_indexes": "21,22,23,24",
+      "duplicate_prompt_index_rows": 4,
+      "prompt_rows": 25,
+      "session_id_hash": "6765fb5303b8",
+      "session_tag": "review",
+      "source": "claude",
+      "unique_prompt_indexes": 21
+    },
+    {
+      "duplicate_indexes": "8",
+      "duplicate_prompt_index_rows": 1,
+      "prompt_rows": 9,
+      "session_id_hash": "4c203198c03c",
+      "session_tag": "review",
+      "source": "claude",
+      "unique_prompt_indexes": 8
+    },
+    {
+      "duplicate_indexes": "18,19",
+      "duplicate_prompt_index_rows": 2,
+      "prompt_rows": 20,
+      "session_id_hash": "b67753a05e43",
+      "session_tag": "refactor",
+      "source": "claude",
+      "unique_prompt_indexes": 18
+    },
+    {
+      "duplicate_indexes": "22,23",
+      "duplicate_prompt_index_rows": 2,
+      "prompt_rows": 24,
+      "session_id_hash": "9294a376a5b1",
+      "session_tag": "review",
+      "source": "claude",
+      "unique_prompt_indexes": 22
+    }
+  ],
+  "generated_at": "2026-06-18T21:37:36+00:00",
+  "inputs": {
+    "agentflame_json": ".agentsight/agentflame/r170-full-current/agentflame.json",
+    "agentflame_json_sha256": "32a11de291ac11a8c8b79b4a616af72edb4cf6b9ab4ad95b9109baa1fac09924",
+    "r230_json": "docs/visexp/out/full-history-lineage-r230/full-history-lineage-r230.json",
+    "r230_json_sha256": "1a5084d191b6d77dbbd09e2460548ad55c914780fc1bf3d2a0f50ad93d80eda5",
+    "semantic_system_folded": ".agentsight/agentflame/r170-full-current/semantic-system.folded.txt",
+    "semantic_system_folded_sha256": "350d716412792826368e9778d153ac7cbe7a717b7280c40b32f71ba8b6d1789d"
+  },
+  "mismatch_by_duplicate_session": [
+    {
+      "kind": "tool",
+      "semantics": "position",
+      "session_index_class": "duplicate_session",
+      "weight": 2048
+    },
+    {
+      "kind": "llm",
+      "semantics": "position",
+      "session_index_class": "duplicate_session",
+      "weight": 1144
+    },
+    {
+      "kind": "tool",
+      "semantics": "field",
+      "session_index_class": "duplicate_session",
+      "weight": 346
+    },
+    {
+      "kind": "llm",
+      "semantics": "field",
+      "session_index_class": "duplicate_session",
+      "weight": 93
+    }
+  ],
+  "mismatch_by_source": [
+    {
+      "kind": "tool",
+      "semantics": "position",
+      "source": "claude",
+      "weight": 2048
+    },
+    {
+      "kind": "llm",
+      "semantics": "position",
+      "source": "claude",
+      "weight": 1144
+    },
+    {
+      "kind": "tool",
+      "semantics": "field",
+      "source": "claude",
+      "weight": 346
+    },
+    {
+      "kind": "llm",
+      "semantics": "field",
+      "source": "claude",
+      "weight": 93
+    }
+  ],
+  "outputs": {
+    "drift_samples_csv": "docs/visexp/out/drift-root-cause-r231/drift-samples-r231.csv",
+    "duplicate_prompt_index_sessions_csv": "docs/visexp/out/drift-root-cause-r231/duplicate-prompt-index-sessions-r231.csv",
+    "json": "docs/visexp/out/drift-root-cause-r231/drift-root-cause-r231.json",
+    "markdown": "docs/visexp/out/drift-root-cause-r231/drift-root-cause-r231.md",
+    "mismatch_pairs_csv": "docs/visexp/out/drift-root-cause-r231/mismatch-pairs-r231.csv"
+  },
+  "prompt_row_lineage_projections": {
+    "field_index": {
+      "description": "Join event prompt_index to prompt rows by the prompt row's index field, using the last row for duplicate indexes.",
+      "llm": {
+        "invalid": 0,
+        "invalid_pct": 0.0,
+        "kind": "llm",
+        "match": 114744,
+        "metric": "events",
+        "mismatch": 93,
+        "mismatch_pct": 0.081,
+        "semantics": "field",
+        "strict_consistency_supported": false,
+        "total": 114837
+      },
+      "tool": {
+        "invalid": 0,
+        "invalid_pct": 0.0,
+        "kind": "tool",
+        "match": 183368,
+        "metric": "weight",
+        "mismatch": 346,
+        "mismatch_pct": 0.188,
+        "semantics": "field",
+        "strict_consistency_supported": false,
+        "total": 183714
+      }
+    },
+    "list_position": {
+      "description": "Interpret event prompt_index as a zero-based position in the prompt row list.",
+      "llm": {
+        "invalid": 2,
+        "invalid_pct": 0.002,
+        "kind": "llm",
+        "match": 113691,
+        "metric": "events",
+        "mismatch": 1144,
+        "mismatch_pct": 0.996,
+        "semantics": "position",
+        "strict_consistency_supported": false,
+        "total": 114837
+      },
+      "tool": {
+        "invalid": 0,
+        "invalid_pct": 0.0,
+        "kind": "tool",
+        "match": 181666,
+        "metric": "weight",
+        "mismatch": 2048,
+        "mismatch_pct": 1.115,
+        "semantics": "position",
+        "strict_consistency_supported": false,
+        "total": 183714
+      }
+    }
+  },
+  "provenance": {
+    "repo_commit": "e758c69761c52abd16eefdc8dded6643f5669bdb",
+    "repo_dirty": true,
+    "script": "docs/visexp/r231_drift_root_cause_audit.py",
+    "script_sha256": "ea480688754f55b5dec187c22b3bd518d64323468899147bbe1ab87078784131"
+  },
+  "r230_reproduction": {
+    "expected_from_r230": {
+      "duplicate_prompt_index_rows": 12,
+      "llm_ambiguous_events": 577,
+      "llm_field_mismatch_events": 93,
+      "tool_ambiguous_weight": 1026,
+      "tool_field_mismatch_events": 261,
+      "tool_field_mismatch_weight": 346
+    },
+    "matches_r230": true,
+    "observed_by_r231": {
+      "duplicate_prompt_index_rows": 12,
+      "llm_ambiguous_events": 577,
+      "llm_field_mismatch_events": 93,
+      "tool_ambiguous_weight": 1026,
+      "tool_field_mismatch_events": 261,
+      "tool_field_mismatch_weight": 346
+    }
+  },
+  "run_id": "R231",
+  "schema_version": 1,
+  "scope": "generated_artifact_prompt_tag_drift_root_cause_audit",
+  "status": "ok_drift_root_cause_localized",
+  "summary": {
+    "duplicate_prompt_index_rows": 12,
+    "field_llm_mismatch_events": 93,
+    "field_llm_mismatch_pct": 0.081,
+    "field_mismatch_duplicate_session_llm_events": 93,
+    "field_mismatch_duplicate_session_tool_weight": 346,
+    "field_mismatch_sessions": 2,
+    "field_mismatch_unique_session_llm_events": 0,
+    "field_mismatch_unique_session_tool_weight": 0,
+    "field_tool_mismatch_pct": 0.188,
+    "field_tool_mismatch_weight": 346,
+    "llm_events": 114837,
+    "position_llm_mismatch_events": 1144,
+    "position_llm_mismatch_pct": 0.996,
+    "position_mismatch_sessions": 4,
+    "position_tool_mismatch_pct": 1.115,
+    "position_tool_mismatch_weight": 2048,
+    "prompt_rows": 2859,
+    "sessions": 325,
+    "sessions_with_duplicate_prompt_indexes": 5,
+    "tool_events": 142468,
+    "tool_weight": 183714,
+    "unique_prompt_indexes": 2847
+  },
+  "top_mismatch_pairs": [
+    {
+      "event_prompt_tag": "test",
+      "kind": "tool",
+      "row_tag": "review",
+      "semantics": "field",
+      "weight": 304
+    },
+    {
+      "event_prompt_tag": "test",
+      "kind": "tool",
+      "row_tag": "review",
+      "semantics": "position",
+      "weight": 304
+    },
+    {
+      "event_prompt_tag": "refactor",
+      "kind": "llm",
+      "row_tag": "docs",
+      "semantics": "position",
+      "weight": 303
+    },
+    {
+      "event_prompt_tag": "refactor",
+      "kind": "tool",
+      "row_tag": "docs",
+      "semantics": "position",
+      "weight": 261
+    },
+    {
+      "event_prompt_tag": "docs",
+      "kind": "tool",
+      "row_tag": "perfreview",
+      "semantics": "position",
+      "weight": 246
+    },
+    {
+      "event_prompt_tag": "commit",
+      "kind": "llm",
+      "row_tag": "deployed",
+      "semantics": "position",
+      "weight": 198
+    },
+    {
+      "event_prompt_tag": "workspace",
+      "kind": "tool",
+      "row_tag": "refactor",
+      "semantics": "position",
+      "weight": 180
+    },
+    {
+      "event_prompt_tag": "metrics",
+      "kind": "tool",
+      "row_tag": "review",
+      "semantics": "position",
+      "weight": 168
+    },
+    {
+      "event_prompt_tag": "deployed",
+      "kind": "tool",
+      "row_tag": "review",
+      "semantics": "position",
+      "weight": 165
+    },
+    {
+      "event_prompt_tag": "commit",
+      "kind": "tool",
+      "row_tag": "deployed",
+      "semantics": "position",
+      "weight": 165
+    },
+    {
+      "event_prompt_tag": "metrics",
+      "kind": "llm",
+      "row_tag": "review",
+      "semantics": "position",
+      "weight": 145
+    },
+    {
+      "event_prompt_tag": "test",
+      "kind": "llm",
+      "row_tag": "review",
+      "semantics": "field",
+      "weight": 89
+    },
+    {
+      "event_prompt_tag": "test",
+      "kind": "llm",
+      "row_tag": "review",
+      "semantics": "position",
+      "weight": 89
+    },
+    {
+      "event_prompt_tag": "workspace",
+      "kind": "llm",
+      "row_tag": "refactor",
+      "semantics": "position",
+      "weight": 88
+    },
+    {
+      "event_prompt_tag": "review",
+      "kind": "tool",
+      "row_tag": "metrics",
+      "semantics": "position",
+      "weight": 71
+    },
+    {
+      "event_prompt_tag": "design",
+      "kind": "tool",
+      "row_tag": "review",
+      "semantics": "position",
+      "weight": 65
+    },
+    {
+      "event_prompt_tag": "refactor",
+      "kind": "tool",
+      "row_tag": "explain",
+      "semantics": "position",
+      "weight": 53
+    },
+    {
+      "event_prompt_tag": "review",
+      "kind": "llm",
+      "row_tag": "metrics",
+      "semantics": "position",
+      "weight": 48
+    },
+    {
+      "event_prompt_tag": "design",
+      "kind": "llm",
+      "row_tag": "review",
+      "semantics": "position",
+      "weight": 44
+    },
+    {
+      "event_prompt_tag": "docs",
+      "kind": "tool",
+      "row_tag": "review",
+      "semantics": "position",
+      "weight": 44
+    },
+    {
+      "event_prompt_tag": "refactor",
+      "kind": "tool",
+      "row_tag": "block",
+      "semantics": "position",
+      "weight": 41
+    },
+    {
+      "event_prompt_tag": "block",
+      "kind": "tool",
+      "row_tag": "parse",
+      "semantics": "field",
+      "weight": 40
+    },
+    {
+      "event_prompt_tag": "block",
+      "kind": "tool",
+      "row_tag": "parse",
+      "semantics": "position",
+      "weight": 40
+    },
+    {
+      "event_prompt_tag": "review",
+      "kind": "tool",
+      "row_tag": "website",
+      "semantics": "position",
+      "weight": 38
+    },
+    {
+      "event_prompt_tag": "refactor",
+      "kind": "llm",
+      "row_tag": "block",
+      "semantics": "position",
+      "weight": 34
+    },
+    {
+      "event_prompt_tag": "refactor",
+      "kind": "tool",
+      "row_tag": "design",
+      "semantics": "position",
+      "weight": 33
+    },
+    {
+      "event_prompt_tag": "refactor",
+      "kind": "llm",
+      "row_tag": "design",
+      "semantics": "position",
+      "weight": 33
+    },
+    {
+      "event_prompt_tag": "website",
+      "kind": "tool",
+      "row_tag": "refactor",
+      "semantics": "position",
+      "weight": 31
+    },
+    {
+      "event_prompt_tag": "workshop",
+      "kind": "tool",
+      "row_tag": "refactor",
+      "semantics": "position",
+      "weight": 31
+    },
+    {
+      "event_prompt_tag": "refactor",
+      "kind": "tool",
+      "row_tag": "review",
+      "semantics": "position",
+      "weight": 30
+    },
+    {
+      "event_prompt_tag": "docs",
+      "kind": "llm",
+      "row_tag": "perfreview",
+      "semantics": "position",
+      "weight": 27
+    },
+    {
+      "event_prompt_tag": "perfreview",
+      "kind": "tool",
+      "row_tag": "build",
+      "semantics": "position",
+      "weight": 26
+    },
+    {
+      "event_prompt_tag": "design",
+      "kind": "tool",
+      "row_tag": "refactor",
+      "semantics": "position",
+      "weight": 25
+    },
+    {
+      "event_prompt_tag": "review",
+      "kind": "llm",
+      "row_tag": "refactor",
+      "semantics": "position",
+      "weight": 24
+    },
+    {
+      "event_prompt_tag": "review",
+      "kind": "tool",
+      "row_tag": "refactor",
+      "semantics": "position",
+      "weight": 23
+    },
+    {
+      "event_prompt_tag": "design",
+      "kind": "llm",
+      "row_tag": "refactor",
+      "semantics": "position",
+      "weight": 23
+    },
+    {
+      "event_prompt_tag": "website",
+      "kind": "llm",
+      "row_tag": "refactor",
+      "semantics": "position",
+      "weight": 23
+    },
+    {
+      "event_prompt_tag": "workshop",
+      "kind": "llm",
+      "row_tag": "refactor",
+      "semantics": "position",
+      "weight": 13
+    },
+    {
+      "event_prompt_tag": "refactor",
+      "kind": "llm",
+      "row_tag": "review",
+      "semantics": "position",
+      "weight": 12
+    },
+    {
+      "event_prompt_tag": "review",
+      "kind": "llm",
+      "row_tag": "website",
+      "semantics": "position",
+      "weight": 9
+    }
+  ]
+}
