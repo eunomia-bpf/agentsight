@@ -27,6 +27,7 @@ SOURCE_PATHS = {
     "r131_semantic_ablation": "docs/visexp/out/semantic-ablation-r131.json",
     "r114_live_record": "docs/visexp/out/live-record-r114.json",
     "r182_live_network": "docs/visexp/out/live-network-r182.json",
+    "r191_target_network": "docs/visexp/out/live-network-r191.json",
     "r184_weak_accept": "docs/visexp/out/weak-accept-gate-r184.json",
     "r195_human_pipeline": "docs/visexp/out/human-evidence-pipeline-r195.json",
     "r207_launch_readiness": "docs/visexp/out/human-evidence-launch-r207/human-evidence-launch-r207.json",
@@ -112,11 +113,34 @@ def percent(numerator: int, denominator: int) -> float:
     return round(100.0 * numerator / denominator, 3)
 
 
+def c4_lineage_supported(status: dict[str, Any]) -> bool:
+    r114_ok = (
+        status["r114_status"] == "ok"
+        and float(status["r114_precision_pct"]) >= 98.0
+        and float(status["r114_recall_pct"]) >= 95.0
+        and as_int(status["r114_negative_observed"]) > 0
+        and as_int(status["r114_negative_joined"]) == 0
+    )
+    r191_target = as_int(status["r191_target_network_effect_events"])
+    r191_joined = as_int(status["r191_joined_target_network_effect_events"])
+    r191_ok = (
+        status["r191_status"] == "ok"
+        and r191_target > 0
+        and r191_joined == r191_target
+        and as_int(status["r191_negative_observed"]) > 0
+        and as_int(status["r191_negative_joined"]) == 0
+        and float(status["r191_precision_pct"]) >= 98.0
+        and float(status["r191_recall_pct"]) >= 95.0
+    )
+    return r114_ok and r191_ok
+
+
 def artifact_statuses(artifacts: dict[str, dict[str, Any]]) -> dict[str, Any]:
     r170 = artifacts["r170_full_history"]
     r180 = artifacts["r180_model_benchmarks"]
     r114 = artifacts["r114_live_record"]
     r182 = artifacts["r182_live_network"]
+    r191 = artifacts["r191_target_network"]
     r184 = artifacts["r184_weak_accept"]
     r195 = artifacts["r195_human_pipeline"]
     r160 = artifacts["r160_artifact_usability"]
@@ -140,6 +164,7 @@ def artifact_statuses(artifacts: dict[str, dict[str, Any]]) -> dict[str, Any]:
     r114_fn = as_int(r114_aggregate.get("false_negatives"))
     r114_negative_joined = as_int(r114_aggregate.get("negative_joined_effect_events"))
     r114_negative_observed = as_int(r114_aggregate.get("negative_effect_events_observed"))
+    r191_aggregate = r191.get("aggregate") or {}
 
     r170_summary = r170.get("summary") or {}
     r180_aggregate = r180.get("aggregate") or {}
@@ -181,6 +206,15 @@ def artifact_statuses(artifacts: dict[str, dict[str, Any]]) -> dict[str, Any]:
         "r114_negative_joined": r114_negative_joined,
         "r114_negative_observed": r114_negative_observed,
         "r182_status": r182.get("status"),
+        "r191_status": r191.get("status"),
+        "r191_target_network_effect_events": as_int(r191_aggregate.get("target_network_effect_events")),
+        "r191_joined_target_network_effect_events": as_int(
+            r191_aggregate.get("joined_target_network_effect_events")
+        ),
+        "r191_negative_joined": as_int(r191_aggregate.get("negative_joined_effect_events")),
+        "r191_negative_observed": as_int(r191_aggregate.get("negative_effect_events_observed")),
+        "r191_precision_pct": r191_aggregate.get("precision_pct", "n/a"),
+        "r191_recall_pct": r191_aggregate.get("recall_pct", "n/a"),
         "r184_status": r184.get("status"),
         "r195_status": r195.get("status"),
         "r160_status": r160.get("status"),
@@ -229,6 +263,7 @@ def artifact_statuses(artifacts: dict[str, dict[str, Any]]) -> dict[str, Any]:
 def claim_rows(status: dict[str, Any]) -> list[dict[str, str]]:
     c5_missing = status["c5_participants"] == 0 or status["c5_responses"] == 0
     c6_missing = status["c6_final_labels"] == 0
+    c4_ok = c4_lineage_supported(status)
     return [
         {
             "claim": "C1 semantic folded stacks over real histories",
@@ -272,16 +307,28 @@ def claim_rows(status: dict[str, Any]) -> list[dict[str, str]]:
         },
         {
             "claim": "C4 exact semantic-effect lineage",
-            "verdict": "supported_for_fixed_command_mode_suite",
-            "evidence_level": "controlled-live-lineage",
+            "verdict": "supported_for_fixed_command_mode_suite" if c4_ok else "partial_or_failed",
+            "evidence_level": "controlled-live-lineage" if c4_ok else "insufficient-controlled-live-lineage",
             "primary_evidence": (
                 f"R114 status {status['r114_status']}: precision {status['r114_precision_pct']}%, "
                 f"recall {status['r114_recall_pct']}%, negative joins "
                 f"{status['r114_negative_joined']}/{status['r114_negative_observed']}; "
-                f"R182 network status {status['r182_status']}"
+                f"R182 network status {status['r182_status']}; R191 status {status['r191_status']}: "
+                f"target network {status['r191_joined_target_network_effect_events']}/"
+                f"{status['r191_target_network_effect_events']} joined, negative joins "
+                f"{status['r191_negative_joined']}/{status['r191_negative_observed']}, "
+                f"precision/recall {status['r191_precision_pct']}%/{status['r191_recall_pct']}%"
             ),
-            "blocking_gap": "target-specific network and cross-repo/full-history exact capture remain partial",
-            "next_gate": "R191 target-specific network lineage hardening",
+            "blocking_gap": (
+                "full-history exact integration, cross-repo replication, and broader network workloads remain partial"
+                if c4_ok
+                else "R114/R191 lineage gates did not all pass; rerun controlled lineage before broader replication"
+            ),
+            "next_gate": (
+                "full-history/cross-repo exact lineage replication"
+                if c4_ok
+                else "rerun R114 and R191, requiring target rows > 0, all joined, and negative joins = 0"
+            ),
         },
         {
             "claim": "C5 developer utility",
@@ -327,6 +374,7 @@ def claim_rows(status: dict[str, Any]) -> list[dict[str, str]]:
 
 
 def rq_rows(status: dict[str, Any]) -> list[dict[str, str]]:
+    c4_ok = c4_lineage_supported(status)
     return [
         {
             "rq": "RQ1 feasibility/cost",
@@ -346,11 +394,23 @@ def rq_rows(status: dict[str, Any]) -> list[dict[str, str]]:
         },
         {
             "rq": "RQ3 exact lineage",
-            "verdict": "supported_for_fixed_command_mode_suite",
-            "evidence_level": "controlled live AgentSight suite",
-            "primary_evidence": f"R114 precision {status['r114_precision_pct']}%, recall {status['r114_recall_pct']}%",
-            "falsifier_remaining": "target-specific network and arbitrary-history capture remain open",
-            "next_gate": "R191 target-specific network suite",
+            "verdict": "supported_for_fixed_command_mode_suite" if c4_ok else "partial_or_failed",
+            "evidence_level": "controlled live AgentSight suite" if c4_ok else "insufficient controlled live suite",
+            "primary_evidence": (
+                f"R114 precision {status['r114_precision_pct']}%, recall {status['r114_recall_pct']}%; "
+                f"R191 target network {status['r191_joined_target_network_effect_events']}/"
+                f"{status['r191_target_network_effect_events']} joined"
+            ),
+            "falsifier_remaining": (
+                "arbitrary-history capture, broader network workloads, and cross-repo replication remain open"
+                if c4_ok
+                else "controlled exact-lineage run failed before broader generalization"
+            ),
+            "next_gate": (
+                "full-history/cross-repo exact lineage replication"
+                if c4_ok
+                else "rerun R114/R191 controlled exact-lineage gates"
+            ),
         },
         {
             "rq": "RQ4 developer utility",
@@ -418,13 +478,13 @@ def next_experiment_rows() -> list[dict[str, str]]:
         },
         {
             "priority": "P1",
-            "run_id": "R191-target-network-lineage",
+            "run_id": "R229-full-history-exact-lineage",
             "claim": "C4/RQ3",
             "block": "B3",
-            "purpose": "Harden exact lineage for target-specific network effects rather than low-level agent-process rows only.",
-            "command_or_input": "new fixed Codex network tasks under agentsight record --trace-net",
-            "oracle": "target-specific network events >0, all joined, zero negative-control joins",
-            "result_path": "docs/visexp/out/live-network-r191.json",
+            "purpose": "Replicate exact lineage beyond fixed command-mode tasks over full-history or cross-repo workloads.",
+            "command_or_input": "fresh controlled multi-repo runs plus a full-history exact-lineage integration pass",
+            "oracle": "scoped in-history effects join without negative-control joins; target-network gate remains clean",
+            "result_path": "docs/visexp/out/full-history-lineage-r229/",
         },
         {
             "priority": "P2",
@@ -441,9 +501,12 @@ def next_experiment_rows() -> list[dict[str, str]]:
 
 def overall_status(claims: list[dict[str, str]]) -> dict[str, Any]:
     verdict_by_claim = {row["claim"].split()[0]: row["verdict"] for row in claims}
+    c4_ok = verdict_by_claim.get("C4") == "supported_for_fixed_command_mode_suite"
     c5_ok = verdict_by_claim.get("C5") == "supported"
     c6_ok = verdict_by_claim.get("C6") == "supported"
     blockers: list[str] = []
+    if not c4_ok:
+        blockers.append("C4/RQ3 controlled exact lineage gates are not supported")
     if not c5_ok:
         blockers.append("C5/RQ4 has no supported real participant outcome")
     if not c6_ok:
@@ -470,6 +533,8 @@ def claim_gate(overall: dict[str, Any]) -> dict[str, bool]:
         "raw_trace_read": False,
         "llm_called": False,
         "weak_accept_supported": bool(overall.get("weak_accept_supported")),
+        "requires_c4_exact_lineage": "C4/RQ3 controlled exact lineage gates are not supported"
+        in (overall.get("blockers") or []),
         "requires_c5_human_participants": "C5/RQ4 has no supported real participant outcome"
         in (overall.get("blockers") or []),
         "requires_c6_human_labels": "C6/RQ5 has no supported independent human adequacy labels"
@@ -502,6 +567,7 @@ def write_markdown(path: Path, result: dict[str, Any]) -> None:
         f"- R170 system observations: {summary['r170_system_observations']}.",
         f"- R180 valid outputs: {summary['r180_ok_runs']}/{summary['r180_total_runs']}.",
         f"- R114 command-mode precision/recall: {summary['r114_precision_pct']}%/{summary['r114_recall_pct']}%.",
+        f"- R191 target network joined: {summary['r191_joined_target_network_effect_events']}/{summary['r191_target_network_effect_events']}.",
         f"- R217 production display buckets/support: {summary['r217_display_buckets']}/{summary['r217_support']}.",
         f"- R218 preview accepted/rejected rows: {summary['r218_accepted_diff_rows']}/{summary['r218_rejected_rows']}.",
         f"- C5 participant responses: {summary['c5_responses']}.",

@@ -1,0 +1,417 @@
+{
+  "schema_version": 1,
+  "run_id": "R191",
+  "status": "ok",
+  "scope": "fixed_codex_command_mode_target_network_lineage_with_wrapper_negative_controls",
+  "generated_at": "2026-06-18",
+  "work_dir": "/tmp/agentsight-r191-target-network",
+  "agentsight_bin": "collector/target/debug/agentsight",
+  "codex_bin": "$HOME/.nvm/versions/node/v22.22.0/bin/codex",
+  "task_limit": 1,
+  "negative_mode": "wrapper",
+  "manifest": [
+    {
+      "task_id": "r191-codex-http",
+      "script": "r191_http_probe.py",
+      "probe": "http"
+    }
+  ],
+  "aggregate": {
+    "tasks": 1,
+    "task_statuses": {
+      "ok": 1
+    },
+    "record_statuses": {
+      "ok": 1
+    },
+    "target_statuses": {
+      "completed": 1
+    },
+    "network_effect_events": 19,
+    "joined_network_effect_events": 19,
+    "target_network_effect_events": 4,
+    "joined_target_network_effect_events": 4,
+    "orphan_target_network_effect_events": 0,
+    "negative_effect_events_observed": 310,
+    "negative_joined_effect_events": 0,
+    "true_positives": 80,
+    "false_positives": 0,
+    "false_negatives": 0,
+    "target_network_join_pct": 100.0,
+    "precision_pct": 100.0,
+    "recall_pct": 100.0,
+    "target_network_targets": {
+      "127.0.0.1:0": 1,
+      "fd=3": 1,
+      "family=1": 1,
+      "127.0.0.1:36299": 1
+    },
+    "target_network_actions": {
+      "NET_BIND": 1,
+      "NET_LISTEN": 1,
+      "NET_CONNECT": 2
+    },
+    "network_process_comms": {
+      "codex": 15,
+      "python3": 4
+    },
+    "target_network_process_comms": {
+      "python3": 4
+    }
+  },
+  "tasks": [
+    {
+      "task_id": "r191-codex-http",
+      "status": "ok",
+      "record_status": "ok",
+      "record_returncode": 0,
+      "db": "/tmp/agentsight-r191-target-network/runs/r191-codex-http/r191-codex-http.db",
+      "snapshot": "/tmp/agentsight-r191-target-network/runs/r191-codex-http/r191-codex-http.snapshot.json",
+      "workspace": "/tmp/agentsight-r191-target-network/workspaces/r191-codex-http",
+      "answer": "{\"body\": \"r191-http-probe\", \"bytes\": 15, \"elapsed_ms\": 511, \"port\": 36299, \"probe\": \"http\", \"status\": \"ok\"}",
+      "negative_control": {
+        "marker": "R114_NEGATIVE_CONTROL_r191-codex-http",
+        "negative_dir": "/tmp/agentsight-r191-target-network/negative-controls/r191-codex-http",
+        "sibling_dir": "/tmp/agentsight-r191-target-network/sibling-repo-negative/r191-codex-http",
+        "stop_file": "/tmp/agentsight-r191-target-network/negative-controls/r191-codex-http/stop",
+        "worker": "/tmp/agentsight-r191-target-network/negative-controls/r191-codex-http/negative_worker.py"
+      },
+      "export_returncode": 0,
+      "lineage_returncode": 1,
+      "lineage": {
+        "schema_version": 1,
+        "status": "lineage_smoke_failed",
+        "source": "snapshot",
+        "snapshot": "r191-codex-http.snapshot.json",
+        "effect_events": 448,
+        "joined_effect_events": 80,
+        "orphan_effect_events": 368,
+        "join_rate_pct": 17.857,
+        "folded_stack_count": 32,
+        "join_methods": {
+          "none": 368,
+          "pid_family_time_window": 80
+        },
+        "orphan_reasons": {
+          "missing_tool_ancestry": 368
+        },
+        "orphan_examples": [
+          {
+            "event_id": "audit-canon-event-1781815543779-process-180178-4",
+            "audit_type": "process",
+            "action": "exec",
+            "effect": "process.exec",
+            "target_group": "usr/bin",
+            "pid": 180178,
+            "process_id": "process-180178-1781815543779",
+            "process_comm": "bash",
+            "tool_id": null,
+            "session_id": null,
+            "session_tag": null,
+            "prompt_tag": null,
+            "join_method": "none",
+            "orphan_reason": "missing_tool_ancestry",
+            "joined": false
+          },
+          {
+            "event_id": "audit-canon-event-1781815543781-process-180188-67",
+            "audit_type": "process",
+            "action": "exec",
+            "effect": "process.exec",
+            "target_group": "usr/bin",
+            "pid": 180188,
+            "process_id": "process-180188-1781815543781",
+            "process_comm": "locale-check",
+            "tool_id": null,
+            "session_id": null,
+            "session_tag": null,
+            "prompt_tag": null,
+            "join_method": "none",
+            "orphan_reason": "missing_tool_ancestry",
+            "joined": false
+          },
+          {
+            "event_id": "audit-canon-event-1781815543782-process-180188-129",
+            "audit_type": "process",
+            "action": "exit",
+            "effect": "process.exit",
+            "target_group": "exit code 0 (1ms)",
+            "pid": 180188,
+            "process_id": "process-180188-1781815543781",
+            "process_comm": "locale-check",
+            "tool_id": null,
+            "session_id": null,
+            "session_tag": null,
+            "prompt_tag": null,
+            "join_method": "none",
+            "orphan_reason": "missing_tool_ancestry",
+            "joined": false
+          },
+          {
+            "event_id": "audit-canon-event-1781815543784-process-180189-133",
+            "audit_type": "process",
+            "action": "exec",
+            "effect": "process.exec",
+            "target_group": "usr/bin",
+            "pid": 180189,
+            "process_id": "process-180189-1781815543784",
+            "process_comm": "locale",
+            "tool_id": null,
+            "session_id": null,
+            "session_tag": null,
+            "prompt_tag": null,
+            "join_method": "none",
+            "orphan_reason": "missing_tool_ancestry",
+            "joined": false
+          },
+          {
+            "event_id": "audit-canon-event-1781815543785-process-180189-195",
+            "audit_type": "process",
+            "action": "exit",
+            "effect": "process.exit",
+            "target_group": "exit code 0 (1ms)",
+            "pid": 180189,
+            "process_id": "process-180189-1781815543784",
+            "process_comm": "locale",
+            "tool_id": null,
+            "session_id": null,
+            "session_tag": null,
+            "prompt_tag": null,
+            "join_method": "none",
+            "orphan_reason": "missing_tool_ancestry",
+            "joined": false
+          },
+          {
+            "event_id": "audit-canon-event-1781815543788-process-180192-199",
+            "audit_type": "process",
+            "action": "exec",
+            "effect": "process.exec",
+            "target_group": "$HOME",
+            "pid": 180192,
+            "process_id": "process-180192-1781815543788",
+            "process_comm": "node",
+            "tool_id": null,
+            "session_id": null,
+            "session_tag": null,
+            "prompt_tag": null,
+            "join_method": "none",
+            "orphan_reason": "missing_tool_ancestry",
+            "joined": false
+          },
+          {
+            "event_id": "audit-canon-event-1781815543788-process-180192-261",
+            "audit_type": "process",
+            "action": "exec",
+            "effect": "process.exec",
+            "target_group": "$HOME",
+            "pid": 180192,
+            "process_id": "process-180192-1781815543788",
+            "process_comm": "node",
+            "tool_id": null,
+            "session_id": null,
+            "session_tag": null,
+            "prompt_tag": null,
+            "join_method": "none",
+            "orphan_reason": "missing_tool_ancestry",
+            "joined": false
+          },
+          {
+            "event_id": "audit-canon-event-1781815543789-process-180191-263",
+            "audit_type": "process",
+            "action": "exec",
+            "effect": "process.exec",
+            "target_group": "usr/bin",
+            "pid": 180191,
+            "process_id": "process-180191-1781815543789",
+            "process_comm": "python3",
+            "tool_id": null,
+            "session_id": null,
+            "session_tag": null,
+            "prompt_tag": null,
+            "join_method": "none",
+            "orphan_reason": "missing_tool_ancestry",
+            "joined": false
+          },
+          {
+            "event_id": "audit-canon-event-1781815543819-process-180230-443",
+            "audit_type": "process",
+            "action": "exec",
+            "effect": "process.exec",
+            "target_group": "usr/bin",
+            "pid": 180230,
+            "process_id": "process-180230-1781815543819",
+            "process_comm": "cut",
+            "tool_id": null,
+            "session_id": null,
+            "session_tag": null,
+            "prompt_tag": null,
+            "join_method": "none",
+            "orphan_reason": "missing_tool_ancestry",
+            "joined": false
+          },
+          {
+            "event_id": "audit-canon-event-1781815543819-process-180231-441",
+            "audit_type": "process",
+            "action": "exec",
+            "effect": "process.exec",
+            "target_group": "usr/bin",
+            "pid": 180231,
+            "process_id": "process-180231-1781815543819",
+            "process_comm": "tr",
+            "tool_id": null,
+            "session_id": null,
+            "session_tag": null,
+            "prompt_tag": null,
+            "join_method": "none",
+            "orphan_reason": "missing_tool_ancestry",
+            "joined": false
+          }
+        ],
+        "claim_boundary": "live snapshot evidence with orphan effects; broader exact-lineage claim still needs lower orphan rates, capture-time ancestry, and more tasks"
+      },
+      "target_status": "completed",
+      "target_exit_code": 0,
+      "network_lineage": {
+        "network_effect_events": 19,
+        "joined_network_effect_events": 19,
+        "target_network_effect_events": 4,
+        "joined_target_network_effect_events": 4,
+        "orphan_target_network_effect_events": 0,
+        "target_network_join_pct": 100.0,
+        "network_process_comms": {
+          "codex": 15,
+          "python3": 4
+        },
+        "target_network_targets": {
+          "127.0.0.1:0": 1,
+          "fd=3": 1,
+          "family=1": 1,
+          "127.0.0.1:36299": 1
+        },
+        "target_network_actions": {
+          "NET_BIND": 1,
+          "NET_LISTEN": 1,
+          "NET_CONNECT": 2
+        },
+        "target_network_process_comms": {
+          "python3": 4
+        },
+        "target_network_examples": [
+          {
+            "event_id": "audit-canon-event-1781815554540-process-180490-1759",
+            "audit_type": "network",
+            "action": "NET_BIND",
+            "effect": "network.NET_BIND",
+            "target_group": "127.0.0.1:0",
+            "pid": "180490",
+            "process_id": "process-180490-1781815554506",
+            "process_comm": "python3",
+            "tool_id": "record:bash:180178:1781815543270:agent-run",
+            "session_id": "record:bash:180178:1781815543270",
+            "session_tag": "bash",
+            "prompt_tag": "record",
+            "join_method": "pid_family_time_window",
+            "orphan_reason": "",
+            "joined": "True"
+          },
+          {
+            "event_id": "audit-canon-event-1781815554541-process-180490-1758",
+            "audit_type": "network",
+            "action": "NET_LISTEN",
+            "effect": "network.NET_LISTEN",
+            "target_group": "fd=3",
+            "pid": "180490",
+            "process_id": "process-180490-1781815554506",
+            "process_comm": "python3",
+            "tool_id": "record:bash:180178:1781815543270:agent-run",
+            "session_id": "record:bash:180178:1781815543270",
+            "session_tag": "bash",
+            "prompt_tag": "record",
+            "join_method": "pid_family_time_window",
+            "orphan_reason": "",
+            "joined": "True"
+          },
+          {
+            "event_id": "audit-canon-event-1781815554541-process-180490-1760",
+            "audit_type": "network",
+            "action": "NET_CONNECT",
+            "effect": "network.NET_CONNECT",
+            "target_group": "family=1",
+            "pid": "180490",
+            "process_id": "process-180490-1781815554506",
+            "process_comm": "python3",
+            "tool_id": "record:bash:180178:1781815543270:agent-run",
+            "session_id": "record:bash:180178:1781815543270",
+            "session_tag": "bash",
+            "prompt_tag": "record",
+            "join_method": "pid_family_time_window",
+            "orphan_reason": "",
+            "joined": "True"
+          },
+          {
+            "event_id": "audit-canon-event-1781815554550-process-180490-1761",
+            "audit_type": "network",
+            "action": "NET_CONNECT",
+            "effect": "network.NET_CONNECT",
+            "target_group": "127.0.0.1:36299",
+            "pid": "180490",
+            "process_id": "process-180490-1781815554506",
+            "process_comm": "python3",
+            "tool_id": "record:bash:180178:1781815543270:agent-run",
+            "session_id": "record:bash:180178:1781815543270",
+            "session_tag": "bash",
+            "prompt_tag": "record",
+            "join_method": "pid_family_time_window",
+            "orphan_reason": "",
+            "joined": "True"
+          }
+        ]
+      },
+      "precision_recall": {
+        "agent_tool_ids": [
+          "record:bash:180178:1781815543270:agent-run"
+        ],
+        "agent_process_count": 29,
+        "in_scope_effect_events": 80,
+        "out_of_scope_effect_events": 58,
+        "negative_effect_events_observed": 310,
+        "negative_joined_effect_events": 0,
+        "true_positives": 80,
+        "false_positives": 0,
+        "false_negatives": 0,
+        "precision_pct": 100.0,
+        "recall_pct": 100.0,
+        "negative_control_status": "observed",
+        "negative_join_examples": []
+      },
+      "probe_result": {
+        "body": "r191-http-probe",
+        "bytes": 15,
+        "elapsed_ms": 511,
+        "port": 36299,
+        "probe": "http",
+        "status": "ok"
+      },
+      "probe_result_ok": true,
+      "target_network_oracle": {
+        "expected_target_network_effect_events": 4,
+        "expected_target_network_actions": {
+          "NET_BIND": 1,
+          "NET_LISTEN": 1,
+          "NET_CONNECT": 2
+        },
+        "target_network_effect_count_ok": true,
+        "target_network_actions_ok": true,
+        "target_network_process_comm_ok": true
+      },
+      "snapshot_counts": {
+        "sessions": 1,
+        "tool_calls": 1,
+        "process_nodes": 56,
+        "audit_events": 448
+      }
+    }
+  ],
+  "boundary": "R191 supports C4 for a fixed command-mode Codex task that executes a local Python network probe: target-process bind/listen/connect rows are observed and joined, while wrapper negative-control effects remain unattributed. It does not prove arbitrary prompt compliance, full-history exact lineage, HTTP URL reconstruction, or C5/C6 user/tag evidence.",
+  "artifact_boundary": "Raw SQLite DBs, exported snapshots, and per-event lineage CSVs stay in the local work dir; the committed artifact contains scrubbed summaries and examples."
+}

@@ -22,7 +22,7 @@ use crate::output::{
 };
 use crate::runners::{Runner, RunnerError};
 use crate::sinks::sqlite::SqliteStore;
-use crate::sources::proc::ProcSnapshot;
+use crate::sources::proc::{ProcSnapshot, process_start_timestamp_ms};
 use crate::view::{MaterializedView, process_select};
 use serde_json::{Value, json};
 use std::collections::HashSet;
@@ -162,6 +162,7 @@ pub(crate) async fn run_exec(
         }
     }
 
+    let launch_timestamp_ms = epoch_ms_now();
     let mut command_builder = tokio::process::Command::new("/bin/sh");
     command_builder
         .arg("-c")
@@ -197,10 +198,17 @@ pub(crate) async fn run_exec(
         .id()
         .ok_or_else(|| RunnerError::from("failed to get target child PID"))?;
     print_record_attribution_session(child_pid);
+    let envelope_start_timestamp_ms =
+        process_start_timestamp_for_pid(child_pid).unwrap_or(launch_timestamp_ms);
 
     let db_path_for_summary = db_path.clone();
     let mut capture_envelope = db_path_for_summary.as_deref().and_then(|db| {
-        match persist_record_agent_envelope_start(db, child_pid, command) {
+        match persist_record_agent_envelope_start(
+            db,
+            child_pid,
+            command,
+            envelope_start_timestamp_ms,
+        ) {
             Ok(envelope) => Some(envelope),
             Err(error) => {
                 log::warn!(
@@ -424,12 +432,19 @@ pub(crate) async fn stop_child(child: &mut tokio::process::Child) {
     }
 }
 
+fn process_start_timestamp_for_pid(pid: u32) -> Option<u64> {
+    let snapshot = ProcSnapshot::collect().ok()?;
+    let proc_info = snapshot.procs.get(&pid)?;
+    process_start_timestamp_ms(proc_info.starttime_ticks)
+}
+
 fn persist_record_agent_envelope_start(
     path: impl AsRef<Path>,
     pid: u32,
     command: &[String],
+    start_timestamp_ms: u64,
 ) -> ViewResult<RecordAgentEnvelope> {
-    let envelope = record_agent_envelope(pid, command, epoch_ms_now());
+    let envelope = record_agent_envelope(pid, command, start_timestamp_ms);
     let (session, tool) = record_agent_envelope_rows(&envelope, None, "running", Value::Null);
     let mut store = SqliteStore::open(path)?;
     ViewSink::session(&mut store, &session)?;
@@ -701,7 +716,8 @@ mod tests {
             "fix tests".to_string(),
         ];
 
-        let envelope = persist_record_agent_envelope_start(&db, 4242, &command).unwrap();
+        let envelope = persist_record_agent_envelope_start(&db, 4242, &command, 1_700_000).unwrap();
+        assert_eq!(envelope.start_timestamp_ms, 1_700_000);
         persist_record_agent_envelope_end(
             &db,
             &envelope,

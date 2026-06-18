@@ -202,6 +202,40 @@ def test_session_filter_tracks_session_tree_only():
         tempdir.cleanup()
 
 
+def test_session_filter_does_not_track_out_of_session_command_matches():
+    tempdir, target, trigger, done, marker = run_controlled_parent(preexec_fn=os.setsid)
+    unrelated = f"agentsight-session-comm-unrelated-{uuid.uuid4().hex}"
+    sess = None
+    try:
+        sid = os.getsid(target.pid)
+        sess = TracerSession(
+            "-m",
+            "2",
+            "--session",
+            str(sid),
+            "-c",
+            "echo",
+            *seed_pid_arg(target.pid),
+        )
+        open(trigger, "w").close()
+        wait_for_file(done)
+        subprocess.run(["/bin/echo", unrelated], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        time.sleep(0.5)
+        sess.stop()
+        events = sess.events()
+        assert_true(any_event_contains(events, marker), "--session plus -c missed the target child exec")
+        assert_true(
+            not any_event_contains(events, unrelated),
+            "--session plus -c captured an out-of-session command match",
+        )
+    finally:
+        if sess:
+            sess.cleanup()
+        target.terminate()
+        target.wait(timeout=5)
+        tempdir.cleanup()
+
+
 def test_filter_mode_without_selector_does_not_fallback():
     marker = f"agentsight-no-selector-{uuid.uuid4().hex}"
     sess = TracerSession("-m", "2", "--trace-fs")
@@ -276,6 +310,7 @@ TESTS = [
     test_json_escaping_exec,
     test_pid_filter_tracks_target_tree_only,
     test_session_filter_tracks_session_tree_only,
+    test_session_filter_does_not_track_out_of_session_command_matches,
     test_filter_mode_without_selector_does_not_fallback,
     test_trace_fs_summary_events,
     test_trace_net_summary_events,

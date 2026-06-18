@@ -165,6 +165,16 @@ static inline bool should_track_process(struct pid_tracker *tracker,
 	return false;
 }
 
+/* Track only an explicit target PID or descendants of already tracked PIDs. */
+static inline bool should_track_pid_lineage(struct pid_tracker *tracker, pid_t pid, pid_t ppid)
+{
+	if (tracker->target_pid > 0 && pid == tracker->target_pid) {
+		return true;
+	}
+
+	return pid_tracker_is_tracked(tracker, ppid);
+}
+
 /* Check if file operations should be reported for a PID */
 static inline bool should_report_file_ops(struct pid_tracker *tracker, pid_t pid)
 {

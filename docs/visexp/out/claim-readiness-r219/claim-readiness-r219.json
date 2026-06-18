@@ -6,6 +6,7 @@
     "llm_called": false,
     "raw_trace_read": false,
     "reads_generated_artifacts_only": true,
+    "requires_c4_exact_lineage": false,
     "requires_c5_human_participants": true,
     "requires_c6_human_labels": true,
     "synthetic_or_subagent_evidence_disallowed": true,
@@ -37,11 +38,11 @@
       "verdict": "supported_as_mechanism"
     },
     {
-      "blocking_gap": "target-specific network and cross-repo/full-history exact capture remain partial",
+      "blocking_gap": "full-history exact integration, cross-repo replication, and broader network workloads remain partial",
       "claim": "C4 exact semantic-effect lineage",
       "evidence_level": "controlled-live-lineage",
-      "next_gate": "R191 target-specific network lineage hardening",
-      "primary_evidence": "R114 status ok: precision 100.0%, recall 100.0%, negative joins 0/3170; R182 network status partial",
+      "next_gate": "full-history/cross-repo exact lineage replication",
+      "primary_evidence": "R114 status ok: precision 100.0%, recall 100.0%, negative joins 0/3170; R182 network status partial; R191 status ok: target network 4/4 joined, negative joins 0/310, precision/recall 100.0%/100.0%",
       "verdict": "supported_for_fixed_command_mode_suite"
     },
     {
@@ -69,7 +70,7 @@
       "verdict": "partial"
     }
   ],
-  "generated_at": "2026-06-18T20:06:39+00:00",
+  "generated_at": "2026-06-18T20:46:15+00:00",
   "next_experiments": [
     {
       "block": "B4",
@@ -104,12 +105,12 @@
     {
       "block": "B3",
       "claim": "C4/RQ3",
-      "command_or_input": "new fixed Codex network tasks under agentsight record --trace-net",
-      "oracle": "target-specific network events >0, all joined, zero negative-control joins",
+      "command_or_input": "fresh controlled multi-repo runs plus a full-history exact-lineage integration pass",
+      "oracle": "scoped in-history effects join without negative-control joins; target-network gate remains clean",
       "priority": "P1",
-      "purpose": "Harden exact lineage for target-specific network effects rather than low-level agent-process rows only.",
-      "result_path": "docs/visexp/out/live-network-r191.json",
-      "run_id": "R191-target-network-lineage"
+      "purpose": "Replicate exact lineage beyond fixed command-mode tasks over full-history or cross-repo workloads.",
+      "result_path": "docs/visexp/out/full-history-lineage-r229/",
+      "run_id": "R229-full-history-exact-lineage"
     },
     {
       "block": "B7",
@@ -163,9 +164,9 @@
     },
     {
       "evidence_level": "controlled live AgentSight suite",
-      "falsifier_remaining": "target-specific network and arbitrary-history capture remain open",
-      "next_gate": "R191 target-specific network suite",
-      "primary_evidence": "R114 precision 100.0%, recall 100.0%",
+      "falsifier_remaining": "arbitrary-history capture, broader network workloads, and cross-repo replication remain open",
+      "next_gate": "full-history/cross-repo exact lineage replication",
+      "primary_evidence": "R114 precision 100.0%, recall 100.0%; R191 target network 4/4 joined",
       "rq": "RQ3 exact lineage",
       "verdict": "supported_for_fixed_command_mode_suite"
     },
@@ -207,6 +208,7 @@
     "r182_live_network": "docs/visexp/out/live-network-r182.json",
     "r184_weak_accept": "docs/visexp/out/weak-accept-gate-r184.json",
     "r190_merge_quality": "docs/visexp/out/tag-consolidation-audit-r190/merge-risk-audit-results-r190.json",
+    "r191_target_network": "docs/visexp/out/live-network-r191.json",
     "r195_human_pipeline": "docs/visexp/out/human-evidence-pipeline-r195.json",
     "r200_community_smoke": "docs/visexp/out/community-smoke-r200.json",
     "r203_promotion_quality": "docs/visexp/out/long-tail-promotion-r203/long-tail-promotion-r203.json",
@@ -249,6 +251,13 @@
     "r182_status": "partial",
     "r184_status": "not_weak_accept",
     "r190_status": "human_labels_empty",
+    "r191_joined_target_network_effect_events": 4,
+    "r191_negative_joined": 0,
+    "r191_negative_observed": 310,
+    "r191_precision_pct": 100.0,
+    "r191_recall_pct": 100.0,
+    "r191_status": "ok",
+    "r191_target_network_effect_events": 4,
     "r195_status": "awaiting_human_inputs",
     "r203_status": "human_labels_empty",
     "r213_status": "display_mode_drilldown_smoke_ready_no_quality_claims",
