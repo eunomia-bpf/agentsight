@@ -27,7 +27,7 @@
 
 \title{\vspace{-1.2em}AgentFlame: 面向 AI 编程 Agent 系统效应的语义归因剖析}
 \author{AgentSight 研究原型}
-\date{2026 年 6 月 15 日}
+\date{2026 年 6 月 18 日}
 
 \begin{document}
 \maketitle
@@ -150,8 +150,10 @@ Flamegraph 负责发现热点和重复模式；tree 负责解释一个热点能�
 
 \section{实现}
 
-AgentFlame 现在是独立 Rust CLI，位于仓库 \texttt{agentflame/}。
-它使用 \texttt{normalize-chat-sessions} 读取本地 Codex 和 Claude JSONL 历史，调用 llama.cpp-compatible HTTP server 生成标签，输出 \texttt{agentflame.json}、\texttt{tags.json}、folded stack 文件、SVG 和 HTML dashboard。
+本文的实验结果来自 AgentFlame 研究原型及其生成 artifacts。
+该原型当时是独立 Rust CLI，并输出 \texttt{agentflame.json}、\texttt{tags.json}、folded stack 文件、SVG 和 HTML dashboard。
+当前开源仓库的产品化入口已经收敛到 \texttt{agentpprof/}：它复用 \texttt{agent-session}，输出 pprof-compatible \texttt{.pb.gz}、folded、SVG 和 JSON。
+因此，本文的 headline 数字评估的是 AgentFlame 研究原型；\texttt{agentpprof} 是产品化方向，除 smoke artifacts 外还没有替代本文所有 RQ1--RQ6 结果。
 默认输出路径是：
 
 \begin{quote}\small\ttfamily
@@ -162,6 +164,13 @@ AgentFlame 现在是独立 Rust CLI，位于仓库 \texttt{agentflame/}。
 
 \begin{quote}\small\ttfamily
 cargo run --manifest-path agentflame/Cargo.toml -- run --project-root . --scan-files 10000 --max-sessions 10000 --llama-url http://127.0.0.1:18080 --model local --timeout 60 --out .agentsight/agentflame/latest
+\end{quote}
+
+这条命令是研究 artifact 的 provenance，不是当前仓库的用户入口。
+当前用户入口示例是：
+
+\begin{quote}\small\ttfamily
+cargo run --manifest-path agentpprof/Cargo.toml -- --project-root . -o agent.pb.gz
 \end{quote}
 
 模型为本地 \texttt{qwen2.5-3b-instruct-q4\_k\_m.gguf}，通过 llama.cpp server 运行，temperature 为 0，并用 grammar 约束输出一个词。
@@ -188,7 +197,8 @@ AgentSight 的独特点是运行时 exact provenance：\texttt{tool\_call -> she
 表~\ref{tab:fullrun} 给出用于本文图表的 headline full run 结果。
 AgentFlame 分析了 205 个可读 session，其中 Codex 78 个、Claude 50 个、Claude subagent 77 个。
 它处理 2,463 个 prompt rows 和 90,930 个 LLM-call events。
-标签器共有 93,598 个请求，64,297 个命中 cache，29,302 次真实 llama.cpp HTTP calls，0 个最终失败。
+标签器共有 93,598 个请求，64,297 个命中 cache，29,302 次真实 llama.cpp HTTP calls，29,301 个成功最终 uncached tags，0 个最终失败。
+HTTP calls 比成功最终 tags 多 1 次，是一次被 retry 吸收的中间无效输出。
 Prompt 和 LLM-call tag 的非法计数均为 0。
 这说明一词语法和本地 3B 模型路径在真实历史规模上可运行。
 R170 current refresh 在不覆盖 \texttt{latest} 图表输入的前提下重新扫描当前本机历史，覆盖 325 个 session、142,468 个 raw tool events、114,837 个 raw LLM events、183,714 个 system observations、26,829 条 semantic system stacks，并产生 35,136 次 fresh llama.cpp calls 且 0 个 tagger failures。
@@ -215,6 +225,7 @@ R180 进一步表明，在同一组 300 个 redacted fragments 上，本机可�
     Tag requests & 93,598 \\
     Cache hits & 64,297 \\
     llama.cpp HTTP calls & 29,302 \\
+    Successful final uncached tags & 29,301 \\
     Final tag failures & 0 \\
     \bottomrule
   \end{tabular}
@@ -230,7 +241,7 @@ R189 在 R170 current refresh 上实现了第一版可审计合并层：raw tag 
 R209 将这个 lifecycle 落成可消费数据契约：active display map 每个 raw tag 一行，drilldown index 保留 raw 支持和 top system profile，reviewed diff 只在人工 promotion 后产生。
 因此 RQ1 支持的是 feasibility 和 syntax claim；tag adequacy 需要单独实验。
 
-\subsection{RQ2：语义帧是否分割 baseline 混合？}
+\subsection{RQ2：projection 方法如何取舍？}
 
 \begin{figure}[t]
   \centering
@@ -277,28 +288,56 @@ R211 将当前 R170/R189 artifact 转成可放入论文的 label distribution �
 R211 同时输出 \texttt{tag-distribution-r211.svg} 和 \texttt{process-splits-r211.svg}，用于绘制本文的 baseline failure/semantic split 图；该 artifact 不调用 LLM，也不读取 raw trace。
 
 R131 把这个结论进一步做成轴级别消融。
-每个 variant 都从同一个 folded input 投影而来，并检查总权重保持 167,005 不变。
-同时，R131 记录 \texttt{agentflame.json} totals 与 folded inputs 匹配，并验证已有 nonsemantic/session/prompt folded files 与 projection exact match。
-表~\ref{tab:ablation} 显示，system-effect 分割主要来自 prompt 轴：session-only 只把 mixed full-semantic bucket weight 从 90.219\% 降到 84.180\%，prompt-only 则降到 37.687\%。
-如果只计算 mixed buckets 中非主导 full semantic variants 的 residual weight，prompt-only 也从 no-semantic 的 44.639\% 降到 7.526\%。
+R224 用同一个 checker 在 R170 current refresh 上重跑该消融，使 semantic-axis rows 与 R212 display-policy rows 共享 183,714 个 system-effect denominator。
+每个 variant 都从同一个 folded input 投影而来，并检查总权重保持不变。
+同时，checker 记录 \texttt{agentflame.json} totals 与 folded inputs 匹配，并验证已有 nonsemantic/session/prompt folded files 与 projection exact match。
+表~\ref{tab:ablation} 显示，system-effect 分割主要来自 prompt 轴：session-only 只把 mixed full-semantic bucket weight 从 90.402\% 降到 84.407\%，prompt-only 则降到 36.722\%。
+如果只计算 mixed buckets 中非主导 full semantic variants 的 residual weight，prompt-only 也从 no-semantic 的 44.716\% 降到 7.485\%。
 完整 session+prompt 视图的 0.000\% mixed weight 是定义上的上界，不应被解释为用户效用；它只说明 full semantic key 没有在投影中被合并。
 
 \begin{table}[t]
   \centering
   \small
-  \caption{R131 system-effect 语义轴消融。所有行都保持 167,005 总权重。}
+  \caption{R224/R170 system-effect 语义轴消融。所有行都保持 183,714 总权重。}
   \label{tab:ablation}
   \begin{tabular}{lrrr}
     \toprule
     Variant & Unique stacks & Bucket & Residual \\
     \midrule
-    No semantic & 10,641 & 90.219\% & 44.639\% \\
-    Session only & 13,328 & 84.180\% & 34.138\% \\
-    Prompt only & 22,341 & 37.687\% & 7.526\% \\
-    Session + prompt & 24,295 & 0.000\% & 0.000\% \\
+    No semantic & 11,967 & 90.402\% & 44.716\% \\
+    Session only & 15,027 & 84.407\% & 33.434\% \\
+    Prompt only & 24,703 & 36.722\% & 7.485\% \\
+    Session + prompt & 26,829 & 0.000\% & 0.000\% \\
     \bottomrule
   \end{tabular}
 \end{table}
+
+R223 将 RQ2 从 ``语义栈是否更好'' 改写成更一般的 projection-selection
+问题：在 R170-derived generated evidence 上，stack schema、display policy 和 tag
+vocabulary overlay 都应是可插拔选择。
+该实验只读取 R224/R205/R209/R212/R219 已生成 artifacts，不读取 raw trace，
+不调用 LLM，也不评分人工 outcome。
+因此，R223 的 baseline 是 count-weighted process/effect projection，而不是
+真实 span-duration workflow flamegraph；后者回答 critical path/duration
+问题，应作为 C5 用户任务实验中的独立 baseline，而不是用当前 folded
+effect counts 替代。
+它给出的结论不是单一最佳火焰图，而是分层默认：no-semantic 适合作为
+system-hotspot baseline，因为它只有 11,967 个 stacks、压缩率 15.352x，但
+90.402\% 的 effect weight 被混合；prompt-only 是 system-effect profile
+的最佳单语义轴，因为它把 mixed/residual mixed weight 降到
+36.722\%/7.485\%，同时保持 7.437x 压缩；完整 session+prompt 是 audit 和
+drilldown 视图。
+在 display policy 上，R209 conservative display 与 alias-only 等价，只有
+26,612 个 stacks 且 0.0\% unreviewed active weight；更激进的
+profile-guarded candidate view 可以降到 26,067 个 stacks，但会激活
+2.532\% 未审查 effect weight，因此只能作为上界消融，不能做默认。
+在 vocabulary overlay 上，canonical display 把 raw unique tag strings
+从 1,546 降到 1,364，top-20 support coverage 从 93.683\% 提升到
+95.186\%，同时保留 raw drilldown。
+这个 coverage 只是 display-support concentration，不是 tag correctness；
+在 R124/R190/R203 人工标签返回前，不能把它写成 tag adequacy、merge quality 或 promotion quality。
+这就是系统设计需要可插拔 projection 的原因：不同视图优化不同问题，而不是
+让小模型一次性决定最终语义真相。
 
 \subsection{Case Study：能看出什么}
 
@@ -448,9 +487,9 @@ R184/R186/R187/R188 的作用是防止过度声明：它们把当前状态固定
     supported &
     Syntax 不等于 adequacy；需要人工标签质量评估。 \\
     C3 semantic partitioning and display contract &
-    Nonsemantic/flat baselines 分别有 90.219\% 和 90.770\% mixed weight；R131 中 prompt-only 将 system bucket/residual mixed weight 降到 37.687\%/7.526\%；R189 在保持总权重不变时把 prompt-effect tags 从 263 降到 216；R205 显示 raw/canonical unique tag strings 为 1,546/1,364，top-20 support coverage 为 93.683\%/95.186\%；R209 显示 1,811/1,811 raw rows 可逆映射到 display/drilldown，且只激活 63 个 alias merge，168 个 lexical/profile merge 保持 pending；R212 显示 R209/alias-only 为 26,612 stacks，profile-guarded hypothetical 为 26,067 stacks 但会激活 2.532\% 未审查 effect weight；R213 显示 raw/display/pending display modes 都保持 482,398 support，pending 只叠加 209 candidates 和 323 review-required rows；R214 显示 long-tail control loop 保持 0 个 active candidate merges，七个 rollup buckets 精确覆盖 1,811 rows/482,398 support，且失败 prompt review budget 与 high-tail head-stability gates；R215 显示 frontend TypeScript renderer-model 保持 raw/display/pending membership，并拒绝 corrupted drilldown 与 candidate promotion 负例；R216 显示 headless-browser DOM harness 能点击 raw/display/pending 并保持相同 visible counts；R217 显示 production \texttt{AgentFlameView} 默认 display view 可渲染 1,748 buckets 和 482,398 support；R218 显示 synthetic-review update gate 接受 2 个 preview diffs、拒绝 4 个 unsafe rows，并保持 support/raw keys；R211 给出 RQ2 figure inputs，其中 \texttt{git/read/ok} 有 116 个 prompt tags，\texttt{cargo/test/ok} 有 48 个 prompt tags。 &
+    Nonsemantic/flat baselines 分别有 90.219\% 和 90.770\% mixed weight；R224/R170 中 prompt-only 将 system bucket/residual mixed weight 降到 36.722\%/7.485\%；R211 给出 RQ2 figure inputs，其中 \texttt{git/read/ok} 有 116 个 prompt tags，\texttt{cargo/test/ok} 有 48 个 prompt tags；R209/R212 证明可逆 display map 与保守 display policy：R209/alias-only 为 26,612 stacks，profile-guarded hypothetical 为 26,067 stacks 但会激活 2.532\% 未审查 effect weight；R223 将这些结果汇总为 projection tradeoff：no-semantic 压缩最高但混合 90.402\%，prompt-only 是最佳单语义轴，full session+prompt 是 audit view，R209 conservative display 是 0.0\% unreviewed-active 默认策略。 &
     partitioning supported; display mechanics supported &
-    需要更多仓库和用户任务证明不是单仓库 workload 特例；R205/R209/R212/R213/R214/R215/R216/R217/R218 是可逆展示机制、策略消融、data-layer smoke、控制环和非默认 rollup/regeneration policy、renderer-model/browser/production-render smoke 和 synthetic-review update gate，不是合并质量、regeneration 质量、visual drilldown 或用户效用证据；还需要 LLM/token display-compaction ablation 和真实用户交互证据。 \\
+    需要更多仓库和用户任务证明不是单仓库 workload 特例；R213-R218 只是 renderer/data contract 和 update-gate smokes，不是 C3 scientific outcome evidence；还需要 LLM/token display-compaction ablation、真实用户交互证据，以及 R190/R203 标签返回后的 merge/promotion quality。 \\
     C4 exact lineage &
     R114 在 20 个固定 \texttt{codex} tasks 上 join 1,273/1,273 in-scope effects，0 false positives，0 false negatives，0/3,170 negative-control effects joined；R182 join 35/35 低层 \texttt{codex} process network rows，0 network orphans，0/604 negative-control effects joined，但 target-specific loopback/child-process rows 为 0/0。 &
     fixed-suite supported &
