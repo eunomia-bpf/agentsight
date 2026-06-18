@@ -1,13 +1,12 @@
 # agentpprof
 
-`agentpprof` is a Rust CLI for pprof-style semantic profiles over local AI
-coding-agent history. It reads local Codex and Claude JSONL sessions through
-AgentSight's `agent-session` crate, asks a llama.cpp-compatible server for one
-lowercase word per session, prompt, and LLM call, then writes reusable JSON,
-folded stacks, SVG flamegraphs, and a local dashboard.
+`agentpprof` turns local AI coding-agent sessions into pprof-compatible semantic
+profiles. It reads Codex and Claude Code JSONL history through AgentSight's
+`agent-session` crate, assigns one-word tags to sessions, prompts, and LLM
+calls, and writes one explicit output file.
 
-The profiles are semantic profiles, not CPU profiles. Width can represent tool
-events or token counts, depending on the projection.
+The profiles are not CPU profiles. They are projections over agent activity:
+tool events, file effects, network effects, or token usage.
 
 ## Install
 
@@ -15,132 +14,108 @@ events or token counts, depending on the projection.
 cargo install agentpprof
 ```
 
-From this repository during development:
+From this repository:
 
 ```bash
-cargo run --manifest-path agentpprof/Cargo.toml -- run \
-  --project-root . \
-  --out .agentsight/agentpprof/latest
+cargo run --manifest-path agentpprof/Cargo.toml -- -o agent.pb.gz
 ```
 
-## Run
+## pprof Output
 
-Start a local llama.cpp server with a real GGUF model:
+Generate a semantic task profile for the current repository:
+
+```bash
+agentpprof --project-root . -o agent.pb.gz
+```
+
+Open it with standard Go pprof:
+
+```bash
+go tool pprof -top agent.pb.gz
+go tool pprof -http=:0 agent.pb.gz
+```
+
+The default `tasks` view makes prompt tags the pprof leaf frame, so `pprof -top`
+shows where the agent spent most of its session activity semantically.
+
+## Views
+
+Use `--view` to choose the projection:
+
+```bash
+agentpprof -o tasks.pb.gz --view tasks
+agentpprof -o tools.pb.gz --view tools
+agentpprof -o tokens.pb.gz --view tokens
+agentpprof -o files.pb.gz --view files
+agentpprof -o network.pb.gz --view network
+```
+
+Widths mean different things by view:
+
+- `tasks`: event count across tool and LLM-call activity.
+- `tools`: tool event count, including tool category, process chain, effect,
+  path/domain, and status frames.
+- `tokens`: token count when reported by the agent log; otherwise bounded text
+  estimates. Very large unsafe estimates are recorded as `unknown=1` so one
+  replayed transcript cannot dominate the profile with bogus token width.
+- `files`: file/path effect count.
+- `network`: network/domain effect count.
+
+## Other Formats
+
+The default format is pprof protobuf, gzipped when the output path ends in
+`.gz`. The output extension also selects common formats:
+
+```bash
+agentpprof -o tasks.folded --view tasks
+agentpprof -o tokens.svg --view tokens
+agentpprof -o files.json --view files
+```
+
+Folded stacks are compatible with common flamegraph tooling. SVG output is a
+single quick-look stack chart built from the folded stacks; use folded output
+with standard tools such as inferno or flamegraph.pl when you need canonical
+merged-prefix flamegraphs. JSON output includes redacted session summaries and
+the stack table.
+
+## Tags
+
+The default tagger is deterministic:
+
+```bash
+agentpprof -o agent.pb.gz --tagger regex
+```
+
+For model-produced one-word tags, run a llama.cpp-compatible server and use:
 
 ```bash
 llama-server -m /path/to/model.gguf --port 8080
+agentpprof -o agent.pb.gz --tagger llm --llama-url http://127.0.0.1:8080
 ```
 
-Generate a report:
+LLM tags are cached under the user cache directory by default, for example
+`$XDG_CACHE_HOME/agentpprof/tags.json`. Override with `--cache`, or pass
+`--no-cache` to avoid saving new entries.
+
+## Selecting Sessions
+
+By default, `agentpprof` scans recent local Codex and Claude Code sessions that
+match `--project-root`.
+
+Useful selectors:
 
 ```bash
-agentpprof run --project-root /path/to/repo
+agentpprof -o agent.pb.gz --session-file ~/.codex/sessions/.../session.jsonl
+agentpprof -o agent.pb.gz --agent codex
+agentpprof -o agent.pb.gz --session-id 019ec5
+agentpprof -o agent.pb.gz --session-tag profile
+agentpprof -o agent.pb.gz --prompt-tag review
 ```
 
-Pass repeated `--session-file /path/to/session.jsonl` values to analyze a
-specific set of local sessions instead of scanning the newest files under the
-Codex and Claude roots.
+No output directory is created unless the explicit `-o/--output` path contains
+one.
 
-The default llama.cpp API endpoint is `http://127.0.0.1:8080`. Override it with:
-
-```bash
-agentpprof run \
-  --llama-url http://127.0.0.1:8080 \
-  --model local
-```
-
-`agentpprof` has no heuristic label path. If the LLM server is missing, or if
-the model does not return one valid lowercase word after retry, the run fails.
-The default scope is session + prompt for system-effect views, plus per-LLM-call
-tags for token views. For a faster exploratory run, pass
-`--tag-llm-calls false`; the default is `true`.
-
-## Outputs
-
-Default output directory:
-
-```text
-.agentsight/agentpprof/latest/
-```
-
-Important files:
-
-- `agentpprof.json`: redacted machine-readable analysis for AgentSight or other
-  tools.
-- `tags.json`: reusable local tag cache containing one-word tags, hashes, and
-  LLM provenance, not raw prompt text.
-- `index.html`: dashboard with tag bars, command/effect bars, timeline,
-  semantic flamegraphs, dimension projections, and mixed baseline buckets.
-- `*.svg`: standalone charts.
-- `semantic-system.folded.txt`: prompt/session-tagged system footprint stacks.
-- `semantic-token.folded.txt`: prompt/session/LLM-tagged token stacks.
-- `session-system.folded.txt`, `prompt-system.folded.txt`,
-  `session-token.folded.txt`, `prompt-token.folded.txt`, `llm-token.folded.txt`:
-  dimension projections.
-
-## Folded Stack Shape
-
-System-effect stacks use:
-
-```text
-project:<repo>;agent:<agent>;session:<sessionTag>;prompt:<promptTag>;call:tool/<kind>;process:<p0>;process:<p1>;effect:<effect>;path:<group>;status:<status>
-```
-
-Token stacks use:
-
-```text
-project:<repo>;agent:<agent>;session:<sessionTag>;prompt:<promptTag>;call:llm/<llmCallTag>;model:<model>;kind:<tokenKind>
-```
-
-The `process:*` segment can repeat. Offline session-history mode derives the
-visible process entrypoint from shell commands, including simple shell wrappers
-such as `bash -lc`. Exact child-process nesting is supplied by AgentSight runtime
-trace data when the report is correlated with a captured snapshot.
-
-## JSON Contract
-
-`agentpprof.json` uses stable top-level sections:
-
-- `project`: project name and root.
-- `inputs`: session roots and scan limits.
-- `llm_tagger`: LLM request/cache/failure stats.
-- `sessions`: per-session counts and redacted prompt tag rows.
-- `summary`: stack totals, top prompt tags, command summaries, timeline, and
-  baseline-mixing examples.
-- `prompt_tags`: prompt hash to tag mapping.
-- `artifacts`: relative paths to folded stacks and dashboard files.
-
-This contract is meant to be consumed by AgentSight Web without re-reading raw
-agent history.
-
-## Benchmark Models
-
-Benchmark real local models by letting `agentpprof` start one llama.cpp server
-per model:
-
-```bash
-cargo run --manifest-path agentpprof/Cargo.toml -- bench \
-  --llama-server /path/to/llama-server \
-  --runs 2 \
-  --out .agentsight/agentpprof/model-benchmarks.json \
-  --model 3b=/path/to/model-3b.gguf \
-  --model 1b=/path/to/model-1b.gguf \
-  --model 0.6b=/path/to/model-0.6b.gguf
-```
-
-Use repeated `--server-arg` values for model-specific llama.cpp options, for
-example `--server-arg=--reasoning --server-arg=off` for no-thinking tag runs.
-
-The benchmark writes latency, success count, and invalid-output errors for each
-real model. It does not synthesize model responses.
-
-## Python Prototype
-
-The earlier Python pprof exporter now lives under
-`docs/visexp/agentpprof-python/`. It is kept as research material and is not the
-default user entrypoint.
-
-## Development Test
+## Development
 
 ```bash
 cargo test --manifest-path agentpprof/Cargo.toml
