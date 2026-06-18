@@ -1,8 +1,8 @@
 # Results Summary: AgentFlame Semantic Effect Profiling
 
-Last updated: 2026-06-15
+Last updated: 2026-06-18
 Stage at update: analyze
-Source/command: R170 full-history run plus `python3 docs/visexp/r189_tag_consolidation.py`, `python3 docs/visexp/r190_tag_consolidation_audit.py`, `python3 docs/visexp/r190_score_merge_audit.py`, `python3 docs/visexp/r196_long_tail_governance.py`, `python3 docs/visexp/r201_long_tail_sensitivity.py`, `python3 docs/visexp/r202_long_tail_regeneration_smoke.py --regenerate-limit 50 --load-timeout 240 --llama-timeout 60`, `python3 docs/visexp/r203_long_tail_promotion_gate.py`, `python3 docs/visexp/r205_long_tail_compaction_metrics.py`, `python3 docs/visexp/r209_reversible_display_map.py`, `python3 docs/visexp/r211_stack_examples.py`, `python3 docs/visexp/r212_display_compaction_ablation.py`, `python3 docs/visexp/r213_display_mode_drilldown_smoke.py`, `python3 docs/visexp/r214_long_tail_control_loop.py`, `python3 docs/visexp/r215_frontend_renderer_mode_smoke.py`, `python3 docs/visexp/r216_browser_dom_mode_smoke.py`, `python3 docs/visexp/r217_production_react_display_mode_smoke.py`, `python3 docs/visexp/r218_display_map_update_gate.py`, `python3 docs/visexp/r219_claim_readiness_gap_gate.py`, `python3 docs/visexp/r193_prepare_human_evidence_package.py`, `python3 docs/visexp/r194_human_evidence_preflight.py`, `python3 docs/visexp/r195_human_evidence_pipeline.py`, `python3 docs/visexp/r207_human_launch_readiness.py`, `python3 docs/visexp/r200_community_smoke.py`, `docs/visexp/LONG_TAIL_COMPACTION.md`, `docs/visexp/out/osdi-gate-review-r204.md`, `docs/visexp/out/osdi-rq-gate-review-r206.md`, and `docs/visexp/out/osdi-gate-review-r208.md`
+Source/command: R170 full-history run plus `python3 docs/visexp/r189_tag_consolidation.py`, `python3 docs/visexp/r190_tag_consolidation_audit.py`, `python3 docs/visexp/r190_score_merge_audit.py`, `python3 docs/visexp/r196_long_tail_governance.py`, `python3 docs/visexp/r201_long_tail_sensitivity.py`, `python3 docs/visexp/r202_long_tail_regeneration_smoke.py --regenerate-limit 50 --load-timeout 240 --llama-timeout 60`, `python3 docs/visexp/r203_long_tail_promotion_gate.py`, `python3 docs/visexp/r205_long_tail_compaction_metrics.py`, `python3 docs/visexp/r209_reversible_display_map.py`, `python3 docs/visexp/r211_stack_examples.py`, `python3 docs/visexp/r212_display_compaction_ablation.py`, `python3 docs/visexp/r213_display_mode_drilldown_smoke.py`, `python3 docs/visexp/r214_long_tail_control_loop.py`, `python3 docs/visexp/r215_frontend_renderer_mode_smoke.py`, `python3 docs/visexp/r216_browser_dom_mode_smoke.py`, `python3 docs/visexp/r217_production_react_display_mode_smoke.py`, `python3 docs/visexp/r218_display_map_update_gate.py`, `python3 docs/visexp/r219_claim_readiness_gap_gate.py`, `python3 docs/visexp/r193_prepare_human_evidence_package.py`, `python3 docs/visexp/r194_human_evidence_preflight.py`, `python3 docs/visexp/r195_human_evidence_pipeline.py`, `python3 docs/visexp/r207_human_launch_readiness.py`, `python3 docs/visexp/r200_community_smoke.py`, `python3 docs/visexp/r131_semantic_ablation.py --input .agentsight/agentflame/r170-full-current --local-out .agentsight/agentflame/ablations-r224-r170/summary.json --out-dir docs/visexp/out/semantic-ablation-r224-r170`, `python3 docs/visexp/r223_projection_tradeoff.py`, `docs/visexp/LONG_TAIL_COMPACTION.md`, `docs/visexp/out/osdi-gate-review-r204.md`, `docs/visexp/out/osdi-rq-gate-review-r206.md`, and `docs/visexp/out/osdi-gate-review-r208.md`
 Completeness: partial
 
 ## Headline Result
@@ -228,6 +228,30 @@ command-mode suite, C5 is unsupported, C6 is partial syntax/stability only, and
 C7 is partial. It records 0 C5 participant responses and 0 C6 final adequacy
 labels, making `R142-pilot-return` and `R124-labels-return` the P0 next rows.
 
+R224 reruns the semantic-axis ablation over the R170 current full-history
+folded artifacts, so the system-axis rows share the same 183,714 effect
+denominator as R212 display-policy rows. R223 then turns RQ2 into an explicit
+projection-selection experiment over R170-derived generated evidence. It reads
+R224/R205/R209/R212/R219 artifacts only, does not read raw traces, and does
+not call an LLM. The tradeoff table shows that no-semantic stacks are most
+compact (11,967 stacks, 15.352x compression) but mix 90.402% of system-effect
+weight and have up to 171 full semantic variants per bucket. Session-only
+still mixes 84.407% of weight. Prompt-only is the best single semantic axis
+for system effects: 24,703 stacks, 7.437x compression, 36.722% mixed weight,
+and 7.485% residual mixed weight. Full session+prompt is the audit view:
+26,829 stacks and 0.000% mixed weight by construction. R223 also summarizes
+display-policy tradeoffs: R209's
+conservative display policy matches alias-only, reducing stacks 26,829 ->
+26,612 with 0.0% unreviewed active weight, while the hypothetical
+profile-guarded policy would reduce stacks to 26,067 but activate unreviewed
+profile/lexical merges over 2.532% of effect weight. The vocabulary overlay
+reduces raw unique tag strings 1,546 -> 1,364 and improves top-20 support
+coverage 93.683% -> 95.186%, while preserving raw drilldown and keeping
+review-required support at 1.926%. That coverage is display-support
+concentration, not tag correctness. This supports the framework claim that
+semantic profiling is a pluggable projection over R170-derived evidence; it
+does not support C5 utility, C6 adequacy, merge quality, or promotion quality.
+
 ## Completed Runs
 
 | Run | Command/config | Result path | Status |
@@ -277,6 +301,8 @@ labels, making `R142-pilot-return` and `R124-labels-return` the P0 next rows.
 | R217 | Production React `AgentFlameView` default display-mode smoke over R209 artifacts | `docs/visexp/out/production-react-display-r217/production-react-display-r217.json` | done/production-render smoke; no click path, visual drilldown, adequacy, quality, or utility claim |
 | R218 | Reviewed display-map update gate over real R209 candidate rows with synthetic review fixtures | `docs/visexp/out/display-map-update-gate-r218/display-map-update-gate-r218.json` | done/update-gate smoke; synthetic review only, no promotion-quality or map-update claim |
 | R219 | Claim/RQ readiness gap gate over generated evidence artifacts | `docs/visexp/out/claim-readiness-r219/claim-readiness-r219.json` | done/readiness audit; `weak_accept_supported=false`, P0 next rows are R142/R124 |
+| R224 | R170 semantic-axis ablation rerun with R131 checker | `docs/visexp/out/semantic-ablation-r224-r170/semantic-ablation-r131.json`, `docs/visexp/out/semantic-ablation-r224-r170/semantic-ablation-r131.md` | done/R170 denominator alignment for RQ2 |
+| R223 | Projection tradeoff summary over R224/R205/R209/R212/R219 generated artifacts | `docs/visexp/out/projection-tradeoff-r223/projection-tradeoff-r223.json`, `docs/visexp/out/projection-tradeoff-r223/projection-tradeoff-r223.md` | done/RQ2 tradeoff artifact; no C5/C6 outcome claim |
 | R204 | Read-only OSDI gate review after long-tail promotion and human-evidence integration | `docs/visexp/out/osdi-gate-review-r204.md` | Level 3/not weak accept; no must-fix overclaim found |
 | R206 | Read-only OSDI RQ/experiment-plan gate review after R205 and RQ summary revision | `docs/visexp/out/osdi-rq-gate-review-r206.md` | no material plan-wording blocker; Level 3/not weak accept because C5/C6 evidence missing |
 | R208 | Read-only OSDI gate review after R205/R207 paper-plan alignment | `docs/visexp/out/osdi-gate-review-r208.md` | Level 3/not weak accept; latest revisions improve scoping/readiness but not outcome evidence |

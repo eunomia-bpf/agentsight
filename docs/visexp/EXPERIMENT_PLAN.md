@@ -1,6 +1,6 @@
 # Experiment Plan: AgentFlame
 
-Last updated: 2026-06-15
+Last updated: 2026-06-18
 Stage at update: supplement / experiment-design
 Source/command: `docs/visexp/RESEARCH_PLAN.md`, R189/R190/R193/R195/R196/R200/R201/R202/R203/R205/R207/R209/R213/R214/R215/R216/R217/R218/R219 generated artifacts, `docs/visexp/LONG_TAIL_COMPACTION.md`, `docs/visexp/out/osdi-gate-review-r204.md`, `python3 docs/visexp/r193_prepare_human_evidence_package.py`, `python3 docs/visexp/r195_human_evidence_pipeline.py`, `python3 docs/visexp/r196_long_tail_governance.py`, `python3 docs/visexp/r200_community_smoke.py`, `python3 docs/visexp/r201_long_tail_sensitivity.py`, `python3 docs/visexp/r202_long_tail_regeneration_smoke.py --regenerate-limit 50 --load-timeout 240 --llama-timeout 60`, `python3 docs/visexp/r203_long_tail_promotion_gate.py`, `python3 docs/visexp/r205_long_tail_compaction_metrics.py`, `python3 docs/visexp/r209_reversible_display_map.py`, `python3 docs/visexp/r213_display_mode_drilldown_smoke.py`, `python3 docs/visexp/r214_long_tail_control_loop.py`, `python3 docs/visexp/r215_frontend_renderer_mode_smoke.py`, `python3 docs/visexp/r216_browser_dom_mode_smoke.py`, `python3 docs/visexp/r217_production_react_display_mode_smoke.py`, `python3 docs/visexp/r218_display_map_update_gate.py`, `python3 docs/visexp/r219_claim_readiness_gap_gate.py`, and `python3 docs/visexp/r207_human_launch_readiness.py`
 Completeness: partial
@@ -76,7 +76,7 @@ hypothesis that requires C5 participant evidence.
 | B3 | C4 | Live exact-effect lineage | agent-native proxy vs AgentSight exact stream plus negative controls | recall, precision, orphan rate, path/domain specificity | lineage checker with false-positive controls | Fig. 3/Table 2 | fixed-suite done |
 | B4 | C5 | Developer task benchmark | trace tree, event-count proxy, flat summary, nonsemantic stack, semantic stack; true span-duration remains future if reconstructed from timestamps | time, accuracy, confidence, false positives | hidden answer key plus frozen preregistration | Table 3 | must |
 | B5 | C2,C6 | Small-model/stability/adequacy | 0.6B, 1B, 3B, repeated runs | latency, invalid rate, exact stability, adequacy | grammar + human labels | Table 4 | must |
-| B6 | C3 | Semantic-axis ablation | no semantic, session-only, prompt-only, prompt+LLM-call | information gain and stack growth; noisy-tag burden and task accuracy/time deferred | same observations, report/folded cross-checks, baseline queries | Fig. 4 | done for C3 mechanism |
+| B6 | C3 | Semantic-axis and projection-tradeoff ablation | no semantic, session-only, prompt-only, full session+prompt, raw display, alias-only, profile-guarded candidate, R209 conservative display | information gain, stack growth, mixed/residual weight, review-required support, unreviewed active weight; noisy-tag burden and task accuracy/time deferred | same observations, report/folded cross-checks, baseline queries, R223 projection-tradeoff summary | Fig. 4/Table 5 | done for C3/RQ2 mechanism |
 | B7 | C7 | Artifact usability smoke | fresh clone/run, documented setup | setup time, runtime/cache, output completeness, artifact hygiene | artifact checklist | Appendix | should |
 | B8 | C3; C6 protocol/gate only | Canonical tag consolidation and long-tail governance | raw, alias-only, lexical-only, profile-guarded, review-only suggestions, governance actions, candidate-only regeneration smoke, human-gated promotion protocol, compaction metrics, reversible display-map contract | unique tags, top-20 coverage, long-tail weight, stack reduction, merge-reason distribution, risk-audit rows, regenerate/split/keep action counts, regenerated-candidate grammar validity, promotion-label coverage, review-required support, raw-display-map coverage, hidden-`other` count | raw totals preserved; raw tags not overwritten; audit labels empty until collected; governance/regeneration/promotion/metrics/display-map packets do not count as adequacy | Fig. 5/Table 5 | done as vocabulary-hygiene/governance proxy and audit protocol |
 
@@ -241,6 +241,17 @@ hypothesis that requires C5 participant evidence.
   session/prompt/LLM-call bucket weight but only 0.027% residual weight, so
   LLM-call tags should be presented as token-navigation frames rather than
   system-effect attribution frames.
+  R224 reruns the same checker on R170 current full-history folded artifacts,
+  aligning the semantic-axis denominator with R212's 183,714 effect weight:
+  no-semantic mixes 90.402%, session-only 84.407%, prompt-only 36.722%, and
+  prompt-only residual is 7.485%. R223 repackages this as a
+  projection-selection tradeoff rather than a single "best" flamegraph:
+  no-semantic is the compact baseline, prompt-only is the best single semantic
+  axis, and full session+prompt is the audit view. R223 also combines
+  R212/R205/R209 to show display compaction tradeoffs: R209 conservative
+  display is alias-only active with 0.0% unreviewed active weight, while
+  profile-guarded candidate application would reduce stacks more but activate
+  2.532% unreviewed effect weight and must stay behind human gates.
 
 ### B8. Canonical Tag Consolidation
 

@@ -1,6 +1,6 @@
 # Claim Ledger: AgentFlame
 
-Last updated: 2026-06-15
+Last updated: 2026-06-18
 Stage at update: claim-gate / supplement
 Source/command: `.agentsight/agentflame/latest/agentflame.json`, `docs/visexp/out/live-record-r114-analysis.json`, `docs/visexp/out/live-network-r182.json`, `docs/visexp/out/model-benchmarks-r180.json`, `docs/visexp/out/long-tail-governance-r196/long-tail-governance-r196.json`, `docs/visexp/out/long-tail-sensitivity-r201/long-tail-sensitivity-r201.json`, `docs/visexp/out/long-tail-regeneration-r202/long-tail-regeneration-r202.json`, `docs/visexp/out/long-tail-promotion-r203/long-tail-promotion-r203.json`, `docs/visexp/out/long-tail-compaction-r205/long-tail-compaction-r205.json`, `docs/visexp/out/reversible-display-map-r209/reversible-display-map-r209.json`, `docs/visexp/out/display-mode-drilldown-r213/display-mode-drilldown-r213.json`, `docs/visexp/out/long-tail-control-r214/long-tail-control-r214.json`, `docs/visexp/out/frontend-renderer-mode-r215/frontend-renderer-mode-r215.json`, `docs/visexp/out/browser-dom-mode-r216/browser-dom-mode-r216.json`, `docs/visexp/out/production-react-display-r217/production-react-display-r217.json`, `docs/visexp/out/display-map-update-gate-r218/display-map-update-gate-r218.json`, `docs/visexp/out/claim-readiness-r219/claim-readiness-r219.json`, `docs/visexp/out/human-evidence-pipeline-r195.json`, `docs/visexp/out/user-task-results.json`, `docs/visexp/out/artifact-usability-r160.json`, `docs/visexp/out/community-smoke-r200.json`, `docs/visexp/LONG_TAIL_COMPACTION.md`, `docs/visexp/out/osdi-gate-review-r204.md`
 Completeness: partial
@@ -159,6 +159,19 @@ Evidence:
   partial, and `weak_accept_supported=false`; its P0 next rows are real R142
   participant returns and R124 human labels. It is an audit artifact, not a new
   claim-supporting result.
+- R224 reruns the semantic-axis ablation on the R170 current full-history
+  folded artifacts, aligning the system-axis denominator with R212's 183,714
+  effect weight. R223 consolidates the RQ2 projection tradeoff across
+  R224/R205/R209/R212: no-semantic is most compact but mixes 90.402% of
+  system-effect weight, session-only still mixes 84.407%, prompt-only reduces
+  mixed/residual mixed weight to 36.722%/7.485% and is the best single
+  system-effect task axis, and full session+prompt is the audit projection.
+  R223 also confirms R209's
+  conservative display policy is alias-only-equivalent with 0.0% unreviewed
+  active weight, while the hypothetical profile-guarded variant would activate
+  2.532% unreviewed effect weight and therefore remains gated. This supports a
+  pluggable projection framework claim, not user utility, tag adequacy, or
+  merge/promotion quality.
 - `docs/visexp/LONG_TAIL_COMPACTION.md` defines this as a versioned display
   overlay, not a raw-label rewrite: raw tags are immutable, regenerated tags
   are candidates only, and a reviewed display-map diff is required before any
