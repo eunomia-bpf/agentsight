@@ -28,6 +28,7 @@ SOURCE_PATHS = {
     "r114_live_record": "docs/visexp/out/live-record-r114.json",
     "r182_live_network": "docs/visexp/out/live-network-r182.json",
     "r191_target_network": "docs/visexp/out/live-network-r191.json",
+    "r229_exact_lineage_replication": "docs/visexp/out/exact-lineage-replication-r229.json",
     "r184_weak_accept": "docs/visexp/out/weak-accept-gate-r184.json",
     "r195_human_pipeline": "docs/visexp/out/human-evidence-pipeline-r195.json",
     "r207_launch_readiness": "docs/visexp/out/human-evidence-launch-r207/human-evidence-launch-r207.json",
@@ -132,7 +133,16 @@ def c4_lineage_supported(status: dict[str, Any]) -> bool:
         and float(status["r191_precision_pct"]) >= 98.0
         and float(status["r191_recall_pct"]) >= 95.0
     )
-    return r114_ok and r191_ok
+    r229_ok = (
+        status["r229_status"] == "ok"
+        and as_int(status["r229_tasks"]) >= 5
+        and as_int(status["r229_in_scope_effect_events"]) > 0
+        and as_int(status["r229_negative_observed"]) > 0
+        and as_int(status["r229_negative_joined"]) == 0
+        and float(status["r229_precision_pct"]) >= 98.0
+        and float(status["r229_recall_pct"]) >= 95.0
+    )
+    return r114_ok and r191_ok and r229_ok
 
 
 def artifact_statuses(artifacts: dict[str, dict[str, Any]]) -> dict[str, Any]:
@@ -141,6 +151,7 @@ def artifact_statuses(artifacts: dict[str, dict[str, Any]]) -> dict[str, Any]:
     r114 = artifacts["r114_live_record"]
     r182 = artifacts["r182_live_network"]
     r191 = artifacts["r191_target_network"]
+    r229 = artifacts["r229_exact_lineage_replication"]
     r184 = artifacts["r184_weak_accept"]
     r195 = artifacts["r195_human_pipeline"]
     r160 = artifacts["r160_artifact_usability"]
@@ -165,6 +176,7 @@ def artifact_statuses(artifacts: dict[str, dict[str, Any]]) -> dict[str, Any]:
     r114_negative_joined = as_int(r114_aggregate.get("negative_joined_effect_events"))
     r114_negative_observed = as_int(r114_aggregate.get("negative_effect_events_observed"))
     r191_aggregate = r191.get("aggregate") or {}
+    r229_aggregate = r229.get("aggregate") or {}
 
     r170_summary = r170.get("summary") or {}
     r180_aggregate = r180.get("aggregate") or {}
@@ -215,6 +227,17 @@ def artifact_statuses(artifacts: dict[str, dict[str, Any]]) -> dict[str, Any]:
         "r191_negative_observed": as_int(r191_aggregate.get("negative_effect_events_observed")),
         "r191_precision_pct": r191_aggregate.get("precision_pct", "n/a"),
         "r191_recall_pct": r191_aggregate.get("recall_pct", "n/a"),
+        "r229_status": r229.get("status"),
+        "r229_tasks": as_int(r229_aggregate.get("tasks")),
+        "r229_joined_effect_events": as_int(r229_aggregate.get("joined_effect_events")),
+        "r229_effect_events": as_int(r229_aggregate.get("effect_events")),
+        "r229_in_scope_effect_events": as_int(r229_aggregate.get("in_scope_effect_events")),
+        "r229_out_of_scope_effect_events": as_int(r229_aggregate.get("out_of_scope_effect_events")),
+        "r229_negative_joined": as_int(r229_aggregate.get("negative_joined_effect_events")),
+        "r229_negative_observed": as_int(r229_aggregate.get("negative_effect_events_observed")),
+        "r229_raw_join_pct": r229_aggregate.get("raw_join_pct", "n/a"),
+        "r229_precision_pct": r229_aggregate.get("precision_pct", "n/a"),
+        "r229_recall_pct": r229_aggregate.get("recall_pct", "n/a"),
         "r184_status": r184.get("status"),
         "r195_status": r195.get("status"),
         "r160_status": r160.get("status"),
@@ -317,17 +340,21 @@ def claim_rows(status: dict[str, Any]) -> list[dict[str, str]]:
                 f"target network {status['r191_joined_target_network_effect_events']}/"
                 f"{status['r191_target_network_effect_events']} joined, negative joins "
                 f"{status['r191_negative_joined']}/{status['r191_negative_observed']}, "
-                f"precision/recall {status['r191_precision_pct']}%/{status['r191_recall_pct']}%"
+                f"precision/recall {status['r191_precision_pct']}%/{status['r191_recall_pct']}%; "
+                f"R229 status {status['r229_status']}: {status['r229_tasks']} tasks, "
+                f"in-scope effects {status['r229_in_scope_effect_events']}, negative joins "
+                f"{status['r229_negative_joined']}/{status['r229_negative_observed']}, "
+                f"precision/recall {status['r229_precision_pct']}%/{status['r229_recall_pct']}%"
             ),
             "blocking_gap": (
-                "full-history exact integration, cross-repo replication, and broader network workloads remain partial"
+                "true full-history exact integration, broader network workloads, and external cross-repo replication remain partial"
                 if c4_ok
-                else "R114/R191 lineage gates did not all pass; rerun controlled lineage before broader replication"
+                else "R114/R191/R229 lineage gates did not all pass; rerun controlled lineage before broader replication"
             ),
             "next_gate": (
-                "full-history/cross-repo exact lineage replication"
+                "full-history/cross-repo exact lineage integration"
                 if c4_ok
-                else "rerun R114 and R191, requiring target rows > 0, all joined, and negative joins = 0"
+                else "rerun R114, R191, and R229, requiring target rows > 0, all joined, and negative joins = 0"
             ),
         },
         {
@@ -399,17 +426,19 @@ def rq_rows(status: dict[str, Any]) -> list[dict[str, str]]:
             "primary_evidence": (
                 f"R114 precision {status['r114_precision_pct']}%, recall {status['r114_recall_pct']}%; "
                 f"R191 target network {status['r191_joined_target_network_effect_events']}/"
-                f"{status['r191_target_network_effect_events']} joined"
+                f"{status['r191_target_network_effect_events']} joined; "
+                f"R229 {status['r229_tasks']} controlled multi-workspace tasks, "
+                f"{status['r229_in_scope_effect_events']} in-scope effects"
             ),
             "falsifier_remaining": (
-                "arbitrary-history capture, broader network workloads, and cross-repo replication remain open"
+                "arbitrary-history capture, broader network workloads, and external cross-repo replication remain open"
                 if c4_ok
                 else "controlled exact-lineage run failed before broader generalization"
             ),
             "next_gate": (
-                "full-history/cross-repo exact lineage replication"
+                "full-history/cross-repo exact lineage integration"
                 if c4_ok
-                else "rerun R114/R191 controlled exact-lineage gates"
+                else "rerun R114/R191/R229 controlled exact-lineage gates"
             ),
         },
         {
@@ -478,13 +507,13 @@ def next_experiment_rows() -> list[dict[str, str]]:
         },
         {
             "priority": "P1",
-            "run_id": "R229-full-history-exact-lineage",
+            "run_id": "R230-full-history-exact-lineage",
             "claim": "C4/RQ3",
             "block": "B3",
-            "purpose": "Replicate exact lineage beyond fixed command-mode tasks over full-history or cross-repo workloads.",
-            "command_or_input": "fresh controlled multi-repo runs plus a full-history exact-lineage integration pass",
+            "purpose": "Replicate exact lineage beyond controlled command-mode workspaces over full-history or external cross-repo workloads.",
+            "command_or_input": "fresh controlled external-repo runs plus a full-history exact-lineage integration pass",
             "oracle": "scoped in-history effects join without negative-control joins; target-network gate remains clean",
-            "result_path": "docs/visexp/out/full-history-lineage-r229/",
+            "result_path": "docs/visexp/out/full-history-lineage-r230/",
         },
         {
             "priority": "P2",
@@ -568,6 +597,13 @@ def write_markdown(path: Path, result: dict[str, Any]) -> None:
         f"- R180 valid outputs: {summary['r180_ok_runs']}/{summary['r180_total_runs']}.",
         f"- R114 command-mode precision/recall: {summary['r114_precision_pct']}%/{summary['r114_recall_pct']}%.",
         f"- R191 target network joined: {summary['r191_joined_target_network_effect_events']}/{summary['r191_target_network_effect_events']}.",
+        (
+            f"- R229 controlled replication: {summary['r229_tasks']} tasks, "
+            f"{summary['r229_in_scope_effect_events']} in-scope effects, "
+            f"{summary['r229_negative_joined']}/{summary['r229_negative_observed']} negative joins, "
+            f"raw join {summary['r229_joined_effect_events']}/{summary['r229_effect_events']} = "
+            f"{summary['r229_raw_join_pct']}%."
+        ),
         f"- R217 production display buckets/support: {summary['r217_display_buckets']}/{summary['r217_support']}.",
         f"- R218 preview accepted/rejected rows: {summary['r218_accepted_diff_rows']}/{summary['r218_rejected_rows']}.",
         f"- C5 participant responses: {summary['c5_responses']}.",
