@@ -38,11 +38,11 @@
       "verdict": "supported_as_mechanism"
     },
     {
-      "blocking_gap": "true full-history exact integration, broader network workloads, and external cross-repo replication remain partial",
+      "blocking_gap": "strict full-history semantic lineage, broader network workloads, and external cross-repo replication remain partial",
       "claim": "C4 exact semantic-effect lineage",
       "evidence_level": "controlled-live-lineage",
-      "next_gate": "full-history/cross-repo exact lineage integration",
-      "primary_evidence": "R114 status ok: precision 100.0%, recall 100.0%, negative joins 0/3170; R182 network status partial; R191 status ok: target network 4/4 joined, negative joins 0/310, precision/recall 100.0%/100.0%; R229 status ok: 5 tasks, in-scope effects 394, negative joins 0/306, precision/recall 100.0%/100.0%",
+      "next_gate": "diagnose R230 prompt-tag drift and run external cross-repo live exact-lineage replication",
+      "primary_evidence": "R114 status ok: precision 100.0%, recall 100.0%, negative joins 0/3170; R182 network status partial; R191 status ok: target network 4/4 joined, negative joins 0/310, precision/recall 100.0%/100.0%; R229 status ok: 5 tasks, in-scope effects 394, negative joins 0/306, precision/recall 100.0%/100.0%; R230 status partial_projection_indexed_with_semantic_drift: full-history projection true, folded weight 183714, missing frame weight 0, tool prompt-index coverage 100.0%, duplicate prompt-index rows 12, prompt-tag drift 346 weight (0.188%), LLM drift 93 events (0.081%), strict full-history false",
       "verdict": "supported_for_fixed_command_mode_suite"
     },
     {
@@ -70,7 +70,7 @@
       "verdict": "partial"
     }
   ],
-  "generated_at": "2026-06-18T21:05:03+00:00",
+  "generated_at": "2026-06-18T21:23:34+00:00",
   "next_experiments": [
     {
       "block": "B4",
@@ -105,12 +105,12 @@
     {
       "block": "B3",
       "claim": "C4/RQ3",
-      "command_or_input": "fresh controlled external-repo runs plus a full-history exact-lineage integration pass",
-      "oracle": "scoped in-history effects join without negative-control joins; target-network gate remains clean",
+      "command_or_input": "drift root-cause audit over R230 samples plus fresh controlled external-repo record runs",
+      "oracle": "drift categories are explainable or fixed; external-repo scoped effects join without negative-control joins",
       "priority": "P1",
-      "purpose": "Replicate exact lineage beyond controlled command-mode workspaces over full-history or external cross-repo workloads.",
-      "result_path": "docs/visexp/out/full-history-lineage-r230/",
-      "run_id": "R230-full-history-exact-lineage"
+      "purpose": "Explain R230 prompt-tag drift and replicate live exact-lineage on an external cross-repo workload.",
+      "result_path": "docs/visexp/out/drift-crossrepo-lineage-r231/",
+      "run_id": "R231-drift-and-crossrepo-lineage"
     },
     {
       "block": "B7",
@@ -164,9 +164,9 @@
     },
     {
       "evidence_level": "controlled live AgentSight suite",
-      "falsifier_remaining": "arbitrary-history capture, broader network workloads, and external cross-repo replication remain open",
-      "next_gate": "full-history/cross-repo exact lineage integration",
-      "primary_evidence": "R114 precision 100.0%, recall 100.0%; R191 target network 4/4 joined; R229 5 controlled multi-workspace tasks, 394 in-scope effects",
+      "falsifier_remaining": "strict full-history semantic consistency, broader network workloads, and external cross-repo replication remain open",
+      "next_gate": "diagnose R230 prompt-tag drift and run external cross-repo live exact-lineage replication",
+      "primary_evidence": "R114 precision 100.0%, recall 100.0%; R191 target network 4/4 joined; R229 5 controlled multi-workspace tasks, 394 in-scope effects; R230 full-history projection weight 183714 with duplicate prompt-index rows 12 and prompt-tag drift 0.188%/0.081% tool/LLM",
       "rq": "RQ3 exact lineage",
       "verdict": "supported_for_fixed_command_mode_suite"
     },
@@ -225,7 +225,8 @@
     "r220_fresh_clone_agentpprof": "docs/visexp/out/fresh-clone-agentpprof-r220/fresh-clone-agentpprof-r220.json",
     "r223_projection_tradeoff": "docs/visexp/out/projection-tradeoff-r223/projection-tradeoff-r223.json",
     "r225_prompt_span_duration": "docs/visexp/out/prompt-span-duration-r225/prompt-span-duration-r225.json",
-    "r229_exact_lineage_replication": "docs/visexp/out/exact-lineage-replication-r229.json"
+    "r229_exact_lineage_replication": "docs/visexp/out/exact-lineage-replication-r229.json",
+    "r230_full_history_lineage": "docs/visexp/out/full-history-lineage-r230/full-history-lineage-r230.json"
   },
   "status": "osdi_weak_accept_not_supported",
   "summary": {
@@ -301,6 +302,22 @@
     "r229_raw_join_pct": 36.481,
     "r229_recall_pct": 100.0,
     "r229_status": "ok",
-    "r229_tasks": 5
+    "r229_tasks": 5,
+    "r230_duplicate_prompt_index_rows": 12,
+    "r230_folded_total_weight": 183714,
+    "r230_llm_prompt_tag_mismatch_event_pct": 0.081,
+    "r230_llm_prompt_tag_mismatch_events": 93,
+    "r230_missing_frame_weight": 0,
+    "r230_prompt_rows": 2859,
+    "r230_sessions_with_duplicate_prompt_indexes": 5,
+    "r230_status": "partial_projection_indexed_with_semantic_drift",
+    "r230_strict_full_history_supported": false,
+    "r230_system_effect_history_projection_supported": true,
+    "r230_tool_ambiguous_prompt_index_weight": 1026,
+    "r230_tool_ambiguous_prompt_index_weight_pct": 0.558,
+    "r230_tool_prompt_index_weight_pct": 100.0,
+    "r230_tool_prompt_tag_mismatch_weight": 346,
+    "r230_tool_prompt_tag_mismatch_weight_pct": 0.188,
+    "r230_unique_prompt_indexes": 2847
   }
 }
