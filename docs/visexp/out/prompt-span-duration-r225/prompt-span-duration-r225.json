@@ -1,0 +1,91 @@
+{
+  "claim_boundary": "R225 reconstructs prompt-span durations from timestamps only. It is a concrete prompt wall-clock duration baseline artifact, not active runtime, not a true tool/LLM span-duration trace, and not a user-outcome result.",
+  "covered_effect_share_pct": 100.0,
+  "covered_effect_total_weight": 183714,
+  "duration_effect_comparison_scope": "prompt spans and covered prompt-index system effects reconstructed from the same R170 agentflame.json; expanded effect totals are checked against semantic-system.folded.txt",
+  "duration_full": {
+    "compression_ratio": 5970016.004,
+    "max_stack_reuse": 766941620,
+    "median_stack_weight": 228535.0,
+    "metric": "milliseconds",
+    "total_hours": 859.019,
+    "total_weight": 3092468290,
+    "unique_stacks": 518
+  },
+  "duration_no_semantic": {
+    "compression_ratio": 1030822763.333,
+    "max_stack_reuse": 2652217064,
+    "median_stack_weight": 431805976,
+    "metric": "milliseconds",
+    "total_hours": 859.019,
+    "total_weight": 3092468290,
+    "unique_stacks": 3
+  },
+  "duration_prompt_only": {
+    "compression_ratio": 8686708.68,
+    "max_stack_reuse": 1020669428,
+    "median_stack_weight": 195330.0,
+    "metric": "milliseconds",
+    "total_hours": 859.019,
+    "total_weight": 3092468290,
+    "unique_stacks": 356
+  },
+  "effect_total_weight": 183714,
+  "effect_unique_stacks": 26829,
+  "expanded_effect_by_prompt_matches_folded": true,
+  "expanded_effect_total_matches_folded": true,
+  "expanded_effect_total_weight": 183714,
+  "git_branch": "research/semantic-flamegraph-artifacts",
+  "git_commit": "5d4b6753c3acd80dcdca238d8a8e4217d6008762",
+  "inputs": {
+    "agentflame_json": ".agentsight/agentflame/r170-full-current/agentflame.json",
+    "agentflame_json_sha256": "32a11de291ac11a8c8b79b4a616af72edb4cf6b9ab4ad95b9109baa1fac09924",
+    "semantic_system_folded": ".agentsight/agentflame/r170-full-current/semantic-system.folded.txt",
+    "semantic_system_folded_sha256": "350d716412792826368e9778d153ac7cbe7a717b7280c40b32f71ba8b6d1789d"
+  },
+  "max_prompt_duration_h": 21.69,
+  "median_nonzero_prompt_duration_s": 92.166,
+  "median_prompt_duration_s": 91.787,
+  "outputs": {
+    "disagreement_csv": "docs/visexp/out/prompt-span-duration-r225/duration-effect-disagreement-r225.csv",
+    "duration_folded": "docs/visexp/out/prompt-span-duration-r225/prompt-span-duration.folded.txt",
+    "duration_svg": "docs/visexp/out/prompt-span-duration-r225/prompt-span-duration.svg",
+    "summary_json": "docs/visexp/out/prompt-span-duration-r225/prompt-span-duration-r225.json",
+    "summary_md": "docs/visexp/out/prompt-span-duration-r225/prompt-span-duration-r225.md",
+    "top_duration_csv": "docs/visexp/out/prompt-span-duration-r225/top-duration-tags-r225.csv",
+    "top_effect_csv": "docs/visexp/out/prompt-span-duration-r225/top-effect-tags-r225.csv"
+  },
+  "prompt_span_duration_is_wall_clock_interval": true,
+  "prompt_span_may_include_idle_or_user_wait": true,
+  "prompt_spans_nonzero": 2854,
+  "prompt_spans_total": 2858,
+  "prompt_spans_zero_duration": 4,
+  "run_id": "R225",
+  "sessions_total": 325,
+  "sessions_with_covered_effects": 324,
+  "sessions_with_prompt_spans": 324,
+  "span_end_policy": "end at next later prompt timestamp, otherwise session last observed event timestamp",
+  "span_end_source_counts": {
+    "next_prompt": 2533,
+    "session_last_event": 325
+  },
+  "spearman_rank_correlation": 0.623,
+  "status": "done/prompt-span-duration-baseline",
+  "supports_c5_user_utility": false,
+  "supports_c6_tag_adequacy": false,
+  "top10_duration_only": [
+    "compare",
+    "network",
+    "source"
+  ],
+  "top10_effect_only": [
+    "benchmark",
+    "debug",
+    "explain"
+  ],
+  "top10_overlap_count": 7,
+  "top20_overlap_count": 12,
+  "total_prompt_duration_h": 859.019,
+  "total_prompt_duration_ms": 3092468290,
+  "true_tool_or_llm_duration_supported": false
+}

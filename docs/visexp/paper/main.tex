@@ -135,8 +135,9 @@ project;agent;session;prompt;call:llm/...;model;kind
 
 AgentFlame 不把所有信息塞进一张图。
 面向开发者的核心界面应有四类互补视图。
-第一，semantic system flamegraph 用宽度表达 effect count、duration 或 token-normalized cost，用于回答 ``哪里重、哪里绕、哪里重复''。
+第一，semantic system flamegraph 用宽度表达 system-effect count，用于回答 ``哪里重、哪里绕、哪里重复''。
 它适合跨 session 聚合，因为 folded stack 会把同一语义任务下重复出现的 \texttt{rg}、\texttt{cargo test}、文件读取或网络目标折叠到同一横条。
+Duration 是单独的 projection：当前 R225 只支持 prompt wall-clock baseline，不支持 active runtime 或 tool/LLM span-duration。
 第二，token flamegraph 使用同样的 session/prompt/LLM-call 语义帧，但叶子变成 model/prompt/completion token，回答 ``哪类任务消耗上下文和模型预算''。
 
 第三，exact-lineage tree 不是聚合图，而是 provenance drill-down。
@@ -336,6 +337,21 @@ profile-guarded candidate view 可以降到 26,067 个 stacks，但会激活
 95.186\%，同时保留 raw drilldown。
 这个 coverage 只是 display-support concentration，不是 tag correctness；
 在 R124/R190/R203 人工标签返回前，不能把它写成 tag adequacy、merge quality 或 promotion quality。
+R225 进一步补上一个 duration 视角的边界实验：它只读取 R170
+\texttt{agentflame.json} 和 \texttt{semantic-system.folded.txt}，从 prompt
+timestamps 重构 2,858 个 prompt wall-clock spans，生成 duration-weighted
+folded stack 和 SVG。
+这个 baseline 覆盖 324/325 个有 prompt spans 的 sessions，并且 covered
+prompt-index effects 覆盖 183,714/183,714 个 system-effect observations；总 prompt
+wall-clock duration 为 859.019 小时；duration top-10 与 effect-count top-10 只重合 7
+个，top-20 重合 12 个，prompt-tag rank Spearman correlation 为 0.623。
+例如 \texttt{network} 在 duration 中排第 8、占 2.837\%，但在
+system-effect weight 中排第 93、占 0.040\%；\texttt{benchmark} 则在
+effect weight 中排第 7、占 2.195\%，但 duration 中排第 34、占
+0.198\%。
+这说明 duration flamegraph 与 system-effect profile 相关但回答不同问题。
+同时，R225 明确记录历史 artifact 没有 tool/LLM start-end span，因此它不是
+active runtime、完整 workflow span-duration trace，也不能支持 C5。
 这就是系统设计需要可插拔 projection 的原因：不同视图优化不同问题，而不是
 让小模型一次性决定最终语义真相。
 
@@ -392,7 +408,7 @@ R193/R195/R207 进一步把这个收集路径变成可执行 handoff：R193 汇�
 这些 artifact 只支持 launch readiness；它们仍记录 0 个参与者响应、0 个人工标签，不能支持 C5。
 当前 baseline 应设为 trace tree、\texttt{event-count-proxy}、flat process summary、nonsemantic folded stack 和 semantic folded stack，比较 accuracy、time、false positives 和 confidence。
 当前 R142 packet 中原来的 span-like 条件已经明确命名为 event-count proxy，因为 folded artifact 没有真实 duration；它不能直接当作 span-duration baseline。
-只有在从 timestamps 重新生成并预注册时，true span-duration flamegraph 才能作为额外 baseline。
+R225 已经从 R170 timestamps 重构出 prompt wall-clock duration baseline，并显示它与 effect-count profile 的 top tags 和排序有明显差异；但该 baseline 可能包含 idle/user-wait time，且 tool/LLM 调用仍没有 start-end span，因此它只能作为下一版 preregistered packet 的 prompt-span baseline，而不是 active runtime 或完整 workflow span-duration baseline。
 如果这个实验失败，AgentFlame 仍可能是专家 forensic 工具，但不能写成提升普通开发者效率。
 
 \subsection{RQ5：小模型成本和标签质量}
@@ -487,7 +503,7 @@ R184/R186/R187/R188 的作用是防止过度声明：它们把当前状态固定
     supported &
     Syntax 不等于 adequacy；需要人工标签质量评估。 \\
     C3 semantic partitioning and display contract &
-    Nonsemantic/flat baselines 分别有 90.219\% 和 90.770\% mixed weight；R224/R170 中 prompt-only 将 system bucket/residual mixed weight 降到 36.722\%/7.485\%；R211 给出 RQ2 figure inputs，其中 \texttt{git/read/ok} 有 116 个 prompt tags，\texttt{cargo/test/ok} 有 48 个 prompt tags；R209/R212 证明可逆 display map 与保守 display policy：R209/alias-only 为 26,612 stacks，profile-guarded hypothetical 为 26,067 stacks 但会激活 2.532\% 未审查 effect weight；R223 将这些结果汇总为 projection tradeoff：no-semantic 压缩最高但混合 90.402\%，prompt-only 是最佳单语义轴，full session+prompt 是 audit view，R209 conservative display 是 0.0\% unreviewed-active 默认策略。 &
+    Nonsemantic/flat baselines 分别有 90.219\% 和 90.770\% mixed weight；R224/R170 中 prompt-only 将 system bucket/residual mixed weight 降到 36.722\%/7.485\%；R211 给出 RQ2 figure inputs，其中 \texttt{git/read/ok} 有 116 个 prompt tags，\texttt{cargo/test/ok} 有 48 个 prompt tags；R209/R212 证明可逆 display map 与保守 display policy：R209/alias-only 为 26,612 stacks，profile-guarded hypothetical 为 26,067 stacks 但会激活 2.532\% 未审查 effect weight；R223 将这些结果汇总为 projection tradeoff；R225 生成 prompt-span duration baseline，top-10 duration/effect tags 只重合 7/10，Spearman 为 0.623。 &
     partitioning supported; display mechanics supported &
     需要更多仓库和用户任务证明不是单仓库 workload 特例；R213-R218 只是 renderer/data contract 和 update-gate smokes，不是 C3 scientific outcome evidence；还需要 LLM/token display-compaction ablation、真实用户交互证据，以及 R190/R203 标签返回后的 merge/promotion quality。 \\
     C4 exact lineage &

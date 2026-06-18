@@ -45,6 +45,8 @@ SOURCE_PATHS = {
     "r209_display_map": "docs/visexp/out/reversible-display-map-r209/reversible-display-map-r209.json",
     "r211_stack_examples": "docs/visexp/out/stack-examples-r211/stack-examples-r211.json",
     "r212_display_ablation": "docs/visexp/out/display-compaction-ablation-r212/display-compaction-ablation-r212.json",
+    "r223_projection_tradeoff": "docs/visexp/out/projection-tradeoff-r223/projection-tradeoff-r223.json",
+    "r225_prompt_span_duration": "docs/visexp/out/prompt-span-duration-r225/prompt-span-duration-r225.json",
 }
 
 
@@ -123,6 +125,8 @@ def artifact_statuses(artifacts: dict[str, dict[str, Any]]) -> dict[str, Any]:
     r216 = artifacts["r216_browser_dom"]
     r217 = artifacts["r217_production_react"]
     r218 = artifacts["r218_update_gate"]
+    r223 = artifacts["r223_projection_tradeoff"]
+    r225 = artifacts["r225_prompt_span_duration"]
     r124 = artifacts["r124_tag_adequacy"]
     r190 = artifacts["r190_merge_quality"]
     r203 = artifacts["r203_promotion_quality"]
@@ -141,6 +145,25 @@ def artifact_statuses(artifacts: dict[str, dict[str, Any]]) -> dict[str, Any]:
     r218_summary = r218.get("summary") or {}
     r184_c5 = r184.get("c5_user_utility") or {}
     r184_c6 = r184.get("c6_tag_adequacy") or {}
+    r223_rows = r223.get("rows") or []
+    r223_prompt_only = next(
+        (
+            row
+            for row in r223_rows
+            if row.get("projection_family") == "semantic-axis"
+            and row.get("variant") == "prompt-only"
+        ),
+        {},
+    )
+    r223_no_semantic = next(
+        (
+            row
+            for row in r223_rows
+            if row.get("projection_family") == "semantic-axis"
+            and row.get("variant") == "no-semantic"
+        ),
+        {},
+    )
 
     return {
         "r170_sessions": as_int(r170_summary.get("session_count")),
@@ -177,6 +200,17 @@ def artifact_statuses(artifacts: dict[str, dict[str, Any]]) -> dict[str, Any]:
         "r218_accepted_diff_rows": as_int(r218_summary.get("accepted_diff_rows")),
         "r218_rejected_rows": as_int(r218_summary.get("rejected_rows")),
         "r218_canonical_map_updated": bool(r218_summary.get("canonical_map_updated")),
+        "r223_no_semantic_mixed_pct": r223_no_semantic.get("mixed_weight_pct", "n/a"),
+        "r223_prompt_only_mixed_pct": r223_prompt_only.get("mixed_weight_pct", "n/a"),
+        "r223_prompt_only_residual_pct": r223_prompt_only.get("mixed_residual_pct", "n/a"),
+        "r225_prompt_spans": as_int(r225.get("prompt_spans_total")),
+        "r225_duration_hours": r225.get("total_prompt_duration_h", "n/a"),
+        "r225_covered_effect_total": as_int(r225.get("covered_effect_total_weight")),
+        "r225_effect_total": as_int(r225.get("effect_total_weight")),
+        "r225_covered_effect_share_pct": r225.get("covered_effect_share_pct", "n/a"),
+        "r225_top10_overlap": as_int(r225.get("top10_overlap_count")),
+        "r225_spearman": r225.get("spearman_rank_correlation", "n/a"),
+        "r225_true_tool_or_llm_duration_supported": bool(r225.get("true_tool_or_llm_duration_supported")),
     }
 
 
@@ -212,11 +246,16 @@ def claim_rows(status: dict[str, Any]) -> list[dict[str, str]]:
             "verdict": "supported_as_mechanism",
             "evidence_level": "ablation/display-contract",
             "primary_evidence": (
-                f"R217 production default display: {status['r217_display_buckets']} buckets, "
-                f"{status['r217_support']} support; R218 accepted {status['r218_accepted_diff_rows']} "
-                f"preview diffs and rejected {status['r218_rejected_rows']} unsafe rows"
+                f"R223: no-semantic mixed {status['r223_no_semantic_mixed_pct']}%, "
+                f"prompt-only mixed/residual {status['r223_prompt_only_mixed_pct']}%/"
+                f"{status['r223_prompt_only_residual_pct']}%; R225: "
+                f"{status['r225_prompt_spans']} prompt spans, {status['r225_duration_hours']} h, "
+                f"covered effects {status['r225_covered_effect_total']}/"
+                f"{status['r225_effect_total']} ({status['r225_covered_effect_share_pct']}%), "
+                f"top-10 duration/effect overlap {status['r225_top10_overlap']}/10, "
+                f"Spearman {status['r225_spearman']}; R217/R218 display/update gates pass"
             ),
-            "blocking_gap": "visual drilldown, developer utility, and merge quality are not proven",
+            "blocking_gap": "visual drilldown, developer utility, true tool/LLM spans, and merge quality are not proven",
             "next_gate": "C5 participant study and R190/R203 human review labels",
         },
         {
@@ -413,8 +452,9 @@ def claim_gate(overall: dict[str, Any]) -> dict[str, bool]:
 
 
 def write_csv(path: Path, rows: list[dict[str, str]], fields: list[str]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8", newline="") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer = csv.DictWriter(handle, fieldnames=fields, lineterminator="\n")
         writer.writeheader()
         writer.writerows(rows)
 

@@ -172,6 +172,17 @@ Evidence:
   2.532% unreviewed effect weight and therefore remains gated. This supports a
   pluggable projection framework claim, not user utility, tag adequacy, or
   merge/promotion quality.
+- R225 reconstructs a timestamp-derived prompt wall-clock duration baseline
+  from the R170 generated artifacts. It builds 2,858 prompt spans, 2,854
+  nonzero spans, and 859.019 hours of prompt wall-clock duration; it covers
+  324/325 sessions with prompt spans and 183,714/183,714 covered prompt-index
+  system-effect observations. Duration and effect-count prompt-tag rankings
+  overlap on 7/10 top tags and have Spearman rank correlation 0.623. This
+  supports the projection-framework claim that duration and system-effect
+  profiles answer different questions. It does not
+  support C5 user utility, C6 adequacy, active runtime, or true tool/LLM
+  span-duration tracing because prompt intervals may include idle/user-wait
+  time and historical tool/LLM events lack start/end spans.
 - `docs/visexp/LONG_TAIL_COMPACTION.md` defines this as a versioned display
   overlay, not a raw-label rewrite: raw tags are immutable, regenerated tags
   are candidates only, and a reviewed display-map diff is required before any

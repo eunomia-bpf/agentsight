@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-18
 Stage at update: analyze
-Source/command: R170 full-history run plus `python3 docs/visexp/r189_tag_consolidation.py`, `python3 docs/visexp/r190_tag_consolidation_audit.py`, `python3 docs/visexp/r190_score_merge_audit.py`, `python3 docs/visexp/r196_long_tail_governance.py`, `python3 docs/visexp/r201_long_tail_sensitivity.py`, `python3 docs/visexp/r202_long_tail_regeneration_smoke.py --regenerate-limit 50 --load-timeout 240 --llama-timeout 60`, `python3 docs/visexp/r203_long_tail_promotion_gate.py`, `python3 docs/visexp/r205_long_tail_compaction_metrics.py`, `python3 docs/visexp/r209_reversible_display_map.py`, `python3 docs/visexp/r211_stack_examples.py`, `python3 docs/visexp/r212_display_compaction_ablation.py`, `python3 docs/visexp/r213_display_mode_drilldown_smoke.py`, `python3 docs/visexp/r214_long_tail_control_loop.py`, `python3 docs/visexp/r215_frontend_renderer_mode_smoke.py`, `python3 docs/visexp/r216_browser_dom_mode_smoke.py`, `python3 docs/visexp/r217_production_react_display_mode_smoke.py`, `python3 docs/visexp/r218_display_map_update_gate.py`, `python3 docs/visexp/r219_claim_readiness_gap_gate.py`, `python3 docs/visexp/r193_prepare_human_evidence_package.py`, `python3 docs/visexp/r194_human_evidence_preflight.py`, `python3 docs/visexp/r195_human_evidence_pipeline.py`, `python3 docs/visexp/r207_human_launch_readiness.py`, `python3 docs/visexp/r200_community_smoke.py`, `python3 docs/visexp/r131_semantic_ablation.py --input .agentsight/agentflame/r170-full-current --local-out .agentsight/agentflame/ablations-r224-r170/summary.json --out-dir docs/visexp/out/semantic-ablation-r224-r170`, `python3 docs/visexp/r223_projection_tradeoff.py`, `docs/visexp/LONG_TAIL_COMPACTION.md`, `docs/visexp/out/osdi-gate-review-r204.md`, `docs/visexp/out/osdi-rq-gate-review-r206.md`, and `docs/visexp/out/osdi-gate-review-r208.md`
+Source/command: R170 full-history run plus `python3 docs/visexp/r189_tag_consolidation.py`, `python3 docs/visexp/r190_tag_consolidation_audit.py`, `python3 docs/visexp/r190_score_merge_audit.py`, `python3 docs/visexp/r196_long_tail_governance.py`, `python3 docs/visexp/r201_long_tail_sensitivity.py`, `python3 docs/visexp/r202_long_tail_regeneration_smoke.py --regenerate-limit 50 --load-timeout 240 --llama-timeout 60`, `python3 docs/visexp/r203_long_tail_promotion_gate.py`, `python3 docs/visexp/r205_long_tail_compaction_metrics.py`, `python3 docs/visexp/r209_reversible_display_map.py`, `python3 docs/visexp/r211_stack_examples.py`, `python3 docs/visexp/r212_display_compaction_ablation.py`, `python3 docs/visexp/r213_display_mode_drilldown_smoke.py`, `python3 docs/visexp/r214_long_tail_control_loop.py`, `python3 docs/visexp/r215_frontend_renderer_mode_smoke.py`, `python3 docs/visexp/r216_browser_dom_mode_smoke.py`, `python3 docs/visexp/r217_production_react_display_mode_smoke.py`, `python3 docs/visexp/r218_display_map_update_gate.py`, `python3 docs/visexp/r219_claim_readiness_gap_gate.py`, `python3 docs/visexp/r193_prepare_human_evidence_package.py`, `python3 docs/visexp/r194_human_evidence_preflight.py`, `python3 docs/visexp/r195_human_evidence_pipeline.py`, `python3 docs/visexp/r207_human_launch_readiness.py`, `python3 docs/visexp/r200_community_smoke.py`, `python3 docs/visexp/r131_semantic_ablation.py --input .agentsight/agentflame/r170-full-current --local-out .agentsight/agentflame/ablations-r224-r170/summary.json --out-dir docs/visexp/out/semantic-ablation-r224-r170`, `python3 docs/visexp/r223_projection_tradeoff.py`, `python3 docs/visexp/r225_prompt_span_duration_baseline.py`, `docs/visexp/LONG_TAIL_COMPACTION.md`, `docs/visexp/out/osdi-gate-review-r204.md`, `docs/visexp/out/osdi-rq-gate-review-r206.md`, and `docs/visexp/out/osdi-gate-review-r208.md`
 Completeness: partial
 
 ## Headline Result
@@ -227,6 +227,9 @@ syntax/latency, C3 is supported as mechanism, C4 is supported for the fixed
 command-mode suite, C5 is unsupported, C6 is partial syntax/stability only, and
 C7 is partial. It records 0 C5 participant responses and 0 C6 final adequacy
 labels, making `R142-pilot-return` and `R124-labels-return` the P0 next rows.
+The current rerun also includes R223/R225 in C3 evidence: projection tradeoffs
+and prompt-span duration baselines strengthen the mechanism story but do not
+change the weak-accept gate.
 
 R224 reruns the semantic-axis ablation over the R170 current full-history
 folded artifacts, so the system-axis rows share the same 183,714 effect
@@ -251,6 +254,27 @@ review-required support at 1.926%. That coverage is display-support
 concentration, not tag correctness. This supports the framework claim that
 semantic profiling is a pluggable projection over R170-derived evidence; it
 does not support C5 utility, C6 adequacy, merge quality, or promotion quality.
+
+R225 adds the missing duration-side baseline artifact without overclaiming it
+as a true workflow trace. It reconstructs 2,858 prompt wall-clock spans from
+R170 timestamps, with 2,854 nonzero spans over 324/325 sessions and 859.019
+total prompt-duration hours. Its covered prompt-index effect denominator is
+183,714/183,714 observations, and the expanded effect-by-prompt totals match
+the folded file. Duration and effect-count prompt-tag rankings are
+related but different: top-10 overlap is 7/10, top-20 overlap is 12/20, and
+Spearman rank correlation is 0.623. Duration-only top-10 tags include
+`network`, `compare`, and `source`, while effect-only top-10 tags include
+`benchmark`, `debug`, and `explain`. R225 supports only a prompt-span duration
+baseline and the claim that duration and system-effect projections answer
+different questions; it may include idle/user-wait time and does not provide
+active runtime, tool/LLM start-end spans, or C5/C6 outcome evidence.
+
+R226 records the read-only OSDI subagent review after R225. The review keeps the
+paper at not weak accept because C5/C6 are still missing, accepts R225 only as a
+prompt wall-clock baseline, and flags denominator alignment as the main
+methodological issue. The current R225 revision addresses that issue by
+reconstructing covered prompt-index system effects from the same R170
+`agentflame.json` and checking them against the folded file.
 
 ## Completed Runs
 
@@ -303,6 +327,8 @@ does not support C5 utility, C6 adequacy, merge quality, or promotion quality.
 | R219 | Claim/RQ readiness gap gate over generated evidence artifacts | `docs/visexp/out/claim-readiness-r219/claim-readiness-r219.json` | done/readiness audit; `weak_accept_supported=false`, P0 next rows are R142/R124 |
 | R224 | R170 semantic-axis ablation rerun with R131 checker | `docs/visexp/out/semantic-ablation-r224-r170/semantic-ablation-r131.json`, `docs/visexp/out/semantic-ablation-r224-r170/semantic-ablation-r131.md` | done/R170 denominator alignment for RQ2 |
 | R223 | Projection tradeoff summary over R224/R205/R209/R212/R219 generated artifacts | `docs/visexp/out/projection-tradeoff-r223/projection-tradeoff-r223.json`, `docs/visexp/out/projection-tradeoff-r223/projection-tradeoff-r223.md` | done/RQ2 tradeoff artifact; no C5/C6 outcome claim |
+| R225 | Prompt wall-clock duration baseline from R170 timestamps | `docs/visexp/out/prompt-span-duration-r225/prompt-span-duration-r225.json`, `docs/visexp/out/prompt-span-duration-r225/prompt-span-duration-r225.md`, `docs/visexp/out/prompt-span-duration-r225/prompt-span-duration.svg` | done/prompt-span duration baseline; covered effects 183,714/183,714; may include idle/wait time; no active runtime, true tool/LLM spans, or C5/C6 outcome claim |
+| R226 | Read-only OSDI review after R225 integration | `docs/visexp/out/osdi-gate-review-r226.md` | not weak accept; R225 useful but C5/C6 remain blockers |
 | R204 | Read-only OSDI gate review after long-tail promotion and human-evidence integration | `docs/visexp/out/osdi-gate-review-r204.md` | Level 3/not weak accept; no must-fix overclaim found |
 | R206 | Read-only OSDI RQ/experiment-plan gate review after R205 and RQ summary revision | `docs/visexp/out/osdi-rq-gate-review-r206.md` | no material plan-wording blocker; Level 3/not weak accept because C5/C6 evidence missing |
 | R208 | Read-only OSDI gate review after R205/R207 paper-plan alignment | `docs/visexp/out/osdi-gate-review-r208.md` | Level 3/not weak accept; latest revisions improve scoping/readiness but not outcome evidence |
