@@ -30,6 +30,7 @@ SOURCE_PATHS = {
     "r191_target_network": "docs/visexp/out/live-network-r191.json",
     "r229_exact_lineage_replication": "docs/visexp/out/exact-lineage-replication-r229.json",
     "r230_full_history_lineage": "docs/visexp/out/full-history-lineage-r230/full-history-lineage-r230.json",
+    "r231_drift_root_cause": "docs/visexp/out/drift-root-cause-r231/drift-root-cause-r231.json",
     "r184_weak_accept": "docs/visexp/out/weak-accept-gate-r184.json",
     "r195_human_pipeline": "docs/visexp/out/human-evidence-pipeline-r195.json",
     "r207_launch_readiness": "docs/visexp/out/human-evidence-launch-r207/human-evidence-launch-r207.json",
@@ -168,6 +169,7 @@ def artifact_statuses(artifacts: dict[str, dict[str, Any]]) -> dict[str, Any]:
     r191 = artifacts["r191_target_network"]
     r229 = artifacts["r229_exact_lineage_replication"]
     r230 = artifacts["r230_full_history_lineage"]
+    r231 = artifacts["r231_drift_root_cause"]
     r184 = artifacts["r184_weak_accept"]
     r195 = artifacts["r195_human_pipeline"]
     r160 = artifacts["r160_artifact_usability"]
@@ -196,6 +198,9 @@ def artifact_statuses(artifacts: dict[str, dict[str, Any]]) -> dict[str, Any]:
     r230_gate = r230.get("claim_gate") or {}
     r230_raw = r230.get("raw_event_index_audit") or {}
     r230_folded = r230.get("folded_audit") or {}
+    r231_gate = r231.get("claim_gate") or {}
+    r231_summary = r231.get("summary") or {}
+    r231_display = r231.get("display_projection") or {}
 
     r170_summary = r170.get("summary") or {}
     r180_aggregate = r180.get("aggregate") or {}
@@ -294,6 +299,62 @@ def artifact_statuses(artifacts: dict[str, dict[str, Any]]) -> dict[str, Any]:
         ),
         "r230_llm_prompt_tag_mismatch_event_pct": required_field(
             r230_raw, "llm_prompt_tag_mismatch_event_pct", "R230.raw_event_index_audit"
+        ),
+        "r231_status": r231.get("status"),
+        "r231_display_projection_exact": bool(
+            r231_gate.get("display_projection_matches_event_local_prompt_tags")
+        ),
+        "r231_r230_reproduced": bool(r231_gate.get("r230_field_index_drift_reproduced")),
+        "r231_field_drift_localized": bool(
+            r231_gate.get("field_index_drift_localized_to_duplicate_index_sessions")
+        ),
+        "r231_strict_prompt_row_lineage_supported": bool(
+            r231_gate.get("strict_prompt_row_lineage_supported")
+        ),
+        "r231_external_crossrepo_supported": bool(
+            r231_gate.get("external_crossrepo_live_lineage_supported")
+        ),
+        "r231_display_event_weight": required_int(
+            r231_display, "event_total_weight", "R231.display_projection"
+        ),
+        "r231_display_folded_weight": required_int(
+            r231_display, "folded_total_weight", "R231.display_projection"
+        ),
+        "r231_field_tool_mismatch_weight": required_int(
+            r231_summary, "field_tool_mismatch_weight", "R231.summary"
+        ),
+        "r231_field_tool_mismatch_pct": required_field(
+            r231_summary, "field_tool_mismatch_pct", "R231.summary"
+        ),
+        "r231_field_llm_mismatch_events": required_int(
+            r231_summary, "field_llm_mismatch_events", "R231.summary"
+        ),
+        "r231_field_llm_mismatch_pct": required_field(
+            r231_summary, "field_llm_mismatch_pct", "R231.summary"
+        ),
+        "r231_position_tool_mismatch_weight": required_int(
+            r231_summary, "position_tool_mismatch_weight", "R231.summary"
+        ),
+        "r231_position_tool_mismatch_pct": required_field(
+            r231_summary, "position_tool_mismatch_pct", "R231.summary"
+        ),
+        "r231_position_llm_mismatch_events": required_int(
+            r231_summary, "position_llm_mismatch_events", "R231.summary"
+        ),
+        "r231_position_llm_mismatch_pct": required_field(
+            r231_summary, "position_llm_mismatch_pct", "R231.summary"
+        ),
+        "r231_duplicate_prompt_index_rows": required_int(
+            r231_summary, "duplicate_prompt_index_rows", "R231.summary"
+        ),
+        "r231_sessions_with_duplicate_prompt_indexes": required_int(
+            r231_summary, "sessions_with_duplicate_prompt_indexes", "R231.summary"
+        ),
+        "r231_field_unique_tool_mismatch_weight": required_int(
+            r231_summary, "field_mismatch_unique_session_tool_weight", "R231.summary"
+        ),
+        "r231_field_unique_llm_mismatch_events": required_int(
+            r231_summary, "field_mismatch_unique_session_llm_events", "R231.summary"
         ),
         "r184_status": r184.get("status"),
         "r195_status": r195.get("status"),
@@ -412,15 +473,24 @@ def claim_rows(status: dict[str, Any]) -> list[dict[str, str]]:
                 f"({status['r230_tool_prompt_tag_mismatch_weight_pct']}%), LLM drift "
                 f"{status['r230_llm_prompt_tag_mismatch_events']} events "
                 f"({status['r230_llm_prompt_tag_mismatch_event_pct']}%), strict full-history "
-                f"{str(status['r230_strict_full_history_supported']).lower()}"
+                f"{str(status['r230_strict_full_history_supported']).lower()}; "
+                f"R231 status {status['r231_status']}: display projection event/folded weights "
+                f"{status['r231_display_event_weight']}/{status['r231_display_folded_weight']} exact "
+                f"{str(status['r231_display_projection_exact']).lower()}, R230 drift reproduced "
+                f"{str(status['r231_r230_reproduced']).lower()}, field-index drift localized "
+                f"{str(status['r231_field_drift_localized']).lower()}, unique-index field drift "
+                f"{status['r231_field_unique_tool_mismatch_weight']} tool weight/"
+                f"{status['r231_field_unique_llm_mismatch_events']} LLM events, strict prompt-row lineage "
+                f"{str(status['r231_strict_prompt_row_lineage_supported']).lower()}, external cross-repo "
+                f"{str(status['r231_external_crossrepo_supported']).lower()}"
             ),
             "blocking_gap": (
-                "strict full-history semantic lineage, broader network workloads, and external cross-repo replication remain partial"
+                "strict prompt-row/full-history semantic lineage, broader network workloads, and external cross-repo replication remain partial"
                 if c4_ok
                 else "R114/R191/R229 lineage gates did not all pass; rerun controlled lineage before broader replication"
             ),
             "next_gate": (
-                "diagnose R230 prompt-tag drift and run external cross-repo live exact-lineage replication"
+                "normalize/fix Claude duplicate prompt-index semantics and run external cross-repo live exact-lineage replication"
                 if c4_ok
                 else "rerun R114, R191, and R229, requiring target rows > 0, all joined, and negative joins = 0"
             ),
@@ -500,15 +570,19 @@ def rq_rows(status: dict[str, Any]) -> list[dict[str, str]]:
                 f"R230 full-history projection weight {status['r230_folded_total_weight']} "
                 f"with duplicate prompt-index rows {status['r230_duplicate_prompt_index_rows']} "
                 f"and prompt-tag drift {status['r230_tool_prompt_tag_mismatch_weight_pct']}%/"
-                f"{status['r230_llm_prompt_tag_mismatch_event_pct']}% tool/LLM"
+                f"{status['r230_llm_prompt_tag_mismatch_event_pct']}% tool/LLM; "
+                f"R231 display projection exact {str(status['r231_display_projection_exact']).lower()}, "
+                f"drift localized {str(status['r231_field_drift_localized']).lower()}, "
+                f"list-position drift {status['r231_position_tool_mismatch_pct']}%/"
+                f"{status['r231_position_llm_mismatch_pct']}% tool/LLM"
             ),
             "falsifier_remaining": (
-                "strict full-history semantic consistency, broader network workloads, and external cross-repo replication remain open"
+                "strict prompt-row/full-history semantic consistency, broader network workloads, and external cross-repo replication remain open"
                 if c4_ok
                 else "controlled exact-lineage run failed before broader generalization"
             ),
             "next_gate": (
-                "diagnose R230 prompt-tag drift and run external cross-repo live exact-lineage replication"
+                "normalize/fix Claude duplicate prompt-index semantics and run external cross-repo live exact-lineage replication"
                 if c4_ok
                 else "rerun R114/R191/R229 controlled exact-lineage gates"
             ),
@@ -579,13 +653,23 @@ def next_experiment_rows() -> list[dict[str, str]]:
         },
         {
             "priority": "P1",
-            "run_id": "R231-drift-and-crossrepo-lineage",
+            "run_id": "R232-external-crossrepo-lineage",
             "claim": "C4/RQ3",
             "block": "B3",
-            "purpose": "Explain R230 prompt-tag drift and replicate live exact-lineage on an external cross-repo workload.",
-            "command_or_input": "drift root-cause audit over R230 samples plus fresh controlled external-repo record runs",
-            "oracle": "drift categories are explainable or fixed; external-repo scoped effects join without negative-control joins",
-            "result_path": "docs/visexp/out/drift-crossrepo-lineage-r231/",
+            "purpose": "Replicate live exact-lineage on an external cross-repo controlled workload.",
+            "command_or_input": "fresh controlled record runs outside the AgentSight repository with repo-read/edit-test/write/network tasks",
+            "oracle": "external-repo scoped effects join to the target task with zero negative-control joins and precision/recall thresholds matching R229",
+            "result_path": "docs/visexp/out/external-crossrepo-lineage-r232/",
+        },
+        {
+            "priority": "P1",
+            "run_id": "R233-prompt-row-lineage-normalization",
+            "claim": "C4/RQ3",
+            "block": "B3",
+            "purpose": "Normalize or fix Claude duplicate prompt-index semantics so generated reports can support strict prompt-row lineage.",
+            "command_or_input": "parser/generator change plus R230/R231 rerun over the same full-history artifacts",
+            "oracle": "duplicate prompt-index rows are removed or made explicitly non-keyed; field-index/list-position drift is zero or documented as non-lineage metadata",
+            "result_path": "docs/visexp/out/prompt-row-lineage-r233/",
         },
         {
             "priority": "P2",
@@ -617,6 +701,11 @@ def overall_status(claims: list[dict[str, str]]) -> dict[str, Any]:
         "weak_accept_supported": False,
         "human_evidence_supported": not blockers,
         "blockers": blockers,
+        "open_scope_gaps": [
+            "C4 strict prompt-row/full-history lineage remains open",
+            "C4 external cross-repo live exact-lineage replication remains open",
+            "C7 external-machine/community evidence remains open",
+        ],
         "disallowed_evidence": [
             "subagent review",
             "LLM-filled labels",
@@ -636,6 +725,8 @@ def claim_gate(overall: dict[str, Any]) -> dict[str, bool]:
         "weak_accept_supported": bool(overall.get("weak_accept_supported")),
         "requires_c4_exact_lineage": "C4/RQ3 controlled exact lineage gates are not supported"
         in (overall.get("blockers") or []),
+        "requires_c4_strict_prompt_row_lineage": True,
+        "requires_c4_external_crossrepo_lineage": True,
         "requires_c5_human_participants": "C5/RQ4 has no supported real participant outcome"
         in (overall.get("blockers") or []),
         "requires_c6_human_labels": "C6/RQ5 has no supported independent human adequacy labels"
@@ -686,6 +777,15 @@ def write_markdown(path: Path, result: dict[str, Any]) -> None:
             f"{summary['r230_llm_prompt_tag_mismatch_events']} events "
             f"({summary['r230_llm_prompt_tag_mismatch_event_pct']}%)."
         ),
+        (
+            f"- R231 drift root cause: display projection exact "
+            f"{str(summary['r231_display_projection_exact']).lower()}, "
+            f"R230 reproduced {str(summary['r231_r230_reproduced']).lower()}, "
+            f"field drift localized {str(summary['r231_field_drift_localized']).lower()}, "
+            f"unique-index field drift {summary['r231_field_unique_tool_mismatch_weight']} tool weight/"
+            f"{summary['r231_field_unique_llm_mismatch_events']} LLM events, "
+            f"external cross-repo supported {str(summary['r231_external_crossrepo_supported']).lower()}."
+        ),
         f"- R217 production display buckets/support: {summary['r217_display_buckets']}/{summary['r217_support']}.",
         f"- R218 preview accepted/rejected rows: {summary['r218_accepted_diff_rows']}/{summary['r218_rejected_rows']}.",
         f"- C5 participant responses: {summary['c5_responses']}.",
@@ -696,6 +796,7 @@ def write_markdown(path: Path, result: dict[str, Any]) -> None:
         f"- Weak accept supported: `{result['overall']['weak_accept_supported']}`.",
         f"- Human evidence supported: `{result['overall']['human_evidence_supported']}`.",
         f"- Blockers: {result['overall']['blockers']}.",
+        f"- Open scope gaps: {result['overall']['open_scope_gaps']}.",
         "",
         "## Claim Rows",
         "",
