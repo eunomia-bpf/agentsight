@@ -1,0 +1,92 @@
+{
+  "claim_boundary": "R247 is a sendable distribution bundle for collecting real human returns. It is not participant evidence, not human-label evidence, and not a weak-accept result.",
+  "claim_gate": {
+    "c5_supported": false,
+    "c6_adequacy_supported": false,
+    "canonicalization_quality_supported": false,
+    "long_tail_promotion_review_supported": false,
+    "outcome_evidence_added": false,
+    "requires_real_human_returns": true,
+    "weak_accept_supported": false
+  },
+  "forms": {
+    "coordinator_forms": 1,
+    "labeler_forms": 6,
+    "participant_forms": 5
+  },
+  "package_root": "agentflame-human-evidence-r247",
+  "return_files": [
+    {
+      "destination": "docs/visexp/out/human-evidence-r195/inbox/r142-pilot-responses.csv",
+      "notes": "Merge P01-P05 participant exports with the coordinator page; do not submit individual participant CSVs to R195.",
+      "r195_group": "C5 developer utility",
+      "required_for_weak_accept": "yes",
+      "return_file": "r142-pilot-responses.csv",
+      "row_count": 70,
+      "source": "coordinator/r142-merge.html"
+    },
+    {
+      "destination": "docs/visexp/out/human-evidence-r195/inbox/r124-labeler-1.csv",
+      "notes": "Two independent labelers are required before scoring; adjudication may be needed for disagreements.",
+      "r195_group": "C6 tag adequacy",
+      "required_for_weak_accept": "yes",
+      "return_file": "r124-labeler-1.csv",
+      "row_count": 300,
+      "source": "labelers/r124-labeler-1.html"
+    },
+    {
+      "destination": "docs/visexp/out/human-evidence-r195/inbox/r124-labeler-2.csv",
+      "notes": "Two independent labelers are required before scoring; adjudication may be needed for disagreements.",
+      "r195_group": "C6 tag adequacy",
+      "required_for_weak_accept": "yes",
+      "return_file": "r124-labeler-2.csv",
+      "row_count": 300,
+      "source": "labelers/r124-labeler-2.html"
+    },
+    {
+      "destination": "docs/visexp/out/human-evidence-r195/inbox/r190-labeler-1.csv",
+      "notes": "Two independent labelers are required before scoring; adjudication may be needed for disagreements.",
+      "r195_group": "canonicalization quality",
+      "required_for_weak_accept": "if claiming merge quality",
+      "return_file": "r190-labeler-1.csv",
+      "row_count": 160,
+      "source": "labelers/r190-labeler-1.html"
+    },
+    {
+      "destination": "docs/visexp/out/human-evidence-r195/inbox/r190-labeler-2.csv",
+      "notes": "Two independent labelers are required before scoring; adjudication may be needed for disagreements.",
+      "r195_group": "canonicalization quality",
+      "required_for_weak_accept": "if claiming merge quality",
+      "return_file": "r190-labeler-2.csv",
+      "row_count": 160,
+      "source": "labelers/r190-labeler-2.html"
+    },
+    {
+      "destination": "docs/visexp/out/human-evidence-r195/inbox/r203-labeler-1.csv",
+      "notes": "Two independent labelers are required before scoring; adjudication may be needed for disagreements.",
+      "r195_group": "long-tail promotion quality",
+      "required_for_weak_accept": "if claiming regenerated-tag promotion",
+      "return_file": "r203-labeler-1.csv",
+      "row_count": 41,
+      "source": "labelers/r203-labeler-1.html"
+    },
+    {
+      "destination": "docs/visexp/out/human-evidence-r195/inbox/r203-labeler-2.csv",
+      "notes": "Two independent labelers are required before scoring; adjudication may be needed for disagreements.",
+      "r195_group": "long-tail promotion quality",
+      "required_for_weak_accept": "if claiming regenerated-tag promotion",
+      "return_file": "r203-labeler-2.csv",
+      "row_count": 41,
+      "source": "labelers/r203-labeler-2.html"
+    }
+  ],
+  "run_id": "R247",
+  "schema_version": 1,
+  "source_artifacts": {
+    "r195": "docs/visexp/out/human-evidence-pipeline-r195.json",
+    "r207": "docs/visexp/out/human-evidence-launch-r207/human-evidence-launch-r207.json",
+    "r243": "docs/visexp/out/human-evidence-collection-kit-r243/collection-kit-r243.json",
+    "r244": "docs/visexp/out/human-evidence-collection-kit-export-smoke-r244/collection-kit-export-smoke-r244.json",
+    "r246": "docs/visexp/out/osdi-gate-review-r246.json"
+  }
+}
