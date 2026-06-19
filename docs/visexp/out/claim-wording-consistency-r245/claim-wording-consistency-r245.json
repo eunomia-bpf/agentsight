@@ -1,0 +1,366 @@
+{
+  "claim_boundary": "R245 audits wording and source-gate consistency after R244. It does not upgrade C5/C6, does not create human evidence, and does not broaden C4.",
+  "claim_gate": {
+    "c5_supported": false,
+    "c6_adequacy_supported": false,
+    "canonicalization_quality_supported": false,
+    "llm_called": false,
+    "long_tail_promotion_review_supported": false,
+    "raw_trace_read": false,
+    "reads_generated_artifacts_only": true,
+    "weak_accept_supported": false
+  },
+  "forbidden_hits": [],
+  "generated_at": "2026-06-19T09:03:26+00:00",
+  "hard_evidence_checks": [
+    {
+      "name": "r184_weak_accept_false",
+      "observed": {
+        "status": "not_weak_accept",
+        "weak_accept_supported": false
+      },
+      "passed": true
+    },
+    {
+      "name": "r184_c5_empty",
+      "observed": {
+        "c5_supported": false,
+        "response_count": 0,
+        "status": "ready_for_participant_collection"
+      },
+      "passed": true
+    },
+    {
+      "name": "r184_c6_empty",
+      "observed": {
+        "adequacy_supported": false,
+        "final_label_count": 0,
+        "status": "ready_for_independent_label_collection"
+      },
+      "passed": true
+    },
+    {
+      "name": "r195_no_human_inputs",
+      "observed": {
+        "claim_gate": {
+          "c5_supported": false,
+          "c6_adequacy_supported": false,
+          "canonical_map_updated": false,
+          "canonicalization_quality_supported": false,
+          "long_tail_promotion_review_supported": false,
+          "requires_real_human_data": true
+        },
+        "status": "awaiting_human_inputs"
+      },
+      "passed": true
+    },
+    {
+      "name": "r242_synthetic_only",
+      "observed": {
+        "checks": {
+          "canonical_empty_gates_preserved": true,
+          "invalid_r142_rejected": true,
+          "no_input_awaiting": true,
+          "partial_r124_detected": true,
+          "synthetic_ready_all_operations_scored": {
+            "r124": true,
+            "r142": true,
+            "r190": true,
+            "r203": true
+          },
+          "synthetic_ready_claim_gates_remain_false": {
+            "not_c5_supported": true,
+            "not_c6_adequacy_supported": true,
+            "not_canonical_map_updated": true,
+            "not_canonicalization_quality_supported": true,
+            "not_long_tail_promotion_review_supported": true
+          },
+          "synthetic_ready_r195_command_passed": true,
+          "synthetic_ready_status_scored_no_supported_gate": true
+        },
+        "status": "passed"
+      },
+      "passed": true
+    },
+    {
+      "name": "r243_collection_kit_no_outcomes",
+      "observed": {
+        "claim_gate": {
+          "c5_supported": false,
+          "c6_adequacy_supported": false,
+          "canonical_map_updated": false,
+          "canonicalization_quality_supported": false,
+          "long_tail_promotion_review_supported": false,
+          "requires_real_human_returns": true,
+          "weak_accept_supported": false
+        },
+        "status": "collection_kit_ready_no_outcomes"
+      },
+      "passed": true
+    },
+    {
+      "name": "r244_export_smoke_no_outcomes",
+      "observed": {
+        "checks": {
+          "browser_checks_ok": true,
+          "labeler_cells_blank": true,
+          "labeler_export_count": 6,
+          "labeler_fields_ok": true,
+          "labeler_rows_ok": true,
+          "leak_scan_ok": true,
+          "merged_fields_ok": true,
+          "merged_output_name_ok": true,
+          "merged_participants_ok": true,
+          "merged_rows_ok": true,
+          "participant_export_count": 5,
+          "participant_fields_ok": true,
+          "participant_json_ok": true,
+          "participant_rows_ok": true
+        },
+        "claim_gate": {
+          "c5_supported": false,
+          "c6_adequacy_supported": false,
+          "canonical_map_updated": false,
+          "canonicalization_quality_supported": false,
+          "long_tail_promotion_review_supported": false,
+          "requires_real_human_returns": true,
+          "weak_accept_supported": false
+        },
+        "status": "collection_kit_export_smoke_passed"
+      },
+      "passed": true
+    },
+    {
+      "name": "r238_still_partial_not_broad_network",
+      "observed": {
+        "aggregate": {
+          "capture_statuses": {
+            "captured_joined": 2,
+            "captured_partial": 1,
+            "collector_lineage_orphaned": 1
+          },
+          "joined_target_network_effect_events": 13,
+          "launchers": {
+            "claude": 1,
+            "codex": 1,
+            "direct-python": 2
+          },
+          "negative_effect_events_observed": 186,
+          "negative_joined_effect_events": 0,
+          "ok_tasks": 2,
+          "orphan_target_network_effect_events": 3,
+          "required_action_tasks_ok": 3,
+          "runtime_witness_ok_tasks": 4,
+          "scoped_lineage_oracle_precision_pct": 100.0,
+          "scoped_lineage_oracle_recall_pct": 100.0,
+          "target_network_actions": {
+            "NET_BIND": 4,
+            "NET_CONNECT": 9,
+            "NET_LISTEN": 3
+          },
+          "target_network_effect_events": 16,
+          "target_network_process_comms": {
+            "claude": 2,
+            "python3": 11,
+            "unknown": 3
+          },
+          "tasks": 4,
+          "witness_port_linked_tasks": 4
+        },
+        "claim_gate": {
+          "claude_launched_capture_gate": false,
+          "direct_orphan_resolved_gate": true,
+          "negative_control_gate": true,
+          "positive_controls_gate": true,
+          "r237_boundary_resolved": false,
+          "r237_claude_target_network_supported": false,
+          "runtime_witness_gate": true,
+          "witness_port_capture_gate": true
+        },
+        "status": "partial"
+      },
+      "passed": true
+    },
+    {
+      "name": "r240_regression_guard_only",
+      "observed": {
+        "checks": {
+          "outside_window_not_joined": true,
+          "related_agent_joined_by_pid_family": true,
+          "related_child_joined_by_pid_family": true,
+          "root_self_joined_by_command_root": true,
+          "sibling_not_joined_by_command_root": true
+        },
+        "claim_boundary": "checker-regression evidence for command_root_pid_self_time_window; not live capture or broad target-network support",
+        "status": "passed"
+      },
+      "passed": true
+    }
+  ],
+  "provenance": {
+    "repo_commit": "0c93975c78312ba2db3d9985762ede302487f1e5",
+    "repo_dirty": true,
+    "script_sha256": "b78da809bd8e0c640b849f7029a809c1398e56a613a735a26691cb1637022a94"
+  },
+  "r219_supersession": {
+    "interpretation": "R219 remains a useful older readiness board, but R238/R240/R242-R244 must be read as post-R219 addenda or through R245.",
+    "missing_post_r219_sources": [
+      "r238_agent_execution_witness",
+      "r240_lineage_guard",
+      "r242_contract_smoke",
+      "r243_collection_kit",
+      "r244_export_smoke"
+    ],
+    "r219_status": "osdi_weak_accept_not_supported",
+    "status": "post_r219_addenda_required"
+  },
+  "run_id": "R245",
+  "schema_version": 1,
+  "source_artifacts": {
+    "r184_weak_accept": {
+      "path": "docs/visexp/out/weak-accept-gate-r184.json",
+      "sha256": "0894978c0a66cfdbad635e5281d3b67b8a2411db29856487daa294d8207cc81f"
+    },
+    "r195_human_pipeline": {
+      "path": "docs/visexp/out/human-evidence-pipeline-r195.json",
+      "sha256": "70d9195d63e9810b9044fc40fb099e9a58867b93d041c9cf626e0f9be5896922"
+    },
+    "r219_claim_readiness": {
+      "path": "docs/visexp/out/claim-readiness-r219/claim-readiness-r219.json",
+      "sha256": "b7ab483e654ae6a3ea6a55a2ea83908dbca51d800ae537302a693bf76c17c314"
+    },
+    "r238_agent_execution_witness": {
+      "path": "docs/visexp/out/agent-execution-witness-network-capture-r238/agent-execution-witness-network-capture-r238.json",
+      "sha256": "0e9a1fd70ed5537f1b6201b83d3582a152311c0860a82b4838f50b0ab44ff497"
+    },
+    "r240_lineage_guard": {
+      "path": "docs/visexp/out/lineage-guard-r240/lineage-guard-r240.json",
+      "sha256": "dd54f986a0c4816ca64d5e4abbb4dae3a098b3fd18f11ad761de40418af2494b"
+    },
+    "r242_contract_smoke": {
+      "path": "docs/visexp/out/human-evidence-contract-r242/human-evidence-contract-r242.json",
+      "sha256": "1a439669ec94a6108ea9cee14833f305cf13709c1fbafd66fcd21868358c3324"
+    },
+    "r243_collection_kit": {
+      "path": "docs/visexp/out/human-evidence-collection-kit-r243/collection-kit-r243.json",
+      "sha256": "a4828aa6469e8a2d7f215b809a1cc849389c6597b3cf01af3b5ca4f45c37568f"
+    },
+    "r244_export_smoke": {
+      "path": "docs/visexp/out/human-evidence-collection-kit-export-smoke-r244/collection-kit-export-smoke-r244.json",
+      "sha256": "94be276c694c7bc745b53493c6c72b8f50f9fe92c0d4964771ad7cc562ca74bc"
+    }
+  },
+  "source_texts": {
+    "claim_verdict": {
+      "path": "docs/visexp/CLAIM_VERDICT.md",
+      "sha256": "0c0ec5265af5864b4c84dab538ec54b42dd6f45b6188c0cb10a355e73cb17f14"
+    },
+    "experiment_audit": {
+      "path": "docs/visexp/EXPERIMENT_AUDIT.md",
+      "sha256": "ba874be8be675592a05c6ecf827b0c9556c722f0b2ac338fc30d23e44147d7f9"
+    },
+    "followup_plan": {
+      "path": "docs/visexp/FOLLOWUP_PLAN.md",
+      "sha256": "9cbbddb4672fcdea05da52b5b34e7524a3c9af35c0c1f1d9316e2ce17a92952a"
+    },
+    "paper": {
+      "path": "docs/visexp/paper/main.tex",
+      "sha256": "f37dfc6280dbd6baaa792638838017a7d2b7774dbeb28104fa43943869500bd6"
+    },
+    "results_summary": {
+      "path": "docs/visexp/RESULTS_SUMMARY.md",
+      "sha256": "64ce0476bccb87aeb5689e08607088b9798258a65d14478249924e51333521ab"
+    }
+  },
+  "status": "claim_wording_consistency_passed_with_post_r219_addendum_note",
+  "summary": {
+    "c5_supported": false,
+    "c6_adequacy_supported": false,
+    "forbidden_hit_count": 0,
+    "hard_checks_passed": 9,
+    "hard_checks_total": 9,
+    "weak_accept_supported": false,
+    "wording_checks_passed": 13,
+    "wording_checks_total": 13
+  },
+  "wording_checks": [
+    {
+      "name": "weak_accept_boundary",
+      "passed": true,
+      "pattern": "\u4e0d\u5230 OSDI weak accept|not OSDI weak accept",
+      "scope": "paper"
+    },
+    {
+      "name": "c5_zero_outcome",
+      "passed": true,
+      "pattern": "0 \u4e2a\u53c2\u4e0e\u8005\u54cd\u5e94|0 participant responses|\u5c1a\u65e0 participant responses",
+      "scope": "paper"
+    },
+    {
+      "name": "c6_zero_outcome",
+      "passed": true,
+      "pattern": "0 \u4e2a\u4eba\u5de5\u6807\u7b7e|0 final adequacy labels|human labels remain missing",
+      "scope": "paper"
+    },
+    {
+      "name": "r244_no_inbox",
+      "passed": true,
+      "pattern": "R244.*\u4e0d\u8fdb\u5165 R195 inbox|R244.*not\\s+the\\s+R195\\s+inbox",
+      "scope": "paper"
+    },
+    {
+      "name": "mechanism_not_completed_artifact",
+      "passed": true,
+      "pattern": "supported mechanism plus partial systems artifact",
+      "scope": "paper"
+    },
+    {
+      "name": "r244_boundary",
+      "passed": true,
+      "pattern": "R244 addendum",
+      "scope": "claim_verdict"
+    },
+    {
+      "name": "r244_no_c5_c6",
+      "passed": true,
+      "pattern": "cannot support C5 or C6|\u4e0d\u80fd\u652f\u6301 C5",
+      "scope": "claim_verdict"
+    },
+    {
+      "name": "r244_not_outcome",
+      "passed": true,
+      "pattern": "R244 collection-kit export smoke is not outcome evidence",
+      "scope": "experiment_audit"
+    },
+    {
+      "name": "c5_c6_blockers",
+      "passed": true,
+      "pattern": "C5 requires .*participant responses.*C6 requires .*human labels",
+      "scope": "experiment_audit"
+    },
+    {
+      "name": "r244_boundary",
+      "passed": true,
+      "pattern": "R244 smoke-tests",
+      "scope": "followup_plan"
+    },
+    {
+      "name": "r244_no_c5_c6",
+      "passed": true,
+      "pattern": "still does not satisfy C5/C6|\u4ecd\u4e0d\u6ee1\u8db3 C5/C6",
+      "scope": "followup_plan"
+    },
+    {
+      "name": "r244_summary",
+      "passed": true,
+      "pattern": "R244 smoke-tests",
+      "scope": "results_summary"
+    },
+    {
+      "name": "r244_not_inbox",
+      "passed": true,
+      "pattern": "not\\s+the\\s+R195\\s+inbox|\u4e0d\u8fdb\u5165 R195 inbox",
+      "scope": "results_summary"
+    }
+  ]
+}

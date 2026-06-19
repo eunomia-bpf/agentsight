@@ -253,6 +253,13 @@ synthetic labeler CSVs preserve source fields and row counts while keeping
 label cells blank. The outputs remain under the R244 directory, not the R195
 inbox, so R244 is export-contract evidence only.
 
+R245 audits the paper and evidence docs after R244. It reads generated gate
+artifacts and current text only, does not read raw traces, and does not call an
+LLM. The audit passes 9/9 hard evidence checks, 13/13 required wording checks,
+and finds 0 forbidden strong-claim hits. It also records a useful bookkeeping
+boundary: R219 remains an older readiness board, so R238/R240/R242-R244 must be
+read as post-R219 addenda or through R245.
+
 R219 summarizes the current evidence as a mechanical claim/RQ readiness gate.
 It reads generated artifacts only, writes claim/RQ/next-experiment CSVs, and
 reports `osdi_weak_accept_not_supported`: C1 is supported, C2 is supported for
@@ -403,6 +410,7 @@ claim row, and fixes the paper table's C4 wording.
 | R242 | Synthetic R195 human-evidence contract smoke | `docs/visexp/out/human-evidence-contract-r242/human-evidence-contract-r242.json` | done/contract-smoke; synthetic only, no C5/C6 outcome evidence |
 | R243 | Static human-evidence collection kit | `docs/visexp/out/human-evidence-collection-kit-r243/collection-kit-r243.json` | done/collection-kit; static forms and R142 merge page, no outcome evidence |
 | R244 | Static collection-kit form/export smoke | `docs/visexp/out/human-evidence-collection-kit-export-smoke-r244/collection-kit-export-smoke-r244.json` | done/export-smoke; Chrome load checks and synthetic CSV exports, no outcome evidence |
+| R245 | Post-R244 claim-wording consistency audit | `docs/visexp/out/claim-wording-consistency-r245/claim-wording-consistency-r245.json` | done/wording-audit; hard checks 9/9, wording checks 13/13, forbidden strong-claim hits 0 |
 | R171 | Read-only subagent OSDI gate review after R170/R124-join planning | `docs/visexp/out/osdi-gate-review-r171.md` | done/review |
 | R181 | Read-only subagent OSDI gate review after R180 local multi-model benchmark | `docs/visexp/out/osdi-gate-review-r181.md` | done/review; still not weak accept |
 | R060 | legacy Python prototype pipeline over sampled sessions | `docs/visexp/out/pipeline-report.json` | legacy, superseded for headline scale |
