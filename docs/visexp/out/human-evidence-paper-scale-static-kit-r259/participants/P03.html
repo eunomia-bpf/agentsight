@@ -1,0 +1,874 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>R259 participant P03</title>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f7f7f4;
+  --panel: #ffffff;
+  --ink: #1d1f23;
+  --muted: #5d6673;
+  --line: #d8dadd;
+  --accent: #2764c5;
+  --warn: #8a4b08;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255,255,255,0.96);
+}
+main { padding: 18px; max-width: 1500px; margin: 0 auto; }
+h1 { margin: 0 0 4px; font-size: 22px; }
+h2 { margin: 24px 0 8px; font-size: 18px; }
+p { margin: 6px 0; }
+a { color: var(--accent); }
+.muted { color: var(--muted); }
+.warn { color: var(--warn); font-weight: 650; }
+.toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+button {
+  appearance: none;
+  border: 1px solid #174d9d;
+  background: var(--accent);
+  color: white;
+  border-radius: 6px;
+  padding: 8px 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+button.secondary { background: #fff; color: var(--accent); }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+th, td {
+  border-bottom: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  padding: 7px;
+  vertical-align: top;
+}
+th { position: sticky; top: 92px; background: #f0f2f5; z-index: 3; text-align: left; }
+td.readonly { max-width: 320px; overflow-wrap: anywhere; }
+textarea, input, select {
+  width: 100%;
+  min-width: 120px;
+  border: 1px solid #c7ccd2;
+  border-radius: 4px;
+  padding: 6px;
+  font: inherit;
+  background: white;
+}
+textarea { min-height: 62px; resize: vertical; }
+pre.packet {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  padding: 14px;
+  border-radius: 6px;
+}
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 12px; }
+.status { margin-left: 8px; color: var(--muted); }
+@media (max-width: 800px) {
+  main { padding: 12px; }
+  th { top: 116px; }
+  th, td { padding: 6px; }
+}
+</style>
+</head>
+<body>
+<header>
+<h1>R259 paper-scale participant form P03</h1>
+<p class="muted">Static local form. Export the CSV after completing every row.</p>
+<div class="toolbar">
+<button onclick="exportCsv()">Export P03 CSV</button>
+<button class="secondary" onclick="validateRows()">Validate</button>
+<span id="status" class="status"></span>
+</div>
+</header>
+<main>
+<p class="warn">This form records only participant responses. It contains no hidden solution data.</p>
+<h2>Task Packet</h2>
+<pre class="packet"># R249 Paper-Scale Packet P03
+
+This packet contains blinded AgentFlame task views only. It contains no answer key.
+
+For each task, write a JSON object in the matching response CSV row, then record task_time_seconds and confidence.
+
+## 1. UT03-semantic-stack
+
+- Task: UT03
+- Condition: semantic-stack
+- Title: Task UT03
+
+Which single semantic axis separates system effects better: session or prompt?
+
+Views:
+- semantic effect flamegraph excerpt
+
+Excerpt:
+
+```json
+[
+  {
+    &quot;rows&quot;: [
+      {
+        &quot;semantic&quot;: &quot;session:refactor/prompt:refactor&quot;,
+        &quot;slice_id&quot;: &quot;9d047d1778ea07a6&quot;,
+        &quot;slice_kind&quot;: &quot;system-ablation-axis&quot;,
+        &quot;slice_weight&quot;: 167005,
+        &quot;weight&quot;: 6004
+      },
+      {
+        &quot;semantic&quot;: &quot;session:refactor/prompt:refactor&quot;,
+        &quot;slice_id&quot;: &quot;9d047d1778ea07a6&quot;,
+        &quot;slice_kind&quot;: &quot;system-ablation-axis&quot;,
+        &quot;slice_weight&quot;: 167005,
+        &quot;weight&quot;: 6004
+      }
+    ],
+    &quot;title&quot;: &quot;semantic folded excerpt&quot;
+  }
+]
+```
+
+## 2. UT04-trace-tree
+
+- Task: UT04
+- Condition: trace-tree
+- Title: Task UT04
+
+Identify the heaviest semantic system stack and its semantic/effect fields.
+
+Views:
+- session/tool chronological tree excerpt
+
+Excerpt:
+
+```json
+[
+  {
+    &quot;rows&quot;: [
+      {
+        &quot;frame&quot;: &quot;project:agentsight&quot;,
+        &quot;frame_index&quot;: 1,
+        &quot;frame_type&quot;: &quot;project&quot;,
+        &quot;slice_id&quot;: &quot;3ec59ca5056116a4&quot;,
+        &quot;slice_kind&quot;: &quot;semantic-system-stack&quot;,
+        &quot;slice_weight&quot;: 6004,
+        &quot;status&quot;: &quot;observed&quot;
+      },
+      {
+        &quot;frame&quot;: &quot;agent:codex&quot;,
+        &quot;frame_index&quot;: 2,
+        &quot;frame_type&quot;: &quot;agent&quot;,
+        &quot;slice_id&quot;: &quot;3ec59ca5056116a4&quot;,
+        &quot;slice_kind&quot;: &quot;semantic-system-stack&quot;,
+        &quot;slice_weight&quot;: 6004,
+        &quot;status&quot;: &quot;observed&quot;
+      },
+      {
+        &quot;frame&quot;: &quot;call:tool/tool&quot;,
+        &quot;frame_index&quot;: 5,
+        &quot;frame_type&quot;: &quot;call&quot;,
+        &quot;slice_id&quot;: &quot;3ec59ca5056116a4&quot;,
+        &quot;slice_kind&quot;: &quot;semantic-system-stack&quot;,
+        &quot;slice_weight&quot;: 6004,
+        &quot;status&quot;: &quot;observed&quot;
+      },
+      {
+        &quot;frame&quot;: &quot;effect:process&quot;,
+        &quot;frame_index&quot;: 6,
+        &quot;frame_type&quot;: &quot;effect&quot;,
+        &quot;slice_id&quot;: &quot;3ec59ca5056116a4&quot;,
+        &quot;slice_kind&quot;: &quot;semantic-system-stack&quot;,
+        &quot;slice_weight&quot;: 6004,
+        &quot;status&quot;: &quot;observed&quot;
+      },
+      {
+        &quot;frame&quot;: &quot;status:ok&quot;,
+        &quot;frame_index&quot;: 7,
+        &quot;frame_type&quot;: &quot;status&quot;,
+        &quot;slice_id&quot;: &quot;3ec59ca5056116a4&quot;,
+        &quot;slice_kind&quot;: &quot;semantic-system-stack&quot;,
+        &quot;slice_weight&quot;: 6004,
+        &quot;status&quot;: &quot;observed&quot;
+      }
+    ],
+    &quot;title&quot;: &quot;trace tree excerpt&quot;
+  }
+]
+```
+
+## 3. UT05-event-count-proxy
+
+- Task: UT05
+- Condition: event-count-proxy
+- Title: Task UT05
+
+Find the heaviest path-specific system-effect stack and report process, path, and semantic tags.
+
+Views:
+- event-count proxy flamegraph excerpt
+
+Excerpt:
+
+```json
+[
+  {
+    &quot;rows&quot;: [
+      {
+        &quot;event_weight&quot;: 1648,
+        &quot;frame_index&quot;: 1,
+        &quot;note&quot;: &quot;event-count proxy; duration unavailable in folded artifact&quot;,
+        &quot;slice_id&quot;: &quot;6ff7c8f034f03071&quot;,
+        &quot;slice_kind&quot;: &quot;semantic-path-stack&quot;,
+        &quot;slice_weight&quot;: 1648,
+        &quot;span&quot;: &quot;project:agentsight&quot;,
+        &quot;width_basis&quot;: &quot;event_weight_same_slice&quot;
+      },
+      {
+        &quot;event_weight&quot;: 1648,
+        &quot;frame_index&quot;: 2,
+        &quot;note&quot;: &quot;event-count proxy; duration unavailable in folded artifact&quot;,
+        &quot;slice_id&quot;: &quot;6ff7c8f034f03071&quot;,
+        &quot;slice_kind&quot;: &quot;semantic-path-stack&quot;,
+        &quot;slice_weight&quot;: 1648,
+        &quot;span&quot;: &quot;agent:codex&quot;,
+        &quot;width_basis&quot;: &quot;event_weight_same_slice&quot;
+      },
+      {
+        &quot;event_weight&quot;: 1648,
+        &quot;frame_index&quot;: 5,
+        &quot;note&quot;: &quot;event-count proxy; duration unavailable in folded artifact&quot;,
+        &quot;slice_id&quot;: &quot;6ff7c8f034f03071&quot;,
+        &quot;slice_kind&quot;: &quot;semantic-path-stack&quot;,
+        &quot;slice_weight&quot;: 1648,
+        &quot;span&quot;: &quot;call:tool/shell&quot;,
+        &quot;width_basis&quot;: &quot;event_weight_same_slice&quot;
+      },
+      {
+        &quot;event_weight&quot;: 1648,
+        &quot;frame_index&quot;: 6,
+        &quot;note&quot;: &quot;event-count proxy; duration unavailable in folded artifact&quot;,
+        &quot;slice_id&quot;: &quot;6ff7c8f034f03071&quot;,
+        &quot;slice_kind&quot;: &quot;semantic-path-stack&quot;,
+        &quot;slice_weight&quot;: 1648,
+        &quot;span&quot;: &quot;process:sed&quot;,
+        &quot;width_basis&quot;: &quot;event_weight_same_slice&quot;
+      },
+      {
+        &quot;event_weight&quot;: 1648,
+        &quot;frame_index&quot;: 7,
+        &quot;note&quot;: &quot;event-count proxy; duration unavailable in folded artifact&quot;,
+        &quot;slice_id&quot;: &quot;6ff7c8f034f03071&quot;,
+        &quot;slice_kind&quot;: &quot;semantic-path-stack&quot;,
+        &quot;slice_weight&quot;: 1648,
+        &quot;span&quot;: &quot;effect:read&quot;,
+        &quot;width_basis&quot;: &quot;event_weight_same_slice&quot;
+      },
+      {
+        &quot;event_weight&quot;: 1648,
+        &quot;frame_index&quot;: 8,
+        &quot;note&quot;: &quot;event-count proxy; duration unavailable in folded artifact&quot;,
+        &quot;slice_id&quot;: &quot;6ff7c8f034f03071&quot;,
+        &quot;slice_kind&quot;: &quot;semantic-path-stack&quot;,
+        &quot;slice_weight&quot;: 1648,
+        &quot;span&quot;: &quot;path:module/x86&quot;,
+        &quot;width_basis&quot;: &quot;event_weight_same_slice&quot;
+      },
+      {
+        &quot;event_weight&quot;: 1648,
+        &quot;frame_index&quot;: 9,
+        &quot;note&quot;: &quot;event-count proxy; duration unavailable in folded artifact&quot;,
+        &quot;slice_id&quot;: &quot;6ff7c8f034f03071&quot;,
+        &quot;slice_kind&quot;: &quot;semantic-path-stack&quot;,
+        &quot;slice_weight&quot;: 1648,
+        &quot;span&quot;: &quot;status:ok&quot;,
+        &quot;width_basis&quot;: &quot;event_weight_same_slice&quot;
+      }
+    ],
+    &quot;title&quot;: &quot;event-count proxy excerpt&quot;
+  }
+]
+```
+
+## 4. UT06-flat-summary
+
+- Task: UT06
+- Condition: flat-summary
+- Title: Task UT06
+
+For the cargo bucket, report total weight and the dominant semantic variant.
+
+Views:
+- process/effect/path summary excerpt
+
+Excerpt:
+
+```json
+[
+  {
+    &quot;rows&quot;: [
+      {
+        &quot;agent&quot;: &quot;codex&quot;,
+        &quot;call&quot;: &quot;tool/shell&quot;,
+        &quot;cmd&quot;: &quot;unknown&quot;,
+        &quot;effect&quot;: &quot;test&quot;,
+        &quot;kind&quot;: &quot;unknown&quot;,
+        &quot;model&quot;: &quot;unknown&quot;,
+        &quot;path&quot;: &quot;unknown&quot;,
+        &quot;process&quot;: &quot;cargo&quot;,
+        &quot;slice_id&quot;: &quot;8b99fc559abb95ec&quot;,
+        &quot;slice_kind&quot;: &quot;cargo-command-bucket&quot;,
+        &quot;slice_weight&quot;: 1420,
+        &quot;status&quot;: &quot;ok&quot;,
+        &quot;tool&quot;: &quot;tool/shell&quot;,
+        &quot;weight&quot;: 1420
+      }
+    ],
+    &quot;title&quot;: &quot;flat summary excerpt&quot;
+  }
+]
+```
+
+## 5. UT07-nonsemantic-stack
+
+- Task: UT07
+- Condition: nonsemantic-stack
+- Title: Task UT07
+
+For the python3 bucket, report total weight and the dominant semantic variant.
+
+Views:
+- nonsemantic folded stack excerpt
+
+Excerpt:
+
+```json
+[
+  {
+    &quot;rows&quot;: [
+      {
+        &quot;projected_stack&quot;: &quot;project:agentsight;agent:codex;call:tool/shell;process:python3;effect:process;status:ok&quot;,
+        &quot;slice_id&quot;: &quot;16e90d76423d5242&quot;,
+        &quot;slice_kind&quot;: &quot;python3-command-bucket&quot;,
+        &quot;slice_weight&quot;: 1612,
+        &quot;weight&quot;: 1612
+      }
+    ],
+    &quot;title&quot;: &quot;nonsemantic folded excerpt&quot;
+  }
+]
+```
+
+## 6. UT08-semantic-stack
+
+- Task: UT08
+- Condition: semantic-stack
+- Title: Task UT08
+
+For the docker bucket, report total weight and the dominant semantic variant.
+
+Views:
+- semantic effect flamegraph excerpt
+
+Excerpt:
+
+```json
+[
+  {
+    &quot;rows&quot;: [
+      {
+        &quot;semantic&quot;: &quot;session:analyze/prompt:analyze&quot;,
+        &quot;slice_id&quot;: &quot;14f4af7e3ec50bb2&quot;,
+        &quot;slice_kind&quot;: &quot;docker-command-bucket&quot;,
+        &quot;slice_weight&quot;: 1470,
+        &quot;weight&quot;: 1212
+      },
+      {
+        &quot;semantic&quot;: &quot;session:cleanup/prompt:cleanup&quot;,
+        &quot;slice_id&quot;: &quot;14f4af7e3ec50bb2&quot;,
+        &quot;slice_kind&quot;: &quot;docker-command-bucket&quot;,
+        &quot;slice_weight&quot;: 1470,
+        &quot;weight&quot;: 66
+      },
+      {
+        &quot;semantic&quot;: &quot;session:design/prompt:test&quot;,
+        &quot;slice_id&quot;: &quot;14f4af7e3ec50bb2&quot;,
+        &quot;slice_kind&quot;: &quot;docker-command-bucket&quot;,
+        &quot;slice_weight&quot;: 1470,
+        &quot;weight&quot;: 29
+      },
+      {
+        &quot;semantic&quot;: &quot;session:refactor/prompt:refactor&quot;,
+        &quot;slice_id&quot;: &quot;14f4af7e3ec50bb2&quot;,
+        &quot;slice_kind&quot;: &quot;docker-command-bucket&quot;,
+        &quot;slice_weight&quot;: 1470,
+        &quot;weight&quot;: 24
+      },
+      {
+        &quot;semantic&quot;: &quot;session:analyze/prompt:review&quot;,
+        &quot;slice_id&quot;: &quot;14f4af7e3ec50bb2&quot;,
+        &quot;slice_kind&quot;: &quot;docker-command-bucket&quot;,
+        &quot;slice_weight&quot;: 1470,
+        &quot;weight&quot;: 18
+      },
+      {
+        &quot;semantic&quot;: &quot;session:cleanup/prompt:cleanups&quot;,
+        &quot;slice_id&quot;: &quot;14f4af7e3ec50bb2&quot;,
+        &quot;slice_kind&quot;: &quot;docker-command-bucket&quot;,
+        &quot;slice_weight&quot;: 1470,
+        &quot;weight&quot;: 18
+      },
+      {
+        &quot;semantic&quot;: &quot;session:cleanup/prompt:cachecontrol&quot;,
+        &quot;slice_id&quot;: &quot;14f4af7e3ec50bb2&quot;,
+        &quot;slice_kind&quot;: &quot;docker-command-bucket&quot;,
+        &quot;slice_weight&quot;: 1470,
+        &quot;weight&quot;: 15
+      },
+      {
+        &quot;semantic&quot;: &quot;session:cleanlocal/prompt:diskfull&quot;,
+        &quot;slice_id&quot;: &quot;14f4af7e3ec50bb2&quot;,
+        &quot;slice_kind&quot;: &quot;docker-command-bucket&quot;,
+        &quot;slice_weight&quot;: 1470,
+        &quot;weight&quot;: 12
+      }
+    ],
+    &quot;title&quot;: &quot;semantic folded excerpt&quot;
+  }
+]
+```
+
+## 7. UT09-trace-tree
+
+- Task: UT09
+- Condition: trace-tree
+- Title: Task UT09
+
+In the flat git/read bucket, which semantic region dominates?
+
+Views:
+- session/tool chronological tree excerpt
+
+Excerpt:
+
+```json
+[
+  {
+    &quot;rows&quot;: [
+      {
+        &quot;frame&quot;: &quot;call:tool/shell&quot;,
+        &quot;frame_index&quot;: 1,
+        &quot;frame_type&quot;: &quot;call&quot;,
+        &quot;slice_id&quot;: &quot;b2f3f1b11ecfda65&quot;,
+        &quot;slice_kind&quot;: &quot;flat-git-read-bucket&quot;,
+        &quot;slice_weight&quot;: 4505,
+        &quot;status&quot;: &quot;observed&quot;
+      },
+      {
+        &quot;frame&quot;: &quot;process:git&quot;,
+        &quot;frame_index&quot;: 2,
+        &quot;frame_type&quot;: &quot;process&quot;,
+        &quot;slice_id&quot;: &quot;b2f3f1b11ecfda65&quot;,
+        &quot;slice_kind&quot;: &quot;flat-git-read-bucket&quot;,
+        &quot;slice_weight&quot;: 4505,
+        &quot;status&quot;: &quot;observed&quot;
+      },
+      {
+        &quot;frame&quot;: &quot;effect:read&quot;,
+        &quot;frame_index&quot;: 3,
+        &quot;frame_type&quot;: &quot;effect&quot;,
+        &quot;slice_id&quot;: &quot;b2f3f1b11ecfda65&quot;,
+        &quot;slice_kind&quot;: &quot;flat-git-read-bucket&quot;,
+        &quot;slice_weight&quot;: 4505,
+        &quot;status&quot;: &quot;observed&quot;
+      },
+      {
+        &quot;frame&quot;: &quot;status:ok&quot;,
+        &quot;frame_index&quot;: 4,
+        &quot;frame_type&quot;: &quot;status&quot;,
+        &quot;slice_id&quot;: &quot;b2f3f1b11ecfda65&quot;,
+        &quot;slice_kind&quot;: &quot;flat-git-read-bucket&quot;,
+        &quot;slice_weight&quot;: 4505,
+        &quot;status&quot;: &quot;observed&quot;
+      }
+    ],
+    &quot;title&quot;: &quot;trace tree excerpt&quot;
+  }
+]
+```
+
+## 8. UT10-event-count-proxy
+
+- Task: UT10
+- Condition: event-count-proxy
+- Title: Task UT10
+
+Identify the largest token stack and report its semantic/token fields.
+
+Views:
+- event-count proxy flamegraph excerpt
+
+Excerpt:
+
+```json
+[
+  {
+    &quot;rows&quot;: [
+      {
+        &quot;event_weight&quot;: 17869111395752,
+        &quot;frame_index&quot;: 1,
+        &quot;note&quot;: &quot;event-count proxy; duration unavailable in folded artifact&quot;,
+        &quot;slice_id&quot;: &quot;8fad605fffd20eec&quot;,
+        &quot;slice_kind&quot;: &quot;semantic-token-stack&quot;,
+        &quot;slice_weight&quot;: 17869111395752,
+        &quot;span&quot;: &quot;project:agentsight&quot;,
+        &quot;width_basis&quot;: &quot;event_weight_same_slice&quot;
+      },
+      {
+        &quot;event_weight&quot;: 17869111395752,
+        &quot;frame_index&quot;: 2,
+        &quot;note&quot;: &quot;event-count proxy; duration unavailable in folded artifact&quot;,
+        &quot;slice_id&quot;: &quot;8fad605fffd20eec&quot;,
+        &quot;slice_kind&quot;: &quot;semantic-token-stack&quot;,
+        &quot;slice_weight&quot;: 17869111395752,
+        &quot;span&quot;: &quot;agent:codex&quot;,
+        &quot;width_basis&quot;: &quot;event_weight_same_slice&quot;
+      },
+      {
+        &quot;event_weight&quot;: 17869111395752,
+        &quot;frame_index&quot;: 5,
+        &quot;note&quot;: &quot;event-count proxy; duration unavailable in folded artifact&quot;,
+        &quot;slice_id&quot;: &quot;8fad605fffd20eec&quot;,
+        &quot;slice_kind&quot;: &quot;semantic-token-stack&quot;,
+        &quot;slice_weight&quot;: 17869111395752,
+        &quot;span&quot;: &quot;call:llm/refactor&quot;,
+        &quot;width_basis&quot;: &quot;event_weight_same_slice&quot;
+      },
+      {
+        &quot;event_weight&quot;: 17869111395752,
+        &quot;frame_index&quot;: 6,
+        &quot;note&quot;: &quot;event-count proxy; duration unavailable in folded artifact&quot;,
+        &quot;slice_id&quot;: &quot;8fad605fffd20eec&quot;,
+        &quot;slice_kind&quot;: &quot;semantic-token-stack&quot;,
+        &quot;slice_weight&quot;: 17869111395752,
+        &quot;span&quot;: &quot;model:codex&quot;,
+        &quot;width_basis&quot;: &quot;event_weight_same_slice&quot;
+      },
+      {
+        &quot;event_weight&quot;: 17869111395752,
+        &quot;frame_index&quot;: 7,
+        &quot;note&quot;: &quot;event-count proxy; duration unavailable in folded artifact&quot;,
+        &quot;slice_id&quot;: &quot;8fad605fffd20eec&quot;,
+        &quot;slice_kind&quot;: &quot;semantic-token-stack&quot;,
+        &quot;slice_weight&quot;: 17869111395752,
+        &quot;span&quot;: &quot;kind:estimate&quot;,
+        &quot;width_basis&quot;: &quot;event_weight_same_slice&quot;
+      }
+    ],
+    &quot;title&quot;: &quot;event-count proxy excerpt&quot;
+  }
+]
+```
+
+## 9. UT11-flat-summary
+
+- Task: UT11
+- Condition: flat-summary
+- Title: Task UT11
+
+Does prompt+LLM-call alone fully explain token provenance, and what residual remains?
+
+Views:
+- process/effect/path summary excerpt
+
+Excerpt:
+
+```json
+[
+  {
+    &quot;rows&quot;: [
+      {
+        &quot;family&quot;: &quot;token&quot;,
+        &quot;metric&quot;: &quot;mixed_weight_share_pct&quot;,
+        &quot;slice_id&quot;: &quot;6186258163d8dd43&quot;,
+        &quot;slice_kind&quot;: &quot;token-ablation-axis&quot;,
+        &quot;slice_weight&quot;: 28486605753818,
+        &quot;value&quot;: 95.765,
+        &quot;variant&quot;: &quot;prompt+llm-call&quot;
+      }
+    ],
+    &quot;title&quot;: &quot;flat summary excerpt&quot;
+  }
+]
+```
+
+## 10. UT12-nonsemantic-stack
+
+- Task: UT12
+- Condition: nonsemantic-stack
+- Title: Task UT12
+
+For the R114 exact-lineage suite, report scoped join and negative-control outcomes.
+
+Views:
+- nonsemantic folded stack excerpt
+
+Excerpt:
+
+```json
+[
+  {
+    &quot;rows&quot;: [
+      {
+        &quot;join_methods&quot;: {
+          &quot;none&quot;: 4499,
+          &quot;pid_family_time_window&quot;: 1273
+        },
+        &quot;slice_id&quot;: &quot;5ff61b3cb85ba508&quot;,
+        &quot;slice_kind&quot;: &quot;r114-lineage-suite&quot;,
+        &quot;slice_weight&quot;: 1273
+      }
+    ],
+    &quot;title&quot;: &quot;nonsemantic folded excerpt&quot;
+  }
+]
+```
+
+## 11. UT13-semantic-stack
+
+- Task: UT13
+- Condition: semantic-stack
+- Title: Task UT13
+
+Why is R114 raw join much lower than scoped recall, and what are the key numbers?
+
+Views:
+- semantic effect flamegraph excerpt
+
+Excerpt:
+
+```json
+[
+  {
+    &quot;rows&quot;: [
+      {
+        &quot;recall_pct&quot;: 100.0,
+        &quot;scope&quot;: &quot;retargeted agent process family&quot;,
+        &quot;slice_id&quot;: &quot;339b362294a8d18e&quot;,
+        &quot;slice_kind&quot;: &quot;r114-lineage-scope&quot;,
+        &quot;slice_weight&quot;: 5772
+      }
+    ],
+    &quot;title&quot;: &quot;semantic folded excerpt&quot;
+  }
+]
+```
+
+## 12. UT14-trace-tree
+
+- Task: UT14
+- Condition: trace-tree
+- Title: Task UT14
+
+Report the real-fragment 3B tag-stability numbers and the correct claim boundary.
+
+Views:
+- session/tool chronological tree excerpt
+
+Excerpt:
+
+```json
+[
+  {
+    &quot;rows&quot;: [
+      {
+        &quot;metric&quot;: &quot;model&quot;,
+        &quot;slice_id&quot;: &quot;88c10cd28ed3f719&quot;,
+        &quot;slice_kind&quot;: &quot;r123-model-stability&quot;,
+        &quot;slice_weight&quot;: 900,
+        &quot;value&quot;: &quot;3b&quot;
+      },
+      {
+        &quot;metric&quot;: &quot;fragment_count&quot;,
+        &quot;slice_id&quot;: &quot;88c10cd28ed3f719&quot;,
+        &quot;slice_kind&quot;: &quot;r123-model-stability&quot;,
+        &quot;slice_weight&quot;: 900,
+        &quot;value&quot;: 300
+      }
+    ],
+    &quot;title&quot;: &quot;trace tree excerpt&quot;
+  }
+]
+```
+
+## 13. UT01-flat-summary
+
+- Task: UT01
+- Condition: flat-summary
+- Title: Task UT01
+
+Which high-weight nonsemantic system bucket is dominated by which semantic region?
+
+Views:
+- process/effect/path summary excerpt
+
+Excerpt:
+
+```json
+[
+  {
+    &quot;rows&quot;: [
+      {
+        &quot;agent&quot;: &quot;codex&quot;,
+        &quot;call&quot;: &quot;tool/tool&quot;,
+        &quot;cmd&quot;: &quot;unknown&quot;,
+        &quot;effect&quot;: &quot;process&quot;,
+        &quot;kind&quot;: &quot;unknown&quot;,
+        &quot;model&quot;: &quot;unknown&quot;,
+        &quot;path&quot;: &quot;unknown&quot;,
+        &quot;process&quot;: &quot;unknown&quot;,
+        &quot;slice_id&quot;: &quot;9094425a7659d6b2&quot;,
+        &quot;slice_kind&quot;: &quot;system-nonsemantic-bucket&quot;,
+        &quot;slice_weight&quot;: 12841,
+        &quot;status&quot;: &quot;ok&quot;,
+        &quot;tool&quot;: &quot;tool/tool&quot;,
+        &quot;weight&quot;: 12841
+      }
+    ],
+    &quot;title&quot;: &quot;flat summary excerpt&quot;
+  }
+]
+```
+
+## 14. UT02-nonsemantic-stack
+
+- Task: UT02
+- Condition: nonsemantic-stack
+- Title: Task UT02
+
+How much does prompt-only projection reduce system-effect mixing compared with no semantic axis?
+
+Views:
+- nonsemantic folded stack excerpt
+
+Excerpt:
+
+```json
+[
+  {
+    &quot;rows&quot;: [
+      {
+        &quot;mixed_residual_weight_share_pct&quot;: 44.639,
+        &quot;mixed_weight_share_pct&quot;: 90.219,
+        &quot;slice_id&quot;: &quot;6fe59bb891a3b287&quot;,
+        &quot;slice_kind&quot;: &quot;system-ablation-axis&quot;,
+        &quot;slice_weight&quot;: 167005,
+        &quot;variant&quot;: &quot;no-semantic&quot;
+      },
+      {
+        &quot;mixed_residual_weight_share_pct&quot;: 7.526,
+        &quot;mixed_weight_share_pct&quot;: 37.687,
+        &quot;slice_id&quot;: &quot;6fe59bb891a3b287&quot;,
+        &quot;slice_kind&quot;: &quot;system-ablation-axis&quot;,
+        &quot;slice_weight&quot;: 167005,
+        &quot;variant&quot;: &quot;prompt-only&quot;
+      }
+    ],
+    &quot;title&quot;: &quot;nonsemantic folded excerpt&quot;
+  }
+]
+```
+</pre>
+<h2>Responses</h2>
+<table>
+<thead><tr><th>Order</th><th>Task</th><th>Condition</th><th>Packet</th><th>response_json</th><th>seconds</th><th>confidence</th><th>notes</th></tr></thead>
+<tbody><tr><td>1</td><td>UT03</td><td>semantic-stack</td><td>UT03-semantic-stack</td><td><textarea id="response_json-0">{}</textarea></td><td><input id="task_time_seconds-0" inputmode="decimal" placeholder="seconds"></td><td><select id="confidence-0"><option value=""></option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></td><td><textarea id="notes-0"></textarea></td></tr><tr><td>2</td><td>UT04</td><td>trace-tree</td><td>UT04-trace-tree</td><td><textarea id="response_json-1">{}</textarea></td><td><input id="task_time_seconds-1" inputmode="decimal" placeholder="seconds"></td><td><select id="confidence-1"><option value=""></option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></td><td><textarea id="notes-1"></textarea></td></tr><tr><td>3</td><td>UT05</td><td>event-count-proxy</td><td>UT05-event-count-proxy</td><td><textarea id="response_json-2">{}</textarea></td><td><input id="task_time_seconds-2" inputmode="decimal" placeholder="seconds"></td><td><select id="confidence-2"><option value=""></option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></td><td><textarea id="notes-2"></textarea></td></tr><tr><td>4</td><td>UT06</td><td>flat-summary</td><td>UT06-flat-summary</td><td><textarea id="response_json-3">{}</textarea></td><td><input id="task_time_seconds-3" inputmode="decimal" placeholder="seconds"></td><td><select id="confidence-3"><option value=""></option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></td><td><textarea id="notes-3"></textarea></td></tr><tr><td>5</td><td>UT07</td><td>nonsemantic-stack</td><td>UT07-nonsemantic-stack</td><td><textarea id="response_json-4">{}</textarea></td><td><input id="task_time_seconds-4" inputmode="decimal" placeholder="seconds"></td><td><select id="confidence-4"><option value=""></option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></td><td><textarea id="notes-4"></textarea></td></tr><tr><td>6</td><td>UT08</td><td>semantic-stack</td><td>UT08-semantic-stack</td><td><textarea id="response_json-5">{}</textarea></td><td><input id="task_time_seconds-5" inputmode="decimal" placeholder="seconds"></td><td><select id="confidence-5"><option value=""></option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></td><td><textarea id="notes-5"></textarea></td></tr><tr><td>7</td><td>UT09</td><td>trace-tree</td><td>UT09-trace-tree</td><td><textarea id="response_json-6">{}</textarea></td><td><input id="task_time_seconds-6" inputmode="decimal" placeholder="seconds"></td><td><select id="confidence-6"><option value=""></option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></td><td><textarea id="notes-6"></textarea></td></tr><tr><td>8</td><td>UT10</td><td>event-count-proxy</td><td>UT10-event-count-proxy</td><td><textarea id="response_json-7">{}</textarea></td><td><input id="task_time_seconds-7" inputmode="decimal" placeholder="seconds"></td><td><select id="confidence-7"><option value=""></option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></td><td><textarea id="notes-7"></textarea></td></tr><tr><td>9</td><td>UT11</td><td>flat-summary</td><td>UT11-flat-summary</td><td><textarea id="response_json-8">{}</textarea></td><td><input id="task_time_seconds-8" inputmode="decimal" placeholder="seconds"></td><td><select id="confidence-8"><option value=""></option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></td><td><textarea id="notes-8"></textarea></td></tr><tr><td>10</td><td>UT12</td><td>nonsemantic-stack</td><td>UT12-nonsemantic-stack</td><td><textarea id="response_json-9">{}</textarea></td><td><input id="task_time_seconds-9" inputmode="decimal" placeholder="seconds"></td><td><select id="confidence-9"><option value=""></option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></td><td><textarea id="notes-9"></textarea></td></tr><tr><td>11</td><td>UT13</td><td>semantic-stack</td><td>UT13-semantic-stack</td><td><textarea id="response_json-10">{}</textarea></td><td><input id="task_time_seconds-10" inputmode="decimal" placeholder="seconds"></td><td><select id="confidence-10"><option value=""></option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></td><td><textarea id="notes-10"></textarea></td></tr><tr><td>12</td><td>UT14</td><td>trace-tree</td><td>UT14-trace-tree</td><td><textarea id="response_json-11">{}</textarea></td><td><input id="task_time_seconds-11" inputmode="decimal" placeholder="seconds"></td><td><select id="confidence-11"><option value=""></option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></td><td><textarea id="notes-11"></textarea></td></tr><tr><td>13</td><td>UT01</td><td>flat-summary</td><td>UT01-flat-summary</td><td><textarea id="response_json-12">{}</textarea></td><td><input id="task_time_seconds-12" inputmode="decimal" placeholder="seconds"></td><td><select id="confidence-12"><option value=""></option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></td><td><textarea id="notes-12"></textarea></td></tr><tr><td>14</td><td>UT02</td><td>nonsemantic-stack</td><td>UT02-nonsemantic-stack</td><td><textarea id="response_json-13">{}</textarea></td><td><input id="task_time_seconds-13" inputmode="decimal" placeholder="seconds"></td><td><select id="confidence-13"><option value=""></option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select></td><td><textarea id="notes-13"></textarea></td></tr></tbody>
+</table>
+</main>
+<script>
+const ROWS = [{"participant_id":"P03","order_index":"1","packet_id":"UT03-semantic-stack","task_id":"UT03","condition":"semantic-stack","response_json":"{}","task_time_seconds":"","confidence":"","notes":""},{"participant_id":"P03","order_index":"2","packet_id":"UT04-trace-tree","task_id":"UT04","condition":"trace-tree","response_json":"{}","task_time_seconds":"","confidence":"","notes":""},{"participant_id":"P03","order_index":"3","packet_id":"UT05-event-count-proxy","task_id":"UT05","condition":"event-count-proxy","response_json":"{}","task_time_seconds":"","confidence":"","notes":""},{"participant_id":"P03","order_index":"4","packet_id":"UT06-flat-summary","task_id":"UT06","condition":"flat-summary","response_json":"{}","task_time_seconds":"","confidence":"","notes":""},{"participant_id":"P03","order_index":"5","packet_id":"UT07-nonsemantic-stack","task_id":"UT07","condition":"nonsemantic-stack","response_json":"{}","task_time_seconds":"","confidence":"","notes":""},{"participant_id":"P03","order_index":"6","packet_id":"UT08-semantic-stack","task_id":"UT08","condition":"semantic-stack","response_json":"{}","task_time_seconds":"","confidence":"","notes":""},{"participant_id":"P03","order_index":"7","packet_id":"UT09-trace-tree","task_id":"UT09","condition":"trace-tree","response_json":"{}","task_time_seconds":"","confidence":"","notes":""},{"participant_id":"P03","order_index":"8","packet_id":"UT10-event-count-proxy","task_id":"UT10","condition":"event-count-proxy","response_json":"{}","task_time_seconds":"","confidence":"","notes":""},{"participant_id":"P03","order_index":"9","packet_id":"UT11-flat-summary","task_id":"UT11","condition":"flat-summary","response_json":"{}","task_time_seconds":"","confidence":"","notes":""},{"participant_id":"P03","order_index":"10","packet_id":"UT12-nonsemantic-stack","task_id":"UT12","condition":"nonsemantic-stack","response_json":"{}","task_time_seconds":"","confidence":"","notes":""},{"participant_id":"P03","order_index":"11","packet_id":"UT13-semantic-stack","task_id":"UT13","condition":"semantic-stack","response_json":"{}","task_time_seconds":"","confidence":"","notes":""},{"participant_id":"P03","order_index":"12","packet_id":"UT14-trace-tree","task_id":"UT14","condition":"trace-tree","response_json":"{}","task_time_seconds":"","confidence":"","notes":""},{"participant_id":"P03","order_index":"13","packet_id":"UT01-flat-summary","task_id":"UT01","condition":"flat-summary","response_json":"{}","task_time_seconds":"","confidence":"","notes":""},{"participant_id":"P03","order_index":"14","packet_id":"UT02-nonsemantic-stack","task_id":"UT02","condition":"nonsemantic-stack","response_json":"{}","task_time_seconds":"","confidence":"","notes":""}];
+const FIELDS = ["participant_id","order_index","packet_id","task_id","condition","response_json","task_time_seconds","confidence","notes"];
+const OUTPUT_NAME = "user-task-r249-responses-P03.csv";
+const MUTATORS = [{"field":"response_json","required":"true","kind":"json"},{"field":"task_time_seconds","required":"true","kind":"number"},{"field":"confidence","required":"true","kind":"number"},{"field":"notes","required":"","kind":"text"}];
+
+function csvEscape(value) {
+  const s = String(value ?? "");
+  if (/[",\n\r]/.test(s)) return '"' + s.replaceAll('"', '""') + '"';
+  return s;
+}
+
+function rowsFromForm() {
+  return ROWS.map((row, i) => {
+    const next = {...row};
+    for (const m of MUTATORS) {
+      const el = document.getElementById(`${m.field}-${i}`);
+      next[m.field] = el ? el.value : "";
+    }
+    return next;
+  });
+}
+
+function validateRows() {
+  let missing = 0;
+  let badJson = 0;
+  const rows = rowsFromForm();
+  for (const row of rows) {
+    for (const m of MUTATORS) {
+      const value = row[m.field] || "";
+      if (m.required && value.trim() === "") missing += 1;
+      if (m.kind === "json" && value.trim() !== "") {
+        try { JSON.parse(value); } catch (err) { badJson += 1; }
+      }
+    }
+  }
+  const status = document.getElementById("status");
+  if (status) status.textContent = `missing required cells: ${missing}; invalid JSON cells: ${badJson}`;
+  return {missing, badJson};
+}
+
+function exportCsv() {
+  const result = validateRows();
+  if (result.badJson > 0) {
+    alert("Fix invalid JSON before export.");
+    return;
+  }
+  const rows = rowsFromForm();
+  const lines = [FIELDS.map(csvEscape).join(",")];
+  for (const row of rows) lines.push(FIELDS.map((field) => csvEscape(row[field] ?? "")).join(","));
+  const blob = new Blob([lines.join("\n") + "\n"], {type: "text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = OUTPUT_NAME;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+document.addEventListener("input", validateRows);
+document.addEventListener("change", validateRows);
+document.addEventListener("DOMContentLoaded", validateRows);
+</script>
+
+
+</body>
+</html>

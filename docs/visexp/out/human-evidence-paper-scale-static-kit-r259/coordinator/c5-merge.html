@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>R259 C5 merge</title>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f7f7f4;
+  --panel: #ffffff;
+  --ink: #1d1f23;
+  --muted: #5d6673;
+  --line: #d8dadd;
+  --accent: #2764c5;
+  --warn: #8a4b08;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255,255,255,0.96);
+}
+main { padding: 18px; max-width: 1500px; margin: 0 auto; }
+h1 { margin: 0 0 4px; font-size: 22px; }
+h2 { margin: 24px 0 8px; font-size: 18px; }
+p { margin: 6px 0; }
+a { color: var(--accent); }
+.muted { color: var(--muted); }
+.warn { color: var(--warn); font-weight: 650; }
+.toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+button {
+  appearance: none;
+  border: 1px solid #174d9d;
+  background: var(--accent);
+  color: white;
+  border-radius: 6px;
+  padding: 8px 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+button.secondary { background: #fff; color: var(--accent); }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+th, td {
+  border-bottom: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  padding: 7px;
+  vertical-align: top;
+}
+th { position: sticky; top: 92px; background: #f0f2f5; z-index: 3; text-align: left; }
+td.readonly { max-width: 320px; overflow-wrap: anywhere; }
+textarea, input, select {
+  width: 100%;
+  min-width: 120px;
+  border: 1px solid #c7ccd2;
+  border-radius: 4px;
+  padding: 6px;
+  font: inherit;
+  background: white;
+}
+textarea { min-height: 62px; resize: vertical; }
+pre.packet {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  padding: 14px;
+  border-radius: 6px;
+}
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 12px; }
+.status { margin-left: 8px; color: var(--muted); }
+@media (max-width: 800px) {
+  main { padding: 12px; }
+  th { top: 116px; }
+  th, td { padding: 6px; }
+}
+</style>
+</head>
+<body>
+<header>
+<h1>R259 paper-scale participant response merge</h1>
+<p class="muted">Select returned P01-P12 CSV files, then export one R195-ready C5 file.</p>
+<div class="toolbar">
+<input id="files" type="file" multiple accept=".csv,text/csv">
+<button onclick="mergeFiles()">Read selected CSVs</button>
+<button class="secondary" onclick="exportMerged()">Export completed C5 CSV</button>
+<span id="status" class="status"></span>
+</div>
+</header>
+<main>
+<p class="warn">This page only combines returned participant files. It does not score or infer any answer.</p>
+<table>
+<thead><tr><th>participant</th><th>rows</th><th>file</th><th>status</th></tr></thead>
+<tbody id="summary"></tbody>
+</table>
+</main>
+<script>
+const FIELDS = ["participant_id","order_index","packet_id","task_id","condition","response_json","task_time_seconds","confidence","notes"];
+const OUTPUT_NAME = "user-task-response-template-r249-paper.csv";
+let MERGED_ROWS = [];
+
+function csvEscape(value) {
+  const s = String(value ?? "");
+  if (/[",\n\r]/.test(s)) return '"' + s.replaceAll('"', '""') + '"';
+  return s;
+}
+
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let cell = "";
+  let quoted = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (quoted) {
+      if (ch === '"') {
+        if (text[i + 1] === '"') { cell += '"'; i += 1; } else { quoted = false; }
+      } else {
+        cell += ch;
+      }
+    } else if (ch === '"') {
+      quoted = true;
+    } else if (ch === ",") {
+      row.push(cell); cell = "";
+    } else if (ch === "\n") {
+      row.push(cell); rows.push(row); row = []; cell = "";
+    } else if (ch !== "\r") {
+      cell += ch;
+    }
+  }
+  if (cell !== "" || row.length) { row.push(cell); rows.push(row); }
+  return rows.filter((r) => r.length > 1 || r[0] !== "");
+}
+
+function objectsFromCsv(text) {
+  const records = parseCsv(text);
+  if (records.length === 0) return {rows: [], error: "empty file"};
+  const header = records[0];
+  const headerOk = FIELDS.length === header.length && FIELDS.every((field, i) => field === header[i]);
+  if (!headerOk) return {rows: [], error: "header mismatch"};
+  const rows = records.slice(1).map((record) => {
+    const row = {};
+    FIELDS.forEach((field, i) => row[field] = record[i] ?? "");
+    return row;
+  });
+  return {rows, error: ""};
+}
+
+function renderSummary(items) {
+  const tbody = document.getElementById("summary");
+  tbody.innerHTML = items.map((item) => `<tr><td>${item.participant}</td><td>${item.rows}</td><td>${item.file}</td><td>${item.status}</td></tr>`).join("");
+  const status = document.getElementById("status");
+  const total = MERGED_ROWS.length;
+  const participants = new Set(MERGED_ROWS.map((row) => row.participant_id)).size;
+  status.textContent = `merged rows: ${total}; participants: ${participants}`;
+}
+
+async function mergeFiles() {
+  const input = document.getElementById("files");
+  const files = Array.from(input.files || []);
+  const items = [];
+  MERGED_ROWS = [];
+  for (const file of files) {
+    const text = await file.text();
+    const parsed = objectsFromCsv(text);
+    if (parsed.error) {
+      items.push({participant: "", rows: 0, file: file.name, status: parsed.error});
+      continue;
+    }
+    MERGED_ROWS.push(...parsed.rows);
+    const participantSet = new Set(parsed.rows.map((row) => row.participant_id));
+    items.push({participant: Array.from(participantSet).join(";"), rows: parsed.rows.length, file: file.name, status: "ok"});
+  }
+  renderSummary(items);
+}
+
+function exportMerged() {
+  if (MERGED_ROWS.length === 0) {
+    alert("Read participant CSVs first.");
+    return;
+  }
+  const lines = [FIELDS.map(csvEscape).join(",")];
+  for (const row of MERGED_ROWS) lines.push(FIELDS.map((field) => csvEscape(row[field] ?? "")).join(","));
+  const blob = new Blob([lines.join("\n") + "\n"], {type: "text/csv;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = OUTPUT_NAME;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+</script>
+
+</body>
+</html>
