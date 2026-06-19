@@ -362,6 +362,15 @@ no LLM calls, `c5_supported=false`, `c6_supported=false`, and
 `weak_accept_supported=false`. This upgrades C7 local install-smoke evidence,
 not community adoption or human-outcome evidence.
 
+R249 fixes a C5 logistics gap that R247 left open: the sendable bundle is only a
+five-participant pilot, while the scorer gates paper-scale C5 on at least 12
+participants. R249 derives a separate paper-scale package from the frozen R142
+task packets with 12 participant packets, 168 assignment/response rows, and a
+nondefault assignment file for `score_user_task_results.py`. Every task-condition
+has 2-3 replicates, the participant payload leak scan passes, and scoring the
+blank template with the R249 assignment file returns `participant_results_empty`
+with `c5_supported=false`. This is launch readiness only, not outcome evidence.
+
 R228 records the read-only OSDI subagent review after R220. The review accepts
 R220 only as narrow C7 local clean-clone/pprof-readback evidence, keeps the
 project at not weak accept because C5/C6 remain missing, and flags two R220
@@ -449,6 +458,7 @@ claim row, and fixes the paper table's C4 wording.
 | R247 | Sendable offline human-evidence collection bundle | `docs/visexp/out/human-evidence-distribution-r247/human-evidence-distribution-r247.json`, `docs/visexp/out/human-evidence-distribution-r247/agentflame-human-evidence-r247.tar.gz` | done/distribution-ready; 17-member tarball, return checklist, no outcome evidence |
 | R248 | Installed `agentpprof` public-fixture smoke | `docs/visexp/out/agentpprof-install-r248/agentpprof-install-r248.json`, `docs/visexp/out/agentpprof-install-r248/profiles/tasks.pb.gz`, `agentpprof/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl` | done/install-smoke; installed CLI pprof readback, no private history, no C5/C6 outcome evidence |
 | R248-review | Post-R247/R248 OSDI paper/artifact review | `docs/visexp/out/osdi-gate-review-r248.json`, `docs/visexp/out/osdi-gate-review-r248.md` | Level 3/not weak accept; paper hygiene and C7 install-smoke fixes applied, C5/C6 still missing |
+| R249 | Paper-scale C5 participant launch package | `docs/visexp/out/user-task-paper-r249/manifest.json`, `docs/visexp/out/user-task-paper-r249/user-task-assignments-r249-paper.csv`, `docs/visexp/out/user-task-paper-r249/scored/user-task-results.json` | done/paper-scale launch-ready; 12 participants, 168 blank response rows, scorer accepts template as empty, no outcome evidence |
 | R171 | Read-only subagent OSDI gate review after R170/R124-join planning | `docs/visexp/out/osdi-gate-review-r171.md` | done/review |
 | R181 | Read-only subagent OSDI gate review after R180 local multi-model benchmark | `docs/visexp/out/osdi-gate-review-r181.md` | done/review; still not weak accept |
 | R060 | legacy Python prototype pipeline over sampled sessions | `docs/visexp/out/pipeline-report.json` | legacy, superseded for headline scale |
@@ -967,6 +977,10 @@ provenance.
   collection. R187 packages the frozen assignment into P01-P05 launch files and
   a blank 70-row response CSV, with a manifest check for no answer key, no
   forbidden oracle/scoring fields, zero real responses, and
+  `c5_supported=false`. R249 additionally derives a paper-scale launch package
+  from the same frozen task packets: 12 participants, 168 blank response rows,
+  a nondefault assignment file, and 2-3 replicates for every task-condition;
+  scoring the blank template still returns `participant_results_empty` and
   `c5_supported=false`. R188 independently reviews the post-R187 state and
   again records Level 3/not weak accept: R187 is launch material only, and the
   next real evidence rows are R142-pilot plus R124-labels.

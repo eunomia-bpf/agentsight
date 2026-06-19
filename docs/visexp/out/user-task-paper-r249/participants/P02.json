@@ -1,0 +1,703 @@
+{
+  "assignment_count": 14,
+  "instructions": {
+    "answer_policy": "Do not use source repository files, answer keys, or external help while answering.",
+    "confidence": "Use an integer 1..5 confidence rating.",
+    "response_csv": "Fill exactly one row per task in responses/user-task-response-template-r249-paper.csv.",
+    "timing": "Record task_time_seconds from first reading the task until writing response_json."
+  },
+  "participant_id": "P02",
+  "run_id": "R249",
+  "schema_version": 1,
+  "source_protocol": "R142",
+  "tasks": [
+    {
+      "claim": "C5",
+      "condition": "flat-summary",
+      "order_index": 1,
+      "packet_id": "UT02-flat-summary",
+      "question": "How much does prompt-only projection reduce system-effect mixing compared with no semantic axis?",
+      "task_id": "UT02",
+      "title": "Task UT02",
+      "view_excerpt": [
+        {
+          "rows": [
+            {
+              "metric": "mixed_weight_share_pct",
+              "slice_id": "6fe59bb891a3b287",
+              "slice_kind": "system-ablation-axis",
+              "slice_weight": 167005,
+              "value": 90.219,
+              "variant": "no-semantic"
+            },
+            {
+              "metric": "mixed_weight_share_pct",
+              "slice_id": "6fe59bb891a3b287",
+              "slice_kind": "system-ablation-axis",
+              "slice_weight": 167005,
+              "value": 37.687,
+              "variant": "prompt-only"
+            }
+          ],
+          "title": "flat summary excerpt"
+        }
+      ],
+      "views": [
+        "process/effect/path summary excerpt"
+      ]
+    },
+    {
+      "claim": "C5",
+      "condition": "nonsemantic-stack",
+      "order_index": 2,
+      "packet_id": "UT03-nonsemantic-stack",
+      "question": "Which single semantic axis separates system effects better: session or prompt?",
+      "task_id": "UT03",
+      "title": "Task UT03",
+      "view_excerpt": [
+        {
+          "rows": [
+            {
+              "mixed_residual_weight_share_pct": 34.138,
+              "mixed_weight_share_pct": 84.18,
+              "slice_id": "9d047d1778ea07a6",
+              "slice_kind": "system-ablation-axis",
+              "slice_weight": 167005,
+              "variant": "session-only"
+            },
+            {
+              "mixed_residual_weight_share_pct": 7.526,
+              "mixed_weight_share_pct": 37.687,
+              "slice_id": "9d047d1778ea07a6",
+              "slice_kind": "system-ablation-axis",
+              "slice_weight": 167005,
+              "variant": "prompt-only"
+            }
+          ],
+          "title": "nonsemantic folded excerpt"
+        }
+      ],
+      "views": [
+        "nonsemantic folded stack excerpt"
+      ]
+    },
+    {
+      "claim": "C5",
+      "condition": "semantic-stack",
+      "order_index": 3,
+      "packet_id": "UT04-semantic-stack",
+      "question": "Identify the heaviest semantic system stack and its semantic/effect fields.",
+      "task_id": "UT04",
+      "title": "Task UT04",
+      "view_excerpt": [
+        {
+          "rows": [
+            {
+              "slice_id": "3ec59ca5056116a4",
+              "slice_kind": "semantic-system-stack",
+              "slice_weight": 6004,
+              "stack": "project:agentsight;agent:codex;session:refactor;prompt:refactor;call:tool/tool;effect:process;status:ok",
+              "weight": 6004
+            }
+          ],
+          "title": "semantic folded excerpt"
+        }
+      ],
+      "views": [
+        "semantic effect flamegraph excerpt"
+      ]
+    },
+    {
+      "claim": "C5",
+      "condition": "trace-tree",
+      "order_index": 4,
+      "packet_id": "UT05-trace-tree",
+      "question": "Find the heaviest path-specific system-effect stack and report process, path, and semantic tags.",
+      "task_id": "UT05",
+      "title": "Task UT05",
+      "view_excerpt": [
+        {
+          "rows": [
+            {
+              "frame": "project:agentsight",
+              "frame_index": 1,
+              "frame_type": "project",
+              "slice_id": "6ff7c8f034f03071",
+              "slice_kind": "semantic-path-stack",
+              "slice_weight": 1648,
+              "status": "observed"
+            },
+            {
+              "frame": "agent:codex",
+              "frame_index": 2,
+              "frame_type": "agent",
+              "slice_id": "6ff7c8f034f03071",
+              "slice_kind": "semantic-path-stack",
+              "slice_weight": 1648,
+              "status": "observed"
+            },
+            {
+              "frame": "call:tool/shell",
+              "frame_index": 5,
+              "frame_type": "call",
+              "slice_id": "6ff7c8f034f03071",
+              "slice_kind": "semantic-path-stack",
+              "slice_weight": 1648,
+              "status": "observed"
+            },
+            {
+              "frame": "process:sed",
+              "frame_index": 6,
+              "frame_type": "process",
+              "slice_id": "6ff7c8f034f03071",
+              "slice_kind": "semantic-path-stack",
+              "slice_weight": 1648,
+              "status": "observed"
+            },
+            {
+              "frame": "effect:read",
+              "frame_index": 7,
+              "frame_type": "effect",
+              "slice_id": "6ff7c8f034f03071",
+              "slice_kind": "semantic-path-stack",
+              "slice_weight": 1648,
+              "status": "observed"
+            },
+            {
+              "frame": "path:module/x86",
+              "frame_index": 8,
+              "frame_type": "path",
+              "slice_id": "6ff7c8f034f03071",
+              "slice_kind": "semantic-path-stack",
+              "slice_weight": 1648,
+              "status": "observed"
+            },
+            {
+              "frame": "status:ok",
+              "frame_index": 9,
+              "frame_type": "status",
+              "slice_id": "6ff7c8f034f03071",
+              "slice_kind": "semantic-path-stack",
+              "slice_weight": 1648,
+              "status": "observed"
+            }
+          ],
+          "title": "trace tree excerpt"
+        }
+      ],
+      "views": [
+        "session/tool chronological tree excerpt"
+      ]
+    },
+    {
+      "claim": "C5",
+      "condition": "event-count-proxy",
+      "order_index": 5,
+      "packet_id": "UT06-event-count-proxy",
+      "question": "For the cargo bucket, report total weight and the dominant semantic variant.",
+      "task_id": "UT06",
+      "title": "Task UT06",
+      "view_excerpt": [
+        {
+          "rows": [
+            {
+              "event_weight": 1420,
+              "frame_index": 1,
+              "note": "event-count proxy; duration unavailable in folded artifact",
+              "slice_id": "8b99fc559abb95ec",
+              "slice_kind": "cargo-command-bucket",
+              "slice_weight": 1420,
+              "span": "project:agentsight",
+              "width_basis": "event_weight_same_slice"
+            },
+            {
+              "event_weight": 1420,
+              "frame_index": 2,
+              "note": "event-count proxy; duration unavailable in folded artifact",
+              "slice_id": "8b99fc559abb95ec",
+              "slice_kind": "cargo-command-bucket",
+              "slice_weight": 1420,
+              "span": "agent:codex",
+              "width_basis": "event_weight_same_slice"
+            },
+            {
+              "event_weight": 1420,
+              "frame_index": 3,
+              "note": "event-count proxy; duration unavailable in folded artifact",
+              "slice_id": "8b99fc559abb95ec",
+              "slice_kind": "cargo-command-bucket",
+              "slice_weight": 1420,
+              "span": "call:tool/shell",
+              "width_basis": "event_weight_same_slice"
+            },
+            {
+              "event_weight": 1420,
+              "frame_index": 4,
+              "note": "event-count proxy; duration unavailable in folded artifact",
+              "slice_id": "8b99fc559abb95ec",
+              "slice_kind": "cargo-command-bucket",
+              "slice_weight": 1420,
+              "span": "process:cargo",
+              "width_basis": "event_weight_same_slice"
+            },
+            {
+              "event_weight": 1420,
+              "frame_index": 5,
+              "note": "event-count proxy; duration unavailable in folded artifact",
+              "slice_id": "8b99fc559abb95ec",
+              "slice_kind": "cargo-command-bucket",
+              "slice_weight": 1420,
+              "span": "effect:test",
+              "width_basis": "event_weight_same_slice"
+            },
+            {
+              "event_weight": 1420,
+              "frame_index": 6,
+              "note": "event-count proxy; duration unavailable in folded artifact",
+              "slice_id": "8b99fc559abb95ec",
+              "slice_kind": "cargo-command-bucket",
+              "slice_weight": 1420,
+              "span": "status:ok",
+              "width_basis": "event_weight_same_slice"
+            }
+          ],
+          "title": "event-count proxy excerpt"
+        }
+      ],
+      "views": [
+        "event-count proxy flamegraph excerpt"
+      ]
+    },
+    {
+      "claim": "C5",
+      "condition": "flat-summary",
+      "order_index": 6,
+      "packet_id": "UT07-flat-summary",
+      "question": "For the python3 bucket, report total weight and the dominant semantic variant.",
+      "task_id": "UT07",
+      "title": "Task UT07",
+      "view_excerpt": [
+        {
+          "rows": [
+            {
+              "agent": "codex",
+              "call": "tool/shell",
+              "cmd": "unknown",
+              "effect": "process",
+              "kind": "unknown",
+              "model": "unknown",
+              "path": "unknown",
+              "process": "python3",
+              "slice_id": "16e90d76423d5242",
+              "slice_kind": "python3-command-bucket",
+              "slice_weight": 1612,
+              "status": "ok",
+              "tool": "tool/shell",
+              "weight": 1612
+            }
+          ],
+          "title": "flat summary excerpt"
+        }
+      ],
+      "views": [
+        "process/effect/path summary excerpt"
+      ]
+    },
+    {
+      "claim": "C5",
+      "condition": "nonsemantic-stack",
+      "order_index": 7,
+      "packet_id": "UT08-nonsemantic-stack",
+      "question": "For the docker bucket, report total weight and the dominant semantic variant.",
+      "task_id": "UT08",
+      "title": "Task UT08",
+      "view_excerpt": [
+        {
+          "rows": [
+            {
+              "projected_stack": "project:agentsight;agent:codex;call:tool/shell;process:docker;effect:process;status:ok",
+              "slice_id": "14f4af7e3ec50bb2",
+              "slice_kind": "docker-command-bucket",
+              "slice_weight": 1470,
+              "weight": 1470
+            }
+          ],
+          "title": "nonsemantic folded excerpt"
+        }
+      ],
+      "views": [
+        "nonsemantic folded stack excerpt"
+      ]
+    },
+    {
+      "claim": "C5",
+      "condition": "semantic-stack",
+      "order_index": 8,
+      "packet_id": "UT09-semantic-stack",
+      "question": "In the flat git/read bucket, which semantic region dominates?",
+      "task_id": "UT09",
+      "title": "Task UT09",
+      "view_excerpt": [
+        {
+          "rows": [
+            {
+              "semantic": "session:review/prompt:review",
+              "slice_id": "b2f3f1b11ecfda65",
+              "slice_kind": "flat-git-read-bucket",
+              "slice_weight": 4505,
+              "weight": 696
+            },
+            {
+              "semantic": "session:refactor/prompt:refactor",
+              "slice_id": "b2f3f1b11ecfda65",
+              "slice_kind": "flat-git-read-bucket",
+              "slice_weight": 4505,
+              "weight": 565
+            },
+            {
+              "semantic": "session:design/prompt:design",
+              "slice_id": "b2f3f1b11ecfda65",
+              "slice_kind": "flat-git-read-bucket",
+              "slice_weight": 4505,
+              "weight": 352
+            },
+            {
+              "semantic": "session:review/prompt:refactor",
+              "slice_id": "b2f3f1b11ecfda65",
+              "slice_kind": "flat-git-read-bucket",
+              "slice_weight": 4505,
+              "weight": 309
+            },
+            {
+              "semantic": "session:design/prompt:review",
+              "slice_id": "b2f3f1b11ecfda65",
+              "slice_kind": "flat-git-read-bucket",
+              "slice_weight": 4505,
+              "weight": 209
+            },
+            {
+              "semantic": "session:research/prompt:research",
+              "slice_id": "b2f3f1b11ecfda65",
+              "slice_kind": "flat-git-read-bucket",
+              "slice_weight": 4505,
+              "weight": 190
+            },
+            {
+              "semantic": "session:research/prompt:explain",
+              "slice_id": "b2f3f1b11ecfda65",
+              "slice_kind": "flat-git-read-bucket",
+              "slice_weight": 4505,
+              "weight": 179
+            },
+            {
+              "semantic": "session:research/prompt:refactor",
+              "slice_id": "b2f3f1b11ecfda65",
+              "slice_kind": "flat-git-read-bucket",
+              "slice_weight": 4505,
+              "weight": 157
+            }
+          ],
+          "title": "semantic folded excerpt"
+        }
+      ],
+      "views": [
+        "semantic effect flamegraph excerpt"
+      ]
+    },
+    {
+      "claim": "C5",
+      "condition": "trace-tree",
+      "order_index": 9,
+      "packet_id": "UT10-trace-tree",
+      "question": "Identify the largest token stack and report its semantic/token fields.",
+      "task_id": "UT10",
+      "title": "Task UT10",
+      "view_excerpt": [
+        {
+          "rows": [
+            {
+              "frame": "project:agentsight",
+              "frame_index": 1,
+              "frame_type": "project",
+              "slice_id": "8fad605fffd20eec",
+              "slice_kind": "semantic-token-stack",
+              "slice_weight": 17869111395752,
+              "status": "observed"
+            },
+            {
+              "frame": "agent:codex",
+              "frame_index": 2,
+              "frame_type": "agent",
+              "slice_id": "8fad605fffd20eec",
+              "slice_kind": "semantic-token-stack",
+              "slice_weight": 17869111395752,
+              "status": "observed"
+            },
+            {
+              "frame": "call:llm/refactor",
+              "frame_index": 5,
+              "frame_type": "call",
+              "slice_id": "8fad605fffd20eec",
+              "slice_kind": "semantic-token-stack",
+              "slice_weight": 17869111395752,
+              "status": "observed"
+            },
+            {
+              "frame": "model:codex",
+              "frame_index": 6,
+              "frame_type": "model",
+              "slice_id": "8fad605fffd20eec",
+              "slice_kind": "semantic-token-stack",
+              "slice_weight": 17869111395752,
+              "status": "observed"
+            },
+            {
+              "frame": "kind:estimate",
+              "frame_index": 7,
+              "frame_type": "kind",
+              "slice_id": "8fad605fffd20eec",
+              "slice_kind": "semantic-token-stack",
+              "slice_weight": 17869111395752,
+              "status": "observed"
+            }
+          ],
+          "title": "trace tree excerpt"
+        }
+      ],
+      "views": [
+        "session/tool chronological tree excerpt"
+      ]
+    },
+    {
+      "claim": "C5",
+      "condition": "event-count-proxy",
+      "order_index": 10,
+      "packet_id": "UT11-event-count-proxy",
+      "question": "Does prompt+LLM-call alone fully explain token provenance, and what residual remains?",
+      "task_id": "UT11",
+      "title": "Task UT11",
+      "view_excerpt": [
+        {
+          "rows": [
+            {
+              "event_weight": 28486605753818,
+              "slice_id": "6186258163d8dd43",
+              "slice_kind": "token-ablation-axis",
+              "slice_weight": 28486605753818,
+              "span": "prompt+llm-call",
+              "width_basis": "same_projection_total"
+            }
+          ],
+          "title": "event-count proxy excerpt"
+        }
+      ],
+      "views": [
+        "event-count proxy flamegraph excerpt"
+      ]
+    },
+    {
+      "claim": "C5",
+      "condition": "flat-summary",
+      "order_index": 11,
+      "packet_id": "UT12-flat-summary",
+      "question": "For the R114 exact-lineage suite, report scoped join and negative-control outcomes.",
+      "task_id": "UT12",
+      "title": "Task UT12",
+      "view_excerpt": [
+        {
+          "rows": [
+            {
+              "metric": "effect_events",
+              "slice_id": "5ff61b3cb85ba508",
+              "slice_kind": "r114-lineage-suite",
+              "slice_weight": 1273,
+              "value": 5772
+            },
+            {
+              "metric": "in_scope_effect_events",
+              "slice_id": "5ff61b3cb85ba508",
+              "slice_kind": "r114-lineage-suite",
+              "slice_weight": 1273,
+              "value": 1273
+            },
+            {
+              "metric": "joined_effect_events",
+              "slice_id": "5ff61b3cb85ba508",
+              "slice_kind": "r114-lineage-suite",
+              "slice_weight": 1273,
+              "value": 1273
+            },
+            {
+              "metric": "out_of_scope_effect_events",
+              "slice_id": "5ff61b3cb85ba508",
+              "slice_kind": "r114-lineage-suite",
+              "slice_weight": 1273,
+              "value": 1329
+            },
+            {
+              "metric": "negative_effect_events_observed",
+              "slice_id": "5ff61b3cb85ba508",
+              "slice_kind": "r114-lineage-suite",
+              "slice_weight": 1273,
+              "value": 3170
+            },
+            {
+              "metric": "negative_joined_effect_events",
+              "slice_id": "5ff61b3cb85ba508",
+              "slice_kind": "r114-lineage-suite",
+              "slice_weight": 1273,
+              "value": 0
+            },
+            {
+              "metric": "raw_join_pct",
+              "slice_id": "5ff61b3cb85ba508",
+              "slice_kind": "r114-lineage-suite",
+              "slice_weight": 1273,
+              "value": 22.055
+            },
+            {
+              "metric": "precision_pct",
+              "slice_id": "5ff61b3cb85ba508",
+              "slice_kind": "r114-lineage-suite",
+              "slice_weight": 1273,
+              "value": 100.0
+            },
+            {
+              "metric": "recall_pct",
+              "slice_id": "5ff61b3cb85ba508",
+              "slice_kind": "r114-lineage-suite",
+              "slice_weight": 1273,
+              "value": 100.0
+            }
+          ],
+          "title": "flat summary excerpt"
+        }
+      ],
+      "views": [
+        "process/effect/path summary excerpt"
+      ]
+    },
+    {
+      "claim": "C5",
+      "condition": "nonsemantic-stack",
+      "order_index": 12,
+      "packet_id": "UT13-nonsemantic-stack",
+      "question": "Why is R114 raw join much lower than scoped recall, and what are the key numbers?",
+      "task_id": "UT13",
+      "title": "Task UT13",
+      "view_excerpt": [
+        {
+          "rows": [
+            {
+              "out_of_scope_effect_events": 1329,
+              "raw_join_pct": 22.055,
+              "slice_id": "339b362294a8d18e",
+              "slice_kind": "r114-lineage-scope",
+              "slice_weight": 5772
+            }
+          ],
+          "title": "nonsemantic folded excerpt"
+        }
+      ],
+      "views": [
+        "nonsemantic folded stack excerpt"
+      ]
+    },
+    {
+      "claim": "C5",
+      "condition": "semantic-stack",
+      "order_index": 13,
+      "packet_id": "UT14-semantic-stack",
+      "question": "Report the real-fragment 3B tag-stability numbers and the correct claim boundary.",
+      "task_id": "UT14",
+      "title": "Task UT14",
+      "view_excerpt": [
+        {
+          "rows": [
+            {
+              "p95_ms": 31,
+              "slice_id": "88c10cd28ed3f719",
+              "slice_kind": "r123-model-stability",
+              "slice_weight": 900,
+              "total_runs": 900,
+              "valid_runs": 900
+            }
+          ],
+          "title": "semantic folded excerpt"
+        }
+      ],
+      "views": [
+        "semantic effect flamegraph excerpt"
+      ]
+    },
+    {
+      "claim": "C5",
+      "condition": "event-count-proxy",
+      "order_index": 14,
+      "packet_id": "UT01-event-count-proxy",
+      "question": "Which high-weight nonsemantic system bucket is dominated by which semantic region?",
+      "task_id": "UT01",
+      "title": "Task UT01",
+      "view_excerpt": [
+        {
+          "rows": [
+            {
+              "event_weight": 12841,
+              "frame_index": 1,
+              "note": "event-count proxy; duration unavailable in folded artifact",
+              "slice_id": "9094425a7659d6b2",
+              "slice_kind": "system-nonsemantic-bucket",
+              "slice_weight": 12841,
+              "span": "project:agentsight",
+              "width_basis": "event_weight_same_slice"
+            },
+            {
+              "event_weight": 12841,
+              "frame_index": 2,
+              "note": "event-count proxy; duration unavailable in folded artifact",
+              "slice_id": "9094425a7659d6b2",
+              "slice_kind": "system-nonsemantic-bucket",
+              "slice_weight": 12841,
+              "span": "agent:codex",
+              "width_basis": "event_weight_same_slice"
+            },
+            {
+              "event_weight": 12841,
+              "frame_index": 3,
+              "note": "event-count proxy; duration unavailable in folded artifact",
+              "slice_id": "9094425a7659d6b2",
+              "slice_kind": "system-nonsemantic-bucket",
+              "slice_weight": 12841,
+              "span": "call:tool/tool",
+              "width_basis": "event_weight_same_slice"
+            },
+            {
+              "event_weight": 12841,
+              "frame_index": 4,
+              "note": "event-count proxy; duration unavailable in folded artifact",
+              "slice_id": "9094425a7659d6b2",
+              "slice_kind": "system-nonsemantic-bucket",
+              "slice_weight": 12841,
+              "span": "effect:process",
+              "width_basis": "event_weight_same_slice"
+            },
+            {
+              "event_weight": 12841,
+              "frame_index": 5,
+              "note": "event-count proxy; duration unavailable in folded artifact",
+              "slice_id": "9094425a7659d6b2",
+              "slice_kind": "system-nonsemantic-bucket",
+              "slice_weight": 12841,
+              "span": "status:ok",
+              "width_basis": "event_weight_same_slice"
+            }
+          ],
+          "title": "event-count proxy excerpt"
+        }
+      ],
+      "views": [
+        "event-count proxy flamegraph excerpt"
+      ]
+    }
+  ]
+}
