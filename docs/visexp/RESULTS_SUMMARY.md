@@ -11,6 +11,7 @@ Additional R252 source: `python3 docs/visexp/r252_paper_scale_c6_label_package.p
 Additional R253 source: `python3 docs/visexp/r253_agentpprof_git_install_smoke.py`, `docs/visexp/out/agentpprof-git-install-r253/agentpprof-git-install-r253.json`, and `docs/visexp/out/agentpprof-git-install-r253/profiles/tasks.pb.gz`.
 Additional R254 source: `python3 docs/visexp/r254_agentpprof_pinned_rev_install_smoke.py`, `docs/visexp/out/agentpprof-pinned-rev-install-r254/agentpprof-pinned-rev-install-r254.json`, and `docs/visexp/out/agentpprof-pinned-rev-install-r254/profiles/tasks.pb.gz`.
 Additional R255 source: `python3 docs/visexp/r255_paper_scale_r195_bridge.py`, `docs/visexp/out/human-evidence-paper-bridge-r255/paper-scale-r195-bridge-r255.json`, and `docs/visexp/out/human-evidence-paper-bridge-r255/cases/paper-scale-blank-with-r249-assignment/r195.json`.
+Additional R256 source: `python3 docs/visexp/r256_agentpprof_crate_package_smoke.py`, `docs/visexp/out/agentpprof-crate-package-r256/agentpprof-crate-package-r256.json`, and `docs/visexp/out/agentpprof-crate-package-r256/package-files-r256.txt`.
 Completeness: partial
 
 ## Headline Result
@@ -392,6 +393,19 @@ only C7 pinned-revision install/readback evidence; it is not crates.io,
 external-machine adoption, real-history sanitization, C5 utility, or C6
 adequacy.
 
+R256 adds a crate-package dry-run for `agentpprof` 0.2.0. It runs
+`cargo package --list` and `cargo package` on clean provenance commit
+`a388c89ce718849ebfa5b8610709cbb50cf66b48`, verifies the generated crate
+archive is 35,438 bytes, and checks that the package file set is exactly the
+intended 8 files: `.cargo_vcs_info.json`, `Cargo.lock`, `Cargo.toml`,
+`Cargo.toml.orig`, `README.md`, `examples/README.md`, the committed public
+fixture, and `src/main.rs`. The package verify observes registry dependency
+resolution for `agent-session v0.3.3`; forbidden paths such as `target/`,
+`docs/visexp/out`, `.agentsight`, `.codex`, `.claude`, `collector`,
+`frontend`, and `bpf` are absent. This clears only the local crate-package
+dry-run gate; it is not a crates.io publish/readback, external-machine install,
+community adoption, C5 utility, or C6 adequacy result.
+
 R249 fixes a C5 logistics gap that R247 left open: the sendable bundle is only a
 five-participant pilot, while the scorer gates paper-scale C5 on at least 12
 participants. R249 derives a separate paper-scale package from the frozen R142
@@ -529,6 +543,7 @@ claim row, and fixes the paper table's C4 wording.
 | R248 | Installed `agentpprof` public-fixture smoke | `docs/visexp/out/agentpprof-install-r248/agentpprof-install-r248.json`, `docs/visexp/out/agentpprof-install-r248/profiles/tasks.pb.gz`, `agentpprof/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl` | done/install-smoke; installed CLI pprof readback, no private history, no C5/C6 outcome evidence |
 | R253 | GitHub-branch `agentpprof` install smoke | `docs/visexp/out/agentpprof-git-install-r253/agentpprof-git-install-r253.json`, `docs/visexp/out/agentpprof-git-install-r253/profiles/tasks.pb.gz`, `docs/visexp/out/agentpprof-git-install-r253/pprof-top-r253.txt` | done/git-install-smoke; `cargo install --git` path passes pprof readback, no private history, no C5/C6 outcome evidence |
 | R254 | Pinned-revision `agentpprof` install smoke | `docs/visexp/out/agentpprof-pinned-rev-install-r254/agentpprof-pinned-rev-install-r254.json`, `docs/visexp/out/agentpprof-pinned-rev-install-r254/profiles/tasks.pb.gz`, `docs/visexp/out/agentpprof-pinned-rev-install-r254/pprof-top-r254.txt` | done/pinned-rev install-smoke; `cargo install --git --rev` readback passes, install rev matches driver commit, no private history, no C5/C6 outcome evidence |
+| R256 | `agentpprof` crate package dry-run | `docs/visexp/out/agentpprof-crate-package-r256/agentpprof-crate-package-r256.json`, `docs/visexp/out/agentpprof-crate-package-r256/package-files-r256.txt`, `docs/visexp/out/agentpprof-crate-package-r256/cargo-package-r256.txt` | done/crate-package-smoke; `cargo package` verifies 8-file crate on clean provenance and registry `agent-session v0.3.3`, no publish or outcome evidence |
 | R248-review | Post-R247/R248 OSDI paper/artifact review | `docs/visexp/out/osdi-gate-review-r248.json`, `docs/visexp/out/osdi-gate-review-r248.md` | Level 3/not weak accept; paper hygiene and C7 install-smoke fixes applied, C5/C6 still missing |
 | R249 | Paper-scale C5 participant-packet launch package | `docs/visexp/out/user-task-paper-r249/manifest.json`, `docs/visexp/out/user-task-paper-r249/user-task-assignments-r249-paper.csv`, `docs/visexp/out/user-task-paper-r249/scored/user-task-results.json` | done/paper-scale launch-ready; 12 participant packets, 168 blank response rows, scorer accepts template as empty, no outcome evidence |
 | R255 | Paper-scale R195 C5 scoring bridge | `docs/visexp/out/human-evidence-paper-bridge-r255/paper-scale-r195-bridge-r255.json`, `docs/visexp/out/human-evidence-paper-bridge-r255/cases/paper-scale-blank-with-r249-assignment/r195.json`, `docs/visexp/out/human-evidence-paper-bridge-r255/cases/paper-scale-blank-with-r142-assignment/r195.json` | done/paper-scale bridge; R249 blank template scores through R195 with R249 assignment, old R142 assignment fails, no outcome evidence |
@@ -586,10 +601,12 @@ tasks/tools/tokens/files/network views over the committed public fixture,
 passes `go tool pprof -top` readback, and leaves no private-history or path
 leaks in the committed summary. R254 repeats the same public-fixture readback
 through `cargo install --git --rev` and records the install rev as the driver commit, so future replay no longer depends on a mutable branch name.
-This satisfies the planned GitHub-branch and pinned-revision install/readback
-smoke checks, but
-crates.io packaging, external-machine install, real report
-sanitization, llama.cpp setup, and developer feedback remain open.
+R256 verifies the crate package boundary with `cargo package --list` and
+`cargo package`: the 0.2.0 crate contains only 8 intended files, excludes
+private/history/output paths, and verifies with registry `agent-session v0.3.3`.
+These smokes satisfy local package, GitHub-branch, pinned-revision, and crate
+dry-run checks, but crates.io publish/readback, external-machine install, real
+report sanitization, llama.cpp setup, and developer feedback remain open.
 
 ## Current Full-Run Metrics
 
