@@ -6,6 +6,7 @@ Source/command: R170 full-history run plus `python3 docs/visexp/r189_tag_consoli
 Additional R245/R246 source: `python3 docs/visexp/r245_claim_wording_consistency.py`, `python3 docs/visexp/r246_post_review_hygiene.py`, `docs/visexp/out/osdi-gate-review-r246.json`, and `docs/visexp/out/semantic-ablation-r224-r170/r224-rerun-metadata.json`.
 Additional R247 source: `python3 docs/visexp/r247_human_evidence_distribution_bundle.py`, `docs/visexp/out/human-evidence-distribution-r247/human-evidence-distribution-r247.json`, and `docs/visexp/out/human-evidence-distribution-r247/agentflame-human-evidence-r247.tar.gz`.
 Additional R248 source: `python3 docs/visexp/r248_agentpprof_install_smoke.py`, `docs/visexp/out/agentpprof-install-r248/agentpprof-install-r248.json`, and `agentpprof/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl`.
+Additional R251 source: `python3 docs/visexp/r251_behavior_tag_alignment.py` and `docs/visexp/out/behavior-tag-alignment-r251/behavior-tag-alignment-r251.json`.
 Completeness: partial
 
 ## Headline Result
@@ -378,6 +379,16 @@ instructions use a private completed-response CSV, R248 redacts generated Cargo
 stderr paths and scans its manifest/Markdown reports, and install docs clarify
 that the checked artifact path is `cargo install --path agentpprof --locked`.
 
+R251 adds a behavior-grounding check for prompt tags over the R170 folded stacks.
+It expands the 183,714 system-effect observations, shuffles prompt tags within
+each session as a null, and asks whether real prompt tags retain behavior
+information beyond session membership. The actual prompt gain beyond session is
+8.469%, versus a session-preserving null p95 of 1.925% (`p=0.0099`), and prompt
+top-behavior purity is 20.196%, versus null p95 18.363% (`p=0.0099`). This
+supports that tags are not random with respect to observed behavior, while the
+low absolute purity and broad low-coherence tags keep C6 human adequacy
+unsupported.
+
 R228 records the read-only OSDI subagent review after R220. The review accepts
 R220 only as narrow C7 local clean-clone/pprof-readback evidence, keeps the
 project at not weak accept because C5/C6 remain missing, and flags two R220
@@ -467,6 +478,7 @@ claim row, and fixes the paper table's C4 wording.
 | R248-review | Post-R247/R248 OSDI paper/artifact review | `docs/visexp/out/osdi-gate-review-r248.json`, `docs/visexp/out/osdi-gate-review-r248.md` | Level 3/not weak accept; paper hygiene and C7 install-smoke fixes applied, C5/C6 still missing |
 | R249 | Paper-scale C5 participant-packet launch package | `docs/visexp/out/user-task-paper-r249/manifest.json`, `docs/visexp/out/user-task-paper-r249/user-task-assignments-r249-paper.csv`, `docs/visexp/out/user-task-paper-r249/scored/user-task-results.json` | done/paper-scale launch-ready; 12 participant packets, 168 blank response rows, scorer accepts template as empty, no outcome evidence |
 | R250-review | Post-R249 OSDI paper/artifact review and hygiene response | `docs/visexp/out/osdi-gate-review-r250.json`, `docs/visexp/out/osdi-gate-review-r250.md` | Level 3/not weak accept; wording/privacy/install-doc fixes applied, no C5/C6 outcome evidence |
+| R251 | Behavior-grounding check for prompt tags | `docs/visexp/out/behavior-tag-alignment-r251/behavior-tag-alignment-r251.json`, `docs/visexp/out/behavior-tag-alignment-r251/session-shuffle-null-r251.csv`, `docs/visexp/out/behavior-tag-alignment-r251/low-coherence-prompts-r251.csv` | done/behavior alignment supported; prompt gain beyond session 8.469% vs null p95 1.925%, but no human adequacy labels |
 | R171 | Read-only subagent OSDI gate review after R170/R124-join planning | `docs/visexp/out/osdi-gate-review-r171.md` | done/review |
 | R181 | Read-only subagent OSDI gate review after R180 local multi-model benchmark | `docs/visexp/out/osdi-gate-review-r181.md` | done/review; still not weak accept |
 | R060 | legacy Python prototype pipeline over sampled sessions | `docs/visexp/out/pipeline-report.json` | legacy, superseded for headline scale |
@@ -1005,7 +1017,10 @@ provenance.
   candidate-only regeneration-smoke, and an empty promotion-gate protocol for
   the display layer, but these
   remain protocol/mechanism artifacts, not adequacy
-  evidence.
+  evidence. R251 adds behavioral grounding evidence: prompt tags retain behavior
+  information beyond session membership under a session-preserving shuffle null,
+  but its 20.196% top-behavior purity and low-coherence queue show why human
+  adequacy labels are still required.
 - R131 is a mechanism ablation, not a usability result. It supports C3 and
   figure design, but not the C5 developer-utility claim.
 - R170 refreshes the current full-history path without overwriting `latest`:
