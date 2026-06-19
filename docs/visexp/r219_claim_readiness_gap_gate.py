@@ -35,6 +35,7 @@ SOURCE_PATHS = {
     "r233_prompt_row_lineage": "docs/visexp/out/prompt-row-lineage-r233/prompt-row-lineage-r233.json",
     "r234_broader_agent_network": "docs/visexp/out/broader-agent-network-lineage-r234/broader-agent-network-lineage-r234.json",
     "r235_raw_claude_network": "docs/visexp/out/raw-claude-network-lineage-r235/raw-claude-network-lineage-r235.json",
+    "r236_multiprocess_claude_capture": "docs/visexp/out/multiprocess-claude-network-capture-r236/multiprocess-claude-network-capture-r236.json",
     "r184_weak_accept": "docs/visexp/out/weak-accept-gate-r184.json",
     "r195_human_pipeline": "docs/visexp/out/human-evidence-pipeline-r195.json",
     "r207_launch_readiness": "docs/visexp/out/human-evidence-launch-r207/human-evidence-launch-r207.json",
@@ -208,6 +209,7 @@ def artifact_statuses(artifacts: dict[str, dict[str, Any]]) -> dict[str, Any]:
     r233 = artifacts["r233_prompt_row_lineage"]
     r234 = artifacts["r234_broader_agent_network"]
     r235 = artifacts["r235_raw_claude_network"]
+    r236 = artifacts["r236_multiprocess_claude_capture"]
     r184 = artifacts["r184_weak_accept"]
     r195 = artifacts["r195_human_pipeline"]
     r160 = artifacts["r160_artifact_usability"]
@@ -249,6 +251,8 @@ def artifact_statuses(artifacts: dict[str, dict[str, Any]]) -> dict[str, Any]:
     r234_network = r234.get("network_aggregate") or {}
     r235_aggregate = r235.get("aggregate") or {}
     r235_gate = r235.get("claim_gate") or {}
+    r236_aggregate = r236.get("aggregate") or {}
+    r236_gate = r236.get("claim_gate") or {}
 
     r170_summary = r170.get("summary") or {}
     r180_aggregate = r180.get("aggregate") or {}
@@ -542,6 +546,54 @@ def artifact_statuses(artifacts: dict[str, dict[str, Any]]) -> dict[str, Any]:
         "r235_agent_families": required_field(r235_aggregate, "agents", "R235.aggregate"),
         "r235_probes": required_field(r235_aggregate, "probes", "R235.aggregate"),
         "r235_probe_by_agent": required_field(r235_aggregate, "probe_by_agent", "R235.aggregate"),
+        "r236_status": r236.get("status"),
+        "r236_broad_raw_claude_network_supported": bool(
+            r236_gate.get("r236_broad_raw_claude_network_supported")
+        ),
+        "r236_capture_boundary_partially_localized": bool(
+            r236_gate.get("r236_capture_boundary_partially_localized")
+        ),
+        "r236_direct_target_rows_observed_gate": bool(r236_gate.get("direct_target_rows_observed_gate")),
+        "r236_agent_target_rows_observed_gate": bool(r236_gate.get("agent_target_rows_observed_gate")),
+        "r236_codex_delayed_multiprocess_gate": bool(r236_gate.get("codex_delayed_multiprocess_gate")),
+        "r236_claude_delayed_http_gate": bool(r236_gate.get("claude_delayed_http_gate")),
+        "r236_negative_control_gate": bool(r236_gate.get("negative_control_gate")),
+        "r236_lineage_orphan_gate": bool(r236_gate.get("lineage_orphan_gate")),
+        "r236_agent_probe_ok_missing_capture_gate": bool(
+            r236_gate.get("agent_probe_ok_missing_capture_gate")
+        ),
+        "r236_tasks": required_int(r236_aggregate, "tasks", "R236.aggregate"),
+        "r236_ok_tasks": required_int(r236_aggregate, "ok_tasks", "R236.aggregate"),
+        "r236_target_rows_observed_tasks": required_int(
+            r236_aggregate, "target_rows_observed_tasks", "R236.aggregate"
+        ),
+        "r236_direct_target_rows_observed_tasks": required_int(
+            r236_aggregate, "direct_target_rows_observed_tasks", "R236.aggregate"
+        ),
+        "r236_agent_target_rows_observed_tasks": required_int(
+            r236_aggregate, "agent_target_rows_observed_tasks", "R236.aggregate"
+        ),
+        "r236_lineage_orphaned_tasks": required_int(r236_aggregate, "lineage_orphaned_tasks", "R236.aggregate"),
+        "r236_agent_missing_target_rows_tasks": required_int(
+            r236_aggregate, "agent_missing_target_rows_tasks", "R236.aggregate"
+        ),
+        "r236_required_action_tasks_ok": required_int(
+            r236_aggregate, "required_action_tasks_ok", "R236.aggregate"
+        ),
+        "r236_target_network_effect_events": required_int(
+            r236_aggregate, "target_network_effect_events", "R236.aggregate"
+        ),
+        "r236_joined_target_network_effect_events": required_int(
+            r236_aggregate, "joined_target_network_effect_events", "R236.aggregate"
+        ),
+        "r236_negative_observed": required_int(
+            r236_aggregate, "negative_effect_events_observed", "R236.aggregate"
+        ),
+        "r236_negative_joined": required_int(
+            r236_aggregate, "negative_joined_effect_events", "R236.aggregate"
+        ),
+        "r236_precision_pct": required_field(r236_aggregate, "precision_pct", "R236.aggregate"),
+        "r236_recall_pct": required_field(r236_aggregate, "recall_pct", "R236.aggregate"),
         "r184_status": r184.get("status"),
         "r195_status": r195.get("status"),
         "r160_status": r160.get("status"),
@@ -677,6 +729,21 @@ def claim_rows(status: dict[str, Any]) -> list[dict[str, str]]:
                 f"{status['r235_negative_joined']}/{status['r235_negative_observed']}, raw/Claude gates "
                 f"{str(status['r235_raw_socket_gate']).lower()}/"
                 f"{str(status['r235_claude_launched_network_gate']).lower()}; "
+                f"R236 status {status['r236_status']}: partial-localized "
+                f"{str(status['r236_capture_boundary_partially_localized']).lower()}, "
+                f"{status['r236_ok_tasks']}/{status['r236_tasks']} task(s) passed, "
+                f"target-row observed tasks {status['r236_target_rows_observed_tasks']}/"
+                f"{status['r236_tasks']} (direct/agent "
+                f"{status['r236_direct_target_rows_observed_tasks']}/"
+                f"{status['r236_agent_target_rows_observed_tasks']}), target network "
+                f"{status['r236_joined_target_network_effect_events']}/"
+                f"{status['r236_target_network_effect_events']} joined, negative joins "
+                f"{status['r236_negative_joined']}/{status['r236_negative_observed']}, "
+                f"codex/Claude delayed gates "
+                f"{str(status['r236_codex_delayed_multiprocess_gate']).lower()}/"
+                f"{str(status['r236_claude_delayed_http_gate']).lower()}, "
+                f"broad raw/Claude support "
+                f"{str(status['r236_broad_raw_claude_network_supported']).lower()}; "
                 f"Generated-history audit: "
                 f"R230 status {status['r230_status']}: full-history projection "
                 f"{str(status['r230_system_effect_history_projection_supported']).lower()}, "
@@ -710,12 +777,12 @@ def claim_rows(status: dict[str, Any]) -> list[dict[str, str]]:
                 f"{str(status['r233_strict_prompt_row_identity_supported']).lower()}"
             ),
             "blocking_gap": (
-                "strict prompt-row identity for same-tag duplicate rows, R235 raw-socket/Claude-launched target-network capture, arbitrary repositories, and more agent families remain partial"
+                "strict prompt-row identity for same-tag duplicate rows, R236 Claude-launched target-network capture and direct orphan rows, arbitrary repositories, and more agent families remain partial"
                 if c4_ok
                 else "R114/R191/R229 lineage gates did not all pass; rerun controlled lineage before broader replication"
             ),
             "next_gate": (
-                "debug R236 process-network capture for multiprocess and Claude-launched probes; keep duplicate prompt-row identity non-keyed"
+                "run R237 with a non-synthesizable runtime witness and collector lineage invariant checks for Claude-launched target-network capture"
                 if c4_ok
                 else "rerun R114, R191, and R229, requiring target rows > 0, all joined, and negative joins = 0"
             ),
@@ -813,6 +880,16 @@ def rq_rows(status: dict[str, Any]) -> list[dict[str, str]]:
                 f"{status['r235_negative_joined']}/{status['r235_negative_observed']}, raw/Claude gates "
                 f"{str(status['r235_raw_socket_gate']).lower()}/"
                 f"{str(status['r235_claude_launched_network_gate']).lower()}; "
+                f"R236 partial-localized {str(status['r236_capture_boundary_partially_localized']).lower()}: "
+                f"{status['r236_ok_tasks']}/{status['r236_tasks']} tasks passed, "
+                f"target-row observed tasks {status['r236_target_rows_observed_tasks']}/"
+                f"{status['r236_tasks']}, target network "
+                f"{status['r236_joined_target_network_effect_events']}/"
+                f"{status['r236_target_network_effect_events']} joined, negative joins "
+                f"{status['r236_negative_joined']}/{status['r236_negative_observed']}, "
+                f"codex/Claude delayed gates "
+                f"{str(status['r236_codex_delayed_multiprocess_gate']).lower()}/"
+                f"{str(status['r236_claude_delayed_http_gate']).lower()}; "
                 f"Generated-history audit: "
                 f"R230 full-history projection weight {status['r230_folded_total_weight']} "
                 f"with duplicate prompt-index rows {status['r230_duplicate_prompt_index_rows']} "
@@ -827,12 +904,12 @@ def rq_rows(status: dict[str, Any]) -> list[dict[str, str]]:
                 f"strict row identity {str(status['r233_strict_prompt_row_identity_supported']).lower()}"
             ),
             "falsifier_remaining": (
-                "strict same-tag prompt-row identity, R235 multiprocess/Claude-launched target-network capture, arbitrary repositories, and more agent families remain open"
+                "strict same-tag prompt-row identity, R236 Claude-launched target-network capture and direct orphan rows, arbitrary repositories, and more agent families remain open"
                 if c4_ok
                 else "controlled exact-lineage run failed before broader generalization"
             ),
             "next_gate": (
-                "debug R236 process-network capture for multiprocess and Claude-launched probes; keep duplicate prompt-row identity non-keyed"
+                "run R237 with a non-synthesizable runtime witness and collector lineage invariant checks"
                 if c4_ok
                 else "rerun R114/R191/R229 controlled exact-lineage gates"
             ),
@@ -903,13 +980,13 @@ def next_experiment_rows() -> list[dict[str, str]]:
         },
         {
             "priority": "P2",
-            "run_id": "R236-multiprocess-claude-network-capture",
+            "run_id": "R237-agent-execution-witness-network-capture",
             "claim": "C4/RQ3",
             "block": "B3",
-            "purpose": "Diagnose and fix the R235 boundary where multiprocess TCP and Claude-launched HTTP/TCP probes execute but produce 0 target network rows.",
-            "command_or_input": "replay R235 probes with process-network capture variants, process-tree snapshots, and targeted collector tests",
-            "oracle": "multiprocess and Claude-launched target network rows are observed and joined, or the boundary is localized to a named collector limitation",
-            "result_path": "docs/visexp/out/multiprocess-claude-network-capture-r236/",
+            "purpose": "Resolve the R236 boundary: Claude-launched HTTP still exports 0 target rows despite probe_result_ok, and direct controls still have orphan rows.",
+            "command_or_input": "run agent-launched probes with a non-synthesizable runtime witness, process-tree snapshots, and collector invariant checks for tracked-pid/session lineage",
+            "oracle": "runtime witness proves execution; target rows are observed and joined, or failure is localized to a named collector invariant with a minimal reproducer",
+            "result_path": "docs/visexp/out/agent-execution-witness-network-capture-r237/",
         },
         {
             "priority": "P2",
@@ -938,7 +1015,7 @@ def overall_status(claims: list[dict[str, str]], summary: dict[str, Any]) -> dic
         blockers.append("C6/RQ5 has no supported independent human adequacy labels")
     open_scope_gaps = [
         "C4 strict same-tag prompt-row identity remains intentionally non-keyed",
-        "C4 R235 multiprocess/Claude-launched target-network capture remains partial",
+        "C4 R236 Claude-launched target-network capture and direct orphan rows remain partial",
         "C4 arbitrary-repository and more-agent-family lineage remain open",
         "C7 external-machine/community evidence remains open",
     ]
@@ -996,7 +1073,9 @@ def claim_gate(overall: dict[str, Any], summary: dict[str, Any]) -> dict[str, bo
         "requires_c4_strict_prompt_row_identity": not summary["r233_strict_prompt_row_identity_supported"],
         "requires_c4_external_crossrepo_lineage": not r232_ok,
         "requires_c4_r234_controlled_expansion": not r234_ok,
-        "requires_c4_raw_or_claude_network_lineage": not summary["r235_supported"],
+        "requires_c4_raw_or_claude_network_lineage": not summary[
+            "r236_broad_raw_claude_network_supported"
+        ],
         "requires_c5_human_participants": "C5/RQ4 has no supported real participant outcome"
         in (overall.get("blockers") or []),
         "requires_c6_human_labels": "C6/RQ5 has no supported independent human adequacy labels"
@@ -1085,6 +1164,20 @@ def write_markdown(path: Path, result: dict[str, Any]) -> None:
             f"{summary['r235_negative_joined']}/{summary['r235_negative_observed']}, "
             f"raw/Claude gates {str(summary['r235_raw_socket_gate']).lower()}/"
             f"{str(summary['r235_claude_launched_network_gate']).lower()}."
+        ),
+        (
+            f"- R236 multiprocess/Claude capture boundary: {summary['r236_status']}, "
+            f"partial-localized {str(summary['r236_capture_boundary_partially_localized']).lower()}, "
+            f"{summary['r236_ok_tasks']}/{summary['r236_tasks']} tasks passed, target-row observed "
+            f"{summary['r236_target_rows_observed_tasks']}/{summary['r236_tasks']} "
+            f"(direct/agent {summary['r236_direct_target_rows_observed_tasks']}/"
+            f"{summary['r236_agent_target_rows_observed_tasks']}), target network "
+            f"{summary['r236_joined_target_network_effect_events']}/"
+            f"{summary['r236_target_network_effect_events']} joined, negative joins "
+            f"{summary['r236_negative_joined']}/{summary['r236_negative_observed']}, "
+            f"codex/Claude delayed gates "
+            f"{str(summary['r236_codex_delayed_multiprocess_gate']).lower()}/"
+            f"{str(summary['r236_claude_delayed_http_gate']).lower()}."
         ),
         (
             f"- R233 prompt-row normalization: legacy drift "

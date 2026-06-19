@@ -18,6 +18,7 @@ It does not read raw agent traces, does not call an LLM, and does not count synt
 - R232 external cross-repo lineage: 5 controlled tasks (4 normal, 1 network), 353 in-scope effects, target network 4/4 joined, negative joins 0/480, precision/recall 100.0%/100.0%.
 - R234 broader agent/network lineage: 3 controlled tasks (1 Claude-family agent, 2 Codex HTTP-network), 269 in-scope effects, target network 8/8 joined, negative joins 0/331, precision/recall 100.0%/100.0%.
 - R235 raw/Claude target-network lineage: partial, 1/4 tasks passed, target network 3/3 joined, negative joins 0/305, raw/Claude gates false/false.
+- R236 multiprocess/Claude capture boundary: partial, partial-localized true, 1/4 tasks passed, target-row observed 3/4 (direct/agent 2/1), target network 5/7 joined, negative joins 0/11, codex/Claude delayed gates true/false.
 - R233 prompt-row normalization: legacy drift 346 tool weight/93 LLM events -> normalized drift 0 tool weight/0 LLM events; duplicate rows 12 non-keyed, strict row identity false.
 - R217 production display buckets/support: 1748/482398.
 - R218 preview accepted/rejected rows: 2/4.
@@ -29,14 +30,14 @@ It does not read raw agent traces, does not call an LLM, and does not count synt
 - Weak accept supported: `False`.
 - Human evidence supported: `False`.
 - Blockers: ['C5/RQ4 has no supported real participant outcome', 'C6/RQ5 has no supported independent human adequacy labels'].
-- Open scope gaps: ['C4 strict same-tag prompt-row identity remains intentionally non-keyed', 'C4 R235 multiprocess/Claude-launched target-network capture remains partial', 'C4 arbitrary-repository and more-agent-family lineage remain open', 'C7 external-machine/community evidence remains open'].
+- Open scope gaps: ['C4 strict same-tag prompt-row identity remains intentionally non-keyed', 'C4 R236 Claude-launched target-network capture and direct orphan rows remain partial', 'C4 arbitrary-repository and more-agent-family lineage remain open', 'C7 external-machine/community evidence remains open'].
 
 ## Claim Rows
 
 - C1 semantic folded stacks over real histories: `supported`. Next: rerun only after parser/tagger changes
 - C2 local one-word tagging feasibility: `supported_for_syntax_latency`. Next: collect R124 labels before claiming adequacy
 - C3 semantic partitioning and display mechanics: `supported_as_mechanism`. Next: C5 participant study and R190/R203 human review labels
-- C4 exact semantic-effect lineage: `supported_for_controlled_live_lineage_suites`. Next: debug R236 process-network capture for multiprocess and Claude-launched probes; keep duplicate prompt-row identity non-keyed
+- C4 exact semantic-effect lineage: `supported_for_controlled_live_lineage_suites`. Next: run R237 with a non-synthesizable runtime witness and collector lineage invariant checks for Claude-launched target-network capture
 - C5 developer utility: `unsupported`. Next: collect and score R142 pilot responses through R195
 - C6 tag adequacy and merge/promotion quality: `partial_syntax_stability_only`. Next: collect R124/R190/R203 paired labels and score through R195
 - C7 community/open-source usefulness: `partial`. Next: external-machine fresh clone plus real-report sanitization and developer-feedback audit
@@ -45,7 +46,7 @@ It does not read raw agent traces, does not call an LLM, and does not count synt
 
 - RQ1 feasibility/cost: `supported`. Next: rerun after implementation changes only
 - RQ2 semantic partitioning: `supported_as_mechanism`. Next: R142 C5 outcomes
-- RQ3 exact lineage: `supported_for_controlled_live_lineage_suites`. Next: debug R236 process-network capture for multiprocess and Claude-launched probes; keep duplicate prompt-row identity non-keyed
+- RQ3 exact lineage: `supported_for_controlled_live_lineage_suites`. Next: run R237 with a non-synthesizable runtime witness and collector lineage invariant checks
 - RQ4 developer utility: `unsupported`. Next: collect real R142 responses
 - RQ5 tag adequacy: `partial`. Next: collect paired R124/R190/R203 labels
 - RQ6 artifact/community: `partial`. Next: external-machine smoke and public real-report audit
@@ -55,7 +56,7 @@ It does not read raw agent traces, does not call an LLM, and does not count synt
 - P0 R142-pilot-return: Score real developer responses for the frozen semantic-vs-baseline forensic tasks.
 - P0 R124-labels-return: Score independent human adequacy labels for one-word session/prompt/LLM-call tags.
 - P1 R190-R203-labels-return: Score merge-risk and regenerated-label promotion quality before any display-map promotion claim.
-- P2 R236-multiprocess-claude-network-capture: Diagnose and fix the R235 boundary where multiprocess TCP and Claude-launched HTTP/TCP probes execute but produce 0 target network rows.
+- P2 R237-agent-execution-witness-network-capture: Resolve the R236 boundary: Claude-launched HTTP still exports 0 target rows despite probe_result_ok, and direct controls still have orphan rows.
 - P2 R227-external-community: Run agentpprof on an external machine or container with a real sanitized report audit and developer-feedback checklist.
 
 ## Disallowed Evidence
