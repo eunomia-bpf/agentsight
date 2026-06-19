@@ -14,8 +14,8 @@ evidence.
 - installed help passed: `True`
 - fixture: `agentpprof/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl`
 - fixture sha256: `391675afb8db6fda7516a4a4177b40f081e47528e0e36d8b19a4a0535abc1ad5`
-- source commit: `0381ffb72c2123f8f6417da2b53127c3243dbce9`
-- source dirty before generation: `True`
+- source commit: `b627c0f0b5fe6b27839ee0df8f1bd08cb47c1d71`
+- source dirty before generation: `False`
 
 ## Views
 
