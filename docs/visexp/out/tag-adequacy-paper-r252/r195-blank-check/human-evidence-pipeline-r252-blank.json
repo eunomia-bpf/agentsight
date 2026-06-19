@@ -1,0 +1,437 @@
+{
+  "artifacts": {
+    "scored_dir": "docs/visexp/out/tag-adequacy-paper-r252/r195-blank-check/scored",
+    "summary_json": "docs/visexp/out/tag-adequacy-paper-r252/r195-blank-check/human-evidence-pipeline-r252-blank.json",
+    "summary_md": "docs/visexp/out/tag-adequacy-paper-r252/r195-blank-check/human-evidence-pipeline-r252-blank.md"
+  },
+  "claim_boundary": "R195 is an ingestion/scoring pipeline. It does not create human labels or participant responses. Missing inputs keep C5/C6 unsupported; ready inputs are scored into an R195-specific directory without overwriting canonical gates. R203 promotion labels can support a promotion-review gate only; they do not update the canonical map or substitute for C5/C6 evidence.",
+  "claim_gate": {
+    "c5_supported": false,
+    "c6_adequacy_supported": false,
+    "canonical_map_updated": false,
+    "canonicalization_quality_supported": false,
+    "long_tail_promotion_review_supported": false,
+    "requires_real_human_data": true
+  },
+  "generated_at": "2026-06-19T19:03:29+00:00",
+  "input_contract": {
+    "default_inbox": "docs/visexp/out/human-evidence-r195/inbox",
+    "human_return_content_status": "present_but_blank",
+    "input_mode": "explicit_paths",
+    "optional_inputs": {
+      "r124_adjudication": {
+        "exists": false,
+        "optional": true,
+        "path": "docs/visexp/out/human-evidence-r195/inbox/r124-adjudication.csv",
+        "row_count": null,
+        "sha256": null
+      },
+      "r190_adjudication": {
+        "exists": false,
+        "optional": true,
+        "path": "docs/visexp/out/human-evidence-r195/inbox/r190-adjudication.csv",
+        "row_count": null,
+        "sha256": null
+      },
+      "r203_adjudication": {
+        "exists": false,
+        "optional": true,
+        "path": "docs/visexp/out/human-evidence-r195/inbox/r203-adjudication.csv",
+        "row_count": null,
+        "sha256": null
+      }
+    },
+    "readiness": {
+      "any_present": true,
+      "any_ready": true,
+      "overall_status": "ready_to_score",
+      "r124": {
+        "missing": [],
+        "partial": false,
+        "present": [
+          "r124_labeler_1",
+          "r124_labeler_2"
+        ],
+        "ready": true,
+        "required": [
+          "r124_labeler_1",
+          "r124_labeler_2"
+        ]
+      },
+      "r142": {
+        "missing": [
+          "r142_responses"
+        ],
+        "partial": false,
+        "present": [],
+        "ready": false,
+        "required": [
+          "r142_responses"
+        ]
+      },
+      "r190": {
+        "missing": [],
+        "partial": false,
+        "present": [
+          "r190_labeler_1",
+          "r190_labeler_2"
+        ],
+        "ready": true,
+        "required": [
+          "r190_labeler_1",
+          "r190_labeler_2"
+        ]
+      },
+      "r203": {
+        "missing": [],
+        "partial": false,
+        "present": [
+          "r203_labeler_1",
+          "r203_labeler_2"
+        ],
+        "ready": true,
+        "required": [
+          "r203_labeler_1",
+          "r203_labeler_2"
+        ]
+      }
+    },
+    "required_inputs": {
+      "r124_labeler_1": {
+        "blank_or_missing": true,
+        "exists": true,
+        "filled_value_count": 0,
+        "optional": false,
+        "path": "docs/visexp/out/tag-adequacy-paper-r252/blank-r195-inbox-template/r124-labeler-1.csv",
+        "row_count": 300,
+        "sha256": "967a7d342b0a4deddb5792b15e7c74ca8544dce7e1f1c697ef60b99631cfa234",
+        "value_fields_checked": [
+          "label"
+        ]
+      },
+      "r124_labeler_2": {
+        "blank_or_missing": true,
+        "exists": true,
+        "filled_value_count": 0,
+        "optional": false,
+        "path": "docs/visexp/out/tag-adequacy-paper-r252/blank-r195-inbox-template/r124-labeler-2.csv",
+        "row_count": 300,
+        "sha256": "967a7d342b0a4deddb5792b15e7c74ca8544dce7e1f1c697ef60b99631cfa234",
+        "value_fields_checked": [
+          "label"
+        ]
+      },
+      "r142_responses": {
+        "blank_or_missing": true,
+        "exists": false,
+        "filled_value_count": null,
+        "optional": false,
+        "path": "docs/visexp/out/tag-adequacy-paper-r252/r195-blank-check/missing-r142-responses.csv",
+        "row_count": null,
+        "sha256": null,
+        "value_fields_checked": [
+          "task_time_seconds",
+          "confidence",
+          "notes"
+        ]
+      },
+      "r190_labeler_1": {
+        "blank_or_missing": true,
+        "exists": true,
+        "filled_value_count": 0,
+        "optional": false,
+        "path": "docs/visexp/out/tag-adequacy-paper-r252/blank-r195-inbox-template/r190-labeler-1.csv",
+        "row_count": 160,
+        "sha256": "5c77803d46f36afc659f800fcaf74979c51bf3391481ee8778bc0b4808446b6c",
+        "value_fields_checked": [
+          "audit_label"
+        ]
+      },
+      "r190_labeler_2": {
+        "blank_or_missing": true,
+        "exists": true,
+        "filled_value_count": 0,
+        "optional": false,
+        "path": "docs/visexp/out/tag-adequacy-paper-r252/blank-r195-inbox-template/r190-labeler-2.csv",
+        "row_count": 160,
+        "sha256": "5c77803d46f36afc659f800fcaf74979c51bf3391481ee8778bc0b4808446b6c",
+        "value_fields_checked": [
+          "audit_label"
+        ]
+      },
+      "r203_labeler_1": {
+        "blank_or_missing": true,
+        "exists": true,
+        "filled_value_count": 0,
+        "optional": false,
+        "path": "docs/visexp/out/tag-adequacy-paper-r252/blank-r195-inbox-template/r203-labeler-1.csv",
+        "row_count": 41,
+        "sha256": "4a28ef9e77b74afc0c84e5a77f9a76475b648de36bd6c101d003592990de3d99",
+        "value_fields_checked": [
+          "promotion_label"
+        ]
+      },
+      "r203_labeler_2": {
+        "blank_or_missing": true,
+        "exists": true,
+        "filled_value_count": 0,
+        "optional": false,
+        "path": "docs/visexp/out/tag-adequacy-paper-r252/blank-r195-inbox-template/r203-labeler-2.csv",
+        "row_count": 41,
+        "sha256": "4a28ef9e77b74afc0c84e5a77f9a76475b648de36bd6c101d003592990de3d99",
+        "value_fields_checked": [
+          "promotion_label"
+        ]
+      }
+    }
+  },
+  "operations": {
+    "r124": {
+      "commands": [
+        {
+          "cmd": [
+            "python3",
+            "docs/visexp/r124_join_blinded_labels.py",
+            "--packet",
+            "docs/visexp/out/tag-adequacy-label-packet-r122.csv",
+            "--blinded",
+            "docs/visexp/out/tag-adequacy-blinded-label-sheet-r124.csv",
+            "--labeler-1",
+            "docs/visexp/out/tag-adequacy-paper-r252/blank-r195-inbox-template/r124-labeler-1.csv",
+            "--labeler-2",
+            "docs/visexp/out/tag-adequacy-paper-r252/blank-r195-inbox-template/r124-labeler-2.csv",
+            "--adjudication-template",
+            "docs/visexp/out/tag-adequacy-paper-r252/r195-blank-check/scored/r124/tag-adequacy-adjudication-template-r195.csv",
+            "--joined-labels",
+            "docs/visexp/out/tag-adequacy-paper-r252/r195-blank-check/scored/r124/tag-adequacy-label-packet-r195-joined.csv",
+            "--out-json",
+            "docs/visexp/out/tag-adequacy-paper-r252/r195-blank-check/scored/r124/tag-adequacy-label-join-r195.json",
+            "--out-md",
+            "docs/visexp/out/tag-adequacy-paper-r252/r195-blank-check/scored/r124/tag-adequacy-label-join-r195.md"
+          ],
+          "cwd": ".",
+          "ran": true,
+          "returncode": 0,
+          "stderr_tail": "",
+          "stdout_tail": "{\n  \"status\": \"human_labels_incomplete\",\n  \"rows\": 300,\n  \"disagreements\": 0\n}\n"
+        }
+      ],
+      "join_status": "human_labels_incomplete",
+      "join_summary": {
+        "complete_adjudication": true,
+        "complete_two_labeler_sheets": false,
+        "missing_pair_count": 300,
+        "row_count": 300
+      },
+      "outputs": {
+        "join_json": "docs/visexp/out/tag-adequacy-paper-r252/r195-blank-check/scored/r124/tag-adequacy-label-join-r195.json",
+        "joined_csv": "docs/visexp/out/tag-adequacy-paper-r252/r195-blank-check/scored/r124/tag-adequacy-label-packet-r195-joined.csv",
+        "score_json": "docs/visexp/out/tag-adequacy-paper-r252/r195-blank-check/scored/r124/tag-adequacy-results-r195.json"
+      },
+      "status": "joined_not_ready_for_scoring"
+    },
+    "r190": {
+      "claim_gate": {
+        "agreement_ok": false,
+        "canonicalization_quality_supported": false,
+        "complete_final_labels": false,
+        "complete_paired_labels": false,
+        "complete_strong_final_labels": false,
+        "overmerge_ok": false,
+        "requires_real_human_labels": true,
+        "success_criteria": {
+          "cohen_kappa": ">=0.6",
+          "final_labels": "all audit rows",
+          "overmerge_rate_pct": "<=10 among non-unclear overmerge_proxy labels",
+          "paired_labels": "all rows must have labeler_1 and labeler_2 before adjudication",
+          "strong_final_labels": "all rows must be consensus or adjudicated, not single-label",
+          "unclear_share_pct": "<=10",
+          "undermerge_rate_pct": "<=20 among non-unclear undermerge_proxy labels"
+        },
+        "unclear_ok": false,
+        "undermerge_ok": false
+      },
+      "commands": [
+        {
+          "cmd": [
+            "python3",
+            "docs/visexp/r190_score_merge_audit.py",
+            "--packet",
+            "docs/visexp/out/tag-consolidation-audit-r190/merge-risk-audit-packet-r190.csv",
+            "--labeler-1",
+            "docs/visexp/out/tag-adequacy-paper-r252/blank-r195-inbox-template/r190-labeler-1.csv",
+            "--labeler-2",
+            "docs/visexp/out/tag-adequacy-paper-r252/blank-r195-inbox-template/r190-labeler-2.csv",
+            "--adjudication-template",
+            "docs/visexp/out/tag-adequacy-paper-r252/r195-blank-check/scored/r190/merge-risk-adjudication-template-r195.csv",
+            "--joined-labels",
+            "docs/visexp/out/tag-adequacy-paper-r252/r195-blank-check/scored/r190/merge-risk-audit-joined-r195.csv",
+            "--out-json",
+            "docs/visexp/out/tag-adequacy-paper-r252/r195-blank-check/scored/r190/merge-risk-audit-results-r195.json",
+            "--out-csv",
+            "docs/visexp/out/tag-adequacy-paper-r252/r195-blank-check/scored/r190/merge-risk-audit-results-r195.csv",
+            "--out-md",
+            "docs/visexp/out/tag-adequacy-paper-r252/r195-blank-check/scored/r190/merge-risk-audit-results-r195.md"
+          ],
+          "cwd": ".",
+          "ran": true,
+          "returncode": 0,
+          "stderr_tail": "",
+          "stdout_tail": "{\n  \"status\": \"human_labels_empty\",\n  \"rows\": 160,\n  \"final_labels\": 0\n}\n"
+        }
+      ],
+      "outputs": {
+        "joined_csv": "docs/visexp/out/tag-adequacy-paper-r252/r195-blank-check/scored/r190/merge-risk-audit-joined-r195.csv",
+        "result_json": "docs/visexp/out/tag-adequacy-paper-r252/r195-blank-check/scored/r190/merge-risk-audit-results-r195.json"
+      },
+      "status": "human_labels_empty",
+      "summary": {
+        "both_labeler_count": 0,
+        "by_audit_type": {
+          "overmerge_proxy": {
+            "counts": {
+              "acceptable": 0,
+              "overmerge": 0,
+              "unclear": 0,
+              "undermerge": 0
+            },
+            "final_label_count": 0
+          },
+          "undermerge_proxy": {
+            "counts": {
+              "acceptable": 0,
+              "overmerge": 0,
+              "unclear": 0,
+              "undermerge": 0
+            },
+            "final_label_count": 0
+          }
+        },
+        "cohen_kappa": null,
+        "final_label_count": 0,
+        "final_label_counts": {
+          "acceptable": 0,
+          "overmerge": 0,
+          "unclear": 0,
+          "undermerge": 0
+        },
+        "final_source_counts": {
+          "empty": 160
+        },
+        "inter_labeler_agreement_pct": null,
+        "label_state_counts": {
+          "unlabeled": 160
+        },
+        "overmerge_audited_rows": 0,
+        "overmerge_error_rows": 0,
+        "overmerge_proxy_rows": 80,
+        "overmerge_rate_pct": null,
+        "packet_row_count": 160,
+        "paired_label_coverage_pct": 0.0,
+        "single_label_count": 0,
+        "strong_final_label_count": 0,
+        "unadjudicated_disagreement_count": 0,
+        "unclear_share_pct": null,
+        "undermerge_audited_rows": 0,
+        "undermerge_error_rows": 0,
+        "undermerge_proxy_rows": 80,
+        "undermerge_rate_pct": null,
+        "unlabeled_count": 160
+      }
+    },
+    "r203": {
+      "claim_gate": {
+        "agreement_ok": false,
+        "canonical_map_update_allowed_by_this_script": false,
+        "canonical_map_updated": false,
+        "canonicalization_quality_supported": false,
+        "community_adoption_supported": false,
+        "complete_final_labels": false,
+        "complete_paired_labels": false,
+        "complete_strong_final_labels": false,
+        "developer_utility_supported": false,
+        "long_tail_promotion_review_supported": false,
+        "promotion_decisions_ready": false,
+        "requires_real_human_labels": true,
+        "semantic_adequacy_supported": false,
+        "success_criteria": {
+          "canonical_map_update": "not performed by R203; a later reviewed display-map diff is required",
+          "cohen_kappa": ">=0.6",
+          "final_labels": "all promotion rows",
+          "paired_labels": "all rows must have labeler_1 and labeler_2 before adjudication",
+          "strong_final_labels": "all rows must be consensus or adjudicated, not single-label",
+          "unclear_share_pct": "<=10"
+        },
+        "unclear_ok": false
+      },
+      "commands": [
+        {
+          "cmd": [
+            "python3",
+            "docs/visexp/r203_long_tail_promotion_gate.py",
+            "--out-dir",
+            "docs/visexp/out/tag-adequacy-paper-r252/r195-blank-check/scored/r203",
+            "--labeler-1",
+            "docs/visexp/out/tag-adequacy-paper-r252/blank-r195-inbox-template/r203-labeler-1.csv",
+            "--labeler-2",
+            "docs/visexp/out/tag-adequacy-paper-r252/blank-r195-inbox-template/r203-labeler-2.csv"
+          ],
+          "cwd": ".",
+          "ran": true,
+          "returncode": 0,
+          "stderr_tail": "",
+          "stdout_tail": "{\n  \"status\": \"human_labels_empty\",\n  \"rows\": 41,\n  \"final_labels\": 0,\n  \"promotion_review_supported\": false\n}\n"
+        }
+      ],
+      "outputs": {
+        "joined_csv": "docs/visexp/out/tag-adequacy-paper-r252/r195-blank-check/scored/r203/long-tail-promotion-joined-r203.csv",
+        "result_json": "docs/visexp/out/tag-adequacy-paper-r252/r195-blank-check/scored/r203/long-tail-promotion-r203.json"
+      },
+      "status": "human_labels_empty",
+      "summary": {
+        "both_labeler_count": 0,
+        "changed_from_raw_rows": 32,
+        "cohen_kappa": null,
+        "final_label_count": 0,
+        "final_label_counts": {
+          "keep_raw": 0,
+          "promote": 0,
+          "reject": 0,
+          "split": 0,
+          "unclear": 0
+        },
+        "final_source_counts": {
+          "empty": 41
+        },
+        "grammar_valid_rows": 41,
+        "inter_labeler_agreement_pct": null,
+        "label_state_counts": {
+          "unlabeled": 41
+        },
+        "non_promoted_final_rows": 0,
+        "packet_row_count": 41,
+        "paired_label_coverage_pct": 0.0,
+        "promotion_acceptance_pct": null,
+        "proposed_action_counts": {
+          "review_keep_raw": 9,
+          "review_promote_candidate": 30,
+          "review_split_candidate": 2
+        },
+        "single_label_count": 0,
+        "strong_final_label_count": 0,
+        "unadjudicated_disagreement_count": 0,
+        "unclear_share_pct": null,
+        "unlabeled_count": 41
+      }
+    }
+  },
+  "provenance": {
+    "repo_commit": "1e237a55d88281118692ab443d8137f1a3209d66",
+    "repo_dirty": false,
+    "script": "docs/visexp/r195_human_evidence_pipeline.py",
+    "script_sha256": "a444b870d0b26801b75defdcb222439110fe363d65a5a1147103219c06750963"
+  },
+  "run_id": "R195",
+  "schema_version": 1,
+  "status": "scored_human_inputs_no_supported_gate"
+}

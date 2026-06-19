@@ -7,6 +7,7 @@ Additional R245/R246 source: `python3 docs/visexp/r245_claim_wording_consistency
 Additional R247 source: `python3 docs/visexp/r247_human_evidence_distribution_bundle.py`, `docs/visexp/out/human-evidence-distribution-r247/human-evidence-distribution-r247.json`, and `docs/visexp/out/human-evidence-distribution-r247/agentflame-human-evidence-r247.tar.gz`.
 Additional R248 source: `python3 docs/visexp/r248_agentpprof_install_smoke.py`, `docs/visexp/out/agentpprof-install-r248/agentpprof-install-r248.json`, and `agentpprof/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl`.
 Additional R251 source: `python3 docs/visexp/r251_behavior_tag_alignment.py` and `docs/visexp/out/behavior-tag-alignment-r251/behavior-tag-alignment-r251.json`.
+Additional R252 source: `python3 docs/visexp/r252_paper_scale_c6_label_package.py`, `docs/visexp/out/tag-adequacy-paper-r252/manifest.json`, and `docs/visexp/out/tag-adequacy-paper-r252/r195-blank-check/human-evidence-pipeline-r252-blank.json`.
 Completeness: partial
 
 ## Headline Result
@@ -286,8 +287,9 @@ R219 summarizes the current evidence as a mechanical claim/RQ readiness gate.
 It reads generated artifacts only, writes claim/RQ/next-experiment CSVs, and
 reports `osdi_weak_accept_not_supported`: C1 is supported, C2 is supported for
 syntax/latency, C3 is supported as mechanism, C4 is supported for the fixed
-command-mode suite, C5 is unsupported, C6 is partial syntax/stability only, and
-C7 is partial. It records 0 C5 participant responses and 0 C6 final adequacy
+command-mode suite, C5 is unsupported, C6 is syntax/stability/protocol partial
+with human adequacy unsupported, and C7 is partial. It records 0 C5 participant
+responses and 0 C6 final adequacy
 labels, making `R142-pilot-return` and `R124-labels-return` the P0 next rows.
 The current rerun also includes R223/R225 in C3 evidence: projection tradeoffs
 and prompt-span duration baselines strengthen the mechanism story but do not
@@ -392,6 +394,16 @@ passes the session-preserving weighted association screen, while the proxy
 scope, low absolute purity, and broad low-coherence tags keep C6 human adequacy
 unsupported.
 
+R252 closes the analogous C6 label-logistics gap that R249 closed for C5. It
+packages the R193 R124/R190/R203 blank sheets into two labeler packets with 501
+rows per labeler: 300 R124 adequacy rows, 160 R190 merge-risk rows, and 41 R203
+promotion rows. That is 1002 required independent label decisions before
+adjudication. An isolated R195 run over those blank sheets reports
+`scored_human_inputs_no_supported_gate`; R124 is
+`joined_not_ready_for_scoring`, R190/R203 are `human_labels_empty`, and all
+C6/canonicalization/promotion/weak-accept gates remain false. R252 is collection
+readiness only, not adequacy evidence.
+
 R228 records the read-only OSDI subagent review after R220. The review accepts
 R220 only as narrow C7 local clean-clone/pprof-readback evidence, keeps the
 project at not weak accept because C5/C6 remain missing, and flags two R220
@@ -482,6 +494,7 @@ claim row, and fixes the paper table's C4 wording.
 | R249 | Paper-scale C5 participant-packet launch package | `docs/visexp/out/user-task-paper-r249/manifest.json`, `docs/visexp/out/user-task-paper-r249/user-task-assignments-r249-paper.csv`, `docs/visexp/out/user-task-paper-r249/scored/user-task-results.json` | done/paper-scale launch-ready; 12 participant packets, 168 blank response rows, scorer accepts template as empty, no outcome evidence |
 | R250-review | Post-R249 OSDI paper/artifact review and hygiene response | `docs/visexp/out/osdi-gate-review-r250.json`, `docs/visexp/out/osdi-gate-review-r250.md` | Level 3/not weak accept; wording/privacy/install-doc fixes applied, no C5/C6 outcome evidence |
 | R251 | Behavior-association check for prompt tags | `docs/visexp/out/behavior-tag-alignment-r251/behavior-tag-alignment-r251.json`, `docs/visexp/out/behavior-tag-alignment-r251/session-shuffle-null-r251.csv`, `docs/visexp/out/behavior-tag-alignment-r251/low-coherence-prompts-r251.csv` | done/behavior association proxy supported; prompt gain beyond session 8.419% vs null p95 1.903% under 1,000 shuffles, privacy scan 0 hits, but no human adequacy labels |
+| R252 | Paper-scale C6 label package and blank R195 check | `docs/visexp/out/tag-adequacy-paper-r252/manifest.json`, `docs/visexp/out/tag-adequacy-paper-r252/r195-blank-check/human-evidence-pipeline-r252-blank.json` | done/paper-scale label-ready; 501 rows per labeler, 1002 required independent label decisions, blank R195 check keeps gates false, no human labels |
 | R171 | Read-only subagent OSDI gate review after R170/R124-join planning | `docs/visexp/out/osdi-gate-review-r171.md` | done/review |
 | R181 | Read-only subagent OSDI gate review after R180 local multi-model benchmark | `docs/visexp/out/osdi-gate-review-r181.md` | done/review; still not weak accept |
 | R060 | legacy Python prototype pipeline over sampled sessions | `docs/visexp/out/pipeline-report.json` | legacy, superseded for headline scale |
@@ -1009,7 +1022,8 @@ provenance.
   next real evidence rows are R142-pilot plus R124-labels.
   The current output is `participant_results_empty`, `c5_supported=false`, and
   `pilot_ready=false`; no real participant responses have been collected.
-- C6 semantic adequacy is partial. The grammar is strong, but labels such as
+- C6 syntax/stability/protocol evidence is partial, but human semantic adequacy
+  is unsupported. The grammar is strong, but labels such as
   `agentsightsm`, `testcodex`, and `bashoutput` show that one-word tags need
   human adequacy measurement and possibly prompt repair. R124-scoring exists
   and currently records `human_labels_empty`; R124-blinding now gives labelers a
@@ -1024,7 +1038,9 @@ provenance.
   information beyond session membership under a 1,000-permutation
   session-preserving shuffle null, but its weighted-proxy scope, 20.196%
   top-behavior purity, and low-coherence queue show why human adequacy labels
-  are still required.
+  are still required. R252 packages the current C6 label handoff as 501 rows per
+  labeler across R124/R190/R203 and verifies that blank R195 inputs keep every
+  C6 quality gate false.
 - R131 is a mechanism ablation, not a usability result. It supports C3 and
   figure design, but not the C5 developer-utility claim.
 - R170 refreshes the current full-history path without overwriting `latest`:
