@@ -2,7 +2,7 @@
   "schema_version": 1,
   "run_id": "R240",
   "generated_at": "2026-06-19",
-  "commit": "34c651b",
+  "commit": "77e6b71",
   "working_tree_dirty": true,
   "status": "passed",
   "events_checked": 5,
@@ -25,5 +25,17 @@
     "sibling_not_joined_by_command_root": true,
     "outside_window_not_joined": true
   },
+  "external_regression_tests": [
+    {
+      "command": "make -C bpf test",
+      "status": "passed",
+      "scope": "BPF process runtime tests, including target-child network summary capture"
+    },
+    {
+      "command": "cd collector && cargo test wait_for_process_runner_start",
+      "status": "passed",
+      "scope": "Rust process-tracer readiness wait unit tests"
+    }
+  ],
   "claim_boundary": "checker-regression evidence for command_root_pid_self_time_window; not live capture or broad target-network support"
 }
