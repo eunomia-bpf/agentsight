@@ -47,6 +47,16 @@ R142_BUNDLE = OUT_DIR / "user-task-benchmark.json"
 R142_ANSWER_KEY = OUT_DIR / "user-task-answer-key.csv"
 R142_ASSIGNMENTS = OUT_DIR / "user-task-assignments.csv"
 
+INPUT_VALUE_FIELDS = {
+    "r124_labeler_1": ["label"],
+    "r124_labeler_2": ["label"],
+    "r190_labeler_1": ["audit_label"],
+    "r190_labeler_2": ["audit_label"],
+    "r203_labeler_1": ["promotion_label"],
+    "r203_labeler_2": ["promotion_label"],
+    "r142_responses": ["task_time_seconds", "confidence", "notes"],
+}
+
 
 def rel(path: Path | None) -> str | None:
     if path is None:
@@ -84,6 +94,41 @@ def csv_row_count(path: Path) -> int | None:
         return None
     with path.open("r", encoding="utf-8", newline="") as handle:
         return sum(1 for _ in csv.DictReader(handle))
+
+
+def csv_filled_value_count(path: Path, fields: list[str]) -> int | None:
+    if not path.exists():
+        return None
+    count = 0
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle)
+        for row in reader:
+            if any((row.get(field) or "").strip() for field in fields):
+                count += 1
+    return count
+
+
+def default_input_paths() -> dict[str, Path]:
+    return {
+        "r124_labeler_1": DEFAULT_R124_LABELER_1,
+        "r124_labeler_2": DEFAULT_R124_LABELER_2,
+        "r124_adjudication": DEFAULT_R124_ADJUDICATION,
+        "r190_labeler_1": DEFAULT_R190_LABELER_1,
+        "r190_labeler_2": DEFAULT_R190_LABELER_2,
+        "r190_adjudication": DEFAULT_R190_ADJUDICATION,
+        "r203_labeler_1": DEFAULT_R203_LABELER_1,
+        "r203_labeler_2": DEFAULT_R203_LABELER_2,
+        "r203_adjudication": DEFAULT_R203_ADJUDICATION,
+        "r142_responses": DEFAULT_R142_RESPONSES,
+    }
+
+
+def input_mode(paths: dict[str, Path]) -> str:
+    defaults = default_input_paths()
+    for name, path in paths.items():
+        if path.resolve() != defaults[name].resolve():
+            return "explicit_paths"
+    return "default_inbox"
 
 
 def read_json(path: Path) -> dict[str, Any] | None:
@@ -186,24 +231,24 @@ def run_r124(paths: dict[str, Path], scored_dir: Path, run_commands: bool) -> di
         "python3",
         "docs/visexp/r124_join_blinded_labels.py",
         "--packet",
-        str(R124_PACKET),
+        rel(R124_PACKET),
         "--blinded",
-        str(R124_BLINDED),
+        rel(R124_BLINDED),
         "--labeler-1",
-        str(paths["r124_labeler_1"]),
+        rel(paths["r124_labeler_1"]),
         "--labeler-2",
-        str(paths["r124_labeler_2"]),
+        rel(paths["r124_labeler_2"]),
         "--adjudication-template",
-        str(adjudication_template),
+        rel(adjudication_template),
         "--joined-labels",
-        str(joined_csv),
+        rel(joined_csv),
         "--out-json",
-        str(join_json),
+        rel(join_json),
         "--out-md",
-        str(join_md),
+        rel(join_md),
     ]
     if paths["r124_adjudication"].exists():
-        cmd.extend(["--adjudication", str(paths["r124_adjudication"])])
+        cmd.extend(["--adjudication", rel(paths["r124_adjudication"])])
 
     op: dict[str, Any] = {
         "status": "not_run",
@@ -232,13 +277,13 @@ def run_r124(paths: dict[str, Path], scored_dir: Path, run_commands: bool) -> di
             "python3",
             "docs/visexp/score_tag_adequacy.py",
             "--labels",
-            str(joined_csv),
+            rel(joined_csv),
             "--out-json",
-            str(score_json),
+            rel(score_json),
             "--out-csv",
-            str(score_csv),
+            rel(score_csv),
             "--out-md",
-            str(score_md),
+            rel(score_md),
         ],
         run=run_commands,
     )
@@ -265,24 +310,24 @@ def run_r190(paths: dict[str, Path], scored_dir: Path, run_commands: bool) -> di
         "python3",
         "docs/visexp/r190_score_merge_audit.py",
         "--packet",
-        str(R190_PACKET),
+        rel(R190_PACKET),
         "--labeler-1",
-        str(paths["r190_labeler_1"]),
+        rel(paths["r190_labeler_1"]),
         "--labeler-2",
-        str(paths["r190_labeler_2"]),
+        rel(paths["r190_labeler_2"]),
         "--adjudication-template",
-        str(adjudication_template),
+        rel(adjudication_template),
         "--joined-labels",
-        str(joined_csv),
+        rel(joined_csv),
         "--out-json",
-        str(result_json),
+        rel(result_json),
         "--out-csv",
-        str(result_csv),
+        rel(result_csv),
         "--out-md",
-        str(result_md),
+        rel(result_md),
     ]
     if paths["r190_adjudication"].exists():
-        cmd.extend(["--adjudication", str(paths["r190_adjudication"])])
+        cmd.extend(["--adjudication", rel(paths["r190_adjudication"])])
     op: dict[str, Any] = {
         "status": "not_run",
         "commands": [],
@@ -310,15 +355,15 @@ def run_r142(paths: dict[str, Path], scored_dir: Path, run_commands: bool) -> di
         "python3",
         "docs/visexp/score_user_task_results.py",
         "--responses",
-        str(paths["r142_responses"]),
+        rel(paths["r142_responses"]),
         "--bundle",
-        str(R142_BUNDLE),
+        rel(R142_BUNDLE),
         "--answer-key",
-        str(R142_ANSWER_KEY),
+        rel(R142_ANSWER_KEY),
         "--assignments",
-        str(R142_ASSIGNMENTS),
+        rel(R142_ASSIGNMENTS),
         "--out",
-        str(r142_dir),
+        rel(r142_dir),
     ]
     op: dict[str, Any] = {
         "status": "not_run",
@@ -346,14 +391,14 @@ def run_r203(paths: dict[str, Path], scored_dir: Path, run_commands: bool) -> di
         "python3",
         "docs/visexp/r203_long_tail_promotion_gate.py",
         "--out-dir",
-        str(r203_dir),
+        rel(r203_dir),
         "--labeler-1",
-        str(paths["r203_labeler_1"]),
+        rel(paths["r203_labeler_1"]),
         "--labeler-2",
-        str(paths["r203_labeler_2"]),
+        rel(paths["r203_labeler_2"]),
     ]
     if paths["r203_adjudication"].exists():
-        cmd.extend(["--adjudication", str(paths["r203_adjudication"])])
+        cmd.extend(["--adjudication", rel(paths["r203_adjudication"])])
     op: dict[str, Any] = {
         "status": "not_run",
         "commands": [],
@@ -412,6 +457,8 @@ def pipeline_status(readiness: dict[str, Any], operations: dict[str, Any], gates
 
 
 def build_payload(args: argparse.Namespace) -> dict[str, Any]:
+    source_commit = git(["rev-parse", "HEAD"])
+    source_dirty = bool(git(["status", "--short"]))
     paths = {
         "r124_labeler_1": args.r124_labeler_1,
         "r124_labeler_2": args.r124_labeler_2,
@@ -450,20 +497,31 @@ def build_payload(args: argparse.Namespace) -> dict[str, Any]:
             "r142_responses",
         )
     }
+    for name, fields in INPUT_VALUE_FIELDS.items():
+        required_inputs[name]["filled_value_count"] = csv_filled_value_count(paths[name], fields)
+        required_inputs[name]["value_fields_checked"] = fields
+        required_inputs[name]["blank_or_missing"] = not required_inputs[name].get("filled_value_count")
     optional_inputs = {
         name: path_info(paths[name], optional=True)
         for name in ("r124_adjudication", "r190_adjudication", "r203_adjudication")
     }
+    content_status = (
+        "has_filled_values"
+        if any((info.get("filled_value_count") or 0) > 0 for info in required_inputs.values())
+        else ("present_but_blank" if readiness["any_present"] else "awaiting_inputs")
+    )
     return {
         "schema_version": 1,
         "run_id": "R195",
         "status": status,
         "generated_at": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
         "input_contract": {
-            "inbox": rel(DEFAULT_INBOX),
+            "input_mode": input_mode(paths),
+            "default_inbox": rel(DEFAULT_INBOX),
             "required_inputs": required_inputs,
             "optional_inputs": optional_inputs,
             "readiness": readiness,
+            "human_return_content_status": content_status,
         },
         "operations": operations,
         "claim_gate": gates,
@@ -480,8 +538,8 @@ def build_payload(args: argparse.Namespace) -> dict[str, Any]:
             "update the canonical map or substitute for C5/C6 evidence."
         ),
         "provenance": {
-            "repo_commit": git(["rev-parse", "HEAD"]),
-            "repo_dirty": bool(git(["status", "--short"])),
+            "repo_commit": source_commit,
+            "repo_dirty": source_dirty,
             "script": rel(Path(__file__).resolve()),
             "script_sha256": sha256_file(Path(__file__).resolve()),
         },
@@ -495,6 +553,8 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
         "# R195 Human Evidence Pipeline",
         "",
         f"Status: `{payload['status']}`",
+        f"Input mode: `{payload['input_contract']['input_mode']}`",
+        f"Human return content: `{payload['input_contract']['human_return_content_status']}`",
         "",
         "## Inputs",
         "",
