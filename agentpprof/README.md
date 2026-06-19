@@ -20,6 +20,26 @@ From this repository:
 cargo run --manifest-path agentpprof/Cargo.toml -- -o agent.pb.gz
 ```
 
+## Public Fixture Smoke
+
+For a reproducible first run that does not read private local agent histories,
+use the committed synthetic Codex fixture:
+
+```bash
+agentpprof \
+  --project-root . \
+  --project-name agentsight-public-fixture \
+  --session-file agentpprof/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl \
+  --tagger regex \
+  --no-cache \
+  -o tasks.pb.gz
+
+go tool pprof -top tasks.pb.gz
+```
+
+The fixture checks parser, projection, and pprof readback behavior only. It is
+not evidence of developer utility, tag adequacy, or real-history privacy.
+
 ## pprof Output
 
 Generate a semantic task profile for the current repository:
@@ -101,6 +121,9 @@ LLM tags are cached under the user cache directory by default, for example
 
 By default, `agentpprof` scans recent local Codex and Claude Code sessions that
 match `--project-root`.
+Those logs can contain prompts, paths, model outputs, and tool results. For
+repeatable demos, tests, or public artifacts, prefer explicit `--session-file`
+inputs like the fixture above.
 
 Useful selectors:
 

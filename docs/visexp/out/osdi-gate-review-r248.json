@@ -1,0 +1,45 @@
+{
+  "run_id": "R248-review",
+  "status": "not_weak_accept_after_review",
+  "review_date": "2026-06-19",
+  "level": 3,
+  "weak_accept_supported": false,
+  "reviewers": [
+    {
+      "scope": "paper_claim_evidence",
+      "verdict": "not weak accept",
+      "highest_risk_blocker": "C5 has 0 participant responses and C6 has 0 human adequacy labels.",
+      "must_fix": [
+        "Do not claim developer utility without scored C5 accuracy/time/false-positive/confidence data.",
+        "Do not claim tag adequacy, canonicalization quality, or promotion quality without R124/R190/R203 human labels.",
+        "Keep C4 scoped to fixed and controlled workloads; broad exact lineage remains partial."
+      ],
+      "revision_applied": [
+        "Tightened abstract boundary wording to summarize scoped lineage instead of listing every run.",
+        "Changed the case-study wording from a utility-like claim to a candidate decomposition awaiting C5 validation."
+      ]
+    },
+    {
+      "scope": "artifact_community_readiness",
+      "verdict": "partial artifact-smoke ready, not community-ready",
+      "highest_risk_blocker": "The installed/open-source first-run path was not previously closed or visible enough.",
+      "must_fix": [
+        "Expose agentpprof from top-level docs without changing AgentSight Quick Start.",
+        "Verify an installed agentpprof binary, not only cargo run from source.",
+        "Provide a committed public fixture and explicit --session-file smoke that avoids private history."
+      ],
+      "revision_applied": [
+        "Added top-level README and CLAUDE/AGENTS guidance for no-sudo agentpprof.",
+        "Added an agentpprof public fixture and README smoke command.",
+        "Added R248 install smoke with cargo install, installed CLI execution, pprof readback, projection checks, privacy scan, and false C5/C6 gates."
+      ]
+    }
+  ],
+  "claim_gate": {
+    "c5_supported": false,
+    "c6_supported": false,
+    "c7_partial_artifact_smoke_supported": true,
+    "weak_accept_supported": false
+  },
+  "boundary": "R248 review and install-smoke changes improve paper hygiene and C7 local artifact readiness only. They do not add participant responses, human labels, external community adoption, or weak-accept evidence."
+}
