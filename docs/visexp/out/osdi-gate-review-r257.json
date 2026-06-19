@@ -1,0 +1,154 @@
+{
+  "author_response": [
+    "Separated R248/R253/R254 fixture readback evidence from R256 crate-package dry-run evidence in CLAIM_VERDICT.",
+    "Removed stale C7 wording that stopped at local/GitHub-branch smokes in EXPERIMENT_AUDIT.",
+    "Kept R256 scoped to local crate-package dry-run and kept C5/C6/weak-accept/crates-publish gates false."
+  ],
+  "checks": [
+    {
+      "name": "r256_artifact_passed",
+      "observed": {
+        "archive_files_match_list": true,
+        "c7_crate_package_smoke_supported": true,
+        "cargo_package_ok": true,
+        "status": "passed"
+      },
+      "passed": true
+    },
+    {
+      "name": "r256_package_scope_exact",
+      "observed": {
+        "file_count": 8,
+        "forbidden_package_hits": [],
+        "has_public_fixture_file": true,
+        "missing_required_files": []
+      },
+      "passed": true
+    },
+    {
+      "name": "r256_does_not_upgrade_human_or_publish_gates",
+      "observed": {
+        "c5_supported": false,
+        "c6_supported": false,
+        "crates_publish_supported": false,
+        "developer_utility_supported": false,
+        "external_machine_install_supported": false,
+        "weak_accept_supported": false
+      },
+      "passed": true
+    },
+    {
+      "name": "claim_verdict_r256_readback_boundary_fixed",
+      "observed": {
+        "has_intended_file_set_wording": true,
+        "old_grouping_absent": true,
+        "old_over_fixture_phrase_absent": true,
+        "separates_package_from_readback": true
+      },
+      "passed": true
+    },
+    {
+      "name": "audit_r208_stale_c7_wording_fixed",
+      "observed": {
+        "new_phrase_present": true,
+        "old_phrase_absent": true
+      },
+      "passed": true
+    },
+    {
+      "name": "paper_keeps_r256_packaging_only",
+      "observed": {
+        "paper_keeps_crates_io_gap": true,
+        "paper_keeps_weak_accept_boundary": true,
+        "paper_says_packaging_only": true
+      },
+      "passed": true
+    },
+    {
+      "name": "evidence_docs_keep_c5_c6_blockers",
+      "observed": {
+        "mentions_false_weak_accept_gate": true,
+        "mentions_human_labels": true,
+        "mentions_real_participant_responses": true
+      },
+      "passed": true
+    }
+  ],
+  "checks_passed": 7,
+  "checks_total": 7,
+  "claim_gate": {
+    "c5_supported": false,
+    "c6_supported": false,
+    "crates_publish_supported": false,
+    "developer_utility_supported": false,
+    "external_machine_install_supported": false,
+    "outcome_evidence_added": false,
+    "weak_accept_supported": false
+  },
+  "generated_at": "2026-06-19T23:37:53+00:00",
+  "provenance": {
+    "generator": "docs/visexp/r257_post_r256_review_gate.py",
+    "human_labels_added": 0,
+    "llm_called": false,
+    "participant_responses_added": 0,
+    "raw_trace_read": false,
+    "repo_commit": "22391b4a1c3f901ef9e010b8c8da1135bb841733",
+    "repo_dirty": true,
+    "source_hashes": {
+      "docs/visexp/CLAIM_VERDICT.md": "0c8180225957ec09657ab8966914afb515cd23203c6eb36782cd9b5ba73933c0",
+      "docs/visexp/EXPERIMENT_AUDIT.md": "262076b58d47e5c02f27875813c0f1a0bc6fef473217412f3a0a56a0f2331c66",
+      "docs/visexp/EXPERIMENT_PLAN.md": "71811d906d55a20523511a12d6e4ea8a7f370f00beb22acb5ad8975aee9f10db",
+      "docs/visexp/EXPERIMENT_TRACKER.md": "f59bdd5e9b3edc76f9edff84f254eca720dc663e7ad2f9f06a24be30786029c9",
+      "docs/visexp/FOLLOWUP_PLAN.md": "6b0de20b67eabf95f8fd55c9d7adf9dfa90dddbc4d669b2bed7ae718ae6c162d",
+      "docs/visexp/RESULTS_SUMMARY.md": "83d7b9c2cd4863da554963c58a65616adba24d7a3aaf215c6c601f201c78c8b0",
+      "docs/visexp/STATE.md": "48774393def7ca9506e6b66e49da2ddef235a6b8862ec4bfae204611d086f9e3",
+      "docs/visexp/out/agentpprof-crate-package-r256/agentpprof-crate-package-r256.json": "047a70458032f612e98671cb2bd9e93f9e11ebd9dd0aa4b3f8bc95e8b8b3aef4",
+      "docs/visexp/out/agentpprof-crate-package-r256/agentpprof-crate-package-r256.md": "5b931c5e938904df7c10ec47c2ad9115d032e09c77d27d89f45ca9dda658f6fa",
+      "docs/visexp/out/agentpprof-crate-package-r256/cargo-package-r256.txt": "96ea597ec195a324442b333591c0ca4fb81339ff6a48bcc0412174b4fdf096cc",
+      "docs/visexp/out/agentpprof-crate-package-r256/package-files-r256.txt": "907b77239c10ff437233602913a28a87ee106d1652b798d95217195da03433bf",
+      "docs/visexp/paper/main.tex": "982a46a6a62fa177237e15222126427739c9f2cd417cf0cf8981397f95fa1a36"
+    }
+  },
+  "residual_risks": [
+    "The .crate archive itself is not retained; R256 records archive hash, size, and archive/list equality from the run.",
+    "R256 privacy scan covers generated summary/log/list artifacts for path leakage, not a full semantic scan of package contents.",
+    "R256 no-private-history and no-LLM claims are script-path assertions, not independently monitored runtime facts.",
+    "Weak accept still requires real C5 participant responses and real C6 human labels scored through the existing gates."
+  ],
+  "review_findings": [
+    {
+      "author_response_check": "claim_verdict_r256_readback_boundary_fixed",
+      "issue": "C7 wording in CLAIM_VERDICT grouped R256 with fixture readback paths and implied local crate-package dry-run evidence was over a committed fixture.",
+      "reviewer": "osdi_claim_evidence_review",
+      "type": "must_fix"
+    },
+    {
+      "author_response_check": "audit_r208_stale_c7_wording_fixed",
+      "issue": "EXPERIMENT_AUDIT still described C7 gaps as beyond local/GitHub-branch smokes, omitting pinned-revision and crate-package dry-run smokes.",
+      "reviewer": "osdi_claim_evidence_review",
+      "type": "stale_wording"
+    },
+    {
+      "author_response_check": "r256_boundary_does_not_claim_publish_or_adoption",
+      "issue": "The .crate archive itself is not retained; the equality claim depends on the script-recorded archive inspection, hash, and size.",
+      "reviewer": "artifact_provenance_review",
+      "type": "residual_risk"
+    },
+    {
+      "author_response_check": "r256_boundary_does_not_claim_runtime_monitoring",
+      "issue": "no_private_history_discovery and no_llm_calls are provenance assertions from the package script path, not independently monitored runtime facts.",
+      "reviewer": "artifact_provenance_review",
+      "type": "residual_risk"
+    }
+  ],
+  "review_type": "read_only_osdi_and_artifact_review_plus_author_response",
+  "review_verdict": {
+    "maturity": "Level 3 mechanism evidence",
+    "summary": "R256 strengthens only C7 local crate-package readiness. The post-R256 reviews found no remaining artifact-provenance must-fix issues after author wording fixes, but C5 and C6 still lack real human data.",
+    "weak_accept_supported": false
+  },
+  "run_id": "R257",
+  "schema_version": 1,
+  "source_command": "python3 docs/visexp/r257_post_r256_review_gate.py",
+  "status": "post_r256_review_gate_passed"
+}

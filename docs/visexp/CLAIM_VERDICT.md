@@ -14,6 +14,7 @@ Additional R253 source: `docs/visexp/out/agentpprof-git-install-r253/agentpprof-
 Additional R254 source: `docs/visexp/out/agentpprof-pinned-rev-install-r254/agentpprof-pinned-rev-install-r254.json`, `docs/visexp/out/agentpprof-pinned-rev-install-r254/agentpprof-pinned-rev-install-r254.md`, and `docs/visexp/out/agentpprof-pinned-rev-install-r254/profiles/tasks.pb.gz`.
 Additional R255 source: `docs/visexp/out/human-evidence-paper-bridge-r255/paper-scale-r195-bridge-r255.json`, `docs/visexp/out/human-evidence-paper-bridge-r255/paper-scale-r195-bridge-r255.md`, and `docs/visexp/out/human-evidence-paper-bridge-r255/cases/paper-scale-blank-with-r249-assignment/r195.json`.
 Additional R256 source: `docs/visexp/out/agentpprof-crate-package-r256/agentpprof-crate-package-r256.json`, `docs/visexp/out/agentpprof-crate-package-r256/agentpprof-crate-package-r256.md`, and `docs/visexp/out/agentpprof-crate-package-r256/package-files-r256.txt`.
+Additional R257 source: `docs/visexp/out/osdi-gate-review-r257.json` and `docs/visexp/out/osdi-gate-review-r257.md`.
 Completeness: partial
 
 | Claim | Verdict | Evidence | Supported wording | Missing evidence |
@@ -168,6 +169,14 @@ dependency verification for `agent-session v0.3.3`, and rejects forbidden
 private/output paths. It keeps `weak_accept_supported=false`,
 `c5_supported=false`, `c6_supported=false`, and
 `crates_publish_supported=false`; it is C7 crate-package dry-run evidence only.
+
+R257 addendum:
+`docs/visexp/out/osdi-gate-review-r257.json` records the post-R256 review gate.
+It reads the R256 outputs and current evidence docs, passes 7/7 checks, verifies
+that the R256 crate-package boundary is no longer grouped with fixture readback
+wording, and keeps `weak_accept_supported=false`, `c5_supported=false`,
+`c6_supported=false`, and `crates_publish_supported=false`. It is review hygiene
+only and adds no outcome, publish, or external-machine evidence.
 
 R202 addendum: `docs/visexp/out/long-tail-regeneration-r202/long-tail-regeneration-r202.json`
 exercises optional llama.cpp regeneration for the R196 regenerate/split rows.

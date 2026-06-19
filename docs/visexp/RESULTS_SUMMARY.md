@@ -12,6 +12,7 @@ Additional R253 source: `python3 docs/visexp/r253_agentpprof_git_install_smoke.p
 Additional R254 source: `python3 docs/visexp/r254_agentpprof_pinned_rev_install_smoke.py`, `docs/visexp/out/agentpprof-pinned-rev-install-r254/agentpprof-pinned-rev-install-r254.json`, and `docs/visexp/out/agentpprof-pinned-rev-install-r254/profiles/tasks.pb.gz`.
 Additional R255 source: `python3 docs/visexp/r255_paper_scale_r195_bridge.py`, `docs/visexp/out/human-evidence-paper-bridge-r255/paper-scale-r195-bridge-r255.json`, and `docs/visexp/out/human-evidence-paper-bridge-r255/cases/paper-scale-blank-with-r249-assignment/r195.json`.
 Additional R256 source: `python3 docs/visexp/r256_agentpprof_crate_package_smoke.py`, `docs/visexp/out/agentpprof-crate-package-r256/agentpprof-crate-package-r256.json`, and `docs/visexp/out/agentpprof-crate-package-r256/package-files-r256.txt`.
+Additional R257 source: `python3 docs/visexp/r257_post_r256_review_gate.py`, `docs/visexp/out/osdi-gate-review-r257.json`, and `docs/visexp/out/osdi-gate-review-r257.md`.
 Completeness: partial
 
 ## Headline Result
@@ -406,6 +407,13 @@ resolution for `agent-session v0.3.3`; forbidden paths such as `target/`,
 dry-run gate; it is not a crates.io publish/readback, external-machine install,
 community adoption, C5 utility, or C6 adequacy result.
 
+R257 records a post-R256 OSDI/artifact review gate. It reads the R256 crate
+package outputs and current evidence docs, confirms 7/7 mechanical checks, and
+records that the R256 wording now separates fixture readback evidence from
+crate-package dry-run evidence. This is review hygiene only: it adds no
+participant responses, no human labels, no crates.io publish/readback, and no
+external-machine evidence.
+
 R249 fixes a C5 logistics gap that R247 left open: the sendable bundle is only a
 five-participant pilot, while the scorer gates paper-scale C5 on at least 12
 participants. R249 derives a separate paper-scale package from the frozen R142
@@ -544,6 +552,7 @@ claim row, and fixes the paper table's C4 wording.
 | R253 | GitHub-branch `agentpprof` install smoke | `docs/visexp/out/agentpprof-git-install-r253/agentpprof-git-install-r253.json`, `docs/visexp/out/agentpprof-git-install-r253/profiles/tasks.pb.gz`, `docs/visexp/out/agentpprof-git-install-r253/pprof-top-r253.txt` | done/git-install-smoke; `cargo install --git` path passes pprof readback, no private history, no C5/C6 outcome evidence |
 | R254 | Pinned-revision `agentpprof` install smoke | `docs/visexp/out/agentpprof-pinned-rev-install-r254/agentpprof-pinned-rev-install-r254.json`, `docs/visexp/out/agentpprof-pinned-rev-install-r254/profiles/tasks.pb.gz`, `docs/visexp/out/agentpprof-pinned-rev-install-r254/pprof-top-r254.txt` | done/pinned-rev install-smoke; `cargo install --git --rev` readback passes, install rev matches driver commit, no private history, no C5/C6 outcome evidence |
 | R256 | `agentpprof` crate package dry-run | `docs/visexp/out/agentpprof-crate-package-r256/agentpprof-crate-package-r256.json`, `docs/visexp/out/agentpprof-crate-package-r256/package-files-r256.txt`, `docs/visexp/out/agentpprof-crate-package-r256/cargo-package-r256.txt` | done/crate-package-smoke; `cargo package` verifies 8-file crate on clean provenance and registry `agent-session v0.3.3`, no publish or outcome evidence |
+| R257 | Post-R256 OSDI/artifact review gate | `docs/visexp/out/osdi-gate-review-r257.json`, `docs/visexp/out/osdi-gate-review-r257.md` | done/review-hygiene; R256 scoped to crate-package dry-run; not weak accept; no outcome evidence |
 | R248-review | Post-R247/R248 OSDI paper/artifact review | `docs/visexp/out/osdi-gate-review-r248.json`, `docs/visexp/out/osdi-gate-review-r248.md` | Level 3/not weak accept; paper hygiene and C7 install-smoke fixes applied, C5/C6 still missing |
 | R249 | Paper-scale C5 participant-packet launch package | `docs/visexp/out/user-task-paper-r249/manifest.json`, `docs/visexp/out/user-task-paper-r249/user-task-assignments-r249-paper.csv`, `docs/visexp/out/user-task-paper-r249/scored/user-task-results.json` | done/paper-scale launch-ready; 12 participant packets, 168 blank response rows, scorer accepts template as empty, no outcome evidence |
 | R255 | Paper-scale R195 C5 scoring bridge | `docs/visexp/out/human-evidence-paper-bridge-r255/paper-scale-r195-bridge-r255.json`, `docs/visexp/out/human-evidence-paper-bridge-r255/cases/paper-scale-blank-with-r249-assignment/r195.json`, `docs/visexp/out/human-evidence-paper-bridge-r255/cases/paper-scale-blank-with-r142-assignment/r195.json` | done/paper-scale bridge; R249 blank template scores through R195 with R249 assignment, old R142 assignment fails, no outcome evidence |
@@ -607,6 +616,8 @@ private/history/output paths, and verifies with registry `agent-session v0.3.3`.
 These smokes satisfy local package, GitHub-branch, pinned-revision, and crate
 dry-run checks, but crates.io publish/readback, external-machine install, real
 report sanitization, llama.cpp setup, and developer feedback remain open.
+R257 only records the post-R256 review response and keeps those open gates
+unchanged.
 
 ## Current Full-Run Metrics
 
