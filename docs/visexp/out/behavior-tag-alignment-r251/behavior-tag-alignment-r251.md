@@ -6,8 +6,8 @@ Status: `behavior_association_supported`
 
 | field | value |
 |---|---|
-| repo commit | `82b82263a9c1532139e50491749d3aba134c49f6` |
-| repo dirty | `True` |
+| repo commit | `1f480ef2e12d784b90cf32e4806eb9f386879b93` |
+| repo dirty | `False` |
 | source run | `R170` / `full_history_refresh_passed` |
 | source summary | `docs/visexp/out/full-history-r170.json` |
 | source summary sha256 | `7162bcdd8c9e9bb21cfe82816cd8f230181da8484103411d25dc316dc9e757c6` |
