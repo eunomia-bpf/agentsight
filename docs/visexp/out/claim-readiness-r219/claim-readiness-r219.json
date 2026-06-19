@@ -43,11 +43,11 @@
       "verdict": "supported_as_mechanism"
     },
     {
-      "blocking_gap": "strict prompt-row identity for same-tag duplicate rows, raw-socket and Claude-launched target-network workloads, arbitrary repositories, and more agent families remain partial",
+      "blocking_gap": "strict prompt-row identity for same-tag duplicate rows, R235 raw-socket/Claude-launched target-network capture, arbitrary repositories, and more agent families remain partial",
       "claim": "C4 exact semantic-effect lineage",
       "evidence_level": "controlled-live-lineage-plus-generated-history-audit",
-      "next_gate": "run raw-socket and Claude-launched target-network lineage replication; keep duplicate prompt-row identity non-keyed",
-      "primary_evidence": "Live lineage: R114 status ok: precision 100.0%, recall 100.0%, negative joins 0/3170; R182 network status partial; R191 status ok: target network 4/4 joined, negative joins 0/310, precision/recall 100.0%/100.0%; R229 status ok: 5 tasks, in-scope effects 394, negative joins 0/306, precision/recall 100.0%/100.0%; R232 status ok: external controlled tasks 5 (4 normal, 1 network), in-scope effects 353, target network 4/4 joined, negative joins 0/480, precision/recall 100.0%/100.0%, normal/network gates true/true; R234 status ok: 1 Claude-family agent task(s), 2 Codex HTTP-network probe(s), in-scope effects 269, target network 8/8 joined, negative joins 0/331, precision/recall 100.0%/100.0%; Generated-history audit: R230 status partial_projection_indexed_with_semantic_drift: full-history projection true, folded weight 183714, missing frame weight 0, tool prompt-index coverage 100.0%, duplicate prompt-index rows 12, prompt-tag drift 346 weight (0.188%), LLM drift 93 events (0.081%), strict full-history false; R231 status ok_drift_root_cause_localized: display projection event/folded weights 183714/183714 exact true, R230 drift reproduced true, field-index drift localized true, unique-index field drift 0 tool weight/0 LLM events, strict prompt-row lineage false, external cross-repo false; R233 status ok_normalized_semantic_lineage: normalized semantic prompt-row lineage true, legacy drift 346 tool weight/93 LLM events -> normalized drift 0 tool weight (0.0%)/0 LLM events (0.0%), duplicate rows 12 explicitly non-keyed, strict row identity false",
+      "next_gate": "debug R236 process-network capture for multiprocess and Claude-launched probes; keep duplicate prompt-row identity non-keyed",
+      "primary_evidence": "Live lineage: R114 status ok: precision 100.0%, recall 100.0%, negative joins 0/3170; R182 network status partial; R191 status ok: target network 4/4 joined, negative joins 0/310, precision/recall 100.0%/100.0%; R229 status ok: 5 tasks, in-scope effects 394, negative joins 0/306, precision/recall 100.0%/100.0%; R232 status ok: external controlled tasks 5 (4 normal, 1 network), in-scope effects 353, target network 4/4 joined, negative joins 0/480, precision/recall 100.0%/100.0%, normal/network gates true/true; R234 status ok: 1 Claude-family agent task(s), 2 Codex HTTP-network probe(s), in-scope effects 269, target network 8/8 joined, negative joins 0/331, precision/recall 100.0%/100.0%; R235 status partial: 1/4 raw/Claude network task(s) passed, target network 3/3 joined, negative joins 0/305, raw/Claude gates false/false; Generated-history audit: R230 status partial_projection_indexed_with_semantic_drift: full-history projection true, folded weight 183714, missing frame weight 0, tool prompt-index coverage 100.0%, duplicate prompt-index rows 12, prompt-tag drift 346 weight (0.188%), LLM drift 93 events (0.081%), strict full-history false; R231 status ok_drift_root_cause_localized: display projection event/folded weights 183714/183714 exact true, R230 drift reproduced true, field-index drift localized true, unique-index field drift 0 tool weight/0 LLM events, strict prompt-row lineage false, external cross-repo false; R233 status ok_normalized_semantic_lineage: normalized semantic prompt-row lineage true, legacy drift 346 tool weight/93 LLM events -> normalized drift 0 tool weight (0.0%)/0 LLM events (0.0%), duplicate rows 12 explicitly non-keyed, strict row identity false",
       "verdict": "supported_for_controlled_live_lineage_suites"
     },
     {
@@ -75,7 +75,7 @@
       "verdict": "partial"
     }
   ],
-  "generated_at": "2026-06-19T05:05:29+00:00",
+  "generated_at": "2026-06-19T05:18:24+00:00",
   "next_experiments": [
     {
       "block": "B4",
@@ -110,12 +110,12 @@
     {
       "block": "B3",
       "claim": "C4/RQ3",
-      "command_or_input": "controlled raw TCP/multiprocess probes plus Claude-launched HTTP/TCP probes with wrapper negative controls",
-      "oracle": "target network rows are observed and all join; negative joins remain zero; precision/recall thresholds match R234",
+      "command_or_input": "replay R235 probes with process-network capture variants, process-tree snapshots, and targeted collector tests",
+      "oracle": "multiprocess and Claude-launched target network rows are observed and joined, or the boundary is localized to a named collector limitation",
       "priority": "P2",
-      "purpose": "Replicate exact-lineage gates for raw-socket and Claude-launched target-network workloads after R234's HTTP/Codex expansion.",
-      "result_path": "docs/visexp/out/raw-claude-network-lineage-r235/",
-      "run_id": "R235-raw-claude-network-lineage"
+      "purpose": "Diagnose and fix the R235 boundary where multiprocess TCP and Claude-launched HTTP/TCP probes execute but produce 0 target network rows.",
+      "result_path": "docs/visexp/out/multiprocess-claude-network-capture-r236/",
+      "run_id": "R236-multiprocess-claude-network-capture"
     },
     {
       "block": "B7",
@@ -149,7 +149,8 @@
     "human_evidence_supported": false,
     "open_scope_gaps": [
       "C4 strict same-tag prompt-row identity remains intentionally non-keyed",
-      "C4 raw-socket, Claude-launched target-network, arbitrary-repository, and more-agent-family lineage remain open",
+      "C4 R235 multiprocess/Claude-launched target-network capture remains partial",
+      "C4 arbitrary-repository and more-agent-family lineage remain open",
       "C7 external-machine/community evidence remains open"
     ],
     "status": "osdi_weak_accept_not_supported",
@@ -174,9 +175,9 @@
     },
     {
       "evidence_level": "controlled live AgentSight suite plus generated-history audit",
-      "falsifier_remaining": "strict same-tag prompt-row identity, raw-socket and Claude-launched target-network workloads, arbitrary repositories, and more agent families remain open",
-      "next_gate": "run raw-socket and Claude-launched target-network lineage replication; keep duplicate prompt-row identity non-keyed",
-      "primary_evidence": "Live lineage: R114 precision 100.0%, recall 100.0%; R191 target network 4/4 joined; R229 5 controlled multi-workspace tasks, 394 in-scope effects; R232 external 5 tasks, 353 in-scope effects, target network 4/4 joined, negative joins 0/480; R234 1 Claude-family agent task(s), 2 Codex HTTP-network probe(s), 269 in-scope effects, target network 8/8 joined, negative joins 0/331; Generated-history audit: R230 full-history projection weight 183714 with duplicate prompt-index rows 12 and prompt-tag drift 0.188%/0.081% tool/LLM; R231 display projection exact true, drift localized true, list-position drift 1.115%/0.996% tool/LLM; R233 normalized semantic drift 0 tool weight/0 LLM events, strict row identity false",
+      "falsifier_remaining": "strict same-tag prompt-row identity, R235 multiprocess/Claude-launched target-network capture, arbitrary repositories, and more agent families remain open",
+      "next_gate": "debug R236 process-network capture for multiprocess and Claude-launched probes; keep duplicate prompt-row identity non-keyed",
+      "primary_evidence": "Live lineage: R114 precision 100.0%, recall 100.0%; R191 target network 4/4 joined; R229 5 controlled multi-workspace tasks, 394 in-scope effects; R232 external 5 tasks, 353 in-scope effects, target network 4/4 joined, negative joins 0/480; R234 1 Claude-family agent task(s), 2 Codex HTTP-network probe(s), 269 in-scope effects, target network 8/8 joined, negative joins 0/331; R235 partial raw/Claude network: 1/4 tasks passed, target network 3/3 joined, negative joins 0/305, raw/Claude gates false/false; Generated-history audit: R230 full-history projection weight 183714 with duplicate prompt-index rows 12 and prompt-tag drift 0.188%/0.081% tool/LLM; R231 display projection exact true, drift localized true, list-position drift 1.115%/0.996% tool/LLM; R233 normalized semantic drift 0 tool weight/0 LLM events, strict row identity false",
       "rq": "RQ3 exact lineage",
       "verdict": "supported_for_controlled_live_lineage_suites"
     },
@@ -240,7 +241,8 @@
     "r231_drift_root_cause": "docs/visexp/out/drift-root-cause-r231/drift-root-cause-r231.json",
     "r232_external_crossrepo": "docs/visexp/out/external-crossrepo-lineage-r232/external-crossrepo-lineage-r232.json",
     "r233_prompt_row_lineage": "docs/visexp/out/prompt-row-lineage-r233/prompt-row-lineage-r233.json",
-    "r234_broader_agent_network": "docs/visexp/out/broader-agent-network-lineage-r234/broader-agent-network-lineage-r234.json"
+    "r234_broader_agent_network": "docs/visexp/out/broader-agent-network-lineage-r234/broader-agent-network-lineage-r234.json",
+    "r235_raw_claude_network": "docs/visexp/out/raw-claude-network-lineage-r235/raw-claude-network-lineage-r235.json"
   },
   "status": "osdi_weak_accept_not_supported",
   "summary": {
@@ -419,6 +421,34 @@
     "r234_recall_pct": 100.0,
     "r234_status": "ok",
     "r234_target_network_effect_events": 8,
-    "r234_tasks": 3
+    "r234_tasks": 3,
+    "r235_agent_families": {
+      "claude": 2,
+      "codex": 2
+    },
+    "r235_aggregate_gate": false,
+    "r235_claude_launched_network_gate": false,
+    "r235_joined_target_network_effect_events": 3,
+    "r235_negative_joined": 0,
+    "r235_negative_observed": 305,
+    "r235_ok_tasks": 1,
+    "r235_precision_pct": 100.0,
+    "r235_probe_by_agent": {
+      "claude:http": 1,
+      "claude:tcp": 1,
+      "codex:multiprocess_tcp": 1,
+      "codex:tcp": 1
+    },
+    "r235_probes": {
+      "http": 1,
+      "multiprocess_tcp": 1,
+      "tcp": 2
+    },
+    "r235_raw_socket_gate": false,
+    "r235_recall_pct": 100.0,
+    "r235_status": "partial",
+    "r235_supported": false,
+    "r235_target_network_effect_events": 3,
+    "r235_tasks": 4
   }
 }
