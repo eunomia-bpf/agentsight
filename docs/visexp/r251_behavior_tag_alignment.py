@@ -20,6 +20,7 @@ import html
 import json
 import math
 import random
+import re
 import subprocess
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -29,7 +30,77 @@ from typing import Any, Iterable
 SCRIPT_DIR = Path(__file__).resolve().parent
 REPO_ROOT = SCRIPT_DIR.parents[1]
 DEFAULT_FOLDED = REPO_ROOT / ".agentsight" / "agentflame" / "r170-full-current" / "semantic-system.folded.txt"
+DEFAULT_SOURCE_SUMMARY = SCRIPT_DIR / "out" / "full-history-r170.json"
 DEFAULT_OUT = SCRIPT_DIR / "out" / "behavior-tag-alignment-r251"
+
+PROCESS_LABEL_MAX_LEN = 48
+SAFE_PROCESS_LABELS = {
+    "awk",
+    "bash",
+    "bun",
+    "cargo",
+    "cat",
+    "chmod",
+    "claude",
+    "codex",
+    "cp",
+    "curl",
+    "date",
+    "docker",
+    "du",
+    "find",
+    "git",
+    "go",
+    "grep",
+    "head",
+    "jq",
+    "less",
+    "llama.cpp",
+    "ls",
+    "make",
+    "mkdir",
+    "mv",
+    "nl",
+    "node",
+    "npm",
+    "python",
+    "python3",
+    "rg",
+    "rm",
+    "rustc",
+    "sed",
+    "sh",
+    "sort",
+    "tail",
+    "tar",
+    "tee",
+    "tool:edit",
+    "tool:read",
+    "tool:tool",
+    "touch",
+    "tr",
+    "uv",
+    "wc",
+    "xargs",
+    "xelatex",
+}
+
+SENSITIVE_PROCESS_PATTERNS = [
+    ("home_path", re.compile(r"(^|[\\/])home[\\/]", re.IGNORECASE)),
+    ("user_path", re.compile(r"(^|[\\/])users[\\/]", re.IGNORECASE)),
+    ("workspace_path", re.compile(r"workspace[\\/]", re.IGNORECASE)),
+    ("agent_trace_artifact", re.compile(r"ai-agent-traces?", re.IGNORECASE)),
+    ("backup_artifact", re.compile(r"backups?", re.IGNORECASE)),
+    ("archive_name", re.compile(r"\.(tar|tgz|zip|gz|zst|xz|bz2)(\.|$)", re.IGNORECASE)),
+    ("timestamped_artifact", re.compile(r"\d{8}[-_]\d{6}|\d{12,}", re.IGNORECASE)),
+]
+
+OUTPUT_PRIVACY_PATTERNS = [
+    ("home_path", re.compile(r"/home/[A-Za-z0-9_.-]+")),
+    ("workspace_path", re.compile(r"workspace/agentsight")),
+    ("agent_trace_artifact", re.compile(r"ai-agent-traces?", re.IGNORECASE)),
+    ("archive_filename", re.compile(r"\b[\w.-]+\.(tar|tgz|zip|gz|zst|xz|bz2)\b", re.IGNORECASE)),
+]
 
 PROMPT_PROFILE_FIELDS = [
     "rank",
@@ -119,6 +190,10 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def read_json(path: Path) -> dict[str, Any]:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def as_int(value: Any) -> int:
     if value in (None, ""):
         return 0
@@ -177,6 +252,60 @@ def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def source_run_provenance(summary_path: Path, folded_path: Path) -> dict[str, Any]:
+    if not summary_path.exists():
+        return {
+            "run_id": "R170",
+            "summary_path": rel(summary_path),
+            "summary_exists": False,
+            "folded_path": rel(folded_path),
+            "folded_sha256": sha256_file(folded_path),
+        }
+    summary = read_json(summary_path)
+    agentflame_artifacts = summary.get("agentflame_artifacts", {})
+    source_provenance = summary.get("provenance", {})
+    input_scope = summary.get("input_scope", {})
+    return {
+        "run_id": summary.get("run_id", "R170"),
+        "status": summary.get("status"),
+        "summary_path": rel(summary_path),
+        "summary_exists": True,
+        "summary_sha256": sha256_file(summary_path),
+        "source_command": summary.get("source_command"),
+        "source_repo_commit": source_provenance.get("repo_commit"),
+        "source_repo_dirty": source_provenance.get("repo_dirty"),
+        "source_script_sha256": source_provenance.get("script_sha256"),
+        "artifact_dir": agentflame_artifacts.get("dir"),
+        "report_sha256": agentflame_artifacts.get("report_sha256"),
+        "tags_sha256": agentflame_artifacts.get("tags_sha256"),
+        "folded_path": rel(folded_path),
+        "folded_sha256": sha256_file(folded_path),
+        "raw_trace_policy": input_scope.get("raw_trace_policy"),
+        "absolute_trace_roots_redacted": input_scope.get("absolute_trace_roots_redacted"),
+    }
+
+
+def privacy_scan(paths: Iterable[Path]) -> dict[str, Any]:
+    hits: list[dict[str, Any]] = []
+    scanned: list[str] = []
+    for path in paths:
+        scanned.append(rel(path))
+        if not path.exists():
+            hits.append({"file": rel(path), "pattern": "missing_output"})
+            continue
+        text = path.read_text(encoding="utf-8", errors="replace")
+        for name, pattern in OUTPUT_PRIVACY_PATTERNS:
+            if pattern.search(text):
+                hits.append({"file": rel(path), "pattern": name})
+    return {
+        "scan_passed": not hits,
+        "scanned_files": scanned,
+        "hit_count": len(hits),
+        "hits": hits,
+        "redaction_policy": "system behavior process labels matching local paths, backup/trace artifacts, archive names, timestamped artifacts, or long/private-looking labels are collapsed to process:local-artifact before aggregation",
+    }
+
+
 def parse_folded_line(line: str) -> tuple[str, int]:
     stack, _, weight = line.rstrip("\n").rpartition(" ")
     if not stack or not weight:
@@ -199,6 +328,23 @@ def first_frame(frames: dict[str, list[str]], key: str, default: str = "") -> st
     return values[0] if values else default
 
 
+def sanitize_process_label(value: str) -> str:
+    label = value.strip() or "unknown"
+    lower = label.lower()
+    for _, pattern in SENSITIVE_PROCESS_PATTERNS:
+        if pattern.search(label):
+            return "local-artifact"
+    if label in SAFE_PROCESS_LABELS or lower in SAFE_PROCESS_LABELS:
+        return label
+    if label.startswith("tool:") or label.startswith("f_"):
+        return label
+    if len(label) > PROCESS_LABEL_MAX_LEN:
+        return "local-artifact"
+    if not re.fullmatch(r"[A-Za-z0-9_.:+@=-]+", label):
+        return "local-artifact"
+    return label
+
+
 def process_label(frames: dict[str, list[str]]) -> str:
     process = first_frame(frames, "process")
     if process:
@@ -212,7 +358,7 @@ def process_label(frames: dict[str, list[str]]) -> str:
 
 
 def behavior_key(frames: dict[str, list[str]]) -> str:
-    process = process_label(frames)
+    process = sanitize_process_label(process_label(frames))
     effect = first_frame(frames, "effect", "unknown")
     status = first_frame(frames, "status", "unknown")
     return f"process:{process};effect:{effect};status:{status}"
@@ -480,7 +626,7 @@ def write_svg(path: Path, actual: dict[str, float], null_rows: list[dict[str, An
     lines = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
         '<rect width="100%" height="100%" fill="#ffffff"/>',
-        '<text x="24" y="32" font-family="Arial, sans-serif" font-size="18" font-weight="700">R251 behavior-tag alignment</text>',
+        '<text x="24" y="32" font-family="Arial, sans-serif" font-size="18" font-weight="700">R251 behavior-tag association</text>',
         '<text x="24" y="55" font-family="Arial, sans-serif" font-size="12" fill="#555">Actual prompt tags vs session-preserving shuffled prompt tags (p95 null marker)</text>',
     ]
     y = 92
@@ -520,10 +666,32 @@ def write_markdown(
     low_rows: list[dict[str, Any]],
 ) -> None:
     metrics = payload["metrics"]
+    method = payload["method"]
+    provenance = payload["provenance"]
+    source_run = payload["source_run"]
+    privacy = payload["privacy"]
     lines = [
-        "# R251 Behavior-Tag Alignment",
+        "# R251 Behavior-Tag Association",
         "",
         f"Status: `{payload['status']}`",
+        "",
+        "## Provenance",
+        "",
+        "| field | value |",
+        "|---|---|",
+        f"| repo commit | `{provenance['repo_commit']}` |",
+        f"| repo dirty | `{provenance['repo_dirty']}` |",
+        f"| source run | `{source_run['run_id']}` / `{source_run.get('status', 'unknown')}` |",
+        f"| source summary | `{source_run['summary_path']}` |",
+        f"| source summary sha256 | `{source_run.get('summary_sha256', 'missing')}` |",
+        f"| source repo dirty | `{source_run.get('source_repo_dirty')}` |",
+        f"| folded stack | `{payload['dataset']['folded_path']}` |",
+        f"| folded sha256 | `{payload['dataset']['folded_sha256']}` |",
+        f"| seed | `{method['seed']}` |",
+        f"| permutations | `{method['permutations']}` |",
+        f"| p-value resolution | `{method['p_value_resolution']}` |",
+        f"| privacy scan passed | `{privacy['scan_passed']}` |",
+        f"| privacy scan hits | `{privacy['hit_count']}` |",
         "",
         "## Boundary",
         "",
@@ -531,7 +699,8 @@ def write_markdown(
         "- Does not read raw agent histories.",
         "- Does not call an LLM.",
         "- Does not add human labels or user responses.",
-        "- Supports behavioral grounding only; C6 human semantic adequacy remains unsupported.",
+        "- Reports a weighted behavior-association proxy only; C6 human semantic adequacy remains unsupported.",
+        "- The randomization p-values are over expanded system-effect weights, not independent session samples.",
         "",
         "## Main Metrics",
         "",
@@ -539,9 +708,10 @@ def write_markdown(
         "|---|---:|",
         f"| total system-effect weight | {payload['dataset']['total_weight']} |",
         f"| stack rows | {payload['dataset']['stack_rows']} |",
-        f"| prompt tags | {payload['dataset']['unique_prompt_tags']} |",
+        f"| prompt tags with system effects | {payload['dataset']['unique_prompt_tags_with_system_effects']} |",
         f"| session tags | {payload['dataset']['unique_session_tags']} |",
         f"| behavior keys | {payload['dataset']['unique_behavior_keys']} |",
+        f"| redacted behavior row weight | {payload['privacy']['redacted_behavior_weight']} |",
         f"| behavior entropy | {metrics['behavior_entropy_bits']:.3f} bits |",
         f"| prompt uncertainty reduction | {metrics['prompt_behavior_uncertainty_reduction_pct']:.3f}% |",
         f"| prompt gain beyond session | {metrics['prompt_gain_beyond_session_pct']:.3f}% |",
@@ -557,6 +727,16 @@ def write_markdown(
             f"| `{row['metric']}` | {row['actual']:.3f} | {row['null_p95']:.3f} | "
             f"{row['one_sided_p_value']:.4f} | {row['actual_gt_null_p95']} |"
         )
+    lines.extend(
+        [
+            "",
+            "Interpretation: the null preserves session membership and breaks only the",
+            "prompt-to-behavior assignment within each session. Passing this screen says",
+            "that prompt tags carry behavior information beyond session identity. It is",
+            "not a test of whether humans would choose the same tag.",
+            "",
+        ]
+    )
     lines.extend(
         [
             "",
@@ -605,8 +785,9 @@ def write_markdown(
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--folded", type=Path, default=DEFAULT_FOLDED)
+    parser.add_argument("--source-summary", type=Path, default=DEFAULT_SOURCE_SUMMARY)
     parser.add_argument("--out-dir", type=Path, default=DEFAULT_OUT)
-    parser.add_argument("--permutations", type=int, default=100)
+    parser.add_argument("--permutations", type=int, default=1000)
     parser.add_argument("--seed", type=int, default=251)
     parser.add_argument("--profile-limit", type=int, default=40)
     parser.add_argument("--low-coherence-min-weight", type=int, default=100)
@@ -620,6 +801,10 @@ def main() -> None:
         raise RuntimeError("no prompt-tagged folded rows found")
 
     total_weight = sum(int(row["weight"]) for row in rows)
+    redacted_behavior_rows = sum(1 for row in rows if str(row["behavior"]).startswith("process:local-artifact;"))
+    redacted_behavior_weight = sum(
+        int(row["weight"]) for row in rows if str(row["behavior"]).startswith("process:local-artifact;")
+    )
     actual_metrics = metrics_for_rows(rows)
     nulls = null_distributions(rows, permutations=args.permutations, seed=args.seed)
     null_rows = null_summary_rows(actual_metrics, nulls)
@@ -650,9 +835,24 @@ def main() -> None:
     write_csv(low_csv, low_rows, LOW_COHERENCE_FIELDS)
     write_svg(svg_path, actual_metrics, null_rows)
 
+    source_run = source_run_provenance(args.source_summary, args.folded)
+    output_paths = [json_path, md_path, svg_path, prompt_csv, behavior_csv, null_csv, low_csv]
+    privacy = privacy_scan([prompt_csv, behavior_csv, null_csv, low_csv, svg_path])
+    privacy.update(
+        {
+            "redacted_behavior_rows": redacted_behavior_rows,
+            "redacted_behavior_weight": redacted_behavior_weight,
+            "redacted_behavior_weight_share_pct": pct(redacted_behavior_weight, total_weight),
+        }
+    )
+    behavior_association_supported = behavior_alignment_supported
     payload = {
         "run_id": "R251",
-        "status": "behavior_alignment_supported" if behavior_alignment_supported else "behavior_alignment_not_supported",
+        "status": (
+            "behavior_association_supported"
+            if behavior_association_supported
+            else "behavior_association_not_supported"
+        ),
         "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
         "dataset": {
             "folded_path": rel(args.folded),
@@ -660,20 +860,31 @@ def main() -> None:
             "stack_rows": len(rows),
             "total_weight": total_weight,
             "unique_prompt_tags": len(weighted_counter(rows, "prompt")),
+            "unique_prompt_tags_with_system_effects": len(weighted_counter(rows, "prompt")),
             "unique_session_tags": len(weighted_counter(rows, "session")),
             "unique_behavior_keys": len(weighted_counter(rows, "behavior")),
-            "behavior_key": "process/effect/status",
+            "behavior_key": "sanitized process/effect/status",
         },
         "method": {
             "permutations": args.permutations,
             "seed": args.seed,
+            "p_value_resolution": round(1 / (args.permutations + 1), 6),
+            "reported_null_metrics": len(null_rows),
             "null": "session-preserving prompt-tag shuffle over expanded system-effect observations",
             "unit": "system-effect weight from folded stack samples",
+            "inference_boundary": (
+                "Randomization scores are over expanded folded-stack weights; they are not "
+                "independent-session p-values and do not establish human semantic adequacy."
+            ),
+            "multiple_metric_note": (
+                "Two one-sided proxy metrics are reported as a mechanism screen; C6 adequacy "
+                "still requires the R124 human-label return path."
+            ),
         },
         "metrics": {key: round(value, 6) for key, value in actual_metrics.items()},
         "null_summary": null_rows,
         "claim_gates": {
-            "behavior_alignment_supported": behavior_alignment_supported,
+            "behavior_grounding_proxy_supported": behavior_association_supported,
             "c6_human_semantic_adequacy_supported": False,
             "c5_developer_utility_supported": False,
             "weak_accept_supported": False,
@@ -687,6 +898,8 @@ def main() -> None:
             "null_csv": rel(null_csv),
             "low_coherence_csv": rel(low_csv),
         },
+        "source_run": source_run,
+        "privacy": privacy,
         "provenance": {
             "repo_commit": git(["rev-parse", "HEAD"]),
             "repo_dirty": repo_dirty(),
@@ -698,6 +911,20 @@ def main() -> None:
     }
     write_json(json_path, payload)
     write_markdown(md_path, payload, null_rows, prompt_rows, low_rows)
+    final_privacy = privacy_scan(output_paths)
+    final_privacy.update(
+        {
+            "redacted_behavior_rows": redacted_behavior_rows,
+            "redacted_behavior_weight": redacted_behavior_weight,
+            "redacted_behavior_weight_share_pct": pct(redacted_behavior_weight, total_weight),
+        }
+    )
+    payload["privacy"] = final_privacy
+    write_json(json_path, payload)
+    write_markdown(md_path, payload, null_rows, prompt_rows, low_rows)
+    post_write_privacy = privacy_scan(output_paths)
+    if not post_write_privacy["scan_passed"]:
+        raise RuntimeError(f"privacy scan failed: {post_write_privacy['hits']}")
 
     print(
         json.dumps(

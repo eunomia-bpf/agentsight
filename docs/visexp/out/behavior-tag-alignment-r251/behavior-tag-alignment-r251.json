@@ -1,58 +1,63 @@
 {
   "claim_gates": {
-    "behavior_alignment_supported": true,
+    "behavior_grounding_proxy_supported": true,
     "c5_developer_utility_supported": false,
     "c6_human_semantic_adequacy_supported": false,
     "weak_accept_supported": false
   },
   "dataset": {
-    "behavior_key": "process/effect/status",
+    "behavior_key": "sanitized process/effect/status",
     "folded_path": ".agentsight/agentflame/r170-full-current/semantic-system.folded.txt",
     "folded_sha256": "350d716412792826368e9778d153ac7cbe7a717b7280c40b32f71ba8b6d1789d",
     "stack_rows": 26829,
     "total_weight": 183714,
-    "unique_behavior_keys": 987,
+    "unique_behavior_keys": 882,
     "unique_prompt_tags": 263,
+    "unique_prompt_tags_with_system_effects": 263,
     "unique_session_tags": 53
   },
-  "generated_at": "2026-06-19T18:03:40.423431+00:00",
+  "generated_at": "2026-06-19T18:15:35.258401+00:00",
   "method": {
+    "inference_boundary": "Randomization scores are over expanded folded-stack weights; they are not independent-session p-values and do not establish human semantic adequacy.",
+    "multiple_metric_note": "Two one-sided proxy metrics are reported as a mechanism screen; C6 adequacy still requires the R124 human-label return path.",
     "null": "session-preserving prompt-tag shuffle over expanded system-effect observations",
-    "permutations": 100,
+    "p_value_resolution": 0.000999,
+    "permutations": 1000,
+    "reported_null_metrics": 2,
     "seed": 251,
     "unit": "system-effect weight from folded stack samples"
   },
   "metrics": {
-    "behavior_entropy_bits": 4.937789,
-    "behavior_entropy_given_prompt_bits": 4.417616,
-    "behavior_entropy_given_session_bits": 4.507308,
-    "behavior_entropy_given_session_prompt_bits": 4.12557,
-    "prompt_behavior_uncertainty_reduction_pct": 10.534526,
-    "prompt_gain_beyond_session_pct": 8.469315,
+    "behavior_entropy_bits": 4.927801,
+    "behavior_entropy_given_prompt_bits": 4.412205,
+    "behavior_entropy_given_session_bits": 4.499308,
+    "behavior_entropy_given_session_prompt_bits": 4.120507,
+    "prompt_behavior_uncertainty_reduction_pct": 10.463016,
+    "prompt_gain_beyond_session_pct": 8.419089,
     "prompt_top_behavior_purity_pct": 20.195521,
-    "session_behavior_uncertainty_reduction_pct": 8.718086,
+    "session_behavior_uncertainty_reduction_pct": 8.695424,
     "session_top_behavior_purity_pct": 18.894586
   },
   "null_summary": [
     {
-      "actual": 8.469315,
+      "actual": 8.419089,
       "actual_gt_null_p95": true,
       "metric": "prompt_gain_beyond_session_pct",
-      "null_max": 1.937496,
-      "null_mean": 1.903306,
-      "null_p50": 1.906308,
-      "null_p95": 1.924744,
-      "one_sided_p_value": 0.009901
+      "null_max": 1.928172,
+      "null_mean": 1.873022,
+      "null_p50": 1.872629,
+      "null_p95": 1.902686,
+      "one_sided_p_value": 0.000999
     },
     {
       "actual": 20.195521,
       "actual_gt_null_p95": true,
       "metric": "prompt_top_behavior_purity_pct",
-      "null_max": 18.407416,
-      "null_mean": 18.300701,
-      "null_p50": 18.302633,
-      "null_p95": 18.363135,
-      "one_sided_p_value": 0.009901
+      "null_max": 18.436265,
+      "null_mean": 18.297636,
+      "null_p50": 18.295829,
+      "null_p95": 18.367163,
+      "one_sided_p_value": 0.000999
     }
   ],
   "outputs": {
@@ -64,14 +69,50 @@
     "prompt_profiles_csv": "docs/visexp/out/behavior-tag-alignment-r251/prompt-behavior-profiles-r251.csv",
     "svg": "docs/visexp/out/behavior-tag-alignment-r251/behavior-tag-alignment-r251.svg"
   },
+  "privacy": {
+    "hit_count": 0,
+    "hits": [],
+    "redacted_behavior_rows": 143,
+    "redacted_behavior_weight": 373,
+    "redacted_behavior_weight_share_pct": 0.203,
+    "redaction_policy": "system behavior process labels matching local paths, backup/trace artifacts, archive names, timestamped artifacts, or long/private-looking labels are collapsed to process:local-artifact before aggregation",
+    "scan_passed": true,
+    "scanned_files": [
+      "docs/visexp/out/behavior-tag-alignment-r251/behavior-tag-alignment-r251.json",
+      "docs/visexp/out/behavior-tag-alignment-r251/behavior-tag-alignment-r251.md",
+      "docs/visexp/out/behavior-tag-alignment-r251/behavior-tag-alignment-r251.svg",
+      "docs/visexp/out/behavior-tag-alignment-r251/prompt-behavior-profiles-r251.csv",
+      "docs/visexp/out/behavior-tag-alignment-r251/behavior-prompt-profiles-r251.csv",
+      "docs/visexp/out/behavior-tag-alignment-r251/session-shuffle-null-r251.csv",
+      "docs/visexp/out/behavior-tag-alignment-r251/low-coherence-prompts-r251.csv"
+    ]
+  },
   "provenance": {
     "human_labels_added": false,
     "llm_called": false,
     "participant_responses_added": false,
     "raw_trace_read": false,
-    "repo_commit": "b3c77a91f138bffdb2b0bce299f3707ce50337e1",
-    "repo_dirty": false
+    "repo_commit": "82b82263a9c1532139e50491749d3aba134c49f6",
+    "repo_dirty": true
   },
   "run_id": "R251",
-  "status": "behavior_alignment_supported"
+  "source_run": {
+    "absolute_trace_roots_redacted": true,
+    "artifact_dir": ".agentsight/agentflame/r170-full-current",
+    "folded_path": ".agentsight/agentflame/r170-full-current/semantic-system.folded.txt",
+    "folded_sha256": "350d716412792826368e9778d153ac7cbe7a717b7280c40b32f71ba8b6d1789d",
+    "raw_trace_policy": "read-only local input; raw trace files are not copied into committed artifacts",
+    "report_sha256": "32a11de291ac11a8c8b79b4a616af72edb4cf6b9ab4ad95b9109baa1fac09924",
+    "run_id": "R170",
+    "source_command": "cargo run --manifest-path agentflame/Cargo.toml -- run --project-root . --scan-files 10000 --max-sessions 10000 --llama-url http://127.0.0.1:18080 --model local-r170 --timeout 60 --out .agentsight/agentflame/r170-full-current",
+    "source_repo_commit": "0ceebac3257852acb9fe1572872c8a0e218a720e",
+    "source_repo_dirty": true,
+    "source_script_sha256": "c5d7946710a19f9d53501060d0073dceda00f7e6d7468a40e225b9a725df327b",
+    "status": "full_history_refresh_passed",
+    "summary_exists": true,
+    "summary_path": "docs/visexp/out/full-history-r170.json",
+    "summary_sha256": "7162bcdd8c9e9bb21cfe82816cd8f230181da8484103411d25dc316dc9e757c6",
+    "tags_sha256": "61dab368625eddc0dec13ba047c40a8cea200d5067ce7450517ca9966767d90b"
+  },
+  "status": "behavior_association_supported"
 }
