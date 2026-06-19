@@ -163,10 +163,11 @@ Flamegraph 负责发现热点和重复模式；tree 负责解释一个热点能�
 本次 full run 的命令为：
 
 \begin{quote}\small\ttfamily
-cargo run --manifest-path agentflame/Cargo.toml -- run --project-root . --scan-files 10000 --max-sessions 10000 --llama-url http://127.0.0.1:18080 --model local --timeout 60 --out .agentsight/agentflame/latest
+cargo run --manifest-path agentflame/Cargo.toml -- run --project-root . --scan-files 10000 --max-sessions 10000 --llama-url http://127.0.0.1:18080 --model local-r170 --timeout 60 --out .agentsight/agentflame/r170-full-current
 \end{quote}
 
 这条命令是研究 artifact 的 provenance，不是当前仓库的用户入口。
+R170 的 committed summary 记录 \texttt{repo\_dirty=true}，因此本文把它作为 dirty-provenance mechanism evidence 使用：数值可以用于当前本机历史 characterization 与 folded-total 检查，但它不是 clean release artifact run，也不支持 C5/C6 outcome claims。
 当前用户入口示例是：
 
 \begin{quote}\small\ttfamily
@@ -493,6 +494,7 @@ OSDI reviewer 最可能挑战的点是 C4、C5 和 C6：C4 已经有固定 comma
 R184/R186/R187/R188 的作用是防止过度声明：它们把当前状态固定为 \texttt{not\_weak\_accept}，把 launch material 与 outcome evidence 分开，并把下一步执行顺序限定为 R142 pilot、R124 labels、R151 paper run。
 R245 在 R244 之后再次机械检查这个边界：它读取 generated gate artifacts 和当前 paper/docs，不读 raw traces、不调用 LLM；9/9 个 hard evidence checks、13/13 个 wording checks 通过，且 forbidden strong-claim hits 为 0。
 它同时记录 R219 已经是较早的 readiness board，R238/R240/R242--R244 必须作为 post-R219 addenda 或通过 R245 一起阅读。
+R246 进一步记录 post-R245 OSDI review 的 author response：C5/C6 仍是 must-fix outcome blockers，同时把 R170 标成 dirty-provenance evidence，并补充 R224 是 \texttt{checker\_id=R131} 在 R170 denominator 上的 rerun，而不是新的 checker 或 outcome evidence。
 因此当前最诚实的定位是 ``supported mechanism plus partial systems artifact''。
 
 \begin{table*}[t]
@@ -568,7 +570,7 @@ AgentFlame 包含 token flamegraph，但当前只作为 source-local accounting�
 \section{局限与下一步}
 
 当前版本仍不到 OSDI weak accept。Exact lineage 是最强系统贡献，但证据分两类：live lineage 由 R114 的 20 个固定 command-mode Codex 任务、R191 的固定 Codex target-process HTTP workload、R229 的 5 个 controlled multi-workspace tasks、R232 的外部 fresh git-repo/HTTP-probe workload，以及 R234 的 1 个 Claude command-mode task 加 2 个 Codex HTTP-family target-network probes 的受控扩展支撑；R182 只是 record-mode \texttt{--trace-net} 的低层 agent-process network smoke。R235--R240 新增 raw/Claude target-network 边界实验与 regression guard：R235 只让单进程 Codex TCP 通过；R236 显示 Codex delayed multiprocess 可以通过，但 Claude-launched delayed HTTP 仍没有 target rows，direct controls 仍有 orphan rows；R237 进一步加入 runtime witness；R238 修复 process-tracer readiness race 后，compact direct-only supplement 汇总 5/5 repetitions 通过，正式 full run 中 4/4 witnesses 与 4/4 witness ports observed、direct controls joined、13/16 target network rows joined、0/186 negative-control effects joined，但 Codex/Claude-launched rows 仍 partial；R240 将 command-root fallback 和 target-child network capture 加入 regression suite。因此它们缩小并定位 C4 缺口，不把广义 raw-socket/Claude-launched coverage 升级为 supported；direct-only repetitions 没有 negative controls，不能替代正式 full run 的 precision evidence。R230--R233 支撑的是 generated full-history projection correctness：R230 证明 system-effect stacks 都带有 semantic session/prompt tag frames 和 call/effect frames，R231 证明 display projection 与 event-local prompt tags 一致并定位 prompt-row drift，R233 把 duplicate prompt indexes 显式降级为 non-keyed row identity 并把 normalized semantic drift 降为 0；但 same-tag prompt-row identity、R238 暴露的 Codex/Claude-launched target-network orphan/missing-action 边界、任意仓库泛化、更多 agent 类型和更丰富的 network workloads 仍缺。用户效用也没有 outcome data：R142 已冻结五种视图的任务包、answer key 和 scorer，R187 已生成可发放的 P01--P05 pilot launch package，R207 已确认 launch handoff 和 R195 return-file mapping，但仍需要真实参与者响应；纸面 C5 还需要 12--20 个参与者或明确限定的 expert study。标签 adequacy 仍需使用 blinded R124 label sheet 对 300 个 session/prompt/LLM fragments 收集人工标签；R189/R190/R190-score/R196/R201/R202/R203/R205/R209/R211/R212/R213/R214/R215/R216/R217/R218 只能说明 canonical display layer、merge-risk audit protocol、long-tail governance、policy sensitivity、候选重标链路、promotion gate、compaction metrics、可逆 display-map contract、RQ2 figure/example inputs、display-compaction ablation、display data-layer smoke、long-tail control loop 与非默认 rollup/regeneration policy、frontend renderer-model smoke、browser DOM harness、production default render smoke 和 synthetic-review update gate 已具备，不能替代人工 adequacy、promotion quality、visual drilldown 或真实 user evidence。R160 验证本机固定输入下的 bounded local artifact path，R200 验证 public-safe generated fixture path，R220 验证本机 clean-clone \texttt{agentpprof} pprof readback path；但 external-machine 安装、真实 report public sanitization、llama.cpp LLM-tag setup、默认采样策略、full write-set audit 和外部开发者反馈仍缺。
-R245 说明当前文本没有把这些缺口写成 supported claims，但它本身仍只是 audit hygiene。
+R245 说明当前文本没有把这些缺口写成 supported claims；R246 进一步修复 R170/R224 provenance bookkeeping，但它们本身仍只是 audit hygiene。
 
 \section{结论}
 
