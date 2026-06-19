@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>R259 paper-scale static collection kit</title>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f7f7f4;
+  --panel: #ffffff;
+  --ink: #1d1f23;
+  --muted: #5d6673;
+  --line: #d8dadd;
+  --accent: #2764c5;
+  --warn: #8a4b08;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255,255,255,0.96);
+}
+main { padding: 18px; max-width: 1500px; margin: 0 auto; }
+h1 { margin: 0 0 4px; font-size: 22px; }
+h2 { margin: 24px 0 8px; font-size: 18px; }
+p { margin: 6px 0; }
+a { color: var(--accent); }
+.muted { color: var(--muted); }
+.warn { color: var(--warn); font-weight: 650; }
+.toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+button {
+  appearance: none;
+  border: 1px solid #174d9d;
+  background: var(--accent);
+  color: white;
+  border-radius: 6px;
+  padding: 8px 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+button.secondary { background: #fff; color: var(--accent); }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+th, td {
+  border-bottom: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  padding: 7px;
+  vertical-align: top;
+}
+th { position: sticky; top: 92px; background: #f0f2f5; z-index: 3; text-align: left; }
+td.readonly { max-width: 320px; overflow-wrap: anywhere; }
+textarea, input, select {
+  width: 100%;
+  min-width: 120px;
+  border: 1px solid #c7ccd2;
+  border-radius: 4px;
+  padding: 6px;
+  font: inherit;
+  background: white;
+}
+textarea { min-height: 62px; resize: vertical; }
+pre.packet {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: #ffffff;
+  border: 1px solid var(--line);
+  padding: 14px;
+  border-radius: 6px;
+}
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 12px; }
+.status { margin-left: 8px; color: var(--muted); }
+@media (max-width: 800px) {
+  main { padding: 12px; }
+  th { top: 116px; }
+  th, td { padding: 6px; }
+}
+</style>
+</head>
+<body>
+<header>
+<h1>R259 paper-scale static collection kit</h1>
+<p class="muted">Static HTML forms for C5 participant responses and C6 label collection.</p>
+</header>
+<main>
+<p class="warn">This kit is a collection interface only. It contains no answers and creates no evidence until real returns are scored.</p>
+<div class="grid">
+<div class="card"><strong>C5 participant packets</strong><p>12 packets, 168 response rows.</p></div>
+<div class="card"><strong>C6 labeler packets</strong><p>2 labelers, 1002 independent decisions.</p></div>
+<div class="card"><strong>Coordinator</strong><p><a href="coordinator/c5-merge.html">Merge participant CSVs</a></p></div>
+</div>
+<h2>Participants</h2>
+<div class="grid"><div class="card"><a href="participants/P01.html">P01</a><p>14 tasks</p></div>
+<div class="card"><a href="participants/P02.html">P02</a><p>14 tasks</p></div>
+<div class="card"><a href="participants/P03.html">P03</a><p>14 tasks</p></div>
+<div class="card"><a href="participants/P04.html">P04</a><p>14 tasks</p></div>
+<div class="card"><a href="participants/P05.html">P05</a><p>14 tasks</p></div>
+<div class="card"><a href="participants/P06.html">P06</a><p>14 tasks</p></div>
+<div class="card"><a href="participants/P07.html">P07</a><p>14 tasks</p></div>
+<div class="card"><a href="participants/P08.html">P08</a><p>14 tasks</p></div>
+<div class="card"><a href="participants/P09.html">P09</a><p>14 tasks</p></div>
+<div class="card"><a href="participants/P10.html">P10</a><p>14 tasks</p></div>
+<div class="card"><a href="participants/P11.html">P11</a><p>14 tasks</p></div>
+<div class="card"><a href="participants/P12.html">P12</a><p>14 tasks</p></div></div>
+<h2>Labelers</h2>
+<div class="grid"><div class="card"><a href="labelers/r124-labeler-1.html">R124 tag adequacy labeler 1</a><p>300 rows</p></div>
+<div class="card"><a href="labelers/r124-labeler-2.html">R124 tag adequacy labeler 2</a><p>300 rows</p></div>
+<div class="card"><a href="labelers/r190-labeler-1.html">R190 merge-risk labeler 1</a><p>160 rows</p></div>
+<div class="card"><a href="labelers/r190-labeler-2.html">R190 merge-risk labeler 2</a><p>160 rows</p></div>
+<div class="card"><a href="labelers/r203-labeler-1.html">R203 long-tail promotion labeler 1</a><p>41 rows</p></div>
+<div class="card"><a href="labelers/r203-labeler-2.html">R203 long-tail promotion labeler 2</a><p>41 rows</p></div></div>
+</main>
+
+</body>
+</html>
