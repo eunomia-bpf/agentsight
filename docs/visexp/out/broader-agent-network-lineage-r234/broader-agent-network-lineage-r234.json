@@ -1,0 +1,275 @@
+{
+  "agent_aggregate": {
+    "agents": {
+      "claude": 1
+    },
+    "false_negatives": 0,
+    "false_positives": 0,
+    "in_scope_effect_events": 34,
+    "negative_effect_events_observed": 6,
+    "negative_joined_effect_events": 0,
+    "precision_pct": 100.0,
+    "recall_pct": 100.0,
+    "statuses": {
+      "ok": 1
+    },
+    "tasks": 1,
+    "true_positives": 34
+  },
+  "agent_family_gate": true,
+  "agent_task_limit": 1,
+  "agent_tasks": [
+    {
+      "agent": "claude",
+      "answer_summary": "result_json=created",
+      "category": "write",
+      "kind": "agent",
+      "precision_recall": {
+        "agent_process_count": 11,
+        "false_negatives": 0,
+        "false_positives": 0,
+        "in_scope_effect_events": 34,
+        "negative_control_status": "observed",
+        "negative_effect_events_observed": 6,
+        "negative_joined_effect_events": 0,
+        "out_of_scope_effect_events": 21,
+        "precision_pct": 100.0,
+        "recall_pct": 100.0,
+        "true_positives": 34
+      },
+      "record_returncode": 0,
+      "record_status": "ok",
+      "snapshot_counts": {
+        "audit_events": 61,
+        "process_nodes": 20,
+        "sessions": 1,
+        "tool_calls": 1
+      },
+      "status": "ok",
+      "target_exit_code": 0,
+      "target_status": "completed",
+      "task_id": "r234-claude-json-write",
+      "workspace": "claude_json_write"
+    }
+  ],
+  "agentsight_bin": "collector/target/debug/agentsight",
+  "aggregate": {
+    "agent_tasks": 1,
+    "false_negatives": 0,
+    "false_positives": 0,
+    "in_scope_effect_events": 269,
+    "joined_target_network_effect_events": 8,
+    "negative_effect_events_observed": 331,
+    "negative_joined_effect_events": 0,
+    "network_tasks": 2,
+    "precision_pct": 100.0,
+    "recall_pct": 100.0,
+    "target_network_effect_events": 8,
+    "tasks": 3,
+    "true_positives": 269
+  },
+  "artifact_boundary": "Raw SQLite DBs, exported snapshots, workspaces, and per-event lineage CSVs stay in the local work dir; committed artifacts contain aggregate/task summaries without per-event examples.",
+  "boundary": "R234 supports C4/RQ3 for this controlled local expansion: at least one Claude command-mode run and all target network probe rows across the default HTTP target-network workloads join to the recorded agent task, with zero negative-control joins. It does not prove arbitrary agents, raw-socket or Claude-launched target-network workloads, HTTP payload/URL reconstruction, C5 user utility, or C6 tag adequacy.",
+  "broader_agent_network_lineage_supported": true,
+  "claude_bin": "$HOME/.local/bin/claude",
+  "codex_bin": "$HOME/.nvm/versions/node/v22.22.0/bin/codex",
+  "generated_at": "2026-06-18",
+  "negative_mode": "wrapper",
+  "network_aggregate": {
+    "agents": {
+      "codex": 2
+    },
+    "all_target_network_rows_joined_tasks": 2,
+    "false_negatives": 0,
+    "false_positives": 0,
+    "joined_network_effect_events": 28,
+    "joined_target_network_effect_events": 8,
+    "negative_effect_events_observed": 325,
+    "negative_joined_effect_events": 0,
+    "network_effect_events": 28,
+    "network_process_comms": {
+      "codex": 20,
+      "python3": 8
+    },
+    "orphan_target_network_effect_events": 0,
+    "precision_pct": 100.0,
+    "probes": {
+      "http": 1,
+      "http_repeat": 1
+    },
+    "recall_pct": 100.0,
+    "record_statuses": {
+      "ok": 2
+    },
+    "required_action_tasks_ok": 2,
+    "target_network_actions": {
+      "NET_BIND": 2,
+      "NET_CONNECT": 4,
+      "NET_LISTEN": 2
+    },
+    "target_network_effect_events": 8,
+    "target_network_join_pct": 100.0,
+    "target_network_process_comms": {
+      "python3": 8
+    },
+    "target_statuses": {
+      "completed": 2
+    },
+    "task_statuses": {
+      "ok": 2
+    },
+    "tasks": 2,
+    "true_positives": 235
+  },
+  "network_gate": true,
+  "network_task_limit": 2,
+  "network_tasks": [
+    {
+      "agent": "codex",
+      "kind": "network",
+      "network_lineage": {
+        "joined_network_effect_events": 14,
+        "joined_target_network_effect_events": 4,
+        "network_effect_events": 14,
+        "network_process_comms": {
+          "codex": 10,
+          "python3": 4
+        },
+        "orphan_target_network_effect_events": 0,
+        "target_network_actions": {
+          "NET_BIND": 1,
+          "NET_CONNECT": 2,
+          "NET_LISTEN": 1
+        },
+        "target_network_effect_events": 4,
+        "target_network_join_pct": 100.0,
+        "target_network_process_comms": {
+          "python3": 4
+        }
+      },
+      "precision_recall": {
+        "agent_process_count": 52,
+        "false_negatives": 0,
+        "false_positives": 0,
+        "in_scope_effect_events": 112,
+        "negative_control_status": "observed",
+        "negative_effect_events_observed": 324,
+        "negative_joined_effect_events": 0,
+        "out_of_scope_effect_events": 36,
+        "precision_pct": 100.0,
+        "recall_pct": 100.0,
+        "true_positives": 112
+      },
+      "probe_result": {
+        "body": "r234-http-probe",
+        "bytes": 15,
+        "probe": "http",
+        "status": "ok"
+      },
+      "probe_result_ok": true,
+      "record_returncode": 0,
+      "record_status": "ok",
+      "script": "r234_http_probe.py",
+      "snapshot_counts": {
+        "audit_events": 472,
+        "process_nodes": 69,
+        "sessions": 1,
+        "tool_calls": 1
+      },
+      "status": "ok",
+      "target_exit_code": 0,
+      "target_network_oracle": {
+        "all_target_network_rows_joined": true,
+        "missing_required_actions": [],
+        "orphan_target_network_rows": 0,
+        "required_actions": [
+          "NET_BIND",
+          "NET_LISTEN",
+          "NET_CONNECT"
+        ],
+        "required_actions_ok": true,
+        "target_network_rows_observed": true
+      },
+      "target_status": "completed",
+      "task_id": "r234-codex-http"
+    },
+    {
+      "agent": "codex",
+      "kind": "network",
+      "network_lineage": {
+        "joined_network_effect_events": 14,
+        "joined_target_network_effect_events": 4,
+        "network_effect_events": 14,
+        "network_process_comms": {
+          "codex": 10,
+          "python3": 4
+        },
+        "orphan_target_network_effect_events": 0,
+        "target_network_actions": {
+          "NET_BIND": 1,
+          "NET_CONNECT": 2,
+          "NET_LISTEN": 1
+        },
+        "target_network_effect_events": 4,
+        "target_network_join_pct": 100.0,
+        "target_network_process_comms": {
+          "python3": 4
+        }
+      },
+      "precision_recall": {
+        "agent_process_count": 58,
+        "false_negatives": 0,
+        "false_positives": 0,
+        "in_scope_effect_events": 123,
+        "negative_control_status": "observed",
+        "negative_effect_events_observed": 1,
+        "negative_joined_effect_events": 0,
+        "out_of_scope_effect_events": 29,
+        "precision_pct": 100.0,
+        "recall_pct": 100.0,
+        "true_positives": 123
+      },
+      "probe_result": {
+        "body": "r234-http-repeat|r234-http-repeat",
+        "bytes": 33,
+        "probe": "http_repeat",
+        "status": "ok"
+      },
+      "probe_result_ok": true,
+      "record_returncode": 0,
+      "record_status": "ok",
+      "script": "r234_http_repeat_probe.py",
+      "snapshot_counts": {
+        "audit_events": 153,
+        "process_nodes": 71,
+        "sessions": 1,
+        "tool_calls": 1
+      },
+      "status": "ok",
+      "target_exit_code": 0,
+      "target_network_oracle": {
+        "all_target_network_rows_joined": true,
+        "missing_required_actions": [],
+        "orphan_target_network_rows": 0,
+        "required_actions": [
+          "NET_BIND",
+          "NET_LISTEN",
+          "NET_CONNECT"
+        ],
+        "required_actions_ok": true,
+        "target_network_rows_observed": true
+      },
+      "target_status": "completed",
+      "task_id": "r234-codex-http-repeat"
+    }
+  ],
+  "outputs": {
+    "json": "docs/visexp/out/broader-agent-network-lineage-r234/broader-agent-network-lineage-r234.json",
+    "markdown": "docs/visexp/out/broader-agent-network-lineage-r234/broader-agent-network-lineage-r234.md"
+  },
+  "run_id": "R234",
+  "schema_version": 1,
+  "scope": "controlled_broader_agent_network_lineage",
+  "status": "ok",
+  "work_dir": "$R234_WORK"
+}
