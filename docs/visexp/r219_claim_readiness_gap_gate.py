@@ -33,6 +33,7 @@ SOURCE_PATHS = {
     "r231_drift_root_cause": "docs/visexp/out/drift-root-cause-r231/drift-root-cause-r231.json",
     "r232_external_crossrepo": "docs/visexp/out/external-crossrepo-lineage-r232/external-crossrepo-lineage-r232.json",
     "r233_prompt_row_lineage": "docs/visexp/out/prompt-row-lineage-r233/prompt-row-lineage-r233.json",
+    "r234_broader_agent_network": "docs/visexp/out/broader-agent-network-lineage-r234/broader-agent-network-lineage-r234.json",
     "r184_weak_accept": "docs/visexp/out/weak-accept-gate-r184.json",
     "r195_human_pipeline": "docs/visexp/out/human-evidence-pipeline-r195.json",
     "r207_launch_readiness": "docs/visexp/out/human-evidence-launch-r207/human-evidence-launch-r207.json",
@@ -176,7 +177,21 @@ def c4_lineage_supported(status: dict[str, Any]) -> bool:
         and float(status["r232_precision_pct"]) >= 98.0
         and float(status["r232_recall_pct"]) >= 95.0
     )
-    return r114_ok and r191_ok and r229_ok and r232_ok
+    r234_ok = (
+        status["r234_status"] == "ok"
+        and bool(status["r234_broader_agent_network_supported"])
+        and bool(status["r234_agent_family_gate"])
+        and bool(status["r234_network_gate"])
+        and as_int(status["r234_in_scope_effect_events"]) > 0
+        and as_int(status["r234_target_network_effect_events"]) > 0
+        and as_int(status["r234_joined_target_network_effect_events"])
+        == as_int(status["r234_target_network_effect_events"])
+        and as_int(status["r234_negative_observed"]) > 0
+        and as_int(status["r234_negative_joined"]) == 0
+        and float(status["r234_precision_pct"]) >= 98.0
+        and float(status["r234_recall_pct"]) >= 95.0
+    )
+    return r114_ok and r191_ok and r229_ok and r232_ok and r234_ok
 
 
 def artifact_statuses(artifacts: dict[str, dict[str, Any]]) -> dict[str, Any]:
@@ -190,6 +205,7 @@ def artifact_statuses(artifacts: dict[str, dict[str, Any]]) -> dict[str, Any]:
     r231 = artifacts["r231_drift_root_cause"]
     r232 = artifacts["r232_external_crossrepo"]
     r233 = artifacts["r233_prompt_row_lineage"]
+    r234 = artifacts["r234_broader_agent_network"]
     r184 = artifacts["r184_weak_accept"]
     r195 = artifacts["r195_human_pipeline"]
     r160 = artifacts["r160_artifact_usability"]
@@ -226,6 +242,9 @@ def artifact_statuses(artifacts: dict[str, dict[str, Any]]) -> dict[str, Any]:
     r232_network = r232.get("network_aggregate") or {}
     r233_gate = r233.get("claim_gate") or {}
     r233_summary = r233.get("summary") or {}
+    r234_aggregate = r234.get("aggregate") or {}
+    r234_agent = r234.get("agent_aggregate") or {}
+    r234_network = r234.get("network_aggregate") or {}
 
     r170_summary = r170.get("summary") or {}
     r180_aggregate = r180.get("aggregate") or {}
@@ -466,6 +485,35 @@ def artifact_statuses(artifacts: dict[str, dict[str, Any]]) -> dict[str, Any]:
         "r233_same_tag_identity_ambiguous_llm_events": required_int(
             r233_summary, "duplicate_same_tag_identity_ambiguous_llm_events", "R233.summary"
         ),
+        "r234_status": r234.get("status"),
+        "r234_broader_agent_network_supported": bool(r234.get("broader_agent_network_lineage_supported")),
+        "r234_agent_family_gate": bool(r234.get("agent_family_gate")),
+        "r234_network_gate": bool(r234.get("network_gate")),
+        "r234_tasks": required_int(r234_aggregate, "tasks", "R234.aggregate"),
+        "r234_agent_tasks": required_int(r234_aggregate, "agent_tasks", "R234.aggregate"),
+        "r234_network_tasks": required_int(r234_aggregate, "network_tasks", "R234.aggregate"),
+        "r234_in_scope_effect_events": required_int(
+            r234_aggregate, "in_scope_effect_events", "R234.aggregate"
+        ),
+        "r234_target_network_effect_events": required_int(
+            r234_aggregate, "target_network_effect_events", "R234.aggregate"
+        ),
+        "r234_joined_target_network_effect_events": required_int(
+            r234_aggregate, "joined_target_network_effect_events", "R234.aggregate"
+        ),
+        "r234_negative_observed": required_int(
+            r234_aggregate, "negative_effect_events_observed", "R234.aggregate"
+        ),
+        "r234_negative_joined": required_int(
+            r234_aggregate, "negative_joined_effect_events", "R234.aggregate"
+        ),
+        "r234_precision_pct": required_field(r234_aggregate, "precision_pct", "R234.aggregate"),
+        "r234_recall_pct": required_field(r234_aggregate, "recall_pct", "R234.aggregate"),
+        "r234_agent_families": required_field(r234_agent, "agents", "R234.agent_aggregate"),
+        "r234_network_probes": required_field(r234_network, "probes", "R234.network_aggregate"),
+        "r234_network_target_actions": required_field(
+            r234_network, "target_network_actions", "R234.network_aggregate"
+        ),
         "r184_status": r184.get("status"),
         "r195_status": r195.get("status"),
         "r160_status": r160.get("status"),
@@ -586,7 +634,15 @@ def claim_rows(status: dict[str, Any]) -> list[dict[str, str]]:
                 f"{status['r232_negative_joined']}/{status['r232_negative_observed']}, "
                 f"precision/recall {status['r232_precision_pct']}%/{status['r232_recall_pct']}%, "
                 f"normal/network gates {str(status['r232_normal_gate']).lower()}/"
-                f"{str(status['r232_network_gate']).lower()}; Generated-history audit: "
+                f"{str(status['r232_network_gate']).lower()}; "
+                f"R234 status {status['r234_status']}: {status['r234_agent_tasks']} Claude-family "
+                f"agent task(s), {status['r234_network_tasks']} Codex HTTP-network probe(s), "
+                f"in-scope effects {status['r234_in_scope_effect_events']}, target network "
+                f"{status['r234_joined_target_network_effect_events']}/"
+                f"{status['r234_target_network_effect_events']} joined, negative joins "
+                f"{status['r234_negative_joined']}/{status['r234_negative_observed']}, "
+                f"precision/recall {status['r234_precision_pct']}%/{status['r234_recall_pct']}%; "
+                f"Generated-history audit: "
                 f"R230 status {status['r230_status']}: full-history projection "
                 f"{str(status['r230_system_effect_history_projection_supported']).lower()}, "
                 f"folded weight {status['r230_folded_total_weight']}, missing frame weight "
@@ -619,12 +675,12 @@ def claim_rows(status: dict[str, Any]) -> list[dict[str, str]]:
                 f"{str(status['r233_strict_prompt_row_identity_supported']).lower()}"
             ),
             "blocking_gap": (
-                "strict prompt-row identity for same-tag duplicate rows, arbitrary repositories, broader network workloads, and more agent types remain partial"
+                "strict prompt-row identity for same-tag duplicate rows, raw-socket and Claude-launched target-network workloads, arbitrary repositories, and more agent families remain partial"
                 if c4_ok
                 else "R114/R191/R229 lineage gates did not all pass; rerun controlled lineage before broader replication"
             ),
             "next_gate": (
-                "run broader multi-agent/network lineage replication and keep duplicate prompt-row identity non-keyed"
+                "run raw-socket and Claude-launched target-network lineage replication; keep duplicate prompt-row identity non-keyed"
                 if c4_ok
                 else "rerun R114, R191, and R229, requiring target rows > 0, all joined, and negative joins = 0"
             ),
@@ -710,6 +766,12 @@ def rq_rows(status: dict[str, Any]) -> list[dict[str, str]]:
                 f"{status['r232_joined_target_network_effect_events']}/"
                 f"{status['r232_target_network_effect_events']} joined, negative joins "
                 f"{status['r232_negative_joined']}/{status['r232_negative_observed']}; "
+                f"R234 {status['r234_agent_tasks']} Claude-family agent task(s), "
+                f"{status['r234_network_tasks']} Codex HTTP-network probe(s), "
+                f"{status['r234_in_scope_effect_events']} in-scope effects, target network "
+                f"{status['r234_joined_target_network_effect_events']}/"
+                f"{status['r234_target_network_effect_events']} joined, negative joins "
+                f"{status['r234_negative_joined']}/{status['r234_negative_observed']}; "
                 f"Generated-history audit: "
                 f"R230 full-history projection weight {status['r230_folded_total_weight']} "
                 f"with duplicate prompt-index rows {status['r230_duplicate_prompt_index_rows']} "
@@ -724,12 +786,12 @@ def rq_rows(status: dict[str, Any]) -> list[dict[str, str]]:
                 f"strict row identity {str(status['r233_strict_prompt_row_identity_supported']).lower()}"
             ),
             "falsifier_remaining": (
-                "strict same-tag prompt-row identity, arbitrary repositories, broader network workloads, and more agent types remain open"
+                "strict same-tag prompt-row identity, raw-socket and Claude-launched target-network workloads, arbitrary repositories, and more agent families remain open"
                 if c4_ok
                 else "controlled exact-lineage run failed before broader generalization"
             ),
             "next_gate": (
-                "run broader multi-agent/network lineage replication and keep duplicate prompt-row identity non-keyed"
+                "run raw-socket and Claude-launched target-network lineage replication; keep duplicate prompt-row identity non-keyed"
                 if c4_ok
                 else "rerun R114/R191/R229 controlled exact-lineage gates"
             ),
@@ -800,13 +862,13 @@ def next_experiment_rows() -> list[dict[str, str]]:
         },
         {
             "priority": "P2",
-            "run_id": "R234-broader-agent-network-lineage",
+            "run_id": "R235-raw-claude-network-lineage",
             "claim": "C4/RQ3",
             "block": "B3",
-            "purpose": "Replicate exact-lineage gates across another agent family and broader target-network workloads.",
-            "command_or_input": "controlled Claude/Node/Python agent runs plus additional bind/connect/DNS or multi-process network probes",
-            "oracle": "scoped target effects and target network rows join without negative-control joins; precision/recall thresholds match R232",
-            "result_path": "docs/visexp/out/broader-agent-network-lineage-r234/",
+            "purpose": "Replicate exact-lineage gates for raw-socket and Claude-launched target-network workloads after R234's HTTP/Codex expansion.",
+            "command_or_input": "controlled raw TCP/multiprocess probes plus Claude-launched HTTP/TCP probes with wrapper negative controls",
+            "oracle": "target network rows are observed and all join; negative joins remain zero; precision/recall thresholds match R234",
+            "result_path": "docs/visexp/out/raw-claude-network-lineage-r235/",
         },
         {
             "priority": "P2",
@@ -835,7 +897,7 @@ def overall_status(claims: list[dict[str, str]], summary: dict[str, Any]) -> dic
         blockers.append("C6/RQ5 has no supported independent human adequacy labels")
     open_scope_gaps = [
         "C4 strict same-tag prompt-row identity remains intentionally non-keyed",
-        "C4 arbitrary-repository, broader-network, and multi-agent lineage remain open",
+        "C4 raw-socket, Claude-launched target-network, arbitrary-repository, and more-agent-family lineage remain open",
         "C7 external-machine/community evidence remains open",
     ]
     if not (
@@ -844,6 +906,12 @@ def overall_status(claims: list[dict[str, str]], summary: dict[str, Any]) -> dic
         and summary["r232_network_gate"]
     ):
         open_scope_gaps.insert(1, "C4 controlled external cross-repo live exact-lineage remains open")
+    if not (
+        summary["r234_broader_agent_network_supported"]
+        and summary["r234_agent_family_gate"]
+        and summary["r234_network_gate"]
+    ):
+        open_scope_gaps.insert(1, "C4 controlled broader agent/network lineage remains open")
     return {
         "status": "osdi_weak_accept_not_supported" if blockers else "human_evidence_ready_for_claim_audit",
         "weak_accept_supported": False,
@@ -866,6 +934,11 @@ def claim_gate(overall: dict[str, Any], summary: dict[str, Any]) -> dict[str, bo
         and summary["r232_normal_gate"]
         and summary["r232_network_gate"]
     )
+    r234_ok = (
+        summary["r234_broader_agent_network_supported"]
+        and summary["r234_agent_family_gate"]
+        and summary["r234_network_gate"]
+    )
     return {
         "claim_readiness_gap_gate_supported": True,
         "reads_generated_artifacts_only": True,
@@ -880,6 +953,8 @@ def claim_gate(overall: dict[str, Any], summary: dict[str, Any]) -> dict[str, bo
         ),
         "requires_c4_strict_prompt_row_identity": not summary["r233_strict_prompt_row_identity_supported"],
         "requires_c4_external_crossrepo_lineage": not r232_ok,
+        "requires_c4_r234_controlled_expansion": not r234_ok,
+        "requires_c4_raw_or_claude_network_lineage": True,
         "requires_c5_human_participants": "C5/RQ4 has no supported real participant outcome"
         in (overall.get("blockers") or []),
         "requires_c6_human_labels": "C6/RQ5 has no supported independent human adequacy labels"
@@ -948,6 +1023,17 @@ def write_markdown(path: Path, result: dict[str, Any]) -> None:
             f"{summary['r232_negative_joined']}/{summary['r232_negative_observed']}, "
             f"precision/recall {summary['r232_precision_pct']}%/"
             f"{summary['r232_recall_pct']}%."
+        ),
+        (
+            f"- R234 broader agent/network lineage: {summary['r234_tasks']} controlled tasks "
+            f"({summary['r234_agent_tasks']} Claude-family agent, "
+            f"{summary['r234_network_tasks']} Codex HTTP-network), "
+            f"{summary['r234_in_scope_effect_events']} in-scope effects, target network "
+            f"{summary['r234_joined_target_network_effect_events']}/"
+            f"{summary['r234_target_network_effect_events']} joined, negative joins "
+            f"{summary['r234_negative_joined']}/{summary['r234_negative_observed']}, "
+            f"precision/recall {summary['r234_precision_pct']}%/"
+            f"{summary['r234_recall_pct']}%."
         ),
         (
             f"- R233 prompt-row normalization: legacy drift "
