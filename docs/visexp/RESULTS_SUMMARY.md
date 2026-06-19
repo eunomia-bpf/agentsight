@@ -9,6 +9,7 @@ Additional R248 source: `python3 docs/visexp/r248_agentpprof_install_smoke.py`, 
 Additional R251 source: `python3 docs/visexp/r251_behavior_tag_alignment.py` and `docs/visexp/out/behavior-tag-alignment-r251/behavior-tag-alignment-r251.json`.
 Additional R252 source: `python3 docs/visexp/r252_paper_scale_c6_label_package.py`, `docs/visexp/out/tag-adequacy-paper-r252/manifest.json`, and `docs/visexp/out/tag-adequacy-paper-r252/r195-blank-check/human-evidence-pipeline-r252-blank.json`.
 Additional R253 source: `python3 docs/visexp/r253_agentpprof_git_install_smoke.py`, `docs/visexp/out/agentpprof-git-install-r253/agentpprof-git-install-r253.json`, and `docs/visexp/out/agentpprof-git-install-r253/profiles/tasks.pb.gz`.
+Additional R254 source: `python3 docs/visexp/r254_agentpprof_pinned_rev_install_smoke.py`, `docs/visexp/out/agentpprof-pinned-rev-install-r254/agentpprof-pinned-rev-install-r254.json`, and `docs/visexp/out/agentpprof-pinned-rev-install-r254/profiles/tasks.pb.gz`.
 Completeness: partial
 
 ## Headline Result
@@ -375,9 +376,20 @@ readback with 6/6 task samples, expected projection checks, output containment,
 and privacy scans; it records `repo_dirty=false`, no private-history discovery,
 no live model/tagger calls, and `weak_accept_supported=false`. The fixture still
 contains synthetic LLM-call frames, so this is a no-live-tagger claim rather than
-a no-LLM-frame claim. This closes the GitHub-branch
-install/readback path for C7, but it is still not crates.io, external-machine
+a no-LLM-frame claim. This satisfies the GitHub-branch
+install/readback smoke for C7, but it is still not crates.io, external-machine
 adoption, real-history public sanitization, C5 user utility, or C6 tag adequacy.
+
+R254 removes the branch-mutability caveat from R253 by running
+`cargo install --git --rev` against the exact pushed revision
+`c43daf2b2565531dfd95de8654adabb30ac878d4`. The installed CLI again produces
+nonzero tasks/tools/tokens/files/network views over the committed public
+fixture, `go tool pprof` reads 6/6 task samples, expected projection checks,
+output containment, and privacy scans pass, and the run records
+`repo_dirty=false` with install rev matching driver commit. This is still
+only C7 pinned-revision install/readback evidence; it is not crates.io,
+external-machine adoption, real-history sanitization, C5 utility, or C6
+adequacy.
 
 R249 fixes a C5 logistics gap that R247 left open: the sendable bundle is only a
 five-participant pilot, while the scorer gates paper-scale C5 on at least 12
@@ -505,6 +517,7 @@ claim row, and fixes the paper table's C4 wording.
 | R247 | Sendable offline human-evidence collection bundle | `docs/visexp/out/human-evidence-distribution-r247/human-evidence-distribution-r247.json`, `docs/visexp/out/human-evidence-distribution-r247/agentflame-human-evidence-r247.tar.gz` | done/distribution-ready; 17-member tarball, return checklist, no outcome evidence |
 | R248 | Installed `agentpprof` public-fixture smoke | `docs/visexp/out/agentpprof-install-r248/agentpprof-install-r248.json`, `docs/visexp/out/agentpprof-install-r248/profiles/tasks.pb.gz`, `agentpprof/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl` | done/install-smoke; installed CLI pprof readback, no private history, no C5/C6 outcome evidence |
 | R253 | GitHub-branch `agentpprof` install smoke | `docs/visexp/out/agentpprof-git-install-r253/agentpprof-git-install-r253.json`, `docs/visexp/out/agentpprof-git-install-r253/profiles/tasks.pb.gz`, `docs/visexp/out/agentpprof-git-install-r253/pprof-top-r253.txt` | done/git-install-smoke; `cargo install --git` path passes pprof readback, no private history, no C5/C6 outcome evidence |
+| R254 | Pinned-revision `agentpprof` install smoke | `docs/visexp/out/agentpprof-pinned-rev-install-r254/agentpprof-pinned-rev-install-r254.json`, `docs/visexp/out/agentpprof-pinned-rev-install-r254/profiles/tasks.pb.gz`, `docs/visexp/out/agentpprof-pinned-rev-install-r254/pprof-top-r254.txt` | done/pinned-rev install-smoke; `cargo install --git --rev` readback passes, install rev matches driver commit, no private history, no C5/C6 outcome evidence |
 | R248-review | Post-R247/R248 OSDI paper/artifact review | `docs/visexp/out/osdi-gate-review-r248.json`, `docs/visexp/out/osdi-gate-review-r248.md` | Level 3/not weak accept; paper hygiene and C7 install-smoke fixes applied, C5/C6 still missing |
 | R249 | Paper-scale C5 participant-packet launch package | `docs/visexp/out/user-task-paper-r249/manifest.json`, `docs/visexp/out/user-task-paper-r249/user-task-assignments-r249-paper.csv`, `docs/visexp/out/user-task-paper-r249/scored/user-task-results.json` | done/paper-scale launch-ready; 12 participant packets, 168 blank response rows, scorer accepts template as empty, no outcome evidence |
 | R250-review | Post-R249 OSDI paper/artifact review and hygiene response | `docs/visexp/out/osdi-gate-review-r250.json`, `docs/visexp/out/osdi-gate-review-r250.md` | Level 3/not weak accept; wording/privacy/install-doc fixes applied, no C5/C6 outcome evidence |
@@ -559,8 +572,11 @@ R253 then checks the GitHub branch install path rather than the local package
 path. The installed binary from `cargo install --git` emits the same nonzero
 tasks/tools/tokens/files/network views over the committed public fixture,
 passes `go tool pprof -top` readback, and leaves no private-history or path
-leaks in the committed summary. This closes the GitHub-branch install/readback
-gap, but crates.io packaging, external-machine install, real report
+leaks in the committed summary. R254 repeats the same public-fixture readback
+through `cargo install --git --rev` and records the install rev as the driver commit, so future replay no longer depends on a mutable branch name.
+This satisfies the planned GitHub-branch and pinned-revision install/readback
+smoke checks, but
+crates.io packaging, external-machine install, real report
 sanitization, llama.cpp setup, and developer feedback remain open.
 
 ## Current Full-Run Metrics
