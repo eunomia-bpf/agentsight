@@ -1,0 +1,140 @@
+{
+  "author_response": [
+    "Record R170 as dirty-provenance mechanism evidence rather than a clean release artifact.",
+    "Align the paper's R170 command with the committed R170 source command.",
+    "Clarify that R224 is a paper-level rerun of the R131 semantic-axis checker over the R170 denominator.",
+    "Keep all C5/C6/weak-accept gates false until real human data exists."
+  ],
+  "checks": [
+    {
+      "name": "c5_real_participants_still_absent",
+      "observed": {
+        "r195_c5_supported": false,
+        "user_task_c5_supported": false,
+        "user_task_participant_count": 0,
+        "user_task_status": "participant_results_empty"
+      },
+      "passed": true
+    },
+    {
+      "name": "c6_human_labels_still_absent",
+      "observed": {
+        "r124_adequacy_supported": false,
+        "r124_final_label_count": 0,
+        "r124_status": "human_labels_empty",
+        "r195_c6_adequacy_supported": false
+      },
+      "passed": true
+    },
+    {
+      "name": "weak_accept_still_not_supported",
+      "observed": {
+        "r195_weak_accept_supported": null,
+        "r245_weak_accept_supported": false
+      },
+      "passed": true
+    },
+    {
+      "name": "r170_source_command_matches_paper",
+      "observed": {
+        "paper_has_exact_command": true,
+        "r170_source_command": "cargo run --manifest-path agentflame/Cargo.toml -- run --project-root . --scan-files 10000 --max-sessions 10000 --llama-url http://127.0.0.1:18080 --model local-r170 --timeout 60 --out .agentsight/agentflame/r170-full-current"
+      },
+      "passed": true
+    },
+    {
+      "name": "r170_dirty_provenance_acknowledged",
+      "observed": {
+        "docs_mention_dirty_provenance": true,
+        "docs_mention_repo_dirty_true": true,
+        "r170_repo_dirty": true
+      },
+      "passed": true
+    },
+    {
+      "name": "r224_metadata_clarifies_rerun_identity",
+      "observed": {
+        "results_mentions_checker_id": true,
+        "results_mentions_metadata": true,
+        "source_run_id": "R131"
+      },
+      "passed": true
+    },
+    {
+      "name": "r246_recorded_in_main_evidence_docs",
+      "observed": {
+        "claim_verdict": true,
+        "experiment_audit": true,
+        "experiment_tracker": true,
+        "followup_plan": true,
+        "results_summary": true
+      },
+      "passed": true
+    },
+    {
+      "name": "r170_dirty_caveat_reaches_verdict_and_audit",
+      "observed": {
+        "audit_mentions_repo_dirty_true": true,
+        "verdict_mentions_repo_dirty_true": true
+      },
+      "passed": true
+    },
+    {
+      "name": "tracker_records_r246_gate",
+      "observed": {
+        "tracker_has_no_outcome_boundary": true,
+        "tracker_has_r246_row": true
+      },
+      "passed": true
+    }
+  ],
+  "checks_passed": 9,
+  "checks_total": 9,
+  "claim_gate": {
+    "broad_c4_supported": false,
+    "c5_supported": false,
+    "c6_adequacy_supported": false,
+    "outcome_evidence_added": false,
+    "weak_accept_supported": false
+  },
+  "generated_at": "2026-06-19T09:23:30.049876+00:00",
+  "must_fix_before_weak_accept": [
+    "Collect and score real R142/R151 developer-task responses for C5.",
+    "Collect and score blinded R124 human tag-adequacy labels for C6."
+  ],
+  "provenance": {
+    "generator": "docs/visexp/r246_post_review_hygiene.py",
+    "human_labels_added": 0,
+    "llm_called": false,
+    "participant_responses_added": 0,
+    "raw_trace_read": false,
+    "repo_commit": "35f245e015edce451b3d9e6e90f8071a8b6dbc9f",
+    "repo_dirty": true,
+    "source_hashes": {
+      "docs/visexp/CLAIM_VERDICT.md": "aafd174b3d40a17c920b8859e0543137cc616f8596e69f0ac9e299b844cbdfd4",
+      "docs/visexp/EXPERIMENT_AUDIT.md": "6b78dac752fdee40d7f85e78d8dd3224987fdfd81713cbeac49652672fb81005",
+      "docs/visexp/EXPERIMENT_TRACKER.md": "0fd30dafe7274e8864558d2ed7a209840aa71e4b10ff27db179ba361b69675bf",
+      "docs/visexp/FOLLOWUP_PLAN.md": "54af207add1e02c2acc28a1740517c80a981c02d791c7b2659f78ac53d24db94",
+      "docs/visexp/RESULTS_SUMMARY.md": "89094efbc259a9f4c95589cac0f5b9b66b39c4fc5e16f27ec36194cbfd369f5a",
+      "docs/visexp/out/claim-wording-consistency-r245/claim-wording-consistency-r245.json": "8188cba91b0553192abba51f0417ebd36706aeed6fd006c65ce4b77d0eeba64a",
+      "docs/visexp/out/full-history-r170.json": "7162bcdd8c9e9bb21cfe82816cd8f230181da8484103411d25dc316dc9e757c6",
+      "docs/visexp/out/human-evidence-pipeline-r195.json": "70d9195d63e9810b9044fc40fb099e9a58867b93d041c9cf626e0f9be5896922",
+      "docs/visexp/out/semantic-ablation-r224-r170/semantic-ablation-r131.json": "9c4cb7034382f33fbbd724982f3cd02655e6c76069e0ee04bf2c05b7836e25f0",
+      "docs/visexp/out/tag-adequacy-results-r124.json": "c84d8d5b68033bb2a8e8169c7f4117552f09c9dd77b335751858cc4619f5e380",
+      "docs/visexp/out/user-task-results.json": "0bb7928ee3cc23aac07c0ea08d4004e2cf057fb4e2d583dbd0453e23fb620ea4",
+      "docs/visexp/paper/main.tex": "6371fccad6ab9c9ee1b86c1d19737df01cfd6c4ab85e46d6117642dcb20eff0f"
+    }
+  },
+  "r224_metadata_path": "docs/visexp/out/semantic-ablation-r224-r170/r224-rerun-metadata.json",
+  "r224_metadata_sha256_after_write": "1aa007725bf5027933419aa481202a749f54184e0e72214bcb33d23632f8b85d",
+  "review_type": "read_only_osdi_gate_review_plus_author_hygiene_response",
+  "review_verdict": {
+    "maturity": "Level 3 mechanism evidence",
+    "summary": "The project remains below OSDI weak accept because C5 has zero real participant responses and C6 has zero real human labels. R246 fixes provenance and metadata hygiene only.",
+    "weak_accept_supported": false
+  },
+  "run_id": "R246",
+  "schema_version": 1,
+  "source_command": "python3 docs/visexp/r246_post_review_hygiene.py",
+  "status": "post_review_hygiene_passed"
+}

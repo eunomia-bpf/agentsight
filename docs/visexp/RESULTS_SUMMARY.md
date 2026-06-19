@@ -3,6 +3,7 @@
 Last updated: 2026-06-19
 Stage at update: analyze
 Source/command: R170 full-history run plus `python3 docs/visexp/r189_tag_consolidation.py`, `python3 docs/visexp/r190_tag_consolidation_audit.py`, `python3 docs/visexp/r190_score_merge_audit.py`, `python3 docs/visexp/r196_long_tail_governance.py`, `python3 docs/visexp/r201_long_tail_sensitivity.py`, `python3 docs/visexp/r202_long_tail_regeneration_smoke.py --regenerate-limit 50 --load-timeout 240 --llama-timeout 60`, `python3 docs/visexp/r203_long_tail_promotion_gate.py`, `python3 docs/visexp/r205_long_tail_compaction_metrics.py`, `python3 docs/visexp/r209_reversible_display_map.py`, `python3 docs/visexp/r211_stack_examples.py`, `python3 docs/visexp/r212_display_compaction_ablation.py`, `python3 docs/visexp/r213_display_mode_drilldown_smoke.py`, `python3 docs/visexp/r214_long_tail_control_loop.py`, `python3 docs/visexp/r215_frontend_renderer_mode_smoke.py`, `python3 docs/visexp/r216_browser_dom_mode_smoke.py`, `python3 docs/visexp/r217_production_react_display_mode_smoke.py`, `python3 docs/visexp/r218_display_map_update_gate.py`, `python3 docs/visexp/r220_fresh_clone_agentpprof_smoke.py`, `python3 docs/visexp/r219_claim_readiness_gap_gate.py`, `python3 docs/visexp/r193_prepare_human_evidence_package.py`, `python3 docs/visexp/r194_human_evidence_preflight.py`, `python3 docs/visexp/r195_human_evidence_pipeline.py`, `python3 docs/visexp/r207_human_launch_readiness.py`, `python3 docs/visexp/r242_human_evidence_contract_smoke.py`, `python3 docs/visexp/r200_community_smoke.py`, `python3 docs/visexp/r131_semantic_ablation.py --input .agentsight/agentflame/r170-full-current --local-out .agentsight/agentflame/ablations-r224-r170/summary.json --out-dir docs/visexp/out/semantic-ablation-r224-r170`, `python3 docs/visexp/r223_projection_tradeoff.py`, `python3 docs/visexp/r225_prompt_span_duration_baseline.py`, `python3 docs/visexp/r237_agent_execution_witness_network_capture.py --run-id R238`, `python3 docs/visexp/r240_lineage_guard_regression.py`, `docs/visexp/LONG_TAIL_COMPACTION.md`, `docs/visexp/out/osdi-gate-review-r204.md`, `docs/visexp/out/osdi-rq-gate-review-r206.md`, `docs/visexp/out/osdi-gate-review-r208.md`, `docs/visexp/out/osdi-gate-review-r228.md`, `docs/visexp/out/osdi-gate-review-r239.md`, and `docs/visexp/out/osdi-gate-review-r241.md`
+Additional R245/R246 source: `python3 docs/visexp/r245_claim_wording_consistency.py`, `python3 docs/visexp/r246_post_review_hygiene.py`, `docs/visexp/out/osdi-gate-review-r246.json`, and `docs/visexp/out/semantic-ablation-r224-r170/r224-rerun-metadata.json`.
 Completeness: partial
 
 ## Headline Result
@@ -260,6 +261,15 @@ and finds 0 forbidden strong-claim hits. It also records a useful bookkeeping
 boundary: R219 remains an older readiness board, so R238/R240/R242-R244 must be
 read as post-R219 addenda or through R245.
 
+R246 records the post-R245 OSDI review and author hygiene response. It keeps
+the project at Level 3/not weak accept because C5 still has 0 real participant
+responses and C6 still has 0 real human labels. It also fixes two provenance
+bookkeeping issues: R170 is now explicitly marked as `repo_dirty=true`
+dirty-provenance mechanism evidence, and R224 now has
+`r224-rerun-metadata.json` with `checker_id=R131` to clarify that the R224
+paper result reruns the R131 semantic-axis checker over the R170 denominator.
+R246 adds no outcome evidence.
+
 R219 summarizes the current evidence as a mechanical claim/RQ readiness gate.
 It reads generated artifacts only, writes claim/RQ/next-experiment CSVs, and
 reports `osdi_weak_accept_not_supported`: C1 is supported, C2 is supported for
@@ -273,7 +283,10 @@ change the weak-accept gate.
 
 R224 reruns the semantic-axis ablation over the R170 current full-history
 folded artifacts, so the system-axis rows share the same 183,714 effect
-denominator as R212 display-policy rows. R223 then turns RQ2 into an explicit
+denominator as R212 display-policy rows. R246 adds
+`docs/visexp/out/semantic-ablation-r224-r170/r224-rerun-metadata.json`, which
+records `checker_id=R131` and prevents the R224 rerun identity from being
+confused with a new checker or outcome result. R223 then turns RQ2 into an explicit
 projection-selection experiment over R170-derived generated evidence. It reads
 R224/R205/R209/R212/R219 artifacts only, does not read raw traces, and does
 not call an LLM. The tradeoff table shows that no-semantic stacks are most
@@ -411,6 +424,7 @@ claim row, and fixes the paper table's C4 wording.
 | R243 | Static human-evidence collection kit | `docs/visexp/out/human-evidence-collection-kit-r243/collection-kit-r243.json` | done/collection-kit; static forms and R142 merge page, no outcome evidence |
 | R244 | Static collection-kit form/export smoke | `docs/visexp/out/human-evidence-collection-kit-export-smoke-r244/collection-kit-export-smoke-r244.json` | done/export-smoke; Chrome load checks and synthetic CSV exports, no outcome evidence |
 | R245 | Post-R244 claim-wording consistency audit | `docs/visexp/out/claim-wording-consistency-r245/claim-wording-consistency-r245.json` | done/wording-audit; hard checks 9/9, wording checks 13/13, forbidden strong-claim hits 0 |
+| R246 | Post-R245 OSDI review hygiene and R170/R224 provenance bookkeeping | `docs/visexp/out/osdi-gate-review-r246.json`, `docs/visexp/out/osdi-gate-review-r246.md`, `docs/visexp/out/semantic-ablation-r224-r170/r224-rerun-metadata.json` | done/review-hygiene; not weak accept; no outcome evidence |
 | R171 | Read-only subagent OSDI gate review after R170/R124-join planning | `docs/visexp/out/osdi-gate-review-r171.md` | done/review |
 | R181 | Read-only subagent OSDI gate review after R180 local multi-model benchmark | `docs/visexp/out/osdi-gate-review-r181.md` | done/review; still not weak accept |
 | R060 | legacy Python prototype pipeline over sampled sessions | `docs/visexp/out/pipeline-report.json` | legacy, superseded for headline scale |
