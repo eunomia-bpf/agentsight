@@ -91,6 +91,7 @@ add C5/C6 outcome evidence.
 
 - git URL: `{summary['install']['git_url']}`
 - revision: `{summary['install']['rev']}`
+- install rev matches driver commit: `{summary['install']['rev'] == summary['provenance']['repo_commit']}`
 - installed help passed: `{summary['install']['help_returncode'] == 0}`
 - fixture: `{summary['fixture']['path']}`
 - fixture sha256: `{summary['fixture']['sha256']}`
@@ -278,6 +279,7 @@ def run_r254(args: argparse.Namespace) -> dict[str, Any]:
     gates = {
         "cargo_git_install_ok": install_summary["returncode"] == 0 and install_summary["installed_binary_exists"],
         "installed_help_ok": install_summary["help_returncode"] == 0,
+        "install_rev_matches_driver_commit": install_summary["rev"] == repo_commit,
         "committed_fixture_exists": r248.FIXTURE.exists(),
         "fixture_path_is_codex_session_shape": "/codex/sessions/" in str(r248.FIXTURE),
         "all_views_nonzero": all(view["samples"] > 0 for view in agentpprof.values()),
@@ -304,6 +306,7 @@ def run_r254(args: argparse.Namespace) -> dict[str, Any]:
     required = [
         "cargo_git_install_ok",
         "installed_help_ok",
+        "install_rev_matches_driver_commit",
         "committed_fixture_exists",
         "fixture_path_is_codex_session_shape",
         "all_views_nonzero",
@@ -353,6 +356,7 @@ def run_r254(args: argparse.Namespace) -> dict[str, Any]:
         "gates": gates,
         "required_gates": required,
         "source_hashes": source_hashes,
+        "install_rev_matches_driver_commit": gates["install_rev_matches_driver_commit"],
         "provenance": {
             "repo_commit": repo_commit,
             "repo_dirty": repo_dirty,
