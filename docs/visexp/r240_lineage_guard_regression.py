@@ -203,6 +203,11 @@ def assert_regression(rows: list[dict[str, Any]]) -> dict[str, Any]:
 
 
 def write_markdown(path: Path, result: dict[str, Any]) -> None:
+    validation_lines = []
+    for item in result["external_regression_tests"]:
+        validation_lines.append(
+            f"- `{item['command']}`: {item['status']} ({item['scope']})."
+        )
     lines = [
         "# R240 Lineage Guard Regression",
         "",
@@ -219,12 +224,17 @@ def write_markdown(path: Path, result: dict[str, Any]) -> None:
         f"- Join methods: {result['join_methods']}.",
         f"- Orphan reasons: {result['orphan_reasons']}.",
         "",
+        "## External Regression Tests",
+        "",
+        *validation_lines,
+        "",
         "## Boundary",
         "",
         "This is checker-regression evidence. It proves the command-root fallback",
         "does not join a sibling process that merely shares the same root PID, and",
         "that root self events still join only inside the tool time window. It does",
-        "not prove live agent-launched target-network coverage.",
+        "not prove live agent-launched target-network coverage. The external test",
+        "commands are regression checks only; they are not C5/C6 outcome evidence.",
     ]
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -250,6 +260,18 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "join_methods": dict(Counter(row["join_method"] for row in rows)),
         "orphan_reasons": dict(Counter(row["orphan_reason"] for row in orphans)),
         "checks": checks,
+        "external_regression_tests": [
+            {
+                "command": "make -C bpf test",
+                "status": args.bpf_test_status,
+                "scope": "BPF process runtime tests, including target-child network summary capture",
+            },
+            {
+                "command": "cd collector && cargo test wait_for_process_runner_start",
+                "status": args.rust_test_status,
+                "scope": "Rust process-tracer readiness wait unit tests",
+            },
+        ],
         "claim_boundary": (
             "checker-regression evidence for command_root_pid_self_time_window; "
             "not live capture or broad target-network support"
@@ -275,6 +297,18 @@ def build_parser() -> argparse.ArgumentParser:
         "--out-dir",
         default="docs/visexp/out/lineage-guard-r240",
         help="directory for R240 artifacts",
+    )
+    parser.add_argument(
+        "--bpf-test-status",
+        choices=("not_run_by_script", "passed", "failed"),
+        default="not_run_by_script",
+        help="recorded status for the external BPF runtime regression command",
+    )
+    parser.add_argument(
+        "--rust-test-status",
+        choices=("not_run_by_script", "passed", "failed"),
+        default="not_run_by_script",
+        help="recorded status for the external Rust readiness regression command",
     )
     return parser
 

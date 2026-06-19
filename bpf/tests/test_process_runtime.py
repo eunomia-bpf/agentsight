@@ -144,15 +144,16 @@ def run_controlled_network_parent():
     trigger = os.path.join(tempdir.name, "trigger")
     done = os.path.join(tempdir.name, "done")
     port_file = os.path.join(tempdir.name, "port")
+    target_port = reserve_loopback_port()
     child_code = r"""
 import socket
 import sys
 
-port_file = sys.argv[1]
+port_file, port_arg = sys.argv[1], sys.argv[2]
+port = int(port_arg)
 server = socket.socket()
 server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-server.bind(("127.0.0.1", 0))
-port = server.getsockname()[1]
+server.bind(("127.0.0.1", port))
 server.listen(1)
 with open(port_file, "w") as f:
     f.write(str(port))
@@ -170,19 +171,29 @@ import sys
 import time
 
 trigger, done, port_file, child_code = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+target_port = sys.argv[5]
 while not os.path.exists(trigger):
     time.sleep(0.05)
-subprocess.run([sys.executable, "-c", child_code, port_file], check=True)
+subprocess.run([sys.executable, "-c", child_code, port_file, target_port], check=True)
 with open(done, "w") as f:
     f.write("done")
 time.sleep(0.4)
 """
     proc = subprocess.Popen(
-        [sys.executable, "-c", parent_code, trigger, done, port_file, child_code],
+        [sys.executable, "-c", parent_code, trigger, done, port_file, child_code, str(target_port)],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
     return tempdir, proc, trigger, done, port_file
+
+
+def reserve_loopback_port():
+    sock = socket.socket()
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    sock.bind(("127.0.0.1", 0))
+    port = sock.getsockname()[1]
+    sock.close()
+    return port
 
 
 def loopback_exchange(exclude_port=None):
@@ -394,7 +405,15 @@ def test_pid_filter_tracks_target_child_network_summary():
         sess.stop()
         events = sess.events()
         types = summary_types(events)
-        assert_true("NET_BIND" in types, "-p --trace-net missed target child NET_BIND summary")
+        assert_true(
+            any(
+                event.get("event") == "SUMMARY"
+                and event.get("type") == "NET_BIND"
+                and f":{target_port}" in event_text(event)
+                for event in events
+            ),
+            f"-p --trace-net missed target child NET_BIND summary for port {target_port}",
+        )
         assert_true("NET_LISTEN" in types, "-p --trace-net missed target child NET_LISTEN summary")
         assert_true(
             any(

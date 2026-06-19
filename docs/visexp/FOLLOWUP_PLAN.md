@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-19
 Stage at update: supplement / experiment-design
-Source/command: auto-research-orchestrator + osdi-experiment-design gate review over `docs/visexp`, plus R196 long-tail governance review packet, R201 sensitivity artifact, R202 candidate regeneration smoke, R203 promotion gate, R205 compaction metrics, R209 reversible display-map contract, R213 display-mode drilldown data-layer smoke, R214 long-tail control loop, R215 frontend renderer-model smoke, R216 browser DOM harness smoke, R217 production React display smoke, R218 display-map update gate, R219 claim-readiness gap gate, R195 human-evidence ingestion pipeline, R207 human-evidence launch-readiness audit, R200 public-safe community smoke, R240 lineage/network regression guard, `docs/visexp/LONG_TAIL_COMPACTION.md`, R204 read-only gate review, R206 RQ/experiment-plan gate review, and R208 OSDI gate review after paper-plan alignment
+Source/command: auto-research-orchestrator + osdi-experiment-design gate review over `docs/visexp`, plus R196 long-tail governance review packet, R201 sensitivity artifact, R202 candidate regeneration smoke, R203 promotion gate, R205 compaction metrics, R209 reversible display-map contract, R213 display-mode drilldown data-layer smoke, R214 long-tail control loop, R215 frontend renderer-model smoke, R216 browser DOM harness smoke, R217 production React display smoke, R218 display-map update gate, R219 claim-readiness gap gate, R195 human-evidence ingestion pipeline, R207 human-evidence launch-readiness audit, R200 public-safe community smoke, R240 lineage/network regression guard, R241 OSDI gate review, `docs/visexp/LONG_TAIL_COMPACTION.md`, R204 read-only gate review, R206 RQ/experiment-plan gate review, and R208 OSDI gate review after paper-plan alignment
 Completeness: partial
 
 ## Positioning
@@ -73,6 +73,9 @@ R219 now encodes that boundary as a claim/RQ readiness matrix: C5 is
 unsupported with 0 participant responses, C6 is partial with 0 final labels,
 and `weak_accept_supported=false`. Its next-experiment table makes
 `R142-pilot-return` and `R124-labels-return` the two P0 rows.
+R241 repeats the gate after R240 and reaches the same conclusion: regression
+guards improve C4 mechanics, but weak accept still requires real R142
+participant responses and R124/R190/R203 human labels.
 
 Weak accept requires all four gates below:
 
