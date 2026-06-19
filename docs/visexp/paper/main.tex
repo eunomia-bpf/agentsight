@@ -405,6 +405,7 @@ R193/R195/R207 进一步把这个收集路径变成可执行 handoff：R193 汇�
 这些 artifact 只支持 launch readiness；它们仍记录 0 个参与者响应、0 个人工标签，不能支持 C5。
 R242 用 synthetic returned files 验证 R195 contract：完整 synthetic R142/R124/R190/R203 输入会进入 R195-specific scored outputs，partial/no-input/invalid-return cases 会被检测，canonical empty gates 保持不变。
 但 R242 的每一行都是 synthetic control，因此它只支持 collection pipeline correctness，不是 C5/C6 outcome evidence。
+R243 进一步把 handoff 包装成静态本地 collection kit：五个 participant forms、六个 labeler forms、一个把 \texttt{P01}--\texttt{P05} exports 合并为 \texttt{r142-pilot-responses.csv} 的 coordinator page，以及记录 source hashes、row counts 和 leak scan 的 manifest；它降低返回格式错误，但仍记录 0 个真实响应和 0 个人工标签。
 当前 baseline 应设为 trace tree、\texttt{event-count-proxy}、flat process summary、nonsemantic folded stack 和 semantic folded stack，比较 accuracy、time、false positives 和 confidence。
 当前 R142 packet 中原来的 span-like 条件已经明确命名为 event-count proxy，因为 folded artifact 没有真实 duration；它不能直接当作 span-duration baseline。
 R225 已经从 R170 timestamps 重构出 prompt wall-clock duration baseline，并显示它与 effect-count profile 的 top tags 和排序有明显差异；但该 baseline 可能包含 idle/user-wait time，且 tool/LLM 调用仍没有 start-end span，因此它只能作为下一版 preregistered packet 的 prompt-span baseline，而不是 active runtime 或完整 workflow span-duration baseline。
@@ -456,6 +457,7 @@ R219 进一步把当前证据状态机械化成 claim/RQ readiness gate：C1 为
 因此 R219 的价值是把下一步固定为 P0 的 R142 participant returns 和 R124 human labels，而不是提升论文 claim。
 R193/R194/R195 已把 R203 sheets 纳入 collection、preflight 和 scoring flow；默认 run 仍没有返回标签，promotion、map update、C5 和 C6 都为 false。
 R242 进一步用 synthetic R124/R190/R203 sheets 验证这些 scorer 一旦收到完整输入就能被 R195 调用，同时 partial/no-input/invalid-return cases 不会升级 canonical empty gates；这仍不构成人工 adequacy 或 merge-quality evidence。
+R243 将这些空白 sheets 变成静态 labeler forms，并保留 R195 文件名、source hashes、row counts 与 false gates，因此它只是收集可用性证据，不是标签质量证据。
 OSDI 版本还需要 R124 人工 adequacy labels。
 R184 当前把 C6 记录为 \texttt{ready\_for\_independent\_label\_collection}，不是 adequacy supported；R186 将 R124 labels 排在 R142 pilot 之后或并行执行。
 一词标签应该被定位为 lossy navigation frames，而不是 semantic truth。
@@ -515,11 +517,11 @@ R184/R186/R187/R188 的作用是防止过度声明：它们把当前状态固定
     supported for fixed and controlled scoped workloads; partial broadly &
     需要 same-tag duplicate prompt-row identity policy、R238 仍暴露的 Codex/Claude-launched target-network orphan/missing-action 边界、任意仓库泛化、更多 agent 类型和更丰富的 target-specific network workloads；R230--R233 不是 live provenance，R191/R229/R232/R234/R235--R238 也不证明 HTTP payload/URL reconstruction、任意 network workload 或完整历史 row identity。 \\
     C5 user utility &
-    已有 task packet、scorer、preregistration、R187 P01--P05 launch package 和 R207 return-file handoff audit；尚无 participant responses。 &
+    已有 task packet、scorer、preregistration、R187 P01--P05 launch package、R207 return-file handoff audit 和 R243 static collection kit；尚无 participant responses。 &
     unsupported &
     需要基于已冻结的 preregistration 运行 trace tree/event-count/flat/nonsemantic/semantic 视图的 user benchmark。 \\
     C6 tag adequacy &
-    R180 在本机 0.6b/1.1b/3b GGUF 上得到 2,700/2,700 valid tags；exact-stable fragments 为 299/300、279/300、285/300，p95 为 23/18/32 ms；1.1b 存在 localization-like collapse；R189/R196/R201/R202/R203/R205/R209/R212/R218 只支持 display-layer noise-control/governance/sensitivity/regeneration-smoke/promotion-protocol/compaction metrics/display-map contract/compaction ablation/update-gate mechanics。 &
+    R180 在本机 0.6b/1.1b/3b GGUF 上得到 2,700/2,700 valid tags；exact-stable fragments 为 299/300、279/300、285/300，p95 为 23/18/32 ms；1.1b 存在 localization-like collapse；R189/R196/R201/R202/R203/R205/R209/R212/R218 只支持 display-layer noise-control/governance/sensitivity/regeneration-smoke/promotion-protocol/compaction metrics/display-map contract/compaction ablation/update-gate mechanics；R243 只提供 labeler collection forms。 &
     partial &
     需要 R124 人工 adequacy labels；若要声称 controlled model scaling 还需同族模型 benchmark。 \\
     C7 artifact usability &
