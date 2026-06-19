@@ -348,7 +348,7 @@ def run_r190(paths: dict[str, Path], scored_dir: Path, run_commands: bool) -> di
     return op
 
 
-def run_r142(paths: dict[str, Path], scored_dir: Path, run_commands: bool) -> dict[str, Any]:
+def run_r142(paths: dict[str, Path], scored_dir: Path, run_commands: bool, scoring: dict[str, Path]) -> dict[str, Any]:
     r142_dir = scored_dir / "r142"
     result_json = r142_dir / "user-task-results.json"
     cmd = [
@@ -357,11 +357,11 @@ def run_r142(paths: dict[str, Path], scored_dir: Path, run_commands: bool) -> di
         "--responses",
         rel(paths["r142_responses"]),
         "--bundle",
-        rel(R142_BUNDLE),
+        rel(scoring["r142_bundle"]),
         "--answer-key",
-        rel(R142_ANSWER_KEY),
+        rel(scoring["r142_answer_key"]),
         "--assignments",
-        rel(R142_ASSIGNMENTS),
+        rel(scoring["r142_assignments"]),
         "--out",
         rel(r142_dir),
     ]
@@ -369,6 +369,11 @@ def run_r142(paths: dict[str, Path], scored_dir: Path, run_commands: bool) -> di
         "status": "not_run",
         "commands": [],
         "outputs": {"result_json": rel(result_json)},
+        "scoring_inputs": {
+            "bundle": rel(scoring["r142_bundle"]),
+            "answer_key": rel(scoring["r142_answer_key"]),
+            "assignments": rel(scoring["r142_assignments"]),
+        },
     }
     run_record = command_result(cmd, run=run_commands)
     op["commands"].append(run_record)
@@ -471,6 +476,11 @@ def build_payload(args: argparse.Namespace) -> dict[str, Any]:
         "r203_adjudication": args.r203_adjudication,
         "r142_responses": args.r142_responses,
     }
+    scoring = {
+        "r142_bundle": args.r142_bundle,
+        "r142_answer_key": args.r142_answer_key,
+        "r142_assignments": args.r142_assignments,
+    }
     presence = input_presence(paths)
     readiness = group_readiness(presence)
     operations: dict[str, Any] = {}
@@ -481,7 +491,7 @@ def build_payload(args: argparse.Namespace) -> dict[str, Any]:
     if readiness["r203"]["ready"]:
         operations["r203"] = run_r203(paths, args.scored_dir, not args.no_run)
     if readiness["r142"]["ready"]:
-        operations["r142"] = run_r142(paths, args.scored_dir, not args.no_run)
+        operations["r142"] = run_r142(paths, args.scored_dir, not args.no_run, scoring)
 
     gates = gate_summary(operations)
     status = pipeline_status(readiness, operations, gates)
@@ -520,6 +530,10 @@ def build_payload(args: argparse.Namespace) -> dict[str, Any]:
             "default_inbox": rel(DEFAULT_INBOX),
             "required_inputs": required_inputs,
             "optional_inputs": optional_inputs,
+            "scoring_inputs": {
+                name: path_info(path)
+                for name, path in scoring.items()
+            },
             "readiness": readiness,
             "human_return_content_status": content_status,
         },
@@ -623,6 +637,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--r203-labeler-2", type=Path, default=DEFAULT_R203_LABELER_2)
     parser.add_argument("--r203-adjudication", type=Path, default=DEFAULT_R203_ADJUDICATION)
     parser.add_argument("--r142-responses", type=Path, default=DEFAULT_R142_RESPONSES)
+    parser.add_argument("--r142-bundle", type=Path, default=R142_BUNDLE)
+    parser.add_argument("--r142-answer-key", type=Path, default=R142_ANSWER_KEY)
+    parser.add_argument("--r142-assignments", type=Path, default=R142_ASSIGNMENTS)
     parser.add_argument("--scored-dir", type=Path, default=DEFAULT_SCORED_DIR)
     parser.add_argument("--out-json", type=Path, default=DEFAULT_OUT_JSON)
     parser.add_argument("--out-md", type=Path, default=DEFAULT_OUT_MD)
