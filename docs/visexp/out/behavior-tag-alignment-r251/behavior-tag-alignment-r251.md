@@ -6,8 +6,9 @@ Status: `behavior_association_supported`
 
 | field | value |
 |---|---|
-| repo commit | `1f480ef2e12d784b90cf32e4806eb9f386879b93` |
-| repo dirty | `False` |
+| repo commit | `bb7f0f0e148dffef4f9377691d35b1b59c48422e` |
+| repo dirty | `True` |
+| provenance semantics | `repo commit` is the clean source tree used to generate this report; a later commit may contain the generated report itself. |
 | source run | `R170` / `full_history_refresh_passed` |
 | source summary | `docs/visexp/out/full-history-r170.json` |
 | source summary sha256 | `7162bcdd8c9e9bb21cfe82816cd8f230181da8484103411d25dc316dc9e757c6` |
@@ -19,6 +20,7 @@ Status: `behavior_association_supported`
 | p-value resolution | `0.000999` |
 | privacy scan passed | `True` |
 | privacy scan hits | `0` |
+| privacy scope | Pattern-based redaction/scan for paths, archive names, timestamped artifacts, and private-looking labels; not full de-identification. |
 
 ## Boundary
 
@@ -89,4 +91,4 @@ not a test of whether humans would choose the same tag.
 
 ## Claim Boundary
 
-R251 is useful because it falsifies the weakest version of the tagging story: prompt tags are not treated as adequate merely because they are one-word strings. The run checks whether prompt tags retain behavior information beyond session membership under a session-preserving null. It still cannot decide whether a human developer would call each tag semantically correct; that requires the R124 label-return path.
+R251 is useful as a session-preserving weighted association screen. It does not treat prompt tags as adequate merely because they are one-word strings; instead, it checks whether prompt tags retain behavior information beyond session membership under a session-preserving null. It still cannot decide whether a human developer would call each tag semantically correct; that requires the R124 label-return path.

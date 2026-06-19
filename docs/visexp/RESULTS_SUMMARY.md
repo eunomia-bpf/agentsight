@@ -387,8 +387,8 @@ membership. The actual prompt gain beyond session is 8.419%, versus a
 session-preserving null p95 of 1.903% (`p=0.0010`, 1/1001 resolution), and prompt
 top-behavior purity is 20.196%, versus null p95 18.367% (`p=0.0010`). The report
 inherits R170's dirty provenance, redacts 373 behavior-observation weight into
-`process:local-artifact`, and passes a 0-hit privacy scan. This supports that
-tags are not random with respect to observed behavior, while the weighted-proxy
+`process:local-artifact`, and passes a 0-hit pattern-based privacy scan. This
+passes the session-preserving weighted association screen, while the proxy
 scope, low absolute purity, and broad low-coherence tags keep C6 human adequacy
 unsupported.
 
