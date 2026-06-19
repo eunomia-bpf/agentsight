@@ -10,6 +10,7 @@ Additional R251 source: `python3 docs/visexp/r251_behavior_tag_alignment.py` and
 Additional R252 source: `python3 docs/visexp/r252_paper_scale_c6_label_package.py`, `docs/visexp/out/tag-adequacy-paper-r252/manifest.json`, and `docs/visexp/out/tag-adequacy-paper-r252/r195-blank-check/human-evidence-pipeline-r252-blank.json`.
 Additional R253 source: `python3 docs/visexp/r253_agentpprof_git_install_smoke.py`, `docs/visexp/out/agentpprof-git-install-r253/agentpprof-git-install-r253.json`, and `docs/visexp/out/agentpprof-git-install-r253/profiles/tasks.pb.gz`.
 Additional R254 source: `python3 docs/visexp/r254_agentpprof_pinned_rev_install_smoke.py`, `docs/visexp/out/agentpprof-pinned-rev-install-r254/agentpprof-pinned-rev-install-r254.json`, and `docs/visexp/out/agentpprof-pinned-rev-install-r254/profiles/tasks.pb.gz`.
+Additional R255 source: `python3 docs/visexp/r255_paper_scale_r195_bridge.py`, `docs/visexp/out/human-evidence-paper-bridge-r255/paper-scale-r195-bridge-r255.json`, and `docs/visexp/out/human-evidence-paper-bridge-r255/cases/paper-scale-blank-with-r249-assignment/r195.json`.
 Completeness: partial
 
 ## Headline Result
@@ -400,6 +401,16 @@ has 2-3 replicates, the participant payload leak scan passes, and scoring the
 blank template with the R249 assignment file returns `participant_results_empty`
 with `c5_supported=false`. This is launch readiness only, not outcome evidence.
 
+R255 closes the scoring-path bridge between the R249 paper-scale C5 package and
+the R195 post-collection pipeline. R195 now accepts explicit C5 scoring inputs
+for bundle, answer key, and assignment files. With the R249 blank response
+template and R249 assignment, the isolated R195 run returns
+`scored_human_inputs_no_supported_gate` because participant results are empty;
+with the same R249 blank template but the old R142 assignment, R195 reports
+`scoring_failed`. This proves the paper-scale assignment path is wired and the
+wrong-assignment case is rejected, but it records 0 real participant responses
+and keeps `c5_supported=false` and `weak_accept_supported=false`.
+
 R250 records two read-only post-R249 reviews. Both keep the project at Level
 3/not weak accept. The author response applies hygiene fixes only: R249 wording
 now distinguishes participant packets from real participants, R249 coordinator
@@ -520,6 +531,7 @@ claim row, and fixes the paper table's C4 wording.
 | R254 | Pinned-revision `agentpprof` install smoke | `docs/visexp/out/agentpprof-pinned-rev-install-r254/agentpprof-pinned-rev-install-r254.json`, `docs/visexp/out/agentpprof-pinned-rev-install-r254/profiles/tasks.pb.gz`, `docs/visexp/out/agentpprof-pinned-rev-install-r254/pprof-top-r254.txt` | done/pinned-rev install-smoke; `cargo install --git --rev` readback passes, install rev matches driver commit, no private history, no C5/C6 outcome evidence |
 | R248-review | Post-R247/R248 OSDI paper/artifact review | `docs/visexp/out/osdi-gate-review-r248.json`, `docs/visexp/out/osdi-gate-review-r248.md` | Level 3/not weak accept; paper hygiene and C7 install-smoke fixes applied, C5/C6 still missing |
 | R249 | Paper-scale C5 participant-packet launch package | `docs/visexp/out/user-task-paper-r249/manifest.json`, `docs/visexp/out/user-task-paper-r249/user-task-assignments-r249-paper.csv`, `docs/visexp/out/user-task-paper-r249/scored/user-task-results.json` | done/paper-scale launch-ready; 12 participant packets, 168 blank response rows, scorer accepts template as empty, no outcome evidence |
+| R255 | Paper-scale R195 C5 scoring bridge | `docs/visexp/out/human-evidence-paper-bridge-r255/paper-scale-r195-bridge-r255.json`, `docs/visexp/out/human-evidence-paper-bridge-r255/cases/paper-scale-blank-with-r249-assignment/r195.json`, `docs/visexp/out/human-evidence-paper-bridge-r255/cases/paper-scale-blank-with-r142-assignment/r195.json` | done/paper-scale bridge; R249 blank template scores through R195 with R249 assignment, old R142 assignment fails, no outcome evidence |
 | R250-review | Post-R249 OSDI paper/artifact review and hygiene response | `docs/visexp/out/osdi-gate-review-r250.json`, `docs/visexp/out/osdi-gate-review-r250.md` | Level 3/not weak accept; wording/privacy/install-doc fixes applied, no C5/C6 outcome evidence |
 | R251 | Behavior-association check for prompt tags | `docs/visexp/out/behavior-tag-alignment-r251/behavior-tag-alignment-r251.json`, `docs/visexp/out/behavior-tag-alignment-r251/session-shuffle-null-r251.csv`, `docs/visexp/out/behavior-tag-alignment-r251/low-coherence-prompts-r251.csv` | done/behavior association proxy supported; prompt gain beyond session 8.419% vs null p95 1.903% under 1,000 shuffles, privacy scan 0 hits, but no human adequacy labels |
 | R252 | Paper-scale C6 label package and blank R195 check | `docs/visexp/out/tag-adequacy-paper-r252/manifest.json`, `docs/visexp/out/tag-adequacy-paper-r252/r195-blank-check/human-evidence-pipeline-r252-blank.json` | done/paper-scale label-ready; 501 rows per labeler, 1002 required independent label decisions, blank R195 check keeps gates false, no human labels |
@@ -1053,7 +1065,10 @@ provenance.
   from the same frozen task packets: 12 participant packets, 168 blank response rows,
   a nondefault assignment file, and 2-3 replicates for every task-condition;
   scoring the blank template still returns `participant_results_empty` and
-  `c5_supported=false`. R188 independently reviews the post-R187 state and
+  `c5_supported=false`. R255 verifies that the R249 blank template can be
+  scored through R195 only when R195 is passed the R249 assignment, and that the
+  old R142 assignment fails instead of silently scoring the wrong design. R188
+  independently reviews the post-R187 state and
   again records Level 3/not weak accept: R187 is launch material only, and the
   next real evidence rows are R142-pilot plus R124-labels.
   The current output is `participant_results_empty`, `c5_supported=false`, and
@@ -1126,6 +1141,7 @@ provenance.
 - `docs/visexp/out/semantic-ablation-r131.json` for semantic-axis ablation
 - `docs/visexp/out/user-task-benchmark.json`, `docs/visexp/out/user-task-participant-packets.json`, `docs/visexp/out/user-task-assignments.csv`, `docs/visexp/out/user-task-manifest.json`, `docs/visexp/out/user-task-preregistration-r142.json`, and `docs/visexp/out/user-task-results.json` for the R142-packet C5 benchmark bundle
 - `docs/visexp/out/user-task-pilot-r142/launch/manifest.json`, `participants/P01.md` through `participants/P05.md`, and `responses/user-task-response-template-r142-pilot.csv` for the R187 launch-only R142 pilot package
+- `docs/visexp/out/human-evidence-paper-bridge-r255/paper-scale-r195-bridge-r255.json` and its two `cases/*/r195.json` reports for the R249-to-R195 paper-scale C5 scoring bridge
 - `docs/visexp/out/full-history-r170.json` and `.md` for the current full-history refresh summary
 - `docs/visexp/out/weak-accept-gate-r184.json` and `.md` for the current
   mechanical C5/C6 weak-accept human-evidence gate
