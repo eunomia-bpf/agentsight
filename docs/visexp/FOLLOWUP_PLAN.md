@@ -1,6 +1,6 @@
 # AgentFlame OSDI Follow-Up Plan
 
-Last updated: 2026-06-15
+Last updated: 2026-06-19
 Stage at update: supplement / experiment-design
 Source/command: auto-research-orchestrator + osdi-experiment-design gate review over `docs/visexp`, plus R196 long-tail governance review packet, R201 sensitivity artifact, R202 candidate regeneration smoke, R203 promotion gate, R205 compaction metrics, R209 reversible display-map contract, R213 display-mode drilldown data-layer smoke, R214 long-tail control loop, R215 frontend renderer-model smoke, R216 browser DOM harness smoke, R217 production React display smoke, R218 display-map update gate, R219 claim-readiness gap gate, R195 human-evidence ingestion pipeline, R207 human-evidence launch-readiness audit, R200 public-safe community smoke, `docs/visexp/LONG_TAIL_COMPACTION.md`, R204 read-only gate review, R206 RQ/experiment-plan gate review, and R208 OSDI gate review after paper-plan alignment
 Completeness: partial
@@ -65,8 +65,10 @@ claimable delta is:
 Current reviewer posture: promising systems tooling, not OSDI weak accept.
 
 The current evidence supports C1-C3 as mechanism/characterization claims and C4
-for a fixed 20-task command-mode suite. It does not yet support broad
-cross-repo/full-history exact provenance, user utility, or tag adequacy.
+for fixed command-mode, controlled external-repository, and selected
+target-network workloads. It does not yet support broad full-history exact
+provenance, arbitrary network workloads, Claude-launched target-network
+coverage, user utility, or tag adequacy.
 R219 now encodes that boundary as a claim/RQ readiness matrix: C5 is
 unsupported with 0 participant responses, C6 is partial with 0 final labels,
 and `weak_accept_supported=false`. Its next-experiment table makes
@@ -76,8 +78,8 @@ Weak accept requires all four gates below:
 
 | Gate | Claim(s) | Required evidence | Current state | Status |
 |------|----------|-------------------|---------------|--------|
-| G1 full-history semantic characterization | C1-C3 | all repo-related readable sessions annotated by real llama.cpp model, with redacted output and baseline-mixing analysis | 205 sessions, 29,302 llama.cpp HTTP calls, 0 final tag failures, 90.219%/90.770% mixed baseline weights | pass |
-| G2 live exact semantic-effect lineage | C4 | broader live `agentsight record` suite, recall/precision table, join/orphan table, child-depth and path specificity, negative controls | R114 fixed 20-task suite: 20/20 targets completed, 1273/1273 in-scope effects joined, 100.0% precision/recall, 3170 observed negative-control effects with 0 joined; R182: record-mode `--trace-net` fixed and 35/35 low-level `codex` network rows joined with 0/604 negative-control joins, but target-specific loopback/child-process rows remain 0/0 | pass for fixed suite; broad full-history/cross-repo and target-specific network workloads still partial |
+| G1 full-history semantic characterization | C1-C3 | all repo-related readable sessions annotated by real llama.cpp model, with redacted output and baseline-mixing analysis | R170: 325 sessions, 35,136 llama.cpp HTTP calls, 0 final tag failures, 90.402%/90.918% nonsemantic/flat mixed baseline weights | pass |
+| G2 live exact semantic-effect lineage | C4 | broader live `agentsight record` suite, recall/precision table, join/orphan table, child-depth and path specificity, target-network probes, negative controls | R114 fixed 20-task suite: 20/20 targets completed, 1273/1273 in-scope effects joined, 100.0% precision/recall, 3170 observed negative-control effects with 0 joined; R191 joins 4/4 fixed target `python3` HTTP network rows with 0/310 negative joins; R229 joins 394/394 controlled multi-workspace in-scope effects with 0/306 negative joins; R232 joins 353/353 external-repo in-scope effects and 4/4 external HTTP target rows with 0/480 negative joins; R234 joins 269/269 controlled Claude/Codex in-scope effects and 8/8 target network rows with 0/331 negative joins; R238 fixes process-tracer readiness and has a compact 5/5 direct-only readiness supplement, while the official full run joins 13/16 target network rows with 0/186 negative joins; Codex/Claude-launched rows remain partial | pass for fixed and controlled scoped workloads; broad full-history, arbitrary raw sockets, and Claude-launched target-network coverage still partial |
 | G3 small-model and tag adequacy | C2,C6 | 0.6B/1B/3B llama.cpp benchmark, repeated-run stability, human adequacy labels | R180 covers local 0.6B-/1B-/3B-class syntax/stability over the 300 R122 redacted fragments: 2700/2700 valid tags; per-model exact stability is 299/300, 279/300, and 285/300 with p95 23/18/32 ms. R189/R190 add a total-preserving canonical display layer plus a 160-row merge-risk audit packet and scorer; R196 adds a long-tail governance packet with regenerate/split/keep actions; R201 adds threshold/generic-vocabulary sensitivity with review-required support 1.926%-1.931% and high-tail head stability 65.217%; R202 exercises candidate-only regeneration with 41/41 grammar-valid one-word outputs and 0 invalid outputs; R203 adds a 41-row promotion packet and blank paired-review gate with 0 final labels; R205 reports raw/canonical unique tags 1,546 -> 1,364, top-20 support coverage 93.683% -> 95.186%, and review-required support 1.926%; R213 verifies display-mode drilldown membership over R209; R214 exposes active/pending/review control gates, a non-default seven-bucket rollup preview, and a versioned regeneration policy while failing prompt review budget plus high-tail head stability; R215 verifies the frontend renderer-model consumer preserves membership and rejects corrupted/candidate-as-active fixtures; R216 verifies the same mode contract in a headless-browser DOM harness; R217 verifies production default rendering; R218 verifies reviewed-diff update-gate mechanics with synthetic review fixtures. These long-tail artifacts are C6 protocol/gate artifacts, not adequacy evidence. R190-score and R203 are still `human_labels_empty`. This is not controlled same-family scaling, and TinyLlama 1.1B collapses semantically toward localization-like tags; human adequacy still missing | partial |
 | G4 developer task utility | C5 | head-to-head task benchmark against trace tree, true span-duration flamegraph or explicitly named event-count proxy, flat summary, nonsemantic stack, semantic stack | R142-packet generated 14 tasks, 8 primary utility tasks, 6 limitation/comprehension tasks, 5 conditions, 70 leak-checked blinded packets, P01-P05 counterbalanced assignments, hidden answer key, manifests, and per-task same-event-slice `slice_id` checks. The former span-like event-weight condition is now explicitly named `event-count-proxy`, so the packet no longer claims to be a span-duration baseline. R142-scoring adds response-contract checks, task-level diagnostic deltas, Holm-corrected participant/task/order fixed-effect paper gates, false-positive guardrails, and C5 support/pilot gates. R142-preregistration is now frozen before collection and records source hashes, task roles, response schema, exclusions, conditions, and success thresholds; no participants | missing outcome data |
 
@@ -476,7 +478,9 @@ cargo run --manifest-path agentflame/Cargo.toml -- bench \
 
 - Claim tested: C3. C6 visual-noise burden and B4 task accuracy/time remain
   deferred.
-- Workload: the same 205-session full run and the B4 task-question set.
+- Workload: the R170 current full-history run (325 readable sessions, 183,714
+  system observations) for semantic-axis mechanics; B4 task-question accuracy
+  and time remain a separate human/user benchmark.
 - Variants: no semantic frames, session-only, prompt-only, prompt+LLM-call,
   full session+prompt+LLM-call.
 - Metrics: mixed bucket weight, non-dominant residual mixed weight, unique stack
@@ -489,18 +493,22 @@ cargo run --manifest-path agentflame/Cargo.toml -- bench \
 - Success criterion for paper: prompt/session frames materially reduce baseline
   mixing while keeping stack growth manageable; LLM-call frames help token views
   or are scoped out from system-effect claims.
-- Current evidence: R131 ran over the existing full folded artifacts and
-  preserved all system/token totals. It records that `agentflame.json` totals
-  match folded inputs and that generated nonsemantic/session/prompt folded files
-  exactly match the projections. System no-semantic projection mixed 90.219% of
-  full semantic bucket weight with 44.639% residual; session-only left 84.180%
-  bucket / 34.138% residual; prompt-only left 37.687% bucket / 7.526% residual.
-  Full session+prompt left 0.000% by construction. Token prompt+LLM-call still
-  mixed 95.765% of full semantic token bucket weight but only 0.027% residual,
-  so the paper should scope LLM-call tags to token navigation rather than
+- Current evidence: R224 reran the R131 checker over the R170 current
+  full-history folded artifacts and preserved all system/token totals. It
+  records that `agentflame.json` totals match folded inputs and that generated
+  nonsemantic/session/prompt folded files exactly match the projections. System
+  no-semantic projection mixed 90.402% of full semantic bucket weight with
+  44.716% residual; session-only left 84.407% bucket / 33.434% residual;
+  prompt-only left 36.722% bucket / 7.485% residual. Full session+prompt left
+  0.000% by construction. Token prompt+LLM-call still mixed 92.978% of full
+  semantic token bucket weight but only 0.041% residual, so the paper should
+  scope LLM-call tags to token navigation rather than
   system-effect attribution.
-- Result path: `.agentsight/agentflame/ablations-r131/summary.json`,
-  `docs/visexp/out/semantic-ablation-r131.json`.
+- Result path: `.agentsight/agentflame/ablations-r224-r170/summary.json`,
+  `docs/visexp/out/semantic-ablation-r224-r170/semantic-ablation-r131.json`,
+  and `docs/visexp/out/semantic-ablation-r224-r170/semantic-ablation-r131.md`.
+  The original R131 paths remain historical evidence for the older 205-session
+  run, not the current paper denominator.
 
 ### B4x: Developer Forensic Task Benchmark
 

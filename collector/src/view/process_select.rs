@@ -37,7 +37,11 @@ pub(crate) fn process_seeds(
     include_all: bool,
 ) -> Vec<PidSeed> {
     if let Some(session_id) = session_id {
-        snapshot.seeds_for_session(session_id)
+        let mut seeds = snapshot.seeds_for_session(session_id);
+        if let Some(pid) = pid {
+            seeds.extend(snapshot.seeds_for_pid_family(pid));
+        }
+        dedupe_seeds(seeds)
     } else if let Some(pid) = pid {
         snapshot.seeds_for_pid_family(pid)
     } else if let Some(comm) = comm {
@@ -47,6 +51,17 @@ pub(crate) fn process_seeds(
     } else {
         Vec::new()
     }
+}
+
+fn dedupe_seeds(seeds: Vec<PidSeed>) -> Vec<PidSeed> {
+    let mut seen = HashSet::new();
+    let mut out = Vec::new();
+    for seed in seeds {
+        if seen.insert(seed.pid) {
+            out.push(seed);
+        }
+    }
+    out
 }
 
 pub(crate) fn pids_matching_comm(snapshot: &ProcSnapshot, comm: &str) -> Vec<u32> {
@@ -439,6 +454,40 @@ mod tests {
         assert_eq!(
             seeds.into_iter().map(|seed| seed.pid).collect::<Vec<_>>(),
             vec![1, 2, 3]
+        );
+    }
+
+    #[test]
+    fn session_seeds_include_explicit_pid_family_when_session_snapshot_misses_root() {
+        let procs = [
+            ProcInfo {
+                pid: 10,
+                ppid: 1,
+                session_id: 999,
+                comm: "sh".to_string(),
+                ..Default::default()
+            },
+            ProcInfo {
+                pid: 11,
+                ppid: 10,
+                session_id: 999,
+                comm: "python3".to_string(),
+                ..Default::default()
+            },
+        ];
+        let snapshot = ProcSnapshot {
+            procs: procs
+                .into_iter()
+                .map(|proc_info| (proc_info.pid, proc_info))
+                .collect(),
+            ..Default::default()
+        };
+
+        let seeds = process_seeds(&snapshot, Some(10), Some(10), None, true);
+
+        assert_eq!(
+            seeds.into_iter().map(|seed| seed.pid).collect::<Vec<_>>(),
+            vec![10, 11]
         );
     }
 }

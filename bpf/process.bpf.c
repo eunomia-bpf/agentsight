@@ -102,6 +102,7 @@ int handle_exec(struct trace_event_raw_sched_process_exec *ctx)
 	e->ppid = BPF_CORE_READ(task, real_parent, tgid);
 	e->timestamp_ns = ts;
 	bpf_get_current_comm(&e->comm, sizeof(e->comm));
+	track_exec_pid_from_parent(e->pid, e->ppid);
 
 	fname_off = ctx->__data_loc_filename & 0xFFFF;
 	bpf_probe_read_str(&e->filename, sizeof(e->filename), (void *)ctx + fname_off);

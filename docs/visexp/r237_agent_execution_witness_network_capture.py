@@ -598,10 +598,15 @@ def aggregate_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
     status_counts = Counter(row.get("capture_status") or "unknown" for row in rows)
     launcher_counts = Counter(row.get("launcher") or "unknown" for row in rows)
     witness_ok_rows = [row for row in rows if row.get("runtime_witness_ok")]
-    port_linked_rows = [
+    port_observed_rows = [
         row
         for row in rows
         if int((row.get("collector_invariant") or {}).get("witness_port_target_rows") or 0) > 0
+    ]
+    port_joined_rows = [
+        row
+        for row in rows
+        if int((row.get("collector_invariant") or {}).get("witness_port_joined_rows") or 0) > 0
     ]
     return {
         "tasks": len(rows),
@@ -609,7 +614,9 @@ def aggregate_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "capture_statuses": dict(status_counts),
         "launchers": dict(launcher_counts),
         "runtime_witness_ok_tasks": len(witness_ok_rows),
-        "witness_port_linked_tasks": len(port_linked_rows),
+        "witness_port_observed_tasks": len(port_observed_rows),
+        "witness_port_joined_tasks": len(port_joined_rows),
+        "witness_port_linked_tasks": len(port_observed_rows),
         "required_action_tasks_ok": sum(
             1 for row in rows if (row.get("target_network_oracle") or {}).get("required_actions_ok")
         ),
@@ -636,19 +643,28 @@ def claim_gate(rows: list[dict[str, Any]], aggregate: dict[str, Any]) -> dict[st
     claude_capture_ok = bool(claude_rows) and all(
         row.get("capture_status") == "captured_joined" for row in claude_rows
     )
-    positive_controls_ok = bool(codex_rows) and all(
+    codex_witness_observed_ok = bool(codex_rows) and all(
         row.get("runtime_witness_ok")
         and int((row.get("collector_invariant") or {}).get("witness_port_target_rows") or 0) > 0
         for row in codex_rows
     )
+    witness_port_observed_ok = int(
+        aggregate.get("witness_port_observed_tasks")
+        or aggregate.get("witness_port_linked_tasks")
+        or 0
+    ) == len(rows)
+    witness_port_joined_ok = int(aggregate.get("witness_port_joined_tasks") or 0) == len(rows)
     direct_orphan_resolved = bool(direct_rows) and all(
         row.get("capture_status") == "captured_joined" for row in direct_rows
     )
     return {
         "runtime_witness_gate": int(aggregate.get("runtime_witness_ok_tasks") or 0) == len(rows),
-        "witness_port_capture_gate": int(aggregate.get("witness_port_linked_tasks") or 0) == len(rows),
+        "witness_port_observed_gate": witness_port_observed_ok,
+        "witness_port_joined_gate": witness_port_joined_ok,
+        "witness_port_capture_gate": witness_port_observed_ok,
         "negative_control_gate": negative_clean,
-        "positive_controls_gate": positive_controls_ok,
+        "codex_witness_observed_gate": codex_witness_observed_ok,
+        "positive_controls_gate": codex_witness_observed_ok,
         "claude_launched_capture_gate": claude_capture_ok,
         "direct_orphan_resolved_gate": direct_orphan_resolved,
         "r237_claude_target_network_supported": claude_capture_ok and negative_clean,
@@ -656,28 +672,28 @@ def claim_gate(rows: list[dict[str, Any]], aggregate: dict[str, Any]) -> dict[st
     }
 
 
-def boundary_text(gate: dict[str, Any]) -> str:
+def boundary_text(gate: dict[str, Any], run_id: str) -> str:
     if gate["r237_boundary_resolved"]:
         return (
-            "R237 resolves the R236 boundary for this controlled workload: runtime witnesses "
+            f"{run_id} resolves the prior boundary for this controlled workload: runtime witnesses "
             "pass, witness ports are captured, target network rows join, and negative "
             "controls remain clean. This still does not prove arbitrary network workloads."
         )
     if gate["r237_claude_target_network_supported"]:
         return (
-            "R237 supports the controlled Claude-launched HTTP witness path, but one or more "
+            f"{run_id} supports the controlled Claude-launched HTTP witness path, but one or more "
             "direct or non-Claude diagnostic rows still need lineage cleanup."
         )
-    if gate["runtime_witness_gate"] and gate["positive_controls_gate"]:
+    if gate["runtime_witness_gate"] and gate["direct_orphan_resolved_gate"] and gate["negative_control_gate"]:
         return (
-            "R237 partially localizes the remaining boundary: all runtime witnesses pass "
-            "and positive-control witness ports are captured, but the Claude-launched HTTP "
-            "witness port is not linked to any target network row and the direct multiprocess "
-            "control still has missing_tool_ancestry orphan rows. This supports a named "
+            f"{run_id} partially localizes the remaining boundary: runtime witnesses pass, "
+            "direct controls pass, witness ports are observed, and negative controls remain "
+            "clean, but agent-launched Codex/Claude rows still have target-network "
+            "orphan or missing-action cases. This supports a named "
             "collector/launcher boundary, not broad Claude-launched network coverage."
         )
     return (
-        "R237 remains partial: runtime witnesses, witness-port capture, or target-row lineage "
+        f"{run_id} remains partial: runtime witnesses, witness-port capture, or target-row lineage "
         "did not all pass. The result narrows C4 but does not upgrade broad Claude-launched "
         "or raw network coverage."
     )
@@ -687,14 +703,14 @@ def write_markdown(path: Path, result: dict[str, Any]) -> None:
     agg = result["aggregate"]
     gate = result["claim_gate"]
     lines = [
-        "# R237 Agent Execution Witness Network Capture",
+        f"# {result['run_id']} Agent Execution Witness Network Capture",
         "",
         f"Last updated: {date.today().isoformat()}",
         "Stage at update: execute/analyze",
         "Source/command: `python3 docs/visexp/r237_agent_execution_witness_network_capture.py`",
         f"Completeness: {result['status']}",
         "",
-        "R237 diagnoses whether agent-launched network probes execute with a runtime-only witness",
+        f"{result['run_id']} diagnoses whether agent-launched network probes execute with a runtime-only witness",
         "and whether the same witness port appears in target network capture rows.",
         "",
         "## Aggregate",
@@ -703,13 +719,15 @@ def write_markdown(path: Path, result: dict[str, Any]) -> None:
         f"- Capture statuses: {agg['capture_statuses']}.",
         f"- Launchers: {agg['launchers']}.",
         f"- Runtime witness ok tasks: {agg['runtime_witness_ok_tasks']}/{agg['tasks']}.",
-        f"- Witness-port linked tasks: {agg['witness_port_linked_tasks']}/{agg['tasks']}.",
+        f"- Witness-port observed tasks: {agg.get('witness_port_observed_tasks', agg['witness_port_linked_tasks'])}/{agg['tasks']}.",
+        f"- Witness-port joined tasks: {agg.get('witness_port_joined_tasks', 'n/a')}/{agg['tasks']}.",
         f"- Required-action task gate: {agg['required_action_tasks_ok']}/{agg['tasks']}.",
         f"- Target network effects: {agg['joined_target_network_effect_events']}/{agg['target_network_effect_events']} joined.",
         f"- Negative controls: observed={agg['negative_effect_events_observed']}, joined={agg['negative_joined_effect_events']}.",
         f"- Gates: runtime_witness={gate['runtime_witness_gate']}, "
-        f"witness_port_capture={gate['witness_port_capture_gate']}, "
-        f"positive_controls={gate['positive_controls_gate']}, "
+        f"witness_port_observed={gate.get('witness_port_observed_gate', gate['witness_port_capture_gate'])}, "
+        f"witness_port_joined={gate.get('witness_port_joined_gate', 'n/a')}, "
+        f"codex_witness_observed={gate.get('codex_witness_observed_gate', gate['positive_controls_gate'])}, "
         f"claude_capture={gate['claude_launched_capture_gate']}, "
         f"direct_orphan_resolved={gate['direct_orphan_resolved_gate']}, "
         f"boundary_resolved={gate['r237_boundary_resolved']}.",
@@ -753,7 +771,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     if args.print_manifest:
         payload = {
             "schema_version": 1,
-            "run_id": "R237",
+            "run_id": args.run_id,
             "tasks": [
                 {
                     "task_id": task.task_id,
@@ -778,7 +796,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     status = "ok" if gate["r237_boundary_resolved"] else "partial"
     result = {
         "schema_version": 1,
-        "run_id": "R237",
+        "run_id": args.run_id,
         "status": status,
         "scope": "agent_execution_witness_and_target_network_capture_boundary",
         "generated_at": date.today().isoformat(),
@@ -791,10 +809,10 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "aggregate": aggregate,
         "claim_gate": gate,
         "tasks_detail": [compact_task_row(row) for row in rows],
-        "boundary": boundary_text(gate),
+        "boundary": boundary_text(gate, args.run_id),
         "metric_boundary": (
             "scoped_lineage_oracle_precision_pct and scoped_lineage_oracle_recall_pct "
-            "are computed over observed in-scope and negative effects. R237 support is "
+            f"are computed over observed in-scope and negative effects. {args.run_id} support is "
             "governed by runtime witness, witness-port capture, target-network join, "
             "and negative-control gates."
         ),
@@ -810,8 +828,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         ),
     }
     result = scrub_r237_artifact_value(r114.scrub_artifact_value(result), work_dir)
-    json_path = out_dir / "agent-execution-witness-network-capture-r237.json"
-    md_path = out_dir / "agent-execution-witness-network-capture-r237.md"
+    run_slug = args.run_id.lower()
+    json_path = out_dir / f"agent-execution-witness-network-capture-{run_slug}.json"
+    md_path = out_dir / f"agent-execution-witness-network-capture-{run_slug}.md"
     result["outputs"] = {"json": r114.rel(json_path), "markdown": r114.rel(md_path)}
     json_path.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     write_markdown(md_path, result)
@@ -840,6 +859,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--negative-mode", choices=("wrapper", "none"), default="wrapper")
     parser.add_argument("--task-limit", type=int, default=len(TASKS))
     parser.add_argument("--print-manifest", action="store_true")
+    parser.add_argument("--run-id", default="R237")
     return parser.parse_args()
 
 

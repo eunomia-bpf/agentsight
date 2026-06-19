@@ -121,9 +121,14 @@ int trace_kill(struct trace_event_raw_sys_enter *ctx)
 SEC("tp/sched/sched_process_fork")
 int trace_fork(struct trace_event_raw_sched_process_fork *ctx)
 {
+	if (!is_cgroup_tracked())
+		return 0;
+
+	track_child_pid_from_parent((u32)ctx->parent_pid, (u32)ctx->child_pid);
+
 	if (!trace_signals)
 		return 0;
-	if (!is_event_tracked())
+	if (!is_pid_tracked())
 		return 0;
 
 	struct agg_key key = {};

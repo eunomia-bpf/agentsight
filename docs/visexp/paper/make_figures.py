@@ -14,7 +14,7 @@ from matplotlib.patches import Rectangle
 PAPER_DIR = Path(__file__).resolve().parent
 VIS_DIR = PAPER_DIR.parent
 PROJECT_ROOT = PAPER_DIR.parents[2]
-AGENTFLAME_DIR = PROJECT_ROOT / ".agentsight" / "agentflame" / "latest"
+AGENTFLAME_DIR = PROJECT_ROOT / ".agentsight" / "agentflame" / "r170-full-current"
 FIG_DIR = PAPER_DIR / "figures"
 
 
