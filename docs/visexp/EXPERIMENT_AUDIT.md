@@ -13,6 +13,7 @@ Additional R252 source: `docs/visexp/out/tag-adequacy-paper-r252/manifest.json` 
 Additional R253 source: `docs/visexp/out/agentpprof-git-install-r253/agentpprof-git-install-r253.json` and `docs/visexp/out/agentpprof-git-install-r253/pprof-top-r253.txt`.
 Additional R254 source: `docs/visexp/out/agentpprof-pinned-rev-install-r254/agentpprof-pinned-rev-install-r254.json` and `docs/visexp/out/agentpprof-pinned-rev-install-r254/pprof-top-r254.txt`.
 Additional R255 source: `docs/visexp/out/human-evidence-paper-bridge-r255/paper-scale-r195-bridge-r255.json` and `docs/visexp/out/human-evidence-paper-bridge-r255/cases/paper-scale-blank-with-r249-assignment/r195.json`.
+Additional R256 source: `docs/visexp/out/agentpprof-crate-package-r256/agentpprof-crate-package-r256.json` and `docs/visexp/out/agentpprof-crate-package-r256/package-files-r256.txt`.
 Completeness: partial
 
 ## Audit Verdict
@@ -378,6 +379,17 @@ views, and confirms `go tool pprof -top` reads 6/6 task samples. It is C7
 install-smoke evidence only: no private histories are discovered, no LLM is
 called, and C5/C6/weak-accept gates remain false.
 
+R253 and R254 move that installed-CLI smoke to GitHub install paths: branch
+install and pinned-revision install. Both process the same committed public
+fixture, emit pprof/folded/JSON/SVG views, and preserve the no-private-history
+and no-live-tagger boundary. R256 then checks the crate package boundary rather
+than another run path: `cargo package --list` reports the intended 8 files,
+`cargo package` verifies the crate from a clean provenance commit, the archive
+matches the listed files, and the verify log observes registry
+`agent-session v0.3.3`. R256 is C7 crate-package dry-run evidence only: it is
+not crates.io publish/readback, external-machine adoption, user utility, or tag
+adequacy evidence.
+
 R249 closes a C5 launch-material gap. R247's sendable bundle is a five-person
 pilot, while the C5 scorer requires at least twelve real participants for any
 paper-scale utility claim. R249 derives a separate 12-participant-packet package from
@@ -436,9 +448,10 @@ boundary and R205/R207 paper alignment. It records the same Level 3/not weak
 accept decision: R205/R207 improve readiness and scoping, but C5 requires real
 participant responses, C6 requires R124 human labels, compaction quality
 requires R190/R203 labels if claimed, C4 breadth requires target-specific
-network/cross-repo evidence, and C7 still requires crates.io or
-external-machine install, real-report sanitization, and external developer
-feedback beyond the local/GitHub-branch smokes.
+network/cross-repo evidence, and C7 still requires crates.io publish/readback
+or external-machine install, real-report sanitization, and external developer
+feedback beyond the local, GitHub-branch, pinned-revision, and crate-package
+dry-run smokes.
 
 ## Claim-Evidence Alignment
 
@@ -450,7 +463,7 @@ feedback beyond the local/GitHub-branch smokes.
 | C4 exact semantic-effect lineage | supported for fixed and controlled scoped workloads; partial broadly and partial for Codex/Claude-launched target-network workloads | `docs/visexp/out/live-record-r114.json`, `docs/visexp/out/live-record-r114-analysis.json`, `docs/visexp/out/live-network-r182.json`, `docs/visexp/out/live-network-r191.json`, `docs/visexp/out/exact-lineage-replication-r229.json`, `docs/visexp/out/external-crossrepo-lineage-r232/external-crossrepo-lineage-r232.json`, `docs/visexp/out/broader-agent-network-lineage-r234/broader-agent-network-lineage-r234.json`, `docs/visexp/out/raw-claude-network-lineage-r235/raw-claude-network-lineage-r235.json`, `docs/visexp/out/multiprocess-claude-network-capture-r236/multiprocess-claude-network-capture-r236.json`, `docs/visexp/out/agent-execution-witness-network-capture-r237/agent-execution-witness-network-capture-r237.json`, `docs/visexp/out/agent-execution-witness-network-capture-r238/agent-execution-witness-network-capture-r238.json` | warn |
 | C5 developer utility | unsupported | `docs/visexp/out/user-task-preregistration-r142.json`, `docs/visexp/out/user-task-results.json`, `docs/visexp/out/human-evidence-pipeline-r195.json`, `docs/visexp/out/human-evidence-collection-kit-r243/collection-kit-r243.json`, `docs/visexp/out/human-evidence-collection-kit-export-smoke-r244/collection-kit-export-smoke-r244.json`, `docs/visexp/out/user-task-paper-r249/manifest.json`, `docs/visexp/out/user-task-paper-r249/scored/user-task-results.json`, `docs/visexp/out/human-evidence-paper-bridge-r255/paper-scale-r195-bridge-r255.json` | fail for outcome claim |
 | C6 tag adequacy | syntax/stability/behavior-association partial; protocol/logistics only; human adequacy unsupported | `docs/visexp/out/tag-adequacy-results-r124.json`, `docs/visexp/out/tag-adequacy-label-packet-r122.csv`, `docs/visexp/out/tag-adequacy-label-join-r124.json`, `docs/visexp/out/tag-consolidation-audit-r190/merge-risk-audit-results-r190.json`, `docs/visexp/out/long-tail-governance-r196/long-tail-governance-r196.json`, `docs/visexp/out/long-tail-sensitivity-r201/long-tail-sensitivity-r201.json`, `docs/visexp/out/long-tail-regeneration-r202/long-tail-regeneration-r202.json`, `docs/visexp/out/long-tail-promotion-r203/long-tail-promotion-r203.json`, `docs/visexp/out/reversible-display-map-r209/reversible-display-map-r209.json`, `docs/visexp/out/display-compaction-ablation-r212/display-compaction-ablation-r212.json`, `docs/visexp/out/behavior-tag-alignment-r251/behavior-tag-alignment-r251.json`, `docs/visexp/out/tag-adequacy-paper-r252/manifest.json`, `docs/visexp/out/tag-adequacy-paper-r252/r195-blank-check/human-evidence-pipeline-r252-blank.json`, `docs/visexp/out/human-evidence-pipeline-r195.json`, `docs/visexp/out/human-evidence-collection-kit-r243/collection-kit-r243.json`, `docs/visexp/out/human-evidence-collection-kit-export-smoke-r244/collection-kit-export-smoke-r244.json` | fail for human adequacy claim |
-| C7 artifact/install usability | partial | `docs/visexp/out/artifact-usability-r160.json`: bounded fixed-session smoke passed, with expected artifacts, redacted previews, folded-total checks, generated report path containment, sanitized input manifest `11ae4fb2c96a2d1478aa1525`, clean/cached input equality, and a 76/76 cached rerun; `docs/visexp/out/community-smoke-r200.json`: public-safe generated fixture, 5 clean llama.cpp calls, 0 cached model calls, 5/5 cache hits, no real `.codex`/`.claude` reads, no prompt-preview leakage, and no raw-trace dirty paths; `docs/visexp/out/agentpprof-install-r248/agentpprof-install-r248.json`: installed local-package `agentpprof` public-fixture pprof readback with no private-history discovery and no live model/tagger calls; `docs/visexp/out/agentpprof-git-install-r253/agentpprof-git-install-r253.json`: GitHub-branch `cargo install --git` pprof/folded/JSON/SVG readback passed with no private-history discovery and no live model/tagger calls; `docs/visexp/out/agentpprof-pinned-rev-install-r254/agentpprof-pinned-rev-install-r254.json`: pinned-revision `cargo install --git --rev` readback passed with install rev matching the driver commit, clean provenance, no private-history discovery, and no live model/tagger calls | warn |
+| C7 artifact/install usability | partial | `docs/visexp/out/artifact-usability-r160.json`: bounded fixed-session smoke passed, with expected artifacts, redacted previews, folded-total checks, generated report path containment, sanitized input manifest `11ae4fb2c96a2d1478aa1525`, clean/cached input equality, and a 76/76 cached rerun; `docs/visexp/out/community-smoke-r200.json`: public-safe generated fixture, 5 clean llama.cpp calls, 0 cached model calls, 5/5 cache hits, no real `.codex`/`.claude` reads, no prompt-preview leakage, and no raw-trace dirty paths; `docs/visexp/out/agentpprof-install-r248/agentpprof-install-r248.json`: installed local-package `agentpprof` public-fixture pprof readback with no private-history discovery and no live model/tagger calls; `docs/visexp/out/agentpprof-git-install-r253/agentpprof-git-install-r253.json`: GitHub-branch `cargo install --git` pprof/folded/JSON/SVG readback passed with no private-history discovery and no live model/tagger calls; `docs/visexp/out/agentpprof-pinned-rev-install-r254/agentpprof-pinned-rev-install-r254.json`: pinned-revision `cargo install --git --rev` readback passed with install rev matching the driver commit, clean provenance, no private-history discovery, and no live model/tagger calls; `docs/visexp/out/agentpprof-crate-package-r256/agentpprof-crate-package-r256.json`: clean `cargo package` dry-run verified an 8-file crate, archive/list equality, forbidden-path absence, and registry `agent-session v0.3.3` resolution | warn |
 
 ## Result Integrity Checks
 
@@ -511,6 +524,7 @@ feedback beyond the local/GitHub-branch smokes.
 | R200 public-safe smoke is not community adoption | R200 uses a generated fixture, records `reads_real_agent_traces=false`, makes 5 clean llama.cpp calls, makes 0 cached model calls with 5/5 cache hits, exposes 0 prompt previews in the committed summary, records no raw-trace dirty paths, and keeps `community_adoption_supported=false` | pass |
 | R253 GitHub install smoke is not community adoption | R253 installs `agentpprof` from the GitHub branch and verifies pprof readback over a committed public fixture, but it records `weak_accept_supported=false`, `c5_supported=false`, `c6_supported=false`, and does not prove crates.io packaging, external-machine adoption, real-history public sanitization, or user utility | pass |
 | R254 pinned-rev install smoke is not community adoption | R254 installs `agentpprof` from a pinned GitHub revision and verifies pprof readback over a committed public fixture, but it records `weak_accept_supported=false`, `c5_supported=false`, `c6_supported=false`, and does not prove crates.io packaging, external-machine adoption, real-history public sanitization, or user utility | pass |
+| R256 crate package smoke is not community adoption | R256 verifies local `cargo package` dry-run, intended 8-file crate contents, archive/list equality, forbidden-path absence, and registry dependency verification, but it records `weak_accept_supported=false`, `c5_supported=false`, `c6_supported=false`, and `crates_publish_supported=false`; it does not prove crates.io publish/readback, external-machine adoption, real-history public sanitization, or user utility | pass |
 | C7 local report privacy boundary | R160 records that `.agentsight/agentflame/*/agentflame.json` is local/private and not public-release-ready because it contains trace roots/session metadata; the committed artifact is the redacted audit JSON | pass |
 | C7/R170 mechanism refresh is not overclaimed | R170 records 35,136 fresh llama.cpp calls and folded integrity, but its claim boundary excludes C5/C6 outcome evidence, broad exact lineage, and community adoption | pass |
 | C7 write-set scope is not overclaimed | R160 records raw-trace git hygiene and report path containment, but explicitly does not claim full pre/post write-set containment | pass |
@@ -555,8 +569,9 @@ community developer tool.
 Current status: R160 passes as a bounded fixed-session local smoke, R200
 passes as a public-safe generated-fixture smoke, R220 passes a local clean-clone
 `agentpprof` pprof-readback smoke, R248 passes a local `cargo install --path`
-smoke, R253 passes a GitHub-branch `cargo install --git` smoke, and R254 passes
-a pinned-revision `cargo install --git --rev` smoke. R160 connects to a
+smoke, R253 passes a GitHub-branch `cargo install --git` smoke, R254 passes a
+pinned-revision `cargo install --git --rev` smoke, and R256 passes a clean
+`cargo package` dry-run. R160 connects to a
 llama.cpp-compatible server, writes `.agentsight/agentflame/r160-smoke-fixed`,
 verifies expected outputs with `artifact_usability_r160.py`, records
 clean/cached runtime behavior, records a sanitized fixed-input manifest, checks
@@ -566,10 +581,11 @@ cached. R200 uses a temporary synthetic Codex fixture, does not read real
 fixed-input cache behavior with 5 clean llama.cpp calls and 5/5 cached hits.
 R253/R254 use no live model/tagger calls and no private history; they only prove
 the branch and pinned-revision install paths can emit and read back the public
-fixture profiles.
+fixture profiles. R256 proves the local crate file set and registry dependency
+verification path only; it does not publish or install from crates.io.
 
-Remaining concrete fix: run an external-machine clean install or crates.io
-readback smoke with public setup instructions, choose a stable default sampling
+Remaining concrete fix: run a crates.io publish/readback or external-machine
+clean install smoke with public setup instructions, choose a stable default sampling
 mode, public-sanitize real local reports, run a real pre/post write-set audit,
 and collect feedback from external developers. The failed 36-session cached attempt
 is informative: dynamic discovery can see new live Codex session fragments
@@ -602,7 +618,8 @@ Allowed:
 - R220/R248/R253/R254 verify `agentpprof` can emit pprof/folded/JSON/SVG outputs
   from a public fixture through local clean-clone, local install, and GitHub
   branch/pinned-revision install paths, with `go tool pprof` readback and no
-  private-history discovery.
+  private-history discovery. R256 additionally verifies the local crate-package
+  dry-run file set and registry dependency resolution, without publishing.
 
 Disallowed:
 
@@ -629,3 +646,4 @@ Disallowed:
 | R248 | C7 | Installed `agentpprof` public-fixture smoke. | `python3 docs/visexp/r248_agentpprof_install_smoke.py` | `cargo install --path agentpprof --locked --force`, committed public fixture, regex tagger, no LLM calls | installed help, pprof/folded/JSON/SVG outputs, `go tool pprof` readback, expected projections, output containment, privacy scan | local package install/readback is audited; crates.io and external-machine adoption remain open | `docs/visexp/out/agentpprof-install-r248/agentpprof-install-r248.json` | done/install-smoke |
 | R253 | C7 | GitHub-branch `agentpprof` install smoke. | `python3 docs/visexp/r253_agentpprof_git_install_smoke.py` | `cargo install --git` from `research/semantic-flamegraph-artifacts`, committed public fixture, regex tagger, no LLM calls | installed help, pprof/folded/JSON/SVG outputs, `go tool pprof` readback, expected projections, output containment, privacy scan | GitHub branch install/readback is audited; crates.io, external-machine adoption, and user feedback remain open | `docs/visexp/out/agentpprof-git-install-r253/agentpprof-git-install-r253.json` | done/git-install-smoke |
 | R254 | C7 | Pinned-revision `agentpprof` install smoke. | `python3 docs/visexp/r254_agentpprof_pinned_rev_install_smoke.py` | `cargo install --git --rev c43daf2b2565531dfd95de8654adabb30ac878d4`, committed public fixture, regex tagger, no live model calls | installed help, pprof/folded/JSON/SVG outputs, `go tool pprof` readback, expected projections, output containment, privacy scan, install rev matches driver commit | pinned GitHub revision install/readback is audited; crates.io, external-machine adoption, and user feedback remain open | `docs/visexp/out/agentpprof-pinned-rev-install-r254/agentpprof-pinned-rev-install-r254.json` | done/pinned-rev-smoke |
+| R256 | C7 | `agentpprof` crate package smoke. | `python3 docs/visexp/r256_agentpprof_crate_package_smoke.py` | clean provenance commit, `cargo package --list`, `cargo package`, no private-history discovery, no LLM calls | intended 8-file crate set, archive/list equality, forbidden-path absence, registry `agent-session v0.3.3` verification, summary privacy scan | local crate package dry-run is audited; crates.io publish/readback, external-machine adoption, and user feedback remain open | `docs/visexp/out/agentpprof-crate-package-r256/agentpprof-crate-package-r256.json` | done/crate-package-smoke |
