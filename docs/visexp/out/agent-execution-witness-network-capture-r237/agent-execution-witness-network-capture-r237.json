@@ -1,0 +1,514 @@
+{
+  "agentsight_bin": "collector/target/debug/agentsight",
+  "aggregate": {
+    "capture_statuses": {
+      "captured_joined": 2,
+      "collector_lineage_orphaned": 1,
+      "witness_unlinked_to_capture": 1
+    },
+    "joined_target_network_effect_events": 8,
+    "launchers": {
+      "claude": 1,
+      "codex": 1,
+      "direct-python": 2
+    },
+    "negative_effect_events_observed": 7,
+    "negative_joined_effect_events": 0,
+    "ok_tasks": 2,
+    "orphan_target_network_effect_events": 1,
+    "required_action_tasks_ok": 2,
+    "runtime_witness_ok_tasks": 4,
+    "scoped_lineage_oracle_precision_pct": 100.0,
+    "scoped_lineage_oracle_recall_pct": 97.546,
+    "target_network_actions": {
+      "NET_BIND": 2,
+      "NET_CONNECT": 5,
+      "NET_LISTEN": 2
+    },
+    "target_network_effect_events": 9,
+    "target_network_process_comms": {
+      "python3": 9
+    },
+    "tasks": 4,
+    "witness_port_linked_tasks": 3
+  },
+  "artifact_boundary": "Raw SQLite DBs, exported snapshots, workspaces, and per-event lineage CSVs stay in the local work dir; committed artifacts contain aggregate/task summaries without per-event examples.",
+  "boundary": "R237 partially localizes the remaining boundary: all runtime witnesses pass and positive-control witness ports are captured, but the Claude-launched HTTP witness port is not linked to any target network row and the direct multiprocess control still has missing_tool_ancestry orphan rows. This supports a named collector/launcher boundary, not broad Claude-launched network coverage.",
+  "claim_gate": {
+    "claude_launched_capture_gate": false,
+    "direct_orphan_resolved_gate": false,
+    "negative_control_gate": true,
+    "positive_controls_gate": true,
+    "r237_boundary_resolved": false,
+    "r237_claude_target_network_supported": false,
+    "runtime_witness_gate": true,
+    "witness_port_capture_gate": false
+  },
+  "claude_bin": "$CLAUDE_BIN",
+  "codex_bin": "$CODEX_BIN",
+  "generated_at": "2026-06-18",
+  "metric_boundary": "scoped_lineage_oracle_precision_pct and scoped_lineage_oracle_recall_pct are computed over observed in-scope and negative effects. R237 support is governed by runtime witness, witness-port capture, target-network join, and negative-control gates.",
+  "negative_mode": "wrapper",
+  "outputs": {
+    "json": "docs/visexp/out/agent-execution-witness-network-capture-r237/agent-execution-witness-network-capture-r237.json",
+    "markdown": "docs/visexp/out/agent-execution-witness-network-capture-r237/agent-execution-witness-network-capture-r237.md"
+  },
+  "run_id": "R237",
+  "schema_version": 1,
+  "scope": "agent_execution_witness_and_target_network_capture_boundary",
+  "status": "partial",
+  "task_limit": 4,
+  "tasks_detail": [
+    {
+      "agent": "python3",
+      "capture_status": "captured_joined",
+      "collector_invariant": {
+        "joined_target_network_rows": 4,
+        "orphan_target_network_rows": 0,
+        "target_join_methods": {
+          "pid_family_time_window": 4
+        },
+        "target_network_rows": 4,
+        "target_orphan_reasons": {},
+        "witness_port_joined_rows": 1,
+        "witness_port_orphan_rows": 0,
+        "witness_port_target_rows": 1
+      },
+      "launcher": "direct-python",
+      "network_lineage": {
+        "joined_network_effect_events": 4,
+        "joined_target_network_effect_events": 4,
+        "network_effect_events": 4,
+        "network_process_comms": {
+          "python3": 4
+        },
+        "orphan_target_network_effect_events": 0,
+        "target_network_actions": {
+          "NET_BIND": 1,
+          "NET_CONNECT": 2,
+          "NET_LISTEN": 1
+        },
+        "target_network_effect_events": 4,
+        "target_network_join_pct": 100.0,
+        "target_network_process_comms": {
+          "python3": 4
+        }
+      },
+      "precision_recall": {
+        "agent_process_count": 1,
+        "false_negatives": 0,
+        "false_positives": 0,
+        "in_scope_effect_events": 9,
+        "negative_control_status": "not_observed",
+        "negative_effect_events_observed": 0,
+        "negative_joined_effect_events": 0,
+        "out_of_scope_effect_events": 0,
+        "scoped_lineage_oracle_precision_pct": 100.0,
+        "scoped_lineage_oracle_recall_pct": 100.0,
+        "true_positives": 9
+      },
+      "probe_result": {
+        "body": "r237-http-witness",
+        "bytes": 17,
+        "probe": "http_witness",
+        "status": "ok"
+      },
+      "probe_result_ok": true,
+      "record_returncode": 0,
+      "record_status": "ok",
+      "runtime_witness": {
+        "body_sha256": "cc95c9f5e1ac10276b37ac670729631bc2f754d971ed655fdc5898b736d09fe7",
+        "elapsed_ms": 1515,
+        "parent_pid_observed": true,
+        "port": 34417,
+        "probe": "http_witness",
+        "proof": "c8e2dc6b1c41ffca49b8f27933c2b59c74f38c5893e2dc844c42f62439b1e29a",
+        "status": "ok",
+        "token_sha256": "9bf326533aaaa812fe0a23871850a853139d3f844334a2360ecea9d591949d22",
+        "witness": "r237-runtime"
+      },
+      "runtime_witness_ok": true,
+      "script": "r237_http_witness_probe.py",
+      "snapshot_counts": {
+        "audit_events": 9,
+        "process_nodes": 1,
+        "sessions": 1,
+        "tool_calls": 1
+      },
+      "snapshot_diagnostics": {
+        "audit_events": 9,
+        "network_actions": {
+          "NET_BIND": 1,
+          "NET_CONNECT": 2,
+          "NET_LISTEN": 1
+        },
+        "network_events": 4,
+        "network_process_comms": {
+          "python3": 4
+        },
+        "process_nodes": 1,
+        "python_process_nodes": 1,
+        "script_process_nodes": 0,
+        "snapshot_exists": true,
+        "witness_port_actions": {
+          "NET_CONNECT": 1
+        },
+        "witness_port_network_rows": 1
+      },
+      "status": "ok",
+      "target_exit_code": 0,
+      "target_network_oracle": {
+        "all_target_network_rows_joined": true,
+        "missing_required_actions": [],
+        "orphan_target_network_rows": 0,
+        "required_actions": [
+          "NET_BIND",
+          "NET_LISTEN",
+          "NET_CONNECT"
+        ],
+        "required_actions_ok": true,
+        "target_network_rows_observed": true
+      },
+      "target_status": "completed",
+      "task_id": "r237-direct-http-witness",
+      "token_sha256": "9bf326533aaaa812fe0a23871850a853139d3f844334a2360ecea9d591949d22"
+    },
+    {
+      "agent": "python3",
+      "capture_status": "collector_lineage_orphaned",
+      "collector_invariant": {
+        "joined_target_network_rows": 0,
+        "orphan_target_network_rows": 1,
+        "target_join_methods": {
+          "none": 1
+        },
+        "target_network_rows": 1,
+        "target_orphan_reasons": {
+          "missing_tool_ancestry": 1
+        },
+        "witness_port_joined_rows": 0,
+        "witness_port_orphan_rows": 1,
+        "witness_port_target_rows": 1
+      },
+      "launcher": "direct-python",
+      "network_lineage": {
+        "joined_network_effect_events": 0,
+        "joined_target_network_effect_events": 0,
+        "network_effect_events": 1,
+        "network_process_comms": {
+          "python3": 1
+        },
+        "orphan_target_network_effect_events": 1,
+        "target_network_actions": {
+          "NET_CONNECT": 1
+        },
+        "target_network_effect_events": 1,
+        "target_network_join_pct": 0.0,
+        "target_network_process_comms": {
+          "python3": 1
+        }
+      },
+      "precision_recall": {
+        "agent_process_count": 0,
+        "false_negatives": 4,
+        "false_positives": 0,
+        "in_scope_effect_events": 4,
+        "negative_control_status": "not_observed",
+        "negative_effect_events_observed": 0,
+        "negative_joined_effect_events": 0,
+        "out_of_scope_effect_events": 0,
+        "scoped_lineage_oracle_precision_pct": 0.0,
+        "scoped_lineage_oracle_recall_pct": 0.0,
+        "true_positives": 0
+      },
+      "probe_result": {
+        "body": "corpitlum-732r",
+        "bytes": 14,
+        "probe": "multiprocess_tcp_witness",
+        "status": "ok"
+      },
+      "probe_result_ok": true,
+      "record_returncode": 0,
+      "record_status": "ok",
+      "runtime_witness": {
+        "body_sha256": "c4ce553ce98524480550d91cfefcecdf6df37be41eb428179dab22912b1ce20b",
+        "child_pid_consistent": true,
+        "child_pid_observed": true,
+        "child_witness_pid_observed": true,
+        "elapsed_ms": 1021,
+        "parent_pid_observed": true,
+        "port": 43717,
+        "probe": "multiprocess_tcp_witness",
+        "proof": "43bc03c52036e7b035c42ba4a3ed539c69e4f2ca21d944ee4fbdfa71d6837e86",
+        "status": "ok",
+        "token_sha256": "bebb3a8d5d897fae78c4f13b643339608e24ac742acf3ce7aa777057ac733a42",
+        "witness": "r237-runtime"
+      },
+      "runtime_witness_ok": true,
+      "script": "r237_multiprocess_witness_probe.py",
+      "snapshot_counts": {
+        "audit_events": 4,
+        "process_nodes": 1,
+        "sessions": 1,
+        "tool_calls": 1
+      },
+      "snapshot_diagnostics": {
+        "audit_events": 4,
+        "network_actions": {
+          "NET_CONNECT": 1
+        },
+        "network_events": 1,
+        "network_process_comms": {
+          "python3": 1
+        },
+        "process_nodes": 1,
+        "python_process_nodes": 1,
+        "script_process_nodes": 0,
+        "snapshot_exists": true,
+        "witness_port_actions": {
+          "NET_CONNECT": 1
+        },
+        "witness_port_network_rows": 1
+      },
+      "status": "partial",
+      "target_exit_code": 0,
+      "target_network_oracle": {
+        "all_target_network_rows_joined": false,
+        "missing_required_actions": [
+          "NET_BIND",
+          "NET_LISTEN"
+        ],
+        "orphan_target_network_rows": 1,
+        "required_actions": [
+          "NET_BIND",
+          "NET_LISTEN",
+          "NET_CONNECT"
+        ],
+        "required_actions_ok": false,
+        "target_network_rows_observed": true
+      },
+      "target_status": "completed",
+      "task_id": "r237-direct-multiprocess-witness",
+      "token_sha256": "bebb3a8d5d897fae78c4f13b643339608e24ac742acf3ce7aa777057ac733a42"
+    },
+    {
+      "agent": "codex",
+      "capture_status": "captured_joined",
+      "collector_invariant": {
+        "joined_target_network_rows": 4,
+        "orphan_target_network_rows": 0,
+        "target_join_methods": {
+          "pid_family_time_window": 4
+        },
+        "target_network_rows": 4,
+        "target_orphan_reasons": {},
+        "witness_port_joined_rows": 1,
+        "witness_port_orphan_rows": 0,
+        "witness_port_target_rows": 1
+      },
+      "launcher": "codex",
+      "network_lineage": {
+        "joined_network_effect_events": 14,
+        "joined_target_network_effect_events": 4,
+        "network_effect_events": 14,
+        "network_process_comms": {
+          "codex": 10,
+          "python3": 4
+        },
+        "orphan_target_network_effect_events": 0,
+        "target_network_actions": {
+          "NET_BIND": 1,
+          "NET_CONNECT": 2,
+          "NET_LISTEN": 1
+        },
+        "target_network_effect_events": 4,
+        "target_network_join_pct": 100.0,
+        "target_network_process_comms": {
+          "python3": 4
+        }
+      },
+      "precision_recall": {
+        "agent_process_count": 59,
+        "false_negatives": 0,
+        "false_positives": 0,
+        "in_scope_effect_events": 117,
+        "negative_control_status": "observed",
+        "negative_effect_events_observed": 6,
+        "negative_joined_effect_events": 0,
+        "out_of_scope_effect_events": 36,
+        "scoped_lineage_oracle_precision_pct": 100.0,
+        "scoped_lineage_oracle_recall_pct": 100.0,
+        "true_positives": 117
+      },
+      "probe_result": {
+        "body": "r237-http-witness",
+        "bytes": 17,
+        "probe": "http_witness",
+        "status": "ok"
+      },
+      "probe_result_ok": true,
+      "record_returncode": 0,
+      "record_status": "ok",
+      "runtime_witness": {
+        "body_sha256": "cc95c9f5e1ac10276b37ac670729631bc2f754d971ed655fdc5898b736d09fe7",
+        "elapsed_ms": 1512,
+        "parent_pid_observed": true,
+        "port": 42115,
+        "probe": "http_witness",
+        "proof": "1d1e18854e8603bb7f18e3719ce0b5750e12ab425a31a077c2e0c571f753df19",
+        "status": "ok",
+        "token_sha256": "59cb7d968b8e6ded01015702c34647569b2bc844a331f4198405741573feb41a",
+        "witness": "r237-runtime"
+      },
+      "runtime_witness_ok": true,
+      "script": "r237_http_witness_probe.py",
+      "snapshot_counts": {
+        "audit_events": 159,
+        "process_nodes": 76,
+        "sessions": 1,
+        "tool_calls": 1
+      },
+      "snapshot_diagnostics": {
+        "audit_events": 159,
+        "network_actions": {
+          "NET_BIND": 3,
+          "NET_CONNECT": 10,
+          "NET_LISTEN": 1
+        },
+        "network_events": 14,
+        "network_process_comms": {
+          "python3": 4,
+          "reqwest-interna": 1,
+          "tokio-rt-worker": 9
+        },
+        "process_nodes": 76,
+        "python_process_nodes": 3,
+        "script_process_nodes": 0,
+        "snapshot_exists": true,
+        "witness_port_actions": {
+          "NET_CONNECT": 1
+        },
+        "witness_port_network_rows": 1
+      },
+      "status": "ok",
+      "target_exit_code": 0,
+      "target_network_oracle": {
+        "all_target_network_rows_joined": true,
+        "missing_required_actions": [],
+        "orphan_target_network_rows": 0,
+        "required_actions": [
+          "NET_BIND",
+          "NET_LISTEN",
+          "NET_CONNECT"
+        ],
+        "required_actions_ok": true,
+        "target_network_rows_observed": true
+      },
+      "target_status": "completed",
+      "task_id": "r237-codex-http-witness",
+      "token_sha256": "59cb7d968b8e6ded01015702c34647569b2bc844a331f4198405741573feb41a"
+    },
+    {
+      "agent": "claude",
+      "capture_status": "witness_unlinked_to_capture",
+      "collector_invariant": {
+        "joined_target_network_rows": 0,
+        "orphan_target_network_rows": 0,
+        "target_join_methods": {},
+        "target_network_rows": 0,
+        "target_orphan_reasons": {},
+        "witness_port_joined_rows": 0,
+        "witness_port_orphan_rows": 0,
+        "witness_port_target_rows": 0
+      },
+      "launcher": "claude",
+      "network_lineage": {
+        "joined_network_effect_events": 0,
+        "joined_target_network_effect_events": 0,
+        "network_effect_events": 0,
+        "network_process_comms": {},
+        "orphan_target_network_effect_events": 0,
+        "target_network_actions": {},
+        "target_network_effect_events": 0,
+        "target_network_join_pct": 0.0,
+        "target_network_process_comms": {}
+      },
+      "precision_recall": {
+        "agent_process_count": 16,
+        "false_negatives": 0,
+        "false_positives": 0,
+        "in_scope_effect_events": 33,
+        "negative_control_status": "observed",
+        "negative_effect_events_observed": 1,
+        "negative_joined_effect_events": 0,
+        "out_of_scope_effect_events": 21,
+        "scoped_lineage_oracle_precision_pct": 100.0,
+        "scoped_lineage_oracle_recall_pct": 100.0,
+        "true_positives": 33
+      },
+      "probe_result": {
+        "body": "r237-http-witness",
+        "bytes": 17,
+        "probe": "http_witness",
+        "status": "ok"
+      },
+      "probe_result_ok": true,
+      "record_returncode": 0,
+      "record_status": "ok",
+      "runtime_witness": {
+        "body_sha256": "cc95c9f5e1ac10276b37ac670729631bc2f754d971ed655fdc5898b736d09fe7",
+        "elapsed_ms": 1516,
+        "parent_pid_observed": true,
+        "port": 33317,
+        "probe": "http_witness",
+        "proof": "fb97b04c6f626d6d012313134627c535b600ab1209740eeb5f8f510518424f48",
+        "status": "ok",
+        "token_sha256": "d160ef54a630546be47d057234b497ed78c48d23a4311afcbc6aa1aced7aa8cd",
+        "witness": "r237-runtime"
+      },
+      "runtime_witness_ok": true,
+      "script": "r237_http_witness_probe.py",
+      "snapshot_counts": {
+        "audit_events": 55,
+        "process_nodes": 25,
+        "sessions": 1,
+        "tool_calls": 1
+      },
+      "snapshot_diagnostics": {
+        "audit_events": 55,
+        "network_actions": {},
+        "network_events": 0,
+        "network_process_comms": {},
+        "process_nodes": 25,
+        "python_process_nodes": 1,
+        "script_process_nodes": 0,
+        "snapshot_exists": true,
+        "witness_port_actions": {},
+        "witness_port_network_rows": 0
+      },
+      "status": "partial",
+      "target_exit_code": 0,
+      "target_network_oracle": {
+        "all_target_network_rows_joined": false,
+        "missing_required_actions": [
+          "NET_BIND",
+          "NET_LISTEN",
+          "NET_CONNECT"
+        ],
+        "orphan_target_network_rows": 0,
+        "required_actions": [
+          "NET_BIND",
+          "NET_LISTEN",
+          "NET_CONNECT"
+        ],
+        "required_actions_ok": false,
+        "target_network_rows_observed": false
+      },
+      "target_status": "completed",
+      "task_id": "r237-claude-http-witness",
+      "token_sha256": "d160ef54a630546be47d057234b497ed78c48d23a4311afcbc6aa1aced7aa8cd"
+    }
+  ],
+  "witness_boundary": "The raw per-task witness token is generated by the harness and passed through the recorded process environment. It is not written to committed artifacts. This is a controlled execution witness, not an adversarial proof against an agent that intentionally inspects its environment.",
+  "work_dir": "$R237_WORK"
+}
