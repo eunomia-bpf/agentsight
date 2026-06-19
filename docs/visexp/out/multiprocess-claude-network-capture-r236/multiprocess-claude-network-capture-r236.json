@@ -1,0 +1,402 @@
+{
+  "agentsight_bin": "collector/target/debug/agentsight",
+  "aggregate": {
+    "agent_missing_target_rows_tasks": 1,
+    "agent_target_rows_observed_tasks": 1,
+    "capture_statuses": {
+      "capture_missing_target_network": 1,
+      "captured_joined": 1,
+      "lineage_orphaned": 2
+    },
+    "direct_target_rows_observed_tasks": 2,
+    "joined_target_network_effect_events": 5,
+    "launchers": {
+      "claude": 1,
+      "codex": 1,
+      "direct-python": 2
+    },
+    "lineage_orphaned_tasks": 2,
+    "negative_effect_events_observed": 11,
+    "negative_joined_effect_events": 0,
+    "ok_tasks": 1,
+    "orphan_target_network_effect_events": 2,
+    "precision_pct": 100.0,
+    "recall_pct": 96.429,
+    "required_action_tasks_ok": 2,
+    "target_network_actions": {
+      "NET_BIND": 2,
+      "NET_CONNECT": 3,
+      "NET_LISTEN": 2
+    },
+    "target_network_effect_events": 7,
+    "target_network_process_comms": {
+      "python3": 7
+    },
+    "target_rows_observed_tasks": 3,
+    "tasks": 4
+  },
+  "artifact_boundary": "Raw SQLite DBs, exported snapshots, workspaces, and per-event lineage CSVs stay in the local work dir; committed artifacts contain aggregate/task summaries without per-event examples.",
+  "boundary": "R236 partially localizes the R235 boundary: direct Python controls can produce target network rows and negative controls stay clean; the Codex delayed multiprocess probe can also join target rows. However, direct rows can still orphan and the Claude-launched delayed HTTP probe exports zero target rows despite probe_result_ok. Therefore probe_result_ok is not sufficient execution/capture evidence; the next gate must add a non-synthesizable runtime witness and inspect the collector lineage invariant.",
+  "claim_gate": {
+    "agent_probe_ok_missing_capture_gate": true,
+    "agent_target_rows_observed_gate": true,
+    "claude_delayed_http_gate": false,
+    "codex_delayed_multiprocess_gate": true,
+    "direct_delayed_multiprocess_gate": false,
+    "direct_target_rows_observed_gate": true,
+    "lineage_orphan_gate": true,
+    "negative_control_gate": true,
+    "r236_broad_raw_claude_network_supported": false,
+    "r236_capture_boundary_localized": false,
+    "r236_capture_boundary_partially_localized": true
+  },
+  "claude_bin": "$CLAUDE_BIN",
+  "codex_bin": "$CODEX_BIN",
+  "generated_at": "2026-06-18",
+  "metric_boundary": "precision_pct and recall_pct are scoped lineage-oracle metrics over observed in-scope and negative effects; target-network capture support is governed by target-row observation, required-action, join, and broad-support gates.",
+  "negative_mode": "wrapper",
+  "outputs": {
+    "json": "docs/visexp/out/multiprocess-claude-network-capture-r236/multiprocess-claude-network-capture-r236.json",
+    "markdown": "docs/visexp/out/multiprocess-claude-network-capture-r236/multiprocess-claude-network-capture-r236.md"
+  },
+  "run_id": "R236",
+  "schema_version": 1,
+  "scope": "multiprocess_and_claude_launched_process_network_capture_boundary",
+  "status": "partial",
+  "task_limit": 4,
+  "tasks_detail": [
+    {
+      "agent": "python3",
+      "capture_status": "lineage_orphaned",
+      "launcher": "direct-python",
+      "network_lineage": {
+        "joined_network_effect_events": 2,
+        "joined_target_network_effect_events": 2,
+        "network_effect_events": 3,
+        "network_process_comms": {
+          "python3": 3
+        },
+        "orphan_target_network_effect_events": 1,
+        "target_network_actions": {
+          "NET_BIND": 1,
+          "NET_CONNECT": 1,
+          "NET_LISTEN": 1
+        },
+        "target_network_effect_events": 3,
+        "target_network_join_pct": 66.667,
+        "target_network_process_comms": {
+          "python3": 3
+        }
+      },
+      "precision_recall": {
+        "agent_process_count": 1,
+        "false_negatives": 0,
+        "false_positives": 0,
+        "in_scope_effect_events": 4,
+        "negative_control_status": "not_observed",
+        "negative_effect_events_observed": 0,
+        "negative_joined_effect_events": 0,
+        "out_of_scope_effect_events": 6,
+        "precision_pct": 100.0,
+        "recall_pct": 100.0,
+        "true_positives": 4
+      },
+      "probe_result": {
+        "body": "corpitlum-632r",
+        "bytes": 14,
+        "probe": "multiprocess_tcp",
+        "status": "ok"
+      },
+      "probe_result_ok": true,
+      "record_returncode": 0,
+      "record_status": "ok",
+      "script": "r236_multiprocess_tcp_probe.py",
+      "snapshot_counts": {
+        "audit_events": 10,
+        "process_nodes": 2,
+        "sessions": 1,
+        "tool_calls": 1
+      },
+      "snapshot_diagnostics": {
+        "audit_events": 10,
+        "network_actions": {
+          "NET_BIND": 1,
+          "NET_CONNECT": 1,
+          "NET_LISTEN": 1
+        },
+        "network_events": 3,
+        "network_process_comms": {
+          "python3": 3
+        },
+        "process_nodes": 2,
+        "python_process_nodes": 2,
+        "script_process_nodes": 0,
+        "snapshot_exists": true
+      },
+      "status": "partial",
+      "target_exit_code": 0,
+      "target_network_oracle": {
+        "all_target_network_rows_joined": false,
+        "missing_required_actions": [],
+        "orphan_target_network_rows": 1,
+        "required_actions": [
+          "NET_BIND",
+          "NET_LISTEN",
+          "NET_CONNECT"
+        ],
+        "required_actions_ok": true,
+        "target_network_rows_observed": true
+      },
+      "target_status": "completed",
+      "task_id": "r236-direct-multiprocess-fast"
+    },
+    {
+      "agent": "python3",
+      "capture_status": "lineage_orphaned",
+      "launcher": "direct-python",
+      "network_lineage": {
+        "joined_network_effect_events": 0,
+        "joined_target_network_effect_events": 0,
+        "network_effect_events": 1,
+        "network_process_comms": {
+          "python3": 1
+        },
+        "orphan_target_network_effect_events": 1,
+        "target_network_actions": {
+          "NET_CONNECT": 1
+        },
+        "target_network_effect_events": 1,
+        "target_network_join_pct": 0.0,
+        "target_network_process_comms": {
+          "python3": 1
+        }
+      },
+      "precision_recall": {
+        "agent_process_count": 0,
+        "false_negatives": 5,
+        "false_positives": 0,
+        "in_scope_effect_events": 5,
+        "negative_control_status": "not_observed",
+        "negative_effect_events_observed": 0,
+        "negative_joined_effect_events": 0,
+        "out_of_scope_effect_events": 0,
+        "precision_pct": 0.0,
+        "recall_pct": 0.0,
+        "true_positives": 0
+      },
+      "probe_result": {
+        "body": "corpitlum-632r",
+        "bytes": 14,
+        "probe": "multiprocess_tcp",
+        "status": "ok"
+      },
+      "probe_result_ok": true,
+      "record_returncode": 0,
+      "record_status": "ok",
+      "script": "r236_multiprocess_tcp_probe.py",
+      "snapshot_counts": {
+        "audit_events": 5,
+        "process_nodes": 1,
+        "sessions": 1,
+        "tool_calls": 1
+      },
+      "snapshot_diagnostics": {
+        "audit_events": 5,
+        "network_actions": {
+          "NET_CONNECT": 1
+        },
+        "network_events": 1,
+        "network_process_comms": {
+          "python3": 1
+        },
+        "process_nodes": 1,
+        "python_process_nodes": 1,
+        "script_process_nodes": 0,
+        "snapshot_exists": true
+      },
+      "status": "partial",
+      "target_exit_code": 0,
+      "target_network_oracle": {
+        "all_target_network_rows_joined": false,
+        "missing_required_actions": [
+          "NET_BIND",
+          "NET_LISTEN"
+        ],
+        "orphan_target_network_rows": 1,
+        "required_actions": [
+          "NET_BIND",
+          "NET_LISTEN",
+          "NET_CONNECT"
+        ],
+        "required_actions_ok": false,
+        "target_network_rows_observed": true
+      },
+      "target_status": "completed",
+      "task_id": "r236-direct-multiprocess-delayed"
+    },
+    {
+      "agent": "codex",
+      "capture_status": "captured_joined",
+      "launcher": "codex",
+      "network_lineage": {
+        "joined_network_effect_events": 13,
+        "joined_target_network_effect_events": 3,
+        "network_effect_events": 13,
+        "network_process_comms": {
+          "codex": 10,
+          "python3": 3
+        },
+        "orphan_target_network_effect_events": 0,
+        "target_network_actions": {
+          "NET_BIND": 1,
+          "NET_CONNECT": 1,
+          "NET_LISTEN": 1
+        },
+        "target_network_effect_events": 3,
+        "target_network_join_pct": 100.0,
+        "target_network_process_comms": {
+          "python3": 3
+        }
+      },
+      "precision_recall": {
+        "agent_process_count": 61,
+        "false_negatives": 0,
+        "false_positives": 0,
+        "in_scope_effect_events": 98,
+        "negative_control_status": "observed",
+        "negative_effect_events_observed": 6,
+        "negative_joined_effect_events": 0,
+        "out_of_scope_effect_events": 46,
+        "precision_pct": 100.0,
+        "recall_pct": 100.0,
+        "true_positives": 98
+      },
+      "probe_result": {
+        "body": "corpitlum-632r",
+        "bytes": 14,
+        "probe": "multiprocess_tcp",
+        "status": "ok"
+      },
+      "probe_result_ok": true,
+      "record_returncode": 0,
+      "record_status": "ok",
+      "script": "r236_multiprocess_tcp_probe.py",
+      "snapshot_counts": {
+        "audit_events": 150,
+        "process_nodes": 83,
+        "sessions": 1,
+        "tool_calls": 1
+      },
+      "snapshot_diagnostics": {
+        "audit_events": 150,
+        "network_actions": {
+          "NET_BIND": 3,
+          "NET_CONNECT": 9,
+          "NET_LISTEN": 1
+        },
+        "network_events": 13,
+        "network_process_comms": {
+          "python3": 3,
+          "reqwest-interna": 1,
+          "tokio-rt-worker": 9
+        },
+        "process_nodes": 83,
+        "python_process_nodes": 4,
+        "script_process_nodes": 0,
+        "snapshot_exists": true
+      },
+      "status": "ok",
+      "target_exit_code": 0,
+      "target_network_oracle": {
+        "all_target_network_rows_joined": true,
+        "missing_required_actions": [],
+        "orphan_target_network_rows": 0,
+        "required_actions": [
+          "NET_BIND",
+          "NET_LISTEN",
+          "NET_CONNECT"
+        ],
+        "required_actions_ok": true,
+        "target_network_rows_observed": true
+      },
+      "target_status": "completed",
+      "task_id": "r236-codex-multiprocess-delayed"
+    },
+    {
+      "agent": "claude",
+      "capture_status": "capture_missing_target_network",
+      "launcher": "claude",
+      "network_lineage": {
+        "joined_network_effect_events": 0,
+        "joined_target_network_effect_events": 0,
+        "network_effect_events": 0,
+        "network_process_comms": {},
+        "orphan_target_network_effect_events": 0,
+        "target_network_actions": {},
+        "target_network_effect_events": 0,
+        "target_network_join_pct": 0.0,
+        "target_network_process_comms": {}
+      },
+      "precision_recall": {
+        "agent_process_count": 16,
+        "false_negatives": 0,
+        "false_positives": 0,
+        "in_scope_effect_events": 33,
+        "negative_control_status": "observed",
+        "negative_effect_events_observed": 5,
+        "negative_joined_effect_events": 0,
+        "out_of_scope_effect_events": 21,
+        "precision_pct": 100.0,
+        "recall_pct": 100.0,
+        "true_positives": 33
+      },
+      "probe_result": {
+        "body": "r236-http-probe",
+        "bytes": 15,
+        "probe": "http",
+        "status": "ok"
+      },
+      "probe_result_ok": true,
+      "record_returncode": 0,
+      "record_status": "ok",
+      "script": "r236_http_probe.py",
+      "snapshot_counts": {
+        "audit_events": 59,
+        "process_nodes": 25,
+        "sessions": 1,
+        "tool_calls": 1
+      },
+      "snapshot_diagnostics": {
+        "audit_events": 59,
+        "network_actions": {},
+        "network_events": 0,
+        "network_process_comms": {},
+        "process_nodes": 25,
+        "python_process_nodes": 1,
+        "script_process_nodes": 0,
+        "snapshot_exists": true
+      },
+      "status": "partial",
+      "target_exit_code": 0,
+      "target_network_oracle": {
+        "all_target_network_rows_joined": false,
+        "missing_required_actions": [
+          "NET_BIND",
+          "NET_LISTEN",
+          "NET_CONNECT"
+        ],
+        "orphan_target_network_rows": 0,
+        "required_actions": [
+          "NET_BIND",
+          "NET_LISTEN",
+          "NET_CONNECT"
+        ],
+        "required_actions_ok": false,
+        "target_network_rows_observed": false
+      },
+      "target_status": "completed",
+      "task_id": "r236-claude-http-delayed"
+    }
+  ],
+  "work_dir": "$R236_WORK"
+}
