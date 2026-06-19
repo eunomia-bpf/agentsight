@@ -245,6 +245,14 @@ and all C5/C6/canonicalization/promotion/map-update gates false. R243 reduces
 return-format and merge friction only; it still contains 0 real responses and 0
 human labels.
 
+R244 smoke-tests that static kit. Headless Chrome loads the index, coordinator,
+P01 participant, and R124/R190/R203 labeler pages. The export simulation writes
+five synthetic participant CSVs and merges them into a 70-row
+`r142-pilot-responses.csv` with P01-P05 each contributing 14 rows; the six
+synthetic labeler CSVs preserve source fields and row counts while keeping
+label cells blank. The outputs remain under the R244 directory, not the R195
+inbox, so R244 is export-contract evidence only.
+
 R219 summarizes the current evidence as a mechanical claim/RQ readiness gate.
 It reads generated artifacts only, writes claim/RQ/next-experiment CSVs, and
 reports `osdi_weak_accept_not_supported`: C1 is supported, C2 is supported for
@@ -394,6 +402,7 @@ claim row, and fixes the paper table's C4 wording.
 | R207 | Human-evidence launch-readiness audit and R195 return-file mapping | `docs/visexp/out/human-evidence-launch-r207/human-evidence-launch-r207.json` | launch-ready/no outcomes; five packets, blank sheets/templates, clear return names |
 | R242 | Synthetic R195 human-evidence contract smoke | `docs/visexp/out/human-evidence-contract-r242/human-evidence-contract-r242.json` | done/contract-smoke; synthetic only, no C5/C6 outcome evidence |
 | R243 | Static human-evidence collection kit | `docs/visexp/out/human-evidence-collection-kit-r243/collection-kit-r243.json` | done/collection-kit; static forms and R142 merge page, no outcome evidence |
+| R244 | Static collection-kit form/export smoke | `docs/visexp/out/human-evidence-collection-kit-export-smoke-r244/collection-kit-export-smoke-r244.json` | done/export-smoke; Chrome load checks and synthetic CSV exports, no outcome evidence |
 | R171 | Read-only subagent OSDI gate review after R170/R124-join planning | `docs/visexp/out/osdi-gate-review-r171.md` | done/review |
 | R181 | Read-only subagent OSDI gate review after R180 local multi-model benchmark | `docs/visexp/out/osdi-gate-review-r181.md` | done/review; still not weak accept |
 | R060 | legacy Python prototype pipeline over sampled sessions | `docs/visexp/out/pipeline-report.json` | legacy, superseded for headline scale |
