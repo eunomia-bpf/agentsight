@@ -42,7 +42,10 @@ AI 编程 agent 的可观测性问题不只是 ``模型调用了哪个 tool''，
 去掉 session/prompt 语义后，nonsemantic baseline 有 90.402\% 的观测权重落入混合多个语义区域的 buckets；flat effect baseline 的混合权重为 90.918\%。
 R224 消融进一步显示：在保持同一 183,714 个系统观测总权重不变时，session-only 仍混合 84.407\% 的完整语义权重，prompt-only 降到 36.722\%，完整 session+prompt 降到 0.000\%。
 这些结果支持一个机制性结论：语义帧，尤其是 prompt 标签，能分开传统 trace 或 process summary 会合并的 task-effect 区域。
-本文也明确边界：当前 full run 仍基于 agent-native session 历史；R114 在 20 个固定 \texttt{codex} command-mode 任务上把 1,273/1,273 个 in-scope effects 连到 agent process family，precision/recall 均为 100.0\%，并拒绝 3,170 个 negative-control effects；R182 只证明 record-mode \texttt{--trace-net} 能 join 35/35 个低层 \texttt{codex} network rows；R191 进一步在固定 Codex HTTP probe 上观察到 4/4 个 target \texttt{python3} bind/listen/connect rows 全部 join，且 0/310 negative-control effects 被误归因；R229 又在 5 个 controlled multi-workspace tasks 上 join 394/394 个 in-scope effects，且 0/306 negative-control effects 被误归因；R232 在 AgentSight 仓库外运行 4 个 fresh external git-repo tasks 和 1 个 external HTTP probe，join 353/353 个 normal in-scope effects 与 4/4 个 target network rows，且 0/480 negative-control effects 被误归因；R234 用 1 个 Claude command-mode task 和 2 个 Codex HTTP-family target-network probes 做受控扩展，join 269/269 个 in-scope effects，其中 8/8 个 target network rows joined，且 0/331 negative-control effects 被误归因；R235 专门测试 raw TCP、multiprocess TCP 和 Claude-launched target-network：单进程 Codex TCP 的 3/3 target network rows joined，但 Codex multiprocess TCP 和 Claude-launched HTTP/TCP probe 虽然 \texttt{probe\_result\_ok=true}，却产生 0 个 target network rows；R236/R237 随后诊断该边界，R237 的 4/4 runtime witnesses 都通过，但只有 3/4 witness ports 被捕获，8/9 target network rows joined；R238 将 \texttt{record --} 启动从固定 sleep 改为等待 process tracer \texttt{CLOCK\_SYNC/start}，并修复 filtered PID propagation 的两个边界；一个 compact supplement 汇总 5/5 direct-only readiness repetitions，正式 full run 中 4/4 witnesses 和 4/4 witness ports observed，direct HTTP 与 direct multiprocess controls 均 joined，13/16 target network rows joined，0/186 negative-control effects 被误归因，但 Codex/Claude-launched rows 仍有 3 个 target-network orphan/missing-action cases；R240 把其中两个实现风险变成 regression：command-root fallback 只允许 root-self join，target-child loopback runtime test 覆盖 bind/listen/connect 且排除 unrelated port。因此当前证据仍不能支持广义 raw-socket 或 Claude-launched network coverage；R230 对 full-history generated artifacts 做 projection-lineage audit，确认 183,714/183,714 个 folded system-observation weight 都有 semantic session/prompt tag frames 和 call/effect frames，tool prompt-index coverage 为 100.0\%，但也发现 12 个 duplicate prompt-index rows 和 346 weight（0.188\%）的 prompt-tag drift；R231 进一步复现该 drift，确认 folded display 的 prompt-frame weights 与 event-local prompt tags 精确一致（183,714/183,714），并把 field-index drift 定位到 Claude duplicate-index sessions（unique-index sessions 为 0 tool weight/0 LLM events）；R233 将 duplicate prompt-index 归一化为 non-keyed row identity，并用 \texttt{(prompt\_index,prompt\_tag)} semantic key 将 legacy drift 346 tool weight/93 LLM events 降到 0/0。因此用户任务实验、任意仓库泛化、Claude-launched target-network capture、更多 agent family 和 same-tag duplicate prompt-row identity 仍未完成，不能声称用户效用或完整系统 provenance 已被证明。
+本文也明确边界：live lineage 证据只支持固定 command-mode 和 controlled scoped workloads，而不是完整系统 provenance。
+R114/R191/R229/R232/R234 在固定任务、外部仓库和受控 target-network probes 中给出 100.0\% scoped precision/recall 且 negative-control joins 为 0；R238/R240 进一步修复并回归测试 direct process/network readiness。
+但 Codex/Claude-launched target-network rows 仍有 orphan/missing-action cases，full-history projection 仍只是在 generated artifacts 上验证语义帧覆盖。
+因此用户任务实验、任意仓库泛化、Claude-launched target-network capture、更多 agent family 和 same-tag duplicate prompt-row identity 仍未完成，不能声称用户效用或完整系统 provenance 已被证明。
 \end{abstract}
 
 \section{问题}
@@ -367,7 +370,7 @@ Flat summary 只会显示 2,903 次 successful \texttt{cargo test}。
 Nonsemantic stack 会保留 \texttt{call:tool/shell;process:cargo;effect:test;status:ok}，但仍把不同语义区域混在一起。
 Semantic stack 将它拆成多个区域，包括 \texttt{review/review}、\texttt{refactor/refactor}、\texttt{research/explain}、\texttt{research/refactor}、\texttt{design/review} 等。
 R211 的 R170 刷新版本进一步显示 \texttt{process:cargo;effect:test;status:ok} 在 48 个 prompt tags 中分布，\texttt{refactor} 只占 31.95\%，其余 68.05\% 来自 \texttt{review}、\texttt{research}、\texttt{commitlog}、\texttt{explain}、\texttt{test} 等 prompt。
-这正是 span-duration flamegraph 或 flat process table 难以回答的问题：同样是 test process，语义来源不同，调试结论也不同。
+这生成了一个可检查的候选分解：同样是 test process，语义来源不同；后续 C5 才能测试开发者是否能更快或更准确地使用它。
 
 这类结果生成可供检查的候选分解，用来辅助三类 developer questions：
 
@@ -482,6 +485,7 @@ Clean run 发起 5 次真实 tag calls；cached rerun 为 0 次模型调用和 5
 R220 进一步把用户入口切到产品化的 \texttt{agentpprof}，并从临时 clean clone 运行。
 脚本在 clone 内创建 public synthetic Codex fixture，使用 deterministic regex tagger，不调用 LLM，也不读取真实 agent histories。
 它生成 \texttt{tasks.pb.gz}、\texttt{tools.folded}、\texttt{tokens.json}、\texttt{files.folded}、\texttt{network.folded} 和 \texttt{tools.svg}；五个 projection 的样本数为 6/4/190/3/1；\texttt{go tool pprof -top} 能读取 \texttt{tasks.pb.gz} 并报告 6/6 total samples；tools/files/network/token 的 expected-stack checks、output containment 和 privacy scan 均通过。
+R248 将同一思路推进到 installable path：先用 \texttt{cargo install --path agentpprof --locked --force} 安装本地包，再用安装后的 \texttt{agentpprof} 读取 committed public fixture，并生成同样的 pprof/folded/JSON/SVG outputs；\texttt{go tool pprof -top} 仍能读回 6/6 task samples，且命令显式使用 \texttt{--session-file}、\texttt{--tagger regex} 和 \texttt{--no-cache}，因此不读取私有历史、不调用 LLM。
 
 这些结果说明 bounded local artifact path、public-safe fixture path 和本机 clean-clone \texttt{agentpprof} pprof readback 在固定输入下是可审计、可重复的。
 但它们不等于 external-machine install，也不等于社区开发者已经能顺利使用；本地 \texttt{.agentsight} report 仍包含 trace roots/session metadata，因此不是 public-release artifact。
@@ -533,7 +537,7 @@ R246 进一步记录 post-R245 OSDI review 的 author response：C5/C6 仍是 mu
     partial &
     需要 R124 人工 adequacy labels；若要声称 controlled model scaling 还需同族模型 benchmark。 \\
     C7 artifact usability &
-    R160 bounded smoke 生成 expected artifacts；clean run 1.64 s，60 uncached LLM calls；cached rerun 0.11 s，76/76 cache hits，0 LLM calls。R200 public-safe fixture smoke clean run 5 次 tag calls，cached rerun 0 次模型调用和 5/5 cache hits。R220 本机 clean-clone \texttt{agentpprof} smoke 生成 pprof/folded/JSON/SVG outputs，tasks/tools/tokens/files/network samples 为 6/4/190/3/1，\texttt{go tool pprof} readback 和 expected-stack checks 通过。 &
+    R160 bounded smoke 生成 expected artifacts；clean run 1.64 s，60 uncached LLM calls；cached rerun 0.11 s，76/76 cache hits，0 LLM calls。R200 public-safe fixture smoke clean run 5 次 tag calls，cached rerun 0 次模型调用和 5/5 cache hits。R220 本机 clean-clone \texttt{agentpprof} smoke 生成 pprof/folded/JSON/SVG outputs，tasks/tools/tokens/files/network samples 为 6/4/190/3/1，\texttt{go tool pprof} readback 和 expected-stack checks 通过。R248 进一步验证 \texttt{cargo install --path agentpprof --locked --force} 后的 installed CLI 可用同一 committed public fixture 生成并读回这些 outputs。 &
     partial &
     仍需要 external-machine clean-install workflow、real-report public sanitization、llama.cpp LLM-tag setup、稳定默认采样、full write-set audit 和外部开发者反馈。 \\
     \bottomrule

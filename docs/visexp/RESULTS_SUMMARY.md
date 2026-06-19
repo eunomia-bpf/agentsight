@@ -5,6 +5,7 @@ Stage at update: analyze
 Source/command: R170 full-history run plus `python3 docs/visexp/r189_tag_consolidation.py`, `python3 docs/visexp/r190_tag_consolidation_audit.py`, `python3 docs/visexp/r190_score_merge_audit.py`, `python3 docs/visexp/r196_long_tail_governance.py`, `python3 docs/visexp/r201_long_tail_sensitivity.py`, `python3 docs/visexp/r202_long_tail_regeneration_smoke.py --regenerate-limit 50 --load-timeout 240 --llama-timeout 60`, `python3 docs/visexp/r203_long_tail_promotion_gate.py`, `python3 docs/visexp/r205_long_tail_compaction_metrics.py`, `python3 docs/visexp/r209_reversible_display_map.py`, `python3 docs/visexp/r211_stack_examples.py`, `python3 docs/visexp/r212_display_compaction_ablation.py`, `python3 docs/visexp/r213_display_mode_drilldown_smoke.py`, `python3 docs/visexp/r214_long_tail_control_loop.py`, `python3 docs/visexp/r215_frontend_renderer_mode_smoke.py`, `python3 docs/visexp/r216_browser_dom_mode_smoke.py`, `python3 docs/visexp/r217_production_react_display_mode_smoke.py`, `python3 docs/visexp/r218_display_map_update_gate.py`, `python3 docs/visexp/r220_fresh_clone_agentpprof_smoke.py`, `python3 docs/visexp/r219_claim_readiness_gap_gate.py`, `python3 docs/visexp/r193_prepare_human_evidence_package.py`, `python3 docs/visexp/r194_human_evidence_preflight.py`, `python3 docs/visexp/r195_human_evidence_pipeline.py`, `python3 docs/visexp/r207_human_launch_readiness.py`, `python3 docs/visexp/r242_human_evidence_contract_smoke.py`, `python3 docs/visexp/r200_community_smoke.py`, `python3 docs/visexp/r131_semantic_ablation.py --input .agentsight/agentflame/r170-full-current --local-out .agentsight/agentflame/ablations-r224-r170/summary.json --out-dir docs/visexp/out/semantic-ablation-r224-r170`, `python3 docs/visexp/r223_projection_tradeoff.py`, `python3 docs/visexp/r225_prompt_span_duration_baseline.py`, `python3 docs/visexp/r237_agent_execution_witness_network_capture.py --run-id R238`, `python3 docs/visexp/r240_lineage_guard_regression.py`, `docs/visexp/LONG_TAIL_COMPACTION.md`, `docs/visexp/out/osdi-gate-review-r204.md`, `docs/visexp/out/osdi-rq-gate-review-r206.md`, `docs/visexp/out/osdi-gate-review-r208.md`, `docs/visexp/out/osdi-gate-review-r228.md`, `docs/visexp/out/osdi-gate-review-r239.md`, and `docs/visexp/out/osdi-gate-review-r241.md`
 Additional R245/R246 source: `python3 docs/visexp/r245_claim_wording_consistency.py`, `python3 docs/visexp/r246_post_review_hygiene.py`, `docs/visexp/out/osdi-gate-review-r246.json`, and `docs/visexp/out/semantic-ablation-r224-r170/r224-rerun-metadata.json`.
 Additional R247 source: `python3 docs/visexp/r247_human_evidence_distribution_bundle.py`, `docs/visexp/out/human-evidence-distribution-r247/human-evidence-distribution-r247.json`, and `docs/visexp/out/human-evidence-distribution-r247/agentflame-human-evidence-r247.tar.gz`.
+Additional R248 source: `python3 docs/visexp/r248_agentpprof_install_smoke.py`, `docs/visexp/out/agentpprof-install-r248/agentpprof-install-r248.json`, and `agentpprof/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl`.
 Completeness: partial
 
 ## Headline Result
@@ -351,6 +352,16 @@ agent-history reads and no LLM calls. This strengthens C7 local artifact usabili
 `agentpprof`, but it is not external adoption, llama.cpp setup evidence,
 real-history public sanitization, C5 user utility, or C6 tag adequacy.
 
+R248 adds an installed-CLI smoke for `agentpprof`. It commits a small public
+Codex fixture under `agentpprof/examples/codex/sessions/...`, installs the local
+package with `cargo install --path agentpprof --locked --force`, runs the
+installed binary with explicit `--session-file`, `--tagger regex`, and
+`--no-cache`, and verifies pprof/folded/JSON/SVG outputs plus `go tool pprof`
+readback. It passes all required gates and records no private-history discovery,
+no LLM calls, `c5_supported=false`, `c6_supported=false`, and
+`weak_accept_supported=false`. This upgrades C7 local install-smoke evidence,
+not community adoption or human-outcome evidence.
+
 R228 records the read-only OSDI subagent review after R220. The review accepts
 R220 only as narrow C7 local clean-clone/pprof-readback evidence, keeps the
 project at not weak accept because C5/C6 remain missing, and flags two R220
@@ -436,6 +447,8 @@ claim row, and fixes the paper table's C4 wording.
 | R245 | Post-R244 claim-wording consistency audit | `docs/visexp/out/claim-wording-consistency-r245/claim-wording-consistency-r245.json` | done/wording-audit; hard checks 9/9, wording checks 13/13, forbidden strong-claim hits 0 |
 | R246 | Post-R245 OSDI review hygiene and R170/R224 provenance bookkeeping | `docs/visexp/out/osdi-gate-review-r246.json`, `docs/visexp/out/osdi-gate-review-r246.md`, `docs/visexp/out/semantic-ablation-r224-r170/r224-rerun-metadata.json` | done/review-hygiene; not weak accept; no outcome evidence |
 | R247 | Sendable offline human-evidence collection bundle | `docs/visexp/out/human-evidence-distribution-r247/human-evidence-distribution-r247.json`, `docs/visexp/out/human-evidence-distribution-r247/agentflame-human-evidence-r247.tar.gz` | done/distribution-ready; 17-member tarball, return checklist, no outcome evidence |
+| R248 | Installed `agentpprof` public-fixture smoke | `docs/visexp/out/agentpprof-install-r248/agentpprof-install-r248.json`, `docs/visexp/out/agentpprof-install-r248/profiles/tasks.pb.gz`, `agentpprof/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl` | done/install-smoke; installed CLI pprof readback, no private history, no C5/C6 outcome evidence |
+| R248-review | Post-R247/R248 OSDI paper/artifact review | `docs/visexp/out/osdi-gate-review-r248.json`, `docs/visexp/out/osdi-gate-review-r248.md` | Level 3/not weak accept; paper hygiene and C7 install-smoke fixes applied, C5/C6 still missing |
 | R171 | Read-only subagent OSDI gate review after R170/R124-join planning | `docs/visexp/out/osdi-gate-review-r171.md` | done/review |
 | R181 | Read-only subagent OSDI gate review after R180 local multi-model benchmark | `docs/visexp/out/osdi-gate-review-r181.md` | done/review; still not weak accept |
 | R060 | legacy Python prototype pipeline over sampled sessions | `docs/visexp/out/pipeline-report.json` | legacy, superseded for headline scale |

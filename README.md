@@ -84,6 +84,35 @@ Docker is useful for container, CI, or isolated Linux environments, but it still
 
 Build requirements and source build commands live in [docs/build.md](https://github.com/eunomia-bpf/agentsight/blob/master/docs/build.md).
 
+### Local pprof Export Without eBPF
+
+`agentpprof` is a separate no-sudo CLI for turning existing Codex and Claude
+Code session logs into pprof-compatible semantic profiles. It does not load
+eBPF probes and is useful when you want an offline profile of saved local
+agent-history files:
+
+```bash
+cargo install agentpprof
+agentpprof --project-root . -o agent.pb.gz
+go tool pprof -top agent.pb.gz
+```
+
+For a public smoke test that does not read private `~/.codex` or `~/.claude`
+history, run it against the committed fixture:
+
+```bash
+agentpprof \
+  --project-root . \
+  --project-name agentsight-public-fixture \
+  --session-file agentpprof/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl \
+  --tagger regex \
+  --no-cache \
+  -o tasks.pb.gz
+```
+
+See [agentpprof/README.md](https://github.com/eunomia-bpf/agentsight/blob/master/agentpprof/README.md)
+for folded-stack, SVG, JSON, token, file, and network projections.
+
 ### Querying Past Sessions
 
 Every `record` session is automatically saved to an `agentsight-*.db` SQLite

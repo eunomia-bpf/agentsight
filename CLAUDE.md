@@ -22,6 +22,7 @@ cd frontend && npm install && npm run build  # Frontend only
 # Tests
 cd bpf && make test              # C unit + runtime tests
 cd collector && cargo test       # Rust tests
+cd agentpprof && cargo test      # no-sudo local-session pprof exporter
 cd frontend && npm run lint      # Frontend linting
 
 # Run a single Rust test
@@ -59,6 +60,9 @@ sudo ./bpf/process -c python
 
 # Web UI available at http://127.0.0.1:7395 when using record/stat live capture.
 # debug trace needs --server.
+
+# Offline pprof export from saved Codex/Claude session logs; no sudo/eBPF.
+agentpprof --project-root . -o agent.pb.gz
 ```
 
 ## Documentation Hygiene
@@ -91,6 +95,8 @@ eBPF Programs (kernel) → JSON stdout → Rust Runners → Analyzer Chain → O
   - `binary_extractor.rs` — Extracts embedded eBPF binaries to temp files at runtime
 - **`collector/src/main.rs`** — CLI entry point. Main subcommands: `top`, `monitor`, `record`, `report` (`summary`, `token`, `audit`, `prompts`, `export`, `list`), and `debug` (`ssl`, `process`, `stdio`, `trace`, `system`).
 - **`collector/src/server/`** — Hyper-based embedded web server serving frontend assets and `/api/events`
+- **`agent-session/`** — Shared Rust parser for native Codex/Claude session histories used by local-history reports and `agentpprof`
+- **`agentpprof/`** — Independent no-sudo Rust CLI that reads local Codex/Claude session logs through `agent-session` and exports semantic pprof, folded-stack, SVG, and JSON profiles. It is a local-history profiler, not the eBPF live-capture path.
 - **`frontend/`** — Next.js/React/TypeScript visualization with timeline, process tree, and log views
 
 ### Data Flow
