@@ -1,0 +1,116 @@
+{
+  "project": "agentsight",
+  "sessions": [
+    {
+      "id": "session-r240",
+      "agent_type": "codex",
+      "start_timestamp_ms": 900,
+      "end_timestamp_ms": 2100,
+      "attributes": {
+        "session_tag": "record"
+      }
+    }
+  ],
+  "tool_calls": [
+    {
+      "id": "tool-r240",
+      "tool_call_id": "tool-r240",
+      "session_id": "session-r240",
+      "tool_name": "shell",
+      "timestamp_ms": 1000,
+      "start_timestamp_ms": 1000,
+      "end_timestamp_ms": 2000,
+      "related_pid": 200,
+      "input": {
+        "prompt_tag": "record",
+        "command_root_pid": 100,
+        "related_pid": 200
+      }
+    }
+  ],
+  "process_nodes": [
+    {
+      "id": "proc-root",
+      "pid": 100,
+      "ppid": 1,
+      "root_pid": 100,
+      "comm": "python3",
+      "start_timestamp_ms": 900,
+      "end_timestamp_ms": 2100
+    },
+    {
+      "id": "proc-agent",
+      "pid": 200,
+      "ppid": 100,
+      "root_pid": 100,
+      "comm": "codex",
+      "start_timestamp_ms": 950,
+      "end_timestamp_ms": 2100
+    },
+    {
+      "id": "proc-agent-child",
+      "pid": 201,
+      "ppid": 200,
+      "root_pid": 100,
+      "comm": "python3",
+      "start_timestamp_ms": 1100,
+      "end_timestamp_ms": 1900
+    },
+    {
+      "id": "proc-sibling",
+      "pid": 300,
+      "ppid": 100,
+      "root_pid": 100,
+      "comm": "python3",
+      "start_timestamp_ms": 1100,
+      "end_timestamp_ms": 1900
+    }
+  ],
+  "audit_events": [
+    {
+      "id": "evt-root-self",
+      "audit_type": "network",
+      "action": "NET_CONNECT",
+      "pid": 100,
+      "timestamp_ms": 1200,
+      "target": "127.0.0.1:10001",
+      "status": "ok"
+    },
+    {
+      "id": "evt-related-agent",
+      "audit_type": "network",
+      "action": "NET_CONNECT",
+      "pid": 200,
+      "timestamp_ms": 1300,
+      "target": "127.0.0.1:10002",
+      "status": "ok"
+    },
+    {
+      "id": "evt-related-child",
+      "audit_type": "network",
+      "action": "NET_CONNECT",
+      "pid": 201,
+      "timestamp_ms": 1400,
+      "target": "127.0.0.1:10003",
+      "status": "ok"
+    },
+    {
+      "id": "evt-sibling-negative",
+      "audit_type": "network",
+      "action": "NET_CONNECT",
+      "pid": 300,
+      "timestamp_ms": 1500,
+      "target": "127.0.0.1:10004",
+      "status": "ok"
+    },
+    {
+      "id": "evt-root-outside-window",
+      "audit_type": "network",
+      "action": "NET_CONNECT",
+      "pid": 100,
+      "timestamp_ms": 3000,
+      "target": "127.0.0.1:10005",
+      "status": "ok"
+    }
+  ]
+}

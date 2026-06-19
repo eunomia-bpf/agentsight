@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-19
 Stage at update: analyze
-Source/command: R170 full-history run plus `python3 docs/visexp/r189_tag_consolidation.py`, `python3 docs/visexp/r190_tag_consolidation_audit.py`, `python3 docs/visexp/r190_score_merge_audit.py`, `python3 docs/visexp/r196_long_tail_governance.py`, `python3 docs/visexp/r201_long_tail_sensitivity.py`, `python3 docs/visexp/r202_long_tail_regeneration_smoke.py --regenerate-limit 50 --load-timeout 240 --llama-timeout 60`, `python3 docs/visexp/r203_long_tail_promotion_gate.py`, `python3 docs/visexp/r205_long_tail_compaction_metrics.py`, `python3 docs/visexp/r209_reversible_display_map.py`, `python3 docs/visexp/r211_stack_examples.py`, `python3 docs/visexp/r212_display_compaction_ablation.py`, `python3 docs/visexp/r213_display_mode_drilldown_smoke.py`, `python3 docs/visexp/r214_long_tail_control_loop.py`, `python3 docs/visexp/r215_frontend_renderer_mode_smoke.py`, `python3 docs/visexp/r216_browser_dom_mode_smoke.py`, `python3 docs/visexp/r217_production_react_display_mode_smoke.py`, `python3 docs/visexp/r218_display_map_update_gate.py`, `python3 docs/visexp/r220_fresh_clone_agentpprof_smoke.py`, `python3 docs/visexp/r219_claim_readiness_gap_gate.py`, `python3 docs/visexp/r193_prepare_human_evidence_package.py`, `python3 docs/visexp/r194_human_evidence_preflight.py`, `python3 docs/visexp/r195_human_evidence_pipeline.py`, `python3 docs/visexp/r207_human_launch_readiness.py`, `python3 docs/visexp/r200_community_smoke.py`, `python3 docs/visexp/r131_semantic_ablation.py --input .agentsight/agentflame/r170-full-current --local-out .agentsight/agentflame/ablations-r224-r170/summary.json --out-dir docs/visexp/out/semantic-ablation-r224-r170`, `python3 docs/visexp/r223_projection_tradeoff.py`, `python3 docs/visexp/r225_prompt_span_duration_baseline.py`, `python3 docs/visexp/r237_agent_execution_witness_network_capture.py --run-id R238`, `docs/visexp/LONG_TAIL_COMPACTION.md`, `docs/visexp/out/osdi-gate-review-r204.md`, `docs/visexp/out/osdi-rq-gate-review-r206.md`, `docs/visexp/out/osdi-gate-review-r208.md`, `docs/visexp/out/osdi-gate-review-r228.md`, and `docs/visexp/out/osdi-gate-review-r239.md`
+Source/command: R170 full-history run plus `python3 docs/visexp/r189_tag_consolidation.py`, `python3 docs/visexp/r190_tag_consolidation_audit.py`, `python3 docs/visexp/r190_score_merge_audit.py`, `python3 docs/visexp/r196_long_tail_governance.py`, `python3 docs/visexp/r201_long_tail_sensitivity.py`, `python3 docs/visexp/r202_long_tail_regeneration_smoke.py --regenerate-limit 50 --load-timeout 240 --llama-timeout 60`, `python3 docs/visexp/r203_long_tail_promotion_gate.py`, `python3 docs/visexp/r205_long_tail_compaction_metrics.py`, `python3 docs/visexp/r209_reversible_display_map.py`, `python3 docs/visexp/r211_stack_examples.py`, `python3 docs/visexp/r212_display_compaction_ablation.py`, `python3 docs/visexp/r213_display_mode_drilldown_smoke.py`, `python3 docs/visexp/r214_long_tail_control_loop.py`, `python3 docs/visexp/r215_frontend_renderer_mode_smoke.py`, `python3 docs/visexp/r216_browser_dom_mode_smoke.py`, `python3 docs/visexp/r217_production_react_display_mode_smoke.py`, `python3 docs/visexp/r218_display_map_update_gate.py`, `python3 docs/visexp/r220_fresh_clone_agentpprof_smoke.py`, `python3 docs/visexp/r219_claim_readiness_gap_gate.py`, `python3 docs/visexp/r193_prepare_human_evidence_package.py`, `python3 docs/visexp/r194_human_evidence_preflight.py`, `python3 docs/visexp/r195_human_evidence_pipeline.py`, `python3 docs/visexp/r207_human_launch_readiness.py`, `python3 docs/visexp/r200_community_smoke.py`, `python3 docs/visexp/r131_semantic_ablation.py --input .agentsight/agentflame/r170-full-current --local-out .agentsight/agentflame/ablations-r224-r170/summary.json --out-dir docs/visexp/out/semantic-ablation-r224-r170`, `python3 docs/visexp/r223_projection_tradeoff.py`, `python3 docs/visexp/r225_prompt_span_duration_baseline.py`, `python3 docs/visexp/r237_agent_execution_witness_network_capture.py --run-id R238`, `python3 docs/visexp/r240_lineage_guard_regression.py`, `docs/visexp/LONG_TAIL_COMPACTION.md`, `docs/visexp/out/osdi-gate-review-r204.md`, `docs/visexp/out/osdi-rq-gate-review-r206.md`, `docs/visexp/out/osdi-gate-review-r208.md`, `docs/visexp/out/osdi-gate-review-r228.md`, and `docs/visexp/out/osdi-gate-review-r239.md`
 Completeness: partial
 
 ## Headline Result
@@ -34,9 +34,13 @@ two Codex HTTP-family target-network probes. R235--R238 then
 test harder raw/multiprocess/Claude-launched network boundaries: R238 fixes the
 record-command readiness race and makes direct HTTP/direct multiprocess
 controls stable, but the official full run still has Codex/Claude-launched
-target-network orphan or missing-action cases. The project therefore supports
-scoped exact-lineage mechanisms, not broad full-history, arbitrary network, or
-Claude-launched coverage, and it still does not prove user utility.
+target-network orphan or missing-action cases. R240 then turns two R239
+implementation risks into regression checks: the command-root fallback joins
+only the root process itself, and a BPF runtime target-child loopback test
+captures bind/listen/connect while excluding an unrelated port. The project
+therefore supports scoped exact-lineage mechanisms, not broad full-history,
+arbitrary network, or Claude-launched coverage, and it still does not prove
+user utility.
 
 R189 adds a display-time canonical tag consolidation run over the R170
 full-history artifacts. It preserves all folded weights while reducing
@@ -310,6 +314,7 @@ non-gating provenance note.
 | R113-live | Five real read-only `codex exec` tasks wrapped with `agentsight record`, then exported and checked for lineage | `docs/visexp/out/live-record-r113.json` | partial |
 | R114 | Twenty fixed Codex tasks under `agentsight record` with negative controls and scoped precision/recall analysis | `docs/visexp/out/live-record-r114.json`, `docs/visexp/out/live-record-r114-analysis.json` | done |
 | R182 | Loopback-task Codex runs under `agentsight record` after enabling process `--trace-net`, with R114-style negative-control accounting and target-specific network oracle | `docs/visexp/out/live-network-r182.json`, `docs/visexp/out/live-network-r182.md` | partial/network flag smoke |
+| R240 | Command-root lineage guard plus target-child process network regression tests after R239 review | `docs/visexp/out/lineage-guard-r240/lineage-guard-r240.json`, `docs/visexp/out/lineage-guard-r240/lineage-guard-r240.md` | done/regression; no C5/C6 outcome evidence |
 | R122 | Redacted human adequacy label packet over 100 session, 100 prompt, and 100 LLM-call fragments | `docs/visexp/out/tag-adequacy-label-packet-r122.json` | packet only |
 | R123 | 3B llama.cpp real-fragment stability benchmark over the R122 packet | `docs/visexp/out/model-benchmarks-r123.json` | done |
 | R180 | Local 0.6B-/1B-/3B-class llama.cpp benchmark over the same R122 redacted fragments | `docs/visexp/out/model-benchmarks-r180.json`, `docs/visexp/out/model-benchmarks-r180.md` | done/syntax-stability; not adequacy |
@@ -855,9 +860,11 @@ provenance.
   network-workload coverage still remains partial because the
   Codex/Claude-launched rows have 3 target-network orphan or missing-action
   cases. The direct-only repetitions have no negative controls, so precision
-  evidence comes from the official full run. R182 is implementation evidence
-  for record-mode `--trace-net`; R238 is boundary/localization evidence, not
-  proof of HTTP payload/URL
+  evidence comes from the official full run. R240 adds a synthetic lineage
+  guard and runtime regression tests for command-root fallback and target-child
+  network capture, but it is still checker/runtime regression evidence rather
+  than broad workload support. R182 is implementation evidence for record-mode
+  `--trace-net`; R238 is boundary/localization evidence, not proof of HTTP payload/URL
   reconstruction, arbitrary raw sockets, or broad Claude-launched coverage.
 - C5 user utility remains unsupported. Task packets and scoring scripts exist,
   and R142-packet now provides 14 tasks, 8 primary utility tasks, 6
@@ -929,6 +936,9 @@ provenance.
 - `docs/visexp/out/agent-execution-witness-network-capture-r238/agent-execution-witness-network-capture-r238.json`
   and `.md` for the R238 readiness-barrier/network-witness boundary result:
   direct controls pass, Codex/Claude-launched rows remain partial
+- `docs/visexp/out/lineage-guard-r240/lineage-guard-r240.json`, `.md`, `.csv`,
+  and `lineage-guard-r240-snapshot.json` for command-root fallback and
+  target-child network regression checks
 - `docs/visexp/out/tag-adequacy-label-packet-r122.json` for the redacted adequacy-label packet
 - `docs/visexp/out/tag-adequacy-results-r124.json` for the empty human-label scorer gate
 - `docs/visexp/out/tag-adequacy-blinded-label-sheet-r124.json` and `.csv` for the blinded labeler-facing R124 sheet

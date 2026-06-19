@@ -139,6 +139,72 @@ time.sleep(0.4)
     return tempdir, proc, trigger, done, marker
 
 
+def run_controlled_network_parent():
+    tempdir = tempfile.TemporaryDirectory(prefix="agentsight-runtime-network-parent-")
+    trigger = os.path.join(tempdir.name, "trigger")
+    done = os.path.join(tempdir.name, "done")
+    port_file = os.path.join(tempdir.name, "port")
+    child_code = r"""
+import socket
+import sys
+
+port_file = sys.argv[1]
+server = socket.socket()
+server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+server.bind(("127.0.0.1", 0))
+port = server.getsockname()[1]
+server.listen(1)
+with open(port_file, "w") as f:
+    f.write(str(port))
+client = socket.socket()
+client.connect(("127.0.0.1", port))
+conn, _ = server.accept()
+client.close()
+conn.close()
+server.close()
+"""
+    parent_code = r"""
+import os
+import subprocess
+import sys
+import time
+
+trigger, done, port_file, child_code = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
+while not os.path.exists(trigger):
+    time.sleep(0.05)
+subprocess.run([sys.executable, "-c", child_code, port_file], check=True)
+with open(done, "w") as f:
+    f.write("done")
+time.sleep(0.4)
+"""
+    proc = subprocess.Popen(
+        [sys.executable, "-c", parent_code, trigger, done, port_file, child_code],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    return tempdir, proc, trigger, done, port_file
+
+
+def loopback_exchange(exclude_port=None):
+    for _ in range(10):
+        server = socket.socket()
+        server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        server.bind(("127.0.0.1", 0))
+        port = server.getsockname()[1]
+        if exclude_port is not None and port == exclude_port:
+            server.close()
+            continue
+        server.listen(1)
+        client = socket.socket()
+        client.connect(("127.0.0.1", port))
+        conn, _ = server.accept()
+        client.close()
+        conn.close()
+        server.close()
+        return port
+    raise RuntimeErrorWithContext("could not allocate a distinct loopback port")
+
+
 def test_json_escaping_exec():
     marker = f"agentsight-json-{uuid.uuid4().hex}"
     sess = TracerSession("-m", "0")
@@ -306,6 +372,51 @@ def test_trace_net_summary_events():
         sess.cleanup()
 
 
+def test_pid_filter_tracks_target_child_network_summary():
+    tempdir, target, trigger, done, port_file = run_controlled_network_parent()
+    sess = None
+    try:
+        sess = TracerSession(
+            "-m",
+            "2",
+            "-p",
+            str(target.pid),
+            *seed_pid_arg(target.pid),
+            "--trace-net",
+        )
+        open(trigger, "w").close()
+        wait_for_file(done)
+        wait_for_file(port_file)
+        with open(port_file, "r", encoding="utf-8") as f:
+            target_port = int(f.read().strip())
+        unrelated_port = loopback_exchange(exclude_port=target_port)
+        time.sleep(0.5)
+        sess.stop()
+        events = sess.events()
+        types = summary_types(events)
+        assert_true("NET_BIND" in types, "-p --trace-net missed target child NET_BIND summary")
+        assert_true("NET_LISTEN" in types, "-p --trace-net missed target child NET_LISTEN summary")
+        assert_true(
+            any(
+                event.get("event") == "SUMMARY"
+                and event.get("type") == "NET_CONNECT"
+                and f":{target_port}" in event_text(event)
+                for event in events
+            ),
+            f"-p --trace-net missed target child NET_CONNECT summary for port {target_port}",
+        )
+        assert_true(
+            not any(f":{unrelated_port}" in event_text(event) for event in events),
+            "-p --trace-net captured unrelated loopback network activity",
+        )
+    finally:
+        if sess:
+            sess.cleanup()
+        target.terminate()
+        target.wait(timeout=5)
+        tempdir.cleanup()
+
+
 TESTS = [
     test_json_escaping_exec,
     test_pid_filter_tracks_target_tree_only,
@@ -314,6 +425,7 @@ TESTS = [
     test_filter_mode_without_selector_does_not_fallback,
     test_trace_fs_summary_events,
     test_trace_net_summary_events,
+    test_pid_filter_tracks_target_child_network_summary,
 ]
 
 
