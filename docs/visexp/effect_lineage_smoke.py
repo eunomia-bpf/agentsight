@@ -107,6 +107,26 @@ def process_tool_overlaps(process: dict[str, Any], tool: dict[str, Any]) -> bool
     return process_intervals_overlap(process, tool_interval)
 
 
+def tool_input(tool: dict[str, Any]) -> dict[str, Any]:
+    value = tool.get("input") or {}
+    if isinstance(value, str):
+        try:
+            value = json.loads(value)
+        except json.JSONDecodeError:
+            value = {}
+    return value if isinstance(value, dict) else {}
+
+
+def tool_int_field(tool: dict[str, Any], key: str) -> int | None:
+    value = tool_input(tool).get(key)
+    if value is None:
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def process_for_event(event: dict[str, Any], processes_by_pid: dict[int, list[dict[str, Any]]]) -> dict[str, Any] | None:
     pid = event.get("pid")
     if pid is None:
@@ -123,32 +143,38 @@ def related_process_keys_for_tool(tool: dict[str, Any], indexes: dict[str, Any])
     direct_keys = indexes["tool_related_process_keys"].get(str(tool.get("id")), set())
     if direct_keys:
         return set(direct_keys)
+    candidate_pids = []
     related_pid = tool.get("related_pid")
-    if related_pid is None:
-        return set()
-    candidates = indexes["processes_by_pid"].get(int(related_pid), [])
-    if not candidates:
-        return {
-            process_key(process)
-            for process in indexes["process_nodes"]
-            if process.get("ppid") is not None
-            and int(process["ppid"]) == int(related_pid)
-            and process_tool_overlaps(process, tool)
-        }
+    if related_pid is not None:
+        candidate_pids.append(int(related_pid))
+    out: set[str] = set()
     tool_anchor = tool.get("start_timestamp_ms") or tool.get("timestamp_ms")
-    if tool_anchor is not None:
-        anchored = [
-            process
+    for related_pid in candidate_pids:
+        candidates = indexes["processes_by_pid"].get(int(related_pid), [])
+        if not candidates:
+            out.update(
+                process_key(process)
+                for process in indexes["process_nodes"]
+                if process.get("ppid") is not None
+                and int(process["ppid"]) == int(related_pid)
+                and process_tool_overlaps(process, tool)
+            )
+            continue
+        if tool_anchor is not None:
+            anchored = [
+                process
+                for process in candidates
+                if process_time_contains(process, int(tool_anchor))
+            ]
+            if anchored:
+                out.update(process_key(process) for process in anchored)
+                continue
+        out.update(
+            process_key(process)
             for process in candidates
-            if process_time_contains(process, int(tool_anchor))
-        ]
-        if anchored:
-            return {process_key(process) for process in anchored}
-    return {
-        process_key(process)
-        for process in candidates
-        if process_tool_overlaps(process, tool)
-    }
+            if process_tool_overlaps(process, tool)
+        )
+    return out
 
 
 def child_belongs_to_parent(child: dict[str, Any], parent: dict[str, Any]) -> bool:
@@ -293,10 +319,19 @@ def matching_tool(event: dict[str, Any], process: dict[str, Any] | None, indexes
         if root_pid is not None:
             for tool in indexes["tool_calls"]:
                 related_pid = tool.get("related_pid")
-                if related_pid is None or int(related_pid) != int(root_pid):
+                command_root_pid = tool_int_field(tool, "command_root_pid")
+                process_pid = process.get("pid")
+                root_self_match = (
+                    command_root_pid is not None
+                    and process_pid is not None
+                    and int(process_pid) == int(command_root_pid)
+                )
+                if (related_pid is None or int(related_pid) != int(root_pid)) and not root_self_match:
                     continue
                 if not tool_time_contains(tool, timestamp):
                     continue
+                if root_self_match:
+                    return tool, "command_root_pid_self_time_window"
                 return tool, "root_pid_time_window"
     return None, "none"
 

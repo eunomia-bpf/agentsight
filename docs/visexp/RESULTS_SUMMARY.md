@@ -1,8 +1,8 @@
 # Results Summary: AgentFlame Semantic Effect Profiling
 
-Last updated: 2026-06-18
+Last updated: 2026-06-19
 Stage at update: analyze
-Source/command: R170 full-history run plus `python3 docs/visexp/r189_tag_consolidation.py`, `python3 docs/visexp/r190_tag_consolidation_audit.py`, `python3 docs/visexp/r190_score_merge_audit.py`, `python3 docs/visexp/r196_long_tail_governance.py`, `python3 docs/visexp/r201_long_tail_sensitivity.py`, `python3 docs/visexp/r202_long_tail_regeneration_smoke.py --regenerate-limit 50 --load-timeout 240 --llama-timeout 60`, `python3 docs/visexp/r203_long_tail_promotion_gate.py`, `python3 docs/visexp/r205_long_tail_compaction_metrics.py`, `python3 docs/visexp/r209_reversible_display_map.py`, `python3 docs/visexp/r211_stack_examples.py`, `python3 docs/visexp/r212_display_compaction_ablation.py`, `python3 docs/visexp/r213_display_mode_drilldown_smoke.py`, `python3 docs/visexp/r214_long_tail_control_loop.py`, `python3 docs/visexp/r215_frontend_renderer_mode_smoke.py`, `python3 docs/visexp/r216_browser_dom_mode_smoke.py`, `python3 docs/visexp/r217_production_react_display_mode_smoke.py`, `python3 docs/visexp/r218_display_map_update_gate.py`, `python3 docs/visexp/r220_fresh_clone_agentpprof_smoke.py`, `python3 docs/visexp/r219_claim_readiness_gap_gate.py`, `python3 docs/visexp/r193_prepare_human_evidence_package.py`, `python3 docs/visexp/r194_human_evidence_preflight.py`, `python3 docs/visexp/r195_human_evidence_pipeline.py`, `python3 docs/visexp/r207_human_launch_readiness.py`, `python3 docs/visexp/r200_community_smoke.py`, `python3 docs/visexp/r131_semantic_ablation.py --input .agentsight/agentflame/r170-full-current --local-out .agentsight/agentflame/ablations-r224-r170/summary.json --out-dir docs/visexp/out/semantic-ablation-r224-r170`, `python3 docs/visexp/r223_projection_tradeoff.py`, `python3 docs/visexp/r225_prompt_span_duration_baseline.py`, `docs/visexp/LONG_TAIL_COMPACTION.md`, `docs/visexp/out/osdi-gate-review-r204.md`, `docs/visexp/out/osdi-rq-gate-review-r206.md`, `docs/visexp/out/osdi-gate-review-r208.md`, and `docs/visexp/out/osdi-gate-review-r228.md`
+Source/command: R170 full-history run plus `python3 docs/visexp/r189_tag_consolidation.py`, `python3 docs/visexp/r190_tag_consolidation_audit.py`, `python3 docs/visexp/r190_score_merge_audit.py`, `python3 docs/visexp/r196_long_tail_governance.py`, `python3 docs/visexp/r201_long_tail_sensitivity.py`, `python3 docs/visexp/r202_long_tail_regeneration_smoke.py --regenerate-limit 50 --load-timeout 240 --llama-timeout 60`, `python3 docs/visexp/r203_long_tail_promotion_gate.py`, `python3 docs/visexp/r205_long_tail_compaction_metrics.py`, `python3 docs/visexp/r209_reversible_display_map.py`, `python3 docs/visexp/r211_stack_examples.py`, `python3 docs/visexp/r212_display_compaction_ablation.py`, `python3 docs/visexp/r213_display_mode_drilldown_smoke.py`, `python3 docs/visexp/r214_long_tail_control_loop.py`, `python3 docs/visexp/r215_frontend_renderer_mode_smoke.py`, `python3 docs/visexp/r216_browser_dom_mode_smoke.py`, `python3 docs/visexp/r217_production_react_display_mode_smoke.py`, `python3 docs/visexp/r218_display_map_update_gate.py`, `python3 docs/visexp/r220_fresh_clone_agentpprof_smoke.py`, `python3 docs/visexp/r219_claim_readiness_gap_gate.py`, `python3 docs/visexp/r193_prepare_human_evidence_package.py`, `python3 docs/visexp/r194_human_evidence_preflight.py`, `python3 docs/visexp/r195_human_evidence_pipeline.py`, `python3 docs/visexp/r207_human_launch_readiness.py`, `python3 docs/visexp/r200_community_smoke.py`, `python3 docs/visexp/r131_semantic_ablation.py --input .agentsight/agentflame/r170-full-current --local-out .agentsight/agentflame/ablations-r224-r170/summary.json --out-dir docs/visexp/out/semantic-ablation-r224-r170`, `python3 docs/visexp/r223_projection_tradeoff.py`, `python3 docs/visexp/r225_prompt_span_duration_baseline.py`, `python3 docs/visexp/r237_agent_execution_witness_network_capture.py --run-id R238`, `docs/visexp/LONG_TAIL_COMPACTION.md`, `docs/visexp/out/osdi-gate-review-r204.md`, `docs/visexp/out/osdi-rq-gate-review-r206.md`, `docs/visexp/out/osdi-gate-review-r208.md`, `docs/visexp/out/osdi-gate-review-r228.md`, and `docs/visexp/out/osdi-gate-review-r239.md`
 Completeness: partial
 
 ## Headline Result
@@ -12,29 +12,31 @@ real AgentSight-related Codex and Claude histories on this machine. AgentFlame
 used a real local llama.cpp 3B model to assign one-word tags to session, prompt,
 and LLM-call contexts, then folded tool/system behavior into semantic stacks.
 
-The run analyzed 205 readable sessions, 130,632 raw tool events, and 90,930 LLM
-events. It produced 167,005 system-effect observations and collapsed them into
-24,295 unique semantic system stacks, for a 6.874x compression ratio. Removing
-session/prompt semantics causes heavy mixing: nonsemantic stacks mix multiple
-semantic regions for 90.219% of observation weight, and flat effect buckets mix
-90.770%.
+The current R170 refresh analyzed 325 readable sessions, 142,468 raw tool
+events, and 114,837 LLM events. It produced 183,714 system-effect observations
+and collapsed them into 26,829 unique semantic system stacks, for a 6.848x
+compression ratio. Removing session/prompt semantics causes heavy mixing:
+nonsemantic stacks mix multiple semantic regions for 90.402% of observation
+weight, and flat effect buckets mix 90.918%.
 
 This supports the mechanism claim that semantic frames separate system-effect
 regions that ordinary process summaries or nonsemantic folded stacks merge.
-R131 further isolates which semantic axes matter: with the same system-effect
-total preserved, no-semantic stacks mix 90.219% of full semantic weight,
-session-only leaves 84.180%, prompt-only leaves 37.687%, and full
-session+prompt semantics leaves 0.000% by construction. Its non-dominant
-residual mixed weight drops from 44.639% with no semantic axis to 7.526% with
-prompt-only. R114 adds fixed-suite live exact
-lineage over 20 real Codex tasks with negative controls. R182 exposed and fixed
-that `agentsight record` was not enabling process `--trace-net`; after the fix,
-2/2 loopback-task runs completed and 35/35 low-level `codex` process network
-rows joined with 0 network orphans and 0/604 negative-control joins. However,
-target-specific loopback or expected child-process network rows were 0/0, so
-R182 is a partial implementation smoke rather than proof of loopback workload
-network capture. The project still does not prove broad cross-repo/full-history
-exact lineage or user utility.
+R224 further isolates which semantic axes matter on the same R170 denominator:
+no-semantic stacks mix 90.402% of full semantic weight, session-only leaves
+84.407%, prompt-only leaves 36.722%, and full session+prompt semantics leaves
+0.000% by construction. Its non-dominant residual mixed weight drops from
+44.716% with no semantic axis to 7.485% with prompt-only. R114 adds fixed-suite
+live exact lineage over 20 real Codex tasks with negative controls. R191, R229,
+R232, and R234 extend that evidence through target-process HTTP network rows,
+controlled multi-workspace replication, controlled external-repository
+replication, and a controlled expansion with one Claude command-mode task plus
+two Codex HTTP-family target-network probes. R235--R238 then
+test harder raw/multiprocess/Claude-launched network boundaries: R238 fixes the
+record-command readiness race and makes direct HTTP/direct multiprocess
+controls stable, but the official full run still has Codex/Claude-launched
+target-network orphan or missing-action cases. The project therefore supports
+scoped exact-lineage mechanisms, not broad full-history, arbitrary network, or
+Claude-launched coverage, and it still does not prove user utility.
 
 R189 adds a display-time canonical tag consolidation run over the R170
 full-history artifacts. It preserves all folded weights while reducing
@@ -410,26 +412,26 @@ real report sanitization, llama.cpp setup, and developer feedback remain open.
 
 | Metric | Value |
 |--------|-------|
-| Generated at | 2026-06-14T21:02:43Z |
-| Readable sessions analyzed | 205 |
-| Source cohorts | `codex=78`, `claude=50`, `claude-subagent=77` |
+| Generated at | 2026-06-15T10:30:26Z |
+| Readable sessions analyzed | 325 |
+| Source cohorts | `codex=198`, `claude=50`, `claude-subagent=77` |
 | Skipped sessions | 1 unreadable root-owned Claude JSONL, recorded in `warnings` |
-| Raw tool events | 130,632 |
-| Raw LLM events | 90,930 |
-| Prompt rows | 2,463 |
-| Unique prompt tags | 303 |
+| Raw tool events | 142,468 |
+| Raw LLM events | 114,837 |
+| Prompt rows | 2,859 |
+| Unique prompt tags | 328 |
 | Invalid prompt tags | 0 |
-| LLM-call tags | 90,930 |
-| Unique LLM-call tags | 1,250 |
+| LLM-call tags | 114,837 |
+| Unique LLM-call tags | 1,423 |
 | Invalid LLM-call tags | 0 |
-| System observations | 167,005 |
-| Unique semantic system stacks | 24,295 |
-| Semantic system compression | 6.874x |
+| System observations | 183,714 |
+| Unique semantic system stacks | 26,829 |
+| Semantic system compression | 6.848x |
 | Max system stack reuse | 6,004 |
-| Nonsemantic mixed buckets | 4,209 |
-| Nonsemantic mixed weight | 150,670 / 167,005 = 90.219% |
-| Flat mixed buckets | 4,051 |
-| Flat mixed weight | 151,590 / 167,005 = 90.770% |
+| Nonsemantic mixed buckets | 4,685 |
+| Nonsemantic mixed weight | 166,081 / 183,714 = 90.402% |
+| Flat mixed buckets | 4,529 |
+| Flat mixed weight | 167,030 / 183,714 = 90.918% |
 
 ## Tagger Result
 
@@ -437,12 +439,12 @@ real report sanitization, llama.cpp setup, and developer feedback remain open.
 |--------|-------|
 | LLM backend | llama.cpp HTTP server |
 | Model | `qwen2.5-3b-instruct-q4_k_m.gguf` |
-| Tag requests | 93,598 |
-| Cache hits | 64,297 |
-| llama.cpp HTTP calls | 29,302 |
-| Successful final tags | 29,301 |
+| Tag requests | 118,021 |
+| Cache hits | 82,886 |
+| llama.cpp HTTP calls | 35,136 |
+| Successful final tags | 35,135 |
 | Final failures | 0 |
-| Tag cache entries after run | 29,342 |
+| Tag cache entries after run | 64,477 |
 
 The one-call difference between HTTP calls and final successes is consistent
 with a retry after one invalid intermediate output; no final tag failed. This is
@@ -804,12 +806,12 @@ command-mode suite; it is not yet broad full-history provenance.
 
 | View | Unique stacks | Total weight | Compression | Max reuse |
 |------|--------------:|-------------:|------------:|----------:|
-| `semantic-system` | 24,295 | 167,005 | 6.874x | 6,004 |
-| `nonsemantic-system` | 10,641 | 167,005 | 15.694x | not primary |
-| `prompt-system` | 22,341 | 167,005 | 7.475x | 6,291 |
-| `session-system` | 13,328 | 167,005 | 12.530x | 10,130 |
-| `semantic-token` | 7,902 | 28,486,605,753,818 | 3,605,492,628.674x | not primary |
-| `llm-token` | 2,379 | 28,486,605,753,818 | 11,974,193,255.073x | 25,366,042,700,314 |
+| `semantic-system` | 26,829 | 183,714 | 6.848x | 6,004 |
+| `nonsemantic-system` | 11,967 | 183,714 | 15.352x | not primary |
+| `prompt-system` | 24,703 | 183,714 | 7.437x | 6,310 |
+| `session-system` | 15,027 | 183,714 | 12.226x | 10,130 |
+| `semantic-token` | 8,569 | 31,805,830,937,143 | 3,711,731,933.381x | not primary |
+| `llm-token` | 2,568 | 31,805,830,937,143 | 12,385,448,184.246x | 25,366,043,637,938 |
 
 Token views are useful for source-local accounting but should not be used for
 cross-agent cost claims until token normalization is audited.
@@ -824,13 +826,13 @@ inside such buckets.
 
 | Family | Variant | Total | Unique stacks | Mixed bucket weight | Residual mixed weight |
 |--------|---------|------:|--------------:|--------------------:|----------------------:|
-| system | no semantic | 167,005 | 10,641 | 90.219% | 44.639% |
-| system | session only | 167,005 | 13,328 | 84.180% | 34.138% |
-| system | prompt only | 167,005 | 22,341 | 37.687% | 7.526% |
-| system | session + prompt | 167,005 | 24,295 | 0.000% | 0.000% |
-| token | no semantic | 28,486,605,753,818 | 32 | 100.000% | 34.344% |
-| token | prompt + LLM-call | 28,486,605,753,818 | 6,802 | 95.765% | 0.027% |
-| token | session + prompt + LLM-call | 28,486,605,753,818 | 7,902 | 0.000% | 0.000% |
+| system | no semantic | 183,714 | 11,967 | 90.402% | 44.716% |
+| system | session only | 183,714 | 15,027 | 84.407% | 33.434% |
+| system | prompt only | 183,714 | 24,703 | 36.722% | 7.485% |
+| system | session + prompt | 183,714 | 26,829 | 0.000% | 0.000% |
+| token | no semantic | 31,805,830,937,143 | 33 | 100.000% | 41.196% |
+| token | prompt + LLM-call | 31,805,830,937,143 | 7,382 | 92.978% | 0.041% |
+| token | session + prompt + LLM-call | 31,805,830,937,143 | 8,569 | 0.000% | 0.000% |
 
 The system-effect result supports the paper's mechanism claim: prompt tags
 carry most of the system-effect partitioning, while session tags add remaining
@@ -844,12 +846,19 @@ provenance.
 - C4 exact AgentSight lineage is supported for the fixed command-mode suite but
   partial broadly. R114 joins 1,273/1,273 scoped in-scope effects and rejects
   3,170 observed negative-control effects. R182 then exposed and fixed a
-  missing record-mode network capture flag. The stricter rerun observed 35/35
-  joined low-level `codex` process network rows and 0/604 negative-control
-  joins, but target-specific loopback or expected child-process network rows
-  remained 0/0. C4 network-workload coverage therefore remains open; R182 is
-  implementation evidence for record-mode `--trace-net`, not proof of HTTP
-  payload/URL reconstruction or child-process loopback capture.
+  missing record-mode network capture flag. R238 later fixes the record-command
+  process-tracer readiness race by waiting for the `CLOCK_SYNC/start` barrier.
+  A compact committed supplement summarizes 5/5 direct-only readiness
+  repetitions, and the official full run records 4/4 runtime witnesses, 4/4
+  witness ports observed, direct HTTP/direct multiprocess controls joined,
+  13/16 target network effects joined, and 0/186 negative joins. C4
+  network-workload coverage still remains partial because the
+  Codex/Claude-launched rows have 3 target-network orphan or missing-action
+  cases. The direct-only repetitions have no negative controls, so precision
+  evidence comes from the official full run. R182 is implementation evidence
+  for record-mode `--trace-net`; R238 is boundary/localization evidence, not
+  proof of HTTP payload/URL
+  reconstruction, arbitrary raw sockets, or broad Claude-launched coverage.
 - C5 user utility remains unsupported. Task packets and scoring scripts exist,
   and R142-packet now provides 14 tasks, 8 primary utility tasks, 6
   limitation/comprehension tasks, 5 conditions, 70 leak-checked blinded packets,
@@ -917,6 +926,9 @@ provenance.
 - `docs/visexp/out/live-network-r182.json` and `.md` for fixed-suite network
   exact-lineage smoke after enabling record-mode process `--trace-net`; current
   target-specific loopback/child-process network coverage remains partial
+- `docs/visexp/out/agent-execution-witness-network-capture-r238/agent-execution-witness-network-capture-r238.json`
+  and `.md` for the R238 readiness-barrier/network-witness boundary result:
+  direct controls pass, Codex/Claude-launched rows remain partial
 - `docs/visexp/out/tag-adequacy-label-packet-r122.json` for the redacted adequacy-label packet
 - `docs/visexp/out/tag-adequacy-results-r124.json` for the empty human-label scorer gate
 - `docs/visexp/out/tag-adequacy-blinded-label-sheet-r124.json` and `.csv` for the blinded labeler-facing R124 sheet

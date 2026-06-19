@@ -391,7 +391,7 @@ static void configure_optional_programs(struct process_bpf *skel)
 	SET_AUTOLOAD(trace_setpgid, env.trace_signals);
 	SET_AUTOLOAD(trace_setsid, env.trace_signals);
 	SET_AUTOLOAD(trace_kill, env.trace_signals);
-	SET_AUTOLOAD(trace_fork, env.trace_signals);
+	SET_AUTOLOAD(trace_fork, env.trace_signals || env.filter_mode == FILTER_MODE_FILTER);
 
 	SET_AUTOLOAD(trace_mmap, env.trace_mem);
 	SET_AUTOLOAD(trace_cow_fault, env.trace_cow);
@@ -756,6 +756,9 @@ static int handle_event(void *ctx, void *data, size_t data_sz)
 
 				// Only report if tracked (or if in ALL/PROC mode)
 				if (!is_tracked && tracker->filter_mode == FILTER_MODE_FILTER) {
+					flush_pid_file_opens(e->pid, e->timestamp_ns);
+					if (g_agg_map_fd >= 0)
+						flush_pid_from_agg_map(g_agg_map_fd, e->pid);
 					break;
 				}
 

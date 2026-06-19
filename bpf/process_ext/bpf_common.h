@@ -16,6 +16,30 @@ static __always_inline bool is_pid_tracked(void)
 	return bpf_map_lookup_elem(&tracked_pids, &pid) != NULL;
 }
 
+static __always_inline void track_exec_pid_from_parent(u32 pid, u32 ppid)
+{
+	if (!filter_pids || pid == 0 || ppid == 0)
+		return;
+	if (bpf_map_lookup_elem(&tracked_pids, &pid))
+		return;
+	if (bpf_map_lookup_elem(&tracked_pids, &ppid)) {
+		u8 present = 1;
+		bpf_map_update_elem(&tracked_pids, &pid, &present, BPF_ANY);
+	}
+}
+
+static __always_inline void track_child_pid_from_parent(u32 parent_pid, u32 child_pid)
+{
+	if (!filter_pids || parent_pid == 0 || child_pid == 0)
+		return;
+	if (bpf_map_lookup_elem(&tracked_pids, &child_pid))
+		return;
+	if (bpf_map_lookup_elem(&tracked_pids, &parent_pid)) {
+		u8 present = 1;
+		bpf_map_update_elem(&tracked_pids, &child_pid, &present, BPF_ANY);
+	}
+}
+
 static __always_inline bool is_cgroup_tracked(void)
 {
 	if (!filter_cgroup)

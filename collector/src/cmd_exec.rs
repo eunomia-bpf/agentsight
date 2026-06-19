@@ -20,14 +20,14 @@ use crate::output::{
     print_record_sudo_prompt, print_record_target_exited, print_record_target_shutdown_error,
     print_record_target_status_error, print_record_target_wait_error, print_record_web_ui,
 };
-use crate::runners::{Runner, RunnerError};
+use crate::runners::{EventStream, Runner, RunnerError};
 use crate::sinks::sqlite::SqliteStore;
 use crate::sources::proc::{ProcSnapshot, process_start_timestamp_ms};
 use crate::view::{MaterializedView, process_select};
 use serde_json::{Value, json};
 use std::collections::HashSet;
 use std::path::Path;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 const RECORD_AGENT_ENVELOPE_SOURCE: &str = "record_capture_time_agent_envelope";
 
@@ -299,7 +299,16 @@ pub(crate) async fn run_exec(
     }
     print_record_launch(command);
 
-    tokio::time::sleep(tokio::time::Duration::from_millis(250)).await;
+    if let Err(e) = wait_for_process_runner_start(&mut stream, Duration::from_secs(3)).await {
+        stop_child(&mut child).await;
+        update_record_agent_envelope_status(
+            db_path_for_summary.as_deref(),
+            capture_envelope.as_ref(),
+            "failed",
+            None,
+        );
+        return Err(e);
+    }
     if let Err(e) = continue_child(child_pid) {
         stop_child(&mut child).await;
         update_record_agent_envelope_status(
@@ -405,6 +414,35 @@ fn continue_child(pid: u32) -> Result<(), RunnerError> {
             pid,
             std::io::Error::last_os_error()
         )))
+    }
+}
+
+async fn wait_for_process_runner_start(
+    stream: &mut EventStream,
+    wait: Duration,
+) -> Result<(), RunnerError> {
+    let deadline = tokio::time::Instant::now() + wait;
+    loop {
+        let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
+        if remaining.is_zero() {
+            return Err("timed out waiting for process tracer readiness".into());
+        }
+        let next_event = tokio::time::timeout(remaining, stream.next())
+            .await
+            .map_err(|_| RunnerError::from("timed out waiting for process tracer readiness"))?;
+        let Some(event) = next_event else {
+            return Err("monitoring stream ended before process tracer readiness".into());
+        };
+        if let Some(error) = crate::runners::common::runner_error_from_event(&event) {
+            return Err(error);
+        }
+        if event.source == "diagnostic"
+            && event.comm == "process"
+            && event.data.get("event").and_then(Value::as_str) == Some("CLOCK_SYNC")
+            && event.data.get("phase").and_then(Value::as_str) == Some("start")
+        {
+            return Ok(());
+        }
     }
 }
 
