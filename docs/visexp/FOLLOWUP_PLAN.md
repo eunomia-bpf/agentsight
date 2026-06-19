@@ -12,6 +12,7 @@ Additional R251 source: `python3 docs/visexp/r251_behavior_tag_alignment.py`, `d
 Additional R252 source: `python3 docs/visexp/r252_paper_scale_c6_label_package.py`, `docs/visexp/out/tag-adequacy-paper-r252/manifest.json`, and `docs/visexp/out/tag-adequacy-paper-r252/r195-blank-check/human-evidence-pipeline-r252-blank.json`.
 Additional R253 source: `python3 docs/visexp/r253_agentpprof_git_install_smoke.py`, `docs/visexp/out/agentpprof-git-install-r253/agentpprof-git-install-r253.json`, and `docs/visexp/out/agentpprof-git-install-r253/profiles/tasks.pb.gz`.
 Additional R254 source: `python3 docs/visexp/r254_agentpprof_pinned_rev_install_smoke.py`, `docs/visexp/out/agentpprof-pinned-rev-install-r254/agentpprof-pinned-rev-install-r254.json`, and `docs/visexp/out/agentpprof-pinned-rev-install-r254/profiles/tasks.pb.gz`.
+Additional R255 source: `python3 docs/visexp/r255_paper_scale_r195_bridge.py`, `docs/visexp/out/human-evidence-paper-bridge-r255/paper-scale-r195-bridge-r255.json`, and `docs/visexp/out/human-evidence-paper-bridge-r255/paper-scale-r195-bridge-r255.md`.
 Completeness: partial
 
 ## Positioning
@@ -103,6 +104,11 @@ readiness only and records hygiene fixes for participant-packet wording,
 private completed-response files, R248 path redaction, and source-tree
 `agentpprof` install documentation. The P0 evidence rows remain real C5
 responses and R124 labels.
+R255 then checks the post-collection bridge for that paper-scale C5 path: R195
+accepts the R249 blank response template only when supplied with the R249
+assignment file and rejects the same template with the old R142 assignment. This
+removes a scoring-path ambiguity, but it still records 0 real responses and
+keeps C5/weak-accept gates false.
 R252 mirrors the R249 logistics closure for C6: it bundles R124/R190/R203 into
 a two-labeler, 501-rows-per-labeler paper-scale label package and verifies with
 an isolated R195 blank-input check that empty label sheets still keep every
@@ -115,7 +121,7 @@ Weak accept requires all four gates below:
 | G1 full-history semantic characterization | C1-C3 | all repo-related readable sessions annotated by real llama.cpp model, with redacted output and baseline-mixing analysis | R170: 325 sessions, 35,136 llama.cpp HTTP calls, 0 final tag failures, 90.402%/90.918% nonsemantic/flat mixed baseline weights | pass |
 | G2 live exact semantic-effect lineage | C4 | broader live `agentsight record` suite, recall/precision table, join/orphan table, child-depth and path specificity, target-network probes, negative controls | R114 fixed 20-task suite: 20/20 targets completed, 1273/1273 in-scope effects joined, 100.0% precision/recall, 3170 observed negative-control effects with 0 joined; R191 joins 4/4 fixed target `python3` HTTP network rows with 0/310 negative joins; R229 joins 394/394 controlled multi-workspace in-scope effects with 0/306 negative joins; R232 joins 353/353 external-repo in-scope effects and 4/4 external HTTP target rows with 0/480 negative joins; R234 joins 269/269 controlled Claude/Codex in-scope effects and 8/8 target network rows with 0/331 negative joins; R238 fixes process-tracer readiness and has a compact 5/5 direct-only readiness supplement, while the official full run joins 13/16 target network rows with 0/186 negative joins; R240 adds regression guards for command-root fallback and target-child network capture; Codex/Claude-launched rows remain partial | pass for fixed and controlled scoped workloads; regression guarded after R240; broad full-history, arbitrary raw sockets, and Claude-launched target-network coverage still partial |
 | G3 small-model and tag adequacy | C2,C6 | 0.6B/1B/3B llama.cpp benchmark, repeated-run stability, human adequacy labels | R180 covers local 0.6B-/1B-/3B-class syntax/stability over the 300 R122 redacted fragments: 2700/2700 valid tags; per-model exact stability is 299/300, 279/300, and 285/300 with p95 23/18/32 ms. R189/R190 add a total-preserving canonical display layer plus a 160-row merge-risk audit packet and scorer; R196 adds a long-tail governance packet with regenerate/split/keep actions; R201 adds threshold/generic-vocabulary sensitivity with review-required support 1.926%-1.931% and high-tail threshold head stability 65.217%; R202 exercises candidate-only regeneration with 41/41 grammar-valid one-word outputs and 0 invalid outputs; R203 adds a 41-row promotion packet and blank paired-review gate with 0 final labels; R205 reports raw/canonical unique tags 1,546 -> 1,364, top-20 support coverage 93.683% -> 95.186%, and review-required support 1.926%; R213 verifies display-mode drilldown membership over R209; R214 exposes active/pending/review control gates, a non-default seven-bucket rollup preview, and a versioned regeneration policy while failing prompt review budget plus high-tail head stability; R215 verifies the frontend renderer-model consumer preserves membership and rejects corrupted/candidate-as-active fixtures; R216 verifies the same mode contract in a headless-browser DOM harness; R217 verifies production default rendering; R218 verifies reviewed-diff update-gate mechanics with synthetic review fixtures; R251 shows prompt tags retain behavior information beyond session membership under a 1,000-permutation session-preserving shuffle null and passes public-output privacy scan; R252 packages the C6 paper-scale label handoff as 501 rows per labeler and 1002 required independent label decisions, then confirms blank R195 inputs produce `scored_human_inputs_no_supported_gate`. These long-tail, behavior-association, and label-logistics artifacts are C6 protocol/mechanism evidence, not human adequacy evidence. R190-score, R203, and R252 still have 0 final labels. This is not controlled same-family scaling, and TinyLlama 1.1B collapses semantically toward localization-like tags; human adequacy still missing | partial |
-| G4 developer task utility | C5 | head-to-head task benchmark against trace tree, true span-duration flamegraph or explicitly named event-count proxy, flat summary, nonsemantic stack, semantic stack | R142-packet generated 14 tasks, 8 primary utility tasks, 6 limitation/comprehension tasks, 5 conditions, 70 leak-checked blinded packets, P01-P05 counterbalanced assignments, hidden answer key, manifests, and per-task same-event-slice `slice_id` checks. The former span-like event-weight condition is now explicitly named `event-count-proxy`, so the packet no longer claims to be a span-duration baseline. R142-scoring adds response-contract checks, task-level diagnostic deltas, Holm-corrected participant/task/order fixed-effect paper gates, false-positive guardrails, and C5 support/pilot gates. R142-preregistration is frozen before collection and records source hashes, task roles, response schema, exclusions, conditions, and success thresholds. R249 adds a 12-packet paper-scale launch package with 168 blank rows and a scorer-accepted nondefault assignment file; no participants have returned responses | missing outcome data |
+| G4 developer task utility | C5 | head-to-head task benchmark against trace tree, true span-duration flamegraph or explicitly named event-count proxy, flat summary, nonsemantic stack, semantic stack | R142-packet generated 14 tasks, 8 primary utility tasks, 6 limitation/comprehension tasks, 5 conditions, 70 leak-checked blinded packets, P01-P05 counterbalanced assignments, hidden answer key, manifests, and per-task same-event-slice `slice_id` checks. The former span-like event-weight condition is now explicitly named `event-count-proxy`, so the packet no longer claims to be a span-duration baseline. R142-scoring adds response-contract checks, task-level diagnostic deltas, Holm-corrected participant/task/order fixed-effect paper gates, false-positive guardrails, and C5 support/pilot gates. R142-preregistration is frozen before collection and records source hashes, task roles, response schema, exclusions, conditions, and success thresholds. R249 adds a 12-packet paper-scale launch package with 168 blank rows and a scorer-accepted nondefault assignment file. R255 verifies the R249 assignment path through R195 and rejects the old R142 assignment; no participants have returned responses | missing outcome data |
 
 ## Weak-Accept Execution Protocol
 
@@ -136,7 +142,9 @@ execution order is:
    stay labeled as pilot evidence unless the paper-scale C5 gate passes. R249
    provides the paper-scale launch package to use after the pilot: 12
    participant packets and a 168-row response template scored with the R249
-   assignment file.
+   assignment file. R255 verifies that the same paper-scale template can be
+   routed through R195 with the R249 assignment, and that using the old R142
+   assignment fails rather than producing a misleading score.
 3. **R124/R190/R203 labels for C6.** Use
    `docs/visexp/out/tag-adequacy-paper-r252/labeler-packets/L01` and
    `docs/visexp/out/tag-adequacy-paper-r252/labeler-packets/L02` for the
@@ -223,7 +231,10 @@ execution order is:
    checklist and package manifest. It verifies local links, excludes R244
    synthetic exports, scans for answer/scorer/raw-trace tokens, and still keeps
    all outcome gates false. Use this tarball for distribution, then score only
-   real returned CSVs through R195.
+   real returned CSVs through R195. For the paper-scale C5 path from R249, pass
+   `--r142-responses <completed-paper-scale.csv> --r142-bundle docs/visexp/out/user-task-benchmark.json --r142-answer-key docs/visexp/out/user-task-answer-key.csv --r142-assignments docs/visexp/out/user-task-paper-r249/user-task-assignments-r249-paper.csv`;
+   R255 already verifies that this nondefault assignment is accepted and that
+   the old R142 assignment is rejected.
 9. **R151 paper run for C5.** Only after the pilot response contract passes and
    the C5 analysis model is preregistered, collect 12-20 participant response
    rows or explicitly narrow to a scoped expert study. The scorer's
@@ -718,25 +729,26 @@ It may not say:
 
 ## Immediate Next Action
 
-Move to G3/G4 next. After R187, R142 pilot collection can start from the
-per-participant launch package under
-`docs/visexp/out/user-task-pilot-r142/launch`; do not collect R151 paper-run
-responses until R142 passes its response-contract and pilot checks.
-R114/B3x now gives the paper concrete exact-lineage evidence that
-span-duration traces do not provide, but OSDI weak accept still needs evidence
-that the semantic labels are adequate and that developers actually answer
-forensic questions better with the visualization.
+Move to G3/G4 next. The cleanest current handoff is R249/R255 for paper-scale
+C5 and R252 for paper-scale C6. R187 remains useful only for a five-person
+pilot rehearsal; it cannot support the paper-scale C5 gate. R114/B3x now gives
+the paper concrete exact-lineage evidence that span-duration traces do not
+provide, but OSDI weak accept still needs evidence that the semantic labels are
+adequate and that developers actually answer forensic questions better with the
+visualization.
 
-1. send the R187 P01-P05 R142 pilot packets and collect real completed response
-   rows in a copy of the blank launch CSV;
-2. collect/adjudicate human adequacy labels using the blinded R124 labeler
-   sheet, then rerun `score_tag_adequacy.py`;
-3. if claiming canonicalized long-tail tags, label the R190 merge-risk audit
-   packet, run `r190_score_merge_audit.py`, and report over-merge/under-merge
-   rates separately from R124 adequacy;
-4. copy returned R142/R124/R190/R203 CSV files into
-   `docs/visexp/out/human-evidence-r195/inbox` or pass them to
-   `r195_human_evidence_pipeline.py` explicitly, then score through the R195
-   pipeline;
-5. after a successful pilot, run R151 or narrow the paper to a scoped expert
-   study before making any user-utility claim.
+1. distribute the R249 P01-P12 paper-scale participant packets and collect real
+   completed response rows in a private copy of
+   `docs/visexp/out/user-task-paper-r249/responses/user-task-response-template-r249-paper.csv`;
+2. score C5 through R195 with
+   `python3 docs/visexp/r195_human_evidence_pipeline.py --r142-responses <completed-paper-scale.csv> --r142-bundle docs/visexp/out/user-task-benchmark.json --r142-answer-key docs/visexp/out/user-task-answer-key.csv --r142-assignments docs/visexp/out/user-task-paper-r249/user-task-assignments-r249-paper.csv`;
+3. collect/adjudicate paper-scale C6 labels using
+   `docs/visexp/out/tag-adequacy-paper-r252/labeler-packets/L01` and `L02`,
+   then pass the completed R124/R190/R203 CSVs to R195 using the R207/R252
+   return-file names;
+4. if claiming canonicalized long-tail tags, label the R190 merge-risk audit
+   packet and R203 promotion rows, then report over-merge/under-merge and
+   promotion rates separately from R124 adequacy;
+5. keep all C5/C6 wording unsupported until the R195-scored real responses and
+   real human labels pass their gates; pilot-only R187/R142 evidence must be
+   labeled as pilot evidence.
