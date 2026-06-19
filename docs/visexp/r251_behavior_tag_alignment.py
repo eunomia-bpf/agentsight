@@ -681,6 +681,7 @@ def write_markdown(
         "|---|---|",
         f"| repo commit | `{provenance['repo_commit']}` |",
         f"| repo dirty | `{provenance['repo_dirty']}` |",
+        "| provenance semantics | `repo commit` is the clean source tree used to generate this report; a later commit may contain the generated report itself. |",
         f"| source run | `{source_run['run_id']}` / `{source_run.get('status', 'unknown')}` |",
         f"| source summary | `{source_run['summary_path']}` |",
         f"| source summary sha256 | `{source_run.get('summary_sha256', 'missing')}` |",
@@ -692,6 +693,7 @@ def write_markdown(
         f"| p-value resolution | `{method['p_value_resolution']}` |",
         f"| privacy scan passed | `{privacy['scan_passed']}` |",
         f"| privacy scan hits | `{privacy['hit_count']}` |",
+        "| privacy scope | Pattern-based redaction/scan for paths, archive names, timestamped artifacts, and private-looking labels; not full de-identification. |",
         "",
         "## Boundary",
         "",
@@ -770,9 +772,9 @@ def write_markdown(
             "",
             "## Claim Boundary",
             "",
-            "R251 is useful because it falsifies the weakest version of the tagging story: "
-            "prompt tags are not treated as adequate merely because they are one-word strings. "
-            "The run checks whether prompt tags retain behavior information beyond session "
+            "R251 is useful as a session-preserving weighted association screen. It does not "
+            "treat prompt tags as adequate merely because they are one-word strings; instead, "
+            "it checks whether prompt tags retain behavior information beyond session "
             "membership under a session-preserving null. It still cannot decide whether a "
             "human developer would call each tag semantically correct; that requires the R124 "
             "label-return path.",
@@ -884,7 +886,7 @@ def main() -> None:
         "metrics": {key: round(value, 6) for key, value in actual_metrics.items()},
         "null_summary": null_rows,
         "claim_gates": {
-            "behavior_grounding_proxy_supported": behavior_association_supported,
+            "behavior_association_proxy_supported": behavior_association_supported,
             "c6_human_semantic_adequacy_supported": False,
             "c5_developer_utility_supported": False,
             "weak_accept_supported": False,
