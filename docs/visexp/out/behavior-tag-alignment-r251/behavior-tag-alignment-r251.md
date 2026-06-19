@@ -6,8 +6,8 @@ Status: `behavior_association_supported`
 
 | field | value |
 |---|---|
-| repo commit | `bb7f0f0e148dffef4f9377691d35b1b59c48422e` |
-| repo dirty | `True` |
+| repo commit | `c7cad77d094f9aca260d076ae3c1a0f76b4ec32e` |
+| repo dirty | `False` |
 | provenance semantics | `repo commit` is the clean source tree used to generate this report; a later commit may contain the generated report itself. |
 | source run | `R170` / `full_history_refresh_passed` |
 | source summary | `docs/visexp/out/full-history-r170.json` |
