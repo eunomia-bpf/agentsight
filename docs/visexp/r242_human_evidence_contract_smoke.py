@@ -314,7 +314,7 @@ def canonical_empty_gates_preserved(snapshot: dict[str, Any]) -> bool:
     )
 
 
-def build_payload(out_dir: Path) -> dict[str, Any]:
+def build_payload(out_dir: Path, initial_provenance: dict[str, Any]) -> dict[str, Any]:
     synthetic_dir = out_dir / "synthetic-ready" / "inbox"
     partial_dir = out_dir / "partial-r124"
     invalid_dir = out_dir / "invalid-r142"
@@ -438,8 +438,9 @@ def build_payload(out_dir: Path) -> dict[str, Any]:
             "adequacy evidence, and must not be used to upgrade claim verdicts."
         ),
         "provenance": {
-            "repo_commit": git(["rev-parse", "HEAD"]),
-            "repo_dirty": bool(git(["status", "--short"])),
+            "repo_commit": initial_provenance["repo_commit"],
+            "repo_dirty": initial_provenance["repo_dirty"],
+            "repo_dirty_semantics": "captured before R242 writes synthetic inputs or scored outputs",
             "script": rel(Path(__file__).resolve()),
             "script_sha256": sha256_file(Path(__file__).resolve()),
         },
@@ -488,7 +489,11 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
     args.out_dir.mkdir(parents=True, exist_ok=True)
-    payload = build_payload(args.out_dir)
+    initial_provenance = {
+        "repo_commit": git(["rev-parse", "HEAD"]),
+        "repo_dirty": bool(git(["status", "--short"])),
+    }
+    payload = build_payload(args.out_dir, initial_provenance)
     out_json = args.out_dir / "human-evidence-contract-r242.json"
     out_md = args.out_dir / "human-evidence-contract-r242.md"
     write_json(out_json, payload)
