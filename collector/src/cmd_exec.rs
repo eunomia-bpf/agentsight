@@ -730,6 +730,7 @@ fn epoch_ms_now() -> u64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::event::Event;
     use crate::sources::proc::ProcInfo;
     use crate::sources::sqlite::load_view;
     use std::collections::BTreeMap;
@@ -834,6 +835,60 @@ mod tests {
         assert_eq!(
             tool.input.get("agent_comm").and_then(Value::as_str),
             Some("codex")
+        );
+    }
+
+    fn event_stream(events: Vec<Event>) -> EventStream {
+        Box::pin(futures::stream::iter(events))
+    }
+
+    #[tokio::test]
+    async fn wait_for_process_runner_start_ignores_unrelated_diagnostics() {
+        let mut stream = event_stream(vec![
+            Event::new_with_timestamp(
+                1,
+                "diagnostic".to_string(),
+                0,
+                "ssl".to_string(),
+                json!({"event": "CLOCK_SYNC", "phase": "start"}),
+            ),
+            Event::new_with_timestamp(
+                2,
+                "diagnostic".to_string(),
+                0,
+                "process".to_string(),
+                json!({"event": "CLOCK_SYNC", "phase": "end"}),
+            ),
+            Event::new_with_timestamp(
+                3,
+                "diagnostic".to_string(),
+                0,
+                "process".to_string(),
+                json!({"event": "CLOCK_SYNC", "phase": "start"}),
+            ),
+        ]);
+
+        wait_for_process_runner_start(&mut stream, Duration::from_millis(100))
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn wait_for_process_runner_start_errors_before_readiness() {
+        let mut stream = event_stream(vec![Event::new_with_timestamp(
+            1,
+            "diagnostic".to_string(),
+            0,
+            "process".to_string(),
+            json!({"event": "CLOCK_SYNC", "phase": "end"}),
+        )]);
+
+        let err = wait_for_process_runner_start(&mut stream, Duration::from_millis(100))
+            .await
+            .unwrap_err();
+        assert!(
+            err.to_string()
+                .contains("monitoring stream ended before process tracer readiness")
         );
     }
 
