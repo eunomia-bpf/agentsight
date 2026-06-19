@@ -289,6 +289,11 @@ R211 将当前 R170/R189 artifact 转成可放入论文的 label distribution �
 这说明传统 process/effect summary 不只是少了一层标签，而是把大量不同用户意图导致的相同行为合并成同一个 bucket。
 R211 同时输出 \texttt{tag-distribution-r211.svg} 和 \texttt{process-splits-r211.svg}，用于绘制本文的 baseline failure/semantic split 图；该 artifact 不调用 LLM，也不读取 raw trace。
 
+R251 从另一个角度检查 prompt tags 是否只是任意词。
+它只读取 R170 的 folded stacks，把 183,714 个 system-effect observations 展开成 behavior observations，然后在每个 session 内随机打乱 prompt tags 100 次。
+真实 prompt tags 对 process/effect/status behavior 的 session-beyond 信息增益为 8.469\%，而 session-preserving null 的 p95 只有 1.925\%（单侧 \(p=0.0099\)）；prompt top-behavior purity 为 20.196\%，也高于 null p95 的 18.363\%。
+这个结果支持 tags 与真实系统行为有关联，但绝不等于人工语义 adequacy：低绝对 purity 和 \texttt{analyze}/\texttt{test}/\texttt{build} 等 broad tags 仍需要 R124 人工标签。
+
 R131 把这个结论进一步做成轴级别消融。
 R224 用同一个 checker 在 R170 current refresh 上重跑该消融，使 semantic-axis rows 与 R212 display-policy rows 共享 183,714 个 system-effect denominator。
 每个 variant 都从同一个 folded input 投影而来，并检查总权重保持不变。
@@ -534,7 +539,7 @@ R246 进一步记录 post-R245 OSDI review 的 author response：C5/C6 仍是 mu
     unsupported &
     需要基于已冻结的 preregistration 运行 trace tree/event-count/flat/nonsemantic/semantic 视图的 user benchmark。 \\
     C6 tag adequacy &
-    R180 在本机 0.6b/1.1b/3b GGUF 上得到 2,700/2,700 valid tags；exact-stable fragments 为 299/300、279/300、285/300，p95 为 23/18/32 ms；1.1b 存在 localization-like collapse；R189/R196/R201/R202/R203/R205/R209/R212/R218 只支持 display-layer noise-control/governance/sensitivity/regeneration-smoke/promotion-protocol/compaction metrics/display-map contract/compaction ablation/update-gate mechanics；R243/R244/R247 只提供 labeler collection/export/distribution readiness。 &
+    R180 在本机 0.6b/1.1b/3b GGUF 上得到 2,700/2,700 valid tags；exact-stable fragments 为 299/300、279/300、285/300，p95 为 23/18/32 ms；1.1b 存在 localization-like collapse；R251 在 R170 folded stacks 上显示 prompt tags 的 behavior gain beyond session 为 8.469\%，高于 session-preserving shuffle null p95 1.925\%，但 prompt top-behavior purity 只有 20.196\%；R189/R196/R201/R202/R203/R205/R209/R212/R218 只支持 display-layer noise-control/governance/sensitivity/regeneration-smoke/promotion-protocol/compaction metrics/display-map contract/compaction ablation/update-gate mechanics；R243/R244/R247 只提供 labeler collection/export/distribution readiness。 &
     partial &
     需要 R124 人工 adequacy labels；若要声称 controlled model scaling 还需同族模型 benchmark。 \\
     C7 artifact usability &
