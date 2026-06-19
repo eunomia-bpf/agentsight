@@ -1,0 +1,344 @@
+{
+  "agentsight_bin": "collector/target/debug/agentsight",
+  "aggregate": {
+    "agents": {
+      "claude": 2,
+      "codex": 2
+    },
+    "all_target_network_rows_joined_tasks": 1,
+    "false_negatives": 0,
+    "false_positives": 0,
+    "joined_network_effect_events": 18,
+    "joined_target_network_effect_events": 3,
+    "negative_effect_events_observed": 305,
+    "negative_joined_effect_events": 0,
+    "network_effect_events": 18,
+    "network_process_comms": {
+      "codex": 15,
+      "python3": 3
+    },
+    "ok_tasks": 1,
+    "orphan_target_network_effect_events": 0,
+    "precision_pct": 100.0,
+    "probe_by_agent": {
+      "claude:http": 1,
+      "claude:tcp": 1,
+      "codex:multiprocess_tcp": 1,
+      "codex:tcp": 1
+    },
+    "probes": {
+      "http": 1,
+      "multiprocess_tcp": 1,
+      "tcp": 2
+    },
+    "recall_pct": 100.0,
+    "record_statuses": {
+      "ok": 4
+    },
+    "required_action_tasks_ok": 1,
+    "target_network_actions": {
+      "NET_BIND": 1,
+      "NET_CONNECT": 1,
+      "NET_LISTEN": 1
+    },
+    "target_network_effect_events": 3,
+    "target_network_join_pct": 100.0,
+    "target_network_process_comms": {
+      "python3": 3
+    },
+    "target_statuses": {
+      "completed": 4
+    },
+    "task_statuses": {
+      "ok": 1,
+      "partial": 3
+    },
+    "tasks": 4,
+    "true_positives": 154
+  },
+  "artifact_boundary": "Raw SQLite DBs, exported snapshots, workspaces, and per-event lineage CSVs stay in the local work dir; committed artifacts contain aggregate/task summaries without per-event examples.",
+  "boundary": "R235 is partial: at least one raw-socket, Claude-launched-network, or negative-control gate did not pass.",
+  "claim_gate": {
+    "aggregate_gate": false,
+    "claude_launched_network_gate": false,
+    "r235_raw_claude_network_lineage_supported": false,
+    "raw_socket_gate": false
+  },
+  "claude_bin": "$CLAUDE_BIN",
+  "codex_bin": "$CODEX_BIN",
+  "generated_at": "2026-06-18",
+  "negative_mode": "wrapper",
+  "outputs": {
+    "json": "docs/visexp/out/raw-claude-network-lineage-r235/raw-claude-network-lineage-r235.json",
+    "markdown": "docs/visexp/out/raw-claude-network-lineage-r235/raw-claude-network-lineage-r235.md"
+  },
+  "run_id": "R235",
+  "schema_version": 1,
+  "scope": "controlled_raw_socket_and_claude_launched_target_network_lineage",
+  "status": "partial",
+  "task_limit": 4,
+  "tasks_detail": [
+    {
+      "agent": "codex",
+      "kind": "network",
+      "network_lineage": {
+        "joined_network_effect_events": 18,
+        "joined_target_network_effect_events": 3,
+        "network_effect_events": 18,
+        "network_process_comms": {
+          "codex": 15,
+          "python3": 3
+        },
+        "orphan_target_network_effect_events": 0,
+        "target_network_actions": {
+          "NET_BIND": 1,
+          "NET_CONNECT": 1,
+          "NET_LISTEN": 1
+        },
+        "target_network_effect_events": 3,
+        "target_network_join_pct": 100.0,
+        "target_network_process_comms": {
+          "python3": 3
+        }
+      },
+      "precision_recall": {
+        "agent_process_count": 25,
+        "false_negatives": 0,
+        "false_positives": 0,
+        "in_scope_effect_events": 76,
+        "negative_control_status": "observed",
+        "negative_effect_events_observed": 302,
+        "negative_joined_effect_events": 0,
+        "out_of_scope_effect_events": 54,
+        "precision_pct": 100.0,
+        "recall_pct": 100.0,
+        "true_positives": 76
+      },
+      "probe_result": {
+        "body": "R235-TCP-PROBE",
+        "bytes": 14,
+        "probe": "tcp",
+        "status": "ok"
+      },
+      "probe_result_ok": true,
+      "record_returncode": 0,
+      "record_status": "ok",
+      "script": "r235_tcp_probe.py",
+      "snapshot_counts": {
+        "audit_events": 432,
+        "process_nodes": 50,
+        "sessions": 1,
+        "tool_calls": 1
+      },
+      "status": "ok",
+      "target_exit_code": 0,
+      "target_network_oracle": {
+        "all_target_network_rows_joined": true,
+        "missing_required_actions": [],
+        "orphan_target_network_rows": 0,
+        "required_actions": [
+          "NET_BIND",
+          "NET_LISTEN",
+          "NET_CONNECT"
+        ],
+        "required_actions_ok": true,
+        "target_network_rows_observed": true
+      },
+      "target_status": "completed",
+      "task_id": "r235-codex-tcp"
+    },
+    {
+      "agent": "codex",
+      "kind": "network",
+      "network_lineage": {
+        "joined_network_effect_events": 0,
+        "joined_target_network_effect_events": 0,
+        "network_effect_events": 0,
+        "network_process_comms": {},
+        "orphan_target_network_effect_events": 0,
+        "target_network_actions": {},
+        "target_network_effect_events": 0,
+        "target_network_join_pct": 0.0,
+        "target_network_process_comms": {}
+      },
+      "precision_recall": {
+        "agent_process_count": 6,
+        "false_negatives": 0,
+        "false_positives": 0,
+        "in_scope_effect_events": 12,
+        "negative_control_status": "observed",
+        "negative_effect_events_observed": 1,
+        "negative_joined_effect_events": 0,
+        "out_of_scope_effect_events": 29,
+        "precision_pct": 100.0,
+        "recall_pct": 100.0,
+        "true_positives": 12
+      },
+      "probe_result": {
+        "body": "corpitlum-532r",
+        "bytes": 14,
+        "probe": "multiprocess_tcp",
+        "status": "ok"
+      },
+      "probe_result_ok": true,
+      "record_returncode": 0,
+      "record_status": "ok",
+      "script": "r235_multiprocess_tcp_probe.py",
+      "snapshot_counts": {
+        "audit_events": 42,
+        "process_nodes": 19,
+        "sessions": 1,
+        "tool_calls": 1
+      },
+      "status": "partial",
+      "target_exit_code": 0,
+      "target_network_oracle": {
+        "all_target_network_rows_joined": false,
+        "missing_required_actions": [
+          "NET_BIND",
+          "NET_LISTEN",
+          "NET_CONNECT"
+        ],
+        "orphan_target_network_rows": 0,
+        "required_actions": [
+          "NET_BIND",
+          "NET_LISTEN",
+          "NET_CONNECT"
+        ],
+        "required_actions_ok": false,
+        "target_network_rows_observed": false
+      },
+      "target_status": "completed",
+      "task_id": "r235-codex-multiprocess-tcp"
+    },
+    {
+      "agent": "claude",
+      "kind": "network",
+      "network_lineage": {
+        "joined_network_effect_events": 0,
+        "joined_target_network_effect_events": 0,
+        "network_effect_events": 0,
+        "network_process_comms": {},
+        "orphan_target_network_effect_events": 0,
+        "target_network_actions": {},
+        "target_network_effect_events": 0,
+        "target_network_join_pct": 0.0,
+        "target_network_process_comms": {}
+      },
+      "precision_recall": {
+        "agent_process_count": 16,
+        "false_negatives": 0,
+        "false_positives": 0,
+        "in_scope_effect_events": 33,
+        "negative_control_status": "observed",
+        "negative_effect_events_observed": 1,
+        "negative_joined_effect_events": 0,
+        "out_of_scope_effect_events": 21,
+        "precision_pct": 100.0,
+        "recall_pct": 100.0,
+        "true_positives": 33
+      },
+      "probe_result": {
+        "body": "r235-http-probe",
+        "bytes": 15,
+        "probe": "http",
+        "status": "ok"
+      },
+      "probe_result_ok": true,
+      "record_returncode": 0,
+      "record_status": "ok",
+      "script": "r235_http_probe.py",
+      "snapshot_counts": {
+        "audit_events": 55,
+        "process_nodes": 25,
+        "sessions": 1,
+        "tool_calls": 1
+      },
+      "status": "partial",
+      "target_exit_code": 0,
+      "target_network_oracle": {
+        "all_target_network_rows_joined": false,
+        "missing_required_actions": [
+          "NET_BIND",
+          "NET_LISTEN",
+          "NET_CONNECT"
+        ],
+        "orphan_target_network_rows": 0,
+        "required_actions": [
+          "NET_BIND",
+          "NET_LISTEN",
+          "NET_CONNECT"
+        ],
+        "required_actions_ok": false,
+        "target_network_rows_observed": false
+      },
+      "target_status": "completed",
+      "task_id": "r235-claude-http"
+    },
+    {
+      "agent": "claude",
+      "kind": "network",
+      "network_lineage": {
+        "joined_network_effect_events": 0,
+        "joined_target_network_effect_events": 0,
+        "network_effect_events": 0,
+        "network_process_comms": {},
+        "orphan_target_network_effect_events": 0,
+        "target_network_actions": {},
+        "target_network_effect_events": 0,
+        "target_network_join_pct": 0.0,
+        "target_network_process_comms": {}
+      },
+      "precision_recall": {
+        "agent_process_count": 16,
+        "false_negatives": 0,
+        "false_positives": 0,
+        "in_scope_effect_events": 33,
+        "negative_control_status": "observed",
+        "negative_effect_events_observed": 1,
+        "negative_joined_effect_events": 0,
+        "out_of_scope_effect_events": 21,
+        "precision_pct": 100.0,
+        "recall_pct": 100.0,
+        "true_positives": 33
+      },
+      "probe_result": {
+        "body": "R235-TCP-PROBE",
+        "bytes": 14,
+        "probe": "tcp",
+        "status": "ok"
+      },
+      "probe_result_ok": true,
+      "record_returncode": 0,
+      "record_status": "ok",
+      "script": "r235_tcp_probe.py",
+      "snapshot_counts": {
+        "audit_events": 55,
+        "process_nodes": 25,
+        "sessions": 1,
+        "tool_calls": 1
+      },
+      "status": "partial",
+      "target_exit_code": 0,
+      "target_network_oracle": {
+        "all_target_network_rows_joined": false,
+        "missing_required_actions": [
+          "NET_BIND",
+          "NET_LISTEN",
+          "NET_CONNECT"
+        ],
+        "orphan_target_network_rows": 0,
+        "required_actions": [
+          "NET_BIND",
+          "NET_LISTEN",
+          "NET_CONNECT"
+        ],
+        "required_actions_ok": false,
+        "target_network_rows_observed": false
+      },
+      "target_status": "completed",
+      "task_id": "r235-claude-tcp"
+    }
+  ],
+  "work_dir": "$R235_WORK"
+}
