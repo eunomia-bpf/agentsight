@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""R249: build a paper-scale C5 participant launch package.
+"""R249: build a paper-scale C5 participant-packet launch package.
 
 R187/R247 make the five-participant pilot sendable, but the C5 scorer requires
-at least twelve participants before paper-scale utility can be claimed. R249
-reuses the frozen R142 task packets and creates a separate twelve-participant
+at least twelve real participants before paper-scale utility can be claimed.
+R249 reuses the frozen R142 task packets and creates a separate twelve-slot
 assignment package. It records zero responses and cannot support C5 by itself.
 """
 
@@ -188,7 +188,10 @@ def participant_payload(
         "participant_id": participant_id,
         "assignment_count": len(tasks),
         "instructions": {
-            "response_csv": "Fill exactly one row per task in responses/user-task-response-template-r249-paper.csv.",
+            "response_csv": (
+                "Fill exactly one row per task in the coordinator-provided private "
+                "completed-response CSV copied from responses/user-task-response-template-r249-paper.csv."
+            ),
             "timing": "Record task_time_seconds from first reading the task until writing response_json.",
             "confidence": "Use an integer 1..5 confidence rating.",
             "answer_policy": "Do not use source repository files, answer keys, or external help while answering.",
@@ -248,9 +251,9 @@ def assignment_metrics(assignments: list[dict[str, Any]]) -> dict[str, Any]:
         per_task_counts[task_id][condition] = count
     all_counts = list(by_task_condition.values())
     return {
-        "participant_count": len(by_participant),
+        "participant_packet_count": len(by_participant),
         "assignment_count": len(assignments),
-        "assignments_per_participant": dict(sorted(by_participant.items())),
+        "assignments_per_participant_packet": dict(sorted(by_participant.items())),
         "min_task_condition_replicates": min(all_counts) if all_counts else 0,
         "max_task_condition_replicates": max(all_counts) if all_counts else 0,
         "task_condition_replicates": per_task_counts,
@@ -272,28 +275,28 @@ def leak_scan(paths: list[Path]) -> dict[str, Any]:
 
 
 def write_readme(path: Path, manifest: dict[str, Any]) -> None:
-    participants = ", ".join(manifest["participant_ids"])
+    participants = ", ".join(manifest["participant_packet_ids"])
     path.write_text(
         f"""# R249 Paper-Scale C5 Collection Package
 
 Status: `{manifest["status"]}`
 
-This package derives a twelve-participant paper-scale C5 launch package from
+This package derives a twelve-packet paper-scale C5 launch package from
 the frozen R142 task packets. It contains blinded participant packets, a blank
 paper-scale response CSV, and assignments for scoring. It contains no answer
 key and no participant responses.
 
-Participants: {participants}
+Participant packet IDs: {participants}
 
 Coordinator steps:
 
 1. Send each participant only their matching `participants/Pxx.md` or `participants/Pxx.json`.
-2. Fill `responses/user-task-response-template-r249-paper.csv` only with real participant responses.
-3. Score completed responses with:
+2. Copy `responses/user-task-response-template-r249-paper.csv` to a private completed-response CSV outside the committed artifact tree, then fill that private copy with real participant responses.
+3. Score the private completed-response CSV with:
 
 ```bash
 python3 docs/visexp/score_user_task_results.py \\
-  --responses docs/visexp/out/user-task-paper-r249/responses/user-task-response-template-r249-paper.csv \\
+  --responses <completed-response.csv> \\
   --bundle docs/visexp/out/user-task-benchmark.json \\
   --answer-key docs/visexp/out/user-task-answer-key.csv \\
   --assignments docs/visexp/out/user-task-paper-r249/user-task-assignments-r249-paper.csv \\
@@ -324,10 +327,10 @@ def validate(bundle: dict[str, Any], packets: list[dict[str, Any]], assignments:
         if str(packet.get("condition")) != str(row["condition"]):
             errors.append(f"packet condition mismatch for {row['packet_id']}")
     metrics = assignment_metrics(assignments)
-    if metrics["participant_count"] != PARTICIPANT_COUNT:
-        errors.append(f"expected {PARTICIPANT_COUNT} participants")
-    if any(count != EXPECTED_TASKS for count in metrics["assignments_per_participant"].values()):
-        errors.append("each participant must have one assignment per task")
+    if metrics["participant_packet_count"] != PARTICIPANT_COUNT:
+        errors.append(f"expected {PARTICIPANT_COUNT} participant packets")
+    if any(count != EXPECTED_TASKS for count in metrics["assignments_per_participant_packet"].values()):
+        errors.append("each participant packet must have one assignment per task")
     if metrics["min_task_condition_replicates"] < 2:
         errors.append("paper-scale package should give every task-condition at least two replicates")
     if errors:
@@ -392,8 +395,9 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "preregistration": {"path": rel(prereg_path), "sha256": sha256_file(prereg_path)},
         },
         "preregistration_status": prereg.get("status"),
-        "participant_count": PARTICIPANT_COUNT,
-        "participant_ids": participant_ids,
+        "participant_packet_count": PARTICIPANT_COUNT,
+        "participant_packet_ids": participant_ids,
+        "actual_participant_response_count": 0,
         "task_count": EXPECTED_TASKS,
         "condition_order": CONDITION_ORDER,
         "assignment_metrics": metrics,
@@ -411,7 +415,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         "participant_files": participant_files,
         "leak_scan": scan,
         "real_response_count": 0,
-        "scoring_command": [
+        "blank_template_check_command": [
             "python3",
             "docs/visexp/score_user_task_results.py",
             "--responses",
@@ -425,9 +429,23 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
             "--out",
             rel(out_dir / "scored"),
         ],
+        "real_response_scoring_command": [
+            "python3",
+            "docs/visexp/score_user_task_results.py",
+            "--responses",
+            "<completed-response.csv>",
+            "--bundle",
+            "docs/visexp/out/user-task-benchmark.json",
+            "--answer-key",
+            "docs/visexp/out/user-task-answer-key.csv",
+            "--assignments",
+            rel(assignments_path),
+            "--out",
+            rel(out_dir / "scored"),
+        ],
         "claim_gate": {
             "paper_scale_collection_ready": scan["passed"],
-            "participant_count_meets_claim_floor": PARTICIPANT_COUNT >= 12,
+            "participant_packet_count_meets_claim_floor": PARTICIPANT_COUNT >= 12,
             "c5_supported": False,
             "requires_real_participants": True,
             "disallowed_evidence": [
@@ -468,7 +486,7 @@ def main() -> None:
             {
                 "run_id": result["run_id"],
                 "status": result["status"],
-                "participant_count": result["participant_count"],
+                "participant_packet_count": result["participant_packet_count"],
                 "assignment_count": result["assignment_metrics"]["assignment_count"],
                 "c5_supported": result["claim_gate"]["c5_supported"],
             },

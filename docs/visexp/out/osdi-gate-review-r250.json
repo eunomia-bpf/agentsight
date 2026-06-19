@@ -1,0 +1,48 @@
+{
+  "run_id": "R250-review",
+  "status": "not_weak_accept_after_review",
+  "review_date": "2026-06-19",
+  "level": 3,
+  "weak_accept_supported": false,
+  "reviewers": [
+    {
+      "scope": "paper_claim_evidence_after_r249",
+      "verdict": "not weak accept",
+      "highest_risk_blocker": "C5 has zero real participant responses and C6 has zero human adequacy labels.",
+      "must_fix": [
+        "Collect and score real C5 participant responses before making any developer-utility claim.",
+        "Collect, join, and adjudicate R124 human labels before making any semantic-tag adequacy claim.",
+        "Keep C4 scoped to fixed and controlled workloads because Codex/Claude-launched target-network rows remain partial."
+      ],
+      "r249_assessment": "R249 is correctly scoped as paper-scale launch readiness only; it creates participant packets and assignments, not outcome evidence.",
+      "revision_applied": [
+        "Changed ambiguous R249 wording from '12 participants' to '12 participant packets' or '12 assignment slots' where the text describes launch material.",
+        "Kept C5 support false and preserved the requirement for real scored responses."
+      ]
+    },
+    {
+      "scope": "artifact_community_and_r249_reproducibility",
+      "verdict": "credible but partial artifact path; not weak-accept-changing",
+      "highest_risk_blocker": "The public install and collection paths were easy to misread as stronger than the tested local artifact path and private-response workflow.",
+      "must_fix": [
+        "Document that the checked R248 artifact smoke uses `cargo install --path agentpprof --locked --force`; registry releases may lag the research branch.",
+        "Redact R248 Cargo stderr tails and scan the generated R248 manifest/markdown for local path leakage.",
+        "Change R249 coordinator instructions so real responses are collected into a private completed-response CSV, not the committed blank template."
+      ],
+      "r249_assessment": "The R249 package/scorer integration is sound for launch readiness: frozen source hashes, 12 participant-packet slots, 168 blank rows, nondefault assignments, leak scan, and blank-template scorer check.",
+      "revision_applied": [
+        "Updated top-level and agentpprof install docs to prefer source-tree install for artifact reproduction.",
+        "Updated R248 script to sanitize local paths and include its JSON/Markdown reports in privacy scanning.",
+        "Updated R249 generated README, participant instructions, manifest fields, and real-response scoring command to use a private completed-response CSV.",
+        "Documented that `--include-previews` makes JSON output unsuitable for public artifacts unless inputs are sanitized."
+      ]
+    }
+  ],
+  "claim_gate": {
+    "c5_supported": false,
+    "c6_supported": false,
+    "c7_partial_artifact_smoke_supported": true,
+    "weak_accept_supported": false
+  },
+  "boundary": "R250 records post-R249 review and hygiene revisions only. It adds no participant responses, no human labels, no external-machine adoption data, and no weak-accept evidence."
+}

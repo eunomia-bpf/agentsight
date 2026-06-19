@@ -92,10 +92,14 @@ eBPF probes and is useful when you want an offline profile of saved local
 agent-history files:
 
 ```bash
-cargo install agentpprof
+cargo install --path agentpprof --locked --force
 agentpprof --project-root . -o agent.pb.gz
 go tool pprof -top agent.pb.gz
 ```
+
+This source-tree install is the path exercised by the checked artifact smoke.
+Published registry releases may lag this research branch; use the fixture
+command below when reproducing the paper artifacts.
 
 For a public smoke test that does not read private `~/.codex` or `~/.claude`
 history, run it against the committed fixture:
