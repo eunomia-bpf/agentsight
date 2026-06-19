@@ -14,6 +14,7 @@ Additional R253 source: `docs/visexp/out/agentpprof-git-install-r253/agentpprof-
 Additional R254 source: `docs/visexp/out/agentpprof-pinned-rev-install-r254/agentpprof-pinned-rev-install-r254.json` and `docs/visexp/out/agentpprof-pinned-rev-install-r254/pprof-top-r254.txt`.
 Additional R255 source: `docs/visexp/out/human-evidence-paper-bridge-r255/paper-scale-r195-bridge-r255.json` and `docs/visexp/out/human-evidence-paper-bridge-r255/cases/paper-scale-blank-with-r249-assignment/r195.json`.
 Additional R256 source: `docs/visexp/out/agentpprof-crate-package-r256/agentpprof-crate-package-r256.json` and `docs/visexp/out/agentpprof-crate-package-r256/package-files-r256.txt`.
+Additional R257 source: `docs/visexp/out/osdi-gate-review-r257.json` and `docs/visexp/out/osdi-gate-review-r257.md`.
 Completeness: partial
 
 ## Audit Verdict
@@ -414,6 +415,12 @@ R249 completed responses into a private CSV, document the R248 source-tree
 install path, redact R248 generated stderr paths, and scan R248 generated
 reports. These changes do not affect C5/C6 gates.
 
+R257 records a post-R256 review gate over the crate-package smoke and current
+evidence docs. It checks that the R256 crate-package dry-run is not described
+as fixture readback evidence, confirms the stale C7 gap wording is fixed, and
+keeps weak-accept, C5, C6, crates-publish, external-machine, and developer
+utility gates false. It is audit hygiene only.
+
 R251 adds a behavior-association supplement for C6/C3. It reads only the generated
 R170 semantic folded stack, inherits the R170 dirty-provenance record, sanitizes
 process labels for public outputs, and expands 183,714 system-effect observations
@@ -525,6 +532,7 @@ dry-run smokes.
 | R253 GitHub install smoke is not community adoption | R253 installs `agentpprof` from the GitHub branch and verifies pprof readback over a committed public fixture, but it records `weak_accept_supported=false`, `c5_supported=false`, `c6_supported=false`, and does not prove crates.io packaging, external-machine adoption, real-history public sanitization, or user utility | pass |
 | R254 pinned-rev install smoke is not community adoption | R254 installs `agentpprof` from a pinned GitHub revision and verifies pprof readback over a committed public fixture, but it records `weak_accept_supported=false`, `c5_supported=false`, `c6_supported=false`, and does not prove crates.io packaging, external-machine adoption, real-history public sanitization, or user utility | pass |
 | R256 crate package smoke is not community adoption | R256 verifies local `cargo package` dry-run, intended 8-file crate contents, archive/list equality, forbidden-path absence, and registry dependency verification, but it records `weak_accept_supported=false`, `c5_supported=false`, `c6_supported=false`, and `crates_publish_supported=false`; it does not prove crates.io publish/readback, external-machine adoption, real-history public sanitization, or user utility | pass |
+| R257 post-review gate is not outcome evidence | R257 records two read-only review findings, confirms the R256 wording fixes, and keeps `weak_accept_supported=false`, `c5_supported=false`, `c6_supported=false`, `crates_publish_supported=false`, `external_machine_install_supported=false`, and `developer_utility_supported=false` | pass |
 | C7 local report privacy boundary | R160 records that `.agentsight/agentflame/*/agentflame.json` is local/private and not public-release-ready because it contains trace roots/session metadata; the committed artifact is the redacted audit JSON | pass |
 | C7/R170 mechanism refresh is not overclaimed | R170 records 35,136 fresh llama.cpp calls and folded integrity, but its claim boundary excludes C5/C6 outcome evidence, broad exact lineage, and community adoption | pass |
 | C7 write-set scope is not overclaimed | R160 records raw-trace git hygiene and report path containment, but explicitly does not claim full pre/post write-set containment | pass |
@@ -647,3 +655,4 @@ Disallowed:
 | R253 | C7 | GitHub-branch `agentpprof` install smoke. | `python3 docs/visexp/r253_agentpprof_git_install_smoke.py` | `cargo install --git` from `research/semantic-flamegraph-artifacts`, committed public fixture, regex tagger, no LLM calls | installed help, pprof/folded/JSON/SVG outputs, `go tool pprof` readback, expected projections, output containment, privacy scan | GitHub branch install/readback is audited; crates.io, external-machine adoption, and user feedback remain open | `docs/visexp/out/agentpprof-git-install-r253/agentpprof-git-install-r253.json` | done/git-install-smoke |
 | R254 | C7 | Pinned-revision `agentpprof` install smoke. | `python3 docs/visexp/r254_agentpprof_pinned_rev_install_smoke.py` | `cargo install --git --rev c43daf2b2565531dfd95de8654adabb30ac878d4`, committed public fixture, regex tagger, no live model calls | installed help, pprof/folded/JSON/SVG outputs, `go tool pprof` readback, expected projections, output containment, privacy scan, install rev matches driver commit | pinned GitHub revision install/readback is audited; crates.io, external-machine adoption, and user feedback remain open | `docs/visexp/out/agentpprof-pinned-rev-install-r254/agentpprof-pinned-rev-install-r254.json` | done/pinned-rev-smoke |
 | R256 | C7 | `agentpprof` crate package smoke. | `python3 docs/visexp/r256_agentpprof_crate_package_smoke.py` | clean provenance commit, `cargo package --list`, `cargo package`, no private-history discovery, no LLM calls | intended 8-file crate set, archive/list equality, forbidden-path absence, registry `agent-session v0.3.3` verification, summary privacy scan | local crate package dry-run is audited; crates.io publish/readback, external-machine adoption, and user feedback remain open | `docs/visexp/out/agentpprof-crate-package-r256/agentpprof-crate-package-r256.json` | done/crate-package-smoke |
+| R257 | C1-C7 | Post-R256 review gate. | `python3 docs/visexp/r257_post_r256_review_gate.py` | deterministic read over R256 artifacts and current evidence docs; no raw traces, no LLM calls, no labels/responses | 7/7 checks must pass; R256 wording must stay scoped to crate-package dry-run; C5/C6/publish/weak-accept gates must stay false | review hygiene only; cannot support weak accept, C5, C6, crates.io publish/readback, external-machine adoption, or user feedback | `docs/visexp/out/osdi-gate-review-r257.json` | done/review-hygiene |
