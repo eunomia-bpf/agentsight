@@ -1,0 +1,138 @@
+{
+  "canonical_gate_snapshot": {
+    "r124": {
+      "adequacy_supported": false,
+      "path": "docs/visexp/out/tag-adequacy-results-r124.json",
+      "status": "human_labels_empty"
+    },
+    "r142": {
+      "c5_supported": false,
+      "path": "docs/visexp/out/user-task-results.json",
+      "status": "participant_results_empty"
+    },
+    "r190": {
+      "canonicalization_quality_supported": false,
+      "path": "docs/visexp/out/tag-consolidation-audit-r190/merge-risk-audit-results-r190.json",
+      "status": "human_labels_empty"
+    },
+    "r203": {
+      "canonical_map_updated": false,
+      "long_tail_promotion_review_supported": false,
+      "path": "docs/visexp/out/long-tail-promotion-r203/long-tail-promotion-r203.json",
+      "status": "human_labels_empty"
+    }
+  },
+  "cases": {
+    "invalid_r142": {
+      "input_summary": {
+        "duplicated_assignment": [
+          "P01",
+          "UT01",
+          "trace-tree"
+        ],
+        "rows": 2
+      },
+      "operation_status": "failed",
+      "payload_path": "docs/visexp/out/human-evidence-contract-r242/invalid-r142/r195.json",
+      "payload_sha256": "50359f2c8cdcb52fbe498390ce0e6ff1a20971c5859f3817cc6cfd56fb50ba11",
+      "r195_status": "scoring_failed"
+    },
+    "no_input": {
+      "payload_path": "docs/visexp/out/human-evidence-contract-r242/no-input/r195.json",
+      "payload_sha256": "fd2d30e27d8307ff3b047fcd4b432536a6a921e1ad16428243d654a00c66ed35",
+      "r195_status": "awaiting_human_inputs"
+    },
+    "partial_r124": {
+      "payload_path": "docs/visexp/out/human-evidence-contract-r242/partial-r124/r195.json",
+      "payload_sha256": "8ca724826aa8cbcd3d0f2495b8002e4b5fe368cb9e52c56c354008783d56e064",
+      "r195_status": "partial_human_inputs"
+    },
+    "synthetic_ready": {
+      "claim_gate": {
+        "c5_supported": false,
+        "c6_adequacy_supported": false,
+        "canonical_map_updated": false,
+        "canonicalization_quality_supported": false,
+        "long_tail_promotion_review_supported": false,
+        "requires_real_human_data": true
+      },
+      "operation_statuses": {
+        "r124": "human_labels_scored",
+        "r142": "participant_results_scored",
+        "r190": "human_labels_scored",
+        "r203": "human_labels_scored"
+      },
+      "payload_path": "docs/visexp/out/human-evidence-contract-r242/synthetic-ready/r195.json",
+      "payload_sha256": "ccae3797900f7c014ad00f2430286114454c8ebc80e1cf61e1eecac94e7e93f3",
+      "r195_status": "scored_human_inputs_no_supported_gate"
+    }
+  },
+  "checks": {
+    "canonical_empty_gates_preserved": true,
+    "invalid_r142_rejected": true,
+    "no_input_awaiting": true,
+    "partial_r124_detected": true,
+    "synthetic_ready_all_operations_scored": {
+      "r124": true,
+      "r142": true,
+      "r190": true,
+      "r203": true
+    },
+    "synthetic_ready_claim_gates_remain_false": {
+      "not_c5_supported": true,
+      "not_c6_adequacy_supported": true,
+      "not_canonical_map_updated": true,
+      "not_canonicalization_quality_supported": true,
+      "not_long_tail_promotion_review_supported": true
+    },
+    "synthetic_ready_r195_command_passed": true,
+    "synthetic_ready_status_scored_no_supported_gate": true
+  },
+  "claim_boundary": "R242 proves only the R195 ingestion/scoring contract. It uses synthetic returned files, does not count as C5 participant evidence, does not count as C6 human adequacy evidence, and must not be used to upgrade claim verdicts.",
+  "generated_at": "2026-06-19T08:18:10+00:00",
+  "provenance": {
+    "repo_commit": "a2b86ca0dd09a433200f5fa2ef04b03131453b05",
+    "repo_dirty": true,
+    "script": "docs/visexp/r242_human_evidence_contract_smoke.py",
+    "script_sha256": "476ec38c48f8d8ac27bd209937809cf830d7374f4f34be6039073fab1369e980"
+  },
+  "run_id": "R242",
+  "schema_version": 1,
+  "status": "passed",
+  "synthetic_inputs": {
+    "boundary": "synthetic contract controls; not participant responses or human adequacy labels",
+    "directory": "docs/visexp/out/human-evidence-contract-r242/synthetic-ready/inbox",
+    "generated": {
+      "r124": {
+        "label_counts": {
+          "adequate": 150,
+          "generic_noisy": 150
+        },
+        "rows": 300
+      },
+      "r142": {
+        "condition_counts": {
+          "event-count-proxy": 14,
+          "flat-summary": 14,
+          "nonsemantic-stack": 14,
+          "semantic-stack": 14,
+          "trace-tree": 14
+        },
+        "participants": 5,
+        "rows": 70
+      },
+      "r190": {
+        "label_counts": {
+          "unclear": 160
+        },
+        "rows": 160
+      },
+      "r203": {
+        "label_counts": {
+          "unclear": 41
+        },
+        "rows": 41
+      }
+    }
+  }
+}

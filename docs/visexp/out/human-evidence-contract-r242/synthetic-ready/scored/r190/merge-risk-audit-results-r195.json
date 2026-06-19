@@ -1,0 +1,121 @@
+{
+  "adjudication": {
+    "disagreement_rows": 0,
+    "input_path": null,
+    "input_sha256": null,
+    "template_path": "docs/visexp/out/human-evidence-contract-r242/synthetic-ready/scored/r190/merge-risk-adjudication-template-r195.csv",
+    "template_sha256": "e67a0c00c1f53f24d6d7c9a7439327da367cd8b47cdb6e5d00cbc5af94cd7f61"
+  },
+  "claim": "C3/C6-display-layer",
+  "claim_boundary": "R190 scoring estimates canonical display-layer merge risk only. It does not replace R124 raw tag adequacy labels or R142/R151 developer utility data.",
+  "claim_gate": {
+    "agreement_ok": true,
+    "canonicalization_quality_supported": false,
+    "complete_final_labels": true,
+    "complete_paired_labels": true,
+    "complete_strong_final_labels": true,
+    "overmerge_ok": false,
+    "requires_real_human_labels": false,
+    "success_criteria": {
+      "cohen_kappa": ">=0.6",
+      "final_labels": "all audit rows",
+      "overmerge_rate_pct": "<=10 among non-unclear overmerge_proxy labels",
+      "paired_labels": "all rows must have labeler_1 and labeler_2 before adjudication",
+      "strong_final_labels": "all rows must be consensus or adjudicated, not single-label",
+      "unclear_share_pct": "<=10",
+      "undermerge_rate_pct": "<=20 among non-unclear undermerge_proxy labels"
+    },
+    "unclear_ok": false,
+    "undermerge_ok": false
+  },
+  "generated_at": "2026-06-19T08:18:09+00:00",
+  "labeler_sheets": [
+    {
+      "path": "docs/visexp/out/human-evidence-contract-r242/synthetic-ready/inbox/r190-labeler-1.csv",
+      "sha256": "d13a05c7212c05cdf7fecf5aa8518f58af7073f4a884b5b8ec0755e190e59eb2"
+    },
+    {
+      "path": "docs/visexp/out/human-evidence-contract-r242/synthetic-ready/inbox/r190-labeler-2.csv",
+      "sha256": "d13a05c7212c05cdf7fecf5aa8518f58af7073f4a884b5b8ec0755e190e59eb2"
+    }
+  ],
+  "outputs": {
+    "joined_labels": "docs/visexp/out/human-evidence-contract-r242/synthetic-ready/scored/r190/merge-risk-audit-joined-r195.csv",
+    "joined_labels_sha256": "850532b4f9c7d1291ea51a26243fb41523e3a3a8c2f59405e51fcee1bd4787a7",
+    "scored_csv": "docs/visexp/out/human-evidence-contract-r242/synthetic-ready/scored/r190/merge-risk-audit-results-r195.csv",
+    "summary_json": "docs/visexp/out/human-evidence-contract-r242/synthetic-ready/scored/r190/merge-risk-audit-results-r195.json",
+    "summary_md": "docs/visexp/out/human-evidence-contract-r242/synthetic-ready/scored/r190/merge-risk-audit-results-r195.md"
+  },
+  "provenance": {
+    "repo_commit": "a2b86ca0dd09a433200f5fa2ef04b03131453b05",
+    "repo_dirty": true,
+    "script_sha256": "4727f30571274c6207e6ee827ac59dbcf7fdd6377c5382c78230522146709b8f"
+  },
+  "rubric": {
+    "acceptable": "current raw-to-canonical decision is semantically acceptable for display aggregation",
+    "overmerge": "an applied merge hides a meaningfully distinct tag",
+    "unclear": "the row does not provide enough context for a confident judgment",
+    "undermerge": "a retained/review-only tag should be merged into the proposed canonical tag"
+  },
+  "run_id": "R190-score",
+  "schema_version": 1,
+  "source_packet": {
+    "path": "docs/visexp/out/tag-consolidation-audit-r190/merge-risk-audit-packet-r190.csv",
+    "row_count": 160,
+    "sha256": "5c77803d46f36afc659f800fcaf74979c51bf3391481ee8778bc0b4808446b6c"
+  },
+  "status": "human_labels_scored",
+  "summary": {
+    "both_labeler_count": 160,
+    "by_audit_type": {
+      "overmerge_proxy": {
+        "counts": {
+          "acceptable": 0,
+          "overmerge": 0,
+          "unclear": 80,
+          "undermerge": 0
+        },
+        "final_label_count": 80
+      },
+      "undermerge_proxy": {
+        "counts": {
+          "acceptable": 0,
+          "overmerge": 0,
+          "unclear": 80,
+          "undermerge": 0
+        },
+        "final_label_count": 80
+      }
+    },
+    "cohen_kappa": 1.0,
+    "final_label_count": 160,
+    "final_label_counts": {
+      "acceptable": 0,
+      "overmerge": 0,
+      "unclear": 160,
+      "undermerge": 0
+    },
+    "final_source_counts": {
+      "consensus": 160
+    },
+    "inter_labeler_agreement_pct": 100.0,
+    "label_state_counts": {
+      "final": 160
+    },
+    "overmerge_audited_rows": 0,
+    "overmerge_error_rows": 0,
+    "overmerge_proxy_rows": 80,
+    "overmerge_rate_pct": null,
+    "packet_row_count": 160,
+    "paired_label_coverage_pct": 100.0,
+    "single_label_count": 0,
+    "strong_final_label_count": 160,
+    "unadjudicated_disagreement_count": 0,
+    "unclear_share_pct": 100.0,
+    "undermerge_audited_rows": 0,
+    "undermerge_error_rows": 0,
+    "undermerge_proxy_rows": 80,
+    "undermerge_rate_pct": null,
+    "unlabeled_count": 0
+  }
+}

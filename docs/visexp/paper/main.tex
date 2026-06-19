@@ -403,6 +403,8 @@ R186 计划审查进一步确认：下一步应先运行真实 R142 五人 pilot
 R187 已把冻结的 R142 assignment 打包成 \texttt{P01}--\texttt{P05} 参与者文件和空白 70 行 response CSV；manifest 检查 launch 目录没有 answer key、参与者 payload 没有 oracle/scoring 字段，且 \texttt{real\_response\_count=0}、\texttt{c5\_supported=false}。
 R193/R195/R207 进一步把这个收集路径变成可执行 handoff：R193 汇总空白 R124/R190/R203 label sheets 和 R142 launch 指针，R195 定义返回 CSV 的 ingestion/scoring contract，R207 检查五个 R142 participant packets、70 行空白 response template、两份 300 行 R124 sheets、两份 160 行 R190 sheets、两份 41 行 R203 sheets 以及 R195 inbox 文件名均有效。
 这些 artifact 只支持 launch readiness；它们仍记录 0 个参与者响应、0 个人工标签，不能支持 C5。
+R242 用 synthetic returned files 验证 R195 contract：完整 synthetic R142/R124/R190/R203 输入会进入 R195-specific scored outputs，partial/no-input/invalid-return cases 会被检测，canonical empty gates 保持不变。
+但 R242 的每一行都是 synthetic control，因此它只支持 collection pipeline correctness，不是 C5/C6 outcome evidence。
 当前 baseline 应设为 trace tree、\texttt{event-count-proxy}、flat process summary、nonsemantic folded stack 和 semantic folded stack，比较 accuracy、time、false positives 和 confidence。
 当前 R142 packet 中原来的 span-like 条件已经明确命名为 event-count proxy，因为 folded artifact 没有真实 duration；它不能直接当作 span-duration baseline。
 R225 已经从 R170 timestamps 重构出 prompt wall-clock duration baseline，并显示它与 effect-count profile 的 top tags 和排序有明显差异；但该 baseline 可能包含 idle/user-wait time，且 tool/LLM 调用仍没有 start-end span，因此它只能作为下一版 preregistered packet 的 prompt-span baseline，而不是 active runtime 或完整 workflow span-duration baseline。
@@ -453,6 +455,7 @@ R219 进一步把当前证据状态机械化成 claim/RQ readiness gate：C1 为
 该 gate 读取已生成 artifacts，不读 raw traces，不调用 LLM；它记录 C5 responses 为 0、C6 final adequacy labels 为 0，并保持 \texttt{weak\_accept\_supported=false}。
 因此 R219 的价值是把下一步固定为 P0 的 R142 participant returns 和 R124 human labels，而不是提升论文 claim。
 R193/R194/R195 已把 R203 sheets 纳入 collection、preflight 和 scoring flow；默认 run 仍没有返回标签，promotion、map update、C5 和 C6 都为 false。
+R242 进一步用 synthetic R124/R190/R203 sheets 验证这些 scorer 一旦收到完整输入就能被 R195 调用，同时 partial/no-input/invalid-return cases 不会升级 canonical empty gates；这仍不构成人工 adequacy 或 merge-quality evidence。
 OSDI 版本还需要 R124 人工 adequacy labels。
 R184 当前把 C6 记录为 \texttt{ready\_for\_independent\_label\_collection}，不是 adequacy supported；R186 将 R124 labels 排在 R142 pilot 之后或并行执行。
 一词标签应该被定位为 lossy navigation frames，而不是 semantic truth。
