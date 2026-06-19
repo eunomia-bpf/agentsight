@@ -7,6 +7,7 @@ Additional R246 source: `docs/visexp/out/osdi-gate-review-r246.json`, `docs/vise
 Additional R247 source: `docs/visexp/out/human-evidence-distribution-r247/human-evidence-distribution-r247.json`, `docs/visexp/out/human-evidence-distribution-r247/human-evidence-distribution-r247.md`, and `docs/visexp/out/human-evidence-distribution-r247/agentflame-human-evidence-r247.tar.gz`.
 Additional R248 source: `docs/visexp/out/agentpprof-install-r248/agentpprof-install-r248.json`, `docs/visexp/out/agentpprof-install-r248/agentpprof-install-r248.md`, and `agentpprof/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl`.
 Additional R249 source: `docs/visexp/out/user-task-paper-r249/manifest.json`, `docs/visexp/out/user-task-paper-r249/user-task-assignments-r249-paper.csv`, and `docs/visexp/out/user-task-paper-r249/scored/user-task-results.json`.
+Additional R250 source: `docs/visexp/out/osdi-gate-review-r250.json` and `docs/visexp/out/osdi-gate-review-r250.md`.
 Completeness: partial
 
 ## Audit Verdict
@@ -371,12 +372,19 @@ install-smoke evidence only: no private histories are discovered, no LLM is
 called, and C5/C6/weak-accept gates remain false.
 
 R249 closes a C5 launch-material gap. R247's sendable bundle is a five-person
-pilot, while the C5 scorer requires at least twelve participants for any
-paper-scale utility claim. R249 derives a separate 12-participant package from
+pilot, while the C5 scorer requires at least twelve real participants for any
+paper-scale utility claim. R249 derives a separate 12-participant-packet package from
 the frozen R142 task packets, writes 168 blank response rows and a nondefault
 assignment file, checks 2-3 replicates per task-condition, and verifies that
 the scorer accepts the blank template as `participant_results_empty`. It is
 paper-scale logistics only and records no real responses.
+
+R250 records post-R249 paper and artifact reviews. The reviews keep the project
+at Level 3/not weak accept, accept R249 as launch readiness only, and identify
+hygiene fixes rather than new science: use participant-packet wording, collect
+R249 completed responses into a private CSV, document the R248 source-tree
+install path, redact R248 generated stderr paths, and scan R248 generated
+reports. These changes do not affect C5/C6 gates.
 
 R207 audits the launch handoff after R195. It confirms the sendable units are
 present and still blank: five R142 participant packets, a 70-row response
@@ -450,6 +458,7 @@ artifact evidence.
 | R246 post-review hygiene cannot upgrade claims | R246 records OSDI review and provenance/metadata fixes while keeping `weak_accept_supported=false`, `c5_supported=false`, `c6_adequacy_supported=false`, and `outcome_evidence_added=false` | pass |
 | R247 distribution bundle is not outcome evidence | R247 packages the R243 static forms into a sendable offline tarball, verifies 17 members, local links, return checklist rows, and no answer/scorer/raw-trace/synthetic-export leak; it keeps `weak_accept_supported=false`, `c5_supported=false`, `c6_adequacy_supported=false`, and `outcome_evidence_added=false` | pass |
 | R248 installed agentpprof smoke is not outcome evidence | R248 verifies local `cargo install --path agentpprof --locked --force`, committed public-fixture processing, pprof readback, expected projection stacks, output containment, explicit `--session-file`, no private-history discovery, and no LLM calls; it keeps `weak_accept_supported=false`, `c5_supported=false`, and `c6_supported=false` | pass |
+| R250 review hygiene is not outcome evidence | R250 records two read-only post-R249 reviews and applies wording/privacy/install-doc fixes while keeping `weak_accept_supported=false`, `c5_supported=false`, and `c6_supported=false` | pass |
 | R208 gate review is not outcome evidence | R208 records that reversible compaction and launch handoff revisions improve scoping/readiness, but it keeps Level 3/not weak accept because C5/C6/R190/R203 human evidence is still missing | pass |
 | R241 gate review is not outcome evidence | R241 records an independent read-only review after R240 and keeps the project at Level 3/not weak accept; its author-response fixes are provenance/wording/test-manifest hygiene, not C5/C6 outcome evidence | pass |
 | C5/C6 weak-accept gate cannot be cleared by non-human substitutes | R184 status is `not_weak_accept`; both C5 and C6 must pass their existing human-data scorers, while subagent review, LLM labels, mock responses, placeholder rows, and syntax-only validity are disallowed | pass |

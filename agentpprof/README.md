@@ -10,11 +10,16 @@ tool events, file effects, network effects, or token usage.
 
 ## Install
 
+From this repository, matching the checked artifact smoke:
+
 ```bash
-cargo install agentpprof
+cargo install --path agentpprof --locked --force
 ```
 
-From this repository:
+Published registry releases may lag this research branch. Use the source-tree
+install above when reproducing the paper artifacts.
+
+For local development without installing:
 
 ```bash
 cargo run --manifest-path agentpprof/Cargo.toml -- -o agent.pb.gz
@@ -23,7 +28,9 @@ cargo run --manifest-path agentpprof/Cargo.toml -- -o agent.pb.gz
 ## Public Fixture Smoke
 
 For a reproducible first run that does not read private local agent histories,
-use the committed synthetic Codex fixture:
+use the committed synthetic Codex fixture. Artifact reviewers should prefer
+this explicit `--session-file` command because it avoids default discovery of
+local Codex/Claude histories.
 
 ```bash
 agentpprof \
@@ -96,7 +103,9 @@ Folded stacks are compatible with common flamegraph tooling. SVG output is a
 single quick-look stack chart built from the folded stacks; use folded output
 with standard tools such as inferno or flamegraph.pl when you need canonical
 merged-prefix flamegraphs. JSON output includes redacted session summaries and
-the stack table.
+the stack table. Passing `--include-previews` writes prompt, command, and
+LLM-output previews into JSON; avoid it for public artifacts unless the source
+sessions are already sanitized.
 
 ## Tags
 

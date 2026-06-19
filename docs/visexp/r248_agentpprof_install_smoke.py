@@ -38,6 +38,18 @@ FORBIDDEN_OUTPUT_STRINGS = [
 ]
 
 
+def sanitize_text(text: str) -> str:
+    sanitized = text
+    replacements = [
+        (str(REPO_ROOT), "<repo>"),
+        (str(Path.home()), "<home>"),
+    ]
+    for needle, replacement in replacements:
+        if needle:
+            sanitized = sanitized.replace(needle, replacement)
+    return sanitized
+
+
 def now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds")
 
@@ -339,7 +351,7 @@ def run_r248(args: argparse.Namespace) -> dict[str, Any]:
                 ],
                 "returncode": result["returncode"],
                 "elapsed_s": result["elapsed_s"],
-                "stderr_tail": result["stderr"][-1000:],
+                "stderr_tail": sanitize_text(result["stderr"][-1000:]),
             }
             if result["returncode"] != 0:
                 raise RuntimeError(f"installed agentpprof {key} failed: {result['stderr']}")
@@ -374,6 +386,8 @@ def run_r248(args: argparse.Namespace) -> dict[str, Any]:
         "pprof_top_total": pprof_total_samples(pprof_top.read_text(encoding="utf-8")),
     }
     projection_checks = expected_projection_checks(profile_dir)
+    summary_json = out_dir / "agentpprof-install-r248.json"
+    summary_md = out_dir / "agentpprof-install-r248.md"
     scan_paths = [profile_dir / filename for filename, _ in view_specs.values()] + [pprof_top]
     forbidden_hits = scan_forbidden(scan_paths)
     source_hashes = {
@@ -440,7 +454,7 @@ def run_r248(args: argparse.Namespace) -> dict[str, Any]:
             "command": "cargo install --path agentpprof --locked --force",
             "returncode": install_result["returncode"],
             "elapsed_s": install_result["elapsed_s"],
-            "stderr_tail": install_result["stderr"][-2000:],
+            "stderr_tail": sanitize_text(install_result["stderr"][-2000:]),
             "help_returncode": help_result["returncode"],
         },
         "agentpprof": agentpprof,
@@ -456,7 +470,11 @@ def run_r248(args: argparse.Namespace) -> dict[str, Any]:
         "projection_checks": projection_checks,
         "privacy": {
             "forbidden_hits": forbidden_hits,
-            "forbidden_needles": FORBIDDEN_OUTPUT_STRINGS,
+            "forbidden_checks": [
+                "private prompt text",
+                "private Codex/Claude history roots",
+                "local home path",
+            ],
             "scanned_paths": [rel(path) for path in scan_paths],
         },
         "gates": gates,
@@ -479,8 +497,18 @@ def run_r248(args: argparse.Namespace) -> dict[str, Any]:
             "external-machine adoption, llama.cpp setup, C5 outcomes, or C6 labels."
         ),
     }
-    write_json(out_dir / "agentpprof-install-r248.json", summary)
-    (out_dir / "agentpprof-install-r248.md").write_text(render_markdown(summary), encoding="utf-8")
+    write_json(summary_json, summary)
+    summary_md.write_text(render_markdown(summary), encoding="utf-8")
+
+    scan_paths = scan_paths + [summary_json, summary_md]
+    forbidden_hits = scan_forbidden(scan_paths)
+    summary["privacy"]["forbidden_hits"] = forbidden_hits
+    summary["privacy"]["scanned_paths"] = [rel(path) for path in scan_paths]
+    summary["gates"]["privacy_scan"] = forbidden_hits == []
+    summary["status"] = "passed" if all(summary["gates"][name] for name in required) else "failed"
+    summary["c7_install_smoke_supported"] = all(summary["gates"][name] for name in required)
+    write_json(summary_json, summary)
+    summary_md.write_text(render_markdown(summary), encoding="utf-8")
     return summary
 
 
