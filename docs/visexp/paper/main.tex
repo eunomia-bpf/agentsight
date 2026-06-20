@@ -362,7 +362,7 @@ R230 证明 183,714/183,714 folded system-observation weight 都有 semantic ses
 已有 task packet、answer key、scorer 和 launch package，但没有真实参与者响应。
 R184/R186 把状态固定为 \texttt{ready\_for\_participant\_collection}，并要求先跑真实 R142 五人 pilot。
 R187/R193/R195/R207 准备了 R142 participant packets、空白 response CSV、R124/R190/R203 label sheets、R195 ingestion/scoring contract 和 return filenames；这些只支持 launch readiness，仍记录 0 个参与者响应、0 个人工标签。
-R242--R247 用 synthetic returns、static forms、headless Chrome 和离线 tarball 验证 collection pipeline 能加载、导出和拒绝错误输入；R244 synthetic exports 不进入 R195 inbox，R263/R264/R265/R266 覆盖 marker 拒绝、私有返回预检、adjudication workflow 和 public aggregate promotion gate。
+R242--R247 用 synthetic returns、static forms、headless Chrome 和离线 tarball 验证 collection pipeline 能加载、导出和拒绝错误输入；R244 synthetic exports 不进入 R195 inbox，R263--R268 只覆盖 marker 拒绝、private preflight、adjudication、public summary 和 C5 scoring orchestration。
 R249/R255/R258/R259 把 C5 扩到 paper-scale：R258 生成 43-member tarball；R259 生成 12 个 participant forms、6 个 labeler forms、168 行 synthetic C5 merged CSV 和 1,002 行 C6 synthetic labeler rows；R259 仍记录 0 个真实响应和 0 个人工标签，C5/C6/weak-accept gates 保持 false。
 当前 baseline 应设为 trace tree、\texttt{event-count-proxy}、flat process summary、nonsemantic folded stack 和 semantic folded stack，比较 accuracy、time、false positives 和 confidence。
 当前 R142 packet 中原来的 span-like 条件已经明确命名为 event-count proxy，因为 folded artifact 没有真实 duration；它不能直接当作 span-duration baseline。
@@ -467,7 +467,7 @@ R259 static collection forms 仍需要真实参与者响应，不能作为 C5 ou
 C6 仍然没有真实 human adequacy labels：R252/R258/R259 只是把 R124/R190/R203 labeler packets 和 handoff 固定下来；R251 的行为关联、R180 的语法稳定、R189--R218 的 display governance 都不能替代人工 adequacy、merge quality、promotion quality、visual drilldown 或 user utility。
 Artifact 也还不是社区级结论。
 仍缺 crates.io publish/readback、external-machine install、真实 report public sanitization、llama.cpp tagger setup、默认采样策略、full write-set audit 和外部开发者反馈。
-R245/R246/R250/R260--R267 这类检查只保证文本、provenance、review、layout、ingestion、intake、adjudication、public-summary 或 OSDI-review hygiene，不提升 C5/C6 或 weak-accept gate。
+R245/R246/R250/R260--R268 这类检查只保证 hygiene，不提升 C5/C6 或 weak-accept gate。
 
 \section{结论}
 
