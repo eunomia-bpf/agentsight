@@ -27,6 +27,7 @@ Additional R266 source: `docs/visexp/out/human-evidence-public-summary-r266/huma
 Additional R267 source: `docs/visexp/out/osdi-gate-review-r267.json` and `docs/visexp/out/osdi-gate-review-r267.md`.
 Additional R268 source: `docs/visexp/out/c5-real-return-pipeline-r268/c5-real-return-pipeline-r268.json` and `docs/visexp/out/c5-real-return-pipeline-r268/c5-real-return-pipeline-r268.md`.
 Additional R269 source: `docs/visexp/out/osdi-gate-review-r269.json` and `docs/visexp/out/osdi-gate-review-r269.md`.
+Additional R270 source: `docs/visexp/out/c6-real-label-pipeline-r270/c6-real-label-pipeline-r270.json` and `docs/visexp/out/c6-real-label-pipeline-r270/c6-real-label-pipeline-r270.md`.
 Completeness: partial
 
 | Claim | Verdict | Evidence | Supported wording | Missing evidence |
@@ -430,6 +431,14 @@ participant outcomes and C6 human labels as blockers, confirms R268 is
 orchestration only, and records the paper wording fix that makes the semantic
 decompositions input to planned C5 tasks rather than validated developer
 assistance. It adds no outcome evidence.
+
+R270 addendum:
+`docs/visexp/out/c6-real-label-pipeline-r270/c6-real-label-pipeline-r270.json`
+records the one-command private C6 label scoring path. The committed run is
+`awaiting_private_c6_labels`, exports only private-input existence and aggregate
+step status, and keeps C5/C6/weak-accept gates false. It can become a C6
+evidence path only after real private R124/R190/R203 labeler CSVs exist and any
+R195 adjudication requirement is resolved.
 
 R250 addendum:
 `docs/visexp/out/osdi-gate-review-r250.json` records two read-only post-R249
