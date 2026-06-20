@@ -26,6 +26,7 @@ Additional R265 source: `docs/visexp/out/human-adjudication-r265/human-adjudicat
 Additional R266 source: `docs/visexp/out/human-evidence-public-summary-r266/human-evidence-public-summary-r266.json` and `docs/visexp/out/human-evidence-public-summary-r266/human-evidence-public-summary-r266.md`.
 Additional R267 source: `docs/visexp/out/osdi-gate-review-r267.json` and `docs/visexp/out/osdi-gate-review-r267.md`.
 Additional R268 source: `docs/visexp/out/c5-real-return-pipeline-r268/c5-real-return-pipeline-r268.json` and `docs/visexp/out/c5-real-return-pipeline-r268/c5-real-return-pipeline-r268.md`.
+Additional R269 source: `docs/visexp/out/osdi-gate-review-r269.json` and `docs/visexp/out/osdi-gate-review-r269.md`.
 Completeness: partial
 
 | Claim | Verdict | Evidence | Supported wording | Missing evidence |
@@ -421,6 +422,14 @@ records the one-command private C5 return scoring path. The committed run is
 aggregate step status, and keeps C5/C6/weak-accept gates false. It can become a
 C5 evidence path only after real private paper-scale responses are placed under
 the private return directory and scored by R195/R266.
+
+R269 addendum:
+`docs/visexp/out/osdi-gate-review-r269.json` records the independent post-R268
+OSDI review gate. Epicurus keeps the paper at Level 3/not weak accept, ranks C5
+participant outcomes and C6 human labels as blockers, confirms R268 is
+orchestration only, and records the paper wording fix that makes the semantic
+decompositions input to planned C5 tasks rather than validated developer
+assistance. It adds no outcome evidence.
 
 R250 addendum:
 `docs/visexp/out/osdi-gate-review-r250.json` records two read-only post-R249
