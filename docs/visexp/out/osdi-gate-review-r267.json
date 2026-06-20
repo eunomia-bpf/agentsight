@@ -1,0 +1,180 @@
+{
+  "checks": [
+    {
+      "name": "subagent_review_keeps_level3_not_weak_accept",
+      "observed": {
+        "maturity": "Level 3",
+        "weak_accept_ready": false
+      },
+      "passed": true
+    },
+    {
+      "name": "c5_still_has_zero_participant_responses",
+      "observed": {
+        "c5_supported": false,
+        "participant_count": 0,
+        "response_count": 0,
+        "status": "participant_results_empty"
+      },
+      "passed": true
+    },
+    {
+      "name": "c6_label_gates_still_empty",
+      "observed": {
+        "r124_adequacy_supported": false,
+        "r124_final_label_count": 0,
+        "r190_canonicalization_quality_supported": false,
+        "r190_final_label_count": 0,
+        "r203_final_label_count": 0,
+        "r203_long_tail_promotion_review_supported": false
+      },
+      "passed": true
+    },
+    {
+      "name": "r264_r265_r266_are_hygiene_only",
+      "observed": {
+        "r264_status": "awaiting_private_returns",
+        "r264_weak_accept_supported": false,
+        "r265_adjudicated_claim_gates_false": true,
+        "r265_status": "passed",
+        "r266_public_claim_update_allowed": false,
+        "r266_status": "awaiting_private_scored_r195",
+        "r266_weak_accept_supported": false
+      },
+      "passed": true
+    },
+    {
+      "name": "paper_keeps_post_r266_review_boundary",
+      "observed": {
+        "c5_missing": true,
+        "c6_missing": true,
+        "no_upgrade_boundary": true,
+        "r267_review_hygiene_scoped": true,
+        "weak_accept_boundary": true
+      },
+      "passed": true
+    },
+    {
+      "name": "state_and_followup_record_r267_without_upgrading_claims",
+      "observed": {
+        "followup_mentions_r267": true,
+        "state_false_weak_accept": true,
+        "state_latest_r267": true,
+        "state_no_upgrade_boundary": true
+      },
+      "passed": true
+    },
+    {
+      "name": "evidence_docs_keep_real_human_requirement",
+      "observed": {
+        "claim_verdict_mentions_r266": true,
+        "experiment_audit_mentions_r266": true,
+        "human_labels": true,
+        "real_participant_responses": true,
+        "subagent_review_boundary": true
+      },
+      "passed": true
+    }
+  ],
+  "checks_passed": 7,
+  "checks_total": 7,
+  "claim_gate": {
+    "c5_supported": false,
+    "c6_supported": false,
+    "developer_utility_supported": false,
+    "outcome_evidence_added": false,
+    "tag_adequacy_supported": false,
+    "weak_accept_supported": false
+  },
+  "generated_at": "2026-06-20T03:05:14+00:00",
+  "provenance": {
+    "generator": "docs/visexp/r267_post_r266_osdi_review_gate.py",
+    "human_labels_added": 0,
+    "llm_called": false,
+    "participant_responses_added": 0,
+    "raw_trace_read": false,
+    "repo_commit": "e41709e5efa431e9a105c48ab3986a057f29dbd5",
+    "repo_dirty": true,
+    "source_hashes": {
+      "docs/visexp/CLAIM_VERDICT.md": "00bc5f1e315487e837a89441624f0316aab86a903b9a8b2f32530cb52de25c10",
+      "docs/visexp/EXPERIMENT_AUDIT.md": "edbb2da2dd7e0c1e3ca44eeefafed130c0166a043cda2d6f9f9a6e2170d857dd",
+      "docs/visexp/FOLLOWUP_PLAN.md": "05d3c03be3a162fb753731a7cf7048c80ae720fbb6efb409ff323386ba54b416",
+      "docs/visexp/STATE.md": "5051b0e5f34be439e49aa9c0250f3150cc0e21110e11d02850783cb60446ffae",
+      "docs/visexp/out/human-adjudication-r265/human-adjudication-r265.json": "3749091dfbcc33b0801cf43c009fe2c782821b88af02e54a6bc6eb2d6b002912",
+      "docs/visexp/out/human-evidence-public-summary-r266/human-evidence-public-summary-r266.json": "3a779733385e0582f7cdd8ec57bf6855cb71bdf5e90c02ecefe2acd4cd6a59e8",
+      "docs/visexp/out/human-return-intake-r264/human-return-intake-r264.json": "c23d8764ad65852bc0c670c69b86b6d7c9fa3c0b9edc08b933aa7f8152863828",
+      "docs/visexp/out/long-tail-promotion-r203/long-tail-promotion-r203.json": "f0667df31c9f26642866d56dd84ed51fa963e0be1d3def7a6123c90f50f663a5",
+      "docs/visexp/out/tag-adequacy-results-r124.json": "c84d8d5b68033bb2a8e8169c7f4117552f09c9dd77b335751858cc4619f5e380",
+      "docs/visexp/out/tag-consolidation-audit-r190/merge-risk-audit-results-r190.json": "a767894ef32fb07d1f67d96a566fb7213c6c094ea8dbf71557c36e00262b2d12",
+      "docs/visexp/out/user-task-paper-r249/scored/user-task-results.json": "31a669561f7935a5294c0772cb15882017436d788427f6251da22716d1561c5d",
+      "docs/visexp/paper/main.tex": "0cb76976f3ae68c8da22e779dae16a18786605dde235ca4f314692c6180f499d"
+    },
+    "subagent_review_used": true
+  },
+  "residual_risks": [
+    "Weak accept still requires real C5 participant responses and real C6 human labels scored through R195/R266.",
+    "R267 is a read-only review gate and cannot substitute for outcome evidence.",
+    "C4 exact lineage remains scoped to fixed/controlled workloads; broad agent-launched target-network coverage is partial.",
+    "C7 still lacks crates.io publish/readback, external-machine install, full write-set audit, and external developer feedback."
+  ],
+  "review_type": "independent_read_only_osdi_review_after_r266",
+  "review_verdict": {
+    "maturity": "Level 3",
+    "summary": "Credible conference-paper mechanism evidence, but not a Level 4 systems narrative and not weak-accept-ready because C5 and C6 have no admissible human outcome evidence.",
+    "weak_accept_supported": false
+  },
+  "run_id": "R267",
+  "schema_version": 1,
+  "source_command": "python3 docs/visexp/r267_post_r266_osdi_review_gate.py",
+  "status": "post_r266_osdi_review_gate_passed",
+  "subagent_review": {
+    "agent_nickname": "Plato",
+    "claim_verdict": {
+      "C1": "supported for this local history run",
+      "C2": "syntax/latency supported; adequacy not supported",
+      "C3": "mechanism supported; quality/user value not supported",
+      "C4": "supported in fixed/controlled scopes; broad scope partial",
+      "C5": "unsupported",
+      "C6": "protocol ready only; human adequacy unsupported",
+      "C7": "partial"
+    },
+    "first_next_experiment": {
+      "name": "paper-scale C5 user-task study",
+      "oracle": "C5 passes only if all four baselines are beaten on primary utility tasks by >=10 pp exact accuracy or >=20% median time reduction, Holm-corrected participant/task/order fixed-effect permutation p<=0.05, at least 12 participants, at least 8 task pairs per baseline, and no >5 pp false-positive increase.",
+      "preflight_command": "python3 docs/visexp/r264_human_return_intake_preflight.py",
+      "private_input": "private/completed-paper-scale-r264/c5/user-task-response-template-r249-paper.csv",
+      "score_command": "python3 docs/visexp/r195_human_evidence_pipeline.py --r142-responses private/completed-paper-scale-r264/c5/user-task-response-template-r249-paper.csv --r142-bundle docs/visexp/out/user-task-benchmark.json --r142-answer-key docs/visexp/out/user-task-answer-key.csv --r142-assignments docs/visexp/out/user-task-paper-r249/user-task-assignments-r249-paper.csv --scored-dir private/completed-paper-scale-r264/r195-scored --out-json private/completed-paper-scale-r264/r195-scored/human-evidence-pipeline-r195.json --out-md private/completed-paper-scale-r264/r195-scored/human-evidence-pipeline-r195.md"
+    },
+    "maturity": "Level 3",
+    "overall_verdict": "Credible conference-paper mechanism evidence, but not a Level 4 systems narrative and not weak-accept-ready because C5 and C6 have no admissible human outcome evidence.",
+    "review_type": "independent_read_only_osdi_review_after_r266",
+    "severity_ranked_findings": [
+      {
+        "claim": "C5 developer utility",
+        "finding": "No admissible participant outcome evidence; packets/forms/scorers exist but responses remain zero.",
+        "severity": "blocker"
+      },
+      {
+        "claim": "C6 tag adequacy",
+        "finding": "No human adequacy labels; syntax/stability and behavior association remain proxies only.",
+        "severity": "blocker"
+      },
+      {
+        "claim": "C4 exact lineage",
+        "finding": "Strong in fixed/controlled scopes, but broad Claude/Codex-launched target-network coverage remains partial.",
+        "severity": "major"
+      },
+      {
+        "claim": "C7 artifact readiness",
+        "finding": "Install/package smokes are useful but do not prove crates.io, external-machine, write-set, or external-developer success.",
+        "severity": "major"
+      },
+      {
+        "claim": "R264/R265/R266 naming",
+        "finding": "Names are easy to overread, but contents and paper/state wording keep them scoped as hygiene gates.",
+        "severity": "minor"
+      }
+    ],
+    "weak_accept_ready": false
+  }
+}
