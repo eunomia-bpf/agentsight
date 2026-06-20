@@ -15,6 +15,7 @@ Additional R256 source: `python3 docs/visexp/r256_agentpprof_crate_package_smoke
 Additional R257 source: `python3 docs/visexp/r257_post_r256_review_gate.py`, `docs/visexp/out/osdi-gate-review-r257.json`, and `docs/visexp/out/osdi-gate-review-r257.md`.
 Additional R258 source: `python3 docs/visexp/r258_paper_scale_human_evidence_bundle.py`, `docs/visexp/out/human-evidence-paper-scale-bundle-r258/human-evidence-paper-scale-bundle-r258.json`, and `docs/visexp/out/human-evidence-paper-scale-bundle-r258/agentflame-paper-scale-human-evidence-r258.tar.gz`.
 Additional R259 source: `python3 docs/visexp/r259_paper_scale_static_collection_kit.py`, `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/static-collection-kit-r259.json`, and `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/index.html`.
+Additional R260 source: `python3 docs/visexp/r260_paper_r259_consistency.py`, `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.json`, and `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.md`.
 Completeness: partial
 
 ## Headline Result
@@ -451,7 +452,14 @@ forms, and one C5 coordinator merge page. The smoke exports synthetic CSVs under
 the R259 output directory, verifies a 168-row merged C5 response CSV, verifies
 1,002 C6 labeler rows with blank label cells, runs 6/6 headless Chrome DOM
 checks, and passes a leak scan. It is collection UX/logistics only and adds no
-real responses or labels.
+real responses or labels; it keeps C5/C6/weak-accept gates false.
+
+R260 audits the paper/docs integration after R258/R259. It checks 25/25
+conditions, including R259 counts, paper mentions of R258/R259, C5/C6 table
+coverage, limitations wording, source-doc references, false gate preservation,
+and absence of forbidden overclaim strings. This is wording/evidence hygiene
+only; it adds no participant responses or labels and keeps all C5/C6/weak-accept
+gates false.
 
 R250 records two read-only post-R249 reviews. Both keep the project at Level
 3/not weak accept. The author response applies hygiene fixes only: R249 wording
@@ -581,6 +589,7 @@ claim row, and fixes the paper table's C4 wording.
 | R252 | Paper-scale C6 label package and blank R195 check | `docs/visexp/out/tag-adequacy-paper-r252/manifest.json`, `docs/visexp/out/tag-adequacy-paper-r252/r195-blank-check/human-evidence-pipeline-r252-blank.json` | done/paper-scale label-ready; 501 rows per labeler, 1002 required independent label decisions, blank R195 check keeps gates false, no human labels |
 | R258 | Unified paper-scale C5/C6 human-evidence bundle | `docs/visexp/out/human-evidence-paper-scale-bundle-r258/human-evidence-paper-scale-bundle-r258.json`, `docs/visexp/out/human-evidence-paper-scale-bundle-r258/agentflame-paper-scale-human-evidence-r258.tar.gz`, `docs/visexp/out/human-evidence-paper-scale-bundle-r258/return-checklist-r258.csv` | done/paper-scale bundle-ready; 43-member tarball, 12 C5 participant packets, 2 C6 labeler packets, leak scans pass, no outcome evidence |
 | R259 | Paper-scale static collection forms and export smoke | `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/static-collection-kit-r259.json`, `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/index.html`, `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/synthetic-exports/user-task-response-template-r249-paper.csv` | done/static-kit-smoke; 12 participant forms, 6 labeler forms, 6/6 browser checks, no outcome evidence |
+| R260 | Paper/R259 consistency audit | `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.json`, `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.md` | done/wording-audit; 25/25 checks, no outcome evidence |
 | R171 | Read-only subagent OSDI gate review after R170/R124-join planning | `docs/visexp/out/osdi-gate-review-r171.md` | done/review |
 | R181 | Read-only subagent OSDI gate review after R180 local multi-model benchmark | `docs/visexp/out/osdi-gate-review-r181.md` | done/review; still not weak accept |
 | R060 | legacy Python prototype pipeline over sampled sessions | `docs/visexp/out/pipeline-report.json` | legacy, superseded for headline scale |

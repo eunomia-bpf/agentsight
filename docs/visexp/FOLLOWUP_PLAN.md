@@ -17,6 +17,7 @@ Additional R256 source: `python3 docs/visexp/r256_agentpprof_crate_package_smoke
 Additional R257 source: `python3 docs/visexp/r257_post_r256_review_gate.py`, `docs/visexp/out/osdi-gate-review-r257.json`, and `docs/visexp/out/osdi-gate-review-r257.md`.
 Additional R258 source: `python3 docs/visexp/r258_paper_scale_human_evidence_bundle.py`, `docs/visexp/out/human-evidence-paper-scale-bundle-r258/human-evidence-paper-scale-bundle-r258.json`, and `docs/visexp/out/human-evidence-paper-scale-bundle-r258/agentflame-paper-scale-human-evidence-r258.tar.gz`.
 Additional R259 source: `python3 docs/visexp/r259_paper_scale_static_collection_kit.py`, `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/static-collection-kit-r259.json`, and `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/static-collection-kit-r259.md`.
+Additional R260 source: `python3 docs/visexp/r260_paper_r259_consistency.py`, `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.json`, and `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.md`.
 Completeness: partial
 
 ## Positioning
@@ -117,6 +118,13 @@ R252 mirrors the R249 logistics closure for C6: it bundles R124/R190/R203 into
 a two-labeler, 501-rows-per-labeler paper-scale label package and verifies with
 an isolated R195 blank-input check that empty label sheets still keep every
 C6/canonicalization/promotion/weak-accept gate false.
+R258 and R259 are now the preferred paper-scale handoff paths: R258 provides a
+unified tarball, while
+`docs/visexp/out/human-evidence-paper-scale-static-kit-r259/index.html`
+provides local static forms and synthetic export-shape checks. These artifacts
+still contain no real responses or labels. The next outcome step is to collect
+real C5/C6 returns through the R259 forms or R258 bundle, then score them with
+R195.
 
 Weak accept requires all four gates below:
 
