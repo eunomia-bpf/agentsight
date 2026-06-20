@@ -17,6 +17,7 @@ Additional R256 source: `docs/visexp/out/agentpprof-crate-package-r256/agentppro
 Additional R257 source: `docs/visexp/out/osdi-gate-review-r257.json` and `docs/visexp/out/osdi-gate-review-r257.md`.
 Additional R258 source: `docs/visexp/out/human-evidence-paper-scale-bundle-r258/human-evidence-paper-scale-bundle-r258.json` and `docs/visexp/out/human-evidence-paper-scale-bundle-r258/agentflame-paper-scale-human-evidence-r258.tar.gz`.
 Additional R259 source: `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/static-collection-kit-r259.json` and `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/index.html`.
+Additional R260 source: `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.json` and `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.md`.
 Completeness: partial
 
 ## Audit Verdict
@@ -507,6 +508,7 @@ dry-run smokes.
 | C5 R255 paper-scale R195 bridge is not outcome evidence | R255 verifies R195 accepts the R249 blank template with the R249 assignment and rejects the old R142 assignment, but records `real_participant_responses_added=0`, `c5_supported=false`, and `weak_accept_supported=false` | pass |
 | R258 unified paper-scale bundle is not outcome evidence | R258 packages R249 C5 collection files and R252 C6 labeler files into one 43-member tarball, but records `participant_responses_added=0`, `human_labels_added=0`, `c5_supported=false`, `c6_supported=false`, and `weak_accept_supported=false` | pass |
 | R259 static collection kit is not outcome evidence | R259 generates browser forms and synthetic exports under the R259 output directory, but records `participant_responses_added=0`, `human_labels_added=0`, `c5_supported=false`, `c6_supported=false`, and `weak_accept_supported=false` | pass |
+| R260 paper/R259 consistency audit is not outcome evidence | R260 checks 25/25 paper/docs consistency conditions after R258/R259 and keeps `participant_responses_added=0`, `human_labels_added=0`, `c5_supported=false`, `c6_supported=false`, and `weak_accept_supported=false` | pass |
 | C5 future real response CSV contract is enforced | scorer validates assignments, packets, duplicate rows, partial files, timing, and confidence | pass |
 | C6 empty human-label packet cannot support adequacy | R124 is `human_labels_empty`, `adequacy_supported=false` | pass |
 | C6 label join path does not fabricate labels | R124-join status is `ready_for_independent_label_collection`, records 0 labeler rows, exposes no joined-label output, and writes an empty adjudication template by default | pass |
@@ -568,9 +570,9 @@ Concrete fix: run R142 pilot under the frozen C5 preregistration using the
 committed participant packets and score the resulting CSV with
 `score_user_task_results.py`.
 
-Decision gate: current paper cannot claim utility unless
-`claim_analysis.claim_gate.c5_supported=true` for a paper-scale run, or a
-narrower expert-pilot claim is explicitly labeled as pilot evidence.
+Decision gate: current paper cannot claim utility unless the paper-scale scorer
+sets the C5 support gate to true, or a narrower expert-pilot claim is explicitly
+labeled as pilot evidence.
 
 ### Must Fix: C6 Human Adequacy
 
@@ -677,3 +679,4 @@ Disallowed:
 | R257 | C1-C7 | Post-R256 review gate. | `python3 docs/visexp/r257_post_r256_review_gate.py` | deterministic read over R256 artifacts and current evidence docs; no raw traces, no LLM calls, no labels/responses | 7/7 checks must pass; R256 wording must stay scoped to crate-package dry-run; C5/C6/publish/weak-accept gates must stay false | review hygiene only; cannot support weak accept, C5, C6, crates.io publish/readback, external-machine adoption, or user feedback | `docs/visexp/out/osdi-gate-review-r257.json` | done/review-hygiene |
 | R258 | C5,C6 | Unified paper-scale human-evidence bundle. | `python3 docs/visexp/r258_paper_scale_human_evidence_bundle.py` | deterministic package over R249/R252/R255/R257 artifacts; no raw traces, no LLM calls, no labels/responses | 12 C5 participant packets, 168 C5 response rows, 2 C6 labeler packets, 1,002 C6 decisions, R195 template, return checklist, source/tar leak scans | launch logistics only; C5/C6/weak-accept remain false until real completed returns are scored | `docs/visexp/out/human-evidence-paper-scale-bundle-r258/human-evidence-paper-scale-bundle-r258.json` | done/paper-scale bundle-ready |
 | R259 | C5,C6 | Paper-scale static collection forms and export smoke. | `python3 docs/visexp/r259_paper_scale_static_collection_kit.py` | deterministic HTML generation and synthetic export smoke over R249/R252/R258 artifacts; headless Chrome DOM checks | 12 participant forms, 6 labeler forms, coordinator merge page, 168-row C5 synthetic merge, 1,002 C6 blank-label export rows, 6/6 browser checks, leak scan | collection UX only; no participant responses, labels, C5/C6 support, or weak-accept evidence | `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/static-collection-kit-r259.json` | done/static-kit-smoke |
+| R260 | C1-C7 | Paper/R259 consistency audit. | `python3 docs/visexp/r260_paper_r259_consistency.py` | deterministic read over R258/R259/R245 artifacts and current paper/docs | 25/25 consistency checks, R259 counts verified, paper R258/R259 boundary verified, forbidden overclaim strings absent | wording/evidence hygiene only; no participant responses, labels, C5/C6 support, or weak-accept evidence | `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.json` | done/wording-audit |

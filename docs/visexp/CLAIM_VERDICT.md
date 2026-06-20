@@ -17,6 +17,7 @@ Additional R256 source: `docs/visexp/out/agentpprof-crate-package-r256/agentppro
 Additional R257 source: `docs/visexp/out/osdi-gate-review-r257.json` and `docs/visexp/out/osdi-gate-review-r257.md`.
 Additional R258 source: `docs/visexp/out/human-evidence-paper-scale-bundle-r258/human-evidence-paper-scale-bundle-r258.json`, `docs/visexp/out/human-evidence-paper-scale-bundle-r258/human-evidence-paper-scale-bundle-r258.md`, and `docs/visexp/out/human-evidence-paper-scale-bundle-r258/agentflame-paper-scale-human-evidence-r258.tar.gz`.
 Additional R259 source: `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/static-collection-kit-r259.json`, `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/static-collection-kit-r259.md`, and `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/index.html`.
+Additional R260 source: `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.json` and `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.md`.
 Completeness: partial
 
 | Claim | Verdict | Evidence | Supported wording | Missing evidence |
@@ -343,6 +344,14 @@ with blank label cells, 6/6 headless Chrome checks, and a passing leak scan.
 It keeps `weak_accept_supported=false`, `c5_supported=false`,
 `c6_supported=false`, and `outcome_evidence_added=false`; it is collection UX
 only.
+
+R260 addendum:
+`docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.json`
+audits the paper and evidence docs after R258/R259. It checks 25/25 conditions:
+R259 counts remain 12 participant forms, 6 labeler forms, 168 C5 rows, and
+1,002 C6 blank-label rows; the paper mentions R258/R259 as collection logistics
+only; and forbidden overclaim strings are absent. It keeps all C5/C6/weak-accept
+gates false and adds no outcome evidence.
 
 R250 addendum:
 `docs/visexp/out/osdi-gate-review-r250.json` records two read-only post-R249
