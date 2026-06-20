@@ -20,6 +20,7 @@ Additional R259 source: `python3 docs/visexp/r259_paper_scale_static_collection_
 Additional R260 source: `python3 docs/visexp/r260_paper_r259_consistency.py`, `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.json`, and `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.md`.
 Additional R261 source: `python3 docs/visexp/r261_paper_layout_gate.py`, `docs/visexp/out/paper-layout-gate-r261/paper-layout-gate-r261.json`, and `docs/visexp/out/paper-layout-gate-r261/paper-layout-gate-r261.md`.
 Additional R262 source: `python3 docs/visexp/r262_paper_compaction_gate.py`, `docs/visexp/out/paper-compaction-gate-r262/paper-compaction-gate-r262.json`, and `docs/visexp/out/paper-compaction-gate-r262/paper-compaction-gate-r262.md`.
+Additional R264 source: `python3 docs/visexp/r264_human_return_intake_preflight.py`, `docs/visexp/out/human-return-intake-r264/human-return-intake-r264.json`, and `docs/visexp/out/human-return-intake-r264/r195-command-template-r264.txt`.
 Completeness: partial
 
 ## Positioning
@@ -728,6 +729,7 @@ cargo run --manifest-path agentflame/Cargo.toml -- bench \
 | R261 | C1-C7 | paper | Paper layout gate after compacting the main claim-gate table. | `python3 docs/visexp/r261_paper_layout_gate.py` | two XeLaTeX passes; no labels/responses | 11 pages, 0 oversized float warnings, 0 undefined reference lines, six-page target false | passed layout hygiene; still needs further compression and real C5/C6 returns | `docs/visexp/out/paper-layout-gate-r261/paper-layout-gate-r261.json` | done/layout-hygiene |
 | R262 | C1-C7 | paper | Paper compaction gate after compressing RQ prose and limitations. | `python3 docs/visexp/r262_paper_compaction_gate.py` | two XeLaTeX passes; no labels/responses | 6 pages, 495 source lines, 0 oversized float warnings, 0 undefined references, max overfull 86.56468pt, six-page target true | passed compaction hygiene; still needs real C5/C6 returns | `docs/visexp/out/paper-compaction-gate-r262/paper-compaction-gate-r262.json` | done/compaction-hygiene |
 | R263 | C5,C6 | gate | Human-return synthetic-marker safety gate. | `python3 docs/visexp/r263_human_return_safety_gate.py` | R195 negative case over R259 synthetic C5 merged CSV; no labels/responses | R195 returns `unsafe_return_inputs`, 0 scorer operations, marker hits present, outcome gates false | passed ingestion safety; still needs real C5/C6 returns | `docs/visexp/out/human-return-safety-r263/human-return-safety-r263.json` | done/ingestion-safety |
+| R264 | C5,C6 | collection | Real human-return intake preflight. | `python3 docs/visexp/r264_human_return_intake_preflight.py` | committed handoff contract plus optional private returned CSV paths; no labels/responses synthesized | R258 checklist, C5 assignment coverage, C6 paired-label row/label coverage, synthetic-marker scan, private/R195 ignore guard, and R195 command template | default run is `awaiting_private_returns`; checklist/synthetic-marker/privacy guards pass, C5/C6/weak-accept gates remain false | `docs/visexp/out/human-return-intake-r264/human-return-intake-r264.json` | done/intake-preflight |
 | R245 | C1-C7 | gate | Post-R244 claim-wording consistency audit. | `python3 docs/visexp/r245_claim_wording_consistency.py` | deterministic read-only audit over generated gates plus current paper/docs; no raw traces, no LLM calls, no labels/responses | C5/C6/R238/R240/R242-R244 boundaries must be present; forbidden strong-claim hits must be 0; R219 supersession must be explicit | passed: hard evidence checks 9/9, wording checks 13/13, forbidden strong-claim hits 0; R219 is post-R219-addendum only | `docs/visexp/out/claim-wording-consistency-r245/claim-wording-consistency-r245.json` | done/wording-audit |
 | R246 | C1-C7 | gate | Post-R245 OSDI review hygiene and provenance response. | `python3 docs/visexp/r246_post_review_hygiene.py` | deterministic read over generated gates plus current paper/docs; no raw traces, no LLM calls, no labels/responses | C5/C6/weak-accept gates must remain false; R170 command/provenance must match paper/docs; R224 rerun metadata must clarify `checker_id=R131` | passed after author response: Level 3/not weak accept, R170 dirty-provenance caveat recorded, R224 metadata added, no outcome evidence | `docs/visexp/out/osdi-gate-review-r246.json`, `docs/visexp/out/semantic-ablation-r224-r170/r224-rerun-metadata.json` | done/review-hygiene |
 | R171 | C5,C6 | gate | Read-only subagent OSDI gate review. | inspect current plan/tracker/results/verdict/audit/followup/paper/gate outputs | one independent review | strict OSDI rubric | review says Level 3, not weak accept; R124-labels and R142/R151 remain the must-fix outcome artifacts | `docs/visexp/out/osdi-gate-review-r171.md` | done/review |
@@ -772,19 +774,26 @@ R263 closes a concrete ingestion-safety gap: R195 now rejects R259 synthetic
 return markers before scoring. This prevents smoke exports from being mistaken
 for completed returns, but it still does not provide any real participant
 response or human label.
+R264 adds the corresponding real-return intake gate: with no private CSVs it
+reports `awaiting_private_returns`, and with completed files it should be run
+before R195 to check assignment coverage, paired label coverage, synthetic
+markers, and private-output containment.
 
 1. distribute the R249 P01-P12 paper-scale participant packets and collect real
    completed response rows in a private copy of
    `docs/visexp/out/user-task-paper-r249/responses/user-task-response-template-r249-paper.csv`;
-2. score C5 through R195 with
+2. run `python3 docs/visexp/r264_human_return_intake_preflight.py` against the
+   private C5/C6 CSVs and fix any `returns_not_ready_*` or
+   `unsafe_return_inputs` result before scoring;
+3. score C5 through R195 with
    `python3 docs/visexp/r195_human_evidence_pipeline.py --r142-responses <completed-paper-scale.csv> --r142-bundle docs/visexp/out/user-task-benchmark.json --r142-answer-key docs/visexp/out/user-task-answer-key.csv --r142-assignments docs/visexp/out/user-task-paper-r249/user-task-assignments-r249-paper.csv`;
-3. collect/adjudicate paper-scale C6 labels using
+4. collect/adjudicate paper-scale C6 labels using
    `docs/visexp/out/tag-adequacy-paper-r252/labeler-packets/L01` and `L02`,
    then pass the completed R124/R190/R203 CSVs to R195 using the R207/R252
    return-file names;
-4. if claiming canonicalized long-tail tags, label the R190 merge-risk audit
+5. if claiming canonicalized long-tail tags, label the R190 merge-risk audit
    packet and R203 promotion rows, then report over-merge/under-merge and
    promotion rates separately from R124 adequacy;
-5. keep all C5/C6 wording unsupported until the R195-scored real responses and
+6. keep all C5/C6 wording unsupported until the R195-scored real responses and
    real human labels pass their gates; pilot-only R187/R142 evidence must be
    labeled as pilot evidence.
