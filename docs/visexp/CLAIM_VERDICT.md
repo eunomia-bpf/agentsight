@@ -28,6 +28,7 @@ Additional R267 source: `docs/visexp/out/osdi-gate-review-r267.json` and `docs/v
 Additional R268 source: `docs/visexp/out/c5-real-return-pipeline-r268/c5-real-return-pipeline-r268.json` and `docs/visexp/out/c5-real-return-pipeline-r268/c5-real-return-pipeline-r268.md`.
 Additional R269 source: `docs/visexp/out/osdi-gate-review-r269.json` and `docs/visexp/out/osdi-gate-review-r269.md`.
 Additional R270 source: `docs/visexp/out/c6-real-label-pipeline-r270/c6-real-label-pipeline-r270.json` and `docs/visexp/out/c6-real-label-pipeline-r270/c6-real-label-pipeline-r270.md`.
+Additional R271 source: `docs/visexp/out/human-evidence-weak-accept-gate-r271/human-evidence-weak-accept-gate-r271.json` and `docs/visexp/out/human-evidence-weak-accept-gate-r271/human-evidence-weak-accept-gate-r271.md`.
 Completeness: partial
 
 | Claim | Verdict | Evidence | Supported wording | Missing evidence |
@@ -439,6 +440,15 @@ records the one-command private C6 label scoring path. The committed run is
 step status, and keeps C5/C6/weak-accept gates false. It can become a C6
 evidence path only after real private R124/R190/R203 labeler CSVs exist and any
 R195 adjudication requirement is resolved.
+
+R271 addendum:
+`docs/visexp/out/human-evidence-weak-accept-gate-r271/human-evidence-weak-accept-gate-r271.json`
+records the combined C5/C6 human-evidence gate. The committed run is
+`awaiting_private_c5_and_c6_returns`, joins only public-safe aggregate gates
+from R268 and R270, exports no raw private rows or private hashes, and keeps
+`weak_accept_supported=false`. It is a final review-readiness gate, not a
+substitute for real participant responses, real human labels, or the independent
+OSDI review after both human-evidence paths pass.
 
 R250 addendum:
 `docs/visexp/out/osdi-gate-review-r250.json` records two read-only post-R249

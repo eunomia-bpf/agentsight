@@ -22,6 +22,12 @@ Additional R261 source: `python3 docs/visexp/r261_paper_layout_gate.py`, `docs/v
 Additional R262 source: `python3 docs/visexp/r262_paper_compaction_gate.py`, `docs/visexp/out/paper-compaction-gate-r262/paper-compaction-gate-r262.json`, and `docs/visexp/out/paper-compaction-gate-r262/paper-compaction-gate-r262.md`.
 Additional R264 source: `python3 docs/visexp/r264_human_return_intake_preflight.py`, `docs/visexp/out/human-return-intake-r264/human-return-intake-r264.json`, and `docs/visexp/out/human-return-intake-r264/r195-command-template-r264.txt`.
 Additional R265 source: `python3 docs/visexp/r265_human_adjudication_workflow_smoke.py`, `docs/visexp/out/human-adjudication-r265/human-adjudication-r265.json`, and the R195 top-level `needs_adjudication` status update.
+Additional R266 source: `python3 docs/visexp/r266_real_human_evidence_public_summary_gate.py`, `docs/visexp/out/human-evidence-public-summary-r266/human-evidence-public-summary-r266.json`, and `docs/visexp/out/human-evidence-public-summary-r266/human-evidence-public-summary-r266.md`.
+Additional R267 source: `python3 docs/visexp/r267_post_r266_osdi_review_gate.py`, `docs/visexp/out/osdi-gate-review-r267.json`, and `docs/visexp/out/osdi-gate-review-r267.md`.
+Additional R268 source: `python3 docs/visexp/r268_c5_real_return_scoring_pipeline.py`, `docs/visexp/out/c5-real-return-pipeline-r268/c5-real-return-pipeline-r268.json`, and `docs/visexp/out/c5-real-return-pipeline-r268/c5-return-scoring-command-r268.txt`.
+Additional R269 source: `python3 docs/visexp/r269_post_r268_osdi_review_gate.py`, `docs/visexp/out/osdi-gate-review-r269.json`, and `docs/visexp/out/osdi-gate-review-r269.md`.
+Additional R270 source: `python3 docs/visexp/r270_c6_real_label_scoring_pipeline.py`, `docs/visexp/out/c6-real-label-pipeline-r270/c6-real-label-pipeline-r270.json`, and `docs/visexp/out/c6-real-label-pipeline-r270/c6-label-scoring-command-r270.txt`.
+Additional R271 source: `python3 docs/visexp/r271_human_evidence_weak_accept_gate.py`, `docs/visexp/out/human-evidence-weak-accept-gate-r271/human-evidence-weak-accept-gate-r271.json`, and `docs/visexp/out/human-evidence-weak-accept-gate-r271/human-evidence-weak-accept-command-r271.txt`.
 Completeness: partial
 
 ## Positioning
@@ -737,6 +743,7 @@ cargo run --manifest-path agentflame/Cargo.toml -- bench \
 | R268 | C5 | collection | One-command private C5 return scoring pipeline. | `python3 docs/visexp/r268_c5_real_return_scoring_pipeline.py` | default private C5 path absent; no labels/responses synthesized; executes R264/R195/R266 only when the private C5 CSV exists | private-path guard, public-safe command templates, R264/R195/R266 orchestration, aggregate-only step summaries, no raw-row or private-hash export | default run is `awaiting_private_c5_returns`; C5/C6/weak-accept remain false; next C5 action is a single rerun after real private returns arrive | `docs/visexp/out/c5-real-return-pipeline-r268/c5-real-return-pipeline-r268.json` | done/c5-return-orchestration |
 | R269 | C1-C7 | gate | Post-R268 independent OSDI review gate. | `python3 docs/visexp/r269_post_r268_osdi_review_gate.py` | Epicurus read-only review plus deterministic checks over paper/state/verdict/audit/R267/R268/C5/C6 gates; no labels/responses | review must remain Level 3/not weak accept, R268 must remain `awaiting_private_c5_returns`, paper wording must avoid validated developer-assistance wording, and C5/C6 gates false | passed: Epicurus confirms C5/C6 blockers, names R268 C5 study as highest-value next gate, and paper wording is tightened to planned C5 task input | `docs/visexp/out/osdi-gate-review-r269.json`, `docs/visexp/out/osdi-gate-review-r269.md` | done/review-hygiene |
 | R270 | C6 | collection | One-command private C6 label scoring pipeline. | `python3 docs/visexp/r270_c6_real_label_scoring_pipeline.py` | default private C6 label paths absent; no labels/responses synthesized; executes R264/R195/R266 only when six private C6 CSVs exist | private-path guard, R124/R190/R203 readiness, R195 needs-adjudication stop, public-safe command templates, aggregate-only step summaries | default run is `awaiting_private_c6_labels`; C5/C6/weak-accept remain false; next C6 action is a single rerun after real private labels arrive | `docs/visexp/out/c6-real-label-pipeline-r270/c6-real-label-pipeline-r270.json` | done/c6-label-orchestration |
+| R271 | C5,C6 | gate | Combined human-evidence weak-accept readiness gate. | `python3 docs/visexp/r271_human_evidence_weak_accept_gate.py` | default private C5/C6 paths absent; no labels/responses synthesized; runs/reads R268 and R270 only | public-safe C5/C6 aggregate join, no raw private rows, no private hashes, independent-review boundary retained | default run is `awaiting_private_c5_and_c6_returns`; `weak_accept_supported=false`; final OSDI review must run only after real C5/C6 gates pass | `docs/visexp/out/human-evidence-weak-accept-gate-r271/human-evidence-weak-accept-gate-r271.json` | done/human-evidence-readiness |
 | R245 | C1-C7 | gate | Post-R244 claim-wording consistency audit. | `python3 docs/visexp/r245_claim_wording_consistency.py` | deterministic read-only audit over generated gates plus current paper/docs; no raw traces, no LLM calls, no labels/responses | C5/C6/R238/R240/R242-R244 boundaries must be present; forbidden strong-claim hits must be 0; R219 supersession must be explicit | passed: hard evidence checks 9/9, wording checks 13/13, forbidden strong-claim hits 0; R219 is post-R219-addendum only | `docs/visexp/out/claim-wording-consistency-r245/claim-wording-consistency-r245.json` | done/wording-audit |
 | R246 | C1-C7 | gate | Post-R245 OSDI review hygiene and provenance response. | `python3 docs/visexp/r246_post_review_hygiene.py` | deterministic read over generated gates plus current paper/docs; no raw traces, no LLM calls, no labels/responses | C5/C6/weak-accept gates must remain false; R170 command/provenance must match paper/docs; R224 rerun metadata must clarify `checker_id=R131` | passed after author response: Level 3/not weak accept, R170 dirty-provenance caveat recorded, R224 metadata added, no outcome evidence | `docs/visexp/out/osdi-gate-review-r246.json`, `docs/visexp/out/semantic-ablation-r224-r170/r224-rerun-metadata.json` | done/review-hygiene |
 | R171 | C5,C6 | gate | Read-only subagent OSDI gate review. | inspect current plan/tracker/results/verdict/audit/followup/paper/gate outputs | one independent review | strict OSDI rubric | review says Level 3, not weak accept; R124-labels and R142/R151 remain the must-fix outcome artifacts | `docs/visexp/out/osdi-gate-review-r171.md` | done/review |
@@ -810,6 +817,11 @@ CSVs it reports `awaiting_private_c6_labels`, and with six completed private
 R124/R190/R203 labeler files it runs R264 preflight, R195 label scoring, stops
 for private adjudication when needed, and runs R266 public-safe summary only
 after scoring can be summarized without raw label rows.
+R271 joins the two public-safe aggregate paths: with no private C5/C6 returns
+it reports `awaiting_private_c5_and_c6_returns`; after real C5 and C6 evidence
+both pass, it should be the single readiness signal that triggers the final
+independent OSDI review. It still never upgrades `weak_accept_supported` by
+itself.
 
 1. distribute the R249 P01-P12 paper-scale participant packets and collect real
    completed response rows in a private copy of
@@ -828,11 +840,15 @@ after scoring can be summarized without raw label rows.
 5. run `python3 docs/visexp/r270_c6_real_label_scoring_pipeline.py`; if it
    reports `c6_needs_adjudication`, fill the private R124/R190/R203
    adjudication CSVs and rerun R270;
-6. use only the R266 public-safe aggregate summary emitted by R268/R270 before
-   copying any real C5/C6 aggregate numbers into public paper artifacts;
-7. if claiming canonicalized long-tail tags, label the R190 merge-risk audit
+6. run `python3 docs/visexp/r271_human_evidence_weak_accept_gate.py`; proceed
+   to final independent OSDI review only if it reports
+   `human_evidence_ready_for_osdi_review`;
+7. use only the R266 public-safe aggregate summary emitted by R268/R270 and the
+   R271 readiness result before copying any real C5/C6 aggregate numbers into
+   public paper artifacts;
+8. if claiming canonicalized long-tail tags, label the R190 merge-risk audit
    packet and R203 promotion rows, then report over-merge/under-merge and
    promotion rates separately from R124 adequacy;
-8. keep all C5/C6 wording unsupported until the R195-scored real responses and
-   real human labels pass their gates; pilot-only R187/R142 evidence must be
-   labeled as pilot evidence.
+9. keep all C5/C6 wording unsupported until the R195-scored real responses and
+   real human labels pass their gates and the final independent OSDI review has
+   been rerun; pilot-only R187/R142 evidence must be labeled as pilot evidence.

@@ -193,6 +193,7 @@ def build_checks(jsons: dict[str, dict[str, Any]], texts: dict[str, str]) -> lis
         or "R260--R268" in paper
         or "R260--R269" in paper
         or "R260--R270" in paper
+        or "R260--R271" in paper
     )
 
     return [

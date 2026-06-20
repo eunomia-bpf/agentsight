@@ -1,0 +1,114 @@
+{
+  "claim_boundary": "R271 only joins public-safe aggregate gates from R268 and R270. It does not read or export raw private rows, create participant responses, create human labels, or replace the final independent OSDI review. Global weak-accept support remains false until real C5/C6 evidence is present and reviewed.",
+  "claim_gate": {
+    "c5_supported": false,
+    "c6_adequacy_supported": false,
+    "canonicalization_quality_supported": false,
+    "human_evidence_ready_for_osdi_review": false,
+    "long_tail_promotion_review_supported": false,
+    "requires_independent_osdi_review": false,
+    "requires_real_human_returns": true,
+    "weak_accept_supported": false
+  },
+  "commands": {
+    "r268_c5": {
+      "argv": [
+        "python3",
+        "docs/visexp/r268_c5_real_return_scoring_pipeline.py"
+      ],
+      "shell": "python3 docs/visexp/r268_c5_real_return_scoring_pipeline.py"
+    },
+    "r270_c6": {
+      "argv": [
+        "python3",
+        "docs/visexp/r270_c6_real_label_scoring_pipeline.py"
+      ],
+      "shell": "python3 docs/visexp/r270_c6_real_label_scoring_pipeline.py"
+    }
+  },
+  "component_summaries": {
+    "c5_r268": {
+      "c5_supported": false,
+      "claim_gate": {
+        "c5_supported": false,
+        "c6_adequacy_supported": false,
+        "canonicalization_quality_supported": false,
+        "long_tail_promotion_review_supported": false,
+        "public_claim_update_allowed": false,
+        "requires_real_human_returns": true,
+        "weak_accept_supported": false
+      },
+      "exists": true,
+      "private_hashes_exported": false,
+      "private_input_exists": false,
+      "private_path_kind": "private",
+      "raw_private_rows_exported": false,
+      "run_id": "R268",
+      "status": "awaiting_private_c5_returns",
+      "weak_accept_supported": false
+    },
+    "c6_r270": {
+      "all_inputs_private_or_absent": true,
+      "all_required_exist": false,
+      "c6_adequacy_supported": false,
+      "canonicalization_quality_supported": false,
+      "claim_gate": {
+        "c5_supported": false,
+        "c6_adequacy_supported": false,
+        "canonicalization_quality_supported": false,
+        "long_tail_promotion_review_supported": false,
+        "public_claim_update_allowed": false,
+        "requires_real_human_returns": true,
+        "weak_accept_supported": false
+      },
+      "exists": true,
+      "long_tail_promotion_review_supported": false,
+      "private_hashes_exported": false,
+      "raw_private_rows_exported": false,
+      "required_existing_count": 0,
+      "run_id": "R270",
+      "status": "awaiting_private_c6_labels",
+      "weak_accept_supported": false
+    }
+  },
+  "execution": {
+    "command_results": {
+      "r268_c5": {
+        "ok": true,
+        "returncode": 0,
+        "stderr_line_count": 0,
+        "stdout_line_count": 13
+      },
+      "r270_c6": {
+        "ok": true,
+        "returncode": 0,
+        "stderr_line_count": 0,
+        "stdout_line_count": 13
+      }
+    },
+    "no_execute_pipelines": false,
+    "private_hashes_exported": false,
+    "ran_pipelines": true,
+    "raw_private_rows_exported": false
+  },
+  "generated_at": "2026-06-20T03:41:51+00:00",
+  "next_action": "Collect private C5 responses and private C6 labels, run this script, resolve any C6 adjudication reported by R270, then run an independent OSDI review before updating public paper claims.",
+  "provenance": {
+    "repo_commit": "9a4f7e0620b22d700d6e6e710db2369a5f0616f0",
+    "repo_dirty": true,
+    "script": "docs/visexp/r271_human_evidence_weak_accept_gate.py",
+    "source_json": {
+      "r268": "docs/visexp/out/c5-real-return-pipeline-r268/c5-real-return-pipeline-r268.json",
+      "r270": "docs/visexp/out/c6-real-label-pipeline-r270/c6-real-label-pipeline-r270.json"
+    }
+  },
+  "review_gate": {
+    "must_run_independent_subagent_after_real_results": false,
+    "next_review_action": "Run an independent OSDI subagent review over R271 and the updated public aggregate evidence after human_evidence_ready_for_osdi_review is true.",
+    "next_review_command": null,
+    "review_is_not_replaced_by_this_gate": true
+  },
+  "run_id": "R271",
+  "schema_version": 1,
+  "status": "awaiting_private_c5_and_c6_returns"
+}
