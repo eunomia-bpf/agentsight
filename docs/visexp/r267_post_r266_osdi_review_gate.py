@@ -188,6 +188,7 @@ def build_checks(jsons: dict[str, dict[str, Any]], texts: dict[str, str]) -> lis
     r203_gate = r203.get("claim_gate") or {}
     r264_gate = r264.get("claim_gate") or {}
     r266_gate = r266.get("claim_gate") or {}
+    post_r266_hygiene_scope_present = "R260--R267" in paper or "R260--R268" in paper
 
     return [
         {
@@ -253,13 +254,13 @@ def build_checks(jsons: dict[str, dict[str, Any]], texts: dict[str, str]) -> lis
             "passed": "当前版本仍不到 OSDI weak accept" in paper
             and "C5 仍然没有真实 participant responses" in paper
             and "C6 仍然没有真实 human adequacy labels" in paper
-            and "R260--R267" in paper
+            and post_r266_hygiene_scope_present
             and "不提升 C5/C6 或 weak-accept gate" in paper,
             "observed": {
                 "weak_accept_boundary": "当前版本仍不到 OSDI weak accept" in paper,
                 "c5_missing": "C5 仍然没有真实 participant responses" in paper,
                 "c6_missing": "C6 仍然没有真实 human adequacy labels" in paper,
-                "r267_review_hygiene_scoped": "R260--R267" in paper,
+                "r267_review_hygiene_scoped": post_r266_hygiene_scope_present,
                 "no_upgrade_boundary": "不提升 C5/C6 或 weak-accept gate" in paper,
             },
         },

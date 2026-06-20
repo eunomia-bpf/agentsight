@@ -25,6 +25,7 @@ Additional R264 source: `docs/visexp/out/human-return-intake-r264/human-return-i
 Additional R265 source: `docs/visexp/out/human-adjudication-r265/human-adjudication-r265.json` and `docs/visexp/out/human-adjudication-r265/human-adjudication-r265.md`.
 Additional R266 source: `docs/visexp/out/human-evidence-public-summary-r266/human-evidence-public-summary-r266.json` and `docs/visexp/out/human-evidence-public-summary-r266/human-evidence-public-summary-r266.md`.
 Additional R267 source: `docs/visexp/out/osdi-gate-review-r267.json` and `docs/visexp/out/osdi-gate-review-r267.md`.
+Additional R268 source: `docs/visexp/out/c5-real-return-pipeline-r268/c5-real-return-pipeline-r268.json` and `docs/visexp/out/c5-real-return-pipeline-r268/c5-real-return-pipeline-r268.md`.
 Completeness: partial
 
 | Claim | Verdict | Evidence | Supported wording | Missing evidence |
@@ -412,6 +413,14 @@ OSDI review gate. It finds no critical post-R266 overclaim, keeps the maturity
 at Level 3/not weak accept, and names the paper-scale C5 user-task study as the
 first next experiment. It is read-only review hygiene and cannot substitute for
 participant responses or human labels.
+
+R268 addendum:
+`docs/visexp/out/c5-real-return-pipeline-r268/c5-real-return-pipeline-r268.json`
+records the one-command private C5 return scoring path. The committed run is
+`awaiting_private_c5_returns`, exports only private-input existence and
+aggregate step status, and keeps C5/C6/weak-accept gates false. It can become a
+C5 evidence path only after real private paper-scale responses are placed under
+the private return directory and scored by R195/R266.
 
 R250 addendum:
 `docs/visexp/out/osdi-gate-review-r250.json` records two read-only post-R249
