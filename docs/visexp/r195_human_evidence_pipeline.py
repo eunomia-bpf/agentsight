@@ -495,6 +495,14 @@ def pipeline_status(
         return "scoring_failed"
     if any(op.get("status") == "ready_no_run" for op in operations.values()):
         return "ready_to_score_no_run"
+    if any(
+        op.get("status") in {"needs_adjudication", "joined_not_ready_for_scoring"}
+        or op.get("join_status") == "needs_adjudication"
+        for op in operations.values()
+    ):
+        return "needs_adjudication"
+    if any(op.get("status") == "human_labels_partial" for op in operations.values()):
+        return "partial_human_inputs"
     if (
         gates["c5_supported"]
         or gates["c6_adequacy_supported"]

@@ -1,0 +1,92 @@
+{
+  "cases": {
+    "adjudicated_synthetic": {
+      "claim_gate": {
+        "c5_supported": false,
+        "c6_adequacy_supported": false,
+        "canonical_map_updated": false,
+        "canonicalization_quality_supported": false,
+        "long_tail_promotion_review_supported": false,
+        "requires_real_human_data": true
+      },
+      "operation_statuses": {
+        "r124": "human_labels_scored",
+        "r190": "human_labels_scored",
+        "r203": "human_labels_scored"
+      },
+      "payload_path": "docs/visexp/out/human-adjudication-r265/work/adjudicated-synthetic/r195.json",
+      "payload_sha256": "8bcb8c7ab08953c41d852488c35e1c28ad3c0bbe200e4753959a88bc144626dd",
+      "r195_status": "scored_human_inputs_no_supported_gate"
+    },
+    "unresolved_disagreements": {
+      "adjudication_template_rows": {
+        "r124": 100,
+        "r190": 40,
+        "r203": 14
+      },
+      "claim_gate": {
+        "c5_supported": false,
+        "c6_adequacy_supported": false,
+        "canonical_map_updated": false,
+        "canonicalization_quality_supported": false,
+        "long_tail_promotion_review_supported": false,
+        "requires_real_human_data": true
+      },
+      "operation_statuses": {
+        "r124": "joined_not_ready_for_scoring",
+        "r190": "needs_adjudication",
+        "r203": "needs_adjudication"
+      },
+      "payload_path": "docs/visexp/out/human-adjudication-r265/work/unresolved-disagreements/r195.json",
+      "payload_sha256": "e145a8c24a46c6f4433199eebe3682a3132a1e0552f5b47b44f3ade34b14cd2b",
+      "r195_status": "needs_adjudication"
+    }
+  },
+  "checks": {
+    "adjudicated_claim_gates_false": true,
+    "adjudicated_r195_command_passed": true,
+    "adjudicated_runs_without_support": true,
+    "unresolved_adjudication_templates_match_disagreements": {
+      "r124": true,
+      "r190": true,
+      "r203": true
+    },
+    "unresolved_claim_gates_false": true,
+    "unresolved_operation_statuses": {
+      "r124": true,
+      "r190": true,
+      "r203": true
+    },
+    "unresolved_r195_command_passed": true,
+    "unresolved_top_level_needs_adjudication": true
+  },
+  "claim_boundary": "R265 proves only that R195 surfaces unresolved C6 disagreements and accepts explicit adjudication files. All rows are synthetic controls, so C5, C6, canonicalization, promotion, and weak-accept gates must remain false.",
+  "generated_at": "2026-06-20T02:42:50+00:00",
+  "provenance": {
+    "repo_commit": "ad84b13635fd3b5c93365b45b90f433a57b6c52e",
+    "repo_dirty": true,
+    "repo_dirty_semantics": "captured before R265 writes synthetic fixtures or R195 outputs",
+    "script": "docs/visexp/r265_human_adjudication_workflow_smoke.py",
+    "script_sha256": "7847457e73737736257bd0bde38629ca4ebe486df96cb6f37d52ebe0bbcbe32a"
+  },
+  "run_id": "R265",
+  "schema_version": 1,
+  "status": "passed",
+  "synthetic_inputs": {
+    "boundary": "synthetic disagreement and adjudication fixtures; not participant responses or human labels",
+    "r124": {
+      "disagreements": 100,
+      "rows": 300
+    },
+    "r190": {
+      "disagreements": 40,
+      "rows": 160
+    },
+    "r203": {
+      "disagreements": 14,
+      "rows": 41
+    },
+    "work_dir": "docs/visexp/out/human-adjudication-r265/work",
+    "work_dir_retained": false
+  }
+}
