@@ -57,6 +57,12 @@ INPUT_VALUE_FIELDS = {
     "r142_responses": ["task_time_seconds", "confidence", "notes"],
 }
 
+FORBIDDEN_RETURN_MARKERS = [
+    "r259_export_smoke",
+    "r259_synthetic_export_smoke_not_human_evidence",
+    "r244-synthetic",
+]
+
 
 def rel(path: Path | None) -> str | None:
     if path is None:
@@ -106,6 +112,23 @@ def csv_filled_value_count(path: Path, fields: list[str]) -> int | None:
             if any((row.get(field) or "").strip() for field in fields):
                 count += 1
     return count
+
+
+def csv_marker_hits(path: Path, markers: list[str], *, max_hits: int = 10) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    hits: list[dict[str, Any]] = []
+    with path.open("r", encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle)
+        for row_index, row in enumerate(reader, start=1):
+            for field, value in row.items():
+                cell = value or ""
+                for marker in markers:
+                    if marker in cell:
+                        hits.append({"row": row_index, "field": field, "marker": marker})
+                        if len(hits) >= max_hits:
+                            return hits
+    return hits
 
 
 def default_input_paths() -> dict[str, Path]:
@@ -193,6 +216,20 @@ def group_readiness(presence: dict[str, bool]) -> dict[str, Any]:
     out["any_present"] = any_present
     out["any_ready"] = any_ready
     return out
+
+
+def input_safety(paths: dict[str, Path]) -> dict[str, Any]:
+    marker_hits: dict[str, list[dict[str, Any]]] = {}
+    for name, path in paths.items():
+        hits = csv_marker_hits(path, FORBIDDEN_RETURN_MARKERS)
+        if hits:
+            marker_hits[name] = hits
+    return {
+        "status": "unsafe_return_inputs" if marker_hits else "passed",
+        "forbidden_markers": FORBIDDEN_RETURN_MARKERS,
+        "marker_hits": marker_hits,
+        "unsafe": bool(marker_hits),
+    }
 
 
 def command_result(cmd: list[str], *, run: bool) -> dict[str, Any]:
@@ -442,7 +479,14 @@ def gate_summary(operations: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def pipeline_status(readiness: dict[str, Any], operations: dict[str, Any], gates: dict[str, Any]) -> str:
+def pipeline_status(
+    readiness: dict[str, Any],
+    operations: dict[str, Any],
+    gates: dict[str, Any],
+    safety: dict[str, Any],
+) -> str:
+    if safety.get("unsafe"):
+        return "unsafe_return_inputs"
     if not readiness["any_present"]:
         return "awaiting_human_inputs"
     if not readiness["any_ready"]:
@@ -483,18 +527,21 @@ def build_payload(args: argparse.Namespace) -> dict[str, Any]:
     }
     presence = input_presence(paths)
     readiness = group_readiness(presence)
+    safety = input_safety(paths)
     operations: dict[str, Any] = {}
-    if readiness["r124"]["ready"]:
+    if safety["unsafe"]:
+        operations = {}
+    elif readiness["r124"]["ready"]:
         operations["r124"] = run_r124(paths, args.scored_dir, not args.no_run)
-    if readiness["r190"]["ready"]:
+    if not safety["unsafe"] and readiness["r190"]["ready"]:
         operations["r190"] = run_r190(paths, args.scored_dir, not args.no_run)
-    if readiness["r203"]["ready"]:
+    if not safety["unsafe"] and readiness["r203"]["ready"]:
         operations["r203"] = run_r203(paths, args.scored_dir, not args.no_run)
-    if readiness["r142"]["ready"]:
+    if not safety["unsafe"] and readiness["r142"]["ready"]:
         operations["r142"] = run_r142(paths, args.scored_dir, not args.no_run, scoring)
 
     gates = gate_summary(operations)
-    status = pipeline_status(readiness, operations, gates)
+    status = pipeline_status(readiness, operations, gates, safety)
     required_inputs = {
         name: path_info(paths[name])
         for name in (
@@ -515,11 +562,12 @@ def build_payload(args: argparse.Namespace) -> dict[str, Any]:
         name: path_info(paths[name], optional=True)
         for name in ("r124_adjudication", "r190_adjudication", "r203_adjudication")
     }
-    content_status = (
-        "has_filled_values"
-        if any((info.get("filled_value_count") or 0) > 0 for info in required_inputs.values())
-        else ("present_but_blank" if readiness["any_present"] else "awaiting_inputs")
-    )
+    if safety["unsafe"]:
+        content_status = "known_synthetic_or_forbidden_marker"
+    elif any((info.get("filled_value_count") or 0) > 0 for info in required_inputs.values()):
+        content_status = "has_filled_values"
+    else:
+        content_status = "present_but_blank" if readiness["any_present"] else "awaiting_inputs"
     return {
         "schema_version": 1,
         "run_id": "R195",
@@ -535,6 +583,7 @@ def build_payload(args: argparse.Namespace) -> dict[str, Any]:
                 for name, path in scoring.items()
             },
             "readiness": readiness,
+            "safety": safety,
             "human_return_content_status": content_status,
         },
         "operations": operations,
@@ -548,6 +597,7 @@ def build_payload(args: argparse.Namespace) -> dict[str, Any]:
             "R195 is an ingestion/scoring pipeline. It does not create human labels or "
             "participant responses. Missing inputs keep C5/C6 unsupported; ready inputs "
             "are scored into an R195-specific directory without overwriting canonical gates. "
+            "Known synthetic export markers are rejected before any scorer runs. "
             "R203 promotion labels can support a promotion-review gate only; they do not "
             "update the canonical map or substitute for C5/C6 evidence."
         ),
@@ -586,6 +636,7 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
             f"- R190 ready: `{readiness['r190']['ready']}`; missing: `{', '.join(readiness['r190']['missing'])}`.",
             f"- R203 ready: `{readiness['r203']['ready']}`; missing: `{', '.join(readiness['r203']['missing'])}`.",
             f"- R142 ready: `{readiness['r142']['ready']}`; missing: `{', '.join(readiness['r142']['missing'])}`.",
+            f"- Safety status: `{payload['input_contract']['safety']['status']}`.",
             "",
             "## Claim Gates",
             "",
@@ -600,7 +651,10 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
         ]
     )
     if not payload["operations"]:
-        lines.append("No scorers ran because no complete input group was present.")
+        if payload["input_contract"]["safety"]["unsafe"]:
+            lines.append("No scorers ran because forbidden synthetic-return markers were present.")
+        else:
+            lines.append("No scorers ran because no complete input group was present.")
     else:
         for name, op in sorted(payload["operations"].items()):
             lines.append(f"- `{name}`: `{op.get('status')}`.")

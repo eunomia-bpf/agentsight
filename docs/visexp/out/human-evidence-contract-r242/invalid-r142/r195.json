@@ -4,7 +4,7 @@
     "summary_json": "docs/visexp/out/human-evidence-contract-r242/invalid-r142/r195.json",
     "summary_md": "docs/visexp/out/human-evidence-contract-r242/invalid-r142/r195.md"
   },
-  "claim_boundary": "R195 is an ingestion/scoring pipeline. It does not create human labels or participant responses. Missing inputs keep C5/C6 unsupported; ready inputs are scored into an R195-specific directory without overwriting canonical gates. R203 promotion labels can support a promotion-review gate only; they do not update the canonical map or substitute for C5/C6 evidence.",
+  "claim_boundary": "R195 is an ingestion/scoring pipeline. It does not create human labels or participant responses. Missing inputs keep C5/C6 unsupported; ready inputs are scored into an R195-specific directory without overwriting canonical gates. Known synthetic export markers are rejected before any scorer runs. R203 promotion labels can support a promotion-review gate only; they do not update the canonical map or substitute for C5/C6 evidence.",
   "claim_gate": {
     "c5_supported": false,
     "c6_adequacy_supported": false,
@@ -13,9 +13,11 @@
     "long_tail_promotion_review_supported": false,
     "requires_real_human_data": true
   },
-  "generated_at": "2026-06-19T08:25:38+00:00",
+  "generated_at": "2026-06-20T02:22:11+00:00",
   "input_contract": {
-    "inbox": "docs/visexp/out/human-evidence-r195/inbox",
+    "default_inbox": "docs/visexp/out/human-evidence-r195/inbox",
+    "human_return_content_status": "has_filled_values",
+    "input_mode": "explicit_paths",
     "optional_inputs": {
       "r124_adjudication": {
         "exists": false,
@@ -96,53 +98,122 @@
     },
     "required_inputs": {
       "r124_labeler_1": {
+        "blank_or_missing": true,
         "exists": false,
+        "filled_value_count": null,
         "optional": false,
         "path": "docs/visexp/out/human-evidence-contract-r242/invalid-r142/inbox/r124-labeler-1.csv",
         "row_count": null,
-        "sha256": null
+        "sha256": null,
+        "value_fields_checked": [
+          "label"
+        ]
       },
       "r124_labeler_2": {
+        "blank_or_missing": true,
         "exists": false,
+        "filled_value_count": null,
         "optional": false,
         "path": "docs/visexp/out/human-evidence-contract-r242/invalid-r142/inbox/r124-labeler-2.csv",
         "row_count": null,
-        "sha256": null
+        "sha256": null,
+        "value_fields_checked": [
+          "label"
+        ]
       },
       "r142_responses": {
+        "blank_or_missing": false,
         "exists": true,
+        "filled_value_count": 2,
         "optional": false,
         "path": "docs/visexp/out/human-evidence-contract-r242/invalid-r142/inbox/r142-pilot-responses.csv",
         "row_count": 2,
-        "sha256": "169af6aa637e645ed9e9329c9556d198bed97af513d73e9e55e92b36ac18de7a"
+        "sha256": "169af6aa637e645ed9e9329c9556d198bed97af513d73e9e55e92b36ac18de7a",
+        "value_fields_checked": [
+          "task_time_seconds",
+          "confidence",
+          "notes"
+        ]
       },
       "r190_labeler_1": {
+        "blank_or_missing": true,
         "exists": false,
+        "filled_value_count": null,
         "optional": false,
         "path": "docs/visexp/out/human-evidence-contract-r242/invalid-r142/inbox/r190-labeler-1.csv",
         "row_count": null,
-        "sha256": null
+        "sha256": null,
+        "value_fields_checked": [
+          "audit_label"
+        ]
       },
       "r190_labeler_2": {
+        "blank_or_missing": true,
         "exists": false,
+        "filled_value_count": null,
         "optional": false,
         "path": "docs/visexp/out/human-evidence-contract-r242/invalid-r142/inbox/r190-labeler-2.csv",
         "row_count": null,
-        "sha256": null
+        "sha256": null,
+        "value_fields_checked": [
+          "audit_label"
+        ]
       },
       "r203_labeler_1": {
+        "blank_or_missing": true,
         "exists": false,
+        "filled_value_count": null,
         "optional": false,
         "path": "docs/visexp/out/human-evidence-contract-r242/invalid-r142/inbox/r203-labeler-1.csv",
         "row_count": null,
-        "sha256": null
+        "sha256": null,
+        "value_fields_checked": [
+          "promotion_label"
+        ]
       },
       "r203_labeler_2": {
+        "blank_or_missing": true,
         "exists": false,
+        "filled_value_count": null,
         "optional": false,
         "path": "docs/visexp/out/human-evidence-contract-r242/invalid-r142/inbox/r203-labeler-2.csv",
         "row_count": null,
-        "sha256": null
+        "sha256": null,
+        "value_fields_checked": [
+          "promotion_label"
+        ]
+      }
+    },
+    "safety": {
+      "forbidden_markers": [
+        "r259_export_smoke",
+        "r259_synthetic_export_smoke_not_human_evidence",
+        "r244-synthetic"
+      ],
+      "marker_hits": {},
+      "status": "passed",
+      "unsafe": false
+    },
+    "scoring_inputs": {
+      "r142_answer_key": {
+        "exists": true,
+        "optional": false,
+        "path": "docs/visexp/out/user-task-answer-key.csv",
+        "row_count": 14,
+        "sha256": "f8c9fc0ee23d979de5bc88f490f06b11d3064d282be0828f84e2967449d6e70b"
+      },
+      "r142_assignments": {
+        "exists": true,
+        "optional": false,
+        "path": "docs/visexp/out/user-task-assignments.csv",
+        "row_count": 70,
+        "sha256": "50adc55106c8495c564f7754b00168157de81e4f2e55d5060b82507e33bdbf54"
+      },
+      "r142_bundle": {
+        "exists": true,
+        "optional": false,
+        "path": "docs/visexp/out/user-task-benchmark.json",
+        "sha256": "4d7536c025ae01918f747b0f3656e83891b082b7bbc65e9d8fbda9477b02240f"
       }
     }
   },
@@ -154,15 +225,15 @@
             "python3",
             "docs/visexp/score_user_task_results.py",
             "--responses",
-            "/home/yunwei37/workspace/agentsight/docs/visexp/out/human-evidence-contract-r242/invalid-r142/inbox/r142-pilot-responses.csv",
+            "docs/visexp/out/human-evidence-contract-r242/invalid-r142/inbox/r142-pilot-responses.csv",
             "--bundle",
-            "/home/yunwei37/workspace/agentsight/docs/visexp/out/user-task-benchmark.json",
+            "docs/visexp/out/user-task-benchmark.json",
             "--answer-key",
-            "/home/yunwei37/workspace/agentsight/docs/visexp/out/user-task-answer-key.csv",
+            "docs/visexp/out/user-task-answer-key.csv",
             "--assignments",
-            "/home/yunwei37/workspace/agentsight/docs/visexp/out/user-task-assignments.csv",
+            "docs/visexp/out/user-task-assignments.csv",
             "--out",
-            "/home/yunwei37/workspace/agentsight/docs/visexp/out/human-evidence-contract-r242/invalid-r142/scored/r142"
+            "docs/visexp/out/human-evidence-contract-r242/invalid-r142/scored/r142"
           ],
           "cwd": ".",
           "ran": true,
@@ -174,14 +245,19 @@
       "outputs": {
         "result_json": "docs/visexp/out/human-evidence-contract-r242/invalid-r142/scored/r142/user-task-results.json"
       },
+      "scoring_inputs": {
+        "answer_key": "docs/visexp/out/user-task-answer-key.csv",
+        "assignments": "docs/visexp/out/user-task-assignments.csv",
+        "bundle": "docs/visexp/out/user-task-benchmark.json"
+      },
       "status": "failed"
     }
   },
   "provenance": {
-    "repo_commit": "81adc1b7f72314d4d95f78051c4330540e13634f",
+    "repo_commit": "7242f7ef141267004d286414c71e4df1d2fb9798",
     "repo_dirty": true,
     "script": "docs/visexp/r195_human_evidence_pipeline.py",
-    "script_sha256": "1df6ad9231a682518f2c1437e10b07cd1f113c6670905121124227b718d3ebe9"
+    "script_sha256": "77d9aa3eb50c5e91986aabc6ba957c1b6a13e6e627d0e382e1d47b2eee59b13c"
   },
   "run_id": "R195",
   "schema_version": 1,

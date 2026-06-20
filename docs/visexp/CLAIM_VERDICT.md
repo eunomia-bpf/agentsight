@@ -20,6 +20,7 @@ Additional R259 source: `docs/visexp/out/human-evidence-paper-scale-static-kit-r
 Additional R260 source: `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.json` and `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.md`.
 Additional R261 source: `docs/visexp/out/paper-layout-gate-r261/paper-layout-gate-r261.json` and `docs/visexp/out/paper-layout-gate-r261/paper-layout-gate-r261.md`.
 Additional R262 source: `docs/visexp/out/paper-compaction-gate-r262/paper-compaction-gate-r262.json` and `docs/visexp/out/paper-compaction-gate-r262/paper-compaction-gate-r262.md`.
+Additional R263 source: `docs/visexp/out/human-return-safety-r263/human-return-safety-r263.json` and `docs/visexp/out/human-return-safety-r263/cases/r259-synthetic-c5-export/r195.json`.
 Completeness: partial
 
 | Claim | Verdict | Evidence | Supported wording | Missing evidence |
@@ -371,6 +372,13 @@ oversized float warnings, 0 undefined reference lines, and max overfull hbox
 86.56468pt versus R261's 270.83966pt. It records
 `six_page_target_supported=true`, keeps C5/C6/weak-accept gates false, and adds
 no outcome evidence.
+
+R263 addendum:
+`docs/visexp/out/human-return-safety-r263/human-return-safety-r263.json`
+exercises the R195 return-ingestion preflight with the R259 synthetic C5 merged
+CSV. The case is rejected as `unsafe_return_inputs`, records forbidden marker
+hits, runs 0 scorers, and keeps C5/C6/weak-accept gates false. It is
+ingestion-safety hygiene only, not participant-response evidence.
 
 R250 addendum:
 `docs/visexp/out/osdi-gate-review-r250.json` records two read-only post-R249
