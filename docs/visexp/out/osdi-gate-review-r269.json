@@ -1,0 +1,186 @@
+{
+  "checks": [
+    {
+      "name": "epicurus_review_keeps_level3_not_weak_accept",
+      "observed": {
+        "maturity": "Level 3",
+        "weak_accept_ready": false
+      },
+      "passed": true
+    },
+    {
+      "name": "r268_waits_for_private_c5_returns",
+      "observed": {
+        "c5_supported": false,
+        "path_kind": "private",
+        "private_exists": false,
+        "private_hashes_exported": false,
+        "raw_private_rows_exported": false,
+        "status": "awaiting_private_c5_returns",
+        "weak_accept_supported": false
+      },
+      "passed": true
+    },
+    {
+      "name": "c5_c6_outcomes_still_absent",
+      "observed": {
+        "c5_status": "participant_results_empty",
+        "participant_count": 0,
+        "r124_final_label_count": 0,
+        "r190_final_label_count": 0,
+        "r203_final_label_count": 0,
+        "response_count": 0
+      },
+      "passed": true
+    },
+    {
+      "name": "paper_tightens_developer_question_wording",
+      "observed": {
+        "new_phrase_present": true,
+        "old_phrase_present": false
+      },
+      "passed": true
+    },
+    {
+      "name": "paper_keeps_event_count_proxy_boundary",
+      "observed": {
+        "event_count_proxy_mentioned": true,
+        "not_span_duration_boundary": true
+      },
+      "passed": true
+    },
+    {
+      "name": "state_followup_record_r268_without_upgrading_claims",
+      "observed": {
+        "followup_mentions_r268": true,
+        "followup_waiting_status": true,
+        "state_latest_r268": true,
+        "state_no_upgrade_boundary": true,
+        "state_r268_boundary": true
+      },
+      "passed": true
+    },
+    {
+      "name": "evidence_docs_keep_non_outcome_boundary",
+      "observed": {
+        "audit_mentions_r268": true,
+        "claim_verdict_mentions_r268": true,
+        "mock_responses_disallowed": true,
+        "placeholder_rows_disallowed": true,
+        "subagent_boundary": true
+      },
+      "passed": true
+    },
+    {
+      "name": "prior_review_gate_remains_not_weak_accept",
+      "observed": {
+        "r267_status": "post_r266_osdi_review_gate_passed",
+        "r267_weak_accept_supported": false
+      },
+      "passed": true
+    }
+  ],
+  "checks_passed": 8,
+  "checks_total": 8,
+  "claim_gate": {
+    "c5_supported": false,
+    "c6_supported": false,
+    "developer_utility_supported": false,
+    "outcome_evidence_added": false,
+    "tag_adequacy_supported": false,
+    "weak_accept_supported": false
+  },
+  "generated_at": "2026-06-20T03:25:00+00:00",
+  "provenance": {
+    "generator": "docs/visexp/r269_post_r268_osdi_review_gate.py",
+    "human_labels_added": 0,
+    "llm_called": false,
+    "participant_responses_added": 0,
+    "raw_trace_read": false,
+    "repo_commit": "15697df935223248a99aeef858ef5b8ec5b5533d",
+    "repo_dirty": true,
+    "source_hashes": {
+      "docs/visexp/CLAIM_VERDICT.md": "0ac23ffe1fcbc4b8e7e02db0c4478eec35e862626ce98188d4dcf24f76437048",
+      "docs/visexp/EXPERIMENT_AUDIT.md": "f787e20e7201b2ffbc785a9c70f6d631cc35b63c4548d53ad0c0f4a9894c424d",
+      "docs/visexp/FOLLOWUP_PLAN.md": "10265030b6b51e4715ece0773018934843975ac0547d381fcb1396a53e04d454",
+      "docs/visexp/STATE.md": "2f41ce574db421c83f33363503613c425cad61c8f88f58ebd82c9ae96a6b6d4d",
+      "docs/visexp/out/c5-real-return-pipeline-r268/c5-real-return-pipeline-r268.json": "8652352eed4fe12bad64ebed00a67c1dbbb63ee29c06907f5e0c0ac630b2aacd",
+      "docs/visexp/out/long-tail-promotion-r203/long-tail-promotion-r203.json": "f0667df31c9f26642866d56dd84ed51fa963e0be1d3def7a6123c90f50f663a5",
+      "docs/visexp/out/osdi-gate-review-r267.json": "c1a5383499ddeeac7f033d0a40829f738a83da5a5c19d510adb39e9e8e3c169e",
+      "docs/visexp/out/tag-adequacy-results-r124.json": "c84d8d5b68033bb2a8e8169c7f4117552f09c9dd77b335751858cc4619f5e380",
+      "docs/visexp/out/tag-consolidation-audit-r190/merge-risk-audit-results-r190.json": "a767894ef32fb07d1f67d96a566fb7213c6c094ea8dbf71557c36e00262b2d12",
+      "docs/visexp/out/user-task-paper-r249/scored/user-task-results.json": "31a669561f7935a5294c0772cb15882017436d788427f6251da22716d1561c5d",
+      "docs/visexp/paper/main.tex": "bbc5bcd73b3369d0798307c6d948a79f998d14126b87466b8bf29cc9245a66c8"
+    },
+    "subagent_nickname": "Epicurus",
+    "subagent_review_used": true
+  },
+  "residual_risks": [
+    "Weak accept still requires real C5 participant responses scored through R268/R195/R266.",
+    "Weak accept still requires real C6 human labels and adjudication where needed.",
+    "R269 is read-only review hygiene and cannot substitute for outcome evidence.",
+    "C4 broad agent-launched target-network coverage and C7 community adoption remain partial."
+  ],
+  "review_type": "independent_read_only_osdi_review_after_r268",
+  "review_verdict": {
+    "maturity": "Level 3",
+    "summary": "Current maturity is Level 3 conference-paper mechanism evidence, not Level 4 and not OSDI weak accept. C5 has zero participant responses and C6 has zero human labels.",
+    "weak_accept_supported": false
+  },
+  "run_id": "R269",
+  "schema_version": 1,
+  "source_command": "python3 docs/visexp/r269_post_r268_osdi_review_gate.py",
+  "status": "post_r268_osdi_review_gate_passed",
+  "subagent_review": {
+    "agent_nickname": "Epicurus",
+    "first_next_experiment": {
+      "command": "python3 docs/visexp/r268_c5_real_return_scoring_pipeline.py",
+      "name": "paper-scale C5 user-task study through R268",
+      "oracle": "At least 12 participants, at least 8 primary semantic-vs-baseline task pairs per baseline, semantic-stack beats all baselines by >=10 pp exact accuracy or >=20% median time reduction, Holm-corrected participant/task/order blocked permutation p<=0.05, and false-positive increase <=5 pp.",
+      "private_input": "private/completed-paper-scale-r264/c5/user-task-response-template-r249-paper.csv",
+      "private_result": "private/completed-paper-scale-r264/r195-scored/human-evidence-pipeline-r195.json",
+      "public_summary": "docs/visexp/out/c5-real-return-pipeline-r268/public-summary-r266"
+    },
+    "maturity": "Level 3",
+    "not_outcome_evidence": [
+      "R187/R249/R255/R258/R259 launch/static collection artifacts",
+      "R263-R268 intake/safety/adjudication/public-summary/orchestration gates",
+      "R242/R244 synthetic-return/export smokes",
+      "R267/subagent reviews",
+      "R180 syntax/stability",
+      "R251 behavior association",
+      "R189-R218 display/canonicalization/governance/frontend artifacts",
+      "C7 install/package smokes"
+    ],
+    "overall_verdict": "Current maturity is Level 3 conference-paper mechanism evidence, not Level 4 and not OSDI weak accept. C5 has zero participant responses and C6 has zero human labels.",
+    "review_type": "independent_read_only_osdi_review_after_r268",
+    "severity_ranked_findings": [
+      {
+        "claim": "C5 developer utility",
+        "finding": "Launch packets, forms, answer keys, and scorers exist, but no real participant outcomes exist.",
+        "severity": "blocker"
+      },
+      {
+        "claim": "C6 tag adequacy",
+        "finding": "Syntax/stability and behavior association are proxies; R124/R190/R203 have 0 final labels.",
+        "severity": "blocker"
+      },
+      {
+        "claim": "C4 exact lineage",
+        "finding": "Fixed/controlled workloads are credible; broad Codex/Claude-launched target-network coverage remains partial.",
+        "severity": "major"
+      },
+      {
+        "claim": "C7 community readiness",
+        "finding": "Install/package smokes do not prove crates.io publish/readback, external-machine install, write-set audit, or external developer success.",
+        "severity": "major"
+      }
+    ],
+    "weak_accept_ready": false,
+    "wording_fix": {
+      "old": "\u7528\u6765\u8f85\u52a9\u4e09\u7c7b developer questions",
+      "reason": "Until real C5 outcomes pass, the paper should describe candidate decompositions for planned tasks, not assistance that has already been validated.",
+      "required_new": "planned C5 tasks"
+    }
+  }
+}

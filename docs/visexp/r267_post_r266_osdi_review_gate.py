@@ -188,7 +188,9 @@ def build_checks(jsons: dict[str, dict[str, Any]], texts: dict[str, str]) -> lis
     r203_gate = r203.get("claim_gate") or {}
     r264_gate = r264.get("claim_gate") or {}
     r266_gate = r266.get("claim_gate") or {}
-    post_r266_hygiene_scope_present = "R260--R267" in paper or "R260--R268" in paper
+    post_r266_hygiene_scope_present = (
+        "R260--R267" in paper or "R260--R268" in paper or "R260--R269" in paper
+    )
 
     return [
         {
