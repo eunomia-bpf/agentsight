@@ -366,10 +366,10 @@ no outcome evidence.
 R262 addendum:
 `docs/visexp/out/paper-compaction-gate-r262/paper-compaction-gate-r262.json`
 compiles the paper after compressing RQ prose, the gate lesson, limitations, and
-conclusion. The gate passes for compaction hygiene: 7 pages, 495 source lines, 0
+conclusion. The gate passes for compaction hygiene: 6 pages, 495 source lines, 0
 oversized float warnings, 0 undefined reference lines, and max overfull hbox
 86.56468pt versus R261's 270.83966pt. It records
-`six_page_target_supported=false`, keeps C5/C6/weak-accept gates false, and adds
+`six_page_target_supported=true`, keeps C5/C6/weak-accept gates false, and adds
 no outcome evidence.
 
 R250 addendum:

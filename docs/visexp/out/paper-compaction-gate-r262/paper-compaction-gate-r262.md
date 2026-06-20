@@ -4,8 +4,8 @@ Status: `paper_compaction_hygiene_passed`
 
 ## Layout
 
-- pages: `7` (R261 baseline: `11`)
-- source_line_count: `496`
+- pages: `6` (R261 baseline: `11`)
+- source_line_count: `495`
 - float_too_large_count: `0`
 - undefined_reference_lines: `0`
 - overfull_hbox_count: `6` (R261 baseline: `7`)
@@ -14,7 +14,7 @@ Status: `paper_compaction_hygiene_passed`
 ## Claim Gate
 
 - paper_compaction_hygiene_supported: `True`
-- six_page_target_supported: `False`
+- six_page_target_supported: `True`
 - weak_accept_supported: `False`
 - outcome_evidence_added: `False`
 
