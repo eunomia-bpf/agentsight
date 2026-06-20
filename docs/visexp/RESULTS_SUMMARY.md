@@ -18,6 +18,7 @@ Additional R259 source: `python3 docs/visexp/r259_paper_scale_static_collection_
 Additional R260 source: `python3 docs/visexp/r260_paper_r259_consistency.py`, `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.json`, and `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.md`.
 Additional R261 source: `python3 docs/visexp/r261_paper_layout_gate.py`, `docs/visexp/out/paper-layout-gate-r261/paper-layout-gate-r261.json`, and `docs/visexp/out/paper-layout-gate-r261/paper-layout-gate-r261.md`.
 Additional R262 source: `python3 docs/visexp/r262_paper_compaction_gate.py`, `docs/visexp/out/paper-compaction-gate-r262/paper-compaction-gate-r262.json`, and `docs/visexp/out/paper-compaction-gate-r262/paper-compaction-gate-r262.md`.
+Additional R263 source: `python3 docs/visexp/r263_human_return_safety_gate.py`, `docs/visexp/out/human-return-safety-r263/human-return-safety-r263.json`, and `docs/visexp/out/human-return-safety-r263/cases/r259-synthetic-c5-export/r195.json`.
 Completeness: partial
 
 ## Headline Result
@@ -476,6 +477,12 @@ max overfull hbox 86.56468pt versus R261's 270.83966pt. This is still paper
 hygiene only: the six-page target is met, but C5/C6/weak-accept gates remain
 false, and no outcome evidence is added.
 
+R263 hardens the R195 ingestion boundary after R259 by rejecting known synthetic
+return markers before scoring. The negative case passes the R259 synthetic C5
+merged CSV to R195 and now gets `unsafe_return_inputs`, marker hits in
+`response_json` and `notes`, 0 scorer operations, and all C5/C6/weak-accept
+gates false. This is safety hygiene only; real C5/C6 returns remain open.
+
 R250 records two read-only post-R249 reviews. Both keep the project at Level
 3/not weak accept. The author response applies hygiene fixes only: R249 wording
 now distinguishes participant packets from real participants, R249 coordinator
@@ -607,6 +614,7 @@ claim row, and fixes the paper table's C4 wording.
 | R260 | Paper/R259 consistency audit | `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.json`, `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.md` | done/wording-audit; 25/25 checks, no outcome evidence |
 | R261 | Paper layout gate after compact claim-gate table | `docs/visexp/out/paper-layout-gate-r261/paper-layout-gate-r261.json`, `docs/visexp/out/paper-layout-gate-r261/paper-layout-gate-r261.md`, `docs/visexp/paper/main.pdf` | done/layout-hygiene; 11 pages, 0 oversized floats, six-page target still false, no outcome evidence |
 | R262 | Paper compaction gate after compressing RQ prose and limitations | `docs/visexp/out/paper-compaction-gate-r262/paper-compaction-gate-r262.json`, `docs/visexp/out/paper-compaction-gate-r262/paper-compaction-gate-r262.md`, `docs/visexp/paper/main.pdf` | done/compaction-hygiene; 6 pages, 495 source lines, max overfull improved to 86.56468pt, six-page target true, no outcome evidence |
+| R263 | Human-return synthetic-marker safety gate | `docs/visexp/out/human-return-safety-r263/human-return-safety-r263.json`, `docs/visexp/out/human-return-safety-r263/cases/r259-synthetic-c5-export/r195.json` | done/ingestion-safety; R259 synthetic C5 export rejected before scoring, no outcome evidence |
 | R171 | Read-only subagent OSDI gate review after R170/R124-join planning | `docs/visexp/out/osdi-gate-review-r171.md` | done/review |
 | R181 | Read-only subagent OSDI gate review after R180 local multi-model benchmark | `docs/visexp/out/osdi-gate-review-r181.md` | done/review; still not weak accept |
 | R060 | legacy Python prototype pipeline over sampled sessions | `docs/visexp/out/pipeline-report.json` | legacy, superseded for headline scale |
