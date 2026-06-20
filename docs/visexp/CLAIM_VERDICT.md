@@ -21,6 +21,10 @@ Additional R260 source: `docs/visexp/out/paper-r259-consistency-r260/paper-r259-
 Additional R261 source: `docs/visexp/out/paper-layout-gate-r261/paper-layout-gate-r261.json` and `docs/visexp/out/paper-layout-gate-r261/paper-layout-gate-r261.md`.
 Additional R262 source: `docs/visexp/out/paper-compaction-gate-r262/paper-compaction-gate-r262.json` and `docs/visexp/out/paper-compaction-gate-r262/paper-compaction-gate-r262.md`.
 Additional R263 source: `docs/visexp/out/human-return-safety-r263/human-return-safety-r263.json` and `docs/visexp/out/human-return-safety-r263/cases/r259-synthetic-c5-export/r195.json`.
+Additional R264 source: `docs/visexp/out/human-return-intake-r264/human-return-intake-r264.json`, `docs/visexp/out/human-return-intake-r264/human-return-intake-r264.md`, and `docs/visexp/out/human-return-intake-r264/r195-command-template-r264.txt`.
+Additional R265 source: `docs/visexp/out/human-adjudication-r265/human-adjudication-r265.json` and `docs/visexp/out/human-adjudication-r265/human-adjudication-r265.md`.
+Additional R266 source: `docs/visexp/out/human-evidence-public-summary-r266/human-evidence-public-summary-r266.json` and `docs/visexp/out/human-evidence-public-summary-r266/human-evidence-public-summary-r266.md`.
+Additional R267 source: `docs/visexp/out/osdi-gate-review-r267.json` and `docs/visexp/out/osdi-gate-review-r267.md`.
 Completeness: partial
 
 | Claim | Verdict | Evidence | Supported wording | Missing evidence |
@@ -379,6 +383,35 @@ exercises the R195 return-ingestion preflight with the R259 synthetic C5 merged
 CSV. The case is rejected as `unsafe_return_inputs`, records forbidden marker
 hits, runs 0 scorers, and keeps C5/C6/weak-accept gates false. It is
 ingestion-safety hygiene only, not participant-response evidence.
+
+R264 addendum:
+`docs/visexp/out/human-return-intake-r264/human-return-intake-r264.json`
+adds the private-return intake preflight before R195. The committed default is
+`awaiting_private_returns`; it checks the R258 handoff contract, synthetic
+markers, private/R195 ignore guards, and writes an R195 command template. It
+adds no responses or labels and keeps C5/C6/weak-accept gates false.
+
+R265 addendum:
+`docs/visexp/out/human-adjudication-r265/human-adjudication-r265.json`
+records the C6 adjudication workflow smoke. Synthetic R124/R190/R203
+disagreement fixtures produce top-level `needs_adjudication` and 100/40/14
+adjudication-template rows; synthetic adjudication reruns complete without
+supporting any claim. It is workflow hygiene only.
+
+R266 addendum:
+`docs/visexp/out/human-evidence-public-summary-r266/human-evidence-public-summary-r266.json`
+is the public promotion gate for private/external scored R195 summaries. The
+committed default is `awaiting_private_scored_r195`; public-repo, synthetic,
+unsafe, not-filled, not-ready, or needs-adjudication R195 inputs cannot promote
+claims, and the public output excludes raw rows, notes, commands, and private
+paths.
+
+R267 addendum:
+`docs/visexp/out/osdi-gate-review-r267.json` records the independent post-R266
+OSDI review gate. It finds no critical post-R266 overclaim, keeps the maturity
+at Level 3/not weak accept, and names the paper-scale C5 user-task study as the
+first next experiment. It is read-only review hygiene and cannot substitute for
+participant responses or human labels.
 
 R250 addendum:
 `docs/visexp/out/osdi-gate-review-r250.json` records two read-only post-R249
