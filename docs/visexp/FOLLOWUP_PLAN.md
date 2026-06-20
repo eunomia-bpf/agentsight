@@ -732,6 +732,7 @@ cargo run --manifest-path agentflame/Cargo.toml -- bench \
 | R263 | C5,C6 | gate | Human-return synthetic-marker safety gate. | `python3 docs/visexp/r263_human_return_safety_gate.py` | R195 negative case over R259 synthetic C5 merged CSV; no labels/responses | R195 returns `unsafe_return_inputs`, 0 scorer operations, marker hits present, outcome gates false | passed ingestion safety; still needs real C5/C6 returns | `docs/visexp/out/human-return-safety-r263/human-return-safety-r263.json` | done/ingestion-safety |
 | R264 | C5,C6 | collection | Real human-return intake preflight. | `python3 docs/visexp/r264_human_return_intake_preflight.py` | committed handoff contract plus optional private returned CSV paths; no labels/responses synthesized | R258 checklist, C5 assignment coverage, C6 paired-label row/label coverage, synthetic-marker scan, private/R195 ignore guard, and R195 command template | default run is `awaiting_private_returns`; checklist/synthetic-marker/privacy guards pass, C5/C6/weak-accept gates remain false | `docs/visexp/out/human-return-intake-r264/human-return-intake-r264.json` | done/intake-preflight |
 | R265 | C5,C6 | collection | C6 adjudication workflow smoke. | `python3 docs/visexp/r265_human_adjudication_workflow_smoke.py` | synthetic R124/R190/R203 disagreement and adjudication fixtures only | unresolved disagreements must make R195 return `needs_adjudication`; R195 adjudication templates must match disagreement counts; synthetic adjudication rerun must not support claims | passed: unresolved case is `needs_adjudication`, template rows are 100/40/14, adjudicated synthetic case runs as `scored_human_inputs_no_supported_gate`, gates false | `docs/visexp/out/human-adjudication-r265/human-adjudication-r265.json` | done/adjudication-smoke |
+| R266 | C5,C6 | gate | Public summary gate for private real-human R195 results. | `python3 docs/visexp/r266_real_human_evidence_public_summary_gate.py` | committed default expects a private/external R195 scored summary; no labels/responses synthesized | reject public-repo/synthetic/unsafe/not-filled/not-ready R195 inputs; output only aggregate gates/counts and no commands/raw rows/notes/private paths | default run is `awaiting_private_scored_r195`; public-repo R195 negative rejects; aggregate-positive fixture passes privacy scan but is not evidence | `docs/visexp/out/human-evidence-public-summary-r266/human-evidence-public-summary-r266.json` | done/public-summary-gate |
 | R245 | C1-C7 | gate | Post-R244 claim-wording consistency audit. | `python3 docs/visexp/r245_claim_wording_consistency.py` | deterministic read-only audit over generated gates plus current paper/docs; no raw traces, no LLM calls, no labels/responses | C5/C6/R238/R240/R242-R244 boundaries must be present; forbidden strong-claim hits must be 0; R219 supersession must be explicit | passed: hard evidence checks 9/9, wording checks 13/13, forbidden strong-claim hits 0; R219 is post-R219-addendum only | `docs/visexp/out/claim-wording-consistency-r245/claim-wording-consistency-r245.json` | done/wording-audit |
 | R246 | C1-C7 | gate | Post-R245 OSDI review hygiene and provenance response. | `python3 docs/visexp/r246_post_review_hygiene.py` | deterministic read over generated gates plus current paper/docs; no raw traces, no LLM calls, no labels/responses | C5/C6/weak-accept gates must remain false; R170 command/provenance must match paper/docs; R224 rerun metadata must clarify `checker_id=R131` | passed after author response: Level 3/not weak accept, R170 dirty-provenance caveat recorded, R224 metadata added, no outcome evidence | `docs/visexp/out/osdi-gate-review-r246.json`, `docs/visexp/out/semantic-ablation-r224-r170/r224-rerun-metadata.json` | done/review-hygiene |
 | R171 | C5,C6 | gate | Read-only subagent OSDI gate review. | inspect current plan/tracker/results/verdict/audit/followup/paper/gate outputs | one independent review | strict OSDI rubric | review says Level 3, not weak accept; R124-labels and R142/R151 remain the must-fix outcome artifacts | `docs/visexp/out/osdi-gate-review-r171.md` | done/review |
@@ -784,6 +785,10 @@ R265 adds the adjudication workflow smoke: unresolved R124/R190/R203
 disagreements now make R195 return top-level `needs_adjudication`, and only an
 explicit adjudication rerun proceeds, still without claim support for synthetic
 controls.
+R266 adds the final public-promotion gate for real R195 results: the committed
+default waits for a private/external scored R195 summary, rejects public-repo or
+synthetic inputs, and will export only aggregate counts/gates without commands,
+raw rows, notes, or private paths.
 
 1. distribute the R249 P01-P12 paper-scale participant packets and collect real
    completed response rows in a private copy of
@@ -799,9 +804,12 @@ controls.
    return-file names;
 5. if R195 reports `needs_adjudication`, fill the generated R124/R190/R203
    adjudication templates and rerun R195 with those adjudication CSVs;
-6. if claiming canonicalized long-tail tags, label the R190 merge-risk audit
+6. run `python3 docs/visexp/r266_real_human_evidence_public_summary_gate.py
+   --r195-json <private-or-external-r195-json>` before copying any real C5/C6
+   aggregate numbers into public paper artifacts;
+7. if claiming canonicalized long-tail tags, label the R190 merge-risk audit
    packet and R203 promotion rows, then report over-merge/under-merge and
    promotion rates separately from R124 adequacy;
-7. keep all C5/C6 wording unsupported until the R195-scored real responses and
+8. keep all C5/C6 wording unsupported until the R195-scored real responses and
    real human labels pass their gates; pilot-only R187/R142 evidence must be
    labeled as pilot evidence.
