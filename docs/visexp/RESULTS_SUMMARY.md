@@ -16,6 +16,7 @@ Additional R257 source: `python3 docs/visexp/r257_post_r256_review_gate.py`, `do
 Additional R258 source: `python3 docs/visexp/r258_paper_scale_human_evidence_bundle.py`, `docs/visexp/out/human-evidence-paper-scale-bundle-r258/human-evidence-paper-scale-bundle-r258.json`, and `docs/visexp/out/human-evidence-paper-scale-bundle-r258/agentflame-paper-scale-human-evidence-r258.tar.gz`.
 Additional R259 source: `python3 docs/visexp/r259_paper_scale_static_collection_kit.py`, `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/static-collection-kit-r259.json`, and `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/index.html`.
 Additional R260 source: `python3 docs/visexp/r260_paper_r259_consistency.py`, `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.json`, and `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.md`.
+Additional R261 source: `python3 docs/visexp/r261_paper_layout_gate.py`, `docs/visexp/out/paper-layout-gate-r261/paper-layout-gate-r261.json`, and `docs/visexp/out/paper-layout-gate-r261/paper-layout-gate-r261.md`.
 Completeness: partial
 
 ## Headline Result
@@ -461,6 +462,12 @@ and absence of forbidden overclaim strings. This is wording/evidence hygiene
 only; it adds no participant responses or labels and keeps all C5/C6/weak-accept
 gates false.
 
+R261 compacts the paper's main claim-gate table and records a layout gate. The
+draft compiles to 11 pages, the oversized `Float too large` warning is gone, and
+there are no undefined references. This is paper hygiene only: the six-page
+target remains unmet, C5/C6/weak-accept gates remain false, and no outcome
+evidence is added.
+
 R250 records two read-only post-R249 reviews. Both keep the project at Level
 3/not weak accept. The author response applies hygiene fixes only: R249 wording
 now distinguishes participant packets from real participants, R249 coordinator
@@ -590,6 +597,7 @@ claim row, and fixes the paper table's C4 wording.
 | R258 | Unified paper-scale C5/C6 human-evidence bundle | `docs/visexp/out/human-evidence-paper-scale-bundle-r258/human-evidence-paper-scale-bundle-r258.json`, `docs/visexp/out/human-evidence-paper-scale-bundle-r258/agentflame-paper-scale-human-evidence-r258.tar.gz`, `docs/visexp/out/human-evidence-paper-scale-bundle-r258/return-checklist-r258.csv` | done/paper-scale bundle-ready; 43-member tarball, 12 C5 participant packets, 2 C6 labeler packets, leak scans pass, no outcome evidence |
 | R259 | Paper-scale static collection forms and export smoke | `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/static-collection-kit-r259.json`, `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/index.html`, `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/synthetic-exports/user-task-response-template-r249-paper.csv` | done/static-kit-smoke; 12 participant forms, 6 labeler forms, 6/6 browser checks, no outcome evidence |
 | R260 | Paper/R259 consistency audit | `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.json`, `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.md` | done/wording-audit; 25/25 checks, no outcome evidence |
+| R261 | Paper layout gate after compact claim-gate table | `docs/visexp/out/paper-layout-gate-r261/paper-layout-gate-r261.json`, `docs/visexp/out/paper-layout-gate-r261/paper-layout-gate-r261.md`, `docs/visexp/paper/main.pdf` | done/layout-hygiene; 11 pages, 0 oversized floats, six-page target still false, no outcome evidence |
 | R171 | Read-only subagent OSDI gate review after R170/R124-join planning | `docs/visexp/out/osdi-gate-review-r171.md` | done/review |
 | R181 | Read-only subagent OSDI gate review after R180 local multi-model benchmark | `docs/visexp/out/osdi-gate-review-r181.md` | done/review; still not weak accept |
 | R060 | legacy Python prototype pipeline over sampled sessions | `docs/visexp/out/pipeline-report.json` | legacy, superseded for headline scale |
