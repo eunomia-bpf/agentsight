@@ -520,45 +520,45 @@ R246 进一步记录 post-R245 OSDI review 的 author response：C5/C6 仍是 mu
 
 \begin{table*}[t]
   \centering
-  \small
-  \caption{当前 claim gate。Supported 表示已有当前 artifact 支持；partial 表示机制成立但 scope 仍窄；unsupported 表示缺少必要实验。}
+  \scriptsize
+  \renewcommand{\arraystretch}{0.92}
+  \caption{当前 claim gate 的主文摘要。完整证据 ledger 保存在 \texttt{CLAIM\_VERDICT.md}；这里仅保留 reviewer 需要的 status、最强证据锚点和下一步 gate。}
   \label{tab:gates}
-  \begin{tabular}{p{0.18\linewidth}p{0.31\linewidth}p{0.13\linewidth}p{0.28\linewidth}}
+  \begin{tabular}{p{0.17\linewidth}p{0.16\linewidth}p{0.36\linewidth}p{0.23\linewidth}}
     \toprule
-    Claim & 当前证据 & Verdict & 缺口 \\
+    Claim & Verdict & Evidence anchor & Next gate \\
     \midrule
     C1 folded aggregation &
-    183,714 system observations 折叠为 26,829 semantic stacks；folded totals 与 R170 report 匹配。 &
     supported &
-    需要把 full-run artifact packaging 固化成 fresh-clone release workflow。 \\
+    R170 folds 183,714 system observations into 26,829 semantic stacks with folded totals matching the report. &
+    Fresh-clone release workflow and public packaging. \\
     C2 one-word tags &
-    2,859 prompt rows 和 114,837 LLM calls 全部满足一词 grammar；0 final tag failures。 &
-    supported &
-    Syntax 不等于 adequacy；需要人工标签质量评估。 \\
-    C3 semantic partitioning and display contract &
-    Nonsemantic/flat baselines 分别有 90.402\% 和 90.918\% mixed weight；R224/R170 中 prompt-only 将 system bucket/residual mixed weight 降到 36.722\%/7.485\%；R211 给出 RQ2 figure inputs，其中 \texttt{git/read/ok} 有 116 个 prompt tags，\texttt{cargo/test/ok} 有 48 个 prompt tags；R209/R212 证明可逆 display map 与保守 display policy：R209/alias-only 为 26,612 stacks，profile-guarded hypothetical 为 26,067 stacks 但会激活 2.532\% 未审查 effect weight；R223 将这些结果汇总为 projection tradeoff；R225 生成 prompt-span duration baseline，top-10 duration/effect tags 只重合 7/10，Spearman 为 0.623。 &
-    partitioning supported; display mechanics supported &
-    需要更多仓库和用户任务证明不是单仓库 workload 特例；R213-R218 只是 renderer/data contract 和 update-gate smokes，不是 C3 scientific outcome evidence；还需要 LLM/token display-compaction ablation、真实用户交互证据，以及 R190/R203 标签返回后的 merge/promotion quality。 \\
+    syntax supported; adequacy open &
+    R170 tags 2,859 prompt rows and 114,837 LLM-call events with 0 final tag failures; R180 shows local 0.6B/1B/3B-class syntax/latency stability. &
+    Human adequacy labels, not grammar validity. \\
+    C3 semantic partitioning &
+    mechanism supported &
+    R170/R224 show nonsemantic/flat mixed weight 90.402\%/90.918\%; prompt-only reduces system bucket/residual mixed weight to 36.722\%/7.485\%; R209/R212 keep display compaction reversible. &
+    More repositories, user tasks, token/display ablations, and human-reviewed merge/promotion quality. \\
     C4 exact lineage &
-    Live lineage：R114 在 20 个固定 \texttt{codex} tasks 上 join 1,273/1,273 in-scope effects，0 false positives，0 false negatives，0/3,170 negative-control effects joined；R182 join 35/35 低层 \texttt{codex} process network rows，0 network orphans，0/604 negative-control effects joined；R191 在固定 Codex HTTP probe 上 join 4/4 target \texttt{python3} network rows，0/310 negative-control effects joined；R229 在 5 个 controlled multi-workspace tasks 上 join 394/394 in-scope effects，0/306 negative-control effects joined；R232 在 AgentSight 仓库外 join 353/353 normal in-scope effects 与 4/4 target network rows，0/480 negative-control effects joined；R234 在 1 个 Claude command-mode task 和 2 个 Codex HTTP-family target-network probes 上 join 269/269 in-scope effects，其中 8/8 target network rows joined，0/331 negative-control effects joined；R235 raw/Claude target-network run 为 partial，1/4 tasks passed，只有单进程 Codex TCP 的 3/3 target network rows joined，0/305 negative-control effects joined；R236 boundary run 仍为 partial，3/4 tasks 观察到 target rows，5/7 target network rows joined，0/11 negative-control effects joined；R237 runtime-witness run 仍为 partial，4/4 witnesses 通过，3/4 witness ports observed，8/9 target network rows joined，0/7 negative-control effects joined；R238 修复 process-tracer readiness race 后，compact direct-only supplement 汇总 5/5 repetitions 通过，正式 full run 中 4/4 witnesses 与 4/4 witness ports observed，direct HTTP/direct multiprocess controls joined，13/16 target network rows joined，0/186 negative-control effects joined，但 Codex/Claude-launched rows 仍 partial；R240 regression guard 检查 5 个 synthetic lineage events（3 joined、2 expected orphan），并用 BPF/Rust tests 覆盖 target-child network 与 readiness wait。Generated-history audit：R230 在 generated full-history projection 中覆盖 183,714/183,714 folded weight，缺失 frame weight 为 0，但有 12 个 duplicate prompt-index rows 和 346 weight prompt-tag drift；R231 复现 drift，确认 display projection 与 event-local tags 精确一致，并将 field-index drift 定位到 duplicate-index Claude sessions；R233 将 duplicate prompt indexes 标记为 non-keyed，并把 normalized semantic drift 降为 0 tool weight/0 LLM events。 &
-    supported for fixed and controlled scoped workloads; partial broadly &
-    需要 same-tag duplicate prompt-row identity policy、R238 仍暴露的 Codex/Claude-launched target-network orphan/missing-action 边界、任意仓库泛化、更多 agent 类型和更丰富的 target-specific network workloads；R230--R233 不是 live provenance，R191/R229/R232/R234/R235--R238 也不证明 HTTP payload/URL reconstruction、任意 network workload 或完整历史 row identity。 \\
+    fixed/controlled workloads supported; broad scope partial &
+    R114/R191/R229/R232/R234 give scoped precision/recall evidence with zero negative joins; R238/R240 add direct-process readiness and regression guards while exposing Codex/Claude-launched target-network orphan cases. &
+    Agent-launched network boundary, same-tag prompt-row identity, more agent families, and richer target network workloads. \\
     C5 user utility &
-    Outcome evidence: none yet。Protocol/logistics readiness: 已有 task packet、scorer、preregistration、R187 P01--P05 launch package、R207 return-file handoff audit、R243 static collection kit、R244 export smoke、R247 sendable pilot bundle、R249 12-packet paper-scale launch package、R255 R249-to-R195 scoring bridge、R258 unified paper-scale bundle 和 R259 paper-scale static collection kit；尚无 participant responses。 &
     unsupported &
-    需要基于已冻结的 preregistration 运行 trace tree/event-count/flat/nonsemantic/semantic 视图的 user benchmark。 \\
+    Outcome evidence: none yet. Protocol/logistics readiness includes R142/R187/R207/R249/R255/R258 and the R259 paper-scale static collection kit; there are still 0 participant responses. &
+    Score real paper-scale participant responses under the frozen preregistration. \\
     C6 tag adequacy &
-    Outcome evidence: no human adequacy labels yet。Mechanism/protocol evidence: R180 在本机 0.6b/1.1b/3b GGUF 上得到 2,700/2,700 valid tags；exact-stable fragments 为 299/300、279/300、285/300，p95 为 23/18/32 ms；1.1b 存在 localization-like collapse；R251 在 R170 folded stacks 上显示 prompt tags 的 behavior gain beyond session 为 8.419\%，高于 session-preserving shuffle null p95 1.903\%，但 prompt top-behavior purity 只有 20.196\%；R189/R196/R201/R202/R203/R205/R209/R212/R218 只支持 display-layer noise-control/governance/sensitivity/regeneration-smoke/promotion-protocol/compaction metrics/display-map contract/compaction ablation/update-gate mechanics；R243/R244/R247 只提供 labeler collection/export/distribution readiness；R252 将 C6 paper-scale label handoff 固化为 2 个 labeler packets、每个 501 行、总计 1002 个 required independent label decisions，并用 blank R195 check 证明空表不会升级任何 gate；R258/R259 只是把同一 paper-scale C6 packet 放入 unified bundle 和 static forms。 &
     syntax/protocol partial; adequacy unsupported &
-    需要 R124 人工 adequacy labels；若要声称 controlled model scaling 还需同族模型 benchmark。 \\
+    Outcome evidence: no human adequacy labels yet. R180/R251 provide syntax/stability and behavior-association evidence; R252 plus R258/R259 static forms only prepare the C6 label handoff. &
+    R124/R190/R203 independent human labels and adjudication. \\
     C7 artifact usability &
-    R160 bounded smoke 生成 expected artifacts；clean run 1.64 s，60 uncached LLM calls；cached rerun 0.11 s，76/76 cache hits，0 LLM calls。R200 public-safe fixture smoke clean run 5 次 tag calls，cached rerun 0 次模型调用和 5/5 cache hits。R220 本机 clean-clone \texttt{agentpprof} smoke 生成 pprof/folded/JSON/SVG outputs，tasks/tools/tokens/files/network samples 为 6/4/190/3/1，\texttt{go tool pprof} readback 和 expected-stack checks 通过。R248 验证 \texttt{cargo install --path agentpprof --locked --force}；R253 验证 \texttt{cargo install --git ... --branch research/semantic-flamegraph-artifacts ... agentpprof}；R254 验证 \texttt{cargo install --git --rev c43daf2b2565531dfd95de8654adabb30ac878d4 ... agentpprof} 且 install rev matches driver commit。R256 验证 \texttt{cargo package} dry-run：8 个 intended package files、35,438 bytes crate archive、archive/list equality、forbidden-path absence 和 registry \texttt{agent-session v0.3.3} verification。三个 installed CLI 路径都可用同一 committed public fixture 生成并读回这些 outputs；R256 只证明本地 crate packaging。 &
     partial &
-    仍需要 crates.io publish/readback、external-machine clean-install workflow、real-report public sanitization、llama.cpp LLM-tag setup、稳定默认采样、full write-set audit 和外部开发者反馈。 \\
+    R160/R200/R220/R248/R253/R254/R256 cover bounded local artifacts, public fixture, local install, GitHub install, pinned revision, pprof readback, and crate-package dry run. &
+    crates.io publish/readback, external-machine install, sanitized real report, setup docs, write-set audit, and external developer feedback. \\
     \bottomrule
   \end{tabular}
 \end{table*}
-
 \subsection{R183：为什么降级本身重要}
 
 R183 的价值在于防止把 ``有网络事件'' 写成 ``目标 workload 的网络事件已被 lineage 捕获''。

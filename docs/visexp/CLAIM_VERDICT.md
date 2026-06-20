@@ -18,6 +18,7 @@ Additional R257 source: `docs/visexp/out/osdi-gate-review-r257.json` and `docs/v
 Additional R258 source: `docs/visexp/out/human-evidence-paper-scale-bundle-r258/human-evidence-paper-scale-bundle-r258.json`, `docs/visexp/out/human-evidence-paper-scale-bundle-r258/human-evidence-paper-scale-bundle-r258.md`, and `docs/visexp/out/human-evidence-paper-scale-bundle-r258/agentflame-paper-scale-human-evidence-r258.tar.gz`.
 Additional R259 source: `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/static-collection-kit-r259.json`, `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/static-collection-kit-r259.md`, and `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/index.html`.
 Additional R260 source: `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.json` and `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.md`.
+Additional R261 source: `docs/visexp/out/paper-layout-gate-r261/paper-layout-gate-r261.json` and `docs/visexp/out/paper-layout-gate-r261/paper-layout-gate-r261.md`.
 Completeness: partial
 
 | Claim | Verdict | Evidence | Supported wording | Missing evidence |
@@ -352,6 +353,14 @@ R259 counts remain 12 participant forms, 6 labeler forms, 168 C5 rows, and
 1,002 C6 blank-label rows; the paper mentions R258/R259 as collection logistics
 only; and forbidden overclaim strings are absent. It keeps all C5/C6/weak-accept
 gates false and adds no outcome evidence.
+
+R261 addendum:
+`docs/visexp/out/paper-layout-gate-r261/paper-layout-gate-r261.json` compiles
+the paper after replacing the oversized main claim-gate table with a compact
+summary. The gate passes for layout hygiene: 11 pages, 0 oversized float
+warnings, and 0 undefined reference lines. It records
+`six_page_target_supported=false`, keeps C5/C6/weak-accept gates false, and adds
+no outcome evidence.
 
 R250 addendum:
 `docs/visexp/out/osdi-gate-review-r250.json` records two read-only post-R249
