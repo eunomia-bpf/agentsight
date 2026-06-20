@@ -1,0 +1,187 @@
+{
+  "claim_boundary": "R270 orchestrates private C6 human-label returns through R264, R195, and R266. It can support public C6 aggregate claims only after real private labeler CSVs exist and any R195 adjudication requirement is resolved. It never creates labels and cannot support weak accept without C5.",
+  "claim_gate": {
+    "c5_supported": false,
+    "c6_adequacy_supported": false,
+    "canonicalization_quality_supported": false,
+    "long_tail_promotion_review_supported": false,
+    "public_claim_update_allowed": false,
+    "requires_real_human_returns": true,
+    "weak_accept_supported": false
+  },
+  "commands": {
+    "r195_score": {
+      "argv": [
+        "python3",
+        "docs/visexp/r195_human_evidence_pipeline.py",
+        "--r142-responses",
+        "private/completed-paper-scale-r264/c5/user-task-response-template-r249-paper.csv",
+        "--r142-bundle",
+        "docs/visexp/out/user-task-benchmark.json",
+        "--r142-answer-key",
+        "docs/visexp/out/user-task-answer-key.csv",
+        "--r142-assignments",
+        "docs/visexp/out/user-task-paper-r249/user-task-assignments-r249-paper.csv",
+        "--r124-labeler-1",
+        "private/completed-paper-scale-r264/c6/L01/r124-labeler-1.csv",
+        "--r124-labeler-2",
+        "private/completed-paper-scale-r264/c6/L02/r124-labeler-2.csv",
+        "--r124-adjudication",
+        "private/completed-paper-scale-r264/c6/adjudication/r124-adjudication.csv",
+        "--r190-labeler-1",
+        "private/completed-paper-scale-r264/c6/L01/r190-labeler-1.csv",
+        "--r190-labeler-2",
+        "private/completed-paper-scale-r264/c6/L02/r190-labeler-2.csv",
+        "--r190-adjudication",
+        "private/completed-paper-scale-r264/c6/adjudication/r190-adjudication.csv",
+        "--r203-labeler-1",
+        "private/completed-paper-scale-r264/c6/L01/r203-labeler-1.csv",
+        "--r203-labeler-2",
+        "private/completed-paper-scale-r264/c6/L02/r203-labeler-2.csv",
+        "--r203-adjudication",
+        "private/completed-paper-scale-r264/c6/adjudication/r203-adjudication.csv",
+        "--scored-dir",
+        "private/completed-paper-scale-r264/r195-scored",
+        "--out-json",
+        "private/completed-paper-scale-r264/r195-scored/human-evidence-pipeline-r195.json",
+        "--out-md",
+        "private/completed-paper-scale-r264/r195-scored/human-evidence-pipeline-r195.md"
+      ],
+      "shell": "python3 docs/visexp/r195_human_evidence_pipeline.py --r142-responses private/completed-paper-scale-r264/c5/user-task-response-template-r249-paper.csv --r142-bundle docs/visexp/out/user-task-benchmark.json --r142-answer-key docs/visexp/out/user-task-answer-key.csv --r142-assignments docs/visexp/out/user-task-paper-r249/user-task-assignments-r249-paper.csv --r124-labeler-1 private/completed-paper-scale-r264/c6/L01/r124-labeler-1.csv --r124-labeler-2 private/completed-paper-scale-r264/c6/L02/r124-labeler-2.csv --r124-adjudication private/completed-paper-scale-r264/c6/adjudication/r124-adjudication.csv --r190-labeler-1 private/completed-paper-scale-r264/c6/L01/r190-labeler-1.csv --r190-labeler-2 private/completed-paper-scale-r264/c6/L02/r190-labeler-2.csv --r190-adjudication private/completed-paper-scale-r264/c6/adjudication/r190-adjudication.csv --r203-labeler-1 private/completed-paper-scale-r264/c6/L01/r203-labeler-1.csv --r203-labeler-2 private/completed-paper-scale-r264/c6/L02/r203-labeler-2.csv --r203-adjudication private/completed-paper-scale-r264/c6/adjudication/r203-adjudication.csv --scored-dir private/completed-paper-scale-r264/r195-scored --out-json private/completed-paper-scale-r264/r195-scored/human-evidence-pipeline-r195.json --out-md private/completed-paper-scale-r264/r195-scored/human-evidence-pipeline-r195.md"
+    },
+    "r264_preflight": {
+      "argv": [
+        "python3",
+        "docs/visexp/r264_human_return_intake_preflight.py",
+        "--out-dir",
+        "private/completed-paper-scale-r264/r264-c6-intake",
+        "--c5-responses",
+        "private/completed-paper-scale-r264/c5/user-task-response-template-r249-paper.csv",
+        "--r124-labeler-1",
+        "private/completed-paper-scale-r264/c6/L01/r124-labeler-1.csv",
+        "--r124-labeler-2",
+        "private/completed-paper-scale-r264/c6/L02/r124-labeler-2.csv",
+        "--r190-labeler-1",
+        "private/completed-paper-scale-r264/c6/L01/r190-labeler-1.csv",
+        "--r190-labeler-2",
+        "private/completed-paper-scale-r264/c6/L02/r190-labeler-2.csv",
+        "--r203-labeler-1",
+        "private/completed-paper-scale-r264/c6/L01/r203-labeler-1.csv",
+        "--r203-labeler-2",
+        "private/completed-paper-scale-r264/c6/L02/r203-labeler-2.csv",
+        "--r142-bundle",
+        "docs/visexp/out/user-task-benchmark.json",
+        "--r142-answer-key",
+        "docs/visexp/out/user-task-answer-key.csv",
+        "--r142-assignments",
+        "docs/visexp/out/user-task-paper-r249/user-task-assignments-r249-paper.csv",
+        "--r195-scored-dir",
+        "private/completed-paper-scale-r264/r195-scored"
+      ],
+      "shell": "python3 docs/visexp/r264_human_return_intake_preflight.py --out-dir private/completed-paper-scale-r264/r264-c6-intake --c5-responses private/completed-paper-scale-r264/c5/user-task-response-template-r249-paper.csv --r124-labeler-1 private/completed-paper-scale-r264/c6/L01/r124-labeler-1.csv --r124-labeler-2 private/completed-paper-scale-r264/c6/L02/r124-labeler-2.csv --r190-labeler-1 private/completed-paper-scale-r264/c6/L01/r190-labeler-1.csv --r190-labeler-2 private/completed-paper-scale-r264/c6/L02/r190-labeler-2.csv --r203-labeler-1 private/completed-paper-scale-r264/c6/L01/r203-labeler-1.csv --r203-labeler-2 private/completed-paper-scale-r264/c6/L02/r203-labeler-2.csv --r142-bundle docs/visexp/out/user-task-benchmark.json --r142-answer-key docs/visexp/out/user-task-answer-key.csv --r142-assignments docs/visexp/out/user-task-paper-r249/user-task-assignments-r249-paper.csv --r195-scored-dir private/completed-paper-scale-r264/r195-scored"
+    },
+    "r266_public_summary": {
+      "argv": [
+        "python3",
+        "docs/visexp/r266_real_human_evidence_public_summary_gate.py",
+        "--r195-json",
+        "private/completed-paper-scale-r264/r195-scored/human-evidence-pipeline-r195.json",
+        "--out-dir",
+        "docs/visexp/out/c6-real-label-pipeline-r270/public-summary-r266"
+      ],
+      "shell": "python3 docs/visexp/r266_real_human_evidence_public_summary_gate.py --r195-json private/completed-paper-scale-r264/r195-scored/human-evidence-pipeline-r195.json --out-dir docs/visexp/out/c6-real-label-pipeline-r270/public-summary-r266"
+    }
+  },
+  "execution": {
+    "command_results": {},
+    "executed": false,
+    "no_execute": false,
+    "private_hashes_exported": false,
+    "raw_private_rows_exported": false
+  },
+  "generated_at": "2026-06-20T03:32:40+00:00",
+  "next_action": "Collect completed private R124/R190/R203 paired labeler CSVs, then rerun this script. If it reports c6_needs_adjudication, fill the private adjudication CSVs generated from the R195 templates and rerun before publishing aggregate C6 numbers.",
+  "private_input": {
+    "all_inputs_private_or_absent": true,
+    "all_required_exist": false,
+    "optional_adjudication": {
+      "r124_adjudication": {
+        "exists": false,
+        "path_kind": "private",
+        "safe_to_score": true
+      },
+      "r190_adjudication": {
+        "exists": false,
+        "path_kind": "private",
+        "safe_to_score": true
+      },
+      "r203_adjudication": {
+        "exists": false,
+        "path_kind": "private",
+        "safe_to_score": true
+      }
+    },
+    "public_export_policy": "existence_and_aggregate_status_only",
+    "required": {
+      "r124_labeler_1": {
+        "exists": false,
+        "path_kind": "private",
+        "safe_to_score": false
+      },
+      "r124_labeler_2": {
+        "exists": false,
+        "path_kind": "private",
+        "safe_to_score": false
+      },
+      "r190_labeler_1": {
+        "exists": false,
+        "path_kind": "private",
+        "safe_to_score": false
+      },
+      "r190_labeler_2": {
+        "exists": false,
+        "path_kind": "private",
+        "safe_to_score": false
+      },
+      "r203_labeler_1": {
+        "exists": false,
+        "path_kind": "private",
+        "safe_to_score": false
+      },
+      "r203_labeler_2": {
+        "exists": false,
+        "path_kind": "private",
+        "safe_to_score": false
+      }
+    },
+    "required_existing_count": 0,
+    "required_missing": [
+      "r124_labeler_1",
+      "r124_labeler_2",
+      "r190_labeler_1",
+      "r190_labeler_2",
+      "r203_labeler_1",
+      "r203_labeler_2"
+    ],
+    "safe_to_score": false
+  },
+  "provenance": {
+    "repo_commit": "2bdaad9770cf4c023e46deaa0ed2a42b182471a9",
+    "repo_dirty": true,
+    "script": "docs/visexp/r270_c6_real_label_scoring_pipeline.py"
+  },
+  "run_id": "R270",
+  "schema_version": 1,
+  "status": "awaiting_private_c6_labels",
+  "step_summaries": {
+    "r195_score": {
+      "exists": false
+    },
+    "r264_preflight": {
+      "exists": false
+    },
+    "r266_public_summary": {
+      "exists": false
+    }
+  }
+}
