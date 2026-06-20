@@ -1,6 +1,6 @@
 # AgentFlame OSDI Follow-Up Plan
 
-Last updated: 2026-06-19
+Last updated: 2026-06-20
 Stage at update: supplement / experiment-design
 Source/command: auto-research-orchestrator + osdi-experiment-design gate review over `docs/visexp`, plus R196 long-tail governance review packet, R201 sensitivity artifact, R202 candidate regeneration smoke, R203 promotion gate, R205 compaction metrics, R209 reversible display-map contract, R213 display-mode drilldown data-layer smoke, R214 long-tail control loop, R215 frontend renderer-model smoke, R216 browser DOM harness smoke, R217 production React display smoke, R218 display-map update gate, R219 claim-readiness gap gate, R195 human-evidence ingestion pipeline, R207 human-evidence launch-readiness audit, R242 synthetic R195 contract smoke, R243 static human-evidence collection kit, R244 collection-kit export smoke, R245 post-R244 claim-wording consistency audit, R200 public-safe community smoke, R240 lineage/network regression guard, R241 OSDI gate review, `docs/visexp/LONG_TAIL_COMPACTION.md`, R204 read-only gate review, R206 RQ/experiment-plan gate review, and R208 OSDI gate review after paper-plan alignment
 Additional R246 source: `python3 docs/visexp/r246_post_review_hygiene.py`, `docs/visexp/out/osdi-gate-review-r246.json`, and `docs/visexp/out/semantic-ablation-r224-r170/r224-rerun-metadata.json`.
@@ -19,6 +19,7 @@ Additional R258 source: `python3 docs/visexp/r258_paper_scale_human_evidence_bun
 Additional R259 source: `python3 docs/visexp/r259_paper_scale_static_collection_kit.py`, `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/static-collection-kit-r259.json`, and `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/static-collection-kit-r259.md`.
 Additional R260 source: `python3 docs/visexp/r260_paper_r259_consistency.py`, `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.json`, and `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.md`.
 Additional R261 source: `python3 docs/visexp/r261_paper_layout_gate.py`, `docs/visexp/out/paper-layout-gate-r261/paper-layout-gate-r261.json`, and `docs/visexp/out/paper-layout-gate-r261/paper-layout-gate-r261.md`.
+Additional R262 source: `python3 docs/visexp/r262_paper_compaction_gate.py`, `docs/visexp/out/paper-compaction-gate-r262/paper-compaction-gate-r262.json`, and `docs/visexp/out/paper-compaction-gate-r262/paper-compaction-gate-r262.md`.
 Completeness: partial
 
 ## Positioning
@@ -725,6 +726,7 @@ cargo run --manifest-path agentflame/Cargo.toml -- bench \
 | R258 | C5,C6 | collection | Unified paper-scale human-evidence launch bundle. | `python3 docs/visexp/r258_paper_scale_human_evidence_bundle.py` | deterministic package over R249/R252/R255/R257 artifacts; no raw traces, no LLM calls, no labels/responses | 43-member tarball; 12 C5 participant packets; 168 C5 response rows; 2 C6 labeler packets; 1,002 C6 decisions; source/tar leak scans pass | passed: paper-scale collection bundle ready, but C5/C6/weak-accept remain false until real returns are scored | `docs/visexp/out/human-evidence-paper-scale-bundle-r258/human-evidence-paper-scale-bundle-r258.json`, `docs/visexp/out/human-evidence-paper-scale-bundle-r258/agentflame-paper-scale-human-evidence-r258.tar.gz` | done/paper-scale bundle-ready |
 | R259 | C5,C6 | collection | Paper-scale static collection forms and export smoke. | `python3 docs/visexp/r259_paper_scale_static_collection_kit.py` | deterministic generation over R249/R252/R258 artifacts; synthetic exports only; headless Chrome DOM checks | 12 participant forms, 6 labeler forms, C5 merge page, 168-row C5 synthetic merge, 1,002 C6 blank-label rows, browser/leak checks | passed: static kit works locally; no participant responses or labels added | `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/static-collection-kit-r259.json`, `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/index.html` | done/static-kit-smoke |
 | R261 | C1-C7 | paper | Paper layout gate after compacting the main claim-gate table. | `python3 docs/visexp/r261_paper_layout_gate.py` | two XeLaTeX passes; no labels/responses | 11 pages, 0 oversized float warnings, 0 undefined reference lines, six-page target false | passed layout hygiene; still needs further compression and real C5/C6 returns | `docs/visexp/out/paper-layout-gate-r261/paper-layout-gate-r261.json` | done/layout-hygiene |
+| R262 | C1-C7 | paper | Paper compaction gate after compressing RQ prose and limitations. | `python3 docs/visexp/r262_paper_compaction_gate.py` | two XeLaTeX passes; no labels/responses | 7 pages, 495 source lines, 0 oversized float warnings, 0 undefined references, max overfull 86.56468pt, six-page target false | passed compaction hygiene; still needs six-page editing and real C5/C6 returns | `docs/visexp/out/paper-compaction-gate-r262/paper-compaction-gate-r262.json` | done/compaction-hygiene |
 | R245 | C1-C7 | gate | Post-R244 claim-wording consistency audit. | `python3 docs/visexp/r245_claim_wording_consistency.py` | deterministic read-only audit over generated gates plus current paper/docs; no raw traces, no LLM calls, no labels/responses | C5/C6/R238/R240/R242-R244 boundaries must be present; forbidden strong-claim hits must be 0; R219 supersession must be explicit | passed: hard evidence checks 9/9, wording checks 13/13, forbidden strong-claim hits 0; R219 is post-R219-addendum only | `docs/visexp/out/claim-wording-consistency-r245/claim-wording-consistency-r245.json` | done/wording-audit |
 | R246 | C1-C7 | gate | Post-R245 OSDI review hygiene and provenance response. | `python3 docs/visexp/r246_post_review_hygiene.py` | deterministic read over generated gates plus current paper/docs; no raw traces, no LLM calls, no labels/responses | C5/C6/weak-accept gates must remain false; R170 command/provenance must match paper/docs; R224 rerun metadata must clarify `checker_id=R131` | passed after author response: Level 3/not weak accept, R170 dirty-provenance caveat recorded, R224 metadata added, no outcome evidence | `docs/visexp/out/osdi-gate-review-r246.json`, `docs/visexp/out/semantic-ablation-r224-r170/r224-rerun-metadata.json` | done/review-hygiene |
 | R171 | C5,C6 | gate | Read-only subagent OSDI gate review. | inspect current plan/tracker/results/verdict/audit/followup/paper/gate outputs | one independent review | strict OSDI rubric | review says Level 3, not weak accept; R124-labels and R142/R151 remain the must-fix outcome artifacts | `docs/visexp/out/osdi-gate-review-r171.md` | done/review |
@@ -759,10 +761,11 @@ provide, but OSDI weak accept still needs evidence that the semantic labels are
 adequate and that developers actually answer forensic questions better with the
 visualization.
 
-R261 removed the oversized claim-gate float from the main paper and lowered the
-compiled draft to 11 pages with resolved references. This improves reviewer
-readability but is not a claim-evidence result; the six-page target still needs
-deeper paper compression after or alongside C5/C6 collection.
+R261 removed the oversized claim-gate float from the main paper; R262 then
+compressed RQ prose, limitations, and conclusion so the draft compiles to 7
+pages with resolved references and improved overfull width. This improves
+reviewer readability but is not a claim-evidence result; the six-page target and
+real C5/C6 returns remain open.
 
 1. distribute the R249 P01-P12 paper-scale participant packets and collect real
    completed response rows in a private copy of

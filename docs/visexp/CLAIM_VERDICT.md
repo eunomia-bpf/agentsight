@@ -1,6 +1,6 @@
 # Claim Verdict: AgentFlame
 
-Last updated: 2026-06-19
+Last updated: 2026-06-20
 Stage at update: claim-gate
 Source/command: `.agentsight/agentflame/latest/agentflame.json`, `docs/visexp/out/full-history-r170.json`, `docs/visexp/out/tag-consolidation-r189/tag-consolidation-r189.json`, `docs/visexp/out/tag-consolidation-audit-r190/tag-consolidation-r190.json`, `docs/visexp/out/tag-consolidation-audit-r190/merge-risk-audit-results-r190.json`, `docs/visexp/out/long-tail-governance-r196/long-tail-governance-r196.json`, `docs/visexp/out/long-tail-sensitivity-r201/long-tail-sensitivity-r201.json`, `docs/visexp/out/long-tail-regeneration-r202/long-tail-regeneration-r202.json`, `docs/visexp/out/long-tail-promotion-r203/long-tail-promotion-r203.json`, `docs/visexp/out/long-tail-compaction-r205/long-tail-compaction-r205.json`, `docs/visexp/out/reversible-display-map-r209/reversible-display-map-r209.json`, `docs/visexp/out/stack-examples-r211/stack-examples-r211.json`, `docs/visexp/out/display-compaction-ablation-r212/display-compaction-ablation-r212.json`, `docs/visexp/out/display-mode-drilldown-r213/display-mode-drilldown-r213.json`, `docs/visexp/out/long-tail-control-r214/long-tail-control-r214.json`, `docs/visexp/out/frontend-renderer-mode-r215/frontend-renderer-mode-r215.json`, `docs/visexp/out/browser-dom-mode-r216/browser-dom-mode-r216.json`, `docs/visexp/out/production-react-display-r217/production-react-display-r217.json`, `docs/visexp/out/display-map-update-gate-r218/display-map-update-gate-r218.json`, `docs/visexp/out/claim-readiness-r219/claim-readiness-r219.json`, `docs/visexp/out/human-evidence-r193/manifest.json`, `docs/visexp/out/human-evidence-preflight-r194.json`, `docs/visexp/out/human-evidence-pipeline-r195.json`, `docs/visexp/out/human-evidence-launch-r207/human-evidence-launch-r207.json`, `docs/visexp/out/human-evidence-contract-r242/human-evidence-contract-r242.json`, `docs/visexp/out/human-evidence-collection-kit-r243/collection-kit-r243.json`, `docs/visexp/out/human-evidence-collection-kit-export-smoke-r244/collection-kit-export-smoke-r244.json`, `docs/visexp/out/claim-wording-consistency-r245/claim-wording-consistency-r245.json`, `docs/visexp/out/artifact-usability-r160.json`, `docs/visexp/out/community-smoke-r200.json`, `docs/visexp/out/fresh-clone-agentpprof-r220/fresh-clone-agentpprof-r220.json`, `docs/visexp/out/live-network-r182.json`, `docs/visexp/out/agent-execution-witness-network-capture-r238/agent-execution-witness-network-capture-r238.json`, `docs/visexp/out/agent-execution-witness-network-capture-r238/direct-only-repetition-summary-r238.json`, `docs/visexp/out/lineage-guard-r240/lineage-guard-r240.json`, `docs/visexp/out/weak-accept-gate-r184.json`, `docs/visexp/out/osdi-plan-review-r186.md`, `docs/visexp/out/osdi-gate-review-r192.md`, `docs/visexp/out/osdi-gate-review-r204.md`, `docs/visexp/out/osdi-rq-gate-review-r206.md`, `docs/visexp/out/osdi-gate-review-r208.md`, `docs/visexp/out/osdi-gate-review-r239.md`, `docs/visexp/out/osdi-gate-review-r241.md`
 Additional R246 source: `docs/visexp/out/osdi-gate-review-r246.json`, `docs/visexp/out/osdi-gate-review-r246.md`, and `docs/visexp/out/semantic-ablation-r224-r170/r224-rerun-metadata.json`.
@@ -19,6 +19,7 @@ Additional R258 source: `docs/visexp/out/human-evidence-paper-scale-bundle-r258/
 Additional R259 source: `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/static-collection-kit-r259.json`, `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/static-collection-kit-r259.md`, and `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/index.html`.
 Additional R260 source: `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.json` and `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.md`.
 Additional R261 source: `docs/visexp/out/paper-layout-gate-r261/paper-layout-gate-r261.json` and `docs/visexp/out/paper-layout-gate-r261/paper-layout-gate-r261.md`.
+Additional R262 source: `docs/visexp/out/paper-compaction-gate-r262/paper-compaction-gate-r262.json` and `docs/visexp/out/paper-compaction-gate-r262/paper-compaction-gate-r262.md`.
 Completeness: partial
 
 | Claim | Verdict | Evidence | Supported wording | Missing evidence |
@@ -359,6 +360,15 @@ R261 addendum:
 the paper after replacing the oversized main claim-gate table with a compact
 summary. The gate passes for layout hygiene: 11 pages, 0 oversized float
 warnings, and 0 undefined reference lines. It records
+`six_page_target_supported=false`, keeps C5/C6/weak-accept gates false, and adds
+no outcome evidence.
+
+R262 addendum:
+`docs/visexp/out/paper-compaction-gate-r262/paper-compaction-gate-r262.json`
+compiles the paper after compressing RQ prose, the gate lesson, limitations, and
+conclusion. The gate passes for compaction hygiene: 7 pages, 495 source lines, 0
+oversized float warnings, 0 undefined reference lines, and max overfull hbox
+86.56468pt versus R261's 270.83966pt. It records
 `six_page_target_supported=false`, keeps C5/C6/weak-accept gates false, and adds
 no outcome evidence.
 

@@ -1,6 +1,6 @@
 # Results Summary: AgentFlame Semantic Effect Profiling
 
-Last updated: 2026-06-19
+Last updated: 2026-06-20
 Stage at update: analyze
 Source/command: R170 full-history run plus `python3 docs/visexp/r189_tag_consolidation.py`, `python3 docs/visexp/r190_tag_consolidation_audit.py`, `python3 docs/visexp/r190_score_merge_audit.py`, `python3 docs/visexp/r196_long_tail_governance.py`, `python3 docs/visexp/r201_long_tail_sensitivity.py`, `python3 docs/visexp/r202_long_tail_regeneration_smoke.py --regenerate-limit 50 --load-timeout 240 --llama-timeout 60`, `python3 docs/visexp/r203_long_tail_promotion_gate.py`, `python3 docs/visexp/r205_long_tail_compaction_metrics.py`, `python3 docs/visexp/r209_reversible_display_map.py`, `python3 docs/visexp/r211_stack_examples.py`, `python3 docs/visexp/r212_display_compaction_ablation.py`, `python3 docs/visexp/r213_display_mode_drilldown_smoke.py`, `python3 docs/visexp/r214_long_tail_control_loop.py`, `python3 docs/visexp/r215_frontend_renderer_mode_smoke.py`, `python3 docs/visexp/r216_browser_dom_mode_smoke.py`, `python3 docs/visexp/r217_production_react_display_mode_smoke.py`, `python3 docs/visexp/r218_display_map_update_gate.py`, `python3 docs/visexp/r220_fresh_clone_agentpprof_smoke.py`, `python3 docs/visexp/r219_claim_readiness_gap_gate.py`, `python3 docs/visexp/r193_prepare_human_evidence_package.py`, `python3 docs/visexp/r194_human_evidence_preflight.py`, `python3 docs/visexp/r195_human_evidence_pipeline.py`, `python3 docs/visexp/r207_human_launch_readiness.py`, `python3 docs/visexp/r242_human_evidence_contract_smoke.py`, `python3 docs/visexp/r200_community_smoke.py`, `python3 docs/visexp/r131_semantic_ablation.py --input .agentsight/agentflame/r170-full-current --local-out .agentsight/agentflame/ablations-r224-r170/summary.json --out-dir docs/visexp/out/semantic-ablation-r224-r170`, `python3 docs/visexp/r223_projection_tradeoff.py`, `python3 docs/visexp/r225_prompt_span_duration_baseline.py`, `python3 docs/visexp/r237_agent_execution_witness_network_capture.py --run-id R238`, `python3 docs/visexp/r240_lineage_guard_regression.py`, `docs/visexp/LONG_TAIL_COMPACTION.md`, `docs/visexp/out/osdi-gate-review-r204.md`, `docs/visexp/out/osdi-rq-gate-review-r206.md`, `docs/visexp/out/osdi-gate-review-r208.md`, `docs/visexp/out/osdi-gate-review-r228.md`, `docs/visexp/out/osdi-gate-review-r239.md`, and `docs/visexp/out/osdi-gate-review-r241.md`
 Additional R245/R246 source: `python3 docs/visexp/r245_claim_wording_consistency.py`, `python3 docs/visexp/r246_post_review_hygiene.py`, `docs/visexp/out/osdi-gate-review-r246.json`, and `docs/visexp/out/semantic-ablation-r224-r170/r224-rerun-metadata.json`.
@@ -17,6 +17,7 @@ Additional R258 source: `python3 docs/visexp/r258_paper_scale_human_evidence_bun
 Additional R259 source: `python3 docs/visexp/r259_paper_scale_static_collection_kit.py`, `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/static-collection-kit-r259.json`, and `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/index.html`.
 Additional R260 source: `python3 docs/visexp/r260_paper_r259_consistency.py`, `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.json`, and `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.md`.
 Additional R261 source: `python3 docs/visexp/r261_paper_layout_gate.py`, `docs/visexp/out/paper-layout-gate-r261/paper-layout-gate-r261.json`, and `docs/visexp/out/paper-layout-gate-r261/paper-layout-gate-r261.md`.
+Additional R262 source: `python3 docs/visexp/r262_paper_compaction_gate.py`, `docs/visexp/out/paper-compaction-gate-r262/paper-compaction-gate-r262.json`, and `docs/visexp/out/paper-compaction-gate-r262/paper-compaction-gate-r262.md`.
 Completeness: partial
 
 ## Headline Result
@@ -468,6 +469,13 @@ there are no undefined references. This is paper hygiene only: the six-page
 target remains unmet, C5/C6/weak-accept gates remain false, and no outcome
 evidence is added.
 
+R262 compacts the paper's RQ prose, gate lesson, limitations, and conclusion,
+then records a stricter compaction gate. The draft compiles to 7 pages with 495
+`main.tex` source lines, 0 oversized float warnings, 0 undefined references, and
+max overfull hbox 86.56468pt versus R261's 270.83966pt. This is still paper
+hygiene only: the six-page target remains unmet, C5/C6/weak-accept gates remain
+false, and no outcome evidence is added.
+
 R250 records two read-only post-R249 reviews. Both keep the project at Level
 3/not weak accept. The author response applies hygiene fixes only: R249 wording
 now distinguishes participant packets from real participants, R249 coordinator
@@ -598,6 +606,7 @@ claim row, and fixes the paper table's C4 wording.
 | R259 | Paper-scale static collection forms and export smoke | `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/static-collection-kit-r259.json`, `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/index.html`, `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/synthetic-exports/user-task-response-template-r249-paper.csv` | done/static-kit-smoke; 12 participant forms, 6 labeler forms, 6/6 browser checks, no outcome evidence |
 | R260 | Paper/R259 consistency audit | `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.json`, `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.md` | done/wording-audit; 25/25 checks, no outcome evidence |
 | R261 | Paper layout gate after compact claim-gate table | `docs/visexp/out/paper-layout-gate-r261/paper-layout-gate-r261.json`, `docs/visexp/out/paper-layout-gate-r261/paper-layout-gate-r261.md`, `docs/visexp/paper/main.pdf` | done/layout-hygiene; 11 pages, 0 oversized floats, six-page target still false, no outcome evidence |
+| R262 | Paper compaction gate after compressing RQ prose and limitations | `docs/visexp/out/paper-compaction-gate-r262/paper-compaction-gate-r262.json`, `docs/visexp/out/paper-compaction-gate-r262/paper-compaction-gate-r262.md`, `docs/visexp/paper/main.pdf` | done/compaction-hygiene; 7 pages, 495 source lines, max overfull improved to 86.56468pt, six-page target still false, no outcome evidence |
 | R171 | Read-only subagent OSDI gate review after R170/R124-join planning | `docs/visexp/out/osdi-gate-review-r171.md` | done/review |
 | R181 | Read-only subagent OSDI gate review after R180 local multi-model benchmark | `docs/visexp/out/osdi-gate-review-r181.md` | done/review; still not weak accept |
 | R060 | legacy Python prototype pipeline over sampled sessions | `docs/visexp/out/pipeline-report.json` | legacy, superseded for headline scale |
