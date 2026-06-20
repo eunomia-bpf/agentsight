@@ -35,17 +35,12 @@
 
 \begin{abstract}
 AI 编程 agent 的可观测性问题不只是 ``模型调用了哪个 tool''，而是用户语义意图如何导致真实系统副作用：进程、文件、网络、测试、失败重试和 token 消耗。
-现有 LLM observability 工具擅长展示单次运行的 trace tree、span duration、tool call 和 cost；传统 profiler 和进程工具擅长聚合系统行为。
-二者分开时，一个用户常问的问题仍然难答：哪个任务语义造成了哪些重复、沉重或越界的系统足迹？
-本文提出 AgentFlame，一种语义系统效应剖析模型：本地小模型只给 session、prompt 和 LLM call 生成一个词标签；当前 full run 从 agent-native tool logs 继承这些标签，目标模式则让 tool、shell、child process 与 file/network effect 通过确定性 lineage 继承这些标签；最终以 folded stack 形式聚合为 flamegraph。
+现有 LLM observability 工具擅长单次 trace tree、span duration、tool call 和 cost；传统 profiler 擅长聚合系统行为；二者分开时仍难回答：哪个任务语义造成了哪些重复、沉重或越界的系统足迹？
+本文提出 AgentFlame，一种语义系统效应剖析模型：本地小模型只给 session、prompt 和 LLM call 生成一个词标签；tool、shell、child process 与 file/network effect 通过确定性 lineage 继承这些标签；最终以 folded stack 聚合为 flamegraph。
 在 R170 current refresh 的 325 个可读 Codex/Claude 真实 session 上，AgentFlame 标注 2,859 个 prompt rows 和 114,837 个 LLM-call events，0 个最终标签失败；它把 183,714 个系统观测折叠成 26,829 条语义系统栈，并记录 35,136 次真实 llama.cpp tag calls。
-去掉 session/prompt 语义后，nonsemantic baseline 有 90.402\% 的观测权重落入混合多个语义区域的 buckets；flat effect baseline 的混合权重为 90.918\%。
-R224 消融进一步显示：在保持同一 183,714 个系统观测总权重不变时，session-only 仍混合 84.407\% 的完整语义权重，prompt-only 降到 36.722\%，完整 session+prompt 降到 0.000\%。
-这些结果支持一个机制性结论：语义帧，尤其是 prompt 标签，能分开本实验中 nonsemantic folded 与 flat process/effect baselines 会合并的 task-effect 区域。
-本文也明确边界：live lineage 证据只支持固定 command-mode 和 controlled scoped workloads，而不是完整系统 provenance。
-R114/R191/R229/R232/R234 在固定任务、外部仓库和受控 target-network probes 中给出 100.0\% scoped precision/recall 且 negative-control joins 为 0；R238/R240 进一步修复并回归测试 direct process/network readiness。
-但 Codex/Claude-launched target-network rows 仍有 orphan/missing-action cases，full-history projection 仍只是在 generated artifacts 上验证语义帧覆盖。
-因此用户任务实验、任意仓库泛化、Claude-launched target-network capture、更多 agent family 和 same-tag duplicate prompt-row identity 仍未完成，不能声称用户效用或完整系统 provenance 已被证明。
+去掉 session/prompt 语义后，nonsemantic 和 flat effect baselines 分别有 90.402\% 和 90.918\% 的观测权重落入混合多个语义区域的 buckets；R224 消融显示 prompt-only 将 mixed weight 降到 36.722\%，说明 prompt 语义帧能分开传统 process/effect summary 会合并的 task-effect 区域。
+本文也明确边界：R114/R191/R229/R232/R234 在固定 command-mode、外部仓库和受控 target-network probes 中给出 100.0\% scoped precision/recall 且 negative-control joins 为 0；但 Codex/Claude-launched target-network rows 仍有 orphan/missing-action cases。
+因此用户任务实验、任意仓库泛化、更多 agent family、same-tag duplicate prompt-row identity 和人工标签 adequacy 仍未完成，不能声称用户效用或完整系统 provenance 已被证明。
 \end{abstract}
 
 \section{问题}
@@ -192,7 +187,10 @@ AgentFlame 没有 heuristic fallback：如果 LLM server 缺失，或模型重�
 AgentFlame 的第一模式是零 instrumentation 的历史分析。
 AgentSight 的独特点是运行时 exact provenance：\texttt{tool\_call -> shell -> child process -> file/network effect}。
 正确集成后，AgentFlame 负责语义帧，AgentSight 负责系统效应事实，两者通过 tool/session/prompt ancestry 连接。
-当前 full run 还不是 live exact-effect 结果。R110--R113 将最小 session/tool envelope 从 fixture、native export、DB backfill 推到 \texttt{record -- <command>} 的 capture path；R114 用 20 个真实 Codex command-mode 任务验证该路径，加入 per-task negative controls，并在 scoped oracle 下达到 1,273/1,273 in-scope effects joined、0 false positives、0 false negatives。R182 暴露并修复 record-mode process runner 没有传 \texttt{--trace-net} 的缺口；修复后 35/35 个低层 \texttt{codex} process network rows 全部 join、0/604 negative controls 被 join，但 target-specific loopback/expected child-process network rows 为 0/0。R191 随后修复两个更细的 capture 边界：record envelope start time 必须使用 target process start timestamp，process filter 必须允许 session 内进程或 tracked PID descendants；在固定 Codex HTTP probe 上，4/4 个 target \texttt{python3} network rows 全部 join，0/310 negative controls 被 join，precision/recall 为 100.0\%/100.0\%。R229 再用同一 oracle 复现 5 个 controlled multi-workspace tasks（repo read、edit/test、shell fix、JSON write、typo edit），394/394 个 in-scope effects joined，0/306 negative controls 被 join。R232 把同一 scoped oracle 带到 AgentSight 仓库外：4 个 fresh external git-repo tasks 覆盖 repo-read、edit-test 和 write categories，353/353 个 normal in-scope effects joined；另一个 external HTTP probe join 4/4 个 target network rows；合计 0/480 negative controls 被 join，precision/recall 为 100.0\%/100.0\%。R234 进一步做局部泛化：1 个 Claude command-mode JSON-write task 和 2 个 Codex HTTP-family target-network probes 产生 269 个 in-scope effects，8/8 个 target network rows 全部 join，0/331 negative-control effects 被 join，scoped precision/recall 为 100.0\%/100.0\%。R235 则故意触碰更宽的 network boundary：单进程 Codex TCP 通过并 join 3/3 个 target network rows，但 Codex multiprocess TCP 和 Claude-launched HTTP/TCP probe 都执行成功却导出 0 个 target network rows。R236/R237 进一步诊断该边界；R238 将 \texttt{record --} 从固定 250ms sleep 改为等待 process tracer \texttt{CLOCK\_SYNC/start}，并修复 filtered PID propagation 与 lineage checker 的两个边界。一个 compact supplement 汇总 5/5 direct-only readiness repetitions；正式 R238 full run 中 4/4 runtime witnesses、4/4 witness ports observed、direct HTTP 和 direct multiprocess controls 都通过，13/16 target network rows joined，0/186 negative controls 被 join；但 Codex/Claude-launched rows 仍有 3 个 target-network orphan/missing-action cases。R240 将 R239 指出的两个实现风险变成 regression：synthetic guard 证明 command-root fallback 只 join root-self event，不会把同 root 的 sibling 误归因；BPF runtime test 证明 \texttt{-p --trace-net} 下 target child 的 bind/listen/connect 可见且 unrelated port 不被捕获。因此 R238/R240 是更强的 partial-localization 与 regression-guard evidence：它解决 direct multiprocess readiness race 并守住 over-attribution 边界，但仍不是广义 Claude-launched 或 raw-socket coverage；direct-only repetitions 没有 negative controls，precision 证据来自正式 full run。R230 则审计 generated full-history projection：183,714 folded system-observation weight 与 R170 totals 完全一致，缺失 lineage frame 的 weight 为 0，tool prompt-index coverage 为 100.0\%；但 5 个 sessions 中存在 12 个 duplicate prompt-index rows，prompt-tag drift 为 346 weight（0.188\%），LLM prompt-tag drift 为 93 events（0.081\%）。R231 将这个缺口拆开：folded display projection 与 event-local prompt-tag weights 精确一致，R230 field-index drift 被完全复现并定位到 duplicate-index Claude sessions；但 list-position join drift 反而更高（tool 2,048 weight/1.115\%，LLM 1,144 events/0.996\%）。R233 因此把裸 prompt index 降级为只在 session 内唯一时才可作 key，duplicate indexes 作为 non-keyed row identity；归一化后 semantic drift 为 0 tool weight/0 LLM events，但 same-tag duplicate rows 仍有 row identity ambiguity（tool weight 575、LLM 432 events）。因此，C4 的 live lineage 支持性证据来自 R114/R191/R229/R232/R234 和 R238 direct controls，R235--R240 也提供边界与回归证据（R182 只是 record-mode \texttt{--trace-net} 实现 smoke）；R230--R233 支持的是 generated full-history projection/normalization audit。它仍不是任意仓库泛化、raw-socket 或 Claude-launched target-network workload、same-tag prompt-row identity、更多 agent family 或 HTTP payload/URL reconstruction 证据。
+当前 full run 还不是 live exact-effect 结果；它验证的是 agent-native history projection。
+Live lineage 证据来自独立 scoped suites：R114/R191/R229/R232/R234 覆盖固定 Codex command-mode、target HTTP probe、controlled multi-workspace、外部仓库和局部 Claude/Codex HTTP-family workloads；R238/R240 进一步修复 direct process/network readiness 并加入 over-attribution regression guard。
+这些证据支持固定范围内的 exact provenance，但不支持广义 Claude-launched、raw-socket、任意仓库或 HTTP payload/URL reconstruction。
+R230--R233 则审计 generated full-history projection：folded rows 有 semantic/call/effect frames，display projection 与 event-local prompt tags 一致，duplicate prompt indexes 被降级为 non-keyed row identity。
 
 \section{评估}
 
@@ -480,10 +478,11 @@ R160/R200/R220/R248/R253/R254/R256 说明 bounded artifact、public fixture、in
 顶会版本必须继续证明 Codex/Claude-launched target-network 边界、更多 agent family 和任意仓库 scope、same-tag prompt-row identity policy、标签 adequacy 和用户任务收益。
 在当前证据下，最诚实的论文定位是：一个有完整系统化方向和真实 characterization 的语义系统效应 profiler，而不是已经完成的 OSDI artifact。
 
-\vspace{-0.4em}
+\vspace{-0.8em}
 \section*{参考文献}
-\scriptsize
+\tiny
 \setlength{\parskip}{0pt}
+\setlength{\baselineskip}{6.2pt}
 \noindent [1] Brendan Gregg. Flame Graphs. \url{https://www.brendangregg.com/flamegraphs.html}.\par
 \noindent [2] Benjamin H. Sigelman et al. Dapper, a Large-Scale Distributed Systems Tracing Infrastructure. Google Technical Report, 2010.\par
 \noindent [3] SigNoz. Understanding Flame Graphs for Visualizing Distributed Tracing. \url{https://signoz.io/blog/flamegraphs/}.\par

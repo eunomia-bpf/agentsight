@@ -470,10 +470,10 @@ target remains unmet, C5/C6/weak-accept gates remain false, and no outcome
 evidence is added.
 
 R262 compacts the paper's RQ prose, gate lesson, limitations, and conclusion,
-then records a stricter compaction gate. The draft compiles to 7 pages with 495
+then records a stricter compaction gate. The draft compiles to 6 pages with 495
 `main.tex` source lines, 0 oversized float warnings, 0 undefined references, and
 max overfull hbox 86.56468pt versus R261's 270.83966pt. This is still paper
-hygiene only: the six-page target remains unmet, C5/C6/weak-accept gates remain
+hygiene only: the six-page target is met, but C5/C6/weak-accept gates remain
 false, and no outcome evidence is added.
 
 R250 records two read-only post-R249 reviews. Both keep the project at Level
@@ -606,7 +606,7 @@ claim row, and fixes the paper table's C4 wording.
 | R259 | Paper-scale static collection forms and export smoke | `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/static-collection-kit-r259.json`, `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/index.html`, `docs/visexp/out/human-evidence-paper-scale-static-kit-r259/synthetic-exports/user-task-response-template-r249-paper.csv` | done/static-kit-smoke; 12 participant forms, 6 labeler forms, 6/6 browser checks, no outcome evidence |
 | R260 | Paper/R259 consistency audit | `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.json`, `docs/visexp/out/paper-r259-consistency-r260/paper-r259-consistency-r260.md` | done/wording-audit; 25/25 checks, no outcome evidence |
 | R261 | Paper layout gate after compact claim-gate table | `docs/visexp/out/paper-layout-gate-r261/paper-layout-gate-r261.json`, `docs/visexp/out/paper-layout-gate-r261/paper-layout-gate-r261.md`, `docs/visexp/paper/main.pdf` | done/layout-hygiene; 11 pages, 0 oversized floats, six-page target still false, no outcome evidence |
-| R262 | Paper compaction gate after compressing RQ prose and limitations | `docs/visexp/out/paper-compaction-gate-r262/paper-compaction-gate-r262.json`, `docs/visexp/out/paper-compaction-gate-r262/paper-compaction-gate-r262.md`, `docs/visexp/paper/main.pdf` | done/compaction-hygiene; 7 pages, 495 source lines, max overfull improved to 86.56468pt, six-page target still false, no outcome evidence |
+| R262 | Paper compaction gate after compressing RQ prose and limitations | `docs/visexp/out/paper-compaction-gate-r262/paper-compaction-gate-r262.json`, `docs/visexp/out/paper-compaction-gate-r262/paper-compaction-gate-r262.md`, `docs/visexp/paper/main.pdf` | done/compaction-hygiene; 6 pages, 495 source lines, max overfull improved to 86.56468pt, six-page target true, no outcome evidence |
 | R171 | Read-only subagent OSDI gate review after R170/R124-join planning | `docs/visexp/out/osdi-gate-review-r171.md` | done/review |
 | R181 | Read-only subagent OSDI gate review after R180 local multi-model benchmark | `docs/visexp/out/osdi-gate-review-r181.md` | done/review; still not weak accept |
 | R060 | legacy Python prototype pipeline over sampled sessions | `docs/visexp/out/pipeline-report.json` | legacy, superseded for headline scale |
