@@ -114,8 +114,9 @@ agentpprof \
   -o tasks.pb.gz
 ```
 
-See [agentpprof/README.md](https://github.com/eunomia-bpf/agentsight/blob/master/agentpprof/README.md)
-for folded-stack, SVG, JSON, token, file, and network projections.
+See [agentpprof/README.md](agentpprof/README.md)
+for CLI details, and [docs/flamegraph](docs/flamegraph/README.md)
+for flamegraph examples, view selection, and tagging rules.
 
 ### Querying Past Sessions
 

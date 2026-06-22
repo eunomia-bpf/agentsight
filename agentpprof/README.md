@@ -100,12 +100,12 @@ agentpprof -o files.json --view files
 ```
 
 Folded stacks are compatible with common flamegraph tooling. SVG output is a
-single quick-look stack chart built from the folded stacks; use folded output
-with standard tools such as inferno or flamegraph.pl when you need canonical
-merged-prefix flamegraphs. JSON output includes redacted session summaries and
-the stack table. Passing `--include-previews` writes prompt, command, and
-LLM-output previews into JSON; avoid it for public artifacts unless the source
-sessions are already sanitized.
+single prefix-merged flamegraph built from the folded stacks. JSON output
+includes redacted session summaries and the stack table. Passing
+`--include-previews` writes prompt, command, and LLM-output previews into JSON;
+avoid it for public artifacts unless the source sessions are already sanitized.
+See `../docs/flamegraph/` for a public fixture gallery and view-by-view usage
+examples.
 
 ## Tags
 
@@ -113,6 +113,18 @@ The default tagger is deterministic:
 
 ```bash
 agentpprof -o agent.pb.gz --tagger regex
+```
+
+Add project-specific deterministic rules with repeated `--tag-rule`
+arguments. Rules use `KIND:TAG=REGEX`, are tried in command-line order before
+the built-in rules, and support `session`, `prompt`, `llm`, or `all` as
+`KIND`:
+
+```bash
+agentpprof -o tasks.svg \
+  --tagger regex \
+  --tag-rule prompt:review='(?i)review|diff|regression' \
+  --tag-rule prompt:test='(?i)cargo test|pytest|unit test'
 ```
 
 For model-produced one-word tags, run a llama.cpp-compatible server and use:

@@ -13,6 +13,10 @@ evidence gate, and [EXPERIMENT_PLAN.md](EXPERIMENT_PLAN.md) plus
 [EXPERIMENT_TRACKER.md](EXPERIMENT_TRACKER.md) for the OSDI-facing evaluation
 plan.
 
+For a paper-shaped Chinese explanation of every claim, experiment setup,
+oracle, result, and evidence boundary, read
+[paper/evaluation-claims-setup.zh-CN.md](paper/evaluation-claims-setup.zh-CN.md).
+
 The important invariant is aggregation:
 
 ```text
