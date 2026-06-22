@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AgentSight 系统摩擦报告</title>
+  <style>
+    :root {
+      --bg: #f5f7fa;
+      --surface: #ffffff;
+      --soft: #eef3f7;
+      --text: #17202a;
+      --muted: #627083;
+      --line: #dbe3ec;
+      --accent: #0f766e;
+      --blue: #2563eb;
+      --amber: #b45309;
+      --red: #b91c1c;
+      --shadow: 0 14px 34px rgba(23, 32, 42, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.55;
+    }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 12px clamp(18px, 4vw, 52px);
+      background: rgba(255, 255, 255, 0.92);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(12px);
+    }
+    .brand { font-weight: 780; }
+    .brand span { display: block; color: var(--muted); font-size: 12px; font-weight: 500; }
+    nav { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
+    nav a, button {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: var(--surface);
+      color: var(--text);
+      padding: 7px 10px;
+      font: inherit;
+      font-size: 13px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+    nav a:hover, button:hover { border-color: var(--accent); color: var(--accent); }
+    header {
+      padding: clamp(28px, 5vw, 64px) clamp(18px, 4vw, 52px) 30px;
+      background: linear-gradient(180deg, #fff 0%, var(--bg) 100%);
+      border-bottom: 1px solid var(--line);
+    }
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+      gap: clamp(22px, 4vw, 40px);
+      max-width: 1240px;
+      margin: 0 auto;
+      align-items: start;
+    }
+    .eyebrow { margin: 0 0 10px; color: var(--accent); font-weight: 780; font-size: 13px; }
+    h1 { margin: 0; max-width: 980px; font-size: clamp(30px, 4vw, 52px); line-height: 1.08; letter-spacing: 0; }
+    h2 { margin: 0 0 12px; font-size: clamp(21px, 2vw, 28px); letter-spacing: 0; }
+    h3 { margin: 0 0 8px; font-size: 17px; letter-spacing: 0; }
+    p { margin: 0; }
+    .lead { margin-top: 18px; max-width: 820px; color: #374151; font-size: clamp(16px, 1.5vw, 19px); }
+    .contract {
+      margin-top: 18px;
+      padding: 14px 16px;
+      border-left: 4px solid var(--accent);
+      background: #e8f7f3;
+      color: #1f4e49;
+      font-weight: 680;
+    }
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+    }
+    .verdict { padding: 18px; }
+    .verdict .label { color: var(--muted); font-size: 13px; font-weight: 700; }
+    .verdict .value { margin-top: 6px; color: var(--red); font-size: 28px; font-weight: 820; line-height: 1.1; }
+    .verdict ul { margin: 14px 0 0; padding-left: 18px; color: #374151; }
+    main { max-width: 1240px; margin: 0 auto; padding: 28px clamp(18px, 4vw, 52px) 54px; }
+    section { margin-top: 28px; }
+    .grid { display: grid; gap: 14px; }
+    .cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .metric { padding: 16px; }
+    .metric .num { margin-top: 8px; font-size: 30px; line-height: 1; font-weight: 820; }
+    .metric .desc { margin-top: 8px; color: var(--muted); font-size: 13px; }
+    .actions { display: grid; gap: 12px; }
+    .action {
+      display: grid;
+      grid-template-columns: 74px minmax(0, 1fr) minmax(220px, 0.52fr);
+      gap: 14px;
+      padding: 16px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    .prio {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 32px;
+      border-radius: 7px;
+      color: #fff;
+      font-weight: 800;
+    }
+    .p0 { background: var(--red); }
+    .p1 { background: var(--amber); }
+    .p2 { background: var(--blue); }
+    .evidence { color: var(--muted); font-size: 13px; }
+    .module { padding: 16px; }
+    .module strong { display: block; margin-bottom: 6px; }
+    .bar { height: 9px; border-radius: 999px; background: #e5ebf2; overflow: hidden; margin-top: 12px; }
+    .bar i { display: block; height: 100%; background: var(--accent); }
+    .bar .red { background: var(--red); }
+    .bar .amber { background: var(--amber); }
+    .bar .blue { background: var(--blue); }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+    table { width: 100%; border-collapse: collapse; min-width: 760px; }
+    th, td { padding: 11px 12px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+    th { background: var(--soft); color: #334155; font-size: 13px; }
+    tr:last-child td { border-bottom: 0; }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-size: 12px;
+      font-weight: 760;
+      background: var(--soft);
+    }
+    .high { color: var(--red); background: #fee2e2; }
+    .medium { color: var(--amber); background: #fef3c7; }
+    .info { color: var(--blue); background: #dbeafe; }
+    .note { color: var(--muted); font-size: 14px; }
+    .callout { padding: 16px; border-left: 4px solid var(--blue); background: #eef5ff; border-radius: 8px; }
+    .footer { margin-top: 32px; color: var(--muted); font-size: 13px; }
+    @media (max-width: 900px) {
+      .hero, .cols-4, .cols-3, .cols-2, .action { grid-template-columns: 1fr; }
+      .topbar { position: static; }
+      nav { justify-content: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand">AgentSight 系统摩擦报告<span>真实 monitor 聚合摘要 · 团队内分享口径</span></div>
+    <nav aria-label="报告导航">
+      <a href="#actions">立即动作</a>
+      <a href="#overview">系统概览</a>
+      <a href="#improvements">下一轮改进</a>
+      <a href="#evidence">证据边界</a>
+      <a href="#appendix">附录</a>
+      <button type="button" id="copySummary">复制摘要</button>
+    </nav>
+  </div>
+
+  <header>
+    <div class="hero">
+      <div>
+        <p class="eyebrow">Operating decision</p>
+        <h1>下一轮本地 agent 应该少占资源、少留后台状态，并留下足够证据。</h1>
+        <p class="lead">
+          本报告使用 2026-06-16 11:08 至 2026-06-21 21:48 PDT 的 AgentSight monitor 聚合摘要。
+          本报告根据现有系统影响判断：哪些命令、服务、网络绑定、状态文件和采集字段应该在下一轮直接改掉。
+        </p>
+        <div class="contract">
+          读者/决策契约：面向 agent owner、operator 与安全审阅者，决定下一轮本地 agent 应改变哪些运行习惯和自动化规则，减少等待、资源占用、遗留进程和事后追查成本。
+        </div>
+      </div>
+      <aside class="panel verdict">
+        <div class="label">执行判断</div>
+        <div class="value">改完再继续</div>
+        <ul>
+          <li>重编译、虚拟机和本地模型先加 CPU/RSS/IO/wall-time 预算。</li>
+          <li>本地 app-server 和长运行任务需要租约、owner 摘要和退出清理。</li>
+          <li>默认本地服务绑定 localhost 或 Unix socket，减少不必要暴露面。</li>
+          <li>交付级运行保留命令、退出码、文件/网络摘要和复现线索。</li>
+        </ul>
+      </aside>
+    </div>
+  </header>
+
+  <main>
+    <section id="actions">
+      <h2>立即动作</h2>
+      <div class="actions">
+        <article class="action">
+          <div><span class="prio p0">P0</span></div>
+          <div>
+            <h3>给重编译、虚拟机和本地模型加资源预算</h3>
+            <p>最高 RSS 采样窗口约 23.84 GiB；最高 CPU 2 秒窗口约 88.16 秒。下一轮应先跑窄范围命令，给重任务加 wall-time、RSS、IO 和重试预算。</p>
+          </div>
+          <p class="evidence">证据：构建/测试、虚拟机、本地模型和 app-server 是主要 CPU/RSS/写入热点。</p>
+        </article>
+        <article class="action">
+          <div><span class="prio p0">P0</span></div>
+          <div>
+            <h3>让长运行服务自动到期或交接</h3>
+            <p>本地 app-server 类别有 100 个会话，且存在超过 24 小时的长运行样本。下一轮应给服务启动命令加租约、退出清理和 owner/log 摘要。</p>
+          </div>
+          <p class="evidence">证据：本地 app-server 是主要写入来源；长运行样本状态仍为 monitor 聚合视角的 running。</p>
+        </article>
+        <article class="action">
+          <div><span class="prio p1">P1</span></div>
+          <div>
+            <h3>把默认网络绑定收窄到本机</h3>
+            <p>网络聚合包含全接口监听类别和外部 SSH 类别。下一轮默认服务绑定 localhost 或 Unix socket；确实需要外部连接时记录目的类别和持续时间。</p>
+          </div>
+          <p class="evidence">证据：全接口监听类别计数 1,076；外部 SSH 类别计数 265。</p>
+        </article>
+        <article class="action">
+          <div><span class="prio p1">P1</span></div>
+          <div>
+            <h3>把 agent 状态和日志改成生命周期对象</h3>
+            <p>agent 状态或监控文件是最大文件目标类别。下一轮结束时自动归档会话记录、轮转日志、清理临时锁，并把仍在运行的后台服务列出来。</p>
+          </div>
+          <p class="evidence">证据：agent 状态或监控文件计数 82,128；本地 app-server 类别 100 个会话。</p>
+        </article>
+        <article class="action">
+          <div><span class="prio p2">P2</span></div>
+          <div>
+            <h3>给交付级运行补齐复现证据</h3>
+            <p>monitor 聚合足以指出系统影响，但不能证明完整因果。涉及交付、客户环境或工作区外影响时，应保留命令、退出码、文件/网络摘要和复现脚本线索。</p>
+          </div>
+          <p class="evidence">证据：本页不包含原始对话、请求正文、文件内容或逐事件时间线。</p>
+        </article>
+      </div>
+    </section>
+
+    <section id="overview">
+      <h2>系统概览</h2>
+      <div class="grid cols-4">
+        <div class="panel metric">
+          <div class="note">跟踪会话</div>
+          <div class="num">287</div>
+          <div class="desc">197 个 coding agent 类别，90 个 review agent 类别。</div>
+        </div>
+        <div class="panel metric">
+          <div class="note">采样窗口</div>
+          <div class="num">258,176</div>
+          <div class="desc">monitor window 是定期聚合样本，不等于完整事件数。</div>
+        </div>
+        <div class="panel metric">
+          <div class="note">最高 RSS</div>
+          <div class="num">23.84 GiB</div>
+          <div class="desc">重任务窗口需要资源预算和并发限制。</div>
+        </div>
+        <div class="panel metric">
+          <div class="note">最高 CPU</div>
+          <div class="num">88.16s/2s</div>
+          <div class="desc">2 秒窗口内累计 CPU 时间，说明多核并行压力。</div>
+        </div>
+      </div>
+
+      <div class="grid cols-3" style="margin-top:14px;">
+        <div class="panel module">
+          <strong>服务生命周期</strong>
+          <p>本地 app-server 与长运行样本需要租约、退出清理和 owner/log 摘要。</p>
+          <div class="bar"><i class="red" style="width: 86%"></i></div>
+        </div>
+        <div class="panel module">
+          <strong>资源压力</strong>
+          <p>构建/测试、虚拟机、本地模型和 app-server 是 CPU/RSS/写入热点。</p>
+          <div class="bar"><i class="amber" style="width: 84%"></i></div>
+        </div>
+        <div class="panel module">
+          <strong>采集置信度</strong>
+          <p>聚合摘要足以指导下一轮改进；精确归因需要更完整的命令、退出码和文件/网络摘要。</p>
+          <div class="bar"><i class="blue" style="width: 64%"></i></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="improvements">
+      <h2>下一轮改进</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>控制项</th>
+              <th>当前信号</th>
+              <th>下一轮规则</th>
+              <th>完成标准</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="pill high">重任务</span></td>
+              <td>最高 RSS 约 23.84 GiB；CPU 峰值约 88.16s/2s。</td>
+              <td>先跑窄范围命令；重编译、虚拟机和本地模型加 wall-time、RSS、IO、重试预算。</td>
+              <td>超预算后输出资源摘要，并降级到更窄的复跑命令。</td>
+            </tr>
+            <tr>
+              <td><span class="pill high">服务</span></td>
+              <td>本地 app-server 类别 100 个会话；存在超过 24 小时的长运行样本。</td>
+              <td>服务启动命令带租约、退出清理、owner 摘要和日志位置。</td>
+              <td>任务结束后后台服务要么退出，要么留下 owner、端口、日志和到期时间。</td>
+            </tr>
+            <tr>
+              <td><span class="pill medium">网络</span></td>
+              <td>外部 HTTPS、localhost、全接口监听、外部 SSH 均出现。</td>
+              <td>默认服务绑定 localhost 或 Unix socket；外部连接记录目的类别和持续时间。</td>
+              <td>下一轮全接口监听下降，外部 SSH 有明确任务窗口。</td>
+            </tr>
+            <tr>
+              <td><span class="pill medium">状态文件</span></td>
+              <td>agent 状态/monitor 文件是最大目标类别。</td>
+              <td>把状态、日志、临时锁和监控输出纳入任务结束清理。</td>
+              <td>会话结束后完成日志轮转、会话归档、临时锁清理和剩余后台服务摘要。</td>
+            </tr>
+            <tr>
+              <td><span class="pill info">复现证据</span></td>
+              <td>monitor 只提供聚合窗口，不提供完整逐事件因果链。</td>
+              <td>交付级运行保留命令、退出码、关键文件/网络摘要和复现脚本线索。</td>
+              <td>能回答哪个步骤触发了资源峰值、监听、文件写入或外部连接。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="evidence">
+      <h2>证据摘要</h2>
+      <div class="grid cols-2">
+        <div class="panel module">
+          <h3>进程与资源热点</h3>
+          <ul>
+            <li>构建/测试工作负载累计 CPU 最高，单类进程最大 RSS 约 13.72 GiB。</li>
+            <li>虚拟机工作负载累计 CPU 约 2,626 秒，最大 RSS 约 13.32 GiB。</li>
+            <li>本地模型工作负载累计 CPU 约 1,293 秒，最大 RSS 约 11.93 GiB。</li>
+            <li>本地 app-server 类别累计写入约 73.0 GiB，是写入压力主来源。</li>
+          </ul>
+        </div>
+        <div class="panel module">
+          <h3>文件与网络类别</h3>
+          <ul>
+            <li>文件目标：agent 状态/monitor 82,128；终端设备 12,914；开发环境日志 10,758。</li>
+            <li>网络目标：外部 HTTPS 53,508；localhost 服务 7,138；全接口监听 1,076；外部 SSH 265。</li>
+            <li>这些类别足以指导下一轮改进，但不能说明每个请求的业务意图。</li>
+          </ul>
+        </div>
+      </div>
+      <div class="callout" style="margin-top:14px;">
+        <strong>如何解读 running：</strong>
+        聚合摘要中会话状态显示为 running，表示 monitor 视角下的跟踪状态；关闭进程前仍应做一次当前进程复核，避免把历史聚合样本当作此刻仍存活的事实。
+      </div>
+    </section>
+
+    <section id="appendix">
+      <h2>附录：来源、隐私与边界</h2>
+      <div class="table-wrap">
+        <table>
+          <tbody>
+            <tr>
+              <th>来源类型</th>
+              <td>AgentSight monitor 聚合摘要，来自本机最新周级监控数据库。</td>
+            </tr>
+            <tr>
+              <th>时间范围</th>
+              <td>2026-06-16 11:08:38 至 2026-06-21 21:48:35 PDT。</td>
+            </tr>
+            <tr>
+              <th>输入规模</th>
+              <td>287 个跟踪会话、258,176 个采样窗口、43,533 个进程样本、115,463 个文件样本、25,253 个网络样本。</td>
+            </tr>
+            <tr>
+              <th>隐私口径</th>
+              <td>团队内分享；页面展示类别、计数、时间窗口和资源量，不展示原始行、本地路径、完整命令、主机 IP 或请求正文。</td>
+            </tr>
+            <tr>
+              <th>证据限制</th>
+              <td>monitor 聚合无法证明完整因果、用户意图或未采样短命令。需要合并、部署或客户交付级判断时，应保留更完整的命令和系统影响记录。</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="footer">自包含 HTML 报告；无外部资源、无运行时网络请求、无后端依赖。</p>
+    </section>
+  </main>
+
+  <script>
+    (function () {
+      const summary = "AgentSight 系统摩擦结论：下一轮本地 agent 应优先改重任务预算、长运行服务清理、默认网络绑定、状态日志生命周期和交付级复现证据。关键证据：287 个跟踪会话、258,176 个采样窗口、最高 RSS 23.84 GiB、最高 CPU 88.16s/2s、本地 app-server 100 个会话、全接口监听类别 1,076。";
+      const button = document.getElementById("copySummary");
+      button.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(summary);
+          button.textContent = "已复制";
+        } catch (err) {
+          button.textContent = "复制失败";
+        }
+        window.setTimeout(() => { button.textContent = "复制摘要"; }, 1600);
+      });
+    })();
+  </script>
+</body>
+</html>
