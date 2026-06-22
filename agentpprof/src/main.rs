@@ -1147,6 +1147,20 @@ fn ensure_parent_dir(path: &Path) -> Result<()> {
     Ok(())
 }
 
+fn pprof_root_to_leaf_frames<'a>(view: &str, stack: &'a str) -> Vec<&'a str> {
+    let mut frames = stack
+        .split(';')
+        .filter(|frame| !frame.is_empty())
+        .collect::<Vec<_>>();
+    if view == "tasks"
+        && let Some(prompt_index) = frames.iter().position(|frame| frame.starts_with("prompt:"))
+    {
+        let prompt = frames.remove(prompt_index);
+        frames.push(prompt);
+    }
+    frames
+}
+
 fn write_pprof_projection(projection: &ProfileProjection, output: &Path) -> Result<()> {
     let mut strings = StringInterner::with_pprof_root();
     let sample_type = PprofValueType {
@@ -1163,7 +1177,10 @@ fn write_pprof_projection(projection: &ProfileProjection, output: &Path) -> Resu
 
     for (stack, weight) in &projection.stacks {
         let mut location_ids = Vec::new();
-        for frame in stack.split(';').rev() {
+        for frame in pprof_root_to_leaf_frames(&projection.view, stack)
+            .into_iter()
+            .rev()
+        {
             let id = if let Some(id) = frame_locations.get(frame) {
                 *id
             } else {
@@ -3246,6 +3263,49 @@ mod tests {
         write_pprof_projection(&projection, &path).unwrap();
         let bytes = fs::read(path).unwrap();
         assert_eq!(&bytes[..2], &[0x1f, 0x8b]);
+    }
+
+    #[test]
+    fn pprof_tasks_make_prompt_tag_the_leaf_frame() {
+        use flate2::read::GzDecoder;
+        use std::io::Read;
+
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("profile.pb.gz");
+        let projection = ProfileProjection {
+            view: "tasks".to_string(),
+            sample_type: "events",
+            unit: "count",
+            stacks: BTreeMap::from([(
+                concat!(
+                    "project:test;agent:codex;session:rustfix;prompt:review;",
+                    "kind:tool;call:tool/shell;effect:test;status:ok"
+                )
+                .to_string(),
+                7,
+            )]),
+        };
+        write_pprof_projection(&projection, &path).unwrap();
+
+        let bytes = fs::read(path).unwrap();
+        let mut decoder = GzDecoder::new(&bytes[..]);
+        let mut decoded = Vec::new();
+        decoder.read_to_end(&mut decoded).unwrap();
+        let profile = PprofProfile::decode(&decoded[..]).unwrap();
+        let leaf_location_id = profile.sample[0].location_id[0];
+        let leaf_location = profile
+            .location
+            .iter()
+            .find(|location| location.id == leaf_location_id)
+            .expect("leaf location");
+        let leaf_function_id = leaf_location.line[0].function_id;
+        let leaf_function = profile
+            .function
+            .iter()
+            .find(|function| function.id == leaf_function_id)
+            .expect("leaf function");
+        let leaf_name = &profile.string_table[usize::try_from(leaf_function.name).unwrap()];
+        assert_eq!(leaf_name, "prompt:review");
     }
 
     #[test]

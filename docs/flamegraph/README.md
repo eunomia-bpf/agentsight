@@ -6,40 +6,9 @@ prefixes are drawn once, and each frame width is the inclusive weight below
 that frame.
 
 Read the SVG from bottom to top. The lower frames are broader context such as
-`project`, `agent`, `session`, and `prompt`; upper frames are the more specific
+`project`, `agent`, `session`, and `prompt`; upper frames are more specific
 activity such as LLM calls, tools, processes, file effects, network domains,
 and status.
-
-## Public Fixture
-
-Use the committed synthetic fixture when you want a reproducible example that
-does not read private `~/.codex` or `~/.claude` history:
-
-```bash
-cargo run --manifest-path agentpprof/Cargo.toml -- \
-  --project-root . \
-  --project-name agentsight-public-fixture \
-  --session-file agentpprof/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl \
-  --tagger regex \
-  --no-cache \
-  --view tasks \
-  -o docs/flamegraph/examples/public-fixture-tasks.svg
-```
-
-The same fixture can be projected into all supported flamegraph views:
-
-```bash
-for view in tasks tools tokens files network; do
-  cargo run --manifest-path agentpprof/Cargo.toml -- \
-    --project-root . \
-    --project-name agentsight-public-fixture \
-    --session-file agentpprof/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl \
-    --tagger regex \
-    --no-cache \
-    --view "$view" \
-    -o "docs/flamegraph/examples/public-fixture-${view}.svg"
-done
-```
 
 ## Views
 
@@ -56,27 +25,29 @@ explanation.
 
 ## Example Gallery
 
-These examples are generated from the public fixture above.
+These checked-in images are static examples of the five projections. They are
+for visual orientation only; use your own local history or explicit
+`--session-file` inputs for analysis.
 
 ### Tasks
 
-![Public fixture tasks flamegraph](examples/public-fixture-tasks.svg)
+![Tasks flamegraph](examples/tasks.svg)
 
 ### Tools
 
-![Public fixture tools flamegraph](examples/public-fixture-tools.svg)
+![Tools flamegraph](examples/tools.svg)
 
 ### Tokens
 
-![Public fixture tokens flamegraph](examples/public-fixture-tokens.svg)
+![Tokens flamegraph](examples/tokens.svg)
 
 ### Files
 
-![Public fixture files flamegraph](examples/public-fixture-files.svg)
+![Files flamegraph](examples/files.svg)
 
 ### Network
 
-![Public fixture network flamegraph](examples/public-fixture-network.svg)
+![Network flamegraph](examples/network.svg)
 
 ## Output Formats
 
@@ -99,7 +70,7 @@ go tool pprof -http=:0 tokens.pb.gz
 Folded stacks are plain text:
 
 ```text
-project:agentsight-public-fixture;agent:codex;session:profile;prompt:test;kind:tool;call:tool/shell;effect:read;status:ok 1
+project:repo;agent:codex;session:profile;prompt:test;kind:tool;call:tool/shell;effect:read;status:ok 1
 ```
 
 ## Tagging
@@ -152,9 +123,9 @@ agentpprof --project-root /path/to/repo --view tasks -o tasks.svg
 ```
 
 Local histories can contain prompts, paths, tool outputs, and model responses.
-Use explicit `--session-file` inputs for public artifacts and reproducible
-examples. JSON output redacts previews by default; only pass
-`--include-previews` for private debugging or already-sanitized sessions.
+Use explicit `--session-file` inputs for controlled private investigations.
+JSON output redacts previews by default; only pass `--include-previews` for
+private debugging or already-sanitized sessions.
 
 Useful selectors:
 
@@ -165,38 +136,26 @@ agentpprof -o tasks.svg --session-tag profile
 agentpprof -o tasks.svg --prompt-tag review
 ```
 
-## Regenerating These Examples
+## Regenerating Local Views
 
-The committed examples in this directory were generated with:
+Regenerate views from your own local history:
 
 ```bash
 for view in tasks tools tokens files network; do
-  cargo run --manifest-path agentpprof/Cargo.toml -- \
-    --project-root . \
-    --project-name agentsight-public-fixture \
-    --session-file agentpprof/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl \
+  agentpprof \
+    --project-root /path/to/repo \
     --tagger regex \
-    --no-cache \
     --view "$view" \
-    -o "docs/flamegraph/examples/public-fixture-${view}.svg"
+    -o "${view}.svg"
 done
+```
 
-cargo run --manifest-path agentpprof/Cargo.toml -- \
-  --project-root . \
-  --project-name agentsight-public-fixture \
-  --session-file agentpprof/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl \
-  --tagger regex \
-  --no-cache \
-  --view tasks \
-  -o docs/flamegraph/examples/public-fixture-tasks.folded
+For private, fixed-input analysis, pass one or more explicit session files:
 
-cargo run --manifest-path agentpprof/Cargo.toml -- \
-  --project-root . \
-  --project-name agentsight-public-fixture \
-  --session-file agentpprof/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl \
+```bash
+agentpprof \
+  --session-file ~/.codex/sessions/.../session.jsonl \
   --tagger regex \
-  --tag-rule prompt:survey='(?i)profile the repository' \
-  --no-cache \
   --view tasks \
-  -o docs/flamegraph/examples/public-fixture-tag-rule.folded
+  -o tasks.folded
 ```

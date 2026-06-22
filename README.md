@@ -120,8 +120,8 @@ go tool pprof -top agent.pb.gz
 ```
 
 See [agentpprof/README.md](agentpprof/README.md) for CLI details and
-[docs/flamegraph](docs/flamegraph/README.md) for public fixture flamegraphs,
-view selection, and deterministic tagging rules.
+[docs/flamegraph](docs/flamegraph/README.md) for flamegraph examples, view
+selection, and deterministic tagging rules.
 
 ### Web Interface
 

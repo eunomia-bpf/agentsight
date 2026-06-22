@@ -10,42 +10,15 @@ tool events, file effects, network effects, or token usage.
 
 ## Install
 
-From this repository, matching the checked artifact smoke:
-
 ```bash
-cargo install --path agentpprof --locked --force
+cargo install agentpprof
 ```
 
-Published registry releases may lag this research branch. Use the source-tree
-install above when reproducing the paper artifacts.
-
-For local development without installing:
+From this repository:
 
 ```bash
 cargo run --manifest-path agentpprof/Cargo.toml -- -o agent.pb.gz
 ```
-
-## Public Fixture Smoke
-
-For a reproducible first run that does not read private local agent histories,
-use the committed synthetic Codex fixture. Artifact reviewers should prefer
-this explicit `--session-file` command because it avoids default discovery of
-local Codex/Claude histories.
-
-```bash
-agentpprof \
-  --project-root . \
-  --project-name agentsight-public-fixture \
-  --session-file agentpprof/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl \
-  --tagger regex \
-  --no-cache \
-  -o tasks.pb.gz
-
-go tool pprof -top tasks.pb.gz
-```
-
-The fixture checks parser, projection, and pprof readback behavior only. It is
-not evidence of developer utility, tag adequacy, or real-history privacy.
 
 ## pprof Output
 
@@ -64,6 +37,8 @@ go tool pprof -http=:0 agent.pb.gz
 
 The default `tasks` view makes prompt tags the pprof leaf frame, so `pprof -top`
 shows where the agent spent most of its session activity semantically.
+Folded, SVG, and JSON outputs keep the full context-first task stack for
+drilldown.
 
 ## Views
 
@@ -104,7 +79,7 @@ single prefix-merged flamegraph built from the folded stacks. JSON output
 includes redacted session summaries and the stack table. Passing
 `--include-previews` writes prompt, command, and LLM-output previews into JSON;
 avoid it for public artifacts unless the source sessions are already sanitized.
-See `../docs/flamegraph/` for a public fixture gallery and view-by-view usage
+See `../docs/flamegraph/` for a flamegraph gallery and view-by-view usage
 examples.
 
 ## Tags
@@ -143,8 +118,7 @@ LLM tags are cached under the user cache directory by default, for example
 By default, `agentpprof` scans recent local Codex and Claude Code sessions that
 match `--project-root`.
 Those logs can contain prompts, paths, model outputs, and tool results. For
-repeatable demos, tests, or public artifacts, prefer explicit `--session-file`
-inputs like the fixture above.
+repeatable private investigations, use explicit `--session-file` inputs.
 
 Useful selectors:
 

@@ -1,9 +1,10 @@
 # AgentFlame / agentpprof 评估说明：claim、实验 setup 与证据边界
 
-本文档是一份论文形态的详细评估说明。它把 `docs/visexp/CLAIMS.md`、
-`docs/visexp/RESULTS_SUMMARY.md`、`docs/visexp/EXPERIMENT_TRACKER.md` 和
-`docs/visexp/out/*` 中分散的结果整理为一条可审稿的论证链：先定义术语，
-再列出 claim，最后说明每个实验的 setup、oracle、结果和不能支持的结论。
+本文档是一份论文形态的详细评估说明。它把 research branch 上分散的 claim
+记录、结果摘要、实验 tracker 和生成 artifact 整理为一条可审稿的论证链：先定义
+术语，再列出 claim，最后说明每个实验的 setup、oracle、结果和不能支持的结论。
+为了让 `main` 保持可维护，这个分支只提交这份整理后的公开文档，不提交原始本机
+session、大型输出目录或中间规划笔记。
 
 当前结论很明确：我们已经有强的机制证据，说明语义帧可以把普通
 process/effect summary 会混在一起的 agent 系统行为拆开；我们也有 scoped
@@ -151,8 +152,9 @@ buckets；flat effect summary 的 mixed weight 是 90.918%。R224 在同一分�
 - Dirty provenance：实验运行时 git worktree 不是干净状态。这样的结果可以作为机制证据，
   但不能当成 clean release artifact。
 - Smoke test：小范围端到端检查，证明路径能跑通。smoke test 不能替代完整实验。
-- Fixture：人为构造或固定的小输入，用来稳定测试工具路径。public fixture 可以提交；
-  real local session 通常不能提交。
+- Fixture：人为构造或固定的小输入，用来稳定测试工具路径。public-safe generated
+  fixture 是研究实验中可公开的小输入；real local session 通常不能提交。当前 `main`
+  不在 `agentpprof/` 下提交这些 generated session inputs。
 - Proxy metric：代理指标。它与目标问题有关，但不能直接等同目标结论。R251 的行为相关性
   是 tag adequacy 的 proxy，不是人工 adequacy。
 - Outcome evidence：直接支持用户或标签结论的数据，例如真实参与者响应、真实人工标签。
@@ -216,9 +218,10 @@ display governance。
 
 ### Claim C7：agentpprof/AgentFlame 可以作为开源开发者工具使用
 
-Scope 是 public fixture、install/readback、pprof output 和 packaging。R160/R200/R220/
-R248/R253/R254/R256 supported/partial。仍缺 crates.io publish/readback、external-machine
-install、真实历史报告 sanitization、llama.cpp setup 文档和社区反馈。
+Scope 是 public-safe generated fixture smokes、install/readback、pprof output 和
+packaging。R160/R200/R220/R248/R253/R254/R256 supported/partial。仍缺 crates.io
+publish/readback、external-machine install、真实历史报告 sanitization、llama.cpp setup
+文档和社区反馈。
 
 ## 系统模型
 
@@ -226,7 +229,7 @@ install、真实历史报告 sanitization、llama.cpp setup 文档和社区反�
 
 第一层是 agent-native history layer。它读取 Codex/Claude session logs，恢复 session、
 prompt、LLM call、tool call 和部分系统行为。它不需要 sudo，也不需要 eBPF。R170、
-R189--R225 和 agentpprof public fixture 都属于这一层。
+R189--R225 和 agentpprof generated-fixture smokes 都属于这一层。
 
 第二层是 semantic tagging layer。它只处理 session、prompt 和 LLM call 文本，输出一个
 词。这个 layer 可以由小模型、regex rules 或未来的后端服务实现。重要的是：模型不直接
@@ -590,7 +593,7 @@ checks pass。Boundary：static collection UX/logistics only。
 
 ## RQ5：artifact 和开源工具路径
 
-### R160/R200：AgentFlame bounded and public fixture smokes
+### R160/R200：AgentFlame bounded and generated-fixture smokes
 
 R160 Setup：8 个 fixed historical Codex session files，LLM-call tags enabled。Clean run
 生成 dashboard、folded stacks、SVGs 和 tag cache；76 tag requests 中 60 uncached llama.cpp
@@ -607,14 +610,15 @@ Boundary：不是 external adoption，也不是 real-history public sanitization
 
 ### R220/R248/R253/R254/R256/R257：agentpprof productized path
 
-R220 Setup：temporary clean clone、public synthetic Codex fixture、deterministic regex tagger、
-no llama.cpp。Outputs 包括 `tasks.pb.gz`、`tools.folded`、`tokens.json`、`files.folded`、
-`network.folded`、`tools.svg`。Oracle 是 `go tool pprof -top` 读回 6/6 task samples，
-expected stack checks pass，output containment 和 privacy scan pass。
+R220 Setup：temporary clean clone、public-safe generated Codex fixture、deterministic regex
+tagger、no llama.cpp。这个 fixture 是研究实验输入，不是 `main` 分支下的
+`agentpprof/` example。Outputs 包括 `tasks.pb.gz`、`tools.folded`、`tokens.json`、
+`files.folded`、`network.folded`、`tools.svg`。Oracle 是 `go tool pprof -top` 读回
+6/6 task samples，expected stack checks pass，output containment 和 privacy scan pass。
 
 R248 Setup：`cargo install --path agentpprof --locked --force`，explicit `--session-file`，
-`--tagger regex`，`--no-cache`，public fixture。Oracle 是 installed CLI help、pprof/folded/
-JSON/SVG outputs 和 pprof readback。
+`--tagger regex`，`--no-cache`，public-safe generated fixture。Oracle 是 installed CLI
+help、pprof/folded/JSON/SVG outputs 和 pprof readback。
 
 R253 Setup：`cargo install --git` against `research/semantic-flamegraph-artifacts` branch。
 Result 与 R248 同类，no private-history discovery，no live tagger calls。
@@ -683,8 +687,8 @@ join gate，当前 still false。
 - R251 说明 prompt tags 对 process/effect/status behavior 有 session-beyond association。
 - R189--R218 说明 tag compaction 必须是可逆 display overlay，而不是 raw-label rewrite。
 - R114/R191/R229/R232/R234 支持固定/受控范围内 exact lineage 和 zero negative joins。
-- R160/R200/R220/R248/R253/R254/R256 支持本机 artifact、public fixture、install/readback
-  和 crate-package dry-run 路径。
+- R160/R200/R220/R248/R253/R254/R256 支持本机 artifact、public-safe generated-fixture
+  smoke、install/readback 和 crate-package dry-run 路径。
 
 不能写：
 
