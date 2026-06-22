@@ -105,6 +105,24 @@ agentsight report export -o snapshot.json    # export for web dashboard
 agentsight report --local                    # summarize native Claude/Codex/Gemini sessions
 ```
 
+### Offline Agent pprof Profiles
+
+Use `agentpprof` when you want a no-sudo pprof/folded-stack/SVG summary of
+local Codex or Claude session history:
+
+```bash
+cargo run --manifest-path agentpprof/Cargo.toml -- \
+  --project-root . \
+  --view tasks \
+  -o agent.pb.gz
+
+go tool pprof -top agent.pb.gz
+```
+
+See [agentpprof/README.md](agentpprof/README.md) for CLI details and
+[docs/flamegraph](docs/flamegraph/README.md) for public fixture flamegraphs,
+view selection, and deterministic tagging rules.
+
 ### Web Interface
 
 During a session, visit [http://127.0.0.1:7395](http://127.0.0.1:7395) for live traffic, process trees, and metrics:
