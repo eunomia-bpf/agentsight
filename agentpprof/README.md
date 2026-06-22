@@ -101,7 +101,8 @@ the stack table. Passing `--include-previews` writes prompt, command, and
 LLM-output previews into JSON; avoid it for public artifacts unless the source
 sessions are already sanitized. Path frames outside the selected project root
 are grouped into stable `external/*` buckets so home-directory names are not
-emitted in public profiles.
+emitted in public profiles. See `../docs/flamegraph/` for a public fixture
+gallery and view-by-view usage examples.
 
 ## Tags
 
