@@ -15,7 +15,8 @@ and status.
 | View | Width means | Use it to answer | Stack shape |
 | --- | ---: | --- | --- |
 | `tasks` | LLM-call plus tool-event count | What work dominated this session? | `project -> agent -> session -> prompt -> kind -> call -> model/effect/status` |
-| `tools` | Tool-event count | Which tools, processes, effects, paths, or domains were heavy? | `project -> agent -> session -> prompt -> call:tool/* -> process... -> effect -> path/domain -> status` |
+| `system` | System-effect count | Which tool/process/effect/path/domain chains were heavy? | `project -> agent -> session -> prompt -> call:tool/* -> process... -> effect -> path/domain -> status` |
+| `tools` | Tool-event count | Compatibility alias for the system-effect projection. | same as `system` |
 | `tokens` | Reported or bounded-estimated token count | Which semantic regions consumed model budget? | `project -> agent -> model -> kind(input/output/cache/...) -> session -> prompt -> call` |
 | `files` | File/path effect count | Which prompts touched which path groups? | `project -> agent -> session -> prompt -> path -> effect -> status` |
 | `network` | Network/domain effect count | Which prompts contacted which domains, through which processes? | `project -> agent -> session -> prompt -> domain -> process... -> status` |
@@ -25,17 +26,33 @@ explanation.
 
 ## Example Gallery
 
-These checked-in images are static examples of the five projections. They are
-for visual orientation only; use your own local history or explicit
-`--session-file` inputs for analysis.
+These checked-in images were generated from nine real local Codex/Claude
+sessions for AgentSight with regex tags and redacted outputs. The committed
+files are only SVG and folded-stack projections; they do not include raw
+session logs, prompt previews, command previews, home paths, or secrets. The
+source set includes Codex sessions, a Claude session, and a Claude subagent
+session from local AgentSight development, not hand-written demo data.
+Repo-external local paths are grouped as `external/home`, `external/tmp`,
+`external/codex`, `external/claude`, or `external/path`; private domains that
+include the local username are grouped as `private.domain`.
+
+Gallery source summary:
+
+| View | Sessions | Weight | Unique stacks |
+| --- | ---: | ---: | ---: |
+| `tasks` | 9 | 6,494 events | 602 |
+| `system` | 9 | 3,514 system effects | 1,479 |
+| `tokens` | 9 | 345,866,322 tokens | 732 |
+| `files` | 9 | 2,474 file effects | 909 |
+| `network` | 9 | 208 network effects | 104 |
 
 ### Tasks
 
 ![Tasks flamegraph](examples/tasks.svg)
 
-### Tools
+### System
 
-![Tools flamegraph](examples/tools.svg)
+![System flamegraph](examples/system.svg)
 
 ### Tokens
 
@@ -55,7 +72,7 @@ The output extension selects the common format when `--format` is not provided:
 
 ```bash
 agentpprof -o tasks.svg --view tasks       # prefix-merged SVG flamegraph
-agentpprof -o tools.folded --view tools    # folded stacks for inferno/flamegraph.pl
+agentpprof -o system.folded --view system  # folded stacks for inferno/flamegraph.pl
 agentpprof -o tokens.pb.gz --view tokens   # Go pprof protobuf
 agentpprof -o files.json --view files      # redacted session summary plus stack table
 ```
@@ -70,7 +87,7 @@ go tool pprof -http=:0 tokens.pb.gz
 Folded stacks are plain text:
 
 ```text
-project:repo;agent:codex;session:profile;prompt:test;kind:tool;call:tool/shell;effect:read;status:ok 1
+project:agentsight;agent:claude;session:design;prompt:design;call:tool/shell;process:git;effect:repo;path:feature/agent-behavior-skills;status:ok 1
 ```
 
 ## Tagging
@@ -141,12 +158,43 @@ agentpprof -o tasks.svg --prompt-tag review
 Regenerate views from your own local history:
 
 ```bash
-for view in tasks tools tokens files network; do
+for view in tasks system tokens files network; do
   agentpprof \
     --project-root /path/to/repo \
     --tagger regex \
     --view "$view" \
     -o "${view}.svg"
+done
+```
+
+The checked-in gallery was regenerated from nine explicit real session files
+whose `cwd` was the local AgentSight checkout. The command shape below keeps
+the input set fixed without committing raw logs:
+
+```bash
+session_args=(
+  --session-file ~/.codex/sessions/.../codex-session-1.jsonl
+  --session-file ~/.codex/sessions/.../codex-session-2.jsonl
+  --session-file ~/.claude/projects/.../claude-session.jsonl
+  --session-file ~/.claude/projects/.../subagents/claude-subagent.jsonl
+)
+
+for view in tasks system tokens files network; do
+  agentpprof \
+    --project-root /path/to/agentsight \
+    --project-name agentsight \
+    --tagger regex \
+    "${session_args[@]}" \
+    --view "$view" \
+    -o "docs/flamegraph/examples/${view}.svg"
+
+  agentpprof \
+    --project-root /path/to/agentsight \
+    --project-name agentsight \
+    --tagger regex \
+    "${session_args[@]}" \
+    --view "$view" \
+    -o "docs/flamegraph/examples/${view}.folded"
 done
 ```
 

@@ -88,6 +88,7 @@ enum OutputFormat {
 #[derive(Clone, Copy, Debug, ValueEnum, PartialEq, Eq)]
 enum ProfileView {
     Tasks,
+    System,
     Tools,
     Tokens,
     Files,
@@ -949,7 +950,7 @@ fn build_profile_projection(
 ) -> ProfileProjection {
     let stacks = match view {
         ProfileView::Tasks => build_task_stacks(sessions, project_name),
-        ProfileView::Tools => {
+        ProfileView::System | ProfileView::Tools => {
             let (system, _) = build_folded_stacks(sessions, project_name);
             system
         }
@@ -959,6 +960,7 @@ fn build_profile_projection(
     };
     let (sample_type, unit) = match view {
         ProfileView::Tasks => ("events", "count"),
+        ProfileView::System => ("system_events", "count"),
         ProfileView::Tools => ("tool_events", "count"),
         ProfileView::Tokens => ("tokens", "count"),
         ProfileView::Files => ("file_events", "count"),
@@ -1942,11 +1944,20 @@ fn build_folded_stacks(sessions: &[SessionRecord], project_name: &str) -> (Count
 fn folded_add(counter: &mut Counter, frames: Vec<String>, weight: u64) {
     let stack = frames
         .into_iter()
+        .map(normalize_folded_frame)
         .filter(|frame| !frame.is_empty())
         .collect::<Vec<_>>()
         .join(";");
     if !stack.is_empty() {
         *counter.entry(stack).or_default() += weight.max(1);
+    }
+}
+
+fn normalize_folded_frame(frame: String) -> String {
+    if let Some(path) = frame.strip_prefix("path:") {
+        safe_frame(path, Some("path"))
+    } else {
+        frame
     }
 }
 
@@ -2457,9 +2468,8 @@ fn basename_from_command(command: &str) -> String {
     }
     parts
         .get(idx)
-        .and_then(|part| Path::new(part).file_name().and_then(|v| v.to_str()))
-        .unwrap_or("none")
-        .to_string()
+        .and_then(|part| process_name_from_part(part))
+        .unwrap_or_else(|| "none".to_string())
 }
 
 fn command_process_chain(command: &str) -> Vec<String> {
@@ -2484,14 +2494,11 @@ fn process_chain_from_parts(parts: &[String]) -> Vec<String> {
             idx += 1;
         }
     }
-    let Some(proc_name) = parts
-        .get(idx)
-        .and_then(|part| Path::new(part).file_name().and_then(|v| v.to_str()))
-    else {
+    let Some(proc_name) = parts.get(idx).and_then(|part| process_name_from_part(part)) else {
         return Vec::new();
     };
-    let mut chain = vec![proc_name.to_string()];
-    if ["bash", "sh", "zsh"].contains(&proc_name) {
+    let mut chain = vec![proc_name.clone()];
+    if ["bash", "sh", "zsh"].contains(&proc_name.as_str()) {
         for flag_idx in idx + 1..parts.len().saturating_sub(1) {
             if ["-c", "-lc", "-cl"].contains(&parts[flag_idx].as_str()) {
                 chain.extend(command_process_chain(&parts[flag_idx + 1]));
@@ -2501,6 +2508,23 @@ fn process_chain_from_parts(parts: &[String]) -> Vec<String> {
     }
     chain.truncate(6);
     chain
+}
+
+fn process_name_from_part(part: &str) -> Option<String> {
+    let raw = part.trim_matches(['"', '\'']);
+    if raw.is_empty() {
+        return None;
+    }
+    let path = Path::new(raw);
+    let file_name = path.file_name().and_then(|v| v.to_str()).unwrap_or(raw);
+    let parts = path_component_strings(path);
+    if looks_like_home_directory(&parts) && parts.len() <= 2 {
+        return Some("external".to_string());
+    }
+    if contains_private_marker(file_name) {
+        return Some("external".to_string());
+    }
+    Some(file_name.to_string())
 }
 
 fn split_shell(command: &str) -> Vec<String> {
@@ -2592,38 +2616,40 @@ fn path_group(path: &str, project_root: &Path) -> String {
     }
     let p = Path::new(path);
     let parts = if p.is_absolute() {
-        p.strip_prefix(project_root)
-            .ok()
-            .map(|rel| {
-                rel.components()
-                    .map(|c| c.as_os_str().to_string_lossy().to_string())
-                    .collect::<Vec<_>>()
-            })
-            .unwrap_or_else(|| {
-                p.components()
-                    .map(|c| c.as_os_str().to_string_lossy().to_string())
-                    .rev()
-                    .take(3)
-                    .collect::<Vec<_>>()
-                    .into_iter()
-                    .rev()
-                    .collect()
-            })
+        if let Ok(rel) = p.strip_prefix(project_root) {
+            path_component_strings(rel)
+        } else {
+            return external_path_group(path, &path_component_strings(p));
+        }
     } else {
-        p.components()
-            .map(|c| c.as_os_str().to_string_lossy().to_string())
-            .collect::<Vec<_>>()
+        let parts = path_component_strings(p);
+        if let Some(group) = sensitive_relative_path_group(path, &parts) {
+            return group;
+        }
+        parts
     };
+    collapse_project_path(parts)
+}
+
+fn path_component_strings(path: &Path) -> Vec<String> {
+    path.components()
+        .filter_map(|c| {
+            let part = c.as_os_str().to_string_lossy();
+            let part = part.as_ref();
+            if part == "." || part == "/" || part.is_empty() {
+                None
+            } else {
+                Some(part.to_string())
+            }
+        })
+        .collect()
+}
+
+fn collapse_project_path(parts: Vec<String>) -> String {
     let parts = parts
         .into_iter()
         .filter(|part| part != "." && !part.is_empty())
-        .map(|part| {
-            if part.chars().count() > 48 {
-                format!("{}...", part.chars().take(45).collect::<String>())
-            } else {
-                part
-            }
-        })
+        .map(|part| truncate_path_component(&part))
         .collect::<Vec<_>>();
     if parts.is_empty() {
         "repo".to_string()
@@ -2632,6 +2658,74 @@ fn path_group(path: &str, project_root: &Path) -> String {
     } else {
         parts.into_iter().take(2).collect::<Vec<_>>().join("/")
     }
+}
+
+fn truncate_path_component(part: &str) -> String {
+    if part.chars().count() > 48 {
+        format!("{}...", part.chars().take(45).collect::<String>())
+    } else {
+        part.to_string()
+    }
+}
+
+fn external_path_group(raw: &str, parts: &[String]) -> String {
+    sensitive_relative_path_group(raw, parts).unwrap_or_else(|| "external/path".to_string())
+}
+
+fn sensitive_relative_path_group(raw: &str, parts: &[String]) -> Option<String> {
+    let lowered = raw.to_ascii_lowercase();
+    let lower_parts = parts
+        .iter()
+        .map(|part| part.to_ascii_lowercase())
+        .collect::<Vec<_>>();
+    if lower_parts.iter().any(|part| part == ".codex") {
+        Some("external/codex".to_string())
+    } else if lower_parts.iter().any(|part| part == ".claude") {
+        Some("external/claude".to_string())
+    } else if lower_parts.first().is_some_and(|part| part == "tmp")
+        || lowered.contains("/tmp")
+        || lowered.contains("_/tmp")
+        || lower_parts
+            .windows(2)
+            .any(|window| window[0] == "var" && window[1] == "tmp")
+    {
+        Some("external/tmp".to_string())
+    } else if lowered.starts_with("~/")
+        || lowered == "~"
+        || lowered.contains("/home")
+        || lowered.contains("_/home")
+        || lowered.contains("-home-")
+        || lowered.contains("/users")
+        || lowered.contains("_/users")
+        || looks_like_home_directory(&lower_parts)
+        || contains_private_marker(&lowered)
+    {
+        Some("external/home".to_string())
+    } else {
+        None
+    }
+}
+
+fn looks_like_home_directory(parts: &[String]) -> bool {
+    parts
+        .first()
+        .is_some_and(|part| part == "home" || part == "users")
+}
+
+fn current_username() -> Option<String> {
+    dirs::home_dir()
+        .and_then(|home| {
+            home.file_name()
+                .map(|part| part.to_string_lossy().to_string())
+        })
+        .filter(|name| !name.is_empty())
+}
+
+fn contains_private_marker(text: &str) -> bool {
+    let lowered = text.to_ascii_lowercase();
+    current_username()
+        .map(|name| lowered.contains(&name.to_ascii_lowercase()))
+        .unwrap_or(false)
 }
 
 fn content_to_text(value: &Value) -> String {
@@ -2724,6 +2818,8 @@ fn truncate_clean(text: &str, limit: usize) -> String {
 }
 
 fn safe_frame(text: &str, prefix: Option<&str>) -> String {
+    let text = redact_private_frame_text(text, prefix);
+    let text = normalize_frame_text(&text, prefix);
     let mut out = String::new();
     for ch in text.to_ascii_lowercase().chars() {
         if ch.is_ascii_alphanumeric() || "._:/+-".contains(ch) {
@@ -2741,6 +2837,40 @@ fn safe_frame(text: &str, prefix: Option<&str>) -> String {
     match prefix {
         Some(prefix) => format!("{prefix}:{value}"),
         None => value,
+    }
+}
+
+fn normalize_frame_text(text: &str, prefix: Option<&str>) -> String {
+    if prefix != Some("path") {
+        return text.to_string();
+    }
+    let text = text.trim();
+    let text = text.strip_prefix("path:").unwrap_or(text).trim();
+    if !text.starts_with('/') {
+        return text.to_string();
+    }
+    let collapsed = collapse_project_path(path_component_strings(Path::new(text)));
+    if collapsed == "repo" {
+        "external/path".to_string()
+    } else {
+        collapsed
+    }
+}
+
+fn redact_private_frame_text(text: &str, prefix: Option<&str>) -> String {
+    if !contains_private_marker(text) {
+        return text.to_string();
+    }
+    match prefix {
+        Some("domain") => "private.domain".to_string(),
+        Some("path") => "external/home".to_string(),
+        Some("process") => "external".to_string(),
+        _ => current_username()
+            .map(|name| {
+                text.to_ascii_lowercase()
+                    .replace(&name.to_ascii_lowercase(), "user")
+            })
+            .unwrap_or_else(|| text.to_string()),
     }
 }
 
@@ -2862,6 +2992,56 @@ mod tests {
         assert_eq!(
             command_process_chain("bash -lc 'cargo test --manifest-path collector/Cargo.toml'"),
             vec!["bash".to_string(), "cargo".to_string()]
+        );
+    }
+
+    #[test]
+    fn external_paths_are_redacted_to_stable_groups() {
+        let root = Path::new("/repo");
+        assert_eq!(
+            path_group("/repo/docs/flamegraph/README.md", root),
+            "docs/flamegraph/README.md"
+        );
+        assert_eq!(
+            path_group("/home/someone/.codex/sessions/session.jsonl", root),
+            "external/codex"
+        );
+        assert_eq!(
+            path_group("/Users/someone/.claude/projects/run.jsonl", root),
+            "external/claude"
+        );
+        assert_eq!(
+            path_group("/tmp/agentsight-run/out.json", root),
+            "external/tmp"
+        );
+        assert_eq!(path_group("~/workspace/private.txt", root), "external/home");
+    }
+
+    #[test]
+    fn path_frames_do_not_look_absolute() {
+        assert_eq!(safe_frame("/.git", Some("path")), "path:.git");
+        assert_eq!(safe_frame("path:/.git", Some("path")), "path:.git");
+        assert_eq!(safe_frame("/target", Some("path")), "path:target");
+        assert_eq!(safe_frame("/", Some("path")), "path:external/path");
+
+        let mut stacks = Counter::new();
+        folded_add(
+            &mut stacks,
+            vec!["project:agentsight".to_string(), "path:/.git".to_string()],
+            1,
+        );
+        assert!(stacks.contains_key("project:agentsight;path:.git"));
+    }
+
+    #[test]
+    fn process_names_do_not_expose_home_directory_components() {
+        assert_eq!(
+            process_name_from_part("/home/someone/.local/bin/claude"),
+            Some("claude".to_string())
+        );
+        assert_eq!(
+            process_name_from_part("/home/someone"),
+            Some("external".to_string())
         );
     }
 
@@ -3046,6 +3226,52 @@ mod tests {
             ),
             Some(&1)
         );
+    }
+
+    #[test]
+    fn system_view_matches_legacy_tools_projection() {
+        let session = SessionRecord {
+            source: "codex".to_string(),
+            path: PathBuf::from("session.jsonl"),
+            session_id: "s1".to_string(),
+            cwd: "/repo".to_string(),
+            agent_role: "agent".to_string(),
+            model: "gpt-5".to_string(),
+            title: "inspect repo".to_string(),
+            start_ts_ms: Some(1),
+            user_requests: vec![UserRequest {
+                index: 0,
+                ts_ms: Some(2),
+                text_hash: "h1".to_string(),
+                preview: "inspect files".to_string(),
+                tag: "inspect".to_string(),
+            }],
+            tools: vec![ToolEvent {
+                ts_ms: Some(3),
+                request_index: 0,
+                tool_name: "shell".to_string(),
+                category: "shell".to_string(),
+                command: "rg TODO".to_string(),
+                command_name: "rg".to_string(),
+                effect: "read".to_string(),
+                process_chain: vec!["rg".to_string()],
+                status: "ok".to_string(),
+                path_groups: vec!["repo".to_string()],
+                domains: vec![],
+                call_id: Some("call-1".to_string()),
+            }],
+            llm_calls: vec![],
+            session_tag: "profile".to_string(),
+        };
+        let system = build_profile_projection(
+            std::slice::from_ref(&session),
+            "agentsight",
+            ProfileView::System,
+        );
+        let tools = build_profile_projection(&[session], "agentsight", ProfileView::Tools);
+        assert_eq!(system.stacks, tools.stacks);
+        assert_eq!(system.sample_type, "system_events");
+        assert_eq!(tools.sample_type, "tool_events");
     }
 
     #[test]

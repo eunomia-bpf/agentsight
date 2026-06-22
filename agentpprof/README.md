@@ -46,6 +46,7 @@ Use `--view` to choose the projection:
 
 ```bash
 agentpprof -o tasks.pb.gz --view tasks
+agentpprof -o system.pb.gz --view system
 agentpprof -o tools.pb.gz --view tools
 agentpprof -o tokens.pb.gz --view tokens
 agentpprof -o files.pb.gz --view files
@@ -55,8 +56,9 @@ agentpprof -o network.pb.gz --view network
 Widths mean different things by view:
 
 - `tasks`: event count across tool and LLM-call activity.
-- `tools`: tool event count, including tool category, process chain, effect,
-  path/domain, and status frames.
+- `system`: system-effect count, including tool category, process chain,
+  effect, path/domain, and status frames.
+- `tools`: compatibility alias for the system-effect projection.
 - `tokens`: token count when reported by the agent log; otherwise bounded text
   estimates. Very large unsafe estimates are recorded as `unknown=1` so one
   replayed transcript cannot dominate the profile with bogus token width.
@@ -79,6 +81,9 @@ single prefix-merged flamegraph built from the folded stacks. JSON output
 includes redacted session summaries and the stack table. Passing
 `--include-previews` writes prompt, command, and LLM-output previews into JSON;
 avoid it for public artifacts unless the source sessions are already sanitized.
+Path frames outside the selected project root are grouped into stable
+`external/*` buckets so home-directory names are not emitted in public
+profiles.
 See `../docs/flamegraph/` for a flamegraph gallery and view-by-view usage
 examples.
 
