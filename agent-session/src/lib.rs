@@ -38,5 +38,5 @@ pub use parser::{
 // Re-export process matching types and functions
 pub use process_match::{
     LiveProcessCandidate, ProcessKey, ProcessTree, SessionProcessInput, SessionProcessMatch,
-    SessionProcessMatches, SessionProcessMatcher,
+    SessionProcessMatcher, SessionProcessMatches,
 };

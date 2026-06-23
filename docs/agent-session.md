@@ -20,6 +20,13 @@ session IR for applications such as AgentSight.
 - No UI, report rendering, database schema, or eBPF capture logic.
 - No dependency on AgentSight collector internals.
 
+## OTel Alignment
+
+`agent-session` remains a local IR. Its public fields use OTel-friendly names
+where they fit: `agent_type`, `conversation_id`, and aggregate `usage`.
+AgentSight maps those fields to OTLP only at export time and leaves
+`conversation_id` unset when a native log has no real session/thread id.
+
 ## Release
 
 AgentSight's release workflow publishes `agent-session` before publishing

@@ -294,7 +294,7 @@ fn raw_mentions_project(path: &Path, project_root: &Path) -> bool {
 
 fn record_from_agent_session(session: &AgentSession) -> SessionRecord {
     SessionRecord {
-        source: session.agent.clone(),
+        source: session.agent_type.clone(),
         path: session.path.clone(),
         session_id: session.session_id.clone(),
         cwd: session.cwd.clone().unwrap_or_default(),

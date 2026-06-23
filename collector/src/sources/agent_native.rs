@@ -36,7 +36,7 @@ pub(crate) fn snapshot(
 }
 
 fn view_id(session: &LocalSession) -> String {
-    format!("local:{}:{}", session.agent, session.display_id)
+    format!("local:{}:{}", session.agent_type, session.display_id)
 }
 
 pub(crate) fn materialized_view(sessions: &[LocalSession]) -> MaterializedView {
@@ -128,7 +128,10 @@ pub(crate) fn observed_session_prompt_rows(audit_rows: &[AuditEventRow]) -> Vec<
             timestamp_ms: row.timestamp_ms,
             audit_type: "llm".to_string(),
             pid: Some(pid),
-            comm: row.comm.clone().or_else(|| Some(session.agent.clone())),
+            comm: row
+                .comm
+                .clone()
+                .or_else(|| Some(session.agent_type.clone())),
             subject: session.model.clone(),
             action: Some("request".to_string()),
             target: Some(path.to_string_lossy().to_string()),
@@ -138,7 +141,8 @@ pub(crate) fn observed_session_prompt_rows(audit_rows: &[AuditEventRow]) -> Vec<
                 "text_content": prompt,
                 "prompt_source": "local",
                 "session_id": view_id(&session),
-                "agent": session.agent,
+                "conversation_id": session.conversation_id.as_deref(),
+                "agent_type": session.agent_type,
             }),
         });
     }
@@ -167,19 +171,21 @@ fn session_row(session: &LocalSession) -> SessionRow {
     let updated_ms = updated_ms(session);
     SessionRow {
         id: view_id(session),
-        agent_type: session.agent.clone(),
+        agent_type: session.agent_type.clone(),
         start_timestamp_ms: session
             .start_timestamp_ms
             .unwrap_or_else(|| updated_ms.saturating_sub(session.duration_ms)),
         end_timestamp_ms: session.end_timestamp_ms.or(Some(updated_ms)),
         status: "observed".to_string(),
         model: session.model.clone(),
-        input_tokens: session.token_usage.input_tokens,
-        output_tokens: session.token_usage.output_tokens,
-        total_tokens: session.token_usage.total_tokens,
+        input_tokens: session.usage.input_tokens,
+        output_tokens: session.usage.output_tokens,
+        total_tokens: session.usage.total_tokens,
         view_source: AGENT_NATIVE_SOURCE.to_string(),
         confidence: Some(0.95),
         attributes: serde_json::json!({
+            "session_id": session.session_id.clone(),
+            "conversation_id": session.conversation_id.as_deref(),
             "path": session.path.to_string_lossy(),
             "display_id": session.display_id,
             "prompt_preview": session.prompt_preview.clone(),
@@ -201,7 +207,7 @@ fn token_rows(session: &LocalSession) -> Vec<TokenUsageRow> {
             llm_call_id: format!("{session_id}-{model}"),
             timestamp_ms: updated_ms(session),
             pid: None,
-            comm: Some(session.agent.clone()),
+            comm: Some(session.agent_type.clone()),
             provider: None,
             model: Some(model.clone()),
             input_tokens: usage.input_tokens,
@@ -225,7 +231,7 @@ fn tool_rows(session: &LocalSession) -> Vec<ToolCallRow> {
             rows.push(ToolCallRow {
                 id: format!("tool-{session_id}-{}-{index}", sanitize_id(tool)),
                 session_id: Some(session_id.clone()),
-                conversation_id: None,
+                conversation_id: session.conversation_id.clone(),
                 timestamp_ms,
                 tool_name: Some(tool.clone()),
                 tool_call_id: None,
@@ -265,7 +271,7 @@ fn matches_filter(
         return true;
     };
     let filter = filter.to_ascii_lowercase();
-    session.agent.to_ascii_lowercase().contains(&filter)
+    session.agent_type.to_ascii_lowercase().contains(&filter)
         || session
             .prompt_preview
             .as_ref()

@@ -36,6 +36,7 @@ struct SpanInput {
     provider: String,
     server_address: String,
     model: Option<String>,
+    conversation_id: Option<String>,
     max_tokens: Option<i64>,
     temperature: Option<f64>,
     top_p: Option<f64>,
@@ -159,6 +160,9 @@ fn build_otlp_payload(
         attr_str("gen_ai.provider.name", &req.provider),
         attr_str("server.address", &req.server_address),
     ];
+    if let Some(conversation_id) = &req.conversation_id {
+        attributes.push(attr_str("gen_ai.conversation.id", conversation_id));
+    }
     if let Some(model) = &req.model {
         attributes.push(attr_str("gen_ai.request.model", model));
     }
@@ -250,6 +254,7 @@ impl SpanInput {
                 .clone()
                 .unwrap_or_else(|| provider_from_host(host)),
             server_address: host.to_string(),
+            conversation_id: conversation_id_from_request(request),
             model: call.model.clone().or_else(|| {
                 request
                     .get("model")
@@ -300,6 +305,16 @@ impl ViewSink for OtelExporter {
         });
         Ok(())
     }
+}
+
+fn conversation_id_from_request(request: &Value) -> Option<String> {
+    ["conversation_id", "conversationId", "thread_id", "threadId"]
+        .iter()
+        .filter_map(|key| request.get(*key).and_then(Value::as_str))
+        .find(|value| !value.is_empty())
+        .or_else(|| request.pointer("/conversation/id").and_then(Value::as_str))
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
 }
 
 /// POST an OTLP/HTTP JSON trace payload to the collector.
@@ -381,6 +396,7 @@ mod tests {
             provider: "openai".to_string(),
             server_address: "api.openai.com".to_string(),
             model: Some("gpt-4o".to_string()),
+            conversation_id: Some("conv_123".to_string()),
             max_tokens: Some(256),
             temperature: Some(0.7),
             top_p: None,
@@ -423,6 +439,19 @@ mod tests {
             "gpt-4o"
         );
         assert_eq!(
+            find("gen_ai.conversation.id").unwrap()["value"]["stringValue"],
+            "conv_123"
+        );
+        assert_eq!(
+            conversation_id_from_request(&json!({ "conversation": { "id": "conv_123" } }))
+                .as_deref(),
+            Some("conv_123")
+        );
+        assert_eq!(
+            conversation_id_from_request(&json!({ "session_id": "sid_123" })),
+            None
+        );
+        assert_eq!(
             find("gen_ai.request.max_tokens").unwrap()["value"]["intValue"],
             "256"
         );
@@ -446,6 +475,7 @@ mod tests {
             provider: "openai".to_string(),
             server_address: "api.openai.com".to_string(),
             model: Some("gpt-4o".to_string()),
+            conversation_id: None,
             max_tokens: None,
             temperature: None,
             top_p: None,

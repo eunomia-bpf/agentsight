@@ -44,15 +44,16 @@ impl TokenUsage {
 /// A parsed agent session with metadata, token usage, and tool invocations.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AgentSession {
-    pub agent: String,
+    pub agent_type: String,
     pub session_id: String,
+    pub conversation_id: Option<String>,
     pub display_id: String,
     pub path: PathBuf,
     pub updated: SystemTime,
     pub start_timestamp_ms: Option<u64>,
     pub end_timestamp_ms: Option<u64>,
     pub model: Option<String>,
-    pub token_usage: TokenUsage,
+    pub usage: TokenUsage,
     pub model_usage: BTreeMap<String, TokenUsage>,
     pub tools: BTreeMap<String, usize>,
     pub files: BTreeMap<String, usize>,

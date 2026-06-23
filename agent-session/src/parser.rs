@@ -190,8 +190,12 @@ fn parse_jsonl(
         let Ok(obj) = serde_json::from_str::<Value>(line) else {
             continue;
         };
-        if let Some(id) = local_session_id(&obj) {
+        let (session_id, conversation_id) = local_session_ids(&obj);
+        if let Some(id) = session_id {
             acc.session_id = id;
+        }
+        if let Some(id) = conversation_id {
+            acc.conversation_id = Some(id);
         }
         if acc.cwd.is_none() {
             acc.cwd = obj
@@ -345,6 +349,7 @@ fn parse_gemini_json(path: &Path, updated: SystemTime, content: &str) -> Option<
     let mut acc = SessionAccumulator::new(AGENT_GEMINI, path, updated);
     if let Some(id) = root.get("sessionId").and_then(Value::as_str) {
         acc.session_id = id.to_string();
+        acc.conversation_id = Some(id.to_string());
     }
     acc.start_timestamp_ms = root
         .get("startTime")
@@ -406,8 +411,9 @@ fn parse_gemini_json(path: &Path, updated: SystemTime, content: &str) -> Option<
 }
 
 struct SessionAccumulator {
-    agent: String,
+    agent_type: String,
     session_id: String,
+    conversation_id: Option<String>,
     path: PathBuf,
     updated: SystemTime,
     start_timestamp_ms: Option<u64>,
@@ -431,8 +437,9 @@ impl SessionAccumulator {
             .unwrap_or("session")
             .to_string();
         Self {
-            agent: agent.to_string(),
+            agent_type: agent.to_string(),
             session_id,
+            conversation_id: None,
             path: normalized.clone(),
             updated,
             start_timestamp_ms: None,
@@ -509,10 +516,11 @@ impl SessionAccumulator {
         {
             return None;
         }
-        let display_id = format!("{}:{}", self.agent, short_session_id(&self.session_id));
+        let display_id = format!("{}:{}", self.agent_type, short_session_id(&self.session_id));
         Some(AgentSession {
-            agent: self.agent,
+            agent_type: self.agent_type,
             session_id: self.session_id,
+            conversation_id: self.conversation_id,
             display_id,
             path: self.path,
             updated: self.updated,
@@ -521,7 +529,7 @@ impl SessionAccumulator {
                 .or_else(|| Some(system_time_ms(self.updated).saturating_sub(self.duration_ms))),
             end_timestamp_ms: self.end_timestamp_ms,
             model: self.model,
-            token_usage,
+            usage: token_usage,
             model_usage: self.model_usage,
             tools: self.tools,
             files: self.files,
@@ -607,22 +615,39 @@ fn add_usage(
     );
 }
 
-fn local_session_id(obj: &Value) -> Option<String> {
-    for key in ["sessionId", "session_id", "conversation_id"] {
-        if let Some(value) = obj.get(key).and_then(Value::as_str)
-            && !value.is_empty()
-        {
-            return Some(value.to_string());
-        }
-    }
-    for pointer in ["/payload/session_id", "/payload/sessionId"] {
-        if let Some(value) = obj.pointer(pointer).and_then(Value::as_str)
-            && !value.is_empty()
-        {
-            return Some(value.to_string());
-        }
-    }
-    None
+fn local_session_ids(obj: &Value) -> (Option<String>, Option<String>) {
+    let session_id = first_json_string(
+        obj,
+        &["sessionId", "session_id"],
+        &["/payload/session_id", "/payload/sessionId"],
+    );
+    let conversation_id = first_json_string(
+        obj,
+        &["conversation_id", "conversationId", "thread_id", "threadId"],
+        &[
+            "/payload/conversation_id",
+            "/payload/conversationId",
+            "/payload/thread_id",
+            "/payload/threadId",
+        ],
+    )
+    .or_else(|| session_id.clone());
+    (
+        session_id.or_else(|| conversation_id.clone()),
+        conversation_id,
+    )
+}
+
+fn first_json_string(obj: &Value, keys: &[&str], pointers: &[&str]) -> Option<String> {
+    keys.iter()
+        .filter_map(|key| obj.get(*key).and_then(Value::as_str))
+        .chain(
+            pointers
+                .iter()
+                .filter_map(|pointer| obj.pointer(pointer).and_then(Value::as_str)),
+        )
+        .find(|value| !value.is_empty())
+        .map(str::to_string)
 }
 
 fn strip_codex_exec_option(args: &str) -> Option<&str> {
@@ -774,4 +799,26 @@ fn system_time_ms(value: SystemTime) -> u64 {
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
         .as_millis() as u64
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn local_session_ids_keep_distinct_conversation_id() {
+        assert_eq!(
+            local_session_ids(&json!({"sessionId": "run", "conversation_id": "conv"})),
+            (Some("run".to_string()), Some("conv".to_string()))
+        );
+        assert_eq!(
+            local_session_ids(&json!({"payload": {"thread_id": "thread"}})),
+            (Some("thread".to_string()), Some("thread".to_string()))
+        );
+        assert_eq!(
+            local_session_ids(&json!({"payload": {"model": "gpt"}})),
+            (None, None)
+        );
+    }
 }

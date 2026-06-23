@@ -92,6 +92,7 @@ Per the GenAI agent/model span conventions:
 |-----------|--------|
 | `gen_ai.operation.name` | `chat` |
 | `gen_ai.provider.name` | derived from the API host (`openai`, `anthropic`, `gcp.gen_ai`, `azure.ai.openai`, …) |
+| `gen_ai.conversation.id` | real conversation/thread/session id from the provider request body when available; never synthesized |
 | `gen_ai.request.model` | request body `model` |
 | `gen_ai.request.max_tokens` / `temperature` / `top_p` | request body |
 | `gen_ai.response.model` / `gen_ai.response.id` | response body |
@@ -122,7 +123,8 @@ JSON still emit a span with the request attributes and HTTP status.
 
 - OTLP/**HTTP** only (the standard collector receiver). For a remote collector
   behind TLS, run a local collector and let it forward upstream.
-- One span per request/response pair (`chat`); multi-agent workflow spans
-  (`invoke_agent`, `execute_tool`) are not yet emitted — see issue #47.
+- Tool/workflow spans (`execute_tool`, `invoke_agent`, `invoke_workflow`,
+  `plan`) are not emitted yet; native transcript tools may be only aggregated
+  requests, and AgentSight-specific provenance stays in AgentSight rows.
 - The GenAI conventions are still experimental; attribute names track the
   current spec.
