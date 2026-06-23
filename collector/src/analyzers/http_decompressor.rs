@@ -227,6 +227,21 @@ mod tests {
     }
 
     #[test]
+    fn decompresses_brotli_and_zstd_response_bodies() {
+        let mut br = Vec::new();
+        {
+            let mut encoder = brotli::CompressorWriter::new(&mut br, 4096, 5, 22);
+            encoder.write_all(b"brotli-body").unwrap();
+        }
+        let event = HTTPDecompressor::process_event(http_response(br, "br"));
+        assert_eq!(event.data["body"].as_str().unwrap(), "brotli-body");
+
+        let zstd = zstd::stream::encode_all(Cursor::new(b"zstd-body"), 1).unwrap();
+        let event = HTTPDecompressor::process_event(http_response(zstd, "zstd"));
+        assert_eq!(event.data["body"].as_str().unwrap(), "zstd-body");
+    }
+
+    #[test]
     fn leaves_requests_and_unknown_encodings_unchanged() {
         let mut request = http_response(b"abc".to_vec(), "gzip");
         request.data["message_type"] = Value::String("request".to_string());

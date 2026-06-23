@@ -583,6 +583,69 @@ fn network_target_id(target: &NetworkTargetRow) -> String {
     )
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn open_migrates_legacy_llm_calls_schema() {
+        let temp = tempfile::tempdir().unwrap();
+        let db = temp.path().join("legacy.db");
+        {
+            let conn = Connection::open(&db).unwrap();
+            conn.execute_batch(
+                r#"
+                CREATE TABLE llm_calls (
+                  id TEXT PRIMARY KEY,
+                  start_timestamp_ms INTEGER NOT NULL,
+                  end_timestamp_ms INTEGER,
+                  pid INTEGER,
+                  comm TEXT,
+                  provider TEXT,
+                  model TEXT,
+                  host TEXT,
+                  path TEXT,
+                  status_code INTEGER,
+                  request_body_json TEXT,
+                  response_body_json TEXT,
+                  view_source TEXT,
+                  confidence REAL
+                );
+                INSERT INTO llm_calls (
+                  id, start_timestamp_ms, end_timestamp_ms, pid, comm, provider, model,
+                  host, path, status_code, request_body_json, response_body_json,
+                  view_source, confidence
+                ) VALUES (
+                  'legacy-call', 1000, 1100, 42, 'agent', 'openai', 'gpt-test',
+                  'api.openai.com', '/v1/chat/completions', 200, '{}', '{}',
+                  'view', 0.75
+                );
+                "#,
+            )
+            .unwrap();
+        }
+
+        let store = SqliteStore::open(&db).unwrap();
+        for column in [
+            "session_id",
+            "conversation_id",
+            "call_kind",
+            "status",
+            "error_type",
+            "finish_reason",
+        ] {
+            assert!(store.has_column("llm_calls", column), "{column}");
+        }
+
+        let calls = store.all_llm_call_rows().unwrap();
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0].id, "legacy-call");
+        assert_eq!(calls[0].status, "observed");
+        assert_eq!(calls[0].session_id, None);
+        assert_eq!(calls[0].conversation_id, None);
+    }
+}
+
 const SCHEMA: &str = r#"
 CREATE TABLE IF NOT EXISTS network_targets (
   id TEXT PRIMARY KEY,
