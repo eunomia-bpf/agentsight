@@ -119,6 +119,15 @@ cargo run --manifest-path agentpprof/Cargo.toml -- \
 go tool pprof -top agent.pb.gz
 ```
 
+The `tasks` view is the best first flamegraph: it aggregates real local
+Codex/Claude AgentSight development sessions by project, agent, session tag,
+prompt tag, and tool/LLM activity.
+
+<div align="center">
+  <img src="https://github.com/eunomia-bpf/agentsight/raw/master/docs/flamegraph/examples/tasks.svg" alt="agentpprof task flamegraph from real AgentSight development sessions" width="1000">
+  <p><em>Offline task profile generated from real local AgentSight coding-agent sessions</em></p>
+</div>
+
 See [agentpprof/README.md](agentpprof/README.md) for CLI details and
 [docs/flamegraph](docs/flamegraph/README.md) for flamegraph examples, view
 selection, and deterministic tagging rules.
