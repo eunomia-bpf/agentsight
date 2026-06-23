@@ -75,6 +75,18 @@ jobs:
         cd collector
         cargo test --verbose
 
+    - name: Build agentpprof
+      run: |
+        cargo build --manifest-path agentpprof/Cargo.toml --verbose
+
+    - name: Run agentpprof clippy (deny warnings)
+      run: |
+        cargo clippy --manifest-path agentpprof/Cargo.toml --all-targets -- -D warnings
+
+    - name: Run agentpprof tests
+      run: |
+        cargo test --manifest-path agentpprof/Cargo.toml --verbose
+
     # Rebuild the C unit tests under AddressSanitizer and run them. Done last and
     # after `make clean` so the ASan objects don't replace the BPF binaries that
     # the Rust collector build embeds above.
@@ -211,6 +223,8 @@ jobs:
             echo "::notice::Git tag ${TAG} already exists; trying next patch version."
           elif crates_io_version_exists "agentsight" "$VERSION"; then
             echo "::notice::crates.io agentsight ${VERSION} already exists; trying next patch version."
+          elif crates_io_version_exists "agentpprof" "$VERSION"; then
+            echo "::notice::crates.io agentpprof ${VERSION} already exists; trying next patch version."
           else
             break
           fi
@@ -233,15 +247,20 @@ jobs:
 
         sed -i "s/^version = \".*\"/version = \"$AGENT_SESSION_VERSION\"/" agent-session/Cargo.toml
         sed -i "s/agent-session = { version = \"[^\"]*\", path = \"..\\/agent-session\" }/agent-session = { version = \"$AGENT_SESSION_VERSION\", path = \"..\\/agent-session\" }/" collector/Cargo.toml
+        sed -i "s/^version = \".*\"/version = \"$VERSION\"/" agentpprof/Cargo.toml
+        sed -i "s/agent-session = { version = \"[^\"]*\", path = \"..\\/agent-session\" }/agent-session = { version = \"$AGENT_SESSION_VERSION\", path = \"..\\/agent-session\" }/" agentpprof/Cargo.toml
         cd collector
         cargo generate-lockfile
         cd ..
+        cargo generate-lockfile --manifest-path agentpprof/Cargo.toml
 
         echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
         echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
         echo "agent_session_version=${AGENT_SESSION_VERSION}" >> "$GITHUB_OUTPUT"
+        echo "agentpprof_version=${VERSION}" >> "$GITHUB_OUTPUT"
         echo "Using release version v${VERSION}"
         echo "Using agent-session version ${AGENT_SESSION_VERSION}"
+        echo "Using agentpprof version ${VERSION}"
 
     - name: Setup Node.js
       uses: actions/setup-node@v3
@@ -256,7 +275,9 @@ jobs:
           make git clang llvm pkg-config build-essential
 
     - name: Build package
-      run: make build
+      run: |
+        make build
+        cargo build --release --manifest-path agentpprof/Cargo.toml
 
     - name: Commit release snapshot
       id: commit_release
@@ -270,7 +291,7 @@ jobs:
         # build.rs vendors generated BPF/frontend assets into collector/vendor.
         # Commit the full release snapshot before tagging or publishing so the
         # GitHub release, crates.io package, and master source agree.
-        git add agent-session/Cargo.toml collector/Cargo.toml collector/Cargo.lock collector/vendor
+        git add agent-session/Cargo.toml collector/Cargo.toml collector/Cargo.lock collector/vendor agentpprof/Cargo.toml agentpprof/Cargo.lock
         if git diff --cached --quiet; then
           echo "Release snapshot already matches ${VERSION}; no commit needed."
         else
@@ -278,9 +299,9 @@ jobs:
           git push origin "HEAD:${GITHUB_REF#refs/heads/}"
         fi
 
-        if [ -n "$(git status --porcelain --untracked-files=all -- agent-session collector)" ]; then
+        if [ -n "$(git status --porcelain --untracked-files=all -- agent-session collector agentpprof)" ]; then
           echo "::error::release snapshot has uncommitted files after commit."
-          git status --short --untracked-files=all -- agent-session collector
+          git status --short --untracked-files=all -- agent-session collector agentpprof
           exit 1
         fi
 
@@ -297,6 +318,8 @@ jobs:
         grep -q "^version = \"$VERSION_NO_V\"" collector/Cargo.toml
         grep -q "^version = \"${{ steps.set_version.outputs.agent_session_version }}\"" agent-session/Cargo.toml
         grep -q "agent-session = { version = \"${{ steps.set_version.outputs.agent_session_version }}\", path = \"../agent-session\" }" collector/Cargo.toml
+        grep -q "^version = \"$VERSION_NO_V\"" agentpprof/Cargo.toml
+        grep -q "agent-session = { version = \"${{ steps.set_version.outputs.agent_session_version }}\", path = \"../agent-session\" }" agentpprof/Cargo.toml
 
     - name: Smoke test local release binary
       run: |
@@ -307,6 +330,16 @@ jobs:
         for cmd in top monitor record report debug; do
           if ! grep -Eq "^[[:space:]]+$cmd[[:space:]]" /tmp/agentsight-local-help.txt; then
             echo "::error::local release binary is missing '$cmd' in agentsight --help"
+            exit 1
+          fi
+        done
+
+        agentpprof/target/release/agentpprof --version
+        agentpprof/target/release/agentpprof --help | tee /tmp/agentpprof-local-help.txt
+
+        for flag in "--output" "--view" "--tagger" "--session-file"; do
+          if ! grep -Fq -- "$flag" /tmp/agentpprof-local-help.txt; then
+            echo "::error::local release binary is missing '$flag' in agentpprof --help"
             exit 1
           fi
         done
@@ -363,11 +396,17 @@ jobs:
         cd collector
         cargo package
 
+    - name: Verify agentpprof Cargo package
+      run: |
+        CARGO_TARGET_DIR=/tmp/agentsight-agentpprof-package \
+          cargo package --manifest-path agentpprof/Cargo.toml
+
     - name: Publish Release
       uses: softprops/action-gh-release@v2
       with:
         files: |
           collector/target/release/agentsight
+          agentpprof/target/release/agentpprof
         prerelease: false
         tag_name: ${{ steps.set_version.outputs.tag }}
         target_commitish: ${{ steps.commit_release.outputs.publish_sha }}
@@ -388,6 +427,11 @@ jobs:
           --pattern agentsight \
           --dir "$smoke_dir" \
           --clobber
+        gh release download "$RELEASE_TAG" \
+          --repo "$GITHUB_REPOSITORY" \
+          --pattern agentpprof \
+          --dir "$smoke_dir" \
+          --clobber
 
         chmod +x "$smoke_dir/agentsight"
         "$smoke_dir/agentsight" --version
@@ -396,6 +440,17 @@ jobs:
         for cmd in top monitor record report debug; do
           if ! grep -Eq "^[[:space:]]+$cmd[[:space:]]" "$smoke_dir/help.txt"; then
             echo "::error::release artifact is missing '$cmd' in agentsight --help"
+            exit 1
+          fi
+        done
+
+        chmod +x "$smoke_dir/agentpprof"
+        "$smoke_dir/agentpprof" --version
+        "$smoke_dir/agentpprof" --help | tee "$smoke_dir/agentpprof-help.txt"
+
+        for flag in "--output" "--view" "--tagger" "--session-file"; do
+          if ! grep -Fq -- "$flag" "$smoke_dir/agentpprof-help.txt"; then
+            echo "::error::release artifact is missing '$flag' in agentpprof --help"
             exit 1
           fi
         done
@@ -442,6 +497,51 @@ jobs:
         for cmd in top monitor record report debug; do
           if ! grep -Eq "^[[:space:]]+$cmd[[:space:]]" /tmp/agentsight-cargo-install-help.txt; then
             echo "::error::cargo-installed agentsight is missing '$cmd' in --help"
+            exit 1
+          fi
+        done
+
+    - name: Publish agentpprof crate to crates.io
+      env:
+        CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      run: |
+        set -euo pipefail
+        if [ -z "${CARGO_REGISTRY_TOKEN:-}" ]; then
+          echo "::error::CARGO_REGISTRY_TOKEN is not set; cannot publish to crates.io."
+          exit 1
+        fi
+
+        cargo publish --manifest-path agentpprof/Cargo.toml
+
+    - name: Smoke test agentpprof cargo install from crates.io
+      env:
+        VERSION: ${{ steps.set_version.outputs.agentpprof_version }}
+      run: |
+        set -euo pipefail
+
+        install_dir="$(mktemp -d)"
+        for attempt in 1 2 3 4 5 6; do
+          if cargo install agentpprof \
+            --version "$VERSION" \
+            --locked \
+            --root "$install_dir"; then
+            break
+          fi
+
+          if [ "$attempt" -eq 6 ]; then
+            echo "::error::cargo install agentpprof ${VERSION} failed after ${attempt} attempts"
+            exit 1
+          fi
+
+          sleep $((attempt * 10))
+        done
+
+        "$install_dir/bin/agentpprof" --version
+        "$install_dir/bin/agentpprof" --help | tee /tmp/agentpprof-cargo-install-help.txt
+
+        for flag in "--output" "--view" "--tagger" "--session-file"; do
+          if ! grep -Fq -- "$flag" /tmp/agentpprof-cargo-install-help.txt; then
+            echo "::error::cargo-installed agentpprof is missing '$flag' in --help"
             exit 1
           fi
         done

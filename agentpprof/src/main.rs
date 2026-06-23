@@ -22,6 +22,7 @@ const TAG_GRAMMAR: &str =
 
 #[derive(Parser)]
 #[command(name = "agentpprof")]
+#[command(version)]
 #[command(about = "pprof-compatible semantic profiler for local AI coding-agent sessions")]
 struct Cli {
     /// Output file. Use .pb.gz for Go pprof, .folded for folded stacks, .svg for an SVG flamegraph, or .json.

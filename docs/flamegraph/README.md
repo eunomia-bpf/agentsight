@@ -5,6 +5,9 @@ semantic profiles. The SVG output is a prefix-merged flamegraph: shared stack
 prefixes are drawn once, and each frame width is the inclusive weight below
 that frame.
 
+For the complete tool guide, release contract, and tagging model, see
+[docs/agentpprof.md](../agentpprof.md).
+
 Read the SVG from bottom to top. The lower frames are broader context such as
 `project`, `agent`, `session`, and `prompt`; upper frames are more specific
 activity such as LLM calls, tools, processes, file effects, network domains,
