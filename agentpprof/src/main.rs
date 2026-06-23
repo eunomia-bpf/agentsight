@@ -1795,11 +1795,9 @@ fn enrich_claude(
                 });
             }
         }
-        "last-prompt" => {
-            if record.user_requests.is_empty() {
-                if let Some(text) = value.get("lastPrompt").and_then(Value::as_str) {
-                    *current_request = upsert_prompt(record, ts_ms, text);
-                }
+        "last-prompt" if record.user_requests.is_empty() => {
+            if let Some(text) = value.get("lastPrompt").and_then(Value::as_str) {
+                *current_request = upsert_prompt(record, ts_ms, text);
             }
         }
         _ => {}
