@@ -294,7 +294,7 @@ impl MaterializedView {
         if row.command.is_some() {
             existing.command = row.command.clone();
         }
-        if !row.argv.is_empty() {
+        if existing.argv.is_empty() && !row.argv.is_empty() {
             existing.argv = row.argv.clone();
         }
         if row.cwd.is_some() {
@@ -548,12 +548,14 @@ fn token_has_higher_priority(candidate: &TokenUsageRow, current: &TokenUsageRow)
 
 fn token_source_priority(source: &str) -> u8 {
     match source {
-        // Agent-native sources are authoritative — prefer them over SSL-captured data.
-        AGENT_NATIVE_SOURCE => 0,
-        "gemini_cli_stdout_stats" => 1,
-        "claude_telemetry" => 2,
-        "response_usage" | "orphan_response_usage" => 3,
-        _ => 4,
+        // Network-observed response usage is the primary fact source. Native
+        // session logs enrich or backfill when no network call was captured.
+        "response_usage" => 0,
+        "orphan_response_usage" => 1,
+        "gemini_cli_stdout_stats" => 2,
+        "claude_telemetry" => 3,
+        AGENT_NATIVE_SOURCE => 4,
+        _ => 5,
     }
 }
 
@@ -665,5 +667,45 @@ mod tests {
             MAX_RESOURCE_SAMPLES_IN_MEMORY
         );
         assert_eq!(snapshot.resource_samples[0].timestamp_ms, 5);
+    }
+
+    #[test]
+    fn process_node_preserves_first_non_empty_argv() {
+        let mut view = MaterializedView::new();
+        let first = ProcessNodeRow {
+            id: "pid:42:start:100".to_string(),
+            pid: 42,
+            ppid: Some(1),
+            root_pid: Some(42),
+            start_timestamp_ms: Some(100),
+            end_timestamp_ms: None,
+            comm: Some("agent".to_string()),
+            command: Some("agent".to_string()),
+            argv: vec![
+                "agent".to_string(),
+                "--model".to_string(),
+                "gpt-test".to_string(),
+            ],
+            cwd: Some("/tmp".to_string()),
+            exit_code: None,
+            status: Some("running".to_string()),
+            view_source: "process".to_string(),
+            confidence: Some(1.0),
+        };
+        let mut later = first.clone();
+        later.end_timestamp_ms = Some(200);
+        later.command = Some("agent-exit".to_string());
+        later.argv = vec!["agent-exit".to_string()];
+        later.exit_code = Some(0);
+        later.status = Some("success".to_string());
+
+        view.upsert_process_node(&first);
+        view.upsert_process_node(&later);
+
+        let snapshot = view.export_snapshot(SnapshotOptions { audit_limit: 0 });
+        let row = snapshot.process_nodes.first().expect("process node");
+        assert_eq!(row.argv, first.argv);
+        assert_eq!(row.end_timestamp_ms, Some(200));
+        assert_eq!(row.exit_code, Some(0));
     }
 }

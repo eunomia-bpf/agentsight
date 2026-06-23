@@ -261,12 +261,18 @@ mod tests {
     fn llm_call(id: &str, pid: u32, comm: &str, timestamp_ms: u64, text: &str) -> LlmCallRow {
         LlmCallRow {
             id: id.to_string(),
+            session_id: None,
+            conversation_id: None,
             start_timestamp_ms: timestamp_ms,
             end_timestamp_ms: None,
             pid: Some(pid),
             comm: Some(comm.to_string()),
             provider: Some("anthropic".to_string()),
             model: Some("claude-opus-4-6".to_string()),
+            call_kind: Some("messages".to_string()),
+            status: "pending".to_string(),
+            error_type: None,
+            finish_reason: None,
             host: Some("api.anthropic.com".to_string()),
             path: Some("/v1/messages".to_string()),
             status_code: None,

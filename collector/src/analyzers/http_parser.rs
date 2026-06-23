@@ -247,6 +247,11 @@ impl HTTPParser {
             .map(|v| v.to_lowercase().contains("chunked"))
             .unwrap_or(false);
         let has_body = parsed_message.body.is_some();
+        let body_hex = parsed_message
+            .body
+            .as_deref()
+            .map(ssl_json_string_to_bytes)
+            .map(hex::encode);
 
         // Calculate total size from parsed components
         let total_size = parsed_message.first_line.len() +
@@ -265,6 +270,7 @@ impl HTTPParser {
             status_text: parsed_message.status_text,
             headers: parsed_message.headers,
             body: parsed_message.body,
+            body_hex,
             total_size,
             has_body,
             is_chunked,
@@ -610,6 +616,7 @@ fn create_http2_request_event(
         path.as_deref().unwrap_or("/")
     );
     let body = body_string(&state.request_body);
+    let body_hex = (!state.request_body.is_empty()).then(|| hex::encode(&state.request_body));
     let total_size = headers_size(&state.request_headers) + state.request_body.len();
     HTTPEvent {
         tid: synthetic_http2_tid(tid, stream_id),
@@ -625,6 +632,7 @@ fn create_http2_request_event(
         has_body: body.is_some(),
         is_chunked: false,
         body,
+        body_hex,
         total_size,
         original_source: "ssl.http2".to_string(),
         raw_data: include_raw_data
@@ -647,6 +655,7 @@ fn create_http2_response_event(
         .or(Some(200));
     let first_line = format!("HTTP/2 {}", status_code.unwrap_or(200));
     let body = body_string(&state.response_body);
+    let body_hex = (!state.response_body.is_empty()).then(|| hex::encode(&state.response_body));
     let total_size = headers_size(&state.response_headers) + state.response_body.len();
     HTTPEvent {
         tid: synthetic_http2_tid(tid, stream_id),
@@ -662,6 +671,7 @@ fn create_http2_response_event(
         has_body: body.is_some(),
         is_chunked: false,
         body,
+        body_hex,
         total_size,
         original_source: "ssl.http2".to_string(),
         raw_data: include_raw_data

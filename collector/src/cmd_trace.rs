@@ -4,8 +4,8 @@
 use futures::stream::StreamExt;
 
 use crate::analyzers::{
-    AuthHeaderRemover, HTTPFilter, HTTPParser, MaterializingAnalyzer, SSEProcessor, SSLFilter,
-    TimestampNormalizer,
+    AuthHeaderRemover, HTTPDecompressor, HTTPFilter, HTTPParser, MaterializingAnalyzer,
+    SSEProcessor, SSLFilter, TimestampNormalizer,
 };
 use crate::binary_extractor::BinaryExtractor;
 use crate::binary_resolver::{
@@ -499,6 +499,8 @@ pub(crate) fn add_http_analyzers(
         HTTPParser::new().disable_raw_data()
     };
     runner = runner.add_analyzer(Box::new(parser));
+    runner = runner.add_analyzer(Box::new(HTTPDecompressor::new()));
+    runner = runner.add_analyzer(Box::new(SSEProcessor::new_with_timeout(30000)));
     if !http_filter.is_empty() {
         runner = runner.add_analyzer(Box::new(HTTPFilter::with_patterns(http_filter.to_vec())));
     }

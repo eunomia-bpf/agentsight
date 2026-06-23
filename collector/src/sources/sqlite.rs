@@ -250,12 +250,18 @@ mod tests {
     fn ssl_call_row(model: &str, text: &str) -> LlmCallRow {
         LlmCallRow {
             id: "ssl-call".to_string(),
+            session_id: None,
+            conversation_id: None,
             start_timestamp_ms: 1_000,
             end_timestamp_ms: None,
             pid: Some(42),
             comm: Some("HTTP Client".to_string()),
             provider: Some("anthropic".to_string()),
             model: Some(model.to_string()),
+            call_kind: Some("messages".to_string()),
+            status: "pending".to_string(),
+            error_type: None,
+            finish_reason: None,
             host: Some("api.anthropic.com".to_string()),
             path: Some("/v1/messages".to_string()),
             status_code: None,

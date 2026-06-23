@@ -322,12 +322,12 @@ mod tests {
         let view = load_sqlite_view(&db).unwrap();
         let tokens = view.token_summary("model");
         assert_eq!(tokens[0].group, "claude-sonnet-4");
-        // agent-native session tokens are preferred over SSL-captured response usage.
-        assert_eq!(tokens[0].total_tokens, 150);
+        // Network-observed response usage is the primary fact source.
+        assert_eq!(tokens[0].total_tokens, 15);
         assert_eq!(tokens[0].calls, 1);
 
         let calls = view.llm_call_rows(10);
-        assert_eq!(calls[0].total_tokens, 150);
+        assert_eq!(calls[0].total_tokens, 15);
     }
 
     #[test]

@@ -126,6 +126,38 @@ impl SSEProcessor {
         Self::parse_sse_events_from_chunk(sse_data)
     }
 
+    fn sse_payload(event: &Event) -> Option<(&str, bool)> {
+        if event.source == "ssl" {
+            return event
+                .data
+                .get("data")
+                .and_then(|v| v.as_str())
+                .map(|data| (data, true));
+        }
+
+        if event.source != "http_parser"
+            || event.data.get("message_type").and_then(|v| v.as_str()) != Some("response")
+        {
+            return None;
+        }
+
+        let body = event.data.get("body").and_then(|v| v.as_str())?;
+        (Self::http_content_type_is_sse(&event.data) || Self::is_sse_data(body))
+            .then_some((body, false))
+    }
+
+    fn http_content_type_is_sse(data: &Value) -> bool {
+        let Some(headers) = data.get("headers").and_then(|v| v.as_object()) else {
+            return false;
+        };
+        headers.iter().any(|(key, value)| {
+            key.eq_ignore_ascii_case("content-type")
+                && value
+                    .as_str()
+                    .is_some_and(|v| v.to_ascii_lowercase().contains("text/event-stream"))
+        })
+    }
+
     fn parse_usage_metadata_fragment(data: &str) -> Option<SSEEvent> {
         let usage = extract_json_object_after_key(data, "\"usageMetadata\"")?;
         let usage_json: Value = serde_json::from_str(usage).ok()?;
@@ -350,7 +382,23 @@ impl SSEProcessor {
             start_time: accumulator.start_time,
             end_time: accumulator.end_time,
             duration_ns: accumulator.end_time.saturating_sub(accumulator.start_time),
-            original_source: "ssl".to_string(),
+            original_source: original_event.source.clone(),
+            host: Self::event_host(original_event),
+            method: original_event
+                .data
+                .get("method")
+                .and_then(|v| v.as_str())
+                .map(str::to_string),
+            path: original_event
+                .data
+                .get("path")
+                .and_then(|v| v.as_str())
+                .map(str::to_string),
+            status_code: original_event
+                .data
+                .get("status_code")
+                .and_then(|v| v.as_u64())
+                .map(|v| v as u16),
             function: original_event
                 .data
                 .get("function")
@@ -370,6 +418,27 @@ impl SSEProcessor {
             sse_events: sse_events_json,
         }
         .to_event(original_event)
+    }
+
+    fn event_host(event: &Event) -> Option<String> {
+        event
+            .data
+            .get("host")
+            .and_then(|v| v.as_str())
+            .or_else(|| {
+                event
+                    .data
+                    .get("headers")
+                    .and_then(|headers| headers.as_object())
+                    .and_then(|headers| {
+                        headers.iter().find_map(|(key, value)| {
+                            (key.eq_ignore_ascii_case("host") || key == ":authority")
+                                .then(|| value.as_str())
+                                .flatten()
+                        })
+                    })
+            })
+            .map(str::to_string)
     }
 
     fn evict_over_capacity(buffers: &mut HashMap<String, SSEAccumulator>, max: usize) {
@@ -398,18 +467,15 @@ impl Analyzer for SSEProcessor {
             let buffers = Arc::clone(&sse_buffers);
 
             async move {
-                if event.source != "ssl" {
+                let Some((data_str, allow_json_fragment)) = Self::sse_payload(&event) else {
                     return Some(event);
-                }
-
-                let data_str = match event.data.get("data").and_then(|v| v.as_str()) {
-                    Some(s) => s,
-                    None => return Some(event),
                 };
 
                 let sse_events = if Self::is_sse_data(data_str) {
                     Self::parse_sse_events(data_str)
-                } else if let Some(event) = Self::parse_usage_metadata_fragment(data_str) {
+                } else if allow_json_fragment
+                    && let Some(event) = Self::parse_usage_metadata_fragment(data_str)
+                {
                     vec![event]
                 } else {
                     return Some(event);
@@ -426,9 +492,12 @@ impl Analyzer for SSEProcessor {
                     }
                 });
 
-                let should_skip_chunk = !has_content_potential && sse_events.iter().all(|e| {
-                    e.event.as_deref().is_some_and(|t| matches!(t, "ping" | "message_delta"))
-                });
+                let should_skip_chunk = !has_content_potential
+                    && sse_events.iter().all(|e| {
+                        e.event
+                            .as_deref()
+                            .is_some_and(|t| matches!(t, "ping" | "message_delta"))
+                    });
 
                 if should_skip_chunk {
                     let connection_id = Self::generate_connection_id(&event, &sse_events);
@@ -444,7 +513,8 @@ impl Analyzer for SSEProcessor {
 
                 let mut buffers_lock = buffers.lock().unwrap();
 
-                buffers_lock.retain(|_, acc| event.timestamp.saturating_sub(acc.last_update) <= timeout_ms);
+                buffers_lock
+                    .retain(|_, acc| event.timestamp.saturating_sub(acc.last_update) <= timeout_ms);
                 Self::evict_over_capacity(&mut buffers_lock, max_buffers);
 
                 let mut final_connection_id = connection_id.clone();
@@ -460,9 +530,10 @@ impl Analyzer for SSEProcessor {
 
                     for (existing_id, accumulator) in buffers_lock.iter() {
                         if existing_id.starts_with(&conn_prefix) && !accumulator.is_complete {
-                            let has_message_stop = accumulator.events.iter().any(|e| {
-                                e.event.as_deref() == Some("message_stop")
-                            });
+                            let has_message_stop = accumulator
+                                .events
+                                .iter()
+                                .any(|e| e.event.as_deref() == Some("message_stop"));
                             if !has_message_stop {
                                 final_connection_id = existing_id.clone();
                                 break;
@@ -471,17 +542,19 @@ impl Analyzer for SSEProcessor {
                     }
                 }
 
-                let accumulator = buffers_lock.entry(final_connection_id.clone()).or_insert_with(|| SSEAccumulator {
-                    message_id: None,
-                    accumulated_text: String::new(),
-                    accumulated_json: String::new(),
-                    events: Vec::new(),
-                    is_complete: false,
-                    last_update: event.timestamp,
-                    has_message_start: false,
-                    start_time: event.timestamp,
-                    end_time: event.timestamp,
-                });
+                let accumulator = buffers_lock
+                    .entry(final_connection_id.clone())
+                    .or_insert_with(|| SSEAccumulator {
+                        message_id: None,
+                        accumulated_text: String::new(),
+                        accumulated_json: String::new(),
+                        events: Vec::new(),
+                        is_complete: false,
+                        last_update: event.timestamp,
+                        has_message_start: false,
+                        start_time: event.timestamp,
+                        end_time: event.timestamp,
+                    });
 
                 accumulator.last_update = event.timestamp;
                 accumulator.end_time = event.timestamp;

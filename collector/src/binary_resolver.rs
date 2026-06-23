@@ -279,7 +279,7 @@ fn find_ssl_target_in_tree(root_pid: u32) -> Option<String> {
         }
         let exe = format!("/proc/{}/exe", pid);
         if binary_embeds_ssl(&exe) {
-            return Some(exe);
+            return Some(canonicalize_attach_path(&exe));
         }
         if let Some(path) = find_loaded_ssl_library(pid) {
             return Some(path);
@@ -306,15 +306,21 @@ fn find_loaded_ssl_library(pid: u32) -> Option<String> {
         }
         let host_path = format!("/proc/{pid}/root{path}");
         if std::fs::metadata(&host_path).is_ok() {
-            return Some(host_path);
+            return Some(canonicalize_attach_path(&host_path));
         }
     }
     None
 }
 
+fn canonicalize_attach_path(path: &str) -> String {
+    std::fs::canonicalize(path)
+        .map(|p| p.to_string_lossy().into_owned())
+        .unwrap_or_else(|_| path.to_string())
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{binary_embeds_ssl, parse_container_ref};
+    use super::{binary_embeds_ssl, canonicalize_attach_path, parse_container_ref};
 
     #[test]
     fn parses_docker_double_slash_scheme() {
@@ -349,6 +355,17 @@ mod tests {
     fn rejects_empty_container_reference() {
         assert_eq!(parse_container_ref("docker://"), None);
         assert_eq!(parse_container_ref("docker:"), None);
+    }
+
+    #[test]
+    fn canonicalize_attach_path_resolves_proc_root_when_available() {
+        assert_eq!(
+            canonicalize_attach_path("/proc/self/root/etc/hosts"),
+            "/etc/hosts"
+        );
+
+        let dead_proc_path = "/proc/999999999/root/usr/lib/libssl.so";
+        assert_eq!(canonicalize_attach_path(dead_proc_path), dead_proc_path);
     }
 
     #[test]

@@ -45,6 +45,9 @@ impl MaterializedView {
         match event.kind {
             EventKind::LlmRequest => self.ingest_llm_request(event),
             EventKind::LlmResponse | EventKind::LlmError => self.ingest_llm_response(event),
+            EventKind::HttpResponse if self.has_pending_llm_request(event) => {
+                self.ingest_llm_response(event)
+            }
             EventKind::ProcessExec => self.ingest_process_audit(event, "exec"),
             EventKind::ProcessExit => self.ingest_process_audit(event, "exit"),
             EventKind::FsOpen if is_writable_open(event) => self.ingest_file_audit(event),
@@ -97,6 +100,15 @@ impl MaterializedView {
             return self.upsert_llm_pair(req, event, confidence);
         }
         self.insert_orphan_llm_response(event)
+    }
+
+    fn has_pending_llm_request(&self, event: &CanonicalEvent) -> bool {
+        let (Some(pid), Some(tid)) = (event.pid, event.tid) else {
+            return false;
+        };
+        self.pending
+            .get(&(pid, tid))
+            .is_some_and(|requests| !requests.is_empty())
     }
 
     fn take_matching_request(
@@ -845,14 +857,30 @@ fn llm_call_row(
     request_body: Option<&Value>,
     response_body: Option<&Value>,
 ) -> LlmCallRow {
+    let status = llm_call_status(end_timestamp_ms, status_code);
+    let error_type = status_code
+        .filter(|code| *code >= 400)
+        .map(|code| format!("http_{code}"));
+    let session_id = request_body
+        .and_then(session_id_from_body)
+        .or_else(|| response_body.and_then(session_id_from_body));
+    let conversation_id = request_body
+        .and_then(conversation_id_from_body)
+        .or_else(|| response_body.and_then(conversation_id_from_body));
     LlmCallRow {
         id: id.to_string(),
+        session_id,
+        conversation_id,
         start_timestamp_ms,
         end_timestamp_ms,
         pid: Some(pid),
         comm: Some(comm.to_string()),
         provider: provider.map(str::to_string),
         model: model.map(str::to_string),
+        call_kind: path.and_then(call_kind_from_path).map(str::to_string),
+        status,
+        error_type,
+        finish_reason: response_body.and_then(finish_reason_from_body),
         host: host.map(str::to_string),
         path: path.map(str::to_string),
         status_code,
@@ -862,6 +890,98 @@ fn llm_call_row(
         request: request_body.cloned().unwrap_or(Value::Null),
         response: response_body.cloned().unwrap_or(Value::Null),
     }
+}
+
+fn llm_call_status(end_timestamp_ms: Option<u64>, status_code: Option<u16>) -> String {
+    if end_timestamp_ms.is_none() {
+        return "pending".to_string();
+    }
+    if status_code.map(|code| code >= 400).unwrap_or(false) {
+        "error".to_string()
+    } else {
+        "complete".to_string()
+    }
+}
+
+fn call_kind_from_path(path: &str) -> Option<&'static str> {
+    if path.contains("/v1/responses") {
+        Some("responses")
+    } else if path.contains("/v1/messages") {
+        Some("messages")
+    } else if path.contains("/chat/completions") {
+        Some("chat")
+    } else if path.contains(":streamGenerateContent") {
+        Some("stream_generate_content")
+    } else if path.contains(":generateContent") {
+        Some("generate_content")
+    } else {
+        None
+    }
+}
+
+fn session_id_from_body(body: &Value) -> Option<String> {
+    string_at(body, &["session_id"])
+        .or_else(|| string_at(body, &["sessionId"]))
+        .or_else(|| string_at(body, &["metadata", "session_id"]))
+        .or_else(|| string_at(body, &["metadata", "sessionId"]))
+        .or_else(|| metadata_user_session_id(body))
+}
+
+fn conversation_id_from_body(body: &Value) -> Option<String> {
+    string_at(body, &["conversation_id"])
+        .or_else(|| string_at(body, &["conversationId"]))
+        .or_else(|| string_at(body, &["metadata", "conversation_id"]))
+        .or_else(|| string_at(body, &["metadata", "conversationId"]))
+        .or_else(|| string_at(body, &["response", "id"]))
+        .or_else(|| string_at(body, &["id"]))
+        .or_else(|| string_at(body, &["message_id"]))
+        .or_else(|| string_at(body, &["message", "id"]))
+}
+
+fn metadata_user_session_id(body: &Value) -> Option<String> {
+    let user_id = string_at(body, &["metadata", "user_id"])
+        .or_else(|| string_at(body, &["metadata", "userId"]))?;
+    if let Ok(json) = serde_json::from_str::<Value>(&user_id)
+        && let Some(session) = session_id_from_body(&json)
+    {
+        return Some(session);
+    }
+    user_id
+        .split("_session_")
+        .nth(1)
+        .map(str::to_string)
+        .filter(|value| !value.is_empty())
+}
+
+fn finish_reason_from_body(body: &Value) -> Option<String> {
+    string_at(body, &["finish_reason"])
+        .or_else(|| string_at(body, &["stop_reason"]))
+        .or_else(|| string_at(body, &["choices", "0", "finish_reason"]))
+        .or_else(|| string_at(body, &["candidates", "0", "finishReason"]))
+        .or_else(|| finish_reason_from_sse(body))
+}
+
+fn finish_reason_from_sse(body: &Value) -> Option<String> {
+    let events = body.get("sse_events")?.as_array()?;
+    events.iter().rev().find_map(|event| {
+        let parsed = event.get("parsed_data")?;
+        finish_reason_from_body(parsed)
+    })
+}
+
+fn string_at(value: &Value, path: &[&str]) -> Option<String> {
+    let mut current = value;
+    for key in path {
+        if let Ok(index) = key.parse::<usize>() {
+            current = current.get(index)?;
+        } else {
+            current = current.get(*key)?;
+        }
+    }
+    current
+        .as_str()
+        .map(str::to_string)
+        .filter(|s| !s.is_empty())
 }
 
 #[cfg(test)]
@@ -956,5 +1076,88 @@ mod tests {
             .collect::<Vec<_>>();
         assert!(llm_actions.contains(&"request"));
         assert!(llm_actions.contains(&"call"));
+    }
+
+    #[test]
+    fn llm_call_health_promotes_pending_to_complete() {
+        let mut view = MaterializedView::new();
+        let req = Event::new_with_timestamp(
+            1_000,
+            "http_parser".to_string(),
+            42,
+            "agent".to_string(),
+            json!({
+                "tid": 7,
+                "message_type": "request",
+                "method": "POST",
+                "path": "/v1/chat/completions",
+                "headers": { "host": "api.openai.com" },
+                "body": "{\"model\":\"gpt-test\",\"metadata\":{\"session_id\":\"sess-1\"}}"
+            }),
+        );
+
+        view.ingest_event(&req).expect("ingest request");
+        let pending = view.llm_call_rows(10);
+        assert_eq!(pending[0].status, "pending");
+        assert_eq!(pending[0].session_id.as_deref(), Some("sess-1"));
+        assert_eq!(pending[0].call_kind.as_deref(), Some("chat"));
+
+        let resp = Event::new_with_timestamp(
+            2_000,
+            "http_parser".to_string(),
+            42,
+            "agent".to_string(),
+            json!({
+                "tid": 7,
+                "message_type": "response",
+                "status_code": 200,
+                "headers": { "host": "api.openai.com" },
+                "body": "{\"choices\":[{\"finish_reason\":\"stop\"}],\"usage\":{\"prompt_tokens\":1,\"completion_tokens\":2}}"
+            }),
+        );
+
+        view.ingest_event(&resp).expect("ingest response");
+        let complete = view.llm_call_rows(10);
+        assert_eq!(complete[0].status, "complete");
+        assert_eq!(complete[0].finish_reason.as_deref(), Some("stop"));
+        assert_eq!(complete[0].total_tokens, 3);
+    }
+
+    #[test]
+    fn llm_call_health_marks_http_errors() {
+        let mut view = MaterializedView::new();
+        let req = Event::new_with_timestamp(
+            1_000,
+            "http_parser".to_string(),
+            42,
+            "agent".to_string(),
+            json!({
+                "tid": 7,
+                "message_type": "request",
+                "method": "POST",
+                "path": "/v1/chat/completions",
+                "headers": { "host": "api.openai.com" },
+                "body": "{\"model\":\"gpt-test\"}"
+            }),
+        );
+        let resp = Event::new_with_timestamp(
+            2_000,
+            "http_parser".to_string(),
+            42,
+            "agent".to_string(),
+            json!({
+                "tid": 7,
+                "message_type": "response",
+                "status_code": 429,
+                "headers": { "host": "api.openai.com" },
+                "body": "{\"error\":{\"message\":\"rate limited\"}}"
+            }),
+        );
+
+        view.ingest_event(&req).expect("ingest request");
+        view.ingest_event(&resp).expect("ingest response");
+        let calls = view.llm_call_rows(10);
+        assert_eq!(calls[0].status, "error");
+        assert_eq!(calls[0].error_type.as_deref(), Some("http_429"));
     }
 }

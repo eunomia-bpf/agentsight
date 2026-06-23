@@ -194,6 +194,62 @@ mod sse_processor_tests {
     }
 
     #[tokio::test]
+    async fn test_http_parser_sse_response_body_is_processed() {
+        let mut processor = SSEProcessor::new();
+        let test_event = Event::new_with_timestamp(
+            2,
+            "http_parser".to_string(),
+            1234,
+            "node".to_string(),
+            json!({
+                "tid": 99,
+                "message_type": "response",
+                "status_code": 200,
+                "headers": { "content-type": "text/event-stream", "host": "api.example.test" },
+                "path": "/v1/chat/completions",
+                "body": "data: {\"usage\":{\"input_tokens\":2,\"output_tokens\":3}}\n\ndata: [DONE]\n\n"
+            }),
+        );
+
+        let input_stream: EventStream = Box::pin(stream::iter(vec![test_event]));
+        let output_stream = processor.process(input_stream).await.unwrap();
+        let collected: Vec<_> = output_stream.collect().await;
+
+        assert_eq!(collected.len(), 1);
+        assert_eq!(collected[0].source, "sse_processor");
+        assert_eq!(collected[0].data["original_source"], "http_parser");
+        assert_eq!(collected[0].data["host"], "api.example.test");
+        assert_eq!(collected[0].data["path"], "/v1/chat/completions");
+        assert_eq!(collected[0].data["status_code"], 200);
+    }
+
+    #[tokio::test]
+    async fn test_http_parser_non_streaming_usage_response_passes_through() {
+        let mut processor = SSEProcessor::new();
+        let test_event = Event::new_with_timestamp(
+            2,
+            "http_parser".to_string(),
+            1234,
+            "node".to_string(),
+            json!({
+                "tid": 99,
+                "message_type": "response",
+                "status_code": 200,
+                "headers": { "content-type": "application/json" },
+                "body": "{\"usageMetadata\":{\"promptTokenCount\":11,\"totalTokenCount\":11}}"
+            }),
+        );
+
+        let input_stream: EventStream = Box::pin(stream::iter(vec![test_event.clone()]));
+        let output_stream = processor.process(input_stream).await.unwrap();
+        let collected: Vec<_> = output_stream.collect().await;
+
+        assert_eq!(collected.len(), 1);
+        assert_eq!(collected[0].source, "http_parser");
+        assert_eq!(collected[0].data, test_event.data);
+    }
+
+    #[tokio::test]
     async fn test_sse_processor_ignores_non_ssl_events() {
         let mut processor = SSEProcessor::new();
 

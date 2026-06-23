@@ -42,12 +42,18 @@ pub struct TokenUsageRow {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LlmCallRow {
     pub id: String,
+    pub session_id: Option<String>,
+    pub conversation_id: Option<String>,
     pub start_timestamp_ms: u64,
     pub end_timestamp_ms: Option<u64>,
     pub pid: Option<u32>,
     pub comm: Option<String>,
     pub provider: Option<String>,
     pub model: Option<String>,
+    pub call_kind: Option<String>,
+    pub status: String,
+    pub error_type: Option<String>,
+    pub finish_reason: Option<String>,
     pub host: Option<String>,
     pub path: Option<String>,
     pub status_code: Option<u16>,
