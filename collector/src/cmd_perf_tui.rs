@@ -2,6 +2,7 @@
 // Copyright (c) 2026 eunomia-bpf org.
 
 use crate::binary_extractor::BinaryExtractor;
+use crate::cmd_perf::load_top_output;
 use crate::cmd_perf_live::{LiveEbpfCapture, start_live_ebpf_capture};
 use crate::output::{AgentTopOutput, TopOptions, draw_live_top_tui, next_view_key};
 use crate::view::live_top::LiveView;
@@ -20,14 +21,35 @@ pub(crate) async fn run_live_top_tui(
     binary_extractor: &BinaryExtractor,
     interval_secs: u64,
     limit: usize,
+    count: Option<u32>,
     options: &TopOptions,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let capture = start_live_ebpf_capture(binary_extractor, options).await;
-    let result = run_live_top_tui_loop(interval_secs, limit, options, capture.as_ref());
+    let mut live_view = LiveView::default();
+    let result = run_top_tui_loop(interval_secs, limit, count, options, |display_limit, options| {
+        let capture_snapshot = capture.as_ref().map(LiveEbpfCapture::snapshot);
+        let mut top = live_view.refresh(capture_snapshot.as_ref(), display_limit, options)?;
+        if let Some(note) = capture.as_ref().and_then(|capture| capture.start_note()) {
+            top.notes.push(note.to_string());
+        }
+        Ok(top)
+    });
     if let Some(capture) = capture {
         capture.stop();
     }
     result
+}
+
+pub(crate) fn run_saved_top_tui(
+    db: &str,
+    interval_secs: u64,
+    limit: usize,
+    count: Option<u32>,
+    options: &TopOptions,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    run_top_tui_loop(interval_secs, limit, count, options, |display_limit, options| {
+        load_top_output(db, display_limit, options)
+    })
 }
 
 struct LiveTopTerminalGuard;
@@ -49,12 +71,19 @@ impl Drop for LiveTopTerminalGuard {
     }
 }
 
-fn run_live_top_tui_loop(
+fn run_top_tui_loop<'a, F>(
     interval_secs: u64,
     limit: usize,
+    count: Option<u32>,
     options: &TopOptions,
-    capture: Option<&LiveEbpfCapture>,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    mut refresh: F,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>>
+where
+    F: FnMut(
+        usize,
+        &TopOptions,
+    ) -> Result<AgentTopOutput<'a>, Box<dyn std::error::Error + Send + Sync>>,
+{
     let mut options = options.clone();
     let mut display_limit = limit.clamp(1, 100);
     let interval = Duration::from_secs(interval_secs.max(1));
@@ -63,30 +92,27 @@ fn run_live_top_tui_loop(
     let mut terminal = Terminal::new(backend)?;
     terminal.clear()?;
 
-    let mut live_view = LiveView::default();
-    let mut current_top: Option<AgentTopOutput<'static>> = None;
+    let mut current_top: Option<AgentTopOutput<'a>> = None;
     let mut selected = 0usize;
     let mut paused = false;
     let mut show_help = false;
     let mut show_diagnostics = false;
     let mut last_refresh = Instant::now() - interval;
     let mut force_refresh = true;
+    let mut refreshes = 0u32;
 
     loop {
         if force_refresh
             || (!paused && (current_top.is_none() || last_refresh.elapsed() >= interval))
         {
-            let capture_snapshot = capture.map(LiveEbpfCapture::snapshot);
-            let mut top = live_view.refresh(capture_snapshot.as_ref(), display_limit, &options)?;
-            if let Some(note) = capture.and_then(LiveEbpfCapture::start_note) {
-                top.notes.push(note.to_string());
-            }
+            let mut top = refresh(display_limit, &options)?;
             sort_agent_rows(&mut top.rows, &options.sort);
             top.rows.truncate(display_limit);
             clamp_selected(&mut selected, top.rows.len());
             current_top = Some(top);
             last_refresh = Instant::now();
             force_refresh = false;
+            refreshes += 1;
         }
 
         let top = current_top
@@ -106,7 +132,7 @@ fn run_live_top_tui_loop(
             );
         })?;
 
-        if crate::shutdown_requested() {
+        if count.is_some_and(|max| refreshes >= max) || crate::shutdown_requested() {
             break;
         }
 

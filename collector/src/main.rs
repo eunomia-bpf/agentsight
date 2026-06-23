@@ -53,7 +53,7 @@ use cmd_monitor::{
 };
 use cmd_perf::run_top_query;
 use cmd_perf_live::run_live_top_query;
-use cmd_perf_tui::run_live_top_tui;
+use cmd_perf_tui::{run_live_top_tui, run_saved_top_tui};
 use cmd_trace::{
     OtelConfig, TraceConfig, convert_runner_error, run_trace, start_web_server_if_enabled,
 };
@@ -128,16 +128,21 @@ fn interactive_terminal_available() -> bool {
     unsafe { libc::isatty(libc::STDIN_FILENO) == 1 && libc::isatty(libc::STDOUT_FILENO) == 1 }
 }
 
-fn command_uses_live_top_tui(cli: &Cli) -> bool {
+fn top_uses_tui(plain: bool, interactive: bool) -> bool {
+    !plain && interactive
+}
+
+fn top_uses_monitor_snapshot(plain: bool, monitor_active: bool) -> bool {
+    plain && monitor_active
+}
+
+fn command_uses_top_tui(cli: &Cli) -> bool {
     matches!(
         &cli.command,
         Commands::Top {
-            db: None,
-            count: None,
-            once: false,
-            plain: false,
+            plain,
             ..
-        } if interactive_terminal_available()
+        } if top_uses_tui(*plain, interactive_terminal_available())
     )
 }
 
@@ -226,10 +231,10 @@ enum Commands {
         /// Number of refreshes before exiting
         #[arg(long)]
         count: Option<u32>,
-        /// Print one snapshot and exit
+        /// Render one refresh and exit
         #[arg(long)]
         once: bool,
-        /// Use plain table output instead of the interactive live TUI
+        /// Use plain table output instead of the interactive TUI
         #[arg(long)]
         plain: bool,
     },
@@ -572,7 +577,7 @@ async fn main() {
 
 async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let cli = Cli::parse();
-    let suppress_terminal_output = command_uses_live_top_tui(&cli);
+    let suppress_terminal_output = command_uses_top_tui(&cli);
     init_logging(suppress_terminal_output);
 
     // Setup signal handler for graceful shutdown
@@ -640,7 +645,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             limit,
             count,
             once,
-            plain: _,
+            plain,
         } => {
             let count = if *once { Some(1) } else { *count };
             let options = TopOptions {
@@ -649,7 +654,11 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
                 sort: sort.clone(),
                 view: view.clone(),
             };
-            run_top_query(db, *interval, *limit, count, &options)?;
+            if top_uses_tui(*plain, interactive_terminal_available()) {
+                run_saved_top_tui(db, *interval, *limit, count, &options)?;
+            } else {
+                run_top_query(db, *interval, *limit, count, &options)?;
+            }
         }
         Commands::Top {
             db: None,
@@ -661,8 +670,8 @@ async fn run() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             limit,
             count,
             once,
-            plain: _,
-        } if active_monitor_db_path().is_some() => {
+            plain,
+        } if top_uses_monitor_snapshot(*plain, active_monitor_db_path().is_some()) => {
             let count = if *once { Some(1) } else { *count };
             let options = TopOptions {
                 pid: *pid,
@@ -789,8 +798,8 @@ async fn run_with_extractor(
                 sort: sort.clone(),
                 view: view.clone(),
             };
-            if !*plain && count.is_none() && interactive_terminal_available() {
-                run_live_top_tui(binary_extractor, *interval, *limit, &options).await?;
+            if top_uses_tui(*plain, interactive_terminal_available()) {
+                run_live_top_tui(binary_extractor, *interval, *limit, count, &options).await?;
             } else {
                 run_live_top_query(binary_extractor, *interval, *limit, count, &options).await?;
             }
@@ -958,4 +967,27 @@ async fn run_with_extractor(
         _ => unreachable!("handled in run()"),
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{top_uses_monitor_snapshot, top_uses_tui};
+
+    #[test]
+    fn default_interactive_top_uses_tui() {
+        assert!(top_uses_tui(false, true));
+    }
+
+    #[test]
+    fn only_plain_or_non_tty_disable_tui() {
+        assert!(!top_uses_tui(true, true));
+        assert!(!top_uses_tui(false, false));
+    }
+
+    #[test]
+    fn monitor_snapshot_requires_explicit_plain_mode() {
+        assert!(top_uses_monitor_snapshot(true, true));
+        assert!(!top_uses_monitor_snapshot(false, true));
+        assert!(!top_uses_monitor_snapshot(true, false));
+    }
 }
