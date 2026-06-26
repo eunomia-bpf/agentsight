@@ -529,22 +529,29 @@ pub(crate) fn print_exported_snapshot(output: &str) {
     println!("Exported snapshot to {output}");
 }
 
+pub(crate) fn print_report_local_sessions_warning() {
+    eprintln!(
+        "Warning: No agentsight-*.db session database found in the current directory; using local agent sessions."
+    );
+}
+
 pub(crate) fn print_token_summary(group_by: &str, rows: &[TokenSummary]) {
     println!("Token usage grouped by {group_by}");
     println!(
-        "{:<32} {:>12} {:>12} {:>12} {:>12} {:>12} {:>8}",
-        "group", "input", "output", "cache_new", "cache_read", "total", "calls"
+        "{:<32} {:>12} {:>12} {:>12} {:>12} {:>12} {:>8} {:>8}",
+        "group", "input", "output", "cache_new", "cache_read", "total", "calls", "sessions"
     );
     for row in rows {
         println!(
-            "{:<32} {:>12} {:>12} {:>12} {:>12} {:>12} {:>8}",
+            "{:<32} {:>12} {:>12} {:>12} {:>12} {:>12} {:>8} {:>8}",
             truncate(&row.group, 32),
             row.input_tokens,
             row.output_tokens,
             row.cache_creation_tokens,
             row.cache_read_tokens,
             row.total_tokens,
-            row.calls
+            row.calls,
+            row.sessions
         );
     }
 }

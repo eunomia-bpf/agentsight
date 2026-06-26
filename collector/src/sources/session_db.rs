@@ -25,17 +25,6 @@ fn is_default_record_db(path: &std::path::Path) -> bool {
             .is_some_and(|name| name.starts_with("agentsight-"))
 }
 
-pub(crate) fn resolve_db_or_latest(
-    db: &Option<String>,
-) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-    if let Some(db) = db {
-        return Ok(db.clone());
-    }
-    latest_session_db().ok_or_else(|| {
-        "No agentsight-*.db session database found in the current directory. Run `agentsight record` first, or pass --db.".into()
-    })
-}
-
 pub(crate) fn latest_session_db() -> Option<String> {
     let dir = sessions_dir().ok()?;
     sorted_session_dbs(&dir)

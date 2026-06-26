@@ -18,6 +18,7 @@ pub struct TokenSummary {
     pub cache_read_tokens: i64,
     pub total_tokens: i64,
     pub calls: i64,
+    pub sessions: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
