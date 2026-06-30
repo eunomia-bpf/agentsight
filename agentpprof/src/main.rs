@@ -10,7 +10,8 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use profile::{
-    OutputFormat, ProfileView, build_profile_projection, infer_output_format, write_projection,
+    OutputFormat, ProfileView, build_profile, infer_output_format, profile_to_stacks,
+    write_projection,
 };
 use session::{SessionRecord, default_claude_root, discover_sessions};
 use tagger::{
@@ -202,12 +203,13 @@ fn command_export(args: Cli) -> Result<()> {
     if sessions.is_empty() {
         bail!("sessions were found, but none matched the requested tag filters");
     }
-    let projection = build_profile_projection(&sessions, &project_name, args.view.into());
-    if projection.stacks.is_empty() {
+    let profile = build_profile(&sessions, &project_name, args.view.into());
+    let stacks = profile_to_stacks(&profile);
+    if stacks.is_empty() {
         bail!("selected view {:?} produced no samples", args.view);
     }
     write_projection(
-        &projection,
+        &profile,
         format,
         &output,
         args.include_previews,
@@ -219,12 +221,12 @@ fn command_export(args: Cli) -> Result<()> {
         "status": "ok",
         "output": output,
         "format": format!("{:?}", format).to_ascii_lowercase(),
-        "view": projection.view,
-        "sample_type": projection.sample_type,
-        "unit": projection.unit,
+        "view": profile.view,
+        "sample_type": profile.sample_type,
+        "unit": profile.unit,
         "sessions": sessions.len(),
-        "samples": projection.stacks.values().sum::<u64>(),
-        "unique_stacks": projection.stacks.len(),
+        "samples": stacks.values().sum::<u64>(),
+        "unique_stacks": stacks.len(),
         "warnings": discovery.warnings,
     });
 
