@@ -229,7 +229,7 @@ fn prompt_frames(
 fn build_time_profile(sessions: &[SessionRecord], project_name: &str) -> Profile {
     let mut profile = Profile::new("time", "duration", "seconds");
     for session in sessions {
-        let mut events: Vec<(i64, String, Vec<(&'static str, String)>)> = Vec::new();
+        let mut events = Vec::new();
 
         for req in &session.user_requests {
             if let Some(ts) = req.ts_ms {
@@ -491,7 +491,7 @@ fn write_pprof_projection(projection: &Profile, stacks: &Counter, output: &Path)
         unit: strings.intern(projection.unit),
     };
     let label_view = strings.intern("view");
-    let label_view_value = strings.intern(&projection.view);
+    let label_view_value = strings.intern(projection.view);
     let filename = strings.intern("agentpprof");
     let mut functions = Vec::new();
     let mut locations = Vec::new();
