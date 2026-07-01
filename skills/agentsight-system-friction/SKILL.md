@@ -1,6 +1,7 @@
 ---
 name: agentsight-system-friction
-description: "Analyze AgentSight record snapshots, SQLite sessions, monitor DBs, and process/file/network/resource evidence to recommend concrete operational improvements to existing agent runs—timeouts, resource budgets, retry behavior, service lifecycle cleanup, network binding, file/log hygiene, and capture quality—and generate decision-oriented, reader-safe system HTML reports."
+description: Analyze AgentSight system evidence to recommend operational improvements for agent runs.
+when_to_use: Use when the user asks to analyze AgentSight data, find resource issues, check process/file/network activity, improve timeouts or retry behavior, or generate system-level HTML reports from AgentSight sessions.
 ---
 
 # AgentSight System Friction

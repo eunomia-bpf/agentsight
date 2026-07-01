@@ -26,4 +26,4 @@ Current architecture notes:
 Product and workflow proposals:
 
 - [Agent Behavior Analysis Skills](agent-behavior-analysis-skills.md)
-- [Skill-Generated Example Dashboards](../skills-example/examples/README.md)
+- [Skill-Generated Example Dashboards](../skills-examples/)

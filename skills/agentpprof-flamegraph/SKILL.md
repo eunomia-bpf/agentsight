@@ -1,6 +1,8 @@
 ---
 name: agentpprof-flamegraph
-description: Generate semantic flamegraphs from local AI agent sessions using agentpprof. Use when the user asks to profile agent sessions, visualize token usage, create flamegraphs, or analyze agent behavior patterns. This skill guides iterative tag rule development for meaningful aggregation.
+description: Generate semantic flamegraphs from local AI agent sessions using agentpprof with iterative tag rule development.
+when_to_use: Use when the user asks to profile agent sessions, visualize token usage, create flamegraphs, see where token budget went, or analyze agent behavior patterns.
+argument-hint: "[project-path]"
 ---
 
 # agentpprof Flamegraph Generation
