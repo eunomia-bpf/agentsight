@@ -104,7 +104,7 @@ sudo ./agentsight record -c node --binary-path ~/.nvm/versions/node/v20.0.0/bin/
 > Node process (the proxy only tunnels it), so AgentSight captures it the same
 > way — at the `SSL_read`/`SSL_write` calls before encryption.
 
-## Docker Containers (OpenClaw, etc.)
+## Containers and Kubernetes Pods
 
 For an agent running inside a Docker container, pass the container to
 `--binary-path` with the `docker://` scheme. AgentSight resolves the container's
@@ -122,6 +122,33 @@ sudo ./agentsight debug trace --binary-path docker://openclaw --server
 has no SSL code. AgentSight walks the descendant process tree and attaches to the
 first process whose binary actually embeds SSL (the `node` process). See
 [docs/openclaw.md](https://github.com/eunomia-bpf/agentsight/blob/master/docs/experiment/openclaw.md) for the full walkthrough.
+
+For a Kubernetes Pod, run AgentSight on the node that hosts the Pod and pass a
+`k8s://` reference. AgentSight uses `kubectl` to read the Pod's `containerID`,
+then uses Docker or CRI (`crictl`) to find the host PID before scanning the
+container process tree:
+
+```bash
+# Single-container Pod in the default namespace
+sudo ./agentsight record -c node --binary-path k8s://openclaw
+
+# Pod in a namespace
+sudo ./agentsight record -c node --binary-path k8s://agents/openclaw
+
+# Multi-container Pod; specify the container name
+sudo ./agentsight record -c node --binary-path k8s://agents/openclaw/gateway
+
+# Supported by debug trace and debug ssl too
+sudo ./agentsight debug trace --binary-path k8s://agents/openclaw/gateway --server
+```
+
+The accepted forms are `k8s://pod`, `k8s://namespace/pod`, and
+`k8s://namespace/pod/container` (`kubernetes://` works as an alias). For
+containerd or CRI-O clusters, `crictl` must be installed and configured on that
+node. For Docker-backed clusters, Docker inspection is used directly. When
+running under `sudo`, AgentSight falls back to the invoking user's
+`~/.kube/config` if `KUBECONFIG` is not set; use `sudo -E` if you rely on a
+custom `KUBECONFIG`.
 
 ## Browser Plaintext Capture
 

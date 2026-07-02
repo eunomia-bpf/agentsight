@@ -148,18 +148,28 @@ This logic is in `build_trace_agent()` in `collector/src/cmd_trace.rs`.
 
 In `build_trace_agent()`, when SSL is enabled and `--binary-path` is absent, the binary is auto-discovered from `--comm`: `resolve_binary_path(comm)` resolves the binary, and it is adopted **only if `binary_embeds_ssl()` returns true** (the binary contains the `SSL_write` symbol-name string). This fixes `record -c node` (Node statically links OpenSSL — no system `libssl.so` to hook) while leaving dynamically-linked runtimes like Python on sslsniff's system-libssl + comm-filter path. `record -- <command>` resolves the launched command directly because it targets one known process tree.
 
-## Containerized Agents: `docker://` Binary Path
+## Containerized Agents: `docker://` and `k8s://` Binary Paths
 
 `--binary-path docker://<name|id>` (or `docker:<name|id>`) targets an agent
 running in a Docker container. `resolve_container_binary_path()` in
-`collector/src/main.rs` runs `docker inspect --format '{{.State.Pid}}'` to get
-the container's init PID, then `find_ssl_pid_in_tree()` walks the descendant
-process tree (via `/proc/<pid>/task/<pid>/children`) and returns the first
-process whose `/proc/<pid>/exe` embeds SSL. This is needed because the init PID
-is often a wrapper like `tini` (OpenClaw runs `tini -s -- node openclaw.mjs
-gateway`) that contains no SSL code. The scheme is handled by the trace builder
-used by `record`/`debug trace` and by raw `debug ssl`. See
-`docs/experiment/openclaw.md`. `parse_container_ref()` has unit tests.
+`collector/src/binary_resolver.rs` runs `docker inspect --format
+'{{.State.Pid}}'` to get the container's init PID, then
+`find_ssl_target_in_tree()` walks the descendant process tree (via
+`/proc/<pid>/task/<pid>/children`) and returns the first process whose
+`/proc/<pid>/exe` embeds SSL or whose maps include `libssl.so`.
+
+`--binary-path k8s://pod`, `k8s://namespace/pod`, or
+`k8s://namespace/pod/container` targets an agent running in a Kubernetes Pod.
+AgentSight must run on the node that hosts the Pod. The resolver uses
+`kubectl get pod -o json` to read the Pod `containerID`, then resolves Docker
+containers with `docker inspect` or CRI containers with `crictl inspect
+--output json` before reusing the same descendant process-tree scan. Under
+`sudo`, it falls back to the invoking user's `~/.kube/config` when
+`KUBECONFIG` is not set. This is needed because container init processes are
+often wrappers like `tini` with no SSL code. The schemes are handled by the
+trace builder used by `record`/`debug trace` and by raw `debug ssl`. See
+`docs/agents.md` and `docs/experiment/openclaw.md`. Docker and Kubernetes
+parsing helpers have unit tests.
 
 ## Common Issues
 

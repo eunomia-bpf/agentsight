@@ -380,7 +380,7 @@ pub(crate) fn print_trace_ssl_binary_discovered(comm: &str, path: &str) {
 }
 
 pub(crate) fn print_trace_container_binary_resolved(reference: &str, path: &str) {
-    println!("✓ Resolved container '{reference}' to SSL attach target: {path}");
+    println!("✓ Resolved container target '{reference}' to SSL attach target: {path}");
 }
 
 pub(crate) fn print_trace_start(runners: usize, analyzers: usize) {

@@ -71,7 +71,7 @@ pub(crate) struct TraceConfig {
     pub(crate) http_filter: Vec<String>,
     pub(crate) disable_auth_removal: bool,
     pub(crate) otel: Option<OtelConfig>,
-    /// SSL binary path; may be a `docker://` ref that `run_trace` resolves in place.
+    /// SSL binary path; may be a container ref that `run_trace` resolves in place.
     pub(crate) binary_path: Option<String>,
     pub(crate) db_path: Option<String>,
     pub(crate) quiet: bool,
@@ -313,8 +313,8 @@ pub(crate) async fn run_trace(
 ) -> Result<(), RunnerError> {
     print_trace_header();
 
-    // A `--binary-path docker://<container>` (or `docker:<container>`) reference
-    // is translated in Rust to an explicit host-side SSL attach target. The C
+    // Container references such as `docker://<container>` and `k8s://<pod>` are
+    // translated in Rust to explicit host-side SSL attach targets. The C
     // sslsniff binary only consumes that path; it does not scan container
     // process maps itself.
     if let Some((reference, resolved)) =
