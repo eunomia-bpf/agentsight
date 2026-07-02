@@ -240,6 +240,15 @@ where
                     clamp_selected(&mut selected, top.rows.len());
                 }
             }
+            KeyCode::Char('S') => {
+                if let Some(prompt) = handle_record_stop_shortcut(
+                    record_task.as_ref().is_some_and(|task| !task.is_finished()),
+                ) {
+                    show_help = false;
+                    show_diagnostics = false;
+                    record_prompt = Some(prompt);
+                }
+            }
             KeyCode::Char('v') => options.view = next_view_key(&options.view),
             KeyCode::Char('+') | KeyCode::Char('=') => {
                 display_limit = (display_limit + 1).min(100);
@@ -280,9 +289,21 @@ where
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct RecordPrompt {
-    command: String,
-    error: Option<String>,
+enum RecordPrompt {
+    Start {
+        command: String,
+        error: Option<String>,
+    },
+    StopConfirm,
+}
+
+impl RecordPrompt {
+    fn start(command: String) -> Self {
+        Self::Start {
+            command,
+            error: None,
+        }
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -310,22 +331,20 @@ fn open_record_prompt_for_selection(
         );
     }
     if record_running {
-        return RecordOpenAction::Open(RecordPrompt {
-            command: String::new(),
-            error: Some("record already running; press s in this dialog to stop".to_string()),
-        });
+        return RecordOpenAction::Open(RecordPrompt::StopConfirm);
     }
     match current_top
         .and_then(|top| top.rows.get(selected))
         .map(|row| default_record_command_for_row(Some(row), 7395))
         .unwrap_or_else(|| default_record_command_for_row(None, 7395))
     {
-        Ok(command) => RecordOpenAction::Open(RecordPrompt {
-            command: command.display_command(),
-            error: None,
-        }),
+        Ok(command) => RecordOpenAction::Open(RecordPrompt::start(command.display_command())),
         Err(error) => RecordOpenAction::Diagnostic(error),
     }
+}
+
+fn handle_record_stop_shortcut(record_running: bool) -> Option<RecordPrompt> {
+    record_running.then_some(RecordPrompt::StopConfirm)
 }
 
 fn handle_record_prompt_key(
@@ -337,53 +356,57 @@ fn handle_record_prompt_key(
     let Some(current) = prompt else {
         return RecordPromptAction::None;
     };
-    if current.command.is_empty() && record_running {
-        return match key_code {
+
+    match current {
+        RecordPrompt::StopConfirm => match key_code {
             KeyCode::Esc => {
                 *prompt = None;
                 RecordPromptAction::None
             }
-            KeyCode::Char('s') => {
+            KeyCode::Enter | KeyCode::Char('S') => {
                 *prompt = None;
-                RecordPromptAction::StopRunning
-            }
-            _ => RecordPromptAction::None,
-        };
-    }
-
-    match key_code {
-        KeyCode::Esc => {
-            *prompt = None;
-            RecordPromptAction::None
-        }
-        KeyCode::Enter => match parse_tui_record_command(&current.command) {
-            Ok(command) => {
                 if record_running {
-                    current.error = Some("a record task is already running".to_string());
-                    RecordPromptAction::None
+                    RecordPromptAction::StopRunning
                 } else {
-                    *prompt = None;
-                    RecordPromptAction::Start(command)
+                    RecordPromptAction::None
                 }
             }
-            Err(error) => {
-                current.error = Some(error);
+            _ => RecordPromptAction::None,
+        },
+        RecordPrompt::Start { command, error } => match key_code {
+            KeyCode::Esc => {
+                *prompt = None;
                 RecordPromptAction::None
             }
-        },
-        KeyCode::Backspace => {
-            current.command.pop();
-            current.error = None;
-            RecordPromptAction::None
-        }
-        KeyCode::Char(ch) => {
-            if !modifiers.contains(KeyModifiers::CONTROL) {
-                current.command.push(ch);
-                current.error = None;
+            KeyCode::Enter => match parse_tui_record_command(command) {
+                Ok(parsed_command) => {
+                    if record_running {
+                        *error = Some("a record task is already running".to_string());
+                        RecordPromptAction::None
+                    } else {
+                        *prompt = None;
+                        RecordPromptAction::Start(parsed_command)
+                    }
+                }
+                Err(parse_error) => {
+                    *error = Some(parse_error);
+                    RecordPromptAction::None
+                }
+            },
+            KeyCode::Backspace => {
+                command.pop();
+                *error = None;
+                RecordPromptAction::None
             }
-            RecordPromptAction::None
-        }
-        _ => RecordPromptAction::None,
+            KeyCode::Char(ch) => {
+                if !modifiers.contains(KeyModifiers::CONTROL) {
+                    command.push(ch);
+                    *error = None;
+                }
+                RecordPromptAction::None
+            }
+            _ => RecordPromptAction::None,
+        },
     }
 }
 
@@ -404,17 +427,15 @@ fn record_overlay(
     task: Option<&TuiRecordTask>,
 ) -> Option<TopRecordOverlay> {
     if let Some(prompt) = prompt {
-        if prompt.command.is_empty()
-            && let Some(task) = task
-        {
-            return Some(TopRecordOverlay::Running {
+        return match prompt {
+            RecordPrompt::StopConfirm => task.map(|task| TopRecordOverlay::Running {
                 lines: record_running_lines(&task.status()),
-            });
-        }
-        return Some(TopRecordOverlay::Prompt {
-            command: prompt.command.clone(),
-            error: prompt.error.clone(),
-        });
+            }),
+            RecordPrompt::Start { command, error } => Some(TopRecordOverlay::Prompt {
+                command: command.clone(),
+                error: error.clone(),
+            }),
+        };
     }
     None
 }
@@ -455,7 +476,8 @@ fn next_sort_key(current: &str) -> String {
 mod tests {
     use super::{
         RecordOpenAction, RecordPrompt, RecordPromptAction, handle_record_prompt_key,
-        open_record_prompt_for_selection, record_running_lines, record_status_line,
+        handle_record_stop_shortcut, next_sort_key, open_record_prompt_for_selection,
+        record_running_lines, record_status_line,
     };
     use crate::cmd_tui_record::TuiRecordStatus;
     use crate::output::tui::{tui_diagnostic_lines, tui_status_line};
@@ -486,12 +508,13 @@ mod tests {
             ]
         );
 
-        let prompt = RecordPrompt {
-            command: "agentsight record -p 42 --db agentsight-test.db --server-port 7395"
-                .to_string(),
-            error: None,
+        let prompt = RecordPrompt::start(
+            "agentsight record -p 42 --db agentsight-test.db --server-port 7395".to_string(),
+        );
+        let RecordPrompt::Start { command, .. } = prompt else {
+            panic!("expected start prompt");
         };
-        assert!(prompt.command.contains("record -p 42"));
+        assert!(command.contains("record -p 42"));
     }
 
     #[test]
@@ -517,18 +540,20 @@ mod tests {
         let RecordOpenAction::Open(prompt) = action else {
             panic!("expected record prompt");
         };
-        assert!(prompt.command.contains("record -p 42"));
-        assert!(prompt.command.contains("--db agentsight-"));
-        assert!(prompt.command.contains("--server-port 7395"));
-        assert_eq!(prompt.error, None);
+        let RecordPrompt::Start { command, error } = prompt else {
+            panic!("expected start prompt");
+        };
+        assert!(command.contains("record -p 42"));
+        assert!(command.contains("--db agentsight-"));
+        assert!(command.contains("--server-port 7395"));
+        assert_eq!(error, None);
     }
 
     #[test]
     fn record_prompt_esc_closes_without_starting_task() {
-        let mut prompt = Some(RecordPrompt {
-            command: "agentsight record -p 42 --db out.db --server-port 7395".to_string(),
-            error: None,
-        });
+        let mut prompt = Some(RecordPrompt::start(
+            "agentsight record -p 42 --db out.db --server-port 7395".to_string(),
+        ));
 
         let action = handle_record_prompt_key(&mut prompt, false, KeyCode::Esc, KeyModifiers::NONE);
 
@@ -536,6 +561,42 @@ mod tests {
         assert_eq!(prompt, None);
     }
 
+
+    #[test]
+    fn lower_s_remains_sort_shortcut_even_when_recording() {
+        assert_eq!(next_sort_key("cpu"), "rss");
+        assert_eq!(handle_record_stop_shortcut(false), None);
+    }
+
+    #[test]
+    fn record_shift_s_when_task_running_opens_stop_prompt() {
+        assert_eq!(
+            handle_record_stop_shortcut(true),
+            Some(RecordPrompt::StopConfirm)
+        );
+        assert_eq!(handle_record_stop_shortcut(false), None);
+    }
+
+    #[test]
+    fn record_stop_prompt_shift_s_stops_running_task() {
+        let mut prompt = Some(RecordPrompt::StopConfirm);
+
+        let action =
+            handle_record_prompt_key(&mut prompt, true, KeyCode::Char('S'), KeyModifiers::NONE);
+
+        assert_eq!(action, RecordPromptAction::StopRunning);
+        assert_eq!(prompt, None);
+    }
+
+    #[test]
+    fn record_stop_prompt_esc_cancels_without_stopping() {
+        let mut prompt = Some(RecordPrompt::StopConfirm);
+
+        let action = handle_record_prompt_key(&mut prompt, true, KeyCode::Esc, KeyModifiers::NONE);
+
+        assert_eq!(action, RecordPromptAction::None);
+        assert_eq!(prompt, None);
+    }
     #[test]
     fn record_r_when_task_running_opens_running_dialog() {
         let action = open_record_prompt_for_selection(true, None, 0, true);
@@ -543,28 +604,23 @@ mod tests {
         let RecordOpenAction::Open(prompt) = action else {
             panic!("expected running prompt");
         };
-        assert_eq!(prompt.command, "");
-        assert_eq!(
-            prompt.error.as_deref(),
-            Some("record already running; press s in this dialog to stop")
-        );
+        assert_eq!(prompt, RecordPrompt::StopConfirm);
     }
 
     #[test]
     fn record_enter_when_task_running_prevents_second_task() {
-        let mut prompt = Some(RecordPrompt {
-            command: "agentsight record -p 42 --db out.db --server-port 7395".to_string(),
-            error: None,
-        });
+        let mut prompt = Some(RecordPrompt::start(
+            "agentsight record -p 42 --db out.db --server-port 7395".to_string(),
+        ));
 
         let action =
             handle_record_prompt_key(&mut prompt, true, KeyCode::Enter, KeyModifiers::NONE);
 
         assert_eq!(action, RecordPromptAction::None);
-        assert_eq!(
-            prompt.and_then(|prompt| prompt.error).as_deref(),
-            Some("a record task is already running")
-        );
+        let Some(RecordPrompt::Start { error, .. }) = prompt else {
+            panic!("expected start prompt with error");
+        };
+        assert_eq!(error.as_deref(), Some("a record task is already running"));
     }
     #[test]
     fn tui_status_compacts_source_notes() {

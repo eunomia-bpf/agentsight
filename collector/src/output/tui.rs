@@ -216,11 +216,16 @@ fn render_top_footer(
     top: &AgentTopOutput<'_>,
     record_status: Option<&str>,
 ) {
+    let stop_hint = if record_status.is_some() {
+        " | S stop record"
+    } else {
+        ""
+    };
     let mut lines = vec![Line::from(vec![
         Span::styled("keys ", label_style()),
-        Span::raw(
-            "q quit | up/down select | s sort | v view | p pause | r refresh | R record PID | +/- rows | e errors | ? help",
-        ),
+        Span::raw(format!(
+            "q quit | up/down select | s sort{stop_hint} | v view | p pause | r refresh | R record PID | +/- rows | e errors | ? help",
+        )),
     ])];
     lines.push(Line::from(vec![
         Span::styled("status ", label_style()),
@@ -323,6 +328,7 @@ fn render_top_help(frame: &mut Frame<'_>) {
         Line::from("q or Esc       exit"),
         Line::from("up/down, k/j   select a session"),
         Line::from("s              cycle sort: cpu, rss, tokens, execs, fail, files, net, agent"),
+        Line::from("S              when recording, prompt stop record"),
         Line::from("v              cycle detail view: all, processes, files, network, models"),
         Line::from("p              pause or resume refresh"),
         Line::from("r              refresh now"),
@@ -378,7 +384,7 @@ fn render_record_overlay(frame: &mut Frame<'_>, overlay: &TopRecordOverlay) {
             ];
             rendered.extend(lines.iter().cloned().map(Line::from));
             rendered.push(Line::from(""));
-            rendered.push(Line::from("s stop | Esc cancel"));
+            rendered.push(Line::from("Enter/S stop | Esc cancel"));
             ("record", rendered)
         }
     };
