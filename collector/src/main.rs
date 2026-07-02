@@ -28,6 +28,7 @@ mod cmd_perf;
 mod cmd_perf_live;
 mod cmd_perf_tui;
 mod cmd_trace;
+mod cmd_tui_record;
 mod event;
 mod json;
 mod model;

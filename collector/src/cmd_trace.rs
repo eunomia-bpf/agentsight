@@ -2,6 +2,7 @@
 // Copyright (c) 2026 eunomia-bpf org.
 
 use futures::stream::StreamExt;
+use tokio::sync::oneshot;
 
 use crate::analyzers::{
     AuthHeaderRemover, HTTPDecompressor, HTTPFilter, HTTPParser, MaterializingAnalyzer,
@@ -35,6 +36,12 @@ const DEFAULT_HTTP_FILTER: &str = "request.path_prefix=/v1/rgstr | response.stat
 pub(crate) struct StartedWebServer {
     pub(crate) url: String,
     pub(crate) _handle: tokio::task::JoinHandle<()>,
+}
+
+impl Drop for StartedWebServer {
+    fn drop(&mut self) {
+        self._handle.abort();
+    }
 }
 
 /// Configuration for exporting GenAI spans to an OpenTelemetry Collector.
@@ -421,6 +428,127 @@ pub(crate) async fn start_web_server_if_enabled(
         url,
         _handle: server_handle,
     }))
+}
+
+async fn start_web_server_silent_if_enabled(
+    enable_server: bool,
+    listen: &str,
+    port: u16,
+    view: SharedMaterializedView,
+    db_path: Option<String>,
+) -> Result<Option<StartedWebServer>, Box<dyn std::error::Error>> {
+    if !enable_server {
+        return Ok(None);
+    }
+
+    let listen = if listen.trim().is_empty() {
+        DEFAULT_SERVER_LISTEN
+    } else {
+        listen.trim()
+    };
+    let addr = format!("{}:{}", listen, port)
+        .parse()
+        .map_err(|e| format!("Invalid server address: {}", e))?;
+    let web_server = WebServer::new_with_db_path(view, db_path)
+        .map_err(|e| format!("Failed to create web server: {}", e))?;
+
+    let host = if listen == "0.0.0.0" || listen == "::" {
+        "127.0.0.1"
+    } else {
+        listen
+    };
+    let url = format!("http://{}:{}/", host, port);
+
+    let server_handle = tokio::spawn(async move {
+        if let Err(e) = web_server.start(addr).await {
+            log::warn!("web server error: {}", e);
+        }
+    });
+
+    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+    if server_handle.is_finished() {
+        return Err(Box::new(std::io::Error::other(
+            "web server exited during startup",
+        )));
+    }
+
+    Ok(Some(StartedWebServer {
+        url,
+        _handle: server_handle,
+    }))
+}
+
+pub(crate) async fn run_trace_silent_until_cancel(
+    binary_extractor: &BinaryExtractor,
+    mut cfg: TraceConfig,
+    mut cancel: oneshot::Receiver<()>,
+) -> Result<Option<String>, RunnerError> {
+    if let Some((_reference, resolved)) =
+        resolve_container_binary_arg(cfg.binary_path.as_deref()).map_err(RunnerError::from)?
+    {
+        cfg.binary_path = Some(resolved);
+    }
+
+    if cfg.ssl && cfg.binary_path.is_none() {
+        let resolved = cfg
+            .comm
+            .as_deref()
+            .filter(|c| !c.contains(','))
+            .and_then(|c| resolve_binary_path(c).ok())
+            .filter(|p| binary_embeds_ssl(p));
+        if let Some(p) = resolved {
+            cfg.binary_path = Some(p);
+        }
+    }
+
+    let enable_server = cfg.server;
+    let server_listen = cfg
+        .server_listen
+        .as_deref()
+        .unwrap_or(DEFAULT_SERVER_LISTEN)
+        .to_string();
+    let server_port = cfg.server_port;
+    let db_path = cfg.db_path.clone();
+
+    prepare_process_seeds(&mut cfg)?;
+    let live_view = MaterializedView::shared_bounded();
+    let mut agent = build_trace_agent_with_view(binary_extractor, &cfg, live_view.clone())?;
+    let server = start_web_server_silent_if_enabled(
+        enable_server,
+        &server_listen,
+        server_port,
+        live_view,
+        db_path,
+    )
+    .await
+    .map_err(|e| RunnerError::from(format!("Failed to start server: {}", e)))?;
+    let server_url = server.as_ref().map(|server| server.url.clone());
+
+    let mut stream = agent.run().await?;
+    let shutdown = crate::shutdown_notify();
+    loop {
+        tokio::select! {
+            maybe_event = stream.next() => {
+                match maybe_event {
+                    Some(event) => {
+                        if let Some(error) = runner_error_from_event(&event) {
+                            return Err(error);
+                        }
+                    }
+                    None => break,
+                }
+            }
+            _ = &mut cancel => {
+                break;
+            }
+            _ = shutdown.notified() => {
+                break;
+            }
+        }
+    }
+    drop(stream);
+    drop(agent);
+    Ok(server_url)
 }
 
 pub(crate) async fn drive_stream_until_shutdown(
