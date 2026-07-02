@@ -8,6 +8,7 @@ use chrono::Local;
 use std::sync::{Arc, Mutex};
 use tokio::sync::oneshot;
 use tokio::task::JoinHandle;
+use tokio::time::Duration;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct TuiRecordCommand {
@@ -64,7 +65,7 @@ pub(crate) struct TuiRecordStatus {
 pub(crate) struct TuiRecordTask {
     status: Arc<Mutex<TuiRecordStatus>>,
     cancel: Option<oneshot::Sender<()>>,
-    handle: JoinHandle<()>,
+    handle: Option<JoinHandle<()>>,
 }
 
 impl TuiRecordTask {
@@ -115,7 +116,7 @@ impl TuiRecordTask {
         Self {
             status,
             cancel: Some(cancel_tx),
-            handle,
+            handle: Some(handle),
         }
     }
 
@@ -143,8 +144,52 @@ impl TuiRecordTask {
         });
     }
 
+    pub(crate) async fn shutdown(mut self, wait: Duration) {
+        self.stop();
+        let Some(mut handle) = self.handle.take() else {
+            return;
+        };
+        if handle.is_finished() {
+            let _ = handle.await;
+            return;
+        }
+        let wait = tokio::time::sleep(wait);
+        tokio::pin!(wait);
+        tokio::select! {
+            join_result = &mut handle => {
+                let _ = join_result;
+            }
+            _ = &mut wait => {
+                // The trace task should normally exit after cancellation. Abort on
+                // timeout so top does not leave an orphaned background capture.
+                handle.abort();
+                let _ = handle.await;
+                set_status(&self.status, |status| {
+                    if !status.finished {
+                        status.message = "stopped".to_string();
+                        status.finished = true;
+                    }
+                });
+            }
+        }
+    }
+
+    pub(crate) fn shutdown_blocking(self, wait: Duration) {
+        if let Ok(handle) = tokio::runtime::Handle::try_current() {
+            tokio::task::block_in_place(|| handle.block_on(self.shutdown(wait)));
+        } else if let Ok(runtime) = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+        {
+            runtime.block_on(self.shutdown(wait));
+        }
+    }
+
     pub(crate) fn is_finished(&self) -> bool {
-        self.handle.is_finished() || self.status().finished
+        self.handle
+            .as_ref()
+            .is_none_or(|handle| handle.is_finished())
+            || self.status().finished
     }
 }
 
@@ -205,7 +250,8 @@ pub(crate) fn parse_tui_record_command(input: &str) -> Result<TuiRecordCommand, 
     }
     if tokens.iter().any(|token| *token == "--") {
         return Err(
-            "TUI record only supports attach options, not `record -- <command>`".to_string(),
+            "TUI record accepts space-separated attach options only, not `record -- <command>`"
+                .to_string(),
         );
     }
 
@@ -254,10 +300,11 @@ pub(crate) fn parse_tui_record_command(input: &str) -> Result<TuiRecordCommand, 
             }
             "-c" | "--comm" => {
                 return Err(
-                    "TUI record only supports PID attach; use record -c outside top".to_string(),
+                    "TUI record accepts PID attach options only; use record -c outside top"
+                        .to_string(),
                 );
             }
-            other => return Err(format!("unsupported record option: {other}")),
+            other => return Err(format!("unsupported attach option: {other}")),
         }
         i += 1;
     }
@@ -275,6 +322,7 @@ pub(crate) fn parse_tui_record_command(input: &str) -> Result<TuiRecordCommand, 
 mod tests {
     use super::*;
     use crate::output::AgentTopRow;
+    use tokio::time::Duration;
 
     fn row(pid: Option<u32>) -> AgentTopRow {
         AgentTopRow {
@@ -320,5 +368,35 @@ mod tests {
         assert!(parse_tui_record_command("record -p --db out.db").is_err());
         assert!(parse_tui_record_command("record -p 1 --bogus --db out.db").is_err());
         assert!(parse_tui_record_command("record --db out.db").is_err());
+    }
+
+    #[tokio::test]
+    async fn shutdown_sends_cancel_and_marks_stopping() {
+        let status = Arc::new(Mutex::new(TuiRecordStatus {
+            target: "pid 42".to_string(),
+            db_path: "out.db".to_string(),
+            server_url: None,
+            message: "recording".to_string(),
+            finished: false,
+        }));
+        let (cancel_tx, cancel_rx) = oneshot::channel();
+        let task_status = status.clone();
+        let handle = tokio::spawn(async move {
+            let _ = cancel_rx.await;
+            set_status(&task_status, |status| {
+                status.finished = true;
+            });
+        });
+        let task = TuiRecordTask {
+            status: status.clone(),
+            cancel: Some(cancel_tx),
+            handle: Some(handle),
+        };
+
+        task.shutdown(Duration::from_millis(100)).await;
+
+        let status = status.lock().unwrap().clone();
+        assert!(status.finished);
+        assert!(matches!(status.message.as_str(), "stopping" | "stopped"));
     }
 }

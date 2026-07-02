@@ -351,6 +351,8 @@ fn render_record_overlay(frame: &mut Frame<'_>, overlay: &TopRecordOverlay) {
                         .add_modifier(Modifier::BOLD),
                 )]),
                 Line::from(""),
+                Line::from("Attach options only; values are split on spaces."),
+                Line::from(""),
                 Line::from(command.clone()),
                 Line::from(""),
                 Line::from("Enter start | Esc cancel | Backspace edit"),
