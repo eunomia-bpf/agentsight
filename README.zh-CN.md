@@ -158,7 +158,6 @@ make build
 | Gemini CLI | `sudo ./agentsight record -- gemini` |
 | Python（aider、open-interpreter 等） | `sudo ./agentsight record -c python` |
 | Docker 容器（OpenClaw 等） | `sudo ./agentsight record -c node --binary-path docker://openclaw` |
-| Kubernetes Pod | `sudo ./agentsight record -c node --binary-path k8s://agents/openclaw/gateway` |
 | 任意命令 | `sudo ./agentsight record -- <command>` |
 
 详见 [docs/agents.md](https://github.com/eunomia-bpf/agentsight/blob/master/docs/agents.md)，了解各智能体的详细设置、SSL 注意事项、浏览器捕获、MCP stdio 和高级选项。

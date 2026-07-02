@@ -223,7 +223,7 @@ pub(crate) fn parse_container_ref(binary_path: &str) -> Option<&str> {
     binary_path
         .strip_prefix("docker://")
         .or_else(|| binary_path.strip_prefix("docker:"))
-        .filter(|r| !r.is_empty())
+        .filter(|r| !r.is_empty() && !r.contains('/'))
 }
 
 fn has_docker_scheme(binary_path: &str) -> bool {
@@ -677,6 +677,12 @@ mod tests {
     fn rejects_empty_container_reference() {
         assert_eq!(parse_container_ref("docker://"), None);
         assert_eq!(parse_container_ref("docker:"), None);
+    }
+
+    #[test]
+    fn rejects_slash_separated_docker_reference() {
+        assert_eq!(parse_container_ref("docker://foo/bar"), None);
+        assert_eq!(parse_container_ref("docker:foo/bar"), None);
     }
 
     #[test]
