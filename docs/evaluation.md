@@ -9,7 +9,7 @@ Completeness: partial
 
 | Claim | Required evidence | Current status | Next experiment |
 |---|---|---|---|
-| C1: `agentpprof` profiles operations and operation stacks without privileging prompt/session boundaries. | A non-Codex/Claude labeled trajectory enters as operation JSONL and folds with arbitrary `--stack` frames. | Supported for deterministic projection by R279/R281/R282/R283/R284/R285/R286 across 9 external datasets and 13,265 operations, including held-out session, leave-dataset-out, and recursive-depth tests. | Scale the best 3-4 datasets and add larger desktop/computer-use sources. |
+| C1: `agentpprof` profiles operations and operation stacks without privileging prompt/session boundaries. | A non-Codex/Claude labeled trajectory enters as operation JSONL and folds with arbitrary `--stack` frames. | Supported for deterministic projection by R279/R281/R282/R283/R284/R285/R286/R287 across 10 external datasets and 14,825 operations, including held-out session, leave-dataset-out, recursive-depth, and tool-agent-user trajectory tests. | Scale the best 3-4 datasets and add larger desktop/computer-use sources. |
 | C2: Recursive operation stacks recover useful task/subtask/phase structure from linear agent trajectories. | Compare mapped-stack output against dataset-native boundaries and action/step labels. | Partially supported: R286 shows the same operation set can be folded from 9 dataset stacks to 57 phase stacks, 226 tool/semantic stacks, 455 action stacks, or 3,757 fixed-session stacks by changing only `--stack`; R285 semantic stack view improves stack aggregation on 6/9 leave-out datasets with 0 negative datasets. | Add deeper subtask/step oracle scoring beyond action-level boundaries. |
 | C3: Inferred boundary detection can replace hand-written stack rules. | Generated or model-inferred boundary backend compared with deterministic rule oracle. | Partially supported for deterministic learned-from-labeled-fields rule files, including held-out sessions and leave-dataset-out stress tests; R285 fixes the R284 API/tool negative cases by prioritizing a tool/API phase family before action-verb phase rules. Unsupported for unsupervised/model boundary detection. | Add leave-family-out validation and a non-rule boundary backend. |
 
@@ -27,6 +27,7 @@ Completeness: partial
 | GUI-Odyssey | episode id, category, app combo, instruction, annotated step actions | HF Dataset Viewer: `OpenGVLab/GUI-Odyssey`, config `default`, split `all` | `script/agent_trace_datasets.py sample gui-odyssey` emits one operation per annotated GUI step; R279 sampled 500 episodes / 7,868 operations. | Best current large-scale mobile/cross-app trajectory source. |
 | Android in the Wild | instruction, screen/action episodes | Official google-research release | Manifested; converter pending. | Large-scale robustness once mobile converter exists. |
 | ToolBench | instruction, solution path, toolenv, API calls, reasoning traces | Official OpenBMB release plus HF mirror `tuandunghcmut/toolbench-v1` | `script/agent_trace_datasets.py sample toolbench` emits one operation per assistant tool action; R279 sampled 300 rows / 866 operations. | Tool/planner/API operation-stack oracle. |
+| tau-bench trajectories | multi-turn user/assistant/tool messages, task domain, success/failure outcome, gold task actions | HF repo files: `AgentSuite/tau-bench-trajectories`, one JSONL per model | `script/agent_trace_datasets.py sample tau-bench-trajectories --repo-file gpt-4o-mini.jsonl` emits user prompt, assistant response, tool-call, and tool-observation operations; R287 sampled 50 episodes / 1,560 operations. | Best current tool-agent-user dialogue source; useful for dialogue/tool/observation phase stacks and outcome/failure analysis. |
 | TRAIL | human-annotated reasoning/planning/execution errors | HF auto-gated dataset plus official benchmark repo | Manifested; gated access pending. | Best future failure-boundary oracle. |
 
 ## Run Tracker
@@ -48,6 +49,7 @@ Completeness: partial
 | R284 | C2, C3 | Leave-dataset-out generated mapping, semantic stack | Same as R283 but stack is `project,dataset,task,phase,op,tool,status`, removing raw `action` as a leaf to test semantic aggregation view | worktree after `9f2c6c0` | local | 9 leave-out folds | `docs/visexp/out/operation-map-leaveout-semantic-r284/` | done |
 | R285 | C2, C3 | Leave-dataset-out semantic stack with API/tool phase precedence | Same as R284 after updating learned rule inference to classify API/tool traces before generic action-verb phase rules, including a generic `op=tool.*domain=` API fallback | worktree after `63f1a06` | local | 9 leave-out folds | `docs/visexp/out/operation-map-leaveout-api-r285/` | done |
 | R286 | C1, C2 | Recursive stack-depth sweep over the same operations | `script/operation_stack_depth_eval.py`; same 13,265 R279 operations and R286 inferred op-map; compare dataset/task/phase/op/tool/semantic/action/fixed-session stack shapes through Rust `agentpprof --operation-file --stack` | worktree after `0a645c7` | local | 8 stack depths over identical operations | `docs/visexp/out/operation-stack-depth-r286/` | done |
+| R287 | C1, C2 | tau-bench tool-agent-user trajectory converter and smoke | `script/agent_trace_datasets.py sample tau-bench-trajectories --limit 50 --repo-file gpt-4o-mini.jsonl`; Rust `agentpprof --operation-file` over tau-bench alone and combined with the R279 9-dataset set | worktree after `5a3abaa` | local | 50 episodes, 1,560 tau-bench operations; 10-dataset combined smoke has 14,825 operations | `docs/visexp/out/external-agent-trace-taubench-r287/` | done |
 
 R272 command:
 
@@ -87,6 +89,7 @@ cargo run --manifest-path agentpprof/Cargo.toml -- \
 | R284 | Leave-dataset-out with semantic stack (`project,dataset,task,phase,op,tool,status`) reduces unique stacks on 6/9 datasets: AgentTrek 9→7, AndroidControl 5→3, GUI-Odyssey 6→5, Mind2Web 9→3, SWE-agent 20→16, WebLINX 7→6. ToolBench regresses 173→179, API-Bank regresses 1→3, WebShop is neutral at 119. | Shows the same operation sequence can be folded at a different semantic depth by changing only `--stack`. It also surfaces where the current mapping taxonomy is weak: API and ToolBench need a tool/API-family layer rather than action-verb phase rules. | Still deterministic and taxonomy-seeded; leave-family-out and deeper step/solution-path oracles remain open. |
 | R285 | Re-running the R284 semantic stack after API/tool phase precedence removes all negative leave-out regressions. Aggregate summary: 6/9 positive stack-reduction datasets, 0 negative, weighted stack reduction 1162.005 per 1k operations. API-Bank is neutral at 1→1 and ToolBench is neutral at 173→173; the six positive datasets remain AgentTrek, AndroidControl, GUI-Odyssey, Mind2Web, SWE-agent, and WebLINX. | Confirms that phase mapping must respect operation-family boundaries before action verbs. Tool/API traces are still operations, but their phase should be derived from tool/API structure rather than lexical verbs like `search`, `show`, or `create`. | This is still deterministic taxonomy-seeded mapping. It validates the two-abstraction design path, not unsupervised discovery; deeper task/subtask adequacy and leave-family-out validation remain open. |
 | R286 | A recursive stack-depth sweep over the same 13,265 operations produced 9 dataset stacks, 11 task stacks, 57 phase stacks, 57 op stacks, 226 tool stacks, 226 semantic stacks, 455 action stacks, and 3,757 fixed-session stacks. Phase/action V-measure is 0.7638 and phase/action boundary F1 is 0.8095 under the shared R286 mapping. | Directly validates the design requirement that operation stacks are user-selected recursive projections rather than fixed prompt/session boundaries. Adding `session` causes an 8.26x expansion relative to action depth and 417.44x relative to dataset depth, which explains why session should be optional drilldown, not the default abstraction. | This is a stack-shape and boundary-proxy result; it does not yet prove unsupervised boundary discovery or deeper step-instruction/solution-path adequacy. |
+| R287 | tau-bench adds 50 multi-turn tool-agent-user episodes and 1,560 operations: 414 user prompt ops, 364 assistant LLM response ops, 391 tool-call ops, and 391 tool-observation ops. The tau-only stack produces 68 unique stacks and compression 22.941; phase/action V-measure is 0.7868 and phase/action boundary F1 is 0.699 with precision 1.0. Combined with R279, the 10-dataset smoke covers 14,825 operations and 509 stacks; tau-bench becomes the third-largest source by operation count. | Confirms the same operation/operation-stack path handles dialogue, tool calls, and tool observations without adding a new abstraction. tau-bench is a stronger future oracle than ToolBench for user-agent-tool phase analysis because it includes outcomes and expected task actions. | Current run samples one model file (`gpt-4o-mini.jsonl`) and 50 episodes; larger multi-model tau-bench runs and outcome-specific analysis remain pending. |
 
 ## Candidate Selection
 
@@ -94,13 +97,14 @@ cargo run --manifest-path agentpprof/Cargo.toml -- \
 |---|---|---|---|
 | 1 | GUI-Odyssey | Keep as primary | Large cross-app mobile episodes, clean step/action labels, easy HF sampling, strong scale signal in R279. |
 | 2 | WebShop expert | Keep as primary | Long expert trajectories, many operations per task, rewards, strong compression signal. |
-| 3 | ToolBench | Keep as primary | Best current tool/API long-tail source; R279 exposes API-domain stack diversity. |
-| 4 | WebLINX chat | Keep as primary | Human/expert web demonstrations with clean action/demo/turn fields and multiple held-out splits. |
-| 5 | Mind2Web | Keep as secondary primary | Strong cross-domain web oracle with task/domain/action labels; train_0 shard scales to 100 rows / 774 ops. |
-| 6 | SWE-agent trajectories | Keep as domain bridge | Closest to coding-agent domain and has command/action trajectories plus success labels, but sampled rows are smaller than GUI/web sources. |
-| 7 | AgentTrek | Keep as scale supplement | Large verified GUI/web trajectory source; useful for scale, but synthetic provenance weakens human-oracle claims. |
-| 8 | AndroidControl | Keep as boundary oracle after heavier sampling | Step instructions provide a stronger subtask oracle than action type, but screenshot payloads make sampling heavier. |
-| 9 | API-Bank | Keep as baseline | Good compact tool-call oracle, but mostly single-step and less useful for recursive boundary depth. |
+| 3 | tau-bench trajectories | Keep as primary | Best current user-agent-tool dialogue source; has multi-turn messages, tool calls, observations, outcomes, and gold task actions. |
+| 4 | ToolBench | Keep as primary | Best current long-tail API source; R279 exposes API-domain stack diversity. |
+| 5 | WebLINX chat | Keep as primary | Human/expert web demonstrations with clean action/demo/turn fields and multiple held-out splits. |
+| 6 | Mind2Web | Keep as secondary primary | Strong cross-domain web oracle with task/domain/action labels; train_0 shard scales to 100 rows / 774 ops. |
+| 7 | SWE-agent trajectories | Keep as domain bridge | Closest to coding-agent domain and has command/action trajectories plus success labels, but sampled rows are smaller than GUI/web sources. |
+| 8 | AgentTrek | Keep as scale supplement | Large verified GUI/web trajectory source; useful for scale, but synthetic provenance weakens human-oracle claims. |
+| 9 | AndroidControl | Keep as boundary oracle after heavier sampling | Step instructions provide a stronger subtask oracle than action type, but screenshot payloads make sampling heavier. |
+| 10 | API-Bank | Keep as baseline | Good compact tool-call oracle, but mostly single-step and less useful for recursive boundary depth. |
 
 ## Metrics And Oracles
 
@@ -113,6 +117,7 @@ cargo run --manifest-path agentpprof/Cargo.toml -- \
 | Boundary adequacy | Agreement between inferred task/subtask/phase frames and dataset labels such as demo id, action type, step instruction, or solution path. | Dataset-native labels; manual adjudication for ambiguous cases. | C2, C3 |
 | Phase/action V-measure | Homogeneity/completeness between mapped phase labels and dataset action labels. | `operation_stack_quality.py --oracle-pair phase:action`. | C2 |
 | Sequence boundary F1 | Precision/recall of mapped phase changes against action-label changes within each session. | `operation_stack_quality.py --boundary-pair phase:action`. | C2 |
+| Tool-agent role alignment | Homogeneity/completeness between normalized operation kind and message role. | R287 `operation_stack_quality.py --oracle-pair op:role`. | C1, C2 |
 | Held-out mapping compression delta | Unique stack reduction and compression improvement when train-derived op-map rules are applied to unseen sessions. | R282 mapped vs no-map folded stacks on identical held-out operation JSONL. | C2, C3 |
 | Leave-dataset-out stack reduction | Unique stack change when one full dataset is held out from mapping-rule generation. | R283/R284 mapped vs no-map folded stacks, one held-out dataset per fold. | C2, C3 |
 | Recursive stack-depth expansion | Unique stack count and compression change as the same operations are folded with progressively deeper `--stack` specs. | R286 depth sweep over identical R279 operations and one R286 op-map. | C1, C2 |
@@ -133,6 +138,7 @@ cargo run --manifest-path agentpprof/Cargo.toml -- \
 | ToolBench HF mirror conversation sampling is implemented. | done |
 | AndroidControl lightweight sampling is implemented with screenshot redaction for saved raw rows. | done |
 | GUI-Odyssey lightweight sampling is implemented. | done |
+| tau-bench trajectory JSONL sampling is implemented and tracked under R287. | done |
 | Flat/fixed/mapped stack ablation is tracked under R277. | done |
 | Operation-stack quality scorer is implemented and tracked under R280. | done |
 | Learned-from-labeled-fields op-map generation is implemented and tracked under R281. | done |

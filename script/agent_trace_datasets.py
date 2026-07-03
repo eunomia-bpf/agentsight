@@ -149,6 +149,19 @@ DATASETS: dict[str, dict[str, Any]] = {
         "why": "Tool-use instructions, solution paths, real API calls, and reasoning traces.",
         "note": "Uses a Hugging Face mirror for lightweight sampling; official release remains the canonical source.",
     },
+    "tau-bench-trajectories": {
+        "title": "tau-bench agent trajectories",
+        "hf_repo": "AgentSuite/tau-bench-trajectories",
+        "config": "default",
+        "split": "train",
+        "repo_file": "gpt-4o-mini.jsonl",
+        "access": "hf-repo-jsonl",
+        "adapter": "tau-bench",
+        "source": "https://github.com/sierra-research/tau-bench",
+        "paper": "https://arxiv.org/abs/2406.12045",
+        "why": "Multi-turn tool-agent-user trajectories with messages, function calls, outcomes, and gold task actions.",
+        "note": "Dataset Viewer is preview-only; sampler downloads one per-model JSONL file from the HF repo.",
+    },
 }
 
 
@@ -209,6 +222,8 @@ def cmd_sample(args: argparse.Namespace) -> int:
         rows = hf_viewer_rows(dataset, args.offset, args.limit)
     elif dataset["access"] == "large-repo-json":
         rows = hf_repo_json_rows(dataset, out_dir, args.offset, args.limit)
+    elif dataset["access"] == "hf-repo-jsonl":
+        rows = hf_repo_jsonl_rows(dataset, out_dir, args.offset, args.limit)
     else:
         note = dataset.get("note", "No lightweight sampler is configured for this dataset.")
         raise SystemExit(f"{args.dataset} is not sampleable by this command: {note}")
@@ -302,6 +317,29 @@ def hf_repo_json_rows(
     return payload[offset : offset + limit]
 
 
+def hf_repo_jsonl_rows(
+    dataset: dict[str, Any], out_dir: Path, offset: int, limit: int
+) -> list[dict[str, Any]]:
+    repo_file = dataset["repo_file"]
+    source_path = out_dir / Path(repo_file).name
+    if not source_path.exists():
+        encoded = urllib.parse.quote(repo_file)
+        url = f"https://huggingface.co/datasets/{dataset['hf_repo']}/resolve/main/{encoded}"
+        with urllib.request.urlopen(url, timeout=120) as response:
+            source_path.write_bytes(response.read())
+    rows: list[dict[str, Any]] = []
+    with source_path.open("r", encoding="utf-8") as f:
+        for line_number, line in enumerate(f):
+            if line_number < offset:
+                continue
+            if len(rows) >= limit:
+                break
+            line = line.strip()
+            if line:
+                rows.append(json.loads(line))
+    return rows
+
+
 def get_json(url: str) -> dict[str, Any]:
     with urllib.request.urlopen(url, timeout=60) as response:
         return json.loads(response.read().decode("utf-8"))
@@ -333,6 +371,8 @@ def normalize_row(
         return normalize_gui_odyssey(dataset_id, dataset, row, row_index, include_text)
     if adapter == "toolbench-conversation":
         return normalize_toolbench_conversation(dataset_id, dataset, row, row_index, include_text)
+    if adapter == "tau-bench":
+        return normalize_tau_bench(dataset_id, dataset, row, row_index, include_text)
     raise SystemExit(f"no adapter for dataset {dataset_id}")
 
 
@@ -677,6 +717,171 @@ def normalize_toolbench_conversation(
             fields["action_raw"] = truncate_clean(content, 180)
         operations.append({"value": 1, "fields": fields})
     return operations
+
+
+def normalize_tau_bench(
+    dataset_id: str,
+    dataset: dict[str, Any],
+    row: dict[str, Any],
+    row_index: int,
+    include_text: bool,
+) -> list[dict[str, Any]]:
+    meta = row.get("meta") or {}
+    task_description = meta.get("task_description") or {}
+    expected_actions = {
+        sanitize_label(str(action.get("name") or ""))
+        for action in task_description.get("actions") or []
+        if isinstance(action, dict)
+    }
+    outcome = tau_bench_outcome(row)
+    session = sanitize_label(str(meta.get("id") or meta.get("task_id") or f"tau-{row_index}"))
+    environment = sanitize_label(str(row.get("task_name") or "unknown"))
+    model = sanitize_label(str(row.get("model_path") or "unknown-model"))
+    operations = []
+    for ordinal, message in enumerate(row.get("messages") or []):
+        if not isinstance(message, dict):
+            continue
+        role = str(message.get("role") or "unknown").lower()
+        if role == "system":
+            continue
+        turn = str(message.get("turn_idx") if message.get("turn_idx") is not None else ordinal)
+        if role == "user":
+            content = str(message.get("content") or "")
+            action = "finish" if "###STOP###" in content else "user_message"
+            phase = "finish" if action == "finish" else "dialogue"
+            fields = tau_base_fields(
+                dataset_id, dataset, session, turn, model, environment, role, outcome
+            )
+            fields.update(
+                {
+                    "phase": phase,
+                    "op": "prompt",
+                    "tool": "user",
+                    "action": action,
+                    "actor": "user",
+                }
+            )
+            if include_text:
+                fields["message_preview"] = truncate_clean(content, 180)
+            operations.append({"value": 1, "fields": fields})
+            continue
+        if role == "tool":
+            tool_name = sanitize_label(str(message.get("name") or "tool"))
+            fields = tau_base_fields(
+                dataset_id, dataset, session, turn, model, environment, role, outcome
+            )
+            fields.update(
+                {
+                    "phase": "observe",
+                    "op": "observation",
+                    "tool": tool_name,
+                    "action": "observe",
+                    "actor": "tool",
+                }
+            )
+            if include_text:
+                fields["message_preview"] = truncate_clean(str(message.get("content") or ""), 180)
+            operations.append({"value": 1, "fields": fields})
+            continue
+        if role == "assistant":
+            tool_calls = message.get("tool_calls") or []
+            if tool_calls:
+                for call_index, tool_call in enumerate(tool_calls):
+                    function = tool_call.get("function") or {}
+                    action = sanitize_label(str(function.get("name") or "unknown_tool"))
+                    fields = tau_base_fields(
+                        dataset_id,
+                        dataset,
+                        session,
+                        f"{turn}.{call_index}",
+                        model,
+                        environment,
+                        role,
+                        outcome,
+                    )
+                    fields.update(
+                        {
+                            "phase": tau_tool_phase(action),
+                            "op": "tool",
+                            "tool": action,
+                            "action": action,
+                            "actor": "assistant",
+                            "oracle_action": "expected" if action in expected_actions else "extra",
+                        }
+                    )
+                    if include_text:
+                        fields["arguments"] = truncate_clean(str(function.get("arguments") or ""), 180)
+                    operations.append({"value": 1, "fields": fields})
+                continue
+            content = str(message.get("content") or "")
+            if content:
+                fields = tau_base_fields(
+                    dataset_id, dataset, session, turn, model, environment, role, outcome
+                )
+                fields.update(
+                    {
+                        "phase": "dialogue",
+                        "op": "llm",
+                        "tool": "assistant",
+                        "action": "respond",
+                        "actor": "assistant",
+                    }
+                )
+                if include_text:
+                    fields["message_preview"] = truncate_clean(content, 180)
+                operations.append({"value": 1, "fields": fields})
+    return operations
+
+
+def tau_base_fields(
+    dataset_id: str,
+    dataset: dict[str, Any],
+    session: str,
+    turn: str,
+    model: str,
+    environment: str,
+    role: str,
+    outcome: str,
+) -> dict[str, Any]:
+    return {
+        "project": "external-agent-traces",
+        "agent": model,
+        "dataset": dataset_id,
+        "source": dataset["hf_repo"],
+        "session": session,
+        "turn": turn,
+        "task": "tool-agent-user",
+        "benchmark": "tau-bench",
+        "environment": environment,
+        "role": sanitize_label(role),
+        "status": outcome,
+    }
+
+
+def tau_bench_outcome(row: dict[str, Any]) -> str:
+    meta = row.get("meta") or {}
+    eval_result = row.get("eval_result") or {}
+    if meta.get("is_correct") is True:
+        return "success"
+    if meta.get("is_correct") is False:
+        return "failure"
+    score = eval_result.get("score")
+    if isinstance(score, (int, float)):
+        if score >= 1.0:
+            return "success"
+        if score <= 0.0:
+            return "failure"
+    return "unknown"
+
+
+def tau_tool_phase(action: str) -> str:
+    if action.startswith(("cancel_", "exchange_", "modify_", "return_", "update_")):
+        return "modify"
+    if action.startswith(("find_", "get_", "list_", "search_")):
+        return "inspect"
+    if action.startswith(("book_", "reserve_", "send_")):
+        return "modify"
+    return "api"
 
 
 def parse_gui_odyssey_steps(raw_steps: Any) -> list[dict[str, Any]]:

@@ -1,0 +1,1430 @@
+{
+  "compression_ratio": 22.941,
+  "depth_weight": {
+    "0": 1560,
+    "1": 1560,
+    "10": 391,
+    "2": 1560,
+    "3": 1560,
+    "4": 1560,
+    "5": 1560,
+    "6": 1560,
+    "7": 1560,
+    "8": 1560,
+    "9": 1560
+  },
+  "top_by_kind": {
+    "action": [
+      {
+        "name": "observe",
+        "weight": 391
+      },
+      {
+        "name": "user_message",
+        "weight": 367
+      },
+      {
+        "name": "respond",
+        "weight": 364
+      },
+      {
+        "name": "get_order_details",
+        "weight": 136
+      },
+      {
+        "name": "find_user_id_by_name_zip",
+        "weight": 51
+      },
+      {
+        "name": "get_user_details",
+        "weight": 48
+      },
+      {
+        "name": "finish",
+        "weight": 47
+      },
+      {
+        "name": "get_product_details",
+        "weight": 43
+      },
+      {
+        "name": "return_delivered_order_items",
+        "weight": 29
+      },
+      {
+        "name": "exchange_delivered_order_items",
+        "weight": 20
+      },
+      {
+        "name": "find_user_id_by_email",
+        "weight": 18
+      },
+      {
+        "name": "modify_pending_order_items",
+        "weight": 14
+      },
+      {
+        "name": "cancel_pending_order",
+        "weight": 11
+      },
+      {
+        "name": "list_all_product_types",
+        "weight": 7
+      },
+      {
+        "name": "modify_user_address",
+        "weight": 7
+      },
+      {
+        "name": "transfer_to_human_agents",
+        "weight": 3
+      },
+      {
+        "name": "modify_pending_order_address",
+        "weight": 3
+      },
+      {
+        "name": "modify_pending_order_payment",
+        "weight": 1
+      }
+    ],
+    "dataset": [
+      {
+        "name": "tau-bench-trajectories",
+        "weight": 1560
+      }
+    ],
+    "environment": [
+      {
+        "name": "retail",
+        "weight": 1560
+      }
+    ],
+    "op": [
+      {
+        "name": "prompt",
+        "weight": 414
+      },
+      {
+        "name": "tool",
+        "weight": 391
+      },
+      {
+        "name": "observation",
+        "weight": 391
+      },
+      {
+        "name": "llm",
+        "weight": 364
+      }
+    ],
+    "oracle_action": [
+      {
+        "name": "expected",
+        "weight": 356
+      },
+      {
+        "name": "extra",
+        "weight": 35
+      }
+    ],
+    "phase": [
+      {
+        "name": "dialogue",
+        "weight": 731
+      },
+      {
+        "name": "observe",
+        "weight": 391
+      },
+      {
+        "name": "inspect",
+        "weight": 303
+      },
+      {
+        "name": "modify",
+        "weight": 85
+      },
+      {
+        "name": "finish",
+        "weight": 47
+      },
+      {
+        "name": "api",
+        "weight": 3
+      }
+    ],
+    "project": [
+      {
+        "name": "external-agent-traces",
+        "weight": 1560
+      }
+    ],
+    "role": [
+      {
+        "name": "assistant",
+        "weight": 755
+      },
+      {
+        "name": "user",
+        "weight": 414
+      },
+      {
+        "name": "tool",
+        "weight": 391
+      }
+    ],
+    "status": [
+      {
+        "name": "failure",
+        "weight": 972
+      },
+      {
+        "name": "success",
+        "weight": 588
+      }
+    ],
+    "task": [
+      {
+        "name": "tool-agent-user",
+        "weight": 1560
+      }
+    ],
+    "tool": [
+      {
+        "name": "user",
+        "weight": 414
+      },
+      {
+        "name": "assistant",
+        "weight": 364
+      },
+      {
+        "name": "get_order_details",
+        "weight": 272
+      },
+      {
+        "name": "find_user_id_by_name_zip",
+        "weight": 102
+      },
+      {
+        "name": "get_user_details",
+        "weight": 96
+      },
+      {
+        "name": "get_product_details",
+        "weight": 86
+      },
+      {
+        "name": "return_delivered_order_items",
+        "weight": 58
+      },
+      {
+        "name": "exchange_delivered_order_items",
+        "weight": 40
+      },
+      {
+        "name": "find_user_id_by_email",
+        "weight": 36
+      },
+      {
+        "name": "modify_pending_order_items",
+        "weight": 28
+      },
+      {
+        "name": "cancel_pending_order",
+        "weight": 22
+      },
+      {
+        "name": "list_all_product_types",
+        "weight": 14
+      },
+      {
+        "name": "modify_user_address",
+        "weight": 14
+      },
+      {
+        "name": "transfer_to_human_agents",
+        "weight": 6
+      },
+      {
+        "name": "modify_pending_order_address",
+        "weight": 6
+      },
+      {
+        "name": "modify_pending_order_payment",
+        "weight": 2
+      }
+    ]
+  },
+  "top_leaves": [
+    {
+      "name": "status:failure",
+      "weight": 972
+    },
+    {
+      "name": "status:success",
+      "weight": 588
+    }
+  ],
+  "top_transitions": [
+    {
+      "from": "project:external-agent-traces",
+      "to": "dataset:tau-bench-trajectories",
+      "weight": 1560
+    },
+    {
+      "from": "dataset:tau-bench-trajectories",
+      "to": "task:tool-agent-user",
+      "weight": 1560
+    },
+    {
+      "from": "task:tool-agent-user",
+      "to": "environment:retail",
+      "weight": 1560
+    },
+    {
+      "from": "environment:retail",
+      "to": "phase:dialogue",
+      "weight": 731
+    },
+    {
+      "from": "op:prompt",
+      "to": "role:user",
+      "weight": 414
+    },
+    {
+      "from": "role:user",
+      "to": "tool:user",
+      "weight": 414
+    },
+    {
+      "from": "op:tool",
+      "to": "role:assistant",
+      "weight": 391
+    },
+    {
+      "from": "environment:retail",
+      "to": "phase:observe",
+      "weight": 391
+    },
+    {
+      "from": "phase:observe",
+      "to": "op:observation",
+      "weight": 391
+    },
+    {
+      "from": "op:observation",
+      "to": "role:tool",
+      "weight": 391
+    },
+    {
+      "from": "phase:dialogue",
+      "to": "op:prompt",
+      "weight": 367
+    },
+    {
+      "from": "tool:user",
+      "to": "action:user_message",
+      "weight": 367
+    },
+    {
+      "from": "phase:dialogue",
+      "to": "op:llm",
+      "weight": 364
+    },
+    {
+      "from": "op:llm",
+      "to": "role:assistant",
+      "weight": 364
+    },
+    {
+      "from": "role:assistant",
+      "to": "tool:assistant",
+      "weight": 364
+    },
+    {
+      "from": "tool:assistant",
+      "to": "action:respond",
+      "weight": 364
+    },
+    {
+      "from": "environment:retail",
+      "to": "phase:inspect",
+      "weight": 303
+    },
+    {
+      "from": "phase:inspect",
+      "to": "op:tool",
+      "weight": 303
+    },
+    {
+      "from": "action:observe",
+      "to": "status:failure",
+      "weight": 249
+    },
+    {
+      "from": "action:respond",
+      "to": "status:failure",
+      "weight": 222
+    },
+    {
+      "from": "action:user_message",
+      "to": "status:failure",
+      "weight": 222
+    },
+    {
+      "from": "oracle_action:expected",
+      "to": "status:failure",
+      "weight": 222
+    },
+    {
+      "from": "action:user_message",
+      "to": "status:success",
+      "weight": 145
+    },
+    {
+      "from": "action:respond",
+      "to": "status:success",
+      "weight": 142
+    },
+    {
+      "from": "action:observe",
+      "to": "status:success",
+      "weight": 142
+    },
+    {
+      "from": "role:assistant",
+      "to": "tool:get_order_details",
+      "weight": 136
+    },
+    {
+      "from": "tool:get_order_details",
+      "to": "action:get_order_details",
+      "weight": 136
+    },
+    {
+      "from": "role:tool",
+      "to": "tool:get_order_details",
+      "weight": 136
+    },
+    {
+      "from": "tool:get_order_details",
+      "to": "action:observe",
+      "weight": 136
+    },
+    {
+      "from": "oracle_action:expected",
+      "to": "status:success",
+      "weight": 134
+    }
+  ],
+  "total_weight": 1560,
+  "tree": {
+    "children": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "name": "status:failure",
+                                            "value": 222
+                                          },
+                                          {
+                                            "children": [],
+                                            "name": "status:success",
+                                            "value": 145
+                                          }
+                                        ],
+                                        "name": "action:user_message",
+                                        "value": 734
+                                      }
+                                    ],
+                                    "name": "tool:user",
+                                    "value": 1101
+                                  }
+                                ],
+                                "name": "role:user",
+                                "value": 1468
+                              }
+                            ],
+                            "name": "op:prompt",
+                            "value": 1835
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "name": "status:failure",
+                                            "value": 222
+                                          },
+                                          {
+                                            "children": [],
+                                            "name": "status:success",
+                                            "value": 142
+                                          }
+                                        ],
+                                        "name": "action:respond",
+                                        "value": 728
+                                      }
+                                    ],
+                                    "name": "tool:assistant",
+                                    "value": 1092
+                                  }
+                                ],
+                                "name": "role:assistant",
+                                "value": 1456
+                              }
+                            ],
+                            "name": "op:llm",
+                            "value": 1820
+                          }
+                        ],
+                        "name": "phase:dialogue",
+                        "value": 4386
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "name": "status:failure",
+                                            "value": 92
+                                          },
+                                          {
+                                            "children": [],
+                                            "name": "status:success",
+                                            "value": 44
+                                          }
+                                        ],
+                                        "name": "action:observe",
+                                        "value": 272
+                                      }
+                                    ],
+                                    "name": "tool:get_order_details",
+                                    "value": 408
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "name": "status:failure",
+                                            "value": 36
+                                          },
+                                          {
+                                            "children": [],
+                                            "name": "status:success",
+                                            "value": 15
+                                          }
+                                        ],
+                                        "name": "action:observe",
+                                        "value": 102
+                                      }
+                                    ],
+                                    "name": "tool:find_user_id_by_name_zip",
+                                    "value": 153
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "name": "status:failure",
+                                            "value": 27
+                                          },
+                                          {
+                                            "children": [],
+                                            "name": "status:success",
+                                            "value": 21
+                                          }
+                                        ],
+                                        "name": "action:observe",
+                                        "value": 96
+                                      }
+                                    ],
+                                    "name": "tool:get_user_details",
+                                    "value": 144
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "name": "status:failure",
+                                            "value": 27
+                                          },
+                                          {
+                                            "children": [],
+                                            "name": "status:success",
+                                            "value": 16
+                                          }
+                                        ],
+                                        "name": "action:observe",
+                                        "value": 86
+                                      }
+                                    ],
+                                    "name": "tool:get_product_details",
+                                    "value": 129
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "name": "status:failure",
+                                            "value": 15
+                                          },
+                                          {
+                                            "children": [],
+                                            "name": "status:success",
+                                            "value": 14
+                                          }
+                                        ],
+                                        "name": "action:observe",
+                                        "value": 58
+                                      }
+                                    ],
+                                    "name": "tool:return_delivered_order_items",
+                                    "value": 87
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "name": "status:failure",
+                                            "value": 10
+                                          },
+                                          {
+                                            "children": [],
+                                            "name": "status:success",
+                                            "value": 10
+                                          }
+                                        ],
+                                        "name": "action:observe",
+                                        "value": 40
+                                      }
+                                    ],
+                                    "name": "tool:exchange_delivered_order_items",
+                                    "value": 60
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "name": "status:failure",
+                                            "value": 11
+                                          },
+                                          {
+                                            "children": [],
+                                            "name": "status:success",
+                                            "value": 7
+                                          }
+                                        ],
+                                        "name": "action:observe",
+                                        "value": 36
+                                      }
+                                    ],
+                                    "name": "tool:find_user_id_by_email",
+                                    "value": 54
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "name": "status:failure",
+                                            "value": 8
+                                          },
+                                          {
+                                            "children": [],
+                                            "name": "status:success",
+                                            "value": 6
+                                          }
+                                        ],
+                                        "name": "action:observe",
+                                        "value": 28
+                                      }
+                                    ],
+                                    "name": "tool:modify_pending_order_items",
+                                    "value": 42
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "name": "status:failure",
+                                            "value": 11
+                                          }
+                                        ],
+                                        "name": "action:observe",
+                                        "value": 22
+                                      }
+                                    ],
+                                    "name": "tool:cancel_pending_order",
+                                    "value": 33
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "name": "status:failure",
+                                            "value": 6
+                                          },
+                                          {
+                                            "children": [],
+                                            "name": "status:success",
+                                            "value": 1
+                                          }
+                                        ],
+                                        "name": "action:observe",
+                                        "value": 14
+                                      }
+                                    ],
+                                    "name": "tool:list_all_product_types",
+                                    "value": 21
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "name": "status:failure",
+                                            "value": 5
+                                          },
+                                          {
+                                            "children": [],
+                                            "name": "status:success",
+                                            "value": 2
+                                          }
+                                        ],
+                                        "name": "action:observe",
+                                        "value": 14
+                                      }
+                                    ],
+                                    "name": "tool:modify_user_address",
+                                    "value": 21
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "name": "status:success",
+                                            "value": 3
+                                          }
+                                        ],
+                                        "name": "action:observe",
+                                        "value": 6
+                                      }
+                                    ],
+                                    "name": "tool:modify_pending_order_address",
+                                    "value": 9
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "name": "status:success",
+                                            "value": 3
+                                          }
+                                        ],
+                                        "name": "action:observe",
+                                        "value": 6
+                                      }
+                                    ],
+                                    "name": "tool:transfer_to_human_agents",
+                                    "value": 9
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "name": "status:failure",
+                                            "value": 1
+                                          }
+                                        ],
+                                        "name": "action:observe",
+                                        "value": 2
+                                      }
+                                    ],
+                                    "name": "tool:modify_pending_order_payment",
+                                    "value": 3
+                                  }
+                                ],
+                                "name": "role:tool",
+                                "value": 1564
+                              }
+                            ],
+                            "name": "op:observation",
+                            "value": 1955
+                          }
+                        ],
+                        "name": "phase:observe",
+                        "value": 2346
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "status:failure",
+                                                "value": 89
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "status:success",
+                                                "value": 44
+                                              }
+                                            ],
+                                            "name": "oracle_action:expected",
+                                            "value": 266
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "status:failure",
+                                                "value": 3
+                                              }
+                                            ],
+                                            "name": "oracle_action:extra",
+                                            "value": 6
+                                          }
+                                        ],
+                                        "name": "action:get_order_details",
+                                        "value": 408
+                                      }
+                                    ],
+                                    "name": "tool:get_order_details",
+                                    "value": 544
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "status:failure",
+                                                "value": 35
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "status:success",
+                                                "value": 14
+                                              }
+                                            ],
+                                            "name": "oracle_action:expected",
+                                            "value": 98
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "status:failure",
+                                                "value": 1
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "status:success",
+                                                "value": 1
+                                              }
+                                            ],
+                                            "name": "oracle_action:extra",
+                                            "value": 4
+                                          }
+                                        ],
+                                        "name": "action:find_user_id_by_name_zip",
+                                        "value": 153
+                                      }
+                                    ],
+                                    "name": "tool:find_user_id_by_name_zip",
+                                    "value": 204
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "status:failure",
+                                                "value": 23
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "status:success",
+                                                "value": 20
+                                              }
+                                            ],
+                                            "name": "oracle_action:expected",
+                                            "value": 86
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "status:failure",
+                                                "value": 4
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "status:success",
+                                                "value": 1
+                                              }
+                                            ],
+                                            "name": "oracle_action:extra",
+                                            "value": 10
+                                          }
+                                        ],
+                                        "name": "action:get_user_details",
+                                        "value": 144
+                                      }
+                                    ],
+                                    "name": "tool:get_user_details",
+                                    "value": 192
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "status:failure",
+                                                "value": 27
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "status:success",
+                                                "value": 16
+                                              }
+                                            ],
+                                            "name": "oracle_action:expected",
+                                            "value": 86
+                                          }
+                                        ],
+                                        "name": "action:get_product_details",
+                                        "value": 129
+                                      }
+                                    ],
+                                    "name": "tool:get_product_details",
+                                    "value": 172
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "status:success",
+                                                "value": 7
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "status:failure",
+                                                "value": 4
+                                              }
+                                            ],
+                                            "name": "oracle_action:expected",
+                                            "value": 22
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "status:failure",
+                                                "value": 7
+                                              }
+                                            ],
+                                            "name": "oracle_action:extra",
+                                            "value": 14
+                                          }
+                                        ],
+                                        "name": "action:find_user_id_by_email",
+                                        "value": 54
+                                      }
+                                    ],
+                                    "name": "tool:find_user_id_by_email",
+                                    "value": 72
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "status:failure",
+                                                "value": 4
+                                              }
+                                            ],
+                                            "name": "oracle_action:expected",
+                                            "value": 8
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "status:failure",
+                                                "value": 2
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "status:success",
+                                                "value": 1
+                                              }
+                                            ],
+                                            "name": "oracle_action:extra",
+                                            "value": 6
+                                          }
+                                        ],
+                                        "name": "action:list_all_product_types",
+                                        "value": 21
+                                      }
+                                    ],
+                                    "name": "tool:list_all_product_types",
+                                    "value": 28
+                                  }
+                                ],
+                                "name": "role:assistant",
+                                "value": 1515
+                              }
+                            ],
+                            "name": "op:tool",
+                            "value": 1818
+                          }
+                        ],
+                        "name": "phase:inspect",
+                        "value": 2121
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "status:failure",
+                                                "value": 13
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "status:success",
+                                                "value": 11
+                                              }
+                                            ],
+                                            "name": "oracle_action:expected",
+                                            "value": 48
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "status:success",
+                                                "value": 3
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "status:failure",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "oracle_action:extra",
+                                            "value": 10
+                                          }
+                                        ],
+                                        "name": "action:return_delivered_order_items",
+                                        "value": 87
+                                      }
+                                    ],
+                                    "name": "tool:return_delivered_order_items",
+                                    "value": 116
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "status:success",
+                                                "value": 10
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "status:failure",
+                                                "value": 7
+                                              }
+                                            ],
+                                            "name": "oracle_action:expected",
+                                            "value": 34
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "status:failure",
+                                                "value": 3
+                                              }
+                                            ],
+                                            "name": "oracle_action:extra",
+                                            "value": 6
+                                          }
+                                        ],
+                                        "name": "action:exchange_delivered_order_items",
+                                        "value": 60
+                                      }
+                                    ],
+                                    "name": "tool:exchange_delivered_order_items",
+                                    "value": 80
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "status:failure",
+                                                "value": 7
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "status:success",
+                                                "value": 5
+                                              }
+                                            ],
+                                            "name": "oracle_action:expected",
+                                            "value": 24
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "status:failure",
+                                                "value": 1
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "status:success",
+                                                "value": 1
+                                              }
+                                            ],
+                                            "name": "oracle_action:extra",
+                                            "value": 4
+                                          }
+                                        ],
+                                        "name": "action:modify_pending_order_items",
+                                        "value": 42
+                                      }
+                                    ],
+                                    "name": "tool:modify_pending_order_items",
+                                    "value": 56
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "status:failure",
+                                                "value": 7
+                                              }
+                                            ],
+                                            "name": "oracle_action:expected",
+                                            "value": 14
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "status:failure",
+                                                "value": 4
+                                              }
+                                            ],
+                                            "name": "oracle_action:extra",
+                                            "value": 8
+                                          }
+                                        ],
+                                        "name": "action:cancel_pending_order",
+                                        "value": 33
+                                      }
+                                    ],
+                                    "name": "tool:cancel_pending_order",
+                                    "value": 44
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "status:failure",
+                                                "value": 5
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "status:success",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "oracle_action:expected",
+                                            "value": 14
+                                          }
+                                        ],
+                                        "name": "action:modify_user_address",
+                                        "value": 21
+                                      }
+                                    ],
+                                    "name": "tool:modify_user_address",
+                                    "value": 28
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "status:success",
+                                                "value": 3
+                                              }
+                                            ],
+                                            "name": "oracle_action:expected",
+                                            "value": 6
+                                          }
+                                        ],
+                                        "name": "action:modify_pending_order_address",
+                                        "value": 9
+                                      }
+                                    ],
+                                    "name": "tool:modify_pending_order_address",
+                                    "value": 12
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "status:failure",
+                                                "value": 1
+                                              }
+                                            ],
+                                            "name": "oracle_action:expected",
+                                            "value": 2
+                                          }
+                                        ],
+                                        "name": "action:modify_pending_order_payment",
+                                        "value": 3
+                                      }
+                                    ],
+                                    "name": "tool:modify_pending_order_payment",
+                                    "value": 4
+                                  }
+                                ],
+                                "name": "role:assistant",
+                                "value": 425
+                              }
+                            ],
+                            "name": "op:tool",
+                            "value": 510
+                          }
+                        ],
+                        "name": "phase:modify",
+                        "value": 595
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [],
+                                            "name": "status:failure",
+                                            "value": 30
+                                          },
+                                          {
+                                            "children": [],
+                                            "name": "status:success",
+                                            "value": 17
+                                          }
+                                        ],
+                                        "name": "action:finish",
+                                        "value": 94
+                                      }
+                                    ],
+                                    "name": "tool:user",
+                                    "value": 141
+                                  }
+                                ],
+                                "name": "role:user",
+                                "value": 188
+                              }
+                            ],
+                            "name": "op:prompt",
+                            "value": 235
+                          }
+                        ],
+                        "name": "phase:finish",
+                        "value": 282
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "status:success",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "oracle_action:expected",
+                                            "value": 4
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "status:success",
+                                                "value": 1
+                                              }
+                                            ],
+                                            "name": "oracle_action:extra",
+                                            "value": 2
+                                          }
+                                        ],
+                                        "name": "action:transfer_to_human_agents",
+                                        "value": 9
+                                      }
+                                    ],
+                                    "name": "tool:transfer_to_human_agents",
+                                    "value": 12
+                                  }
+                                ],
+                                "name": "role:assistant",
+                                "value": 15
+                              }
+                            ],
+                            "name": "op:tool",
+                            "value": 18
+                          }
+                        ],
+                        "name": "phase:api",
+                        "value": 21
+                      }
+                    ],
+                    "name": "environment:retail",
+                    "value": 11311
+                  }
+                ],
+                "name": "task:tool-agent-user",
+                "value": 12871
+              }
+            ],
+            "name": "dataset:tau-bench-trajectories",
+            "value": 14431
+          }
+        ],
+        "name": "project:external-agent-traces",
+        "value": 15991
+      }
+    ],
+    "name": "root",
+    "value": 1560
+  },
+  "unique_stacks": 68
+}
