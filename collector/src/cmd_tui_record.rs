@@ -248,7 +248,7 @@ pub(crate) fn parse_tui_record_command(input: &str) -> Result<TuiRecordCommand, 
     if tokens.first() == Some(&"record") {
         tokens.remove(0);
     }
-    if tokens.iter().any(|token| *token == "--") {
+    if tokens.contains(&"--") {
         return Err(
             "TUI record accepts space-separated attach options only, not `record -- <command>`"
                 .to_string(),
