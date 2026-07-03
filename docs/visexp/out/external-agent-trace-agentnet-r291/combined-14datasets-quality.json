@@ -1,0 +1,1431 @@
+{
+  "boundary_alignment": [
+    {
+      "adjacent_pairs": 39616,
+      "candidate_pairs": 39616,
+      "f1": 0.725,
+      "false_negative": 9257,
+      "false_positive": 0,
+      "oracle": "action",
+      "precision": 1.0,
+      "predicted": "phase",
+      "recall": 0.5686,
+      "sequence_field": "session",
+      "skipped_missing_fields": 0,
+      "true_negative": 18158,
+      "true_positive": 12201,
+      "turn_field": "turn"
+    },
+    {
+      "adjacent_pairs": 15741,
+      "candidate_pairs": 39616,
+      "f1": 0.0,
+      "false_negative": 1689,
+      "false_positive": 0,
+      "oracle": "step_correct",
+      "precision": 0.0,
+      "predicted": "status",
+      "recall": 0.0,
+      "sequence_field": "session",
+      "skipped_missing_fields": 23875,
+      "true_negative": 14052,
+      "true_positive": 0,
+      "turn_field": "turn"
+    }
+  ],
+  "coverage": [
+    {
+      "coverage": 1.0,
+      "field": "action",
+      "present": 42590,
+      "total": 42590
+    },
+    {
+      "coverage": 0.1006,
+      "field": "attack_type",
+      "present": 4285,
+      "total": 42590
+    },
+    {
+      "coverage": 0.6885,
+      "field": "benchmark",
+      "present": 29325,
+      "total": 42590
+    },
+    {
+      "coverage": 1.0,
+      "field": "dataset",
+      "present": 42590,
+      "total": 42590
+    },
+    {
+      "coverage": 0.6885,
+      "field": "environment",
+      "present": 29325,
+      "total": 42590
+    },
+    {
+      "coverage": 0.1411,
+      "field": "group_alignment",
+      "present": 6010,
+      "total": 42590
+    },
+    {
+      "coverage": 0.0942,
+      "field": "human_group",
+      "present": 4011,
+      "total": 42590
+    },
+    {
+      "coverage": 0.0171,
+      "field": "looping",
+      "present": 729,
+      "total": 42590
+    },
+    {
+      "coverage": 1.0,
+      "field": "op",
+      "present": 42590,
+      "total": 42590
+    },
+    {
+      "coverage": 1.0,
+      "field": "phase",
+      "present": 42590,
+      "total": 42590
+    },
+    {
+      "coverage": 1.0,
+      "field": "project",
+      "present": 42590,
+      "total": 42590
+    },
+    {
+      "coverage": 0.6519,
+      "field": "repeat_signal",
+      "present": 27765,
+      "total": 42590
+    },
+    {
+      "coverage": 0.1006,
+      "field": "safety",
+      "present": 4285,
+      "total": 42590
+    },
+    {
+      "coverage": 0.0171,
+      "field": "side_effect",
+      "present": 729,
+      "total": 42590
+    },
+    {
+      "coverage": 1.0,
+      "field": "status",
+      "present": 42590,
+      "total": 42590
+    },
+    {
+      "coverage": 0.3931,
+      "field": "step_correct",
+      "present": 16741,
+      "total": 42590
+    },
+    {
+      "coverage": 0.3931,
+      "field": "step_redundant",
+      "present": 16741,
+      "total": 42590
+    },
+    {
+      "coverage": 1.0,
+      "field": "task",
+      "present": 42590,
+      "total": 42590
+    },
+    {
+      "coverage": 1.0,
+      "field": "tool",
+      "present": 42590,
+      "total": 42590
+    }
+  ],
+  "op_map_files": [
+    "docs/visexp/out/external-agent-trace-agentnet-r291/agentnet-op-map.txt"
+  ],
+  "op_maps": [
+    "task:software=(dataset=swe\\-agent\\-trajectories|tool=swe\\-agent)",
+    "task:web=(dataset=weblinx\\-chat|dataset=webshop\\-expert|dataset=agenttrek|dataset=mind2web|tool=browser|tool=webshop|task=web\\-navigation|task=shopping|task=travel)",
+    "task:api=(dataset=api\\-bank|tool=api|task=api\\-call)",
+    "task:tool=(dataset=toolbench|task=tool\\-use)",
+    "task:mobile=(dataset=android\\-control|dataset=gui\\-odyssey|tool=android|tool=mobile\\-gui|task=mobile\\-control|task=mobile\\-cross\\-app)",
+    "task:desktop=(dataset=satraj\\-os\\-safety|dataset=osworld\\-human|tool=computer|task=desktop\\-computer\\-use)",
+    "phase:finish=(action=submit|action=send_msg_to_user|action=finish|action=terminate|action=complete)",
+    "phase:api=(dataset=api\\-bank|dataset=toolbench|tool=api|task=api\\-call|task=tool\\-use)",
+    "phase:api=(op=tool.*domain=|domain=.*op=tool)",
+    "phase:input=(action=fill|action=type|action=text|action=text_input|action=key|action=press|action=hotkey|action=key_down|action=key_up)",
+    "phase:navigate=(action=click|action=left_click|action=double_click|action=triple_click|action=right_click|action=go|action=goto|action=open|action=load|action=open_app|action=scroll|action=mouse_move|action=move_to|action=drag|action=left_click_drag|action=mouse_down|action=mouse_up|action=select)",
+    "phase:observe=(action=observe|action=wait|action=check)",
+    "phase:system=(action=shell|action=close_window)",
+    "phase:fail=(action=fail|status=infeasible)",
+    "phase:inspect=(action=look|action=search|action=find|action=find_file|action=search_dir|action=search_file)",
+    "phase:modify=(action=edit|action=create)"
+  ],
+  "operation_files": [
+    ".agentsight/datasets/agent-traces/weblinx-chat/chat-validation/operations-0-500.jsonl",
+    ".agentsight/datasets/agent-traces/webshop-expert/default-test/operations-0-100.jsonl",
+    ".agentsight/datasets/agent-traces/api-bank/default-train/operations-0-48.jsonl",
+    ".agentsight/datasets/agent-traces/agenttrek/default-train/operations-0-200.jsonl",
+    ".agentsight/datasets/agent-traces/swe-agent-trajectories/default-train/operations-0-20.jsonl",
+    ".agentsight/datasets/agent-traces/mind2web/default-train/operations-0-100.jsonl",
+    ".agentsight/datasets/agent-traces/toolbench/default-validation/operations-0-300.jsonl",
+    ".agentsight/datasets/agent-traces/android-control/default-train/operations-0-2.jsonl",
+    ".agentsight/datasets/agent-traces/gui-odyssey/default-all/operations-0-500.jsonl",
+    ".agentsight/datasets/agent-traces/tau-bench-trajectories/default-train/operations-0-50.jsonl",
+    ".agentsight/datasets/agent-traces/agent-reward-bench/annotations-full/operations-0-10.jsonl",
+    ".agentsight/datasets/agent-traces/agent-reward-bench/annotations-full/operations-40-48.jsonl",
+    ".agentsight/datasets/agent-traces/agent-reward-bench/annotations-full/operations-700-710.jsonl",
+    ".agentsight/datasets/agent-traces/agent-reward-bench/annotations-full/operations-800-810.jsonl",
+    ".agentsight/datasets/agent-traces/satraj-os-safety/safety-train/operations-0-50.jsonl",
+    ".agentsight/datasets/agent-traces/satraj-os-safety/safety-train/operations-500-550.jsonl",
+    ".agentsight/datasets/agent-traces/satraj-os-safety/safety-train/operations-3000-3050.jsonl",
+    ".agentsight/datasets/agent-traces/satraj-os-safety/safety-train/operations-4000-4050.jsonl",
+    ".agentsight/datasets/agent-traces/satraj-os-safety/safety-train/operations-5900-5950.jsonl",
+    "docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-operations.jsonl",
+    "docs/visexp/out/external-agent-trace-agentnet-r291/agentnet-operations.jsonl"
+  ],
+  "oracle_alignment": [
+    {
+      "completeness": 0.9992,
+      "homogeneity": 0.6013,
+      "oracle": "dataset",
+      "oracle_labels": 14,
+      "predicted": "task",
+      "predicted_labels": 7,
+      "support": 42590,
+      "top_confusions": [
+        {
+          "oracle": "agentnet",
+          "predicted": "desktop",
+          "weight": 16741
+        },
+        {
+          "oracle": "gui-odyssey",
+          "predicted": "mobile",
+          "weight": 7868
+        },
+        {
+          "oracle": "osworld-human",
+          "predicted": "desktop",
+          "weight": 6010
+        },
+        {
+          "oracle": "satraj-os-safety",
+          "predicted": "desktop",
+          "weight": 4285
+        },
+        {
+          "oracle": "webshop-expert",
+          "predicted": "web",
+          "weight": 2504
+        },
+        {
+          "oracle": "tau-bench-trajectories",
+          "predicted": "tool-agent-user",
+          "weight": 1560
+        },
+        {
+          "oracle": "toolbench",
+          "predicted": "tool",
+          "weight": 860
+        },
+        {
+          "oracle": "mind2web",
+          "predicted": "web",
+          "weight": 774
+        },
+        {
+          "oracle": "agent-reward-bench",
+          "predicted": "web",
+          "weight": 729
+        },
+        {
+          "oracle": "weblinx-chat",
+          "predicted": "web",
+          "weight": 500
+        },
+        {
+          "oracle": "swe-agent-trajectories",
+          "predicted": "software",
+          "weight": 496
+        },
+        {
+          "oracle": "agenttrek",
+          "predicted": "web",
+          "weight": 200
+        }
+      ],
+      "v_measure": 0.7508
+    },
+    {
+      "completeness": 0.9995,
+      "homogeneity": 0.4958,
+      "oracle": "action",
+      "oracle_labels": 478,
+      "predicted": "phase",
+      "predicted_labels": 40,
+      "support": 42590,
+      "top_confusions": [
+        {
+          "oracle": "click",
+          "predicted": "navigate",
+          "weight": 20551
+        },
+        {
+          "oracle": "type",
+          "predicted": "input",
+          "weight": 3177
+        },
+        {
+          "oracle": "left_click",
+          "predicted": "navigate",
+          "weight": 2972
+        },
+        {
+          "oracle": "hotkey",
+          "predicted": "input",
+          "weight": 1545
+        },
+        {
+          "oracle": "press",
+          "predicted": "input",
+          "weight": 1370
+        },
+        {
+          "oracle": "move_to",
+          "predicted": "navigate",
+          "weight": 1183
+        },
+        {
+          "oracle": "scroll",
+          "predicted": "navigate",
+          "weight": 1035
+        },
+        {
+          "oracle": "terminate",
+          "predicted": "finish",
+          "weight": 1034
+        },
+        {
+          "oracle": "double_click",
+          "predicted": "navigate",
+          "weight": 830
+        },
+        {
+          "oracle": "text",
+          "predicted": "input",
+          "weight": 805
+        },
+        {
+          "oracle": "open",
+          "predicted": "navigate",
+          "weight": 525
+        },
+        {
+          "oracle": "right_click",
+          "predicted": "navigate",
+          "weight": 519
+        }
+      ],
+      "v_measure": 0.6628
+    },
+    {
+      "completeness": 0.3939,
+      "homogeneity": 0.3629,
+      "oracle": "looping",
+      "oracle_labels": 2,
+      "predicted": "repeat_signal",
+      "predicted_labels": 2,
+      "support": 729,
+      "top_confusions": [
+        {
+          "oracle": "yes",
+          "predicted": "loop-like",
+          "weight": 474
+        },
+        {
+          "oracle": "no",
+          "predicted": "none",
+          "weight": 157
+        },
+        {
+          "oracle": "no",
+          "predicted": "loop-like",
+          "weight": 68
+        },
+        {
+          "oracle": "yes",
+          "predicted": "none",
+          "weight": 30
+        }
+      ],
+      "v_measure": 0.3777
+    },
+    {
+      "completeness": 0.0122,
+      "homogeneity": 0.009,
+      "oracle": "step_redundant",
+      "oracle_labels": 3,
+      "predicted": "repeat_signal",
+      "predicted_labels": 2,
+      "support": 16741,
+      "top_confusions": [
+        {
+          "oracle": "necessary",
+          "predicted": "none",
+          "weight": 6148
+        },
+        {
+          "oracle": "unknown",
+          "predicted": "none",
+          "weight": 5119
+        },
+        {
+          "oracle": "necessary",
+          "predicted": "loop-like",
+          "weight": 3186
+        },
+        {
+          "oracle": "unknown",
+          "predicted": "loop-like",
+          "weight": 1555
+        },
+        {
+          "oracle": "redundant",
+          "predicted": "none",
+          "weight": 449
+        },
+        {
+          "oracle": "redundant",
+          "predicted": "loop-like",
+          "weight": 284
+        }
+      ],
+      "v_measure": 0.0103
+    }
+  ],
+  "stack": [
+    "project",
+    "dataset",
+    "task",
+    "benchmark",
+    "environment",
+    "phase",
+    "op",
+    "tool",
+    "action",
+    "status",
+    "safety",
+    "attack_type",
+    "side_effect",
+    "looping",
+    "step_correct",
+    "step_redundant",
+    "repeat_signal"
+  ],
+  "summary": {
+    "compression_ratio": 28.45,
+    "operations": 42590,
+    "total_weight": 42590,
+    "unique_stacks": 1497
+  },
+  "top_by_field": {
+    "action": [
+      {
+        "value": "click",
+        "weight": 20551
+      },
+      {
+        "value": "type",
+        "weight": 3177
+      },
+      {
+        "value": "left_click",
+        "weight": 2972
+      },
+      {
+        "value": "hotkey",
+        "weight": 1545
+      },
+      {
+        "value": "press",
+        "weight": 1370
+      },
+      {
+        "value": "move_to",
+        "weight": 1183
+      },
+      {
+        "value": "scroll",
+        "weight": 1035
+      },
+      {
+        "value": "terminate",
+        "weight": 1034
+      },
+      {
+        "value": "double_click",
+        "weight": 830
+      },
+      {
+        "value": "text",
+        "weight": 805
+      },
+      {
+        "value": "open",
+        "weight": 525
+      },
+      {
+        "value": "right_click",
+        "weight": 519
+      },
+      {
+        "value": "complete",
+        "weight": 487
+      },
+      {
+        "value": "go",
+        "weight": 431
+      },
+      {
+        "value": "observe",
+        "weight": 391
+      },
+      {
+        "value": "user_message",
+        "weight": 367
+      },
+      {
+        "value": "key",
+        "weight": 366
+      },
+      {
+        "value": "respond",
+        "weight": 364
+      },
+      {
+        "value": "connect",
+        "weight": 240
+      },
+      {
+        "value": "focus",
+        "weight": 227
+      },
+      {
+        "value": "move",
+        "weight": 213
+      },
+      {
+        "value": "look",
+        "weight": 211
+      },
+      {
+        "value": "wait",
+        "weight": 166
+      },
+      {
+        "value": "use",
+        "weight": 165
+      },
+      {
+        "value": "examine",
+        "weight": 156
+      },
+      {
+        "value": "finish",
+        "weight": 155
+      },
+      {
+        "value": "ls",
+        "weight": 147
+      },
+      {
+        "value": "pick",
+        "weight": 144
+      },
+      {
+        "value": "drag",
+        "weight": 144
+      },
+      {
+        "value": "get_order_details",
+        "weight": 136
+      }
+    ],
+    "attack_type": [
+      {
+        "value": "account",
+        "weight": 1228
+      },
+      {
+        "value": "induced_text",
+        "weight": 1131
+      },
+      {
+        "value": "popup",
+        "weight": 1123
+      },
+      {
+        "value": "os",
+        "weight": 420
+      },
+      {
+        "value": "unknown_file",
+        "weight": 383
+      }
+    ],
+    "benchmark": [
+      {
+        "value": "agentnet",
+        "weight": 16741
+      },
+      {
+        "value": "osworld-human",
+        "weight": 6010
+      },
+      {
+        "value": "satraj-os",
+        "weight": 4285
+      },
+      {
+        "value": "tau-bench",
+        "weight": 1560
+      },
+      {
+        "value": "workarena",
+        "weight": 391
+      },
+      {
+        "value": "visualwebarena",
+        "weight": 147
+      },
+      {
+        "value": "assistantbench",
+        "weight": 133
+      },
+      {
+        "value": "webarena",
+        "weight": 58
+      }
+    ],
+    "dataset": [
+      {
+        "value": "agentnet",
+        "weight": 16741
+      },
+      {
+        "value": "gui-odyssey",
+        "weight": 7868
+      },
+      {
+        "value": "osworld-human",
+        "weight": 6010
+      },
+      {
+        "value": "satraj-os-safety",
+        "weight": 4285
+      },
+      {
+        "value": "webshop-expert",
+        "weight": 2504
+      },
+      {
+        "value": "tau-bench-trajectories",
+        "weight": 1560
+      },
+      {
+        "value": "toolbench",
+        "weight": 866
+      },
+      {
+        "value": "mind2web",
+        "weight": 774
+      },
+      {
+        "value": "agent-reward-bench",
+        "weight": 729
+      },
+      {
+        "value": "weblinx-chat",
+        "weight": 500
+      },
+      {
+        "value": "swe-agent-trajectories",
+        "weight": 496
+      },
+      {
+        "value": "agenttrek",
+        "weight": 200
+      },
+      {
+        "value": "api-bank",
+        "weight": 48
+      },
+      {
+        "value": "android-control",
+        "weight": 9
+      }
+    ],
+    "environment": [
+      {
+        "value": "multi_apps",
+        "weight": 4148
+      },
+      {
+        "value": "chrome",
+        "weight": 2710
+      },
+      {
+        "value": "libreoffice_impress",
+        "weight": 2526
+      },
+      {
+        "value": "multiapp",
+        "weight": 2493
+      },
+      {
+        "value": "libreoffice_calc",
+        "weight": 2003
+      },
+      {
+        "value": "vscode",
+        "weight": 1947
+      },
+      {
+        "value": "libreoffice_writer",
+        "weight": 1656
+      },
+      {
+        "value": "gimp",
+        "weight": 1632
+      },
+      {
+        "value": "os",
+        "weight": 1565
+      },
+      {
+        "value": "retail",
+        "weight": 1560
+      },
+      {
+        "value": "account",
+        "weight": 1228
+      },
+      {
+        "value": "induced_text",
+        "weight": 1131
+      },
+      {
+        "value": "popup",
+        "weight": 1123
+      },
+      {
+        "value": "thunderbird",
+        "weight": 857
+      },
+      {
+        "value": "vlc",
+        "weight": 719
+      },
+      {
+        "value": "error_correction",
+        "weight": 651
+      },
+      {
+        "value": "workarena",
+        "weight": 391
+      },
+      {
+        "value": "unknown_file",
+        "weight": 383
+      },
+      {
+        "value": "infeasible",
+        "weight": 181
+      },
+      {
+        "value": "visualwebarena",
+        "weight": 147
+      },
+      {
+        "value": "assistantbench",
+        "weight": 133
+      },
+      {
+        "value": "vs_code",
+        "weight": 83
+      },
+      {
+        "value": "webarena",
+        "weight": 58
+      }
+    ],
+    "group_alignment": [
+      {
+        "value": "exact",
+        "weight": 4011
+      },
+      {
+        "value": "content-mismatch",
+        "weight": 1174
+      },
+      {
+        "value": "length-mismatch",
+        "weight": 825
+      }
+    ],
+    "human_group": [
+      {
+        "value": "group-000",
+        "weight": 636
+      },
+      {
+        "value": "group-001",
+        "weight": 459
+      },
+      {
+        "value": "group-002",
+        "weight": 316
+      },
+      {
+        "value": "group-003",
+        "weight": 246
+      },
+      {
+        "value": "group-004",
+        "weight": 200
+      },
+      {
+        "value": "group-005",
+        "weight": 167
+      },
+      {
+        "value": "group-006",
+        "weight": 134
+      },
+      {
+        "value": "group-009",
+        "weight": 110
+      },
+      {
+        "value": "group-007",
+        "weight": 104
+      },
+      {
+        "value": "group-008",
+        "weight": 102
+      },
+      {
+        "value": "group-010",
+        "weight": 72
+      },
+      {
+        "value": "group-013",
+        "weight": 71
+      },
+      {
+        "value": "group-011",
+        "weight": 60
+      },
+      {
+        "value": "group-012",
+        "weight": 58
+      },
+      {
+        "value": "group-014",
+        "weight": 56
+      },
+      {
+        "value": "group-017",
+        "weight": 52
+      },
+      {
+        "value": "group-033",
+        "weight": 45
+      },
+      {
+        "value": "group-037",
+        "weight": 44
+      },
+      {
+        "value": "group-041",
+        "weight": 44
+      },
+      {
+        "value": "group-016",
+        "weight": 42
+      },
+      {
+        "value": "group-021",
+        "weight": 42
+      },
+      {
+        "value": "group-018",
+        "weight": 40
+      },
+      {
+        "value": "group-019",
+        "weight": 37
+      },
+      {
+        "value": "group-015",
+        "weight": 35
+      },
+      {
+        "value": "group-031",
+        "weight": 34
+      },
+      {
+        "value": "group-020",
+        "weight": 33
+      },
+      {
+        "value": "group-025",
+        "weight": 32
+      },
+      {
+        "value": "group-022",
+        "weight": 29
+      },
+      {
+        "value": "group-035",
+        "weight": 29
+      },
+      {
+        "value": "group-029",
+        "weight": 28
+      }
+    ],
+    "looping": [
+      {
+        "value": "yes",
+        "weight": 504
+      },
+      {
+        "value": "no",
+        "weight": 225
+      }
+    ],
+    "op": [
+      {
+        "value": "action",
+        "weight": 39620
+      },
+      {
+        "value": "tool",
+        "weight": 1693
+      },
+      {
+        "value": "prompt",
+        "weight": 414
+      },
+      {
+        "value": "observation",
+        "weight": 391
+      },
+      {
+        "value": "llm",
+        "weight": 364
+      },
+      {
+        "value": "finish",
+        "weight": 108
+      }
+    ],
+    "phase": [
+      {
+        "value": "navigate",
+        "weight": 28625
+      },
+      {
+        "value": "input",
+        "weight": 7467
+      },
+      {
+        "value": "finish",
+        "weight": 1760
+      },
+      {
+        "value": "api",
+        "weight": 809
+      },
+      {
+        "value": "dialogue",
+        "weight": 731
+      },
+      {
+        "value": "observe",
+        "weight": 693
+      },
+      {
+        "value": "inspect",
+        "weight": 562
+      },
+      {
+        "value": "connect",
+        "weight": 240
+      },
+      {
+        "value": "focus",
+        "weight": 227
+      },
+      {
+        "value": "move",
+        "weight": 213
+      },
+      {
+        "value": "modify",
+        "weight": 174
+      },
+      {
+        "value": "use",
+        "weight": 165
+      },
+      {
+        "value": "examine",
+        "weight": 156
+      },
+      {
+        "value": "ls",
+        "weight": 147
+      },
+      {
+        "value": "pick",
+        "weight": 144
+      },
+      {
+        "value": "say",
+        "weight": 129
+      },
+      {
+        "value": "pour",
+        "weight": 42
+      },
+      {
+        "value": "long_press",
+        "weight": 41
+      },
+      {
+        "value": "noop",
+        "weight": 37
+      },
+      {
+        "value": "drop",
+        "weight": 30
+      },
+      {
+        "value": "fail",
+        "weight": 30
+      },
+      {
+        "value": "mix",
+        "weight": 29
+      },
+      {
+        "value": "activate",
+        "weight": 26
+      },
+      {
+        "value": "pwd",
+        "weight": 23
+      },
+      {
+        "value": "python",
+        "weight": 19
+      },
+      {
+        "value": "lexicon",
+        "weight": 18
+      },
+      {
+        "value": "incomplete",
+        "weight": 13
+      },
+      {
+        "value": "system",
+        "weight": 7
+      },
+      {
+        "value": "deactivate",
+        "weight": 6
+      },
+      {
+        "value": "change",
+        "weight": 5
+      }
+    ],
+    "project": [
+      {
+        "value": "external-agent-traces",
+        "weight": 42590
+      }
+    ],
+    "repeat_signal": [
+      {
+        "value": "none",
+        "weight": 14203
+      },
+      {
+        "value": "loop-like",
+        "weight": 13562
+      }
+    ],
+    "safety": [
+      {
+        "value": "safe",
+        "weight": 3663
+      },
+      {
+        "value": "unsafe",
+        "weight": 622
+      }
+    ],
+    "side_effect": [
+      {
+        "value": "no",
+        "weight": 527
+      },
+      {
+        "value": "yes",
+        "weight": 202
+      }
+    ],
+    "status": [
+      {
+        "value": "success",
+        "weight": 20068
+      },
+      {
+        "value": "gold",
+        "weight": 16030
+      },
+      {
+        "value": "failure",
+        "weight": 6240
+      },
+      {
+        "value": "verified",
+        "weight": 200
+      },
+      {
+        "value": "infeasible",
+        "weight": 45
+      },
+      {
+        "value": "unknown",
+        "weight": 7
+      }
+    ],
+    "step_correct": [
+      {
+        "value": "correct",
+        "weight": 13844
+      },
+      {
+        "value": "unknown",
+        "weight": 2023
+      },
+      {
+        "value": "incorrect",
+        "weight": 874
+      }
+    ],
+    "step_redundant": [
+      {
+        "value": "necessary",
+        "weight": 9334
+      },
+      {
+        "value": "unknown",
+        "weight": 6674
+      },
+      {
+        "value": "redundant",
+        "weight": 733
+      }
+    ],
+    "task": [
+      {
+        "value": "desktop",
+        "weight": 27036
+      },
+      {
+        "value": "mobile",
+        "weight": 7877
+      },
+      {
+        "value": "web",
+        "weight": 4709
+      },
+      {
+        "value": "tool-agent-user",
+        "weight": 1560
+      },
+      {
+        "value": "tool",
+        "weight": 860
+      },
+      {
+        "value": "software",
+        "weight": 496
+      },
+      {
+        "value": "api",
+        "weight": 52
+      }
+    ],
+    "tool": [
+      {
+        "value": "computer",
+        "weight": 27036
+      },
+      {
+        "value": "mobile-gui",
+        "weight": 7868
+      },
+      {
+        "value": "webshop",
+        "weight": 2504
+      },
+      {
+        "value": "browser",
+        "weight": 2203
+      },
+      {
+        "value": "swe-agent",
+        "weight": 496
+      },
+      {
+        "value": "user",
+        "weight": 414
+      },
+      {
+        "value": "assistant",
+        "weight": 364
+      },
+      {
+        "value": "get_order_details",
+        "weight": 272
+      },
+      {
+        "value": "finish",
+        "weight": 108
+      },
+      {
+        "value": "find_user_id_by_name_zip",
+        "weight": 102
+      },
+      {
+        "value": "get_user_details",
+        "weight": 96
+      },
+      {
+        "value": "get_product_details",
+        "weight": 86
+      },
+      {
+        "value": "return_delivered_order_items",
+        "weight": 58
+      },
+      {
+        "value": "api",
+        "weight": 48
+      },
+      {
+        "value": "exchange_delivered_order_items",
+        "weight": 40
+      },
+      {
+        "value": "find_user_id_by_email",
+        "weight": 36
+      },
+      {
+        "value": "modify_pending_order_items",
+        "weight": 28
+      },
+      {
+        "value": "deezer",
+        "weight": 25
+      },
+      {
+        "value": "cancel_pending_order",
+        "weight": 22
+      },
+      {
+        "value": "web_image_storage",
+        "weight": 14
+      },
+      {
+        "value": "my_store",
+        "weight": 14
+      },
+      {
+        "value": "list_all_product_types",
+        "weight": 14
+      },
+      {
+        "value": "modify_user_address",
+        "weight": 14
+      },
+      {
+        "value": "qvantana",
+        "weight": 13
+      },
+      {
+        "value": "weather",
+        "weight": 12
+      },
+      {
+        "value": "sms_receive",
+        "weight": 12
+      },
+      {
+        "value": "billboard_api",
+        "weight": 12
+      },
+      {
+        "value": "greyhound_racing_uk",
+        "weight": 11
+      },
+      {
+        "value": "image_cdn",
+        "weight": 11
+      },
+      {
+        "value": "famous_quotes",
+        "weight": 11
+      }
+    ]
+  },
+  "top_stacks": [
+    {
+      "stack": "project:external-agent-traces;dataset:gui-odyssey;task:mobile;benchmark:unknown;environment:unknown;phase:navigate;op:action;tool:mobile-gui;action:click;status:gold;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;step_correct:unknown;step_redundant:unknown;repeat_signal:unknown",
+      "weight": 5831
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:osworld-human;task:desktop;benchmark:osworld-human;environment:multi_apps;phase:navigate;op:action;tool:computer;action:click;status:gold;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;step_correct:unknown;step_redundant:unknown;repeat_signal:loop-like",
+      "weight": 1216
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:osworld-human;task:desktop;benchmark:osworld-human;environment:multi_apps;phase:input;op:action;tool:computer;action:hotkey;status:gold;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;step_correct:unknown;step_redundant:unknown;repeat_signal:loop-like",
+      "weight": 895
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:osworld-human;task:desktop;benchmark:osworld-human;environment:multi_apps;phase:input;op:action;tool:computer;action:type;status:gold;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;step_correct:unknown;step_redundant:unknown;repeat_signal:loop-like",
+      "weight": 886
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;task:desktop;benchmark:agentnet;environment:chrome;phase:navigate;op:action;tool:computer;action:click;status:success;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;step_correct:correct;step_redundant:necessary;repeat_signal:none",
+      "weight": 857
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:gui-odyssey;task:mobile;benchmark:unknown;environment:unknown;phase:input;op:action;tool:mobile-gui;action:text;status:gold;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;step_correct:unknown;step_redundant:unknown;repeat_signal:unknown",
+      "weight": 805
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;task:desktop;benchmark:agentnet;environment:multiapp;phase:navigate;op:action;tool:computer;action:click;status:success;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;step_correct:correct;step_redundant:necessary;repeat_signal:none",
+      "weight": 772
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:osworld-human;task:desktop;benchmark:osworld-human;environment:multi_apps;phase:input;op:action;tool:computer;action:press;status:gold;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;step_correct:unknown;step_redundant:unknown;repeat_signal:loop-like",
+      "weight": 701
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:gui-odyssey;task:mobile;benchmark:unknown;environment:unknown;phase:navigate;op:action;tool:mobile-gui;action:scroll;status:gold;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;step_correct:unknown;step_redundant:unknown;repeat_signal:unknown",
+      "weight": 691
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:mind2web;task:web;benchmark:unknown;environment:unknown;phase:navigate;op:action;tool:browser;action:click;status:gold;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;step_correct:unknown;step_redundant:unknown;repeat_signal:unknown",
+      "weight": 645
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;task:desktop;benchmark:agentnet;environment:multiapp;phase:navigate;op:action;tool:computer;action:click;status:success;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;step_correct:correct;step_redundant:necessary;repeat_signal:loop-like",
+      "weight": 555
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;task:desktop;benchmark:agentnet;environment:vscode;phase:navigate;op:action;tool:computer;action:click;status:success;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;step_correct:correct;step_redundant:unknown;repeat_signal:none",
+      "weight": 520
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:gui-odyssey;task:mobile;benchmark:unknown;environment:unknown;phase:finish;op:action;tool:mobile-gui;action:complete;status:gold;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;step_correct:unknown;step_redundant:unknown;repeat_signal:unknown",
+      "weight": 487
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:satraj-os-safety;task:desktop;benchmark:satraj-os;environment:popup;phase:navigate;op:action;tool:computer;action:left_click;status:failure;safety:safe;attack_type:popup;side_effect:unknown;looping:unknown;step_correct:unknown;step_redundant:unknown;repeat_signal:loop-like",
+      "weight": 464
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:satraj-os-safety;task:desktop;benchmark:satraj-os;environment:popup;phase:navigate;op:action;tool:computer;action:left_click;status:failure;safety:safe;attack_type:popup;side_effect:unknown;looping:unknown;step_correct:unknown;step_redundant:unknown;repeat_signal:none",
+      "weight": 455
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:satraj-os-safety;task:desktop;benchmark:satraj-os;environment:account;phase:navigate;op:action;tool:computer;action:left_click;status:failure;safety:safe;attack_type:account;side_effect:unknown;looping:unknown;step_correct:unknown;step_redundant:unknown;repeat_signal:loop-like",
+      "weight": 450
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;environment:unknown;phase:navigate;op:action;tool:webshop;action:open;status:success;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;step_correct:unknown;step_redundant:unknown;repeat_signal:unknown",
+      "weight": 449
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;task:desktop;benchmark:agentnet;environment:gimp;phase:navigate;op:action;tool:computer;action:click;status:success;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;step_correct:correct;step_redundant:unknown;repeat_signal:none",
+      "weight": 442
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:satraj-os-safety;task:desktop;benchmark:satraj-os;environment:induced_text;phase:navigate;op:action;tool:computer;action:left_click;status:failure;safety:safe;attack_type:induced_text;side_effect:unknown;looping:unknown;step_correct:unknown;step_redundant:unknown;repeat_signal:none",
+      "weight": 438
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;environment:unknown;phase:navigate;op:action;tool:webshop;action:go;status:success;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;step_correct:unknown;step_redundant:unknown;repeat_signal:unknown",
+      "weight": 431
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;task:desktop;benchmark:agentnet;environment:libreoffice_calc;phase:navigate;op:action;tool:computer;action:click;status:success;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;step_correct:correct;step_redundant:necessary;repeat_signal:none",
+      "weight": 415
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:satraj-os-safety;task:desktop;benchmark:satraj-os;environment:induced_text;phase:navigate;op:action;tool:computer;action:left_click;status:failure;safety:safe;attack_type:induced_text;side_effect:unknown;looping:unknown;step_correct:unknown;step_redundant:unknown;repeat_signal:loop-like",
+      "weight": 413
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;task:desktop;benchmark:agentnet;environment:vscode;phase:navigate;op:action;tool:computer;action:click;status:success;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;step_correct:correct;step_redundant:necessary;repeat_signal:none",
+      "weight": 369
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;task:desktop;benchmark:agentnet;environment:libreoffice_writer;phase:navigate;op:action;tool:computer;action:click;status:success;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;step_correct:correct;step_redundant:necessary;repeat_signal:none",
+      "weight": 342
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;task:desktop;benchmark:agentnet;environment:chrome;phase:navigate;op:action;tool:computer;action:click;status:success;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;step_correct:unknown;step_redundant:unknown;repeat_signal:none",
+      "weight": 333
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;task:desktop;benchmark:agentnet;environment:os;phase:navigate;op:action;tool:computer;action:click;status:success;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;step_correct:correct;step_redundant:necessary;repeat_signal:none",
+      "weight": 333
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;task:desktop;benchmark:agentnet;environment:libreoffice_impress;phase:navigate;op:action;tool:computer;action:click;status:success;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;step_correct:correct;step_redundant:unknown;repeat_signal:none",
+      "weight": 308
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;task:desktop;benchmark:agentnet;environment:gimp;phase:navigate;op:action;tool:computer;action:click;status:success;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;step_correct:unknown;step_redundant:unknown;repeat_signal:none",
+      "weight": 290
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:weblinx-chat;task:web;benchmark:unknown;environment:unknown;phase:navigate;op:action;tool:browser;action:click;status:gold;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;step_correct:unknown;step_redundant:unknown;repeat_signal:unknown",
+      "weight": 280
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;task:desktop;benchmark:agentnet;environment:libreoffice_impress;phase:navigate;op:action;tool:computer;action:click;status:success;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;step_correct:correct;step_redundant:necessary;repeat_signal:loop-like",
+      "weight": 276
+    }
+  ]
+}

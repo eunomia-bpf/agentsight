@@ -117,6 +117,7 @@ PHASE_FAMILIES: tuple[tuple[str, tuple[Predicate, ...]], ...] = (
             Predicate("action", "submit"),
             Predicate("action", "send_msg_to_user"),
             Predicate("action", "finish"),
+            Predicate("action", "terminate"),
             Predicate("action", "complete"),
         ),
     ),

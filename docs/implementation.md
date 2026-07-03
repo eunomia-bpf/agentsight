@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-03
 Stage at update: stage 4 execute
-Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `script/operation_*.py`, `script/agent_trace_datasets.py sample tau-bench-trajectories`, `script/agent_trace_datasets.py sample agent-reward-bench`, `script/agent_trace_datasets.py sample satraj-os-safety`, `script/agent_trace_datasets.py sample osworld-human`, `cargo test --manifest-path agentpprof/Cargo.toml`
+Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `script/operation_*.py`, `script/agent_trace_datasets.py sample tau-bench-trajectories`, `script/agent_trace_datasets.py sample agent-reward-bench`, `script/agent_trace_datasets.py sample satraj-os-safety`, `script/agent_trace_datasets.py sample osworld-human`, `script/agent_trace_datasets.py sample agentnet`, `cargo test --manifest-path agentpprof/Cargo.toml`
 Completeness: partial
 
 ## Repository Layout Relevant To Semantic Profiling
@@ -37,9 +37,10 @@ The current Rust implementation supports:
 - local Codex/Claude session projections and external dataset projections
   through the same stack construction code path.
 
-The external sampler currently covers 13 labeled trajectory sources, including
+The external sampler currently covers 14 labeled trajectory sources, including
 R287's tau-bench converter, R288's AgentRewardBench converter, and R289's
-SATraj-OS converter plus R290's OSWorld-Human converter. The tau-bench converter
+SATraj-OS converter, R290's OSWorld-Human converter, and R291's AgentNet
+converter. The tau-bench converter
 treats user messages, assistant responses, tool calls, and tool observations as
 operation shapes, so tool-agent-user dialogue still uses the same
 operation/operation-stack path. The AgentRewardBench converter reads the HF
@@ -71,6 +72,18 @@ group fields so grouped-boundary metrics cannot score them accidentally. Tracked
 operation JSONL omits raw instruction/action text unless the sampler is run with
 `--include-text`.
 
+The AgentNet converter reads public HF repository JSONL through
+`hf-repo-jsonl-stream`, which opens the source file and stops after the
+requested offset/range instead of saving the full 282MB/1.4GB source files.
+Saved rows drop `instruction`, `natural_language_task`, `actual_task`,
+`reason`, and raw `traj` fields by default. The converter emits one
+`tool=computer` operation per PyAutoGUI step with normalized desktop fields,
+bucketed coordinates or generic text/key targets, task `status`, alignment and
+efficiency scores, `task_difficulty`, `step_correct`, `step_redundant`, and
+action-derived repetition fields. R291 samples 1,000 Ubuntu tasks / 16,741
+operations and uses those labels only as operation fields and evaluation
+oracles.
+
 `operation_map_infer.py` now includes desktop task-family rules, input/system/fail
 phase families, and an effective-support filter that drops generated rules fully
 shadowed by higher-priority rules. `operation_stack_quality.py` skips adjacent
@@ -90,7 +103,8 @@ Purpose: make the current runnable path explicit.
 ```bash
 cargo test --manifest-path agentpprof/Cargo.toml
 cargo fmt --manifest-path agentpprof/Cargo.toml -- --check
-python3 -m py_compile script/agent_trace_datasets.py script/operation_map_infer.py \
+python3 -m py_compile script/agent_trace_datasets.py script/operation_split.py \
+  script/operation_map_infer.py \
   script/operation_stack_quality.py script/operation_leaveout_eval.py \
   script/operation_stack_depth_eval.py
 ```
@@ -133,9 +147,9 @@ Purpose: name work still needed before a paper-ready artifact.
 | Task | Why it matters | Status |
 |---|---|---|
 | Add deeper boundary scorers for step instructions, solution paths, and failure labels. | Action-label F1 is too shallow for final recursive-boundary claims. | pending |
-| Add converters for the best next trajectory sources: AgentNet, ScaleCUA, UI-Vision, OSWorld-Verified/OSWorld 2.0 trajectories, and VisualWebArena trajectories. | Expands scale and domain coverage beyond the current 13 datasets and covers larger desktop/web sources beyond OSWorld-Human and SATraj safety. | pending |
+| Add converters for the best next trajectory sources: ScaleCUA, UI-Vision, OSWorld-Verified/OSWorld 2.0 trajectories, and VisualWebArena trajectories. | Expands scale and domain coverage beyond the current 14 datasets and covers larger desktop/web sources beyond OSWorld-Human, SATraj safety, and AgentNet Ubuntu stream sampling. | pending |
 | Scale tau-bench beyond the R287 `gpt-4o-mini` 50-episode sample. | Multi-model tau-bench trajectories can support outcome/failure and model-comparison analysis. | pending |
 | Scale AgentRewardBench beyond the R288 38-trajectory lightweight sample. | Expert side-effect and looping labels are sparse; larger balanced sampling is needed for paper-grade failure diagnostics and better sequence-derived repetition rules. | pending |
 | Scale SATraj-OS beyond the R289 safety sample and revisit the capability config. | Desktop computer-use is now represented, but capability rows were not fully readable through Dataset Viewer and need a heavier access path. | pending |
 | Add a config-file profile spec that bundles mappings, stack depth, and output choices. | Makes the jq-like configurable workflow easier than long CLI command lines. | pending |
-| Add stronger non-flamegraph comparison reports across datasets and depths. | Paper needs visual/analysis alternatives beyond flamegraphs. | partial via R273-R290 |
+| Add stronger non-flamegraph comparison reports across datasets and depths. | Paper needs visual/analysis alternatives beyond flamegraphs. | partial via R273-R291 |

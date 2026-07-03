@@ -15,7 +15,7 @@ AgentSight's semantic profiler should expose only two core abstractions:
 event, network event, syscall, plan step, and subagent event are concrete
 operation shapes or operation fields, not separate profiler abstractions.
 
-The current blocking gate is stronger boundary detection evidence. R279-R290
+The current blocking gate is stronger boundary detection evidence. R279-R291
 show that external labeled trajectories can be projected through the current
 Rust implementation and folded at multiple depths, but unsupervised or
 model-backed boundary inference is still future work.
@@ -95,6 +95,14 @@ exactly match the `single-action` sequence. Non-exact rows are marked through
 `group_alignment` and remain usable for action profiling, but not for
 grouped-boundary scoring. These labels are not a new profiler abstraction.
 
+R291 extends the same model to AgentNet human desktop trajectories. The sampled
+1,000 Ubuntu tasks produce 16,741 PyAutoGUI operations and can be folded with
+frames such as `environment`, `phase`, `action`, `status`, `step_correct`,
+`step_redundant`, and `repeat_signal`. Task outcome, alignment score,
+efficiency score, difficulty, step correctness, and redundancy are operation
+fields: they may be projected, scored, or omitted without introducing a
+quality-label, desktop, or prompt/session abstraction.
+
 ## Mapping And Tagging
 
 Purpose: align mapping/tagging with the two-abstraction model.
@@ -114,14 +122,15 @@ The intended contract is:
 - learned mappings can be generated from labeled traces and reused through the
 same `--op-map-file` path.
 
-R285, R289, and R290 are the current regression tests for mapping precedence. Tool/API
-operations should derive `phase=api` from tool/API structure before generic
-verbs such as `search` or `create`; desktop computer-use operations should
-derive `phase=input` for `key`/`type` before generic web rules map `type` to
-`modify`; OSWorld-Human grouped-action patterns should be derivable from
-validated action sequences and group metadata without binding stacks to
-prompt/session boundaries. This is ordering over operation fields, not a
-separate abstraction.
+R285, R289, R290, and R291 are the current regression tests for mapping
+precedence. Tool/API operations should derive `phase=api` from tool/API
+structure before generic verbs such as `search` or `create`; desktop
+computer-use operations should derive `phase=input` for `key`/`type` before
+generic web rules map `type` to `modify`; desktop clicks such as AgentNet
+`tripleClick` should normalize into the existing navigate family; OSWorld-Human
+grouped-action patterns should be derivable from validated action sequences and
+group metadata without binding stacks to prompt/session boundaries. This is
+ordering over operation fields, not a separate abstraction.
 
 ## Assumptions And Invariants
 
@@ -144,6 +153,6 @@ Purpose: keep open risks tied to experiments.
 | Risk | Validation hook | Current evidence |
 |---|---|---|
 | Prompt/session boundaries leak back into the abstraction. | Run fixed-boundary ablations against recursive stacks. | R277 and R286 show fixed session greatly fragments stacks. |
-| Hand-written mappings overfit one dataset family. | Held-out and leave-dataset-out mapping evaluation plus operation-family precedence checks. | R282-R285 cover held-out sessions and 9 leave-out datasets; R289/R290 add desktop computer-use precedence checks. |
-| Action labels are too shallow as boundary oracles. | Add step-instruction, solution-path, outcome, side-effect, looping, repetition, safety/attack, grouped-action, and failure-label scorers. | R287 adds tau-bench outcomes and expected task actions; R288 adds AgentRewardBench expert success, side-effect, looping, optimality, and action-derived `repeat_signal` fields; R289 adds SATraj safety and attack labels; R290 adds OSWorld-Human grouped-action boundary labels. AndroidControl and TRAIL remain deeper oracle candidates. |
-| Visualizations collapse back to flamegraphs only. | Generate tree, transition, top-field, quality, grouped-stack, and depth-sweep HTML/JSON reports. | R273-R290 include non-flamegraph analyses. |
+| Hand-written mappings overfit one dataset family. | Held-out and leave-dataset-out mapping evaluation plus operation-family precedence checks. | R282-R285 cover held-out sessions and 9 leave-out datasets; R289/R290/R291 add desktop computer-use precedence checks. |
+| Action labels are too shallow as boundary oracles. | Add step-instruction, solution-path, outcome, side-effect, looping, repetition, safety/attack, grouped-action, step-quality, and failure-label scorers. | R287 adds tau-bench outcomes and expected task actions; R288 adds AgentRewardBench expert success, side-effect, looping, optimality, and action-derived `repeat_signal` fields; R289 adds SATraj safety and attack labels; R290 adds OSWorld-Human grouped-action boundary labels; R291 adds AgentNet step correctness and redundancy labels. AndroidControl and TRAIL remain deeper oracle candidates. |
+| Visualizations collapse back to flamegraphs only. | Generate tree, transition, top-field, quality, grouped-stack, and depth-sweep HTML/JSON reports. | R273-R291 include non-flamegraph analyses. |

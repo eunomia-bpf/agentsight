@@ -1,0 +1,853 @@
+{
+  "boundary_alignment": [
+    {
+      "adjacent_pairs": 15741,
+      "candidate_pairs": 15741,
+      "f1": 0.7149,
+      "false_negative": 3403,
+      "false_positive": 0,
+      "oracle": "action",
+      "precision": 1.0,
+      "predicted": "phase",
+      "recall": 0.5563,
+      "sequence_field": "session",
+      "skipped_missing_fields": 0,
+      "true_negative": 8071,
+      "true_positive": 4267,
+      "turn_field": "turn"
+    },
+    {
+      "adjacent_pairs": 15741,
+      "candidate_pairs": 15741,
+      "f1": 0.0,
+      "false_negative": 1689,
+      "false_positive": 0,
+      "oracle": "step_correct",
+      "precision": 0.0,
+      "predicted": "status",
+      "recall": 0.0,
+      "sequence_field": "session",
+      "skipped_missing_fields": 0,
+      "true_negative": 14052,
+      "true_positive": 0,
+      "turn_field": "turn"
+    }
+  ],
+  "coverage": [
+    {
+      "coverage": 1.0,
+      "field": "action",
+      "present": 16741,
+      "total": 16741
+    },
+    {
+      "coverage": 1.0,
+      "field": "alignment_score",
+      "present": 16741,
+      "total": 16741
+    },
+    {
+      "coverage": 1.0,
+      "field": "benchmark",
+      "present": 16741,
+      "total": 16741
+    },
+    {
+      "coverage": 1.0,
+      "field": "dataset",
+      "present": 16741,
+      "total": 16741
+    },
+    {
+      "coverage": 1.0,
+      "field": "domain",
+      "present": 16741,
+      "total": 16741
+    },
+    {
+      "coverage": 1.0,
+      "field": "efficiency_score",
+      "present": 16741,
+      "total": 16741
+    },
+    {
+      "coverage": 1.0,
+      "field": "environment",
+      "present": 16741,
+      "total": 16741
+    },
+    {
+      "coverage": 1.0,
+      "field": "op",
+      "present": 16741,
+      "total": 16741
+    },
+    {
+      "coverage": 1.0,
+      "field": "phase",
+      "present": 16741,
+      "total": 16741
+    },
+    {
+      "coverage": 1.0,
+      "field": "project",
+      "present": 16741,
+      "total": 16741
+    },
+    {
+      "coverage": 1.0,
+      "field": "repeat_signal",
+      "present": 16741,
+      "total": 16741
+    },
+    {
+      "coverage": 1.0,
+      "field": "status",
+      "present": 16741,
+      "total": 16741
+    },
+    {
+      "coverage": 1.0,
+      "field": "step_correct",
+      "present": 16741,
+      "total": 16741
+    },
+    {
+      "coverage": 1.0,
+      "field": "step_redundant",
+      "present": 16741,
+      "total": 16741
+    },
+    {
+      "coverage": 1.0,
+      "field": "task",
+      "present": 16741,
+      "total": 16741
+    },
+    {
+      "coverage": 1.0,
+      "field": "task_difficulty",
+      "present": 16741,
+      "total": 16741
+    },
+    {
+      "coverage": 1.0,
+      "field": "tool",
+      "present": 16741,
+      "total": 16741
+    }
+  ],
+  "op_map_files": [
+    "docs/visexp/out/external-agent-trace-agentnet-r291/agentnet-op-map.txt"
+  ],
+  "op_maps": [
+    "task:software=(dataset=swe\\-agent\\-trajectories|tool=swe\\-agent)",
+    "task:web=(dataset=weblinx\\-chat|dataset=webshop\\-expert|dataset=agenttrek|dataset=mind2web|tool=browser|tool=webshop|task=web\\-navigation|task=shopping|task=travel)",
+    "task:api=(dataset=api\\-bank|tool=api|task=api\\-call)",
+    "task:tool=(dataset=toolbench|task=tool\\-use)",
+    "task:mobile=(dataset=android\\-control|dataset=gui\\-odyssey|tool=android|tool=mobile\\-gui|task=mobile\\-control|task=mobile\\-cross\\-app)",
+    "task:desktop=(dataset=satraj\\-os\\-safety|dataset=osworld\\-human|tool=computer|task=desktop\\-computer\\-use)",
+    "phase:finish=(action=submit|action=send_msg_to_user|action=finish|action=terminate|action=complete)",
+    "phase:api=(dataset=api\\-bank|dataset=toolbench|tool=api|task=api\\-call|task=tool\\-use)",
+    "phase:api=(op=tool.*domain=|domain=.*op=tool)",
+    "phase:input=(action=fill|action=type|action=text|action=text_input|action=key|action=press|action=hotkey|action=key_down|action=key_up)",
+    "phase:navigate=(action=click|action=left_click|action=double_click|action=triple_click|action=right_click|action=go|action=goto|action=open|action=load|action=open_app|action=scroll|action=mouse_move|action=move_to|action=drag|action=left_click_drag|action=mouse_down|action=mouse_up|action=select)",
+    "phase:observe=(action=observe|action=wait|action=check)",
+    "phase:system=(action=shell|action=close_window)",
+    "phase:fail=(action=fail|status=infeasible)",
+    "phase:inspect=(action=look|action=search|action=find|action=find_file|action=search_dir|action=search_file)",
+    "phase:modify=(action=edit|action=create)"
+  ],
+  "operation_files": [
+    "docs/visexp/out/external-agent-trace-agentnet-r291/agentnet-operations.jsonl"
+  ],
+  "oracle_alignment": [
+    {
+      "completeness": 1.0,
+      "homogeneity": 0.5077,
+      "oracle": "action",
+      "oracle_labels": 12,
+      "predicted": "phase",
+      "predicted_labels": 4,
+      "support": 16741,
+      "top_confusions": [
+        {
+          "oracle": "click",
+          "predicted": "navigate",
+          "weight": 11049
+        },
+        {
+          "oracle": "type",
+          "predicted": "input",
+          "weight": 1459
+        },
+        {
+          "oracle": "move_to",
+          "predicted": "navigate",
+          "weight": 1046
+        },
+        {
+          "oracle": "terminate",
+          "predicted": "finish",
+          "weight": 1001
+        },
+        {
+          "oracle": "double_click",
+          "predicted": "navigate",
+          "weight": 587
+        },
+        {
+          "oracle": "hotkey",
+          "predicted": "input",
+          "weight": 504
+        },
+        {
+          "oracle": "press",
+          "predicted": "input",
+          "weight": 451
+        },
+        {
+          "oracle": "right_click",
+          "predicted": "navigate",
+          "weight": 423
+        },
+        {
+          "oracle": "wait",
+          "predicted": "observe",
+          "weight": 107
+        },
+        {
+          "oracle": "scroll",
+          "predicted": "navigate",
+          "weight": 76
+        },
+        {
+          "oracle": "triple_click",
+          "predicted": "navigate",
+          "weight": 37
+        },
+        {
+          "oracle": "drag",
+          "predicted": "navigate",
+          "weight": 1
+        }
+      ],
+      "v_measure": 0.6735
+    },
+    {
+      "completeness": 0.032,
+      "homogeneity": 0.0101,
+      "oracle": "step_correct",
+      "oracle_labels": 3,
+      "predicted": "status",
+      "predicted_labels": 3,
+      "support": 16741,
+      "top_confusions": [
+        {
+          "oracle": "correct",
+          "predicted": "success",
+          "weight": 13181
+        },
+        {
+          "oracle": "unknown",
+          "predicted": "success",
+          "weight": 2023
+        },
+        {
+          "oracle": "incorrect",
+          "predicted": "success",
+          "weight": 823
+        },
+        {
+          "oracle": "correct",
+          "predicted": "failure",
+          "weight": 656
+        },
+        {
+          "oracle": "incorrect",
+          "predicted": "failure",
+          "weight": 51
+        },
+        {
+          "oracle": "correct",
+          "predicted": "unknown",
+          "weight": 7
+        }
+      ],
+      "v_measure": 0.0153
+    },
+    {
+      "completeness": 0.0122,
+      "homogeneity": 0.009,
+      "oracle": "step_redundant",
+      "oracle_labels": 3,
+      "predicted": "repeat_signal",
+      "predicted_labels": 2,
+      "support": 16741,
+      "top_confusions": [
+        {
+          "oracle": "necessary",
+          "predicted": "none",
+          "weight": 6148
+        },
+        {
+          "oracle": "unknown",
+          "predicted": "none",
+          "weight": 5119
+        },
+        {
+          "oracle": "necessary",
+          "predicted": "loop-like",
+          "weight": 3186
+        },
+        {
+          "oracle": "unknown",
+          "predicted": "loop-like",
+          "weight": 1555
+        },
+        {
+          "oracle": "redundant",
+          "predicted": "none",
+          "weight": 449
+        },
+        {
+          "oracle": "redundant",
+          "predicted": "loop-like",
+          "weight": 284
+        }
+      ],
+      "v_measure": 0.0103
+    }
+  ],
+  "stack": [
+    "project",
+    "dataset",
+    "benchmark",
+    "environment",
+    "task",
+    "phase",
+    "op",
+    "tool",
+    "action",
+    "status",
+    "step_correct",
+    "step_redundant",
+    "repeat_signal"
+  ],
+  "summary": {
+    "compression_ratio": 27.535,
+    "operations": 16741,
+    "total_weight": 16741,
+    "unique_stacks": 608
+  },
+  "top_by_field": {
+    "action": [
+      {
+        "value": "click",
+        "weight": 11049
+      },
+      {
+        "value": "type",
+        "weight": 1459
+      },
+      {
+        "value": "move_to",
+        "weight": 1046
+      },
+      {
+        "value": "terminate",
+        "weight": 1001
+      },
+      {
+        "value": "double_click",
+        "weight": 587
+      },
+      {
+        "value": "hotkey",
+        "weight": 504
+      },
+      {
+        "value": "press",
+        "weight": 451
+      },
+      {
+        "value": "right_click",
+        "weight": 423
+      },
+      {
+        "value": "wait",
+        "weight": 107
+      },
+      {
+        "value": "scroll",
+        "weight": 76
+      },
+      {
+        "value": "triple_click",
+        "weight": 37
+      },
+      {
+        "value": "drag",
+        "weight": 1
+      }
+    ],
+    "alignment_score": [
+      {
+        "value": "10",
+        "weight": 6800
+      },
+      {
+        "value": "unknown",
+        "weight": 6747
+      },
+      {
+        "value": "9",
+        "weight": 2262
+      },
+      {
+        "value": "8",
+        "weight": 270
+      },
+      {
+        "value": "7",
+        "weight": 225
+      },
+      {
+        "value": "6",
+        "weight": 219
+      },
+      {
+        "value": "4",
+        "weight": 79
+      },
+      {
+        "value": "3",
+        "weight": 75
+      },
+      {
+        "value": "5",
+        "weight": 37
+      },
+      {
+        "value": "0",
+        "weight": 20
+      },
+      {
+        "value": "2",
+        "weight": 7
+      }
+    ],
+    "benchmark": [
+      {
+        "value": "agentnet",
+        "weight": 16741
+      }
+    ],
+    "dataset": [
+      {
+        "value": "agentnet",
+        "weight": 16741
+      }
+    ],
+    "domain": [
+      {
+        "value": "multiapp",
+        "weight": 2493
+      },
+      {
+        "value": "chrome",
+        "weight": 2437
+      },
+      {
+        "value": "libreoffice_impress",
+        "weight": 2160
+      },
+      {
+        "value": "vscode",
+        "weight": 1947
+      },
+      {
+        "value": "gimp",
+        "weight": 1561
+      },
+      {
+        "value": "libreoffice_writer",
+        "weight": 1483
+      },
+      {
+        "value": "libreoffice_calc",
+        "weight": 1380
+      },
+      {
+        "value": "os",
+        "weight": 1059
+      },
+      {
+        "value": "thunderbird",
+        "weight": 756
+      },
+      {
+        "value": "error_correction",
+        "weight": 651
+      },
+      {
+        "value": "vlc",
+        "weight": 633
+      },
+      {
+        "value": "infeasible",
+        "weight": 181
+      }
+    ],
+    "efficiency_score": [
+      {
+        "value": "unknown",
+        "weight": 6747
+      },
+      {
+        "value": "7",
+        "weight": 3217
+      },
+      {
+        "value": "8",
+        "weight": 2732
+      },
+      {
+        "value": "6",
+        "weight": 1882
+      },
+      {
+        "value": "9",
+        "weight": 1073
+      },
+      {
+        "value": "10",
+        "weight": 439
+      },
+      {
+        "value": "4",
+        "weight": 317
+      },
+      {
+        "value": "5",
+        "weight": 169
+      },
+      {
+        "value": "3",
+        "weight": 97
+      },
+      {
+        "value": "2",
+        "weight": 48
+      },
+      {
+        "value": "1",
+        "weight": 20
+      }
+    ],
+    "environment": [
+      {
+        "value": "multiapp",
+        "weight": 2493
+      },
+      {
+        "value": "chrome",
+        "weight": 2437
+      },
+      {
+        "value": "libreoffice_impress",
+        "weight": 2160
+      },
+      {
+        "value": "vscode",
+        "weight": 1947
+      },
+      {
+        "value": "gimp",
+        "weight": 1561
+      },
+      {
+        "value": "libreoffice_writer",
+        "weight": 1483
+      },
+      {
+        "value": "libreoffice_calc",
+        "weight": 1380
+      },
+      {
+        "value": "os",
+        "weight": 1059
+      },
+      {
+        "value": "thunderbird",
+        "weight": 756
+      },
+      {
+        "value": "error_correction",
+        "weight": 651
+      },
+      {
+        "value": "vlc",
+        "weight": 633
+      },
+      {
+        "value": "infeasible",
+        "weight": 181
+      }
+    ],
+    "op": [
+      {
+        "value": "action",
+        "weight": 16741
+      }
+    ],
+    "phase": [
+      {
+        "value": "navigate",
+        "weight": 13219
+      },
+      {
+        "value": "input",
+        "weight": 2414
+      },
+      {
+        "value": "finish",
+        "weight": 1001
+      },
+      {
+        "value": "observe",
+        "weight": 107
+      }
+    ],
+    "project": [
+      {
+        "value": "external-agent-traces",
+        "weight": 16741
+      }
+    ],
+    "repeat_signal": [
+      {
+        "value": "none",
+        "weight": 11716
+      },
+      {
+        "value": "loop-like",
+        "weight": 5025
+      }
+    ],
+    "status": [
+      {
+        "value": "success",
+        "weight": 16027
+      },
+      {
+        "value": "failure",
+        "weight": 707
+      },
+      {
+        "value": "unknown",
+        "weight": 7
+      }
+    ],
+    "step_correct": [
+      {
+        "value": "correct",
+        "weight": 13844
+      },
+      {
+        "value": "unknown",
+        "weight": 2023
+      },
+      {
+        "value": "incorrect",
+        "weight": 874
+      }
+    ],
+    "step_redundant": [
+      {
+        "value": "necessary",
+        "weight": 9334
+      },
+      {
+        "value": "unknown",
+        "weight": 6674
+      },
+      {
+        "value": "redundant",
+        "weight": 733
+      }
+    ],
+    "task": [
+      {
+        "value": "desktop",
+        "weight": 16741
+      }
+    ],
+    "task_difficulty": [
+      {
+        "value": "unknown",
+        "weight": 6747
+      },
+      {
+        "value": "6",
+        "weight": 3768
+      },
+      {
+        "value": "7",
+        "weight": 2421
+      },
+      {
+        "value": "4",
+        "weight": 1416
+      },
+      {
+        "value": "5",
+        "weight": 1126
+      },
+      {
+        "value": "8",
+        "weight": 684
+      },
+      {
+        "value": "3",
+        "weight": 536
+      },
+      {
+        "value": "2",
+        "weight": 40
+      },
+      {
+        "value": "10",
+        "weight": 3
+      }
+    ],
+    "tool": [
+      {
+        "value": "computer",
+        "weight": 16741
+      }
+    ]
+  },
+  "top_stacks": [
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;benchmark:agentnet;environment:chrome;task:desktop;phase:navigate;op:action;tool:computer;action:click;status:success;step_correct:correct;step_redundant:necessary;repeat_signal:none",
+      "weight": 857
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;benchmark:agentnet;environment:multiapp;task:desktop;phase:navigate;op:action;tool:computer;action:click;status:success;step_correct:correct;step_redundant:necessary;repeat_signal:none",
+      "weight": 772
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;benchmark:agentnet;environment:multiapp;task:desktop;phase:navigate;op:action;tool:computer;action:click;status:success;step_correct:correct;step_redundant:necessary;repeat_signal:loop-like",
+      "weight": 555
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;benchmark:agentnet;environment:vscode;task:desktop;phase:navigate;op:action;tool:computer;action:click;status:success;step_correct:correct;step_redundant:unknown;repeat_signal:none",
+      "weight": 520
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;benchmark:agentnet;environment:gimp;task:desktop;phase:navigate;op:action;tool:computer;action:click;status:success;step_correct:correct;step_redundant:unknown;repeat_signal:none",
+      "weight": 442
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;benchmark:agentnet;environment:libreoffice_calc;task:desktop;phase:navigate;op:action;tool:computer;action:click;status:success;step_correct:correct;step_redundant:necessary;repeat_signal:none",
+      "weight": 415
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;benchmark:agentnet;environment:vscode;task:desktop;phase:navigate;op:action;tool:computer;action:click;status:success;step_correct:correct;step_redundant:necessary;repeat_signal:none",
+      "weight": 369
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;benchmark:agentnet;environment:libreoffice_writer;task:desktop;phase:navigate;op:action;tool:computer;action:click;status:success;step_correct:correct;step_redundant:necessary;repeat_signal:none",
+      "weight": 342
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;benchmark:agentnet;environment:chrome;task:desktop;phase:navigate;op:action;tool:computer;action:click;status:success;step_correct:unknown;step_redundant:unknown;repeat_signal:none",
+      "weight": 333
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;benchmark:agentnet;environment:os;task:desktop;phase:navigate;op:action;tool:computer;action:click;status:success;step_correct:correct;step_redundant:necessary;repeat_signal:none",
+      "weight": 333
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;benchmark:agentnet;environment:libreoffice_impress;task:desktop;phase:navigate;op:action;tool:computer;action:click;status:success;step_correct:correct;step_redundant:unknown;repeat_signal:none",
+      "weight": 308
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;benchmark:agentnet;environment:gimp;task:desktop;phase:navigate;op:action;tool:computer;action:click;status:success;step_correct:unknown;step_redundant:unknown;repeat_signal:none",
+      "weight": 290
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;benchmark:agentnet;environment:libreoffice_impress;task:desktop;phase:navigate;op:action;tool:computer;action:click;status:success;step_correct:correct;step_redundant:necessary;repeat_signal:loop-like",
+      "weight": 276
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;benchmark:agentnet;environment:libreoffice_impress;task:desktop;phase:navigate;op:action;tool:computer;action:click;status:success;step_correct:correct;step_redundant:necessary;repeat_signal:none",
+      "weight": 275
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;benchmark:agentnet;environment:vlc;task:desktop;phase:navigate;op:action;tool:computer;action:click;status:success;step_correct:correct;step_redundant:unknown;repeat_signal:none",
+      "weight": 269
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;benchmark:agentnet;environment:thunderbird;task:desktop;phase:navigate;op:action;tool:computer;action:click;status:success;step_correct:correct;step_redundant:unknown;repeat_signal:none",
+      "weight": 260
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;benchmark:agentnet;environment:libreoffice_calc;task:desktop;phase:navigate;op:action;tool:computer;action:click;status:success;step_correct:correct;step_redundant:necessary;repeat_signal:loop-like",
+      "weight": 255
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;benchmark:agentnet;environment:chrome;task:desktop;phase:navigate;op:action;tool:computer;action:click;status:success;step_correct:correct;step_redundant:unknown;repeat_signal:none",
+      "weight": 243
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;benchmark:agentnet;environment:libreoffice_impress;task:desktop;phase:navigate;op:action;tool:computer;action:click;status:success;step_correct:unknown;step_redundant:unknown;repeat_signal:none",
+      "weight": 233
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;benchmark:agentnet;environment:error_correction;task:desktop;phase:navigate;op:action;tool:computer;action:click;status:success;step_correct:correct;step_redundant:necessary;repeat_signal:none",
+      "weight": 210
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;benchmark:agentnet;environment:libreoffice_writer;task:desktop;phase:navigate;op:action;tool:computer;action:click;status:success;step_correct:correct;step_redundant:necessary;repeat_signal:loop-like",
+      "weight": 169
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;benchmark:agentnet;environment:vscode;task:desktop;phase:navigate;op:action;tool:computer;action:click;status:success;step_correct:correct;step_redundant:necessary;repeat_signal:loop-like",
+      "weight": 163
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;benchmark:agentnet;environment:chrome;task:desktop;phase:navigate;op:action;tool:computer;action:click;status:success;step_correct:correct;step_redundant:necessary;repeat_signal:loop-like",
+      "weight": 163
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;benchmark:agentnet;environment:libreoffice_writer;task:desktop;phase:navigate;op:action;tool:computer;action:click;status:success;step_correct:correct;step_redundant:unknown;repeat_signal:none",
+      "weight": 159
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;benchmark:agentnet;environment:os;task:desktop;phase:input;op:action;tool:computer;action:press;status:success;step_correct:correct;step_redundant:necessary;repeat_signal:loop-like",
+      "weight": 154
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;benchmark:agentnet;environment:thunderbird;task:desktop;phase:navigate;op:action;tool:computer;action:click;status:success;step_correct:unknown;step_redundant:unknown;repeat_signal:none",
+      "weight": 149
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;benchmark:agentnet;environment:os;task:desktop;phase:input;op:action;tool:computer;action:type;status:success;step_correct:correct;step_redundant:necessary;repeat_signal:loop-like",
+      "weight": 148
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;benchmark:agentnet;environment:vscode;task:desktop;phase:navigate;op:action;tool:computer;action:click;status:success;step_correct:correct;step_redundant:unknown;repeat_signal:loop-like",
+      "weight": 144
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;benchmark:agentnet;environment:multiapp;task:desktop;phase:navigate;op:action;tool:computer;action:click;status:success;step_correct:correct;step_redundant:unknown;repeat_signal:none",
+      "weight": 138
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agentnet;benchmark:agentnet;environment:multiapp;task:desktop;phase:input;op:action;tool:computer;action:type;status:success;step_correct:correct;step_redundant:necessary;repeat_signal:loop-like",
+      "weight": 119
+    }
+  ]
+}

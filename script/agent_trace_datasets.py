@@ -98,6 +98,26 @@ DATASETS: dict[str, dict[str, Any]] = {
         "paper": "https://arxiv.org/abs/2412.09605",
         "why": "Synthetic-but-verified GUI/web trajectories with action tags from tutorial-guided replay.",
     },
+    "agentnet": {
+        "title": "AgentNet",
+        "hf_repo": "xlangai/AgentNet",
+        "config": "default",
+        "split": "train",
+        "repo_file": "agentnet_ubuntu_5k.jsonl",
+        "access": "hf-repo-jsonl-stream",
+        "adapter": "agentnet",
+        "drop_raw_fields": [
+            "instruction",
+            "natural_language_task",
+            "actual_task",
+            "reason",
+            "traj",
+        ],
+        "source": "https://huggingface.co/datasets/xlangai/AgentNet",
+        "paper": "https://arxiv.org/abs/2508.09123",
+        "why": "Large human-annotated desktop computer-use trajectories with PyAutoGUI actions, task outcomes, and step correctness labels.",
+        "note": "Sampler streams the requested JSONL prefix/range from Hugging Face instead of downloading the full 282MB/1.4GB trajectory files.",
+    },
     "swe-agent-trajectories": {
         "title": "SWE-agent trajectories",
         "hf_repo": "nebius/SWE-agent-trajectories",
@@ -276,6 +296,8 @@ def cmd_sample(args: argparse.Namespace) -> int:
         rows = hf_repo_json_rows(dataset, out_dir, args.offset, args.limit)
     elif dataset["access"] == "hf-repo-jsonl":
         rows = hf_repo_jsonl_rows(dataset, out_dir, args.offset, args.limit)
+    elif dataset["access"] == "hf-repo-jsonl-stream":
+        rows = hf_repo_jsonl_stream_rows(dataset, args.offset, args.limit)
     elif dataset["access"] == "agent-reward-bench":
         rows = agent_reward_bench_rows(dataset, out_dir, args.offset, args.limit)
     elif dataset["access"] == "github-directory-json":
@@ -391,6 +413,25 @@ def hf_repo_jsonl_rows(
             if len(rows) >= limit:
                 break
             line = line.strip()
+            if line:
+                rows.append(json.loads(line))
+    return rows
+
+
+def hf_repo_jsonl_stream_rows(
+    dataset: dict[str, Any], offset: int, limit: int
+) -> list[dict[str, Any]]:
+    repo_file = dataset["repo_file"]
+    encoded = urllib.parse.quote(repo_file)
+    url = f"https://huggingface.co/datasets/{dataset['hf_repo']}/resolve/main/{encoded}"
+    rows: list[dict[str, Any]] = []
+    with urllib.request.urlopen(url, timeout=180) as response:
+        for line_number, raw_line in enumerate(response):
+            if line_number < offset:
+                continue
+            if len(rows) >= limit:
+                break
+            line = raw_line.decode("utf-8").strip()
             if line:
                 rows.append(json.loads(line))
     return rows
@@ -559,6 +600,8 @@ def normalize_row(
         return [normalize_api_bank(dataset_id, dataset, row, row_index, include_text)]
     if adapter == "agenttrek":
         return normalize_agenttrek(dataset_id, dataset, row, row_index, include_text)
+    if adapter == "agentnet":
+        return normalize_agentnet(dataset_id, dataset, row, row_index, include_text)
     if adapter == "swe-agent":
         return normalize_swe_agent(dataset_id, dataset, row, row_index, include_text)
     if adapter == "android-control":
@@ -757,6 +800,145 @@ def normalize_agenttrek(
             fields["action_raw"] = truncate_clean(action, 180)
         operations.append({"value": 1, "fields": fields})
     return operations
+
+
+def normalize_agentnet(
+    dataset_id: str,
+    dataset: dict[str, Any],
+    row: dict[str, Any],
+    row_index: int,
+    include_text: bool,
+) -> list[dict[str, Any]]:
+    session = sanitize_label(str(row.get("task_id") or f"agentnet-{row_index}"))
+    domain = sanitize_label(str(row.get("domain") or "desktop"))
+    traj = [step for step in row.get("traj") or [] if isinstance(step, dict)]
+    status = agentnet_task_status(row, traj)
+    parsed_steps: list[tuple[int, dict[str, Any], str, str, str]] = []
+    signatures: list[tuple[str, str]] = []
+    for ordinal, step in enumerate(traj):
+        value = step.get("value") or {}
+        if not isinstance(value, dict):
+            value = {}
+        code = str(value.get("code") or "")
+        action = agentnet_code_action(code)
+        target = agentnet_action_target(action, code)
+        signatures.append((action, target))
+        parsed_steps.append((ordinal, step, code, action, target))
+
+    repeat_features = repeat_features_for_signatures(signatures)
+    operations = []
+    for ordinal, step, code, action, target in parsed_steps:
+        value = step.get("value") or {}
+        repeat = repeat_features[ordinal]
+        correct = normalize_bool_outcome(value.get("last_step_correct"), "correct", "incorrect")
+        redundant = normalize_bool_outcome(value.get("last_step_redundant"), "redundant", "necessary")
+        fields: dict[str, Any] = {
+            "project": "external-agent-traces",
+            "agent": "human-annotated",
+            "dataset": dataset_id,
+            "source": dataset["hf_repo"],
+            "session": session,
+            "turn": str(step.get("index") if step.get("index") is not None else ordinal),
+            "step": str(ordinal),
+            "task": "desktop-computer-use",
+            "benchmark": "agentnet",
+            "environment": domain,
+            "domain": domain,
+            "phase": agentnet_action_phase(action),
+            "op": "action",
+            "tool": "computer",
+            "action": action,
+            "target": target,
+            "status": status,
+            "step_correct": correct,
+            "step_redundant": redundant,
+            "alignment_score": normalize_score(row.get("alignment_score")),
+            "efficiency_score": normalize_score(row.get("efficiency_score")),
+            "task_difficulty": normalize_score(row.get("task_difficulty")),
+            "repeat_state": repeat["repeat_state"],
+            "repeat_signal": repeat["repeat_signal"],
+            "repeat_run": repeat["repeat_run"],
+        }
+        if include_text:
+            fields["task_preview"] = truncate_clean(str(row.get("instruction") or ""), 180)
+            fields["action_raw"] = truncate_clean(str(value.get("action") or code), 180)
+        operations.append({"value": 1, "fields": fields})
+    return operations
+
+
+def agentnet_code_action(code: str) -> str:
+    name = first_match(r"pyautogui\.([A-Za-z_][A-Za-z0-9_]*)", code, "")
+    if not name:
+        name = first_match(r"computer\.([A-Za-z_][A-Za-z0-9_]*)", code, "")
+    if not name:
+        name = first_match(r"^([A-Za-z_][A-Za-z0-9_]*)", code.strip(), "unknown")
+    label = sanitize_label(name)
+    aliases = {
+        "doubleclick": "double_click",
+        "tripleclick": "triple_click",
+        "leftclick": "click",
+        "rightclick": "right_click",
+        "middleclick": "middle_click",
+        "moveto": "move_to",
+        "dragto": "drag",
+        "dragrel": "drag",
+        "mousemove": "move_to",
+        "write": "type",
+        "typewrite": "type",
+        "screenshot": "observe",
+    }
+    return aliases.get(label, label or "unknown")
+
+
+def agentnet_action_phase(action: str) -> str:
+    if action == "terminate":
+        return "finish"
+    return osworld_action_phase(action)
+
+
+def agentnet_action_target(action: str, code: str) -> str:
+    if action in {"click", "double_click", "triple_click", "right_click", "middle_click"}:
+        return coordinate_bucket(code)
+    if action in {"move_to", "drag", "mouse_down", "mouse_up"}:
+        return coordinate_bucket(code)
+    if action in {"hotkey", "press", "key_down", "key_up"}:
+        keys = re.findall(r"['\"]([^'\"]+)['\"]", code)
+        return sanitize_label("-".join(keys[:4]) or "key")
+    if action in {"type"}:
+        return "text"
+    if action == "scroll":
+        return "scroll"
+    if action in {"observe", "wait"}:
+        return "none"
+    if action == "terminate":
+        return sanitize_label(first_match(r"status=['\"]([^'\"]+)['\"]", code, "none"))
+    return "none"
+
+
+def agentnet_task_status(row: dict[str, Any], traj: list[dict[str, Any]]) -> str:
+    status = normalize_bool_outcome(row.get("task_completed"), "success", "failure")
+    if status != "unknown":
+        return status
+    for step in reversed(traj):
+        value = step.get("value") or {}
+        if not isinstance(value, dict):
+            continue
+        code = str(value.get("code") or "")
+        if agentnet_code_action(code) == "terminate":
+            target = agentnet_action_target("terminate", code)
+            if target in {"success", "failure"}:
+                return target
+    return "unknown"
+
+
+def normalize_score(value: Any) -> str:
+    if value is None:
+        return "unknown"
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, (int, float)):
+        return str(value)
+    return sanitize_label(str(value))
 
 
 def normalize_swe_agent(
