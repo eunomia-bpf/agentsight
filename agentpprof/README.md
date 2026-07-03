@@ -191,22 +191,22 @@ xdg-open .agentsight/agentpprof/latest/tokens.flame.svg
 Token profile:
 
 ```text
-project:<repo>;agent:<codex|claude>;session:<tag>;prompt:<tag>;call:llm/<tag>;model:<model>;token:<kind>
+project:<repo>;agent:<codex|claude>;session:<tag>;prompt:<tag>;phase:<tag>;op:llm;call:llm/<tag>;model:<model>;token:<kind>
 ```
 
 Width: token count.
 
-Tool/effect profile:
+Tool/effect path:
 
 ```text
-project:<repo>;agent:<codex|claude>;session:<tag>;prompt:<tag>;call:tool/<tag>;tool:<kind>;process:<cmd>;effect:<effect>;target:<group>;status:<status>
+project:<repo>;agent:<codex|claude>;session:<tag>;prompt:<tag>;phase:<tag>;op:tool;tool:<kind>;process:<cmd>;path:<group>;effect:<effect>;status:<status>
 ```
 
 Width: observed tool event count.
 
-File and network profiles use the same semantic session/prompt context, but
-make `file:<group>` or `domain:<domain>` the leaf frame. Their widths are file
-target event count and network target event count.
+File and network profiles use the same semantic session/prompt/phase context,
+then continue down the operation path to `path:<group>` or `domain:<domain>`.
+Their widths are file target event count and network target event count.
 
 The Python pprof exporter reverses semantic stacks when serializing samples
 because pprof stores the leaf frame first.

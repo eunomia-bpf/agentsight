@@ -300,35 +300,38 @@ agentpprof -o tokens.svg --prompt-tag review
 ## The stack model
 
 The semantic flamegraph stack is a projection, not a literal function call
-stack: lower frames provide context (project, agent, prompt type), upper frames
-describe the activity being counted, and the exact shape varies by view.
+stack: lower frames provide context (project, agent, prompt type), detected
+`phase` frames split a prompt into task-like spans, and upper frames describe
+the operation being counted. The exact shape varies by view, but all built-in
+views now read the same operation path instead of hand-building unrelated stack
+formats.
 
 The `tokens` view uses model budget as the width:
 
 ```text
-project:agentsight;agent:claude;session:profile;prompt:debug;call:llm/debug;model:claude-opus-4-6;kind:input 4200
-project:agentsight;agent:claude;session:profile;prompt:debug;call:llm/debug;model:claude-opus-4-6;kind:output 980
-project:agentsight;agent:claude;session:profile;prompt:debug;call:llm/debug;model:claude-opus-4-6;kind:cache 150000
+project:agentsight;agent:claude;session:profile;prompt:debug;phase:debug;op:llm;call:llm/debug;model:claude-opus-4-6;token:input 4200
+project:agentsight;agent:claude;session:profile;prompt:debug;phase:debug;op:llm;call:llm/debug;model:claude-opus-4-6;token:output 980
+project:agentsight;agent:claude;session:profile;prompt:debug;phase:debug;op:llm;call:llm/debug;model:claude-opus-4-6;token:cache 150000
 ```
 
 The `time` view uses wall-clock duration (seconds) as the width:
 
 ```text
-project:agentsight;agent:claude;session:profile;prompt:debug;kind:llm 45
-project:agentsight;agent:claude;session:profile;prompt:debug;kind:tool 12
-project:agentsight;agent:claude;session:profile;prompt:debug;kind:prompt 2
+project:agentsight;agent:claude;session:profile;prompt:debug;phase:debug;op:llm 45
+project:agentsight;agent:claude;session:profile;prompt:debug;phase:test;op:tool 12
+project:agentsight;agent:claude;session:profile;prompt:debug;op:prompt 2
 ```
 
 The `files` view makes repository areas the main branch:
 
 ```text
-project:agentsight;agent:codex;session:release;prompt:docs;path:docs/flamegraph;effect:write;status:ok 1
+project:agentsight;agent:codex;session:release;prompt:docs;phase:write;op:tool;tool:apply_patch;path:docs/flamegraph;effect:write;status:ok 1
 ```
 
 The `network` view centers domains:
 
 ```text
-project:agentsight;agent:codex;session:release;prompt:publish;domain:crates.io;process:cargo;status:ok 1
+project:agentsight;agent:codex;session:release;prompt:publish;phase:network;op:tool;tool:exec_command;process:cargo;domain:crates.io;status:ok 1
 ```
 
 Choose the view based on your question: tokens for cost analysis, time for

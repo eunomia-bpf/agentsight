@@ -17,6 +17,7 @@ use crate::session::{
 
 pub type Counter = BTreeMap<String, u64>;
 pub type OpId = usize;
+type Frame = (&'static str, String);
 
 pub struct Operation {
     pub parent: Option<OpId>,
@@ -42,7 +43,7 @@ impl Profile {
         }
     }
 
-    fn sample(&mut self, frames: Vec<(&'static str, String)>, value: u64) {
+    fn sample(&mut self, frames: Vec<Frame>, value: u64) {
         let last = frames.len().saturating_sub(1);
         let mut parent = None;
         for (idx, (kind, name)) in frames.into_iter().enumerate() {
@@ -55,6 +56,128 @@ impl Profile {
             });
             parent = Some(id);
         }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+enum EventKey {
+    Prompt(usize),
+    Tool(usize),
+    Llm(usize),
+}
+
+#[derive(Clone, Debug)]
+struct SegmentEvent {
+    key: EventKey,
+    prompt_index: usize,
+    ts_ms: Option<i64>,
+    ordinal: usize,
+    label: String,
+}
+
+#[derive(Default)]
+struct SegmentIndex {
+    phases: HashMap<EventKey, String>,
+}
+
+impl SegmentIndex {
+    /// Detect view-independent span labels inside the parsed event stream.
+    ///
+    /// Prompt is the outer span available in today's IR. This pass adds a
+    /// second, task-like phase span from changes in LLM labels and tool
+    /// effects/categories so one prompt can still fold into recursive stacks.
+    fn detect(session: &SessionRecord) -> Self {
+        let mut events = Vec::new();
+        let mut ordinal = 0usize;
+
+        for (idx, event) in session.tools.iter().enumerate() {
+            events.push(SegmentEvent {
+                key: EventKey::Tool(idx),
+                prompt_index: event.prompt_index,
+                ts_ms: event.ts_ms,
+                ordinal,
+                label: tool_phase_label(event),
+            });
+            ordinal += 1;
+        }
+        for (idx, call) in session.llm_calls.iter().enumerate() {
+            events.push(SegmentEvent {
+                key: EventKey::Llm(idx),
+                prompt_index: call.prompt_index,
+                ts_ms: call.ts_ms,
+                ordinal,
+                label: llm_phase_label(call),
+            });
+            ordinal += 1;
+        }
+
+        events.sort_by_key(|event| {
+            (
+                event.prompt_index,
+                event.ts_ms.unwrap_or(i64::MAX),
+                event.ordinal,
+            )
+        });
+
+        let mut phases = HashMap::new();
+        let mut current_prompt = None;
+        let mut current_label = String::new();
+        for event in events {
+            if current_prompt != Some(event.prompt_index) {
+                current_prompt = Some(event.prompt_index);
+                current_label.clear();
+            }
+            if current_label != event.label {
+                current_label = event.label.clone();
+            }
+            phases.insert(event.key, current_label.clone());
+        }
+
+        Self { phases }
+    }
+
+    fn phase_for(&self, key: EventKey) -> Option<&str> {
+        self.phases.get(&key).map(String::as_str)
+    }
+}
+
+/// View-independent operation path builder for one session.
+///
+/// Built-in views select different leaves and weights, but they share this
+/// context path instead of inventing separate stack grammars.
+struct SessionPath<'a> {
+    project_name: &'a str,
+    session: &'a SessionRecord,
+    segments: SegmentIndex,
+}
+
+impl<'a> SessionPath<'a> {
+    fn new(project_name: &'a str, session: &'a SessionRecord) -> Self {
+        Self {
+            project_name,
+            session,
+            segments: SegmentIndex::detect(session),
+        }
+    }
+
+    fn root_frames(&self) -> Vec<Frame> {
+        vec![
+            ("project", self.project_name.to_string()),
+            ("agent", self.session.source.clone()),
+            ("session", self.session.session_tag.clone()),
+        ]
+    }
+
+    fn frames_for(&self, key: EventKey, prompt_index: usize) -> Vec<Frame> {
+        let mut frames = self.root_frames();
+        let prompt = self.session.request_by_index(prompt_index);
+        frames.push(("prompt", prompt.tag.clone()));
+        if let Some(phase) = self.segments.phase_for(key)
+            && !phase.is_empty()
+        {
+            frames.push(("phase", phase.to_string()));
+        }
+        frames
     }
 }
 
@@ -208,74 +331,91 @@ pub fn build_profile(sessions: &[SessionRecord], project_name: &str, view: Profi
     }
 }
 
-fn base_frames(project_name: &str, session: &SessionRecord) -> Vec<(&'static str, String)> {
-    vec![
-        ("project", project_name.to_string()),
-        ("agent", session.source.clone()),
-        ("session", session.session_tag.clone()),
-    ]
+fn tool_phase_label(event: &crate::session::ToolEvent) -> String {
+    if !event.effect.is_empty() && event.effect != "process" {
+        return event.effect.clone();
+    }
+    if !event.category.is_empty() && event.category != "tool" {
+        return event.category.clone();
+    }
+    if !event.command_name.is_empty() && event.command_name != "none" {
+        return event.command_name.clone();
+    }
+    event.tool_name.clone()
 }
 
-fn prompt_frames(
-    project_name: &str,
-    session: &SessionRecord,
-    prompt_tag: &str,
-) -> Vec<(&'static str, String)> {
-    let mut frames = base_frames(project_name, session);
-    frames.push(("prompt", prompt_tag.to_string()));
+fn llm_phase_label(call: &crate::session::LlmEvent) -> String {
+    if !call.tag.is_empty() && call.tag != "unmatched" {
+        call.tag.clone()
+    } else {
+        "llm".to_string()
+    }
+}
+
+fn tool_operation_frames(event: &crate::session::ToolEvent) -> Vec<Frame> {
+    let mut frames = vec![
+        ("op", "tool".to_string()),
+        ("tool", event.tool_name.clone()),
+    ];
+    if event.category == "shell" && !event.command_name.is_empty() {
+        frames.push(("cmd", event.command_name.clone()));
+    }
+    for process in &event.process_chain {
+        frames.push(("process", process.clone()));
+    }
     frames
+}
+
+fn llm_operation_frames(call: &crate::session::LlmEvent) -> Vec<Frame> {
+    vec![
+        ("op", "llm".to_string()),
+        ("call", format!("llm/{}", call.tag)),
+        ("model", last_model_segment(&call.model).to_string()),
+    ]
 }
 
 fn build_time_profile(sessions: &[SessionRecord], project_name: &str) -> Profile {
     let mut profile = Profile::new("time", "duration", "seconds");
     for session in sessions {
+        let paths = SessionPath::new(project_name, session);
         let mut events = Vec::new();
 
-        for req in &session.user_requests {
+        for (idx, req) in session.user_requests.iter().enumerate() {
             if let Some(ts) = req.ts_ms {
-                events.push((ts, req.tag.clone(), vec![("kind", "prompt".to_string())]));
-            }
-        }
-        for event in &session.tools {
-            if let Some(ts) = event.ts_ms {
-                let req = session.request_by_index(event.prompt_index);
-                let mut frames = vec![
-                    ("kind", "tool".to_string()),
-                    ("tool", event.tool_name.clone()),
-                ];
-                // For shell commands, add command name and process chain
-                if event.category == "shell" {
-                    if !event.command_name.is_empty() {
-                        frames.push(("cmd", event.command_name.clone()));
-                    }
-                    // Add process chain if available (from agentsight)
-                    for process in &event.process_chain {
-                        frames.push(("proc", process.clone()));
-                    }
-                }
-                events.push((ts, req.tag.clone(), frames));
-            }
-        }
-        for call in &session.llm_calls {
-            if let Some(ts) = call.ts_ms {
-                let req = session.request_by_index(call.prompt_index);
                 events.push((
                     ts,
-                    req.tag.clone(),
-                    vec![
-                        ("kind", "llm".to_string()),
-                        ("call", format!("llm/{}", call.tag)),
-                        ("model", last_model_segment(&call.model).to_string()),
-                    ],
+                    EventKey::Prompt(idx),
+                    idx,
+                    vec![("op", "prompt".to_string())],
+                ));
+            }
+        }
+        for (idx, event) in session.tools.iter().enumerate() {
+            if let Some(ts) = event.ts_ms {
+                events.push((
+                    ts,
+                    EventKey::Tool(idx),
+                    event.prompt_index,
+                    tool_operation_frames(event),
+                ));
+            }
+        }
+        for (idx, call) in session.llm_calls.iter().enumerate() {
+            if let Some(ts) = call.ts_ms {
+                events.push((
+                    ts,
+                    EventKey::Llm(idx),
+                    call.prompt_index,
+                    llm_operation_frames(call),
                 ));
             }
         }
 
-        events.sort_by_key(|(ts, _, _)| *ts);
+        events.sort_by_key(|(ts, _, _, _)| *ts);
 
         // Calculate duration between consecutive events
         for i in 0..events.len() {
-            let (ts, prompt_tag, detail_frames) = &events[i];
+            let (ts, key, prompt_index, detail_frames) = &events[i];
             let duration_sec = if i + 1 < events.len() {
                 let next_ts = events[i + 1].0;
                 ((next_ts - ts) / 1000).max(1) as u64
@@ -283,7 +423,7 @@ fn build_time_profile(sessions: &[SessionRecord], project_name: &str) -> Profile
                 1 // Last event gets 1 second
             };
 
-            let mut frames = prompt_frames(project_name, session, prompt_tag);
+            let mut frames = paths.frames_for(*key, *prompt_index);
             frames.extend(detail_frames.clone());
             profile.sample(frames, duration_sec);
         }
@@ -294,15 +434,12 @@ fn build_time_profile(sessions: &[SessionRecord], project_name: &str) -> Profile
 fn build_token_profile(sessions: &[SessionRecord], project_name: &str) -> Profile {
     let mut profile = Profile::new("tokens", "tokens", "count");
     for session in sessions {
-        for call in &session.llm_calls {
-            let req = session.request_by_index(call.prompt_index);
+        let paths = SessionPath::new(project_name, session);
+        for (idx, call) in session.llm_calls.iter().enumerate() {
             for (kind, value) in call.token_components() {
-                let mut frames = prompt_frames(project_name, session, &req.tag);
-                frames.extend([
-                    ("call", format!("llm/{}", call.tag)),
-                    ("model", last_model_segment(&call.model).to_string()),
-                    ("kind", kind.to_string()),
-                ]);
+                let mut frames = paths.frames_for(EventKey::Llm(idx), call.prompt_index);
+                frames.extend(llm_operation_frames(call));
+                frames.push(("token", kind.to_string()));
                 profile.sample(frames, value);
             }
         }
@@ -313,13 +450,14 @@ fn build_token_profile(sessions: &[SessionRecord], project_name: &str) -> Profil
 fn build_file_profile(sessions: &[SessionRecord], project_name: &str) -> Profile {
     let mut profile = Profile::new("files", "file_events", "count");
     for session in sessions {
-        for event in &session.tools {
+        let paths = SessionPath::new(project_name, session);
+        for (idx, event) in session.tools.iter().enumerate() {
             if event.path_groups.is_empty() {
                 continue;
             }
-            let req = session.request_by_index(event.prompt_index);
             for group in &event.path_groups {
-                let mut frames = prompt_frames(project_name, session, &req.tag);
+                let mut frames = paths.frames_for(EventKey::Tool(idx), event.prompt_index);
+                frames.extend(tool_operation_frames(event));
                 frames.extend([
                     ("path", group.clone()),
                     ("effect", event.effect.clone()),
@@ -335,22 +473,20 @@ fn build_file_profile(sessions: &[SessionRecord], project_name: &str) -> Profile
 fn build_network_profile(sessions: &[SessionRecord], project_name: &str) -> Profile {
     let mut profile = Profile::new("network", "network_events", "count");
     for session in sessions {
-        for event in &session.tools {
+        let paths = SessionPath::new(project_name, session);
+        for (idx, event) in session.tools.iter().enumerate() {
             if event.effect != "network" && event.domains.is_empty() {
                 continue;
             }
-            let req = session.request_by_index(event.prompt_index);
             let domains = if event.domains.is_empty() {
                 vec!["unknown".to_string()]
             } else {
                 event.domains.clone()
             };
             for domain in domains {
-                let mut frames = prompt_frames(project_name, session, &req.tag);
+                let mut frames = paths.frames_for(EventKey::Tool(idx), event.prompt_index);
+                frames.extend(tool_operation_frames(event));
                 frames.push(("domain", domain));
-                for process in &event.process_chain {
-                    frames.push(("process", process.clone()));
-                }
                 frames.push(("status", event.status.clone()));
                 profile.sample(frames, 1);
             }
@@ -1044,6 +1180,23 @@ mod tests {
         }
     }
 
+    fn read_tool(ts_ms: i64, prompt_index: usize, paths: Vec<&str>) -> ToolEvent {
+        ToolEvent {
+            ts_ms: Some(ts_ms),
+            prompt_index,
+            tool_name: "Read".to_string(),
+            category: "read".to_string(),
+            command: "src/lib.rs".to_string(),
+            command_name: "Read".to_string(),
+            effect: "read".to_string(),
+            process_chain: Vec::new(),
+            status: "ok".to_string(),
+            path_groups: paths.into_iter().map(str::to_string).collect(),
+            domains: Vec::new(),
+            call_id: Some("call-read".to_string()),
+        }
+    }
+
     fn llm(ts_ms: i64, prompt_index: usize, model: &str, tag: &str) -> LlmEvent {
         LlmEvent {
             ts_ms: Some(ts_ms),
@@ -1096,17 +1249,42 @@ mod tests {
         let stacks = profile_to_stacks(&profile);
         // prompt at 1000ms, tool at 3000ms -> 2 seconds
         assert_eq!(
-            stacks.get("project:agentsight;agent:codex;session:rustfix;prompt:debug;kind:prompt"),
+            stacks.get("project:agentsight;agent:codex;session:rustfix;prompt:debug;op:prompt"),
             Some(&2)
         );
         // tool at 3000ms, llm at 8000ms -> 5 seconds (with tool name, cmd, and process chain)
         assert_eq!(
-            stacks.get("project:agentsight;agent:codex;session:rustfix;prompt:debug;kind:tool;tool:exec_command;cmd:cargo;proc:cargo"),
+            stacks.get("project:agentsight;agent:codex;session:rustfix;prompt:debug;phase:test;op:tool;tool:exec_command;cmd:cargo;process:cargo"),
             Some(&5)
         );
         // last event gets 1 second (with llm details)
         assert_eq!(
-            stacks.get("project:agentsight;agent:codex;session:rustfix;prompt:debug;kind:llm;call:llm/summarize;model:gpt-5"),
+            stacks.get("project:agentsight;agent:codex;session:rustfix;prompt:debug;phase:summarize;op:llm;call:llm/summarize;model:gpt-5"),
+            Some(&1)
+        );
+    }
+
+    #[test]
+    fn file_stacks_detect_task_phases_inside_one_prompt() {
+        let session = test_session(
+            "codex",
+            "rustfix",
+            vec![prompt(0, 1000, "h1", "fix rust tests", "debug")],
+            vec![
+                read_tool(2000, 0, vec!["src"]),
+                shell_tool(3000, 0, "ok", vec!["tests"]),
+            ],
+            Vec::new(),
+        );
+        let profile = build_file_profile(&[session], "agentsight");
+        let stacks = profile_to_stacks(&profile);
+
+        assert_eq!(
+            stacks.get("project:agentsight;agent:codex;session:rustfix;prompt:debug;phase:read;op:tool;tool:read;path:src;effect:read;status:ok"),
+            Some(&1)
+        );
+        assert_eq!(
+            stacks.get("project:agentsight;agent:codex;session:rustfix;prompt:debug;phase:test;op:tool;tool:exec_command;cmd:cargo;process:cargo;path:tests;effect:test;status:ok"),
             Some(&1)
         );
     }
@@ -1156,7 +1334,7 @@ mod tests {
         let path = dir.path().join("profile.pb.gz");
         let projection = Profile::new("tokens", "tokens", "count");
         let stacks = BTreeMap::from([(
-            "project:test;agent:codex;session:rustfix;prompt:review;kind:input".to_string(),
+            "project:test;agent:codex;session:rustfix;prompt:review;op:llm;token:input".to_string(),
             7,
         )]);
         write_pprof_projection(&projection, &stacks, &path).unwrap();

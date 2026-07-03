@@ -84,7 +84,7 @@ Wall-clock 时间分布与 token 消耗相似：review（`prompt:review`）领�
 
 ### 解析层：从 trace 到操作
 
-`agent-session` 解析器读取 Codex/Claude 的 JSONL 历史，恢复出 prompt、LLM 调用、工具调用以及它们触发的文件和网络效果。每个这样的活动就是一个操作，带着自己的属性（时间戳、token 数、路径、域名、状态等），构成后续两层共享的操作表。
+`agent-session` 解析器读取 Codex/Claude 的 JSONL 历史，恢复出 prompt、LLM 调用、工具调用以及它们触发的文件和网络效果。每个这样的活动就是一个操作，带着自己的属性（时间戳、token 数、路径、域名、状态等），构成后续两层共享的操作表。解析同时保留序列结构：每个操作都记着自己落在哪条 prompt 的跨度内。
 
 ### 意图识别层：从 prompt 到标签
 
@@ -164,7 +164,11 @@ agentpprof --project-root . --tag-cache tags.json -o flamegraph.svg
 
 **定义 1（operation，操作）。** 一次 agent 执行历史被解析为操作集合 O。一个操作 o ∈ O 是历史中一次可计量的活动：一条用户 prompt、一次 LLM 调用，或一次工具触发的文件/网络效果。每个操作携带属性元组 attr(o) = (project, agent, session, prompt, kind, model, path, domain, status, …) 以及若干可加度量，如 token 数、持续时间、发生次数。解析层产出 O，意图识别层为其中的意图属性提供稳定取值。
 
-**定义 2（operation stack，操作栈）。** 栈化函数 σ 把操作映射为有序帧序列 σ(o) = [f₁; f₂; …; f_k]。低层帧是语义上下文（project → agent → session → prompt 意图），高层帧是机制与效果（LLM 调用、模型、工具、进程链、路径、域名、状态）。与 CPU 调用栈不同，操作栈表达的是**归因链**而非控制流：每一帧回答「这个活动发生在什么上下文里」。
+操作的粒度在解析时就固定了，与视图无关。视图改变的是计量方式：一个操作可以展开成多个样本，tokens 视图把一次 LLM 调用按 input/output/cache 展开成三个样本，files 视图把一次工具调用按触碰的路径逐一展开。样本是视图相关的，操作不是。
+
+**定义 2（operation stack，操作栈）。** 栈化函数 σ 把操作映射为有序帧序列 σ(o) = [f₁; f₂; …; f_k]。低层帧是语义上下文（project → agent → session），中间帧是切段器产出的 span（例如 prompt 意图、同一 prompt 内的 phase），高层帧是被计数的操作及其子操作（LLM 调用、模型、工具、进程链、路径、域名、状态）。与 CPU 调用栈不同，操作栈表达的是**归因链**而非控制流：每一帧回答「这个活动发生在什么上下文里」。
+
+层级从哪里来？agent 历史本身是一条线性事件序列，没有现成的树。当前实现先按 prompt 把这条序列切成外层 span，再在单个 prompt 内根据 LLM 标签、tool effect/category 的变化检测 phase 边界。这一步把平坦的时间线折叠出了 task/subtask 式的结构：prompt 像任务，phase 像该任务内部的 explore/edit/test 等阶段，宽度是这些原子操作的权重之和。但此时每个跨度还带着独一无二的文本或事件细节，只有经过意图识别把跨度换成稳定标签，不同 session 里做同类任务的跨度才能互相合并。折叠出结构在前，标签聚合在后。
 
 **定义 3（view，视图）。** 视图是三元组 V = (φ, σ, w)：谓词 φ 选择参与统计的操作子集，σ 决定栈结构，权重函数 w 把每个操作映射为非负数。视图的求值结果是 folded stacks，即按栈分组、权重求和的多重集：
 
@@ -176,10 +180,10 @@ eval(V, O) = { (s, w_s) : w_s = Σ w(o), 对所有 o ∈ O 满足 φ(o) 且 σ(o
 
 | 视图 | φ（选择哪些操作） | σ（栈结构） | w（权重） |
 | --- | --- | --- | --- |
-| `tokens` | LLM 调用 | project; agent; session; prompt; call; model; kind | token 数（input/output/cache 各为一个样本） |
-| `time` | 全部带时间戳的操作 | project; agent; session; prompt; kind; ⟨机制帧⟩ | 到下一事件的间隔秒数 |
-| `files` | 有路径效果的工具操作 | project; agent; session; prompt; path; effect; status | 事件次数 |
-| `network` | 有网络效果的工具操作 | project; agent; session; prompt; domain; ⟨进程链⟩; status | 事件次数 |
+| `tokens` | LLM 调用 | project; agent; session; prompt; phase; op; call; model; token | token 数（input/output/cache 各为一个样本） |
+| `time` | 全部带时间戳的操作 | project; agent; session; prompt; phase; op; ⟨子操作帧⟩ | 到下一事件的间隔秒数 |
+| `files` | 有路径效果的工具操作 | project; agent; session; prompt; phase; op; tool; ⟨process⟩; path; effect; status | 事件次数 |
+| `network` | 有网络效果的工具操作 | project; agent; session; prompt; phase; op; tool; ⟨process⟩; domain; status | 事件次数 |
 
 四个视图共享同一操作集合 O 和同一低层语义前缀，只在高层帧和权重函数上不同，因此跨视图对照是良定义的：`tokens` 视图里的 `prompt:review` 与 `files` 视图里的 `prompt:review` 指同一批操作在不同 (σ, w) 下的投影。flamegraph、pprof、folded 文本和 JSON 只是同一求值结果的不同序列化，各视图的具体栈示例见后文「调用栈模型」。
 
@@ -256,34 +260,34 @@ agentpprof -o tokens.svg --prompt-tag review
 
 ## 调用栈模型
 
-语义 flamegraph 的调用栈是一种投影而非字面意义的函数调用栈：下层 frame 提供上下文（project、agent、prompt 类型），上层 frame 描述被计数的活动，具体形状由每个视图的 σ 决定。
+语义 flamegraph 的调用栈是一种投影而非字面意义的函数调用栈：下层 frame 提供上下文（project、agent、prompt 类型），中间的 `phase` frame 把同一个 prompt 内的事件序列切成任务阶段，上层 frame 描述被计数的操作，具体形状由每个视图的 σ 决定。
 
 `tokens` 视图以模型预算作为宽度：
 
 ```text
-project:agentsight;agent:claude;session:profile;prompt:debug;call:llm/debug;model:claude-opus-4-6;kind:input 4200
-project:agentsight;agent:claude;session:profile;prompt:debug;call:llm/debug;model:claude-opus-4-6;kind:output 980
-project:agentsight;agent:claude;session:profile;prompt:debug;call:llm/debug;model:claude-opus-4-6;kind:cache 150000
+project:agentsight;agent:claude;session:profile;prompt:debug;phase:debug;op:llm;call:llm/debug;model:claude-opus-4-6;token:input 4200
+project:agentsight;agent:claude;session:profile;prompt:debug;phase:debug;op:llm;call:llm/debug;model:claude-opus-4-6;token:output 980
+project:agentsight;agent:claude;session:profile;prompt:debug;phase:debug;op:llm;call:llm/debug;model:claude-opus-4-6;token:cache 150000
 ```
 
 `time` 视图以 wall-clock 持续时间（秒）作为宽度：
 
 ```text
-project:agentsight;agent:claude;session:profile;prompt:debug;kind:llm 45
-project:agentsight;agent:claude;session:profile;prompt:debug;kind:tool 12
-project:agentsight;agent:claude;session:profile;prompt:debug;kind:prompt 2
+project:agentsight;agent:claude;session:profile;prompt:debug;phase:debug;op:llm 45
+project:agentsight;agent:claude;session:profile;prompt:debug;phase:test;op:tool 12
+project:agentsight;agent:claude;session:profile;prompt:debug;op:prompt 2
 ```
 
 `files` 视图以仓库区域作为主分支：
 
 ```text
-project:agentsight;agent:codex;session:release;prompt:docs;path:docs/flamegraph;effect:write;status:ok 1
+project:agentsight;agent:codex;session:release;prompt:docs;phase:write;op:tool;tool:apply_patch;path:docs/flamegraph;effect:write;status:ok 1
 ```
 
 `network` 视图以域名为中心：
 
 ```text
-project:agentsight;agent:codex;session:release;prompt:publish;domain:crates.io;process:cargo;status:ok 1
+project:agentsight;agent:codex;session:release;prompt:publish;phase:network;op:tool;tool:exec_command;process:cargo;domain:crates.io;status:ok 1
 ```
 
 ## 隐私与脱敏
