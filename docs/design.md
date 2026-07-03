@@ -120,5 +120,5 @@ Purpose: keep open risks tied to experiments.
 |---|---|---|
 | Prompt/session boundaries leak back into the abstraction. | Run fixed-boundary ablations against recursive stacks. | R277 and R286 show fixed session greatly fragments stacks. |
 | Hand-written mappings overfit one dataset family. | Held-out and leave-dataset-out mapping evaluation. | R282-R285 cover held-out sessions and 9 leave-out datasets. |
-| Action labels are too shallow as boundary oracles. | Add step-instruction, solution-path, outcome, and failure-label scorers. | R287 adds tau-bench outcomes and expected task actions as a tool-agent-user source; AndroidControl, TRAIL, and AgentRewardBench remain deeper oracle candidates. |
-| Visualizations collapse back to flamegraphs only. | Generate tree, transition, top-field, and depth-sweep HTML/JSON reports. | R273-R286 include non-flamegraph analyses. |
+| Action labels are too shallow as boundary oracles. | Add step-instruction, solution-path, outcome, side-effect, looping, and failure-label scorers. | R287 adds tau-bench outcomes and expected task actions; R288 adds AgentRewardBench expert success, side-effect, looping, and optimality labels as operation fields. AndroidControl and TRAIL remain deeper oracle candidates. |
+| Visualizations collapse back to flamegraphs only. | Generate tree, transition, top-field, quality, and depth-sweep HTML/JSON reports. | R273-R288 include non-flamegraph analyses. |

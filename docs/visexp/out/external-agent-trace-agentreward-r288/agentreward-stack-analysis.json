@@ -1,0 +1,2310 @@
+{
+  "compression_ratio": 9.346,
+  "depth_weight": {
+    "0": 729,
+    "1": 729,
+    "10": 729,
+    "11": 729,
+    "2": 729,
+    "3": 729,
+    "4": 729,
+    "5": 729,
+    "6": 729,
+    "7": 729,
+    "8": 729,
+    "9": 729
+  },
+  "top_by_kind": {
+    "action": [
+      {
+        "name": "click",
+        "weight": 462
+      },
+      {
+        "name": "fill",
+        "weight": 109
+      },
+      {
+        "name": "send_msg_to_user",
+        "weight": 40
+      },
+      {
+        "name": "hover",
+        "weight": 27
+      },
+      {
+        "name": "select_option",
+        "weight": 25
+      },
+      {
+        "name": "scroll",
+        "weight": 19
+      },
+      {
+        "name": "goto",
+        "weight": 14
+      },
+      {
+        "name": "go_back",
+        "weight": 13
+      },
+      {
+        "name": "report_infeasible",
+        "weight": 8
+      },
+      {
+        "name": "noop",
+        "weight": 8
+      },
+      {
+        "name": "clear",
+        "weight": 3
+      },
+      {
+        "name": "press",
+        "weight": 1
+      }
+    ],
+    "benchmark": [
+      {
+        "name": "workarena",
+        "weight": 391
+      },
+      {
+        "name": "visualwebarena",
+        "weight": 147
+      },
+      {
+        "name": "assistantbench",
+        "weight": 133
+      },
+      {
+        "name": "webarena",
+        "weight": 58
+      }
+    ],
+    "dataset": [
+      {
+        "name": "agent-reward-bench",
+        "weight": 729
+      }
+    ],
+    "looping": [
+      {
+        "name": "yes",
+        "weight": 504
+      },
+      {
+        "name": "no",
+        "weight": 225
+      }
+    ],
+    "op": [
+      {
+        "name": "action",
+        "weight": 729
+      }
+    ],
+    "optimality": [
+      {
+        "name": "suboptimal",
+        "weight": 356
+      },
+      {
+        "name": "complete-failure",
+        "weight": 245
+      },
+      {
+        "name": "somewhat-optimal",
+        "weight": 113
+      },
+      {
+        "name": "completely-optimal",
+        "weight": 15
+      }
+    ],
+    "phase": [
+      {
+        "name": "navigate",
+        "weight": 535
+      },
+      {
+        "name": "input",
+        "weight": 110
+      },
+      {
+        "name": "finish",
+        "weight": 48
+      },
+      {
+        "name": "browser-action",
+        "weight": 28
+      },
+      {
+        "name": "observe",
+        "weight": 8
+      }
+    ],
+    "project": [
+      {
+        "name": "external-agent-traces",
+        "weight": 729
+      }
+    ],
+    "side_effect": [
+      {
+        "name": "no",
+        "weight": 527
+      },
+      {
+        "name": "yes",
+        "weight": 202
+      }
+    ],
+    "status": [
+      {
+        "name": "failure",
+        "weight": 714
+      },
+      {
+        "name": "success",
+        "weight": 15
+      }
+    ],
+    "step_error": [
+      {
+        "name": "ok",
+        "weight": 666
+      },
+      {
+        "name": "error",
+        "weight": 63
+      }
+    ],
+    "tool": [
+      {
+        "name": "browser",
+        "weight": 729
+      }
+    ]
+  },
+  "top_leaves": [
+    {
+      "name": "step_error:ok",
+      "weight": 666
+    },
+    {
+      "name": "step_error:error",
+      "weight": 63
+    }
+  ],
+  "top_transitions": [
+    {
+      "from": "project:external-agent-traces",
+      "to": "dataset:agent-reward-bench",
+      "weight": 729
+    },
+    {
+      "from": "op:action",
+      "to": "tool:browser",
+      "weight": 729
+    },
+    {
+      "from": "phase:navigate",
+      "to": "op:action",
+      "weight": 535
+    },
+    {
+      "from": "status:failure",
+      "to": "side_effect:no",
+      "weight": 512
+    },
+    {
+      "from": "tool:browser",
+      "to": "action:click",
+      "weight": 462
+    },
+    {
+      "from": "action:click",
+      "to": "step_error:ok",
+      "weight": 418
+    },
+    {
+      "from": "side_effect:no",
+      "to": "looping:yes",
+      "weight": 414
+    },
+    {
+      "from": "dataset:agent-reward-bench",
+      "to": "benchmark:workarena",
+      "weight": 391
+    },
+    {
+      "from": "benchmark:workarena",
+      "to": "status:failure",
+      "weight": 391
+    },
+    {
+      "from": "looping:yes",
+      "to": "optimality:complete-failure",
+      "weight": 232
+    },
+    {
+      "from": "optimality:suboptimal",
+      "to": "phase:navigate",
+      "weight": 232
+    },
+    {
+      "from": "looping:yes",
+      "to": "optimality:suboptimal",
+      "weight": 210
+    },
+    {
+      "from": "status:failure",
+      "to": "side_effect:yes",
+      "weight": 202
+    },
+    {
+      "from": "optimality:complete-failure",
+      "to": "phase:navigate",
+      "weight": 200
+    },
+    {
+      "from": "dataset:agent-reward-bench",
+      "to": "benchmark:visualwebarena",
+      "weight": 147
+    },
+    {
+      "from": "looping:no",
+      "to": "optimality:suboptimal",
+      "weight": 146
+    },
+    {
+      "from": "benchmark:visualwebarena",
+      "to": "status:failure",
+      "weight": 139
+    },
+    {
+      "from": "dataset:agent-reward-bench",
+      "to": "benchmark:assistantbench",
+      "weight": 133
+    },
+    {
+      "from": "benchmark:assistantbench",
+      "to": "status:failure",
+      "weight": 133
+    },
+    {
+      "from": "side_effect:no",
+      "to": "looping:no",
+      "weight": 113
+    },
+    {
+      "from": "side_effect:yes",
+      "to": "looping:no",
+      "weight": 112
+    },
+    {
+      "from": "phase:input",
+      "to": "op:action",
+      "weight": 110
+    },
+    {
+      "from": "tool:browser",
+      "to": "action:fill",
+      "weight": 109
+    },
+    {
+      "from": "action:fill",
+      "to": "step_error:ok",
+      "weight": 104
+    },
+    {
+      "from": "optimality:somewhat-optimal",
+      "to": "phase:navigate",
+      "weight": 92
+    }
+  ],
+  "total_weight": 729,
+  "tree": {
+    "children": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 82
+                                                  }
+                                                ],
+                                                "name": "action:click",
+                                                "value": 164
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 246
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 328
+                                      }
+                                    ],
+                                    "name": "phase:navigate",
+                                    "value": 410
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 15
+                                                  },
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:error",
+                                                    "value": 1
+                                                  }
+                                                ],
+                                                "name": "action:select_option",
+                                                "value": 32
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 48
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 64
+                                      }
+                                    ],
+                                    "name": "phase:browser-action",
+                                    "value": 80
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 10
+                                                  }
+                                                ],
+                                                "name": "action:fill",
+                                                "value": 20
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 30
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 40
+                                      }
+                                    ],
+                                    "name": "phase:input",
+                                    "value": 50
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 2
+                                                  }
+                                                ],
+                                                "name": "action:report_infeasible",
+                                                "value": 4
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 6
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 8
+                                      }
+                                    ],
+                                    "name": "phase:finish",
+                                    "value": 10
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 2
+                                                  }
+                                                ],
+                                                "name": "action:noop",
+                                                "value": 4
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 6
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 8
+                                      }
+                                    ],
+                                    "name": "phase:observe",
+                                    "value": 10
+                                  }
+                                ],
+                                "name": "optimality:suboptimal",
+                                "value": 672
+                              }
+                            ],
+                            "name": "looping:no",
+                            "value": 784
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 39
+                                                  }
+                                                ],
+                                                "name": "action:click",
+                                                "value": 78
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 117
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 156
+                                      }
+                                    ],
+                                    "name": "phase:navigate",
+                                    "value": 195
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 30
+                                                  }
+                                                ],
+                                                "name": "action:send_msg_to_user",
+                                                "value": 60
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 90
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 120
+                                      }
+                                    ],
+                                    "name": "phase:finish",
+                                    "value": 150
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 13
+                                                  }
+                                                ],
+                                                "name": "action:fill",
+                                                "value": 26
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 39
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 52
+                                      }
+                                    ],
+                                    "name": "phase:input",
+                                    "value": 65
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 7
+                                                  },
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:error",
+                                                    "value": 1
+                                                  }
+                                                ],
+                                                "name": "action:select_option",
+                                                "value": 16
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 24
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 32
+                                      }
+                                    ],
+                                    "name": "phase:browser-action",
+                                    "value": 40
+                                  }
+                                ],
+                                "name": "optimality:suboptimal",
+                                "value": 540
+                              }
+                            ],
+                            "name": "looping:yes",
+                            "value": 630
+                          }
+                        ],
+                        "name": "side_effect:yes",
+                        "value": 1616
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 75
+                                                  },
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:error",
+                                                    "value": 5
+                                                  }
+                                                ],
+                                                "name": "action:click",
+                                                "value": 160
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 240
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 320
+                                      }
+                                    ],
+                                    "name": "phase:navigate",
+                                    "value": 400
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 9
+                                                  },
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:error",
+                                                    "value": 1
+                                                  }
+                                                ],
+                                                "name": "action:fill",
+                                                "value": 20
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 30
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 40
+                                      }
+                                    ],
+                                    "name": "phase:input",
+                                    "value": 50
+                                  }
+                                ],
+                                "name": "optimality:complete-failure",
+                                "value": 540
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 27
+                                                  },
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:error",
+                                                    "value": 12
+                                                  }
+                                                ],
+                                                "name": "action:click",
+                                                "value": 78
+                                              },
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 1
+                                                  }
+                                                ],
+                                                "name": "action:scroll",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 120
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 160
+                                      }
+                                    ],
+                                    "name": "phase:navigate",
+                                    "value": 200
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 18
+                                                  },
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:error",
+                                                    "value": 1
+                                                  }
+                                                ],
+                                                "name": "action:fill",
+                                                "value": 38
+                                              },
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 1
+                                                  }
+                                                ],
+                                                "name": "action:press",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 60
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 80
+                                      }
+                                    ],
+                                    "name": "phase:input",
+                                    "value": 100
+                                  }
+                                ],
+                                "name": "optimality:suboptimal",
+                                "value": 360
+                              }
+                            ],
+                            "name": "looping:yes",
+                            "value": 1050
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 8
+                                                  },
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:error",
+                                                    "value": 6
+                                                  }
+                                                ],
+                                                "name": "action:click",
+                                                "value": 28
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 42
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 56
+                                      }
+                                    ],
+                                    "name": "phase:navigate",
+                                    "value": 70
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 12
+                                                  },
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:error",
+                                                    "value": 1
+                                                  }
+                                                ],
+                                                "name": "action:fill",
+                                                "value": 26
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 39
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 52
+                                      }
+                                    ],
+                                    "name": "phase:input",
+                                    "value": 65
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 3
+                                                  }
+                                                ],
+                                                "name": "action:clear",
+                                                "value": 6
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 9
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 12
+                                      }
+                                    ],
+                                    "name": "phase:browser-action",
+                                    "value": 15
+                                  }
+                                ],
+                                "name": "optimality:suboptimal",
+                                "value": 180
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 2
+                                                  }
+                                                ],
+                                                "name": "action:send_msg_to_user",
+                                                "value": 4
+                                              },
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 1
+                                                  }
+                                                ],
+                                                "name": "action:report_infeasible",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 9
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 12
+                                      }
+                                    ],
+                                    "name": "phase:finish",
+                                    "value": 15
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 3
+                                                  }
+                                                ],
+                                                "name": "action:click",
+                                                "value": 6
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 9
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 12
+                                      }
+                                    ],
+                                    "name": "phase:navigate",
+                                    "value": 15
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 2
+                                                  }
+                                                ],
+                                                "name": "action:fill",
+                                                "value": 4
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 6
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 8
+                                      }
+                                    ],
+                                    "name": "phase:input",
+                                    "value": 10
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 1
+                                                  }
+                                                ],
+                                                "name": "action:noop",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 3
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 4
+                                      }
+                                    ],
+                                    "name": "phase:observe",
+                                    "value": 5
+                                  }
+                                ],
+                                "name": "optimality:complete-failure",
+                                "value": 54
+                              }
+                            ],
+                            "name": "looping:no",
+                            "value": 273
+                          }
+                        ],
+                        "name": "side_effect:no",
+                        "value": 1512
+                      }
+                    ],
+                    "name": "status:failure",
+                    "value": 3519
+                  }
+                ],
+                "name": "benchmark:workarena",
+                "value": 3910
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 32
+                                                  }
+                                                ],
+                                                "name": "action:click",
+                                                "value": 64
+                                              },
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 27
+                                                  }
+                                                ],
+                                                "name": "action:hover",
+                                                "value": 54
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 177
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 236
+                                      }
+                                    ],
+                                    "name": "phase:navigate",
+                                    "value": 295
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 1
+                                                  }
+                                                ],
+                                                "name": "action:select_option",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 3
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 4
+                                      }
+                                    ],
+                                    "name": "phase:browser-action",
+                                    "value": 5
+                                  }
+                                ],
+                                "name": "optimality:complete-failure",
+                                "value": 360
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 28
+                                                  }
+                                                ],
+                                                "name": "action:click",
+                                                "value": 56
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 84
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 112
+                                      }
+                                    ],
+                                    "name": "phase:navigate",
+                                    "value": 140
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 2
+                                                  }
+                                                ],
+                                                "name": "action:fill",
+                                                "value": 4
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 6
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 8
+                                      }
+                                    ],
+                                    "name": "phase:input",
+                                    "value": 10
+                                  }
+                                ],
+                                "name": "optimality:somewhat-optimal",
+                                "value": 180
+                              }
+                            ],
+                            "name": "looping:yes",
+                            "value": 630
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 17
+                                                  },
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:error",
+                                                    "value": 7
+                                                  }
+                                                ],
+                                                "name": "action:click",
+                                                "value": 48
+                                              },
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:error",
+                                                    "value": 10
+                                                  },
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 8
+                                                  }
+                                                ],
+                                                "name": "action:scroll",
+                                                "value": 36
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 126
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 168
+                                      }
+                                    ],
+                                    "name": "phase:navigate",
+                                    "value": 210
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 2
+                                                  }
+                                                ],
+                                                "name": "action:report_infeasible",
+                                                "value": 4
+                                              },
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:error",
+                                                    "value": 1
+                                                  },
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 1
+                                                  }
+                                                ],
+                                                "name": "action:send_msg_to_user",
+                                                "value": 4
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 12
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 16
+                                      }
+                                    ],
+                                    "name": "phase:finish",
+                                    "value": 20
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 3
+                                                  }
+                                                ],
+                                                "name": "action:fill",
+                                                "value": 6
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 9
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 12
+                                      }
+                                    ],
+                                    "name": "phase:input",
+                                    "value": 15
+                                  }
+                                ],
+                                "name": "optimality:somewhat-optimal",
+                                "value": 294
+                              }
+                            ],
+                            "name": "looping:no",
+                            "value": 343
+                          }
+                        ],
+                        "name": "side_effect:no",
+                        "value": 1112
+                      }
+                    ],
+                    "name": "status:failure",
+                    "value": 1251
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 4
+                                                  }
+                                                ],
+                                                "name": "action:send_msg_to_user",
+                                                "value": 8
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 12
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 16
+                                      }
+                                    ],
+                                    "name": "phase:finish",
+                                    "value": 20
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:error",
+                                                    "value": 2
+                                                  },
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 2
+                                                  }
+                                                ],
+                                                "name": "action:click",
+                                                "value": 8
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 12
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 16
+                                      }
+                                    ],
+                                    "name": "phase:navigate",
+                                    "value": 20
+                                  }
+                                ],
+                                "name": "optimality:completely-optimal",
+                                "value": 48
+                              }
+                            ],
+                            "name": "looping:no",
+                            "value": 56
+                          }
+                        ],
+                        "name": "side_effect:no",
+                        "value": 64
+                      }
+                    ],
+                    "name": "status:success",
+                    "value": 72
+                  }
+                ],
+                "name": "benchmark:visualwebarena",
+                "value": 1470
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 35
+                                                  }
+                                                ],
+                                                "name": "action:click",
+                                                "value": 70
+                                              },
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 10
+                                                  }
+                                                ],
+                                                "name": "action:go_back",
+                                                "value": 20
+                                              },
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 10
+                                                  }
+                                                ],
+                                                "name": "action:goto",
+                                                "value": 20
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 165
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 220
+                                      }
+                                    ],
+                                    "name": "phase:navigate",
+                                    "value": 275
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 3
+                                                  },
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:error",
+                                                    "value": 2
+                                                  }
+                                                ],
+                                                "name": "action:fill",
+                                                "value": 10
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 15
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 20
+                                      }
+                                    ],
+                                    "name": "phase:input",
+                                    "value": 25
+                                  }
+                                ],
+                                "name": "optimality:suboptimal",
+                                "value": 360
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 25
+                                                  }
+                                                ],
+                                                "name": "action:click",
+                                                "value": 50
+                                              },
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 3
+                                                  }
+                                                ],
+                                                "name": "action:go_back",
+                                                "value": 6
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 84
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 112
+                                      }
+                                    ],
+                                    "name": "phase:navigate",
+                                    "value": 140
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 23
+                                                  }
+                                                ],
+                                                "name": "action:fill",
+                                                "value": 46
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 69
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 92
+                                      }
+                                    ],
+                                    "name": "phase:input",
+                                    "value": 115
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 1
+                                                  }
+                                                ],
+                                                "name": "action:send_msg_to_user",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 3
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 4
+                                      }
+                                    ],
+                                    "name": "phase:finish",
+                                    "value": 5
+                                  }
+                                ],
+                                "name": "optimality:complete-failure",
+                                "value": 312
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:error",
+                                                    "value": 11
+                                                  },
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 5
+                                                  }
+                                                ],
+                                                "name": "action:click",
+                                                "value": 32
+                                              },
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 2
+                                                  },
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:error",
+                                                    "value": 1
+                                                  }
+                                                ],
+                                                "name": "action:goto",
+                                                "value": 6
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 57
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 76
+                                      }
+                                    ],
+                                    "name": "phase:navigate",
+                                    "value": 95
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 1
+                                                  }
+                                                ],
+                                                "name": "action:send_msg_to_user",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 3
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 4
+                                      }
+                                    ],
+                                    "name": "phase:finish",
+                                    "value": 5
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 1
+                                                  }
+                                                ],
+                                                "name": "action:fill",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 3
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 4
+                                      }
+                                    ],
+                                    "name": "phase:input",
+                                    "value": 5
+                                  }
+                                ],
+                                "name": "optimality:somewhat-optimal",
+                                "value": 126
+                              }
+                            ],
+                            "name": "looping:yes",
+                            "value": 931
+                          }
+                        ],
+                        "name": "side_effect:no",
+                        "value": 1064
+                      }
+                    ],
+                    "name": "status:failure",
+                    "value": 1197
+                  }
+                ],
+                "name": "benchmark:assistantbench",
+                "value": 1330
+              },
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 27
+                                                  }
+                                                ],
+                                                "name": "action:click",
+                                                "value": 54
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 81
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 108
+                                      }
+                                    ],
+                                    "name": "phase:navigate",
+                                    "value": 135
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 3
+                                                  }
+                                                ],
+                                                "name": "action:fill",
+                                                "value": 6
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 9
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 12
+                                      }
+                                    ],
+                                    "name": "phase:input",
+                                    "value": 15
+                                  }
+                                ],
+                                "name": "optimality:complete-failure",
+                                "value": 180
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 5
+                                                  }
+                                                ],
+                                                "name": "action:noop",
+                                                "value": 10
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 15
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 20
+                                      }
+                                    ],
+                                    "name": "phase:observe",
+                                    "value": 25
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 3
+                                                  }
+                                                ],
+                                                "name": "action:fill",
+                                                "value": 6
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 9
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 12
+                                      }
+                                    ],
+                                    "name": "phase:input",
+                                    "value": 15
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 2
+                                                  }
+                                                ],
+                                                "name": "action:click",
+                                                "value": 4
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 6
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 8
+                                      }
+                                    ],
+                                    "name": "phase:navigate",
+                                    "value": 10
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 1
+                                                  }
+                                                ],
+                                                "name": "action:report_infeasible",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 3
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 4
+                                      }
+                                    ],
+                                    "name": "phase:finish",
+                                    "value": 5
+                                  }
+                                ],
+                                "name": "optimality:somewhat-optimal",
+                                "value": 66
+                              }
+                            ],
+                            "name": "looping:yes",
+                            "value": 287
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 2
+                                                  }
+                                                ],
+                                                "name": "action:click",
+                                                "value": 4
+                                              },
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 1
+                                                  }
+                                                ],
+                                                "name": "action:goto",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 9
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 12
+                                      }
+                                    ],
+                                    "name": "phase:navigate",
+                                    "value": 15
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 1
+                                                  }
+                                                ],
+                                                "name": "action:fill",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 3
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 4
+                                      }
+                                    ],
+                                    "name": "phase:input",
+                                    "value": 5
+                                  }
+                                ],
+                                "name": "optimality:complete-failure",
+                                "value": 24
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:error",
+                                                    "value": 1
+                                                  },
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 1
+                                                  }
+                                                ],
+                                                "name": "action:click",
+                                                "value": 4
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 6
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 8
+                                      }
+                                    ],
+                                    "name": "phase:navigate",
+                                    "value": 10
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 1
+                                                  }
+                                                ],
+                                                "name": "action:report_infeasible",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 3
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 4
+                                      }
+                                    ],
+                                    "name": "phase:finish",
+                                    "value": 5
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 1
+                                                  }
+                                                ],
+                                                "name": "action:fill",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 3
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 4
+                                      }
+                                    ],
+                                    "name": "phase:input",
+                                    "value": 5
+                                  }
+                                ],
+                                "name": "optimality:suboptimal",
+                                "value": 24
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 1
+                                                  }
+                                                ],
+                                                "name": "action:report_infeasible",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 3
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 4
+                                      }
+                                    ],
+                                    "name": "phase:finish",
+                                    "value": 5
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 1
+                                                  }
+                                                ],
+                                                "name": "action:click",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 3
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 4
+                                      }
+                                    ],
+                                    "name": "phase:navigate",
+                                    "value": 5
+                                  }
+                                ],
+                                "name": "optimality:somewhat-optimal",
+                                "value": 12
+                              }
+                            ],
+                            "name": "looping:no",
+                            "value": 70
+                          }
+                        ],
+                        "name": "side_effect:no",
+                        "value": 408
+                      }
+                    ],
+                    "name": "status:failure",
+                    "value": 459
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [],
+                                                    "name": "step_error:ok",
+                                                    "value": 7
+                                                  }
+                                                ],
+                                                "name": "action:click",
+                                                "value": 14
+                                              }
+                                            ],
+                                            "name": "tool:browser",
+                                            "value": 21
+                                          }
+                                        ],
+                                        "name": "op:action",
+                                        "value": 28
+                                      }
+                                    ],
+                                    "name": "phase:navigate",
+                                    "value": 35
+                                  }
+                                ],
+                                "name": "optimality:completely-optimal",
+                                "value": 42
+                              }
+                            ],
+                            "name": "looping:no",
+                            "value": 49
+                          }
+                        ],
+                        "name": "side_effect:no",
+                        "value": 56
+                      }
+                    ],
+                    "name": "status:success",
+                    "value": 63
+                  }
+                ],
+                "name": "benchmark:webarena",
+                "value": 580
+              }
+            ],
+            "name": "dataset:agent-reward-bench",
+            "value": 8019
+          }
+        ],
+        "name": "project:external-agent-traces",
+        "value": 8748
+      }
+    ],
+    "name": "root",
+    "value": 729
+  },
+  "unique_stacks": 78
+}

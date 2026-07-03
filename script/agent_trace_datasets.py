@@ -162,6 +162,18 @@ DATASETS: dict[str, dict[str, Any]] = {
         "why": "Multi-turn tool-agent-user trajectories with messages, function calls, outcomes, and gold task actions.",
         "note": "Dataset Viewer is preview-only; sampler downloads one per-model JSONL file from the HF repo.",
     },
+    "agent-reward-bench": {
+        "title": "AgentRewardBench",
+        "hf_repo": "McGill-NLP/agent-reward-bench",
+        "config": "annotations",
+        "split": "full",
+        "access": "agent-reward-bench",
+        "adapter": "agent-reward-bench",
+        "source": "https://github.com/McGill-NLP/agent-reward-bench",
+        "paper": "https://arxiv.org/abs/2504.08942",
+        "why": "Expert-reviewed web-agent trajectories with success, side-effect, looping, and optimality labels.",
+        "note": "Sampler reads the annotations table, then downloads only matching cleaned trajectory JSON files; screenshots are never downloaded.",
+    },
 }
 
 
@@ -224,6 +236,8 @@ def cmd_sample(args: argparse.Namespace) -> int:
         rows = hf_repo_json_rows(dataset, out_dir, args.offset, args.limit)
     elif dataset["access"] == "hf-repo-jsonl":
         rows = hf_repo_jsonl_rows(dataset, out_dir, args.offset, args.limit)
+    elif dataset["access"] == "agent-reward-bench":
+        rows = agent_reward_bench_rows(dataset, out_dir, args.offset, args.limit)
     else:
         note = dataset.get("note", "No lightweight sampler is configured for this dataset.")
         raise SystemExit(f"{args.dataset} is not sampleable by this command: {note}")
@@ -340,6 +354,96 @@ def hf_repo_jsonl_rows(
     return rows
 
 
+def agent_reward_bench_rows(
+    dataset: dict[str, Any], out_dir: Path, offset: int, limit: int
+) -> list[dict[str, Any]]:
+    rows = hf_viewer_rows(dataset, offset, limit)
+    cache_dir = out_dir / "trajectory-cache"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    enriched = []
+    for row in rows:
+        item = dict(row)
+        trajectory_path = agent_reward_trajectory_path(item)
+        item["trajectory_path"] = trajectory_path
+        try:
+            payload = hf_repo_json_object(dataset["hf_repo"], trajectory_path, cache_dir)
+        except urllib.error.HTTPError as error:
+            item["trajectory_error"] = f"HTTP {error.code}"
+        else:
+            item["trajectory"] = prune_agent_reward_trajectory(payload)
+        enriched.append(item)
+    return enriched
+
+
+def agent_reward_trajectory_path(row: dict[str, Any]) -> str:
+    benchmark = str(row.get("benchmark") or "")
+    model_name = str(row.get("model_name") or "")
+    exp_name = str(row.get("exp_name") or "")
+    task_id = str(row.get("task_id") or "")
+    filename = task_id if task_id.endswith(".json") else f"{task_id}.json"
+    return f"cleaned/{benchmark}/{model_name}/{exp_name}/{filename}"
+
+
+def hf_repo_json_object(repo: str, repo_file: str, cache_dir: Path) -> dict[str, Any]:
+    cache_path = cache_dir / f"{stable_id(repo_file)}.json"
+    if not cache_path.exists():
+        encoded = urllib.parse.quote(repo_file)
+        url = f"https://huggingface.co/datasets/{repo}/resolve/main/{encoded}"
+        with urllib.request.urlopen(url, timeout=180) as response:
+            cache_path.write_bytes(response.read())
+    with cache_path.open("r", encoding="utf-8") as f:
+        payload = json.load(f)
+    if not isinstance(payload, dict):
+        raise SystemExit(f"{repo_file} did not contain a JSON object")
+    return payload
+
+
+def prune_agent_reward_trajectory(payload: dict[str, Any]) -> dict[str, Any]:
+    summary = payload.get("summary_info") or {}
+    return {
+        "benchmark": payload.get("benchmark"),
+        "agent": payload.get("agent"),
+        "model": payload.get("model"),
+        "experiment": payload.get("experiment"),
+        "valid": payload.get("valid"),
+        "goal": truncate_clean(str(payload.get("goal") or ""), 240),
+        "summary_info": {
+            key: summary.get(key)
+            for key in [
+                "n_steps",
+                "cum_reward",
+                "cum_raw_reward",
+                "err_msg",
+                "terminated",
+                "truncated",
+                "stats.cum_input_tokens",
+                "stats.cum_output_tokens",
+                "stats.cum_step_elapsed",
+                "stats.cum_agent_elapsed",
+            ]
+            if key in summary
+        },
+        "steps": [prune_agent_reward_step(step) for step in payload.get("steps") or []],
+    }
+
+
+def prune_agent_reward_step(step: dict[str, Any]) -> dict[str, Any]:
+    stats = step.get("stats") or {}
+    return {
+        "num": step.get("num"),
+        "action": step.get("action"),
+        "reasoning": truncate_clean(str(step.get("reasoning") or ""), 360),
+        "url": truncate_clean(str(step.get("url") or ""), 240),
+        "focused_element": step.get("focused_element"),
+        "last_action_error": truncate_clean(str(step.get("last_action_error") or ""), 240),
+        "stats": {
+            key: stats.get(key)
+            for key in ["n_retry_llm", "n_retry", "busted_retry", "input_tokens", "output_tokens", "cost"]
+            if key in stats
+        },
+    }
+
+
 def get_json(url: str) -> dict[str, Any]:
     with urllib.request.urlopen(url, timeout=60) as response:
         return json.loads(response.read().decode("utf-8"))
@@ -373,6 +477,8 @@ def normalize_row(
         return normalize_toolbench_conversation(dataset_id, dataset, row, row_index, include_text)
     if adapter == "tau-bench":
         return normalize_tau_bench(dataset_id, dataset, row, row_index, include_text)
+    if adapter == "agent-reward-bench":
+        return normalize_agent_reward_bench(dataset_id, dataset, row, row_index, include_text)
     raise SystemExit(f"no adapter for dataset {dataset_id}")
 
 
@@ -717,6 +823,144 @@ def normalize_toolbench_conversation(
             fields["action_raw"] = truncate_clean(content, 180)
         operations.append({"value": 1, "fields": fields})
     return operations
+
+
+def normalize_agent_reward_bench(
+    dataset_id: str,
+    dataset: dict[str, Any],
+    row: dict[str, Any],
+    row_index: int,
+    include_text: bool,
+) -> list[dict[str, Any]]:
+    trajectory = row.get("trajectory") or {}
+    steps = [step for step in trajectory.get("steps") or [] if step.get("action")]
+    if not steps:
+        fields = agent_reward_base_fields(dataset_id, dataset, row, row_index, "trajectory")
+        fields.update(
+            {
+                "phase": "trajectory",
+                "op": "trajectory",
+                "tool": "browser",
+                "action": "trajectory",
+                "step_error": "missing-trajectory" if row.get("trajectory_error") else "none",
+            }
+        )
+        return [{"value": 1, "fields": fields}]
+
+    operations = []
+    for ordinal, step in enumerate(steps):
+        action_raw = str(step.get("action") or "")
+        action = action_verb(action_raw)
+        error = str(step.get("last_action_error") or "")
+        fields = agent_reward_base_fields(
+            dataset_id,
+            dataset,
+            row,
+            row_index,
+            str(step.get("num") if step.get("num") is not None else ordinal),
+        )
+        fields.update(
+            {
+                "phase": agent_reward_action_phase(action),
+                "op": "action",
+                "tool": "browser",
+                "action": action,
+                "target": sanitize_label(agent_reward_action_target(action_raw)),
+                "step_error": "error" if error else "ok",
+            }
+        )
+        stats = step.get("stats") or {}
+        for source_key, field_key in [
+            ("input_tokens", "input_tokens"),
+            ("output_tokens", "output_tokens"),
+            ("n_retry_llm", "llm_retries"),
+            ("busted_retry", "busted_retry"),
+        ]:
+            if source_key in stats:
+                fields[field_key] = str(stats[source_key])
+        if include_text:
+            fields["task_preview"] = truncate_clean(str(trajectory.get("goal") or ""), 180)
+            fields["reasoning"] = truncate_clean(str(step.get("reasoning") or ""), 180)
+            fields["action_raw"] = truncate_clean(action_raw, 180)
+        operations.append({"value": 1, "fields": fields})
+    return operations
+
+
+def agent_reward_base_fields(
+    dataset_id: str,
+    dataset: dict[str, Any],
+    row: dict[str, Any],
+    row_index: int,
+    turn: str,
+) -> dict[str, Any]:
+    success = normalize_success_label(str(row.get("trajectory_success") or "unknown"))
+    side_effect = normalize_yes_no_label(str(row.get("trajectory_side_effect") or "unknown"))
+    looping = normalize_yes_no_label(str(row.get("trajectory_looping") or "unknown"))
+    optimality = normalize_optimality_label(str(row.get("trajectory_optimality") or "unknown"))
+    benchmark = sanitize_label(str(row.get("benchmark") or "unknown"))
+    task_id = sanitize_label(str(row.get("task_id") or f"agent-reward-{row_index}"))
+    model_name = sanitize_label(str(row.get("model_name") or "unknown-model"))
+    return {
+        "project": "external-agent-traces",
+        "agent": model_name,
+        "dataset": dataset_id,
+        "source": dataset["hf_repo"],
+        "session": task_id,
+        "turn": turn,
+        "task": "web-agent-eval",
+        "benchmark": benchmark,
+        "environment": benchmark,
+        "status": success,
+        "side_effect": side_effect,
+        "looping": looping,
+        "optimality": optimality,
+        "annotator": sanitize_label(str(row.get("annotator_name") or "expert")),
+        "experiment": sanitize_label(str(row.get("exp_name") or "unknown-experiment")),
+    }
+
+
+def agent_reward_action_phase(action: str) -> str:
+    if action in {"fill", "type", "press", "keyboard"}:
+        return "input"
+    if action in {"click", "hover", "select", "scroll", "goto", "go_back", "go_forward"}:
+        return "navigate"
+    if action in {"report_infeasible", "send_msg_to_user", "stop", "finish", "final_answer"}:
+        return "finish"
+    if action in {"noop", "wait", "observe"}:
+        return "observe"
+    return "browser-action"
+
+
+def agent_reward_action_target(action: str) -> str:
+    if action_verb(action) in {"report_infeasible", "send_msg_to_user", "finish", "final_answer"}:
+        return "none"
+    target = first_match(r"['\"]([^'\"]+)['\"]", action, "none")
+    if len(target) > 64:
+        return "none"
+    return target
+
+
+def normalize_success_label(value: str) -> str:
+    label = sanitize_label(value)
+    if label in {"successful", "success", "succeeded", "pass", "passed"}:
+        return "success"
+    if label in {"unsuccessful", "failure", "failed", "fail"}:
+        return "failure"
+    return label
+
+
+def normalize_yes_no_label(value: str) -> str:
+    label = sanitize_label(value)
+    if label in {"yes", "true", "1"}:
+        return "yes"
+    if label in {"no", "false", "0"}:
+        return "no"
+    return label
+
+
+def normalize_optimality_label(value: str) -> str:
+    label = re.sub(r"^\s*\d+\.\s*", "", value.strip())
+    return sanitize_label(label or value)
 
 
 def normalize_tau_bench(

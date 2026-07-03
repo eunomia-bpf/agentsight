@@ -1,0 +1,555 @@
+{
+  "boundary_alignment": [
+    {
+      "adjacent_pairs": 700,
+      "f1": 0.9236,
+      "false_negative": 47,
+      "false_positive": 0,
+      "oracle": "action",
+      "precision": 1.0,
+      "predicted": "phase",
+      "recall": 0.858,
+      "sequence_field": "session",
+      "true_negative": 369,
+      "true_positive": 284,
+      "turn_field": "turn"
+    },
+    {
+      "adjacent_pairs": 700,
+      "f1": 0.019,
+      "false_negative": 124,
+      "false_positive": 82,
+      "oracle": "looping",
+      "precision": 0.0238,
+      "predicted": "step_error",
+      "recall": 0.0159,
+      "sequence_field": "session",
+      "true_negative": 492,
+      "true_positive": 2,
+      "turn_field": "turn"
+    }
+  ],
+  "coverage": [
+    {
+      "coverage": 1.0,
+      "field": "action",
+      "present": 729,
+      "total": 729
+    },
+    {
+      "coverage": 1.0,
+      "field": "benchmark",
+      "present": 729,
+      "total": 729
+    },
+    {
+      "coverage": 1.0,
+      "field": "dataset",
+      "present": 729,
+      "total": 729
+    },
+    {
+      "coverage": 1.0,
+      "field": "looping",
+      "present": 729,
+      "total": 729
+    },
+    {
+      "coverage": 1.0,
+      "field": "op",
+      "present": 729,
+      "total": 729
+    },
+    {
+      "coverage": 1.0,
+      "field": "optimality",
+      "present": 729,
+      "total": 729
+    },
+    {
+      "coverage": 1.0,
+      "field": "phase",
+      "present": 729,
+      "total": 729
+    },
+    {
+      "coverage": 1.0,
+      "field": "project",
+      "present": 729,
+      "total": 729
+    },
+    {
+      "coverage": 1.0,
+      "field": "side_effect",
+      "present": 729,
+      "total": 729
+    },
+    {
+      "coverage": 1.0,
+      "field": "status",
+      "present": 729,
+      "total": 729
+    },
+    {
+      "coverage": 1.0,
+      "field": "step_error",
+      "present": 729,
+      "total": 729
+    },
+    {
+      "coverage": 1.0,
+      "field": "tool",
+      "present": 729,
+      "total": 729
+    }
+  ],
+  "op_map_files": [],
+  "op_maps": [],
+  "operation_files": [
+    "docs/visexp/out/external-agent-trace-agentreward-r288/agentreward-operations.jsonl"
+  ],
+  "oracle_alignment": [
+    {
+      "completeness": 1.0,
+      "homogeneity": 0.6447,
+      "oracle": "action",
+      "oracle_labels": 12,
+      "predicted": "phase",
+      "predicted_labels": 5,
+      "support": 729,
+      "top_confusions": [
+        {
+          "oracle": "click",
+          "predicted": "navigate",
+          "weight": 462
+        },
+        {
+          "oracle": "fill",
+          "predicted": "input",
+          "weight": 109
+        },
+        {
+          "oracle": "send_msg_to_user",
+          "predicted": "finish",
+          "weight": 40
+        },
+        {
+          "oracle": "hover",
+          "predicted": "navigate",
+          "weight": 27
+        },
+        {
+          "oracle": "select_option",
+          "predicted": "browser-action",
+          "weight": 25
+        },
+        {
+          "oracle": "scroll",
+          "predicted": "navigate",
+          "weight": 19
+        },
+        {
+          "oracle": "goto",
+          "predicted": "navigate",
+          "weight": 14
+        },
+        {
+          "oracle": "go_back",
+          "predicted": "navigate",
+          "weight": 13
+        },
+        {
+          "oracle": "report_infeasible",
+          "predicted": "finish",
+          "weight": 8
+        },
+        {
+          "oracle": "noop",
+          "predicted": "observe",
+          "weight": 8
+        },
+        {
+          "oracle": "clear",
+          "predicted": "browser-action",
+          "weight": 3
+        },
+        {
+          "oracle": "press",
+          "predicted": "input",
+          "weight": 1
+        }
+      ],
+      "v_measure": 0.784
+    },
+    {
+      "completeness": 0.0163,
+      "homogeneity": 0.0078,
+      "oracle": "looping",
+      "oracle_labels": 2,
+      "predicted": "step_error",
+      "predicted_labels": 2,
+      "support": 729,
+      "top_confusions": [
+        {
+          "oracle": "yes",
+          "predicted": "ok",
+          "weight": 470
+        },
+        {
+          "oracle": "no",
+          "predicted": "ok",
+          "weight": 196
+        },
+        {
+          "oracle": "yes",
+          "predicted": "error",
+          "weight": 34
+        },
+        {
+          "oracle": "no",
+          "predicted": "error",
+          "weight": 29
+        }
+      ],
+      "v_measure": 0.0105
+    },
+    {
+      "completeness": 0.0654,
+      "homogeneity": 0.096,
+      "oracle": "side_effect",
+      "oracle_labels": 2,
+      "predicted": "phase",
+      "predicted_labels": 5,
+      "support": 729,
+      "top_confusions": [
+        {
+          "oracle": "no",
+          "predicted": "navigate",
+          "weight": 414
+        },
+        {
+          "oracle": "yes",
+          "predicted": "navigate",
+          "weight": 121
+        },
+        {
+          "oracle": "no",
+          "predicted": "input",
+          "weight": 87
+        },
+        {
+          "oracle": "yes",
+          "predicted": "finish",
+          "weight": 32
+        },
+        {
+          "oracle": "yes",
+          "predicted": "browser-action",
+          "weight": 24
+        },
+        {
+          "oracle": "yes",
+          "predicted": "input",
+          "weight": 23
+        },
+        {
+          "oracle": "no",
+          "predicted": "finish",
+          "weight": 16
+        },
+        {
+          "oracle": "no",
+          "predicted": "observe",
+          "weight": 6
+        },
+        {
+          "oracle": "no",
+          "predicted": "browser-action",
+          "weight": 4
+        },
+        {
+          "oracle": "yes",
+          "predicted": "observe",
+          "weight": 2
+        }
+      ],
+      "v_measure": 0.0778
+    }
+  ],
+  "stack": [
+    "project",
+    "dataset",
+    "benchmark",
+    "status",
+    "side_effect",
+    "looping",
+    "optimality",
+    "phase",
+    "op",
+    "tool",
+    "action",
+    "step_error"
+  ],
+  "summary": {
+    "compression_ratio": 9.346,
+    "operations": 729,
+    "total_weight": 729,
+    "unique_stacks": 78
+  },
+  "top_by_field": {
+    "action": [
+      {
+        "value": "click",
+        "weight": 462
+      },
+      {
+        "value": "fill",
+        "weight": 109
+      },
+      {
+        "value": "send_msg_to_user",
+        "weight": 40
+      },
+      {
+        "value": "hover",
+        "weight": 27
+      },
+      {
+        "value": "select_option",
+        "weight": 25
+      },
+      {
+        "value": "scroll",
+        "weight": 19
+      },
+      {
+        "value": "goto",
+        "weight": 14
+      },
+      {
+        "value": "go_back",
+        "weight": 13
+      },
+      {
+        "value": "report_infeasible",
+        "weight": 8
+      },
+      {
+        "value": "noop",
+        "weight": 8
+      },
+      {
+        "value": "clear",
+        "weight": 3
+      },
+      {
+        "value": "press",
+        "weight": 1
+      }
+    ],
+    "benchmark": [
+      {
+        "value": "workarena",
+        "weight": 391
+      },
+      {
+        "value": "visualwebarena",
+        "weight": 147
+      },
+      {
+        "value": "assistantbench",
+        "weight": 133
+      },
+      {
+        "value": "webarena",
+        "weight": 58
+      }
+    ],
+    "dataset": [
+      {
+        "value": "agent-reward-bench",
+        "weight": 729
+      }
+    ],
+    "looping": [
+      {
+        "value": "yes",
+        "weight": 504
+      },
+      {
+        "value": "no",
+        "weight": 225
+      }
+    ],
+    "op": [
+      {
+        "value": "action",
+        "weight": 729
+      }
+    ],
+    "optimality": [
+      {
+        "value": "suboptimal",
+        "weight": 356
+      },
+      {
+        "value": "complete-failure",
+        "weight": 245
+      },
+      {
+        "value": "somewhat-optimal",
+        "weight": 113
+      },
+      {
+        "value": "completely-optimal",
+        "weight": 15
+      }
+    ],
+    "phase": [
+      {
+        "value": "navigate",
+        "weight": 535
+      },
+      {
+        "value": "input",
+        "weight": 110
+      },
+      {
+        "value": "finish",
+        "weight": 48
+      },
+      {
+        "value": "browser-action",
+        "weight": 28
+      },
+      {
+        "value": "observe",
+        "weight": 8
+      }
+    ],
+    "project": [
+      {
+        "value": "external-agent-traces",
+        "weight": 729
+      }
+    ],
+    "side_effect": [
+      {
+        "value": "no",
+        "weight": 527
+      },
+      {
+        "value": "yes",
+        "weight": 202
+      }
+    ],
+    "status": [
+      {
+        "value": "failure",
+        "weight": 714
+      },
+      {
+        "value": "success",
+        "weight": 15
+      }
+    ],
+    "step_error": [
+      {
+        "value": "ok",
+        "weight": 666
+      },
+      {
+        "value": "error",
+        "weight": 63
+      }
+    ],
+    "tool": [
+      {
+        "value": "browser",
+        "weight": 729
+      }
+    ]
+  },
+  "top_stacks": [
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;status:failure;side_effect:yes;looping:no;optimality:suboptimal;phase:navigate;op:action;tool:browser;action:click;step_error:ok",
+      "weight": 82
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;status:failure;side_effect:no;looping:yes;optimality:complete-failure;phase:navigate;op:action;tool:browser;action:click;step_error:ok",
+      "weight": 75
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;status:failure;side_effect:yes;looping:yes;optimality:suboptimal;phase:navigate;op:action;tool:browser;action:click;step_error:ok",
+      "weight": 39
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:assistantbench;status:failure;side_effect:no;looping:yes;optimality:suboptimal;phase:navigate;op:action;tool:browser;action:click;step_error:ok",
+      "weight": 35
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:visualwebarena;status:failure;side_effect:no;looping:yes;optimality:complete-failure;phase:navigate;op:action;tool:browser;action:click;step_error:ok",
+      "weight": 32
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;status:failure;side_effect:yes;looping:yes;optimality:suboptimal;phase:finish;op:action;tool:browser;action:send_msg_to_user;step_error:ok",
+      "weight": 30
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:visualwebarena;status:failure;side_effect:no;looping:yes;optimality:somewhat-optimal;phase:navigate;op:action;tool:browser;action:click;step_error:ok",
+      "weight": 28
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;status:failure;side_effect:no;looping:yes;optimality:suboptimal;phase:navigate;op:action;tool:browser;action:click;step_error:ok",
+      "weight": 27
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:webarena;status:failure;side_effect:no;looping:yes;optimality:complete-failure;phase:navigate;op:action;tool:browser;action:click;step_error:ok",
+      "weight": 27
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:visualwebarena;status:failure;side_effect:no;looping:yes;optimality:complete-failure;phase:navigate;op:action;tool:browser;action:hover;step_error:ok",
+      "weight": 27
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:assistantbench;status:failure;side_effect:no;looping:yes;optimality:complete-failure;phase:navigate;op:action;tool:browser;action:click;step_error:ok",
+      "weight": 25
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:assistantbench;status:failure;side_effect:no;looping:yes;optimality:complete-failure;phase:input;op:action;tool:browser;action:fill;step_error:ok",
+      "weight": 23
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;status:failure;side_effect:no;looping:yes;optimality:suboptimal;phase:input;op:action;tool:browser;action:fill;step_error:ok",
+      "weight": 18
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:visualwebarena;status:failure;side_effect:no;looping:no;optimality:somewhat-optimal;phase:navigate;op:action;tool:browser;action:click;step_error:ok",
+      "weight": 17
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;status:failure;side_effect:yes;looping:no;optimality:suboptimal;phase:browser-action;op:action;tool:browser;action:select_option;step_error:ok",
+      "weight": 15
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;status:failure;side_effect:yes;looping:yes;optimality:suboptimal;phase:input;op:action;tool:browser;action:fill;step_error:ok",
+      "weight": 13
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;status:failure;side_effect:no;looping:no;optimality:suboptimal;phase:input;op:action;tool:browser;action:fill;step_error:ok",
+      "weight": 12
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;status:failure;side_effect:no;looping:yes;optimality:suboptimal;phase:navigate;op:action;tool:browser;action:click;step_error:error",
+      "weight": 12
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:assistantbench;status:failure;side_effect:no;looping:yes;optimality:somewhat-optimal;phase:navigate;op:action;tool:browser;action:click;step_error:error",
+      "weight": 11
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;status:failure;side_effect:yes;looping:no;optimality:suboptimal;phase:input;op:action;tool:browser;action:fill;step_error:ok",
+      "weight": 10
+    }
+  ]
+}

@@ -1,0 +1,483 @@
+{
+  "boundary_alignment": [],
+  "coverage": [
+    {
+      "coverage": 1.0,
+      "field": "action",
+      "present": 729,
+      "total": 729
+    },
+    {
+      "coverage": 1.0,
+      "field": "agent",
+      "present": 729,
+      "total": 729
+    },
+    {
+      "coverage": 1.0,
+      "field": "benchmark",
+      "present": 729,
+      "total": 729
+    },
+    {
+      "coverage": 1.0,
+      "field": "dataset",
+      "present": 729,
+      "total": 729
+    },
+    {
+      "coverage": 1.0,
+      "field": "looping",
+      "present": 729,
+      "total": 729
+    },
+    {
+      "coverage": 1.0,
+      "field": "op",
+      "present": 729,
+      "total": 729
+    },
+    {
+      "coverage": 1.0,
+      "field": "phase",
+      "present": 729,
+      "total": 729
+    },
+    {
+      "coverage": 1.0,
+      "field": "project",
+      "present": 729,
+      "total": 729
+    },
+    {
+      "coverage": 1.0,
+      "field": "side_effect",
+      "present": 729,
+      "total": 729
+    },
+    {
+      "coverage": 1.0,
+      "field": "status",
+      "present": 729,
+      "total": 729
+    },
+    {
+      "coverage": 1.0,
+      "field": "step_error",
+      "present": 729,
+      "total": 729
+    }
+  ],
+  "op_map_files": [],
+  "op_maps": [],
+  "operation_files": [
+    "docs/visexp/out/external-agent-trace-agentreward-r288/agentreward-operations.jsonl"
+  ],
+  "oracle_alignment": [
+    {
+      "completeness": 0.0054,
+      "homogeneity": 0.0692,
+      "oracle": "status",
+      "oracle_labels": 2,
+      "predicted": "agent",
+      "predicted_labels": 4,
+      "support": 729,
+      "top_confusions": [
+        {
+          "oracle": "failure",
+          "predicted": "genericagent-qwen_qwen2.5-vl-72b-instruct",
+          "weight": 291
+        },
+        {
+          "oracle": "failure",
+          "predicted": "genericagent-gpt-4o-2024-11-20",
+          "weight": 180
+        },
+        {
+          "oracle": "failure",
+          "predicted": "genericagent-meta-llama_llama-3.3-70b-instruct",
+          "weight": 175
+        },
+        {
+          "oracle": "failure",
+          "predicted": "genericagent-anthropic_claude-3.7-sonnet",
+          "weight": 68
+        },
+        {
+          "oracle": "success",
+          "predicted": "genericagent-meta-llama_llama-3.3-70b-instruct",
+          "weight": 7
+        },
+        {
+          "oracle": "success",
+          "predicted": "genericagent-gpt-4o-2024-11-20",
+          "weight": 4
+        },
+        {
+          "oracle": "success",
+          "predicted": "genericagent-anthropic_claude-3.7-sonnet",
+          "weight": 3
+        },
+        {
+          "oracle": "success",
+          "predicted": "genericagent-qwen_qwen2.5-vl-72b-instruct",
+          "weight": 1
+        }
+      ],
+      "v_measure": 0.01
+    },
+    {
+      "completeness": 0.0663,
+      "homogeneity": 0.1254,
+      "oracle": "looping",
+      "oracle_labels": 2,
+      "predicted": "benchmark",
+      "predicted_labels": 4,
+      "support": 729,
+      "top_confusions": [
+        {
+          "oracle": "yes",
+          "predicted": "workarena",
+          "weight": 240
+        },
+        {
+          "oracle": "no",
+          "predicted": "workarena",
+          "weight": 151
+        },
+        {
+          "oracle": "yes",
+          "predicted": "assistantbench",
+          "weight": 133
+        },
+        {
+          "oracle": "yes",
+          "predicted": "visualwebarena",
+          "weight": 90
+        },
+        {
+          "oracle": "no",
+          "predicted": "visualwebarena",
+          "weight": 57
+        },
+        {
+          "oracle": "yes",
+          "predicted": "webarena",
+          "weight": 41
+        },
+        {
+          "oracle": "no",
+          "predicted": "webarena",
+          "weight": 17
+        }
+      ],
+      "v_measure": 0.0867
+    },
+    {
+      "completeness": 0.1871,
+      "homogeneity": 0.3706,
+      "oracle": "side_effect",
+      "oracle_labels": 2,
+      "predicted": "benchmark",
+      "predicted_labels": 4,
+      "support": 729,
+      "top_confusions": [
+        {
+          "oracle": "yes",
+          "predicted": "workarena",
+          "weight": 202
+        },
+        {
+          "oracle": "no",
+          "predicted": "workarena",
+          "weight": 189
+        },
+        {
+          "oracle": "no",
+          "predicted": "visualwebarena",
+          "weight": 147
+        },
+        {
+          "oracle": "no",
+          "predicted": "assistantbench",
+          "weight": 133
+        },
+        {
+          "oracle": "no",
+          "predicted": "webarena",
+          "weight": 58
+        }
+      ],
+      "v_measure": 0.2487
+    }
+  ],
+  "stack": [
+    "project",
+    "dataset",
+    "benchmark",
+    "agent",
+    "status",
+    "side_effect",
+    "looping",
+    "phase",
+    "op",
+    "action",
+    "step_error"
+  ],
+  "summary": {
+    "compression_ratio": 8.284,
+    "operations": 729,
+    "total_weight": 729,
+    "unique_stacks": 88
+  },
+  "top_by_field": {
+    "action": [
+      {
+        "value": "click",
+        "weight": 462
+      },
+      {
+        "value": "fill",
+        "weight": 109
+      },
+      {
+        "value": "send_msg_to_user",
+        "weight": 40
+      },
+      {
+        "value": "hover",
+        "weight": 27
+      },
+      {
+        "value": "select_option",
+        "weight": 25
+      },
+      {
+        "value": "scroll",
+        "weight": 19
+      },
+      {
+        "value": "goto",
+        "weight": 14
+      },
+      {
+        "value": "go_back",
+        "weight": 13
+      },
+      {
+        "value": "report_infeasible",
+        "weight": 8
+      },
+      {
+        "value": "noop",
+        "weight": 8
+      },
+      {
+        "value": "clear",
+        "weight": 3
+      },
+      {
+        "value": "press",
+        "weight": 1
+      }
+    ],
+    "agent": [
+      {
+        "value": "genericagent-qwen_qwen2.5-vl-72b-instruct",
+        "weight": 292
+      },
+      {
+        "value": "genericagent-gpt-4o-2024-11-20",
+        "weight": 184
+      },
+      {
+        "value": "genericagent-meta-llama_llama-3.3-70b-instruct",
+        "weight": 182
+      },
+      {
+        "value": "genericagent-anthropic_claude-3.7-sonnet",
+        "weight": 71
+      }
+    ],
+    "benchmark": [
+      {
+        "value": "workarena",
+        "weight": 391
+      },
+      {
+        "value": "visualwebarena",
+        "weight": 147
+      },
+      {
+        "value": "assistantbench",
+        "weight": 133
+      },
+      {
+        "value": "webarena",
+        "weight": 58
+      }
+    ],
+    "dataset": [
+      {
+        "value": "agent-reward-bench",
+        "weight": 729
+      }
+    ],
+    "looping": [
+      {
+        "value": "yes",
+        "weight": 504
+      },
+      {
+        "value": "no",
+        "weight": 225
+      }
+    ],
+    "op": [
+      {
+        "value": "action",
+        "weight": 729
+      }
+    ],
+    "phase": [
+      {
+        "value": "navigate",
+        "weight": 535
+      },
+      {
+        "value": "input",
+        "weight": 110
+      },
+      {
+        "value": "finish",
+        "weight": 48
+      },
+      {
+        "value": "browser-action",
+        "weight": 28
+      },
+      {
+        "value": "observe",
+        "weight": 8
+      }
+    ],
+    "project": [
+      {
+        "value": "external-agent-traces",
+        "weight": 729
+      }
+    ],
+    "side_effect": [
+      {
+        "value": "no",
+        "weight": 527
+      },
+      {
+        "value": "yes",
+        "weight": 202
+      }
+    ],
+    "status": [
+      {
+        "value": "failure",
+        "weight": 714
+      },
+      {
+        "value": "success",
+        "weight": 15
+      }
+    ],
+    "step_error": [
+      {
+        "value": "ok",
+        "weight": 666
+      },
+      {
+        "value": "error",
+        "weight": 63
+      }
+    ]
+  },
+  "top_stacks": [
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-qwen_qwen2.5-vl-72b-instruct;status:failure;side_effect:no;looping:yes;phase:navigate;op:action;action:click;step_error:ok",
+      "weight": 72
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-gpt-4o-2024-11-20;status:failure;side_effect:yes;looping:no;phase:navigate;op:action;action:click;step_error:ok",
+      "weight": 43
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:assistantbench;agent:genericagent-meta-llama_llama-3.3-70b-instruct;status:failure;side_effect:no;looping:yes;phase:navigate;op:action;action:click;step_error:ok",
+      "weight": 40
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-gpt-4o-2024-11-20;status:failure;side_effect:no;looping:yes;phase:navigate;op:action;action:click;step_error:ok",
+      "weight": 30
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-anthropic_claude-3.7-sonnet;status:failure;side_effect:yes;looping:yes;phase:finish;op:action;action:send_msg_to_user;step_error:ok",
+      "weight": 30
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:visualwebarena;agent:genericagent-qwen_qwen2.5-vl-72b-instruct;status:failure;side_effect:no;looping:yes;phase:navigate;op:action;action:click;step_error:ok",
+      "weight": 30
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:visualwebarena;agent:genericagent-gpt-4o-2024-11-20;status:failure;side_effect:no;looping:yes;phase:navigate;op:action;action:click;step_error:ok",
+      "weight": 30
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-qwen_qwen2.5-vl-72b-instruct;status:failure;side_effect:no;looping:yes;phase:input;op:action;action:fill;step_error:ok",
+      "weight": 27
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:webarena;agent:genericagent-meta-llama_llama-3.3-70b-instruct;status:failure;side_effect:no;looping:yes;phase:navigate;op:action;action:click;step_error:ok",
+      "weight": 27
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:visualwebarena;agent:genericagent-gpt-4o-2024-11-20;status:failure;side_effect:no;looping:yes;phase:navigate;op:action;action:hover;step_error:ok",
+      "weight": 27
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-meta-llama_llama-3.3-70b-instruct;status:failure;side_effect:yes;looping:no;phase:navigate;op:action;action:click;step_error:ok",
+      "weight": 25
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:assistantbench;agent:genericagent-qwen_qwen2.5-vl-72b-instruct;status:failure;side_effect:no;looping:yes;phase:navigate;op:action;action:click;step_error:ok",
+      "weight": 25
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:assistantbench;agent:genericagent-qwen_qwen2.5-vl-72b-instruct;status:failure;side_effect:no;looping:yes;phase:input;op:action;action:fill;step_error:ok",
+      "weight": 23
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-anthropic_claude-3.7-sonnet;status:failure;side_effect:yes;looping:yes;phase:navigate;op:action;action:click;step_error:ok",
+      "weight": 21
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-meta-llama_llama-3.3-70b-instruct;status:failure;side_effect:yes;looping:yes;phase:navigate;op:action;action:click;step_error:ok",
+      "weight": 18
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-qwen_qwen2.5-vl-72b-instruct;status:failure;side_effect:no;looping:yes;phase:navigate;op:action;action:click;step_error:error",
+      "weight": 17
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-qwen_qwen2.5-vl-72b-instruct;status:failure;side_effect:no;looping:no;phase:input;op:action;action:fill;step_error:ok",
+      "weight": 14
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-qwen_qwen2.5-vl-72b-instruct;status:failure;side_effect:yes;looping:no;phase:navigate;op:action;action:click;step_error:ok",
+      "weight": 14
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:assistantbench;agent:genericagent-meta-llama_llama-3.3-70b-instruct;status:failure;side_effect:no;looping:yes;phase:navigate;op:action;action:goto;step_error:ok",
+      "weight": 12
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-qwen_qwen2.5-vl-72b-instruct;status:failure;side_effect:no;looping:no;phase:navigate;op:action;action:click;step_error:ok",
+      "weight": 11
+    }
+  ]
+}
