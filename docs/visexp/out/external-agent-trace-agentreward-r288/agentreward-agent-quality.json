@@ -51,6 +51,18 @@
     },
     {
       "coverage": 1.0,
+      "field": "repeat_signal",
+      "present": 729,
+      "total": 729
+    },
+    {
+      "coverage": 1.0,
+      "field": "repeat_state",
+      "present": 729,
+      "total": 729
+    },
+    {
+      "coverage": 1.0,
       "field": "side_effect",
       "present": 729,
       "total": 729
@@ -209,6 +221,38 @@
         }
       ],
       "v_measure": 0.2487
+    },
+    {
+      "completeness": 0.3939,
+      "homogeneity": 0.3629,
+      "oracle": "looping",
+      "oracle_labels": 2,
+      "predicted": "repeat_signal",
+      "predicted_labels": 2,
+      "support": 729,
+      "top_confusions": [
+        {
+          "oracle": "yes",
+          "predicted": "loop-like",
+          "weight": 474
+        },
+        {
+          "oracle": "no",
+          "predicted": "none",
+          "weight": 157
+        },
+        {
+          "oracle": "no",
+          "predicted": "loop-like",
+          "weight": 68
+        },
+        {
+          "oracle": "yes",
+          "predicted": "none",
+          "weight": 30
+        }
+      ],
+      "v_measure": 0.3777
     }
   ],
   "stack": [
@@ -219,16 +263,18 @@
     "status",
     "side_effect",
     "looping",
+    "repeat_signal",
+    "repeat_state",
     "phase",
     "op",
     "action",
     "step_error"
   ],
   "summary": {
-    "compression_ratio": 8.284,
+    "compression_ratio": 4.585,
     "operations": 729,
     "total_weight": 729,
-    "unique_stacks": 88
+    "unique_stacks": 159
   },
   "top_by_field": {
     "action": [
@@ -367,6 +413,38 @@
         "weight": 729
       }
     ],
+    "repeat_signal": [
+      {
+        "value": "loop-like",
+        "weight": 542
+      },
+      {
+        "value": "none",
+        "weight": 187
+      }
+    ],
+    "repeat_state": [
+      {
+        "value": "single",
+        "weight": 365
+      },
+      {
+        "value": "same-action-run",
+        "weight": 187
+      },
+      {
+        "value": "light-repeat",
+        "weight": 114
+      },
+      {
+        "value": "same-action-window",
+        "weight": 59
+      },
+      {
+        "value": "target-window",
+        "weight": 4
+      }
+    ],
     "side_effect": [
       {
         "value": "no",
@@ -400,84 +478,84 @@
   },
   "top_stacks": [
     {
-      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-qwen_qwen2.5-vl-72b-instruct;status:failure;side_effect:no;looping:yes;phase:navigate;op:action;action:click;step_error:ok",
-      "weight": 72
-    },
-    {
-      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-gpt-4o-2024-11-20;status:failure;side_effect:yes;looping:no;phase:navigate;op:action;action:click;step_error:ok",
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-gpt-4o-2024-11-20;status:failure;side_effect:yes;looping:no;repeat_signal:none;repeat_state:single;phase:navigate;op:action;action:click;step_error:ok",
       "weight": 43
     },
     {
-      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:assistantbench;agent:genericagent-meta-llama_llama-3.3-70b-instruct;status:failure;side_effect:no;looping:yes;phase:navigate;op:action;action:click;step_error:ok",
-      "weight": 40
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-gpt-4o-2024-11-20;status:failure;side_effect:no;looping:yes;repeat_signal:loop-like;repeat_state:same-action-run;phase:navigate;op:action;action:click;step_error:ok",
+      "weight": 26
     },
     {
-      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-gpt-4o-2024-11-20;status:failure;side_effect:no;looping:yes;phase:navigate;op:action;action:click;step_error:ok",
-      "weight": 30
-    },
-    {
-      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-anthropic_claude-3.7-sonnet;status:failure;side_effect:yes;looping:yes;phase:finish;op:action;action:send_msg_to_user;step_error:ok",
-      "weight": 30
-    },
-    {
-      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:visualwebarena;agent:genericagent-qwen_qwen2.5-vl-72b-instruct;status:failure;side_effect:no;looping:yes;phase:navigate;op:action;action:click;step_error:ok",
-      "weight": 30
-    },
-    {
-      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:visualwebarena;agent:genericagent-gpt-4o-2024-11-20;status:failure;side_effect:no;looping:yes;phase:navigate;op:action;action:click;step_error:ok",
-      "weight": 30
-    },
-    {
-      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-qwen_qwen2.5-vl-72b-instruct;status:failure;side_effect:no;looping:yes;phase:input;op:action;action:fill;step_error:ok",
-      "weight": 27
-    },
-    {
-      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:webarena;agent:genericagent-meta-llama_llama-3.3-70b-instruct;status:failure;side_effect:no;looping:yes;phase:navigate;op:action;action:click;step_error:ok",
-      "weight": 27
-    },
-    {
-      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:visualwebarena;agent:genericagent-gpt-4o-2024-11-20;status:failure;side_effect:no;looping:yes;phase:navigate;op:action;action:hover;step_error:ok",
-      "weight": 27
-    },
-    {
-      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-meta-llama_llama-3.3-70b-instruct;status:failure;side_effect:yes;looping:no;phase:navigate;op:action;action:click;step_error:ok",
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-qwen_qwen2.5-vl-72b-instruct;status:failure;side_effect:no;looping:yes;repeat_signal:loop-like;repeat_state:same-action-run;phase:navigate;op:action;action:click;step_error:ok",
       "weight": 25
     },
     {
-      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:assistantbench;agent:genericagent-qwen_qwen2.5-vl-72b-instruct;status:failure;side_effect:no;looping:yes;phase:navigate;op:action;action:click;step_error:ok",
-      "weight": 25
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:visualwebarena;agent:genericagent-qwen_qwen2.5-vl-72b-instruct;status:failure;side_effect:no;looping:yes;repeat_signal:loop-like;repeat_state:same-action-run;phase:navigate;op:action;action:click;step_error:ok",
+      "weight": 24
     },
     {
-      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:assistantbench;agent:genericagent-qwen_qwen2.5-vl-72b-instruct;status:failure;side_effect:no;looping:yes;phase:input;op:action;action:fill;step_error:ok",
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:visualwebarena;agent:genericagent-gpt-4o-2024-11-20;status:failure;side_effect:no;looping:yes;repeat_signal:loop-like;repeat_state:same-action-run;phase:navigate;op:action;action:click;step_error:ok",
+      "weight": 24
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-qwen_qwen2.5-vl-72b-instruct;status:failure;side_effect:no;looping:yes;repeat_signal:loop-like;repeat_state:single;phase:navigate;op:action;action:click;step_error:ok",
       "weight": 23
     },
     {
-      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-anthropic_claude-3.7-sonnet;status:failure;side_effect:yes;looping:yes;phase:navigate;op:action;action:click;step_error:ok",
-      "weight": 21
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-anthropic_claude-3.7-sonnet;status:failure;side_effect:yes;looping:yes;repeat_signal:loop-like;repeat_state:same-action-run;phase:finish;op:action;action:send_msg_to_user;step_error:ok",
+      "weight": 23
     },
     {
-      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-meta-llama_llama-3.3-70b-instruct;status:failure;side_effect:yes;looping:yes;phase:navigate;op:action;action:click;step_error:ok",
-      "weight": 18
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-anthropic_claude-3.7-sonnet;status:failure;side_effect:yes;looping:yes;repeat_signal:loop-like;repeat_state:single;phase:navigate;op:action;action:click;step_error:ok",
+      "weight": 20
     },
     {
-      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-qwen_qwen2.5-vl-72b-instruct;status:failure;side_effect:no;looping:yes;phase:navigate;op:action;action:click;step_error:error",
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:assistantbench;agent:genericagent-meta-llama_llama-3.3-70b-instruct;status:failure;side_effect:no;looping:yes;repeat_signal:loop-like;repeat_state:single;phase:navigate;op:action;action:click;step_error:ok",
+      "weight": 20
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:visualwebarena;agent:genericagent-gpt-4o-2024-11-20;status:failure;side_effect:no;looping:yes;repeat_signal:loop-like;repeat_state:same-action-run;phase:navigate;op:action;action:hover;step_error:ok",
+      "weight": 20
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:webarena;agent:genericagent-meta-llama_llama-3.3-70b-instruct;status:failure;side_effect:no;looping:yes;repeat_signal:loop-like;repeat_state:same-action-run;phase:navigate;op:action;action:click;step_error:ok",
+      "weight": 19
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-qwen_qwen2.5-vl-72b-instruct;status:failure;side_effect:no;looping:yes;repeat_signal:none;repeat_state:single;phase:navigate;op:action;action:click;step_error:ok",
       "weight": 17
     },
     {
-      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-qwen_qwen2.5-vl-72b-instruct;status:failure;side_effect:no;looping:no;phase:input;op:action;action:fill;step_error:ok",
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-meta-llama_llama-3.3-70b-instruct;status:failure;side_effect:yes;looping:no;repeat_signal:none;repeat_state:light-repeat;phase:navigate;op:action;action:click;step_error:ok",
+      "weight": 17
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-qwen_qwen2.5-vl-72b-instruct;status:failure;side_effect:no;looping:yes;repeat_signal:loop-like;repeat_state:single;phase:input;op:action;action:fill;step_error:ok",
+      "weight": 16
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:assistantbench;agent:genericagent-qwen_qwen2.5-vl-72b-instruct;status:failure;side_effect:no;looping:yes;repeat_signal:loop-like;repeat_state:same-action-window;phase:navigate;op:action;action:click;step_error:ok",
       "weight": 14
     },
     {
-      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-qwen_qwen2.5-vl-72b-instruct;status:failure;side_effect:yes;looping:no;phase:navigate;op:action;action:click;step_error:ok",
-      "weight": 14
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-qwen_qwen2.5-vl-72b-instruct;status:failure;side_effect:yes;looping:no;repeat_signal:none;repeat_state:single;phase:navigate;op:action;action:click;step_error:ok",
+      "weight": 13
     },
     {
-      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:assistantbench;agent:genericagent-meta-llama_llama-3.3-70b-instruct;status:failure;side_effect:no;looping:yes;phase:navigate;op:action;action:goto;step_error:ok",
-      "weight": 12
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:assistantbench;agent:genericagent-qwen_qwen2.5-vl-72b-instruct;status:failure;side_effect:no;looping:yes;repeat_signal:loop-like;repeat_state:same-action-window;phase:input;op:action;action:fill;step_error:ok",
+      "weight": 13
     },
     {
-      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-qwen_qwen2.5-vl-72b-instruct;status:failure;side_effect:no;looping:no;phase:navigate;op:action;action:click;step_error:ok",
-      "weight": 11
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-meta-llama_llama-3.3-70b-instruct;status:failure;side_effect:yes;looping:yes;repeat_signal:loop-like;repeat_state:single;phase:navigate;op:action;action:click;step_error:ok",
+      "weight": 10
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:workarena;agent:genericagent-gpt-4o-2024-11-20;status:failure;side_effect:yes;looping:no;repeat_signal:none;repeat_state:single;phase:browser-action;op:action;action:select_option;step_error:ok",
+      "weight": 10
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;benchmark:assistantbench;agent:genericagent-meta-llama_llama-3.3-70b-instruct;status:failure;side_effect:no;looping:yes;repeat_signal:loop-like;repeat_state:light-repeat;phase:navigate;op:action;action:click;step_error:ok",
+      "weight": 10
     }
   ]
 }

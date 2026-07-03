@@ -60,6 +60,12 @@
     },
     {
       "coverage": 0.0469,
+      "field": "repeat_signal",
+      "present": 729,
+      "total": 15554
+    },
+    {
+      "coverage": 0.0469,
       "field": "side_effect",
       "present": 729,
       "total": 15554
@@ -340,6 +346,38 @@
         }
       ],
       "v_measure": 0.0867
+    },
+    {
+      "completeness": 0.3939,
+      "homogeneity": 0.3629,
+      "oracle": "looping",
+      "oracle_labels": 2,
+      "predicted": "repeat_signal",
+      "predicted_labels": 2,
+      "support": 729,
+      "top_confusions": [
+        {
+          "oracle": "yes",
+          "predicted": "loop-like",
+          "weight": 474
+        },
+        {
+          "oracle": "no",
+          "predicted": "none",
+          "weight": 157
+        },
+        {
+          "oracle": "no",
+          "predicted": "loop-like",
+          "weight": 68
+        },
+        {
+          "oracle": "yes",
+          "predicted": "none",
+          "weight": 30
+        }
+      ],
+      "v_measure": 0.3777
     }
   ],
   "stack": [
@@ -353,13 +391,14 @@
     "action",
     "status",
     "side_effect",
-    "looping"
+    "looping",
+    "repeat_signal"
   ],
   "summary": {
-    "compression_ratio": 28.127,
+    "compression_ratio": 27.725,
     "operations": 15554,
     "total_weight": 15554,
-    "unique_stacks": 553
+    "unique_stacks": 561
   },
   "top_by_field": {
     "action": [
@@ -716,6 +755,16 @@
         "weight": 15554
       }
     ],
+    "repeat_signal": [
+      {
+        "value": "loop-like",
+        "weight": 542
+      },
+      {
+        "value": "none",
+        "weight": 187
+      }
+    ],
     "side_effect": [
       {
         "value": "no",
@@ -895,123 +944,123 @@
   },
   "top_stacks": [
     {
-      "stack": "project:external-agent-traces;dataset:gui-odyssey;task:mobile;benchmark:unknown;phase:navigate;op:action;tool:mobile-gui;action:click;status:gold;side_effect:unknown;looping:unknown",
+      "stack": "project:external-agent-traces;dataset:gui-odyssey;task:mobile;benchmark:unknown;phase:navigate;op:action;tool:mobile-gui;action:click;status:gold;side_effect:unknown;looping:unknown;repeat_signal:unknown",
       "weight": 5831
     },
     {
-      "stack": "project:external-agent-traces;dataset:gui-odyssey;task:mobile;benchmark:unknown;phase:modify;op:action;tool:mobile-gui;action:text;status:gold;side_effect:unknown;looping:unknown",
+      "stack": "project:external-agent-traces;dataset:gui-odyssey;task:mobile;benchmark:unknown;phase:modify;op:action;tool:mobile-gui;action:text;status:gold;side_effect:unknown;looping:unknown;repeat_signal:unknown",
       "weight": 805
     },
     {
-      "stack": "project:external-agent-traces;dataset:gui-odyssey;task:mobile;benchmark:unknown;phase:navigate;op:action;tool:mobile-gui;action:scroll;status:gold;side_effect:unknown;looping:unknown",
+      "stack": "project:external-agent-traces;dataset:gui-odyssey;task:mobile;benchmark:unknown;phase:navigate;op:action;tool:mobile-gui;action:scroll;status:gold;side_effect:unknown;looping:unknown;repeat_signal:unknown",
       "weight": 691
     },
     {
-      "stack": "project:external-agent-traces;dataset:mind2web;task:web;benchmark:unknown;phase:navigate;op:action;tool:browser;action:click;status:gold;side_effect:unknown;looping:unknown",
+      "stack": "project:external-agent-traces;dataset:mind2web;task:web;benchmark:unknown;phase:navigate;op:action;tool:browser;action:click;status:gold;side_effect:unknown;looping:unknown;repeat_signal:unknown",
       "weight": 645
     },
     {
-      "stack": "project:external-agent-traces;dataset:gui-odyssey;task:mobile;benchmark:unknown;phase:finish;op:action;tool:mobile-gui;action:complete;status:gold;side_effect:unknown;looping:unknown",
+      "stack": "project:external-agent-traces;dataset:gui-odyssey;task:mobile;benchmark:unknown;phase:finish;op:action;tool:mobile-gui;action:complete;status:gold;side_effect:unknown;looping:unknown;repeat_signal:unknown",
       "weight": 487
     },
     {
-      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;phase:navigate;op:action;tool:webshop;action:open;status:success;side_effect:unknown;looping:unknown",
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;phase:navigate;op:action;tool:webshop;action:open;status:success;side_effect:unknown;looping:unknown;repeat_signal:unknown",
       "weight": 449
     },
     {
-      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;phase:navigate;op:action;tool:webshop;action:go;status:success;side_effect:unknown;looping:unknown",
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;phase:navigate;op:action;tool:webshop;action:go;status:success;side_effect:unknown;looping:unknown;repeat_signal:unknown",
       "weight": 431
     },
     {
-      "stack": "project:external-agent-traces;dataset:weblinx-chat;task:web;benchmark:unknown;phase:navigate;op:action;tool:browser;action:click;status:gold;side_effect:unknown;looping:unknown",
+      "stack": "project:external-agent-traces;dataset:weblinx-chat;task:web;benchmark:unknown;phase:navigate;op:action;tool:browser;action:click;status:gold;side_effect:unknown;looping:unknown;repeat_signal:unknown",
       "weight": 280
     },
     {
-      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;phase:connect;op:action;tool:webshop;action:connect;status:success;side_effect:unknown;looping:unknown",
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;phase:connect;op:action;tool:webshop;action:connect;status:success;side_effect:unknown;looping:unknown;repeat_signal:unknown",
       "weight": 240
     },
     {
-      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;phase:focus;op:action;tool:webshop;action:focus;status:success;side_effect:unknown;looping:unknown",
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;phase:focus;op:action;tool:webshop;action:focus;status:success;side_effect:unknown;looping:unknown;repeat_signal:unknown",
       "weight": 224
     },
     {
-      "stack": "project:external-agent-traces;dataset:tau-bench-trajectories;task:tool-agent-user;benchmark:tau-bench;phase:dialogue;op:prompt;tool:user;action:user_message;status:failure;side_effect:unknown;looping:unknown",
+      "stack": "project:external-agent-traces;dataset:tau-bench-trajectories;task:tool-agent-user;benchmark:tau-bench;phase:dialogue;op:prompt;tool:user;action:user_message;status:failure;side_effect:unknown;looping:unknown;repeat_signal:unknown",
       "weight": 222
     },
     {
-      "stack": "project:external-agent-traces;dataset:tau-bench-trajectories;task:tool-agent-user;benchmark:tau-bench;phase:dialogue;op:llm;tool:assistant;action:respond;status:failure;side_effect:unknown;looping:unknown",
+      "stack": "project:external-agent-traces;dataset:tau-bench-trajectories;task:tool-agent-user;benchmark:tau-bench;phase:dialogue;op:llm;tool:assistant;action:respond;status:failure;side_effect:unknown;looping:unknown;repeat_signal:unknown",
       "weight": 222
     },
     {
-      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;phase:move;op:action;tool:webshop;action:move;status:success;side_effect:unknown;looping:unknown",
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;phase:move;op:action;tool:webshop;action:move;status:success;side_effect:unknown;looping:unknown;repeat_signal:unknown",
       "weight": 213
     },
     {
-      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;phase:inspect;op:action;tool:webshop;action:look;status:success;side_effect:unknown;looping:unknown",
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;phase:inspect;op:action;tool:webshop;action:look;status:success;side_effect:unknown;looping:unknown;repeat_signal:unknown",
       "weight": 211
     },
     {
-      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;phase:use;op:action;tool:webshop;action:use;status:success;side_effect:unknown;looping:unknown",
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;phase:use;op:action;tool:webshop;action:use;status:success;side_effect:unknown;looping:unknown;repeat_signal:unknown",
       "weight": 165
     },
     {
-      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;phase:examine;op:action;tool:webshop;action:examine;status:success;side_effect:unknown;looping:unknown",
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;phase:examine;op:action;tool:webshop;action:examine;status:success;side_effect:unknown;looping:unknown;repeat_signal:unknown",
       "weight": 156
     },
     {
-      "stack": "project:external-agent-traces;dataset:swe-agent-trajectories;task:software;benchmark:unknown;phase:ls;op:tool;tool:swe-agent;action:ls;status:failure;side_effect:unknown;looping:unknown",
+      "stack": "project:external-agent-traces;dataset:swe-agent-trajectories;task:software;benchmark:unknown;phase:ls;op:tool;tool:swe-agent;action:ls;status:failure;side_effect:unknown;looping:unknown;repeat_signal:unknown",
       "weight": 147
     },
     {
-      "stack": "project:external-agent-traces;dataset:tau-bench-trajectories;task:tool-agent-user;benchmark:tau-bench;phase:dialogue;op:prompt;tool:user;action:user_message;status:success;side_effect:unknown;looping:unknown",
+      "stack": "project:external-agent-traces;dataset:tau-bench-trajectories;task:tool-agent-user;benchmark:tau-bench;phase:dialogue;op:prompt;tool:user;action:user_message;status:success;side_effect:unknown;looping:unknown;repeat_signal:unknown",
       "weight": 145
     },
     {
-      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;phase:pick;op:action;tool:webshop;action:pick;status:success;side_effect:unknown;looping:unknown",
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;phase:pick;op:action;tool:webshop;action:pick;status:success;side_effect:unknown;looping:unknown;repeat_signal:unknown",
       "weight": 144
     },
     {
-      "stack": "project:external-agent-traces;dataset:tau-bench-trajectories;task:tool-agent-user;benchmark:tau-bench;phase:dialogue;op:llm;tool:assistant;action:respond;status:success;side_effect:unknown;looping:unknown",
+      "stack": "project:external-agent-traces;dataset:tau-bench-trajectories;task:tool-agent-user;benchmark:tau-bench;phase:dialogue;op:llm;tool:assistant;action:respond;status:success;side_effect:unknown;looping:unknown;repeat_signal:unknown",
       "weight": 142
     },
     {
-      "stack": "project:external-agent-traces;dataset:weblinx-chat;task:web;benchmark:unknown;phase:say;op:action;tool:browser;action:say;status:gold;side_effect:unknown;looping:unknown",
+      "stack": "project:external-agent-traces;dataset:weblinx-chat;task:web;benchmark:unknown;phase:say;op:action;tool:browser;action:say;status:gold;side_effect:unknown;looping:unknown;repeat_signal:unknown",
       "weight": 129
     },
     {
-      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;phase:wait1;op:action;tool:webshop;action:wait1;status:success;side_effect:unknown;looping:unknown",
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;phase:wait1;op:action;tool:webshop;action:wait1;status:success;side_effect:unknown;looping:unknown;repeat_signal:unknown",
       "weight": 126
     },
     {
-      "stack": "project:external-agent-traces;dataset:agent-reward-bench;task:web;benchmark:workarena;phase:navigate;op:action;tool:browser;action:click;status:failure;side_effect:no;looping:yes",
-      "weight": 119
-    },
-    {
-      "stack": "project:external-agent-traces;dataset:toolbench;task:tool;benchmark:unknown;phase:finish;op:finish;tool:finish;action:finish;status:gold;side_effect:unknown;looping:unknown",
+      "stack": "project:external-agent-traces;dataset:toolbench;task:tool;benchmark:unknown;phase:finish;op:finish;tool:finish;action:finish;status:gold;side_effect:unknown;looping:unknown;repeat_signal:unknown",
       "weight": 108
     },
     {
-      "stack": "project:external-agent-traces;dataset:mind2web;task:web;benchmark:unknown;phase:modify;op:action;tool:browser;action:type;status:gold;side_effect:unknown;looping:unknown",
+      "stack": "project:external-agent-traces;dataset:mind2web;task:web;benchmark:unknown;phase:modify;op:action;tool:browser;action:type;status:gold;side_effect:unknown;looping:unknown;repeat_signal:unknown",
       "weight": 106
     },
     {
-      "stack": "project:external-agent-traces;dataset:agenttrek;task:web;benchmark:unknown;phase:navigate;op:action;tool:browser;action:click;status:verified;side_effect:unknown;looping:unknown",
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;task:web;benchmark:workarena;phase:navigate;op:action;tool:browser;action:click;status:failure;side_effect:no;looping:yes;repeat_signal:loop-like",
+      "weight": 97
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agenttrek;task:web;benchmark:unknown;phase:navigate;op:action;tool:browser;action:click;status:verified;side_effect:unknown;looping:unknown;repeat_signal:unknown",
       "weight": 94
     },
     {
-      "stack": "project:external-agent-traces;dataset:tau-bench-trajectories;task:tool-agent-user;benchmark:tau-bench;phase:inspect;op:tool;tool:get_order_details;action:get_order_details;status:failure;side_effect:unknown;looping:unknown",
+      "stack": "project:external-agent-traces;dataset:tau-bench-trajectories;task:tool-agent-user;benchmark:tau-bench;phase:inspect;op:tool;tool:get_order_details;action:get_order_details;status:failure;side_effect:unknown;looping:unknown;repeat_signal:unknown",
       "weight": 92
     },
     {
-      "stack": "project:external-agent-traces;dataset:tau-bench-trajectories;task:tool-agent-user;benchmark:tau-bench;phase:observe;op:observation;tool:get_order_details;action:observe;status:failure;side_effect:unknown;looping:unknown",
+      "stack": "project:external-agent-traces;dataset:tau-bench-trajectories;task:tool-agent-user;benchmark:tau-bench;phase:observe;op:observation;tool:get_order_details;action:observe;status:failure;side_effect:unknown;looping:unknown;repeat_signal:unknown",
       "weight": 92
     },
     {
-      "stack": "project:external-agent-traces;dataset:agent-reward-bench;task:web;benchmark:workarena;phase:navigate;op:action;tool:browser;action:click;status:failure;side_effect:yes;looping:no",
+      "stack": "project:external-agent-traces;dataset:agent-reward-bench;task:web;benchmark:workarena;phase:navigate;op:action;tool:browser;action:click;status:failure;side_effect:yes;looping:no;repeat_signal:none",
       "weight": 82
     },
     {
-      "stack": "project:external-agent-traces;dataset:swe-agent-trajectories;task:software;benchmark:unknown;phase:modify;op:tool;tool:swe-agent;action:edit;status:failure;side_effect:unknown;looping:unknown",
+      "stack": "project:external-agent-traces;dataset:swe-agent-trajectories;task:software;benchmark:unknown;phase:modify;op:tool;tool:swe-agent;action:edit;status:failure;side_effect:unknown;looping:unknown;repeat_signal:unknown",
       "weight": 81
     }
   ]

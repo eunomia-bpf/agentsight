@@ -44,7 +44,9 @@ observations as operation shapes, so tool-agent-user dialogue still uses the
 same operation/operation-stack path. The AgentRewardBench converter reads the HF
 annotations table, downloads only matching `cleaned/` trajectory JSON files, and
 turns BrowserGym steps into browser-action operations with expert `status`,
-`side_effect`, `looping`, and `optimality` fields.
+`side_effect`, `looping`, and `optimality` fields plus action-derived
+`repeat_state` and `repeat_signal` fields for sequence-level repetition
+diagnostics.
 
 The Python scripts are experiment harnesses. They download or normalize
 third-party traces, generate mapping files, call the Rust CLI, and score
@@ -102,6 +104,6 @@ Purpose: name work still needed before a paper-ready artifact.
 | Add deeper boundary scorers for step instructions, solution paths, and failure labels. | Action-label F1 is too shallow for final recursive-boundary claims. | pending |
 | Add converters for the best next trajectory sources: OSWorld-Verified/OSWorld 2.0 trajectories and VisualWebArena trajectories. | Expands scale and domain coverage beyond the current 11 datasets. | pending |
 | Scale tau-bench beyond the R287 `gpt-4o-mini` 50-episode sample. | Multi-model tau-bench trajectories can support outcome/failure and model-comparison analysis. | pending |
-| Scale AgentRewardBench beyond the R288 38-trajectory lightweight sample. | Expert side-effect and looping labels are sparse; larger balanced sampling is needed for paper-grade failure diagnostics. | pending |
+| Scale AgentRewardBench beyond the R288 38-trajectory lightweight sample. | Expert side-effect and looping labels are sparse; larger balanced sampling is needed for paper-grade failure diagnostics and better sequence-derived repetition rules. | pending |
 | Add a config-file profile spec that bundles mappings, stack depth, and output choices. | Makes the jq-like configurable workflow easier than long CLI command lines. | pending |
 | Add stronger non-flamegraph comparison reports across datasets and depths. | Paper needs visual/analysis alternatives beyond flamegraphs. | partial via R273-R288 |

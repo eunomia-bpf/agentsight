@@ -843,15 +843,19 @@ def normalize_agent_reward_bench(
                 "tool": "browser",
                 "action": "trajectory",
                 "step_error": "missing-trajectory" if row.get("trajectory_error") else "none",
+                "repeat_state": "unknown",
+                "repeat_signal": "unknown",
             }
         )
         return [{"value": 1, "fields": fields}]
 
+    repeat_features = agent_reward_repeat_features(steps)
     operations = []
     for ordinal, step in enumerate(steps):
         action_raw = str(step.get("action") or "")
         action = action_verb(action_raw)
         error = str(step.get("last_action_error") or "")
+        repeat = repeat_features[ordinal]
         fields = agent_reward_base_fields(
             dataset_id,
             dataset,
@@ -867,6 +871,9 @@ def normalize_agent_reward_bench(
                 "action": action,
                 "target": sanitize_label(agent_reward_action_target(action_raw)),
                 "step_error": "error" if error else "ok",
+                "repeat_state": repeat["repeat_state"],
+                "repeat_signal": repeat["repeat_signal"],
+                "repeat_run": repeat["repeat_run"],
             }
         )
         stats = step.get("stats") or {}
@@ -884,6 +891,64 @@ def normalize_agent_reward_bench(
             fields["action_raw"] = truncate_clean(action_raw, 180)
         operations.append({"value": 1, "fields": fields})
     return operations
+
+
+def agent_reward_repeat_features(steps: list[dict[str, Any]]) -> list[dict[str, str]]:
+    signatures: list[tuple[str, str]] = []
+    for step in steps:
+        action_raw = str(step.get("action") or "")
+        signatures.append((action_verb(action_raw), sanitize_label(agent_reward_action_target(action_raw))))
+
+    features: list[dict[str, str]] = []
+    last_signature: tuple[str, str] | None = None
+    same_run = 0
+    max_same_run = 0
+    max_recent_signature = 0
+    max_recent_target = 0
+    for index, signature in enumerate(signatures):
+        if signature == last_signature:
+            same_run += 1
+        else:
+            same_run = 1
+        last_signature = signature
+        max_same_run = max(max_same_run, same_run)
+
+        window = signatures[max(0, index - 4) : index + 1]
+        recent_signature = sum(1 for item in window if item == signature)
+        target = signature[1]
+        recent_target = (
+            sum(1 for item in window if item[1] == target)
+            if target and target != "none"
+            else recent_signature
+        )
+        max_recent_signature = max(max_recent_signature, recent_signature)
+        max_recent_target = max(max_recent_target, recent_target)
+
+        if same_run >= 3:
+            repeat_state = "same-action-run"
+        elif recent_signature >= 3:
+            repeat_state = "same-action-window"
+        elif target != "none" and recent_target >= 4:
+            repeat_state = "target-window"
+        elif same_run == 2 or recent_signature == 2 or recent_target == 2:
+            repeat_state = "light-repeat"
+        else:
+            repeat_state = "single"
+        features.append(
+            {
+                "repeat_state": repeat_state,
+                "repeat_run": "3plus" if same_run >= 3 else str(same_run),
+            }
+        )
+
+    trajectory_signal = (
+        "loop-like"
+        if max_same_run >= 3 or max_recent_signature >= 3 or max_recent_target >= 4
+        else "none"
+    )
+    for feature in features:
+        feature["repeat_signal"] = trajectory_signal
+    return features
 
 
 def agent_reward_base_fields(
