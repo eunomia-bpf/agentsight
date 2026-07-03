@@ -6,7 +6,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fs;
 use std::io::{BufRead, BufReader, Write};
 use std::path::{Path, PathBuf};
@@ -107,6 +107,7 @@ impl std::fmt::Debug for OperationStackRule {
 #[derive(Clone, Debug)]
 pub struct OperationStackConfig {
     stack: OperationStackSpec,
+    field_rules: Vec<OperationStackRule>,
     rules: Vec<OperationStackRule>,
 }
 
@@ -114,6 +115,7 @@ impl OperationStackConfig {
     pub fn for_view(view: ProfileView) -> Self {
         Self {
             stack: OperationStackSpec::default_for_view(view),
+            field_rules: Vec::new(),
             rules: Vec::new(),
         }
     }
@@ -125,6 +127,11 @@ impl OperationStackConfig {
 
     pub fn with_rules(mut self, rules: Vec<OperationStackRule>) -> Self {
         self.rules = rules;
+        self
+    }
+
+    pub fn with_field_rules(mut self, rules: Vec<OperationStackRule>) -> Self {
+        self.field_rules = rules;
         self
     }
 }
@@ -196,26 +203,33 @@ pub fn parse_stack_spec(raw: &str) -> Result<OperationStackSpec> {
 }
 
 pub fn parse_stack_rules(raw_rules: &[String]) -> Result<Vec<OperationStackRule>> {
+    parse_stack_rules_with_flag(raw_rules, "--stack-rule")
+}
+
+pub fn parse_stack_rules_with_flag(
+    raw_rules: &[String],
+    flag_name: &str,
+) -> Result<Vec<OperationStackRule>> {
     raw_rules
         .iter()
-        .map(|rule| parse_stack_rule(rule))
+        .map(|rule| parse_stack_rule(rule, flag_name))
         .collect()
 }
 
-fn parse_stack_rule(raw: &str) -> Result<OperationStackRule> {
+fn parse_stack_rule(raw: &str, flag_name: &str) -> Result<OperationStackRule> {
     let (left, pattern) = raw.split_once('=').ok_or_else(|| {
-        anyhow::anyhow!("invalid --stack-rule {raw:?}; expected FRAME:LABEL=REGEX")
+        anyhow::anyhow!("invalid {flag_name} {raw:?}; expected FRAME:LABEL=REGEX")
     })?;
     let (frame, label) = left.split_once(':').ok_or_else(|| {
-        anyhow::anyhow!("invalid --stack-rule {raw:?}; expected FRAME:LABEL=REGEX")
+        anyhow::anyhow!("invalid {flag_name} {raw:?}; expected FRAME:LABEL=REGEX")
     })?;
     validate_frame_name(frame, "stack frame")?;
     validate_frame_name(label, "stack label")?;
     if pattern.is_empty() {
-        bail!("invalid --stack-rule {raw:?}; regex pattern cannot be empty");
+        bail!("invalid {flag_name} {raw:?}; regex pattern cannot be empty");
     }
     let regex = Regex::new(pattern)
-        .map_err(|error| anyhow::anyhow!("invalid --stack-rule regex {pattern:?}: {error}"))?;
+        .map_err(|error| anyhow::anyhow!("invalid {flag_name} regex {pattern:?}: {error}"))?;
     Ok(OperationStackRule {
         frame: frame.to_string(),
         label: label.to_string(),
@@ -389,6 +403,7 @@ pub fn build_profile_with_options(
     let mut profile = Profile::new(name, sample_type, unit);
     for session in sessions {
         for sample in session_samples(session, project_name, view) {
+            let sample = apply_operation_field_rules(&sample, &options.field_rules);
             let frames = stack_frames(&sample, options);
             profile.sample(frames, sample.value);
         }
@@ -419,7 +434,8 @@ fn build_profile_from_operations(
     let (name, sample_type, unit) = view_metadata(view);
     let mut profile = Profile::new(name, sample_type, unit);
     for sample in operations {
-        let frames = stack_frames(sample, options);
+        let sample = apply_operation_field_rules(sample, &options.field_rules);
+        let frames = stack_frames(&sample, options);
         profile.sample(frames, sample.value);
     }
     profile
@@ -501,6 +517,26 @@ fn stack_frames(sample: &Operation, options: &OperationStackConfig) -> Vec<Frame
         }
     }
     frames
+}
+
+fn apply_operation_field_rules(sample: &Operation, rules: &[OperationStackRule]) -> Operation {
+    if rules.is_empty() {
+        return sample.clone();
+    }
+    let mut mapped = sample.clone();
+    let mut claimed_fields = BTreeSet::new();
+    for rule in rules {
+        if claimed_fields.contains(&rule.frame) {
+            continue;
+        }
+        if rule.regex.is_match(&mapped.searchable_text()) {
+            mapped
+                .fields
+                .insert(rule.frame.clone(), vec![rule.label.clone()]);
+            claimed_fields.insert(rule.frame.clone());
+        }
+    }
+    mapped
 }
 
 fn stack_frame_values(name: &str, sample: &Operation, rules: &[OperationStackRule]) -> Vec<String> {
@@ -1613,6 +1649,43 @@ mod tests {
         );
         assert_eq!(
             stacks.get("project:external;agent:human-demo;task:authenticate;phase:input;op:action;action:type;target:email;status:gold"),
+            Some(&1)
+        );
+    }
+
+    #[test]
+    fn operation_field_rules_map_fields_before_stacking() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("ops.jsonl");
+        fs::write(
+            &path,
+            r#"{"value":1,"fields":{"project":"external","agent":"gold","dataset":"demo","op":"action","action":"click","target":"login","status":"gold"}}"#
+                .to_string()
+                + "\n"
+                + r#"{"value":1,"fields":{"project":"external","agent":"gold","dataset":"demo","op":"action","action":"type","target":"email","status":"gold"}}"#
+                + "\n",
+        )
+        .unwrap();
+        let stack = parse_stack_spec("project,agent,task,phase,op,action,status").unwrap();
+        let field_rules = parse_stack_rules(&[
+            "task:authenticate=(target=login|target=email)".to_string(),
+            "phase:select=(action=click.*task=authenticate)".to_string(),
+            "phase:input=(action=type.*task=authenticate)".to_string(),
+        ])
+        .unwrap();
+        let options = OperationStackConfig::for_view(ProfileView::Operations)
+            .with_stack(stack)
+            .with_field_rules(field_rules);
+        let profile =
+            build_profile_from_operation_files(&[path], ProfileView::Operations, &options).unwrap();
+        let stacks = profile_to_stacks(&profile);
+
+        assert_eq!(
+            stacks.get("project:external;agent:gold;task:authenticate;phase:select;op:action;action:click;status:gold"),
+            Some(&1)
+        );
+        assert_eq!(
+            stacks.get("project:external;agent:gold;task:authenticate;phase:input;op:action;action:type;status:gold"),
             Some(&1)
         );
     }

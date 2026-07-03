@@ -11,8 +11,8 @@ use std::time::Duration;
 
 use profile::{
     OperationStackConfig, OutputFormat, ProfileView, build_profile_from_operation_files,
-    build_profile_with_options, infer_output_format, parse_stack_rules, parse_stack_spec,
-    profile_to_stacks, write_projection,
+    build_profile_with_options, infer_output_format, parse_stack_rules,
+    parse_stack_rules_with_flag, parse_stack_spec, profile_to_stacks, write_projection,
 };
 use session::{SessionRecord, default_claude_root, discover_sessions};
 use tagger::{
@@ -45,14 +45,14 @@ TAGGING WORKFLOW:
 
 OPERATION STACK WORKFLOW:
   --view chooses which operation samples are measured. --stack chooses how those
-  operations fold into a stack. Use --stack-rule to compute recursive
-  intent/task/subtask/phase frames without binding the stack to prompt or
-  session boundaries.
+  operations fold into a stack. Use --op-map to derive reusable operation
+  fields, then --stack chooses how those fields recursively fold. Use
+  --stack-rule for one-off stack-frame overrides.
 
      agentpprof --view files -o files.folded \
        --stack 'project,agent,task,phase,op,tool,path,status' \
-       --stack-rule 'task:verify=(effect=test|cmd=cargo)' \
-       --stack-rule 'phase:inspect=(effect=read)'
+       --op-map 'task:verify=(effect=test|cmd=cargo)' \
+       --op-map 'phase:inspect=(effect=read)'
 "#;
 
 #[derive(Parser)]
@@ -79,6 +79,10 @@ struct Cli {
     /// Rules are evaluated in order for each stack frame; first match wins.
     #[arg(long = "stack-rule", value_name = "FRAME:LABEL=REGEX")]
     stack_rules: Vec<String>,
+    /// Derive or overwrite an operation field before stacking, e.g. task:verify='(?i)cmd=cargo'.
+    /// Rules are evaluated in order against updated fields; first match wins for each field.
+    #[arg(long = "op-map", value_name = "FIELD:LABEL=REGEX")]
+    op_maps: Vec<String>,
     #[arg(long, value_enum, default_value_t = TaggerKind::Regex)]
     tagger: TaggerKind,
     /// Add a deterministic tag rule, for example prompt:review='(?i)review|diff'.
@@ -201,7 +205,9 @@ fn command_export(args: Cli) -> Result<()> {
     if let Some(stack) = args.stack.as_deref() {
         profile_options = profile_options.with_stack(parse_stack_spec(stack)?);
     }
-    profile_options = profile_options.with_rules(parse_stack_rules(&args.stack_rules)?);
+    profile_options = profile_options
+        .with_field_rules(parse_stack_rules_with_flag(&args.op_maps, "--op-map")?)
+        .with_rules(parse_stack_rules(&args.stack_rules)?);
     if !args.operation_files.is_empty() {
         let profile =
             build_profile_from_operation_files(&args.operation_files, view, &profile_options)?;
@@ -225,6 +231,7 @@ fn command_export(args: Cli) -> Result<()> {
             "sample_type": profile.sample_type,
             "unit": profile.unit,
             "stack": args.stack.as_deref().unwrap_or("default"),
+            "op_maps": args.op_maps,
             "stack_rules": args.stack_rules,
             "operation_files": args.operation_files,
             "samples": stacks.values().sum::<u64>(),
@@ -287,6 +294,7 @@ fn command_export(args: Cli) -> Result<()> {
         "sample_type": profile.sample_type,
         "unit": profile.unit,
         "stack": args.stack.as_deref().unwrap_or("default"),
+        "op_maps": args.op_maps,
         "stack_rules": args.stack_rules,
         "sessions": sessions.len(),
         "samples": stacks.values().sum::<u64>(),

@@ -1,8 +1,9 @@
 # Operation Stack：语义 profiler 的递归模型
 
 状态：设计提案（2026-07）。当前 `agentpprof` 已实现本模型的第一步：
-`--stack` 可任意选择 operation stack，`--stack-rule` 可把线性轨迹递归
-折叠成 task/subtask/phase 等多层；本文描述完整目标模型和后续演进路径。
+`--op-map` 可派生 operation 字段，`--stack` 可任意选择 operation stack，
+`--stack-rule` 可做局部 frame 覆盖，从而把线性轨迹递归折叠成
+task/subtask/phase 等多层；本文描述完整目标模型和后续演进路径。
 视觉设计见
 [intent-to-effect-flame-graph.md](intent-to-effect-flame-graph.md)，
 实验证据与 claim 边界见
@@ -33,9 +34,10 @@ process、一次 syscall 级的文件/网络效果，都是操作。每个操作
 
 **定义 2（operation stack，操作栈）。** 操作栈是把一个 operation 投影成
 有序 frame 序列的函数 σ(o) = [f₁; f₂; …; f_k]。frame 可以直接来自
-operation 字段，也可以由 `--stack-rule FRAME:LABEL=REGEX` 从 operation
-字段中计算出来。prompt、session、tool call、process、path、domain 都不是
-独立抽象，只是 operation 或 operation stack frame 的一种取值。
+operation 字段，也可以先由 `--op-map FIELD:LABEL=REGEX` 派生成 operation
+字段，再由 `--stack` 选入栈；`--stack-rule FRAME:LABEL=REGEX` 是栈构造时的
+局部覆盖。prompt、session、tool call、process、path、domain 都不是独立抽象，
+只是 operation 或 operation stack frame 的一种取值。
 
 因此完整求值只有一个形式：
 
@@ -43,10 +45,10 @@ operation 字段，也可以由 `--stack-rule FRAME:LABEL=REGEX` 从 operation
 eval(φ, σ, w, O) = { (σ(o), w(o)) | o ∈ O, φ(o) }
 ```
 
-`--view` 选择 φ 和 w，即采样哪些 operation、用什么权重；`--stack` 和
-`--stack-rule` 选择 σ，即 operation stack 怎么递归折叠。切段、标注、
-血缘拼接、process 展开都只是产生 operation 字段或 stack frame 的机制，
-不是额外的核心抽象。
+`--view` 选择 φ 和 w，即采样哪些 operation、用什么权重；`--op-map`、
+`--stack` 和 `--stack-rule` 选择 σ，即 operation stack 怎么递归折叠。
+切段、标注、血缘拼接、process 展开都只是产生 operation 字段或 stack frame
+的机制，不是额外的核心抽象。
 `operations` view 是最通用的 operation-count 查询，适合本地 trace 和
 第三方 normalized operation JSONL；`tokens`、`files`、`network`、`time`
 只是更具体的 φ/w 预设。
@@ -62,7 +64,7 @@ eval(φ, σ, w, O) = { (σ(o), w(o)) | o ∈ O, φ(o) }
 
 | 后端类型 | 标注侧（已有） | 切段侧（提案） |
 | --- | --- | --- |
-| 确定性规则 | regex `--tag-rule` | operation stack rule `--stack-rule` |
+| 确定性规则 | regex `--tag-rule` | operation field mapping `--op-map` + stack rule `--stack-rule` |
 | 模型推断 | 本地 LLM 标签器 | LLM 判段边界（研究方向） |
 | 无监督 | TF-IDF + K-Means 聚类 | 变化点检测 / 序列聚类 |
 
@@ -76,7 +78,7 @@ span 内部继续切。
 
 ## Stack Frame 证据来源（按强度排序）
 
-`--stack-rule` 和未来推断后端可用的证据，从强到弱：
+`--op-map`、`--stack-rule` 和未来推断后端可用的证据，从强到弱：
 
 1. **Subagent 调用**：Claude Code 的 subagent 写独立 session 文件且有派生
    关系（R170 中 77 个），是数据里已有的真 subtask，无需推断。当前实现仍把
@@ -93,17 +95,17 @@ span 内部继续切。
 5. **推断切段**：对事件序列做变化点检测或聚类（特征：工具类别、触碰
    路径、call 标签、时间间隔）。
 
-用户 `--stack-rule` 可以覆盖或补充以上任何一层。
+用户 `--op-map` 和 `--stack-rule` 可以覆盖或补充以上任何一层。
 
 ## 实现现状与差距
 
 | 模型组件 | 现状 | 需要的改动 |
 | --- | --- | --- |
 | Operation | `agent-session` 已产出 prompt、LLM call、tool/effect 等 operation 字段；`--operation-file` 可直接读取第三方 normalized operation JSONL | 继续补齐 plan、subagent、process/syscall 字段和更多第三方转换器 |
-| Operation stack | `agentpprof` 用 `--stack` 和 `--stack-rule` 从 operation 字段生成任意深度栈，本地 session 和外部 operation JSONL 共用同一求值路径 | 增加更多内置证据后端和推断式 rule 生成 |
+| Operation stack | `agentpprof` 用 `--op-map`、`--stack` 和 `--stack-rule` 从 operation 字段生成任意深度栈，本地 session 和外部 operation JSONL 共用同一求值路径 | 增加更多内置证据后端和推断式 rule 生成 |
 
 演进顺序建议：subagent 嵌套（证据最硬、改动最小）→ todo/plan span →
-更强的 `--stack-rule` 预设 → 推断式 stack rule 生成。
+更强的 `--op-map`/`--stack-rule` 预设 → 推断式 stack rule 生成。
 
 ## 评估影响
 

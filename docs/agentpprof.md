@@ -305,10 +305,10 @@ The semantic flamegraph stack is a projection, not a literal function call
 stack. Operations are the only profiled entities: a prompt, inferred task, LLM
 call, tool call, process, path, or domain is just an operation at a different
 granularity. `--view` chooses which operations are sampled and how they are
-weighted. `--stack` chooses which frames form the operation
-stack. A stack frame can come directly from an operation field or from the first
-matching `--stack-rule` for that frame, which lets one operation sequence fold
-to arbitrary task/subtask/phase depths.
+weighted. `--op-map` derives reusable operation fields, and `--stack` chooses
+which frames form the operation stack. A stack frame can come directly from an
+operation field or from the first matching `--stack-rule` for that frame, which
+lets one operation sequence fold to arbitrary task/subtask/phase depths.
 
 For third-party traces or benchmark datasets, `--operation-file` accepts
 normalized operation JSONL directly. Each line is one operation with a numeric
@@ -321,23 +321,29 @@ agentpprof -o external.folded --view operations \
   --stack 'project,agent,dataset,task,session,phase,op,action,target,status'
 ```
 
-For example, this folds several prompt/tool events into inferred task and phase
-layers without making either prompt or phase a special boundary:
+For example, this derives task and phase as ordinary operation fields, then
+folds several prompt/tool events through those frames without making prompt a
+special boundary:
 
 ```bash
 agentpprof -o files.folded --view files \
   --stack 'project,agent,task,phase,op,tool,path,status' \
-  --stack-rule 'task:verify=(effect=test|cmd=cargo|path=tests)' \
-  --stack-rule 'task:explore=(effect=read|tool=read)' \
-  --stack-rule 'phase:inspect=(effect=read)' \
-  --stack-rule 'phase:execute=(effect=test)'
+  --op-map 'task:verify=(effect=test|cmd=cargo|path=tests)' \
+  --op-map 'task:explore=(effect=read|tool=read)' \
+  --op-map 'phase:inspect=(effect=read)' \
+  --op-map 'phase:execute=(effect=test)' \
+  --stack-rule 'path:tests=(path=tests)'
 ```
 
-Operation stack rules match a `key=value` string assembled from operation fields such
-as `prompt`, `prompt_preview`, `op`, `tool`, `category`, `command`, `cmd`,
-`process`, `effect`, `status`, `path`, `domain`, `llm`, `llm_preview`, `model`,
-and `token`, plus any field supplied by `--operation-file`. Default stacks use
-`phase`, but users can add or remove any field or stack frame.
+`--op-map FIELD:LABEL=REGEX` and `--stack-rule FRAME:LABEL=REGEX` both match a
+`key=value` string assembled from operation fields such as `prompt`,
+`prompt_preview`, `op`, `tool`, `category`, `command`, `cmd`, `process`,
+`effect`, `status`, `path`, `domain`, `llm`, `llm_preview`, `model`, and
+`token`, plus any field supplied by `--operation-file`. `--op-map` runs first
+and rewrites operation fields in order, so later mappings can match fields
+derived by earlier mappings; `--stack-rule` is a frame-local override during
+stack construction. Default stacks use `phase`, but users can add or remove any
+field or stack frame.
 
 The `tokens` view uses model budget as the width:
 

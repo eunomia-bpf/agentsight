@@ -4,7 +4,7 @@
 The durable profiler abstraction is an operation plus an operation stack. This
 script keeps third-party datasets outside the repository, then emits a small
 normalized operation JSONL file that `agentpprof --operation-file` can fold with
-the same `--stack` and `--stack-rule` machinery used for local traces.
+the same `--stack`, `--op-map`, and `--stack-rule` machinery used for local traces.
 """
 
 from __future__ import annotations
@@ -43,7 +43,9 @@ DATASETS: dict[str, dict[str, Any]] = {
         "hf_repo": "osunlp/Mind2Web",
         "config": "default",
         "split": "train",
+        "repo_file": "data/train/train_10.json",
         "access": "large-repo-json",
+        "adapter": "mind2web",
         "source": "https://osu-nlp-group.github.io/Mind2Web/",
         "paper": "https://arxiv.org/abs/2306.06070",
         "why": "Crowdsourced web task action sequences; best as an oracle dataset after full-file download.",
@@ -145,6 +147,7 @@ def main() -> int:
     sample.add_argument("--offset", type=int, default=0)
     sample.add_argument("--config", help="Override the HF Dataset Viewer config")
     sample.add_argument("--split", help="Override the HF Dataset Viewer split")
+    sample.add_argument("--repo-file", help="Override the HF repo file for large JSON datasets")
     sample.add_argument("--out", type=Path, default=DEFAULT_OUT)
     sample.add_argument(
         "--include-text",
@@ -177,15 +180,20 @@ def cmd_sample(args: argparse.Namespace) -> int:
         dataset["config"] = args.config
     if args.split:
         dataset["split"] = args.split
-    if dataset["access"] != "hf-viewer":
-        note = dataset.get("note", "No lightweight sampler is configured for this dataset.")
-        raise SystemExit(f"{args.dataset} is not viewer-sampleable: {note}")
+    if args.repo_file:
+        dataset["repo_file"] = args.repo_file
     if args.limit <= 0:
         raise SystemExit("--limit must be positive")
 
-    rows = hf_viewer_rows(dataset, args.offset, args.limit)
     out_dir = args.out / args.dataset / f"{dataset['config']}-{dataset['split']}"
     out_dir.mkdir(parents=True, exist_ok=True)
+    if dataset["access"] == "hf-viewer":
+        rows = hf_viewer_rows(dataset, args.offset, args.limit)
+    elif dataset["access"] == "large-repo-json":
+        rows = hf_repo_json_rows(dataset, out_dir, args.offset, args.limit)
+    else:
+        note = dataset.get("note", "No lightweight sampler is configured for this dataset.")
+        raise SystemExit(f"{args.dataset} is not sampleable by this command: {note}")
     raw_path = out_dir / f"rows-{args.offset}-{args.offset + len(rows)}.jsonl"
     op_path = out_dir / f"operations-{args.offset}-{args.offset + len(rows)}.jsonl"
     manifest_path = out_dir / "manifest.json"
@@ -259,6 +267,23 @@ def hf_first_rows(dataset: dict[str, Any]) -> dict[str, Any]:
     return get_json(f"{HF_DATASET_VIEWER}/first-rows?{params}")
 
 
+def hf_repo_json_rows(
+    dataset: dict[str, Any], out_dir: Path, offset: int, limit: int
+) -> list[dict[str, Any]]:
+    repo_file = dataset["repo_file"]
+    source_path = out_dir / Path(repo_file).name
+    if not source_path.exists():
+        encoded = urllib.parse.quote(repo_file)
+        url = f"https://huggingface.co/datasets/{dataset['hf_repo']}/resolve/main/{encoded}"
+        with urllib.request.urlopen(url, timeout=120) as response:
+            source_path.write_bytes(response.read())
+    with source_path.open("r", encoding="utf-8") as f:
+        payload = json.load(f)
+    if not isinstance(payload, list):
+        raise SystemExit(f"{repo_file} did not contain a JSON list")
+    return payload[offset : offset + limit]
+
+
 def get_json(url: str) -> dict[str, Any]:
     with urllib.request.urlopen(url, timeout=60) as response:
         return json.loads(response.read().decode("utf-8"))
@@ -274,6 +299,8 @@ def normalize_row(
     adapter = dataset.get("adapter")
     if adapter == "weblinx-chat":
         return [normalize_weblinx_chat(dataset_id, dataset, row, include_text)]
+    if adapter == "mind2web":
+        return normalize_mind2web(dataset_id, dataset, row, include_text)
     if adapter == "webshop-expert":
         return normalize_webshop_expert(dataset_id, dataset, row, include_text)
     if adapter == "api-bank":
@@ -318,6 +345,46 @@ def normalize_weblinx_chat(
             fields["task_preview"] = truncate_clean(instruction, 180)
         fields["action_raw"] = truncate_clean(action, 180)
     return {"value": 1, "fields": fields}
+
+
+def normalize_mind2web(
+    dataset_id: str,
+    dataset: dict[str, Any],
+    row: dict[str, Any],
+    include_text: bool,
+) -> list[dict[str, Any]]:
+    session = str(row.get("annotation_id") or stable_id(row))
+    task = sanitize_label(str(row.get("domain") or "web-task"))
+    operations = []
+    action_reprs = row.get("action_reprs") or []
+    for turn, action in enumerate(row.get("actions") or []):
+        operation = action.get("operation") or {}
+        action_name = sanitize_label(str(operation.get("op") or operation.get("original_op") or "unknown"))
+        original = sanitize_label(str(operation.get("original_op") or action_name))
+        fields: dict[str, Any] = {
+            "project": "external-agent-traces",
+            "agent": "human-demo",
+            "dataset": dataset_id,
+            "source": dataset["hf_repo"],
+            "session": session,
+            "turn": str(turn),
+            "task": task,
+            "phase": action_name,
+            "op": "action",
+            "tool": "browser",
+            "action": action_name,
+            "original_action": original,
+            "website": sanitize_label(str(row.get("website") or "unknown")),
+            "domain": sanitize_label(str(row.get("domain") or "unknown")),
+            "subdomain": sanitize_label(str(row.get("subdomain") or "unknown")),
+            "status": "gold",
+        }
+        if include_text:
+            fields["task_preview"] = truncate_clean(str(row.get("confirmed_task") or ""), 180)
+            if turn < len(action_reprs):
+                fields["action_raw"] = truncate_clean(str(action_reprs[turn]), 180)
+        operations.append({"value": 1, "fields": fields})
+    return operations
 
 
 def normalize_webshop_expert(

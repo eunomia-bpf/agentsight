@@ -169,9 +169,9 @@ agentpprof --project-root . --tag-cache tags.json -o flamegraph.svg
 
 **定义 2（operation stack，操作栈）。** 栈化函数 σ 把操作映射为有序帧序列 σ(o) = [f₁; f₂; …; f_k]。每一帧都是某种 operation 属性或 operation stack frame：project、agent、session、prompt、tool call、process、path、domain 都不是独立抽象，只是 operation 在不同粒度上的形态。与 CPU 调用栈不同，操作栈表达的是**归因链**而非控制流：每一帧回答「这个活动发生在什么上下文里」。
 
-层级从哪里来？agent 历史本身是一条线性事件序列，没有现成的树。当前实现把 operation stack rule 作为栈构造规则：`--stack` 选择栈中要出现的 frame，`--stack-rule NAME:LABEL=REGEX` 根据 operation 字段为某个 frame 生成标签。默认 `phase` 只是一个内置 frame，它根据 LLM 标签和 tool effect/category 给单个 prompt 内的事件生成阶段；用户也可以去掉 prompt、增加 `task,subtask,phase`，让几个 prompt 合并到同一个 intent/task 下。折叠出结构在前，标签聚合在后。
+层级从哪里来？agent 历史本身是一条线性事件序列，没有现成的树。当前实现把 operation field mapping 和 operation stack rule 作为栈构造规则：`--op-map FIELD:LABEL=REGEX` 先把 task、subtask、phase 等派生成普通 operation 字段，`--stack` 再选择栈中要出现的 frame，`--stack-rule FRAME:LABEL=REGEX` 只在构造某个 frame 时做局部覆盖。默认 `phase` 只是一个内置 frame，它根据 LLM 标签和 tool effect/category 给单个 prompt 内的事件生成阶段；用户也可以去掉 prompt、增加 `task,subtask,phase`，让几个 prompt 合并到同一个 intent/task 下。折叠出结构在前，标签聚合在后。
 
-`--stack-rule` 匹配的是由 operation 字段组成的 `key=value` 字符串，可用字段包括 `prompt`、`prompt_preview`、`op`、`tool`、`category`、`command`、`cmd`、`process`、`effect`、`status`、`path`、`domain`、`llm`、`llm_preview`、`model` 和 `token`。默认栈使用 `phase`，但用户可以增删任意 frame。
+`--op-map` 和 `--stack-rule` 匹配的是由 operation 字段组成的 `key=value` 字符串，可用字段包括 `prompt`、`prompt_preview`、`op`、`tool`、`category`、`command`、`cmd`、`process`、`effect`、`status`、`path`、`domain`、`llm`、`llm_preview`、`model` 和 `token`。`--op-map` 先执行，并按顺序匹配已经派生出来的字段；同一个字段第一条匹配规则生效。默认栈使用 `phase`，但用户可以增删任意 frame。
 
 在这两个抽象之上，视图只是一次查询求值，不是新的核心抽象。一次查询由三部分组成：谓词 φ 选择参与统计的 operation 子集，σ 决定 operation stack，权重函数 w 把每个 operation 映射为非负数。求值结果是 folded stacks，即按栈分组、权重求和的多重集：
 
@@ -264,7 +264,7 @@ agentpprof -o tokens.svg --prompt-tag review
 
 ## 调用栈模型
 
-语义 flamegraph 的调用栈是一种投影而非字面意义的函数调用栈：`--view` 决定采样哪些 operation 及其权重，`--stack` 决定 operation stack 的 frame 序列，frame 可以直接来自 operation 字段，也可以由 `--stack-rule` 生成，用来递归折叠 intent/task/subtask/phase 等层级。
+语义 flamegraph 的调用栈是一种投影而非字面意义的函数调用栈：`--view` 决定采样哪些 operation 及其权重，`--op-map` 在栈化前派生 operation 字段，`--stack` 决定 operation stack 的 frame 序列，frame 可以直接来自 operation 字段，也可以由 `--stack-rule` 局部生成，用来递归折叠 intent/task/subtask/phase 等层级。
 
 对于第三方 trace 或 benchmark 数据集，`--operation-file` 可以直接读取规范化后的 operation JSONL。每一行是一条 operation，包含数值 `value` 和 `fields` 对象。它会跳过 Codex/Claude session discovery，但复用同一条 operation stack 投影路径：
 
@@ -279,10 +279,11 @@ agentpprof -o external.folded --view operations \
 ```bash
 agentpprof -o files.folded --view files \
   --stack 'project,agent,task,phase,op,tool,path,status' \
-  --stack-rule 'task:verify=(effect=test|cmd=cargo|path=tests)' \
-  --stack-rule 'task:explore=(effect=read|tool=read)' \
-  --stack-rule 'phase:inspect=(effect=read)' \
-  --stack-rule 'phase:execute=(effect=test)'
+  --op-map 'task:verify=(effect=test|cmd=cargo|path=tests)' \
+  --op-map 'task:explore=(effect=read|tool=read)' \
+  --op-map 'phase:inspect=(effect=read)' \
+  --op-map 'phase:execute=(effect=test)' \
+  --stack-rule 'path:tests=(path=tests)'
 ```
 
 `tokens` 视图以模型预算作为宽度：

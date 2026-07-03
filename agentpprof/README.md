@@ -179,10 +179,19 @@ Each JSONL line is one sampled operation:
 ```
 
 Field values may be strings, numbers, booleans, arrays, or JSON objects. The
-chosen `--stack` decides which fields become stack frames, and `--stack-rule`
-can compute recursive frames such as task, subtask, and phase from those fields.
+chosen `--stack` decides which fields become stack frames. `--op-map` can derive
+or overwrite operation fields before stacking, and `--stack-rule` can override a
+single frame while building the stack.
 Use `script/agent_trace_datasets.py` to sample known labeled datasets into this
 format without committing raw external data.
+
+```bash
+agentpprof -o external.folded --view operations \
+  --operation-file .agentsight/datasets/agent-traces/weblinx-chat/chat-validation/operations-0-50.jsonl \
+  --op-map 'task:web=(dataset=weblinx-chat|tool=browser)' \
+  --op-map 'phase:navigate=(action=click|action=goto|action=load)' \
+  --stack 'project,dataset,task,phase,op,tool,action,status'
+```
 
 ## Python Prototype
 
@@ -216,21 +225,26 @@ xdg-open .agentsight/agentpprof/latest/tokens.flame.svg
 
 ## Stack Projections
 
-`--view` selects the measured operation samples and their weights. `--stack`
-selects the operation stack shape. A stack frame can come directly from an
-operation field or from the first matching `--stack-rule` for that frame:
+`--view` selects the measured operation samples and their weights. `--op-map`
+derives reusable operation fields, and `--stack` selects the operation stack
+shape. A stack frame can come directly from an operation field or from the first
+matching `--stack-rule` for that frame:
 
 ```bash
 agentpprof -o files.folded --view files \
   --stack 'project,agent,task,phase,op,tool,path,status' \
-  --stack-rule 'task:verify=(effect=test|cmd=cargo|path=tests)' \
-  --stack-rule 'task:explore=(effect=read|tool=read)'
+  --op-map 'task:verify=(effect=test|cmd=cargo|path=tests)' \
+  --op-map 'task:explore=(effect=read|tool=read)' \
+  --op-map 'phase:inspect=(effect=read)' \
+  --stack-rule 'path:tests=(path=tests)'
 ```
 
-Operation stack rules match a searchable `key=value` string built from operation fields
-such as `prompt`, `prompt_preview`, `op`, `tool`, `category`, `command`, `cmd`,
-`process`, `effect`, `status`, `path`, `domain`, `llm`, `llm_preview`, `model`,
-and `token`, plus any fields supplied by `--operation-file`.
+Operation mapping and stack rules match a searchable `key=value` string built
+from operation fields such as `prompt`, `prompt_preview`, `op`, `tool`,
+`category`, `command`, `cmd`, `process`, `effect`, `status`, `path`, `domain`,
+`llm`, `llm_preview`, `model`, and `token`, plus any fields supplied by
+`--operation-file`. Mapping rules are evaluated in order against the fields
+derived so far; the first match wins for each derived field.
 
 Token profile:
 
