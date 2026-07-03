@@ -10,8 +10,8 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use profile::{
-    OutputFormat, ProfileOptions, ProfileView, build_profile_with_options, infer_output_format,
-    parse_mapping_rules, parse_stack_spec, profile_to_stacks, write_projection,
+    OperationStackConfig, OutputFormat, ProfileView, build_profile_with_options,
+    infer_output_format, parse_stack_rules, parse_stack_spec, profile_to_stacks, write_projection,
 };
 use session::{SessionRecord, default_claude_root, discover_sessions};
 use tagger::{
@@ -42,16 +42,16 @@ TAGGING WORKFLOW:
   --preset enables built-in keyword rules (profile, debug, test, etc.) for quick
   testing, but these are generic and unlikely to match your project's prompts well.
 
-MAPPING WORKFLOW:
+OPERATION STACK WORKFLOW:
   --view chooses which operation samples are measured. --stack chooses how those
-  operations fold into a stack. Use map:NAME frames plus --map-rule to add
-  recursive intent/task/subtask/phase layers without binding the stack to prompt
-  or session boundaries.
+  operations fold into a stack. Use --stack-rule to compute recursive
+  intent/task/subtask/phase frames without binding the stack to prompt or
+  session boundaries.
 
      agentpprof --view files -o files.folded \
-       --stack 'project,agent,map:task,map:phase,op,tool,path,status' \
-       --map-rule 'task:verify=(effect=test|cmd=cargo)' \
-       --map-rule 'phase:inspect=(effect=read)'
+       --stack 'project,agent,task,phase,op,tool,path,status' \
+       --stack-rule 'task:verify=(effect=test|cmd=cargo)' \
+       --stack-rule 'phase:inspect=(effect=read)'
 "#;
 
 #[derive(Parser)]
@@ -71,13 +71,13 @@ struct Cli {
     format: CliOutputFormat,
     #[arg(long, value_enum, default_value_t = CliProfileView::Tokens)]
     view: CliProfileView,
-    /// Override the operation stack, e.g. project,agent,map:task,map:phase,op,tool,path.
-    #[arg(long, value_name = "FIELD[,FIELD|map:NAME...]")]
+    /// Override the operation stack, e.g. project,agent,task,phase,op,tool,path.
+    #[arg(long, value_name = "FRAME[,FRAME...]")]
     stack: Option<String>,
-    /// Add a deterministic mapping rule, e.g. task:verify='(?i)effect=test|cmd=cargo'.
-    /// Rules are evaluated in order for each map frame; first match wins.
-    #[arg(long = "map-rule", value_name = "MAP:LABEL=REGEX")]
-    map_rules: Vec<String>,
+    /// Add a deterministic operation-stack rule, e.g. task:verify='(?i)effect=test|cmd=cargo'.
+    /// Rules are evaluated in order for each stack frame; first match wins.
+    #[arg(long = "stack-rule", value_name = "FRAME:LABEL=REGEX")]
+    stack_rules: Vec<String>,
     #[arg(long, value_enum, default_value_t = TaggerKind::Regex)]
     tagger: TaggerKind,
     /// Add a deterministic tag rule, for example prompt:review='(?i)review|diff'.
@@ -222,11 +222,11 @@ fn command_export(args: Cli) -> Result<()> {
         bail!("sessions were found, but none matched the requested tag filters");
     }
     let view = args.view.into();
-    let mut profile_options = ProfileOptions::for_view(view);
+    let mut profile_options = OperationStackConfig::for_view(view);
     if let Some(stack) = args.stack.as_deref() {
         profile_options = profile_options.with_stack(parse_stack_spec(stack)?);
     }
-    profile_options = profile_options.with_mappings(parse_mapping_rules(&args.map_rules)?);
+    profile_options = profile_options.with_rules(parse_stack_rules(&args.stack_rules)?);
     let profile = build_profile_with_options(&sessions, &project_name, view, &profile_options);
     let stacks = profile_to_stacks(&profile);
     if stacks.is_empty() {
@@ -249,7 +249,7 @@ fn command_export(args: Cli) -> Result<()> {
         "sample_type": profile.sample_type,
         "unit": profile.unit,
         "stack": args.stack.as_deref().unwrap_or("default"),
-        "map_rules": args.map_rules,
+        "stack_rules": args.stack_rules,
         "sessions": sessions.len(),
         "samples": stacks.values().sum::<u64>(),
         "unique_stacks": stacks.len(),

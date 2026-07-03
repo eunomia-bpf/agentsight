@@ -48,7 +48,7 @@ sharing.
 
 ## Semantic flamegraphs
 
-`agentpprof` restores aggregation by introducing **semantic tagging**: mapping
+`agentpprof` restores aggregation by introducing **semantic tagging**: assigning
 free-form prompts to short, stable labels like `debug`, `review`, `paper`, or
 `misc`. Once tagged, prompts behave like function names, and repeated activities
 merge, and the flamegraph becomes readable.
@@ -126,7 +126,7 @@ See `docs/flamegraph-example/agentsight.sh` for the generation script with tag r
 
 ## Tagging
 
-Mapping natural language prompts to stable semantic tags is not trivial. Prompts
+Assigning stable semantic tags to natural language prompts is not trivial. Prompts
 in a single project may mix languages ("fix the 编译 error"), range from single
 characters ("嗯", "ok") to long paragraphs, and include many fragments that make
 no sense in isolation ("continue", "ok", system-generated context restoration
@@ -303,27 +303,28 @@ The semantic flamegraph stack is a projection, not a literal function call
 stack. Operations are the only profiled entities: a prompt, inferred task, LLM
 call, tool call, process, path, or domain is just an operation at a different
 granularity. `--view` chooses which operations are sampled and how they are
-weighted. `--stack` chooses which fields and mapping frames form the operation
-stack. `map:NAME` frames are recursive fold points, and repeated `--map-rule`
-arguments define how trace fields map into those frames.
+weighted. `--stack` chooses which frames form the operation
+stack. A stack frame can come directly from an operation field or from the first
+matching `--stack-rule` for that frame, which lets one operation sequence fold
+to arbitrary task/subtask/phase depths.
 
 For example, this folds several prompt/tool events into inferred task and phase
 layers without making either prompt or phase a special boundary:
 
 ```bash
 agentpprof -o files.folded --view files \
-  --stack 'project,agent,map:task,map:phase,op,tool,path,status' \
-  --map-rule 'task:verify=(effect=test|cmd=cargo|path=tests)' \
-  --map-rule 'task:explore=(effect=read|tool=read)' \
-  --map-rule 'phase:inspect=(effect=read)' \
-  --map-rule 'phase:execute=(effect=test)'
+  --stack 'project,agent,task,phase,op,tool,path,status' \
+  --stack-rule 'task:verify=(effect=test|cmd=cargo|path=tests)' \
+  --stack-rule 'task:explore=(effect=read|tool=read)' \
+  --stack-rule 'phase:inspect=(effect=read)' \
+  --stack-rule 'phase:execute=(effect=test)'
 ```
 
-Mapping rules match a `key=value` string assembled from operation fields such
+Operation stack rules match a `key=value` string assembled from operation fields such
 as `prompt`, `prompt_preview`, `op`, `tool`, `category`, `command`, `cmd`,
 `process`, `effect`, `status`, `path`, `domain`, `llm`, `llm_preview`, `model`,
-and `token`. Default stacks use `map:phase`, but users can add or remove any
-field or mapping layer.
+and `token`. Default stacks use `phase`, but users can add or remove any
+field or stack frame.
 
 The `tokens` view uses model budget as the width:
 

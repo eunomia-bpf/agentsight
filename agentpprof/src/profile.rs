@@ -20,7 +20,7 @@ pub type Counter = BTreeMap<String, u64>;
 pub type OpId = usize;
 type Frame = (String, String);
 
-pub struct Operation {
+pub struct StackNode {
     pub parent: Option<OpId>,
     pub kind: String,
     pub name: String,
@@ -31,7 +31,7 @@ pub struct Profile {
     pub view: &'static str,
     pub sample_type: &'static str,
     pub unit: &'static str,
-    pub ops: Vec<Operation>,
+    pub ops: Vec<StackNode>,
 }
 
 impl Profile {
@@ -49,7 +49,7 @@ impl Profile {
         let mut parent = None;
         for (idx, (kind, name)) in frames.into_iter().enumerate() {
             let id = self.ops.len();
-            self.ops.push(Operation {
+            self.ops.push(StackNode {
                 parent,
                 kind,
                 name,
@@ -61,28 +61,22 @@ impl Profile {
 }
 
 #[derive(Clone, Debug)]
-enum StackFrame {
-    Field(String),
-    Map(String),
+pub struct OperationStackSpec {
+    frames: Vec<String>,
 }
 
-#[derive(Clone, Debug)]
-pub struct StackSpec {
-    frames: Vec<StackFrame>,
-}
-
-impl StackSpec {
+impl OperationStackSpec {
     fn default_for_view(view: ProfileView) -> Self {
         let raw = match view {
-            ProfileView::Tokens => "project,agent,session,prompt,map:phase,op,call,model,token",
+            ProfileView::Tokens => "project,agent,session,prompt,phase,op,call,model,token",
             ProfileView::Files => {
-                "project,agent,session,prompt,map:phase,op,tool,cmd,process,path,effect,status"
+                "project,agent,session,prompt,phase,op,tool,cmd,process,path,effect,status"
             }
             ProfileView::Network => {
-                "project,agent,session,prompt,map:phase,op,tool,cmd,process,domain,status"
+                "project,agent,session,prompt,phase,op,tool,cmd,process,domain,status"
             }
             ProfileView::Time => {
-                "project,agent,session,prompt,map:phase,op,tool,cmd,process,call,model"
+                "project,agent,session,prompt,phase,op,tool,cmd,process,call,model"
             }
         };
         parse_stack_spec(raw).expect("default stack spec is valid")
@@ -90,17 +84,17 @@ impl StackSpec {
 }
 
 #[derive(Clone)]
-pub struct MappingRule {
-    map: String,
+pub struct OperationStackRule {
+    frame: String,
     label: String,
     pattern: String,
     regex: Regex,
 }
 
-impl std::fmt::Debug for MappingRule {
+impl std::fmt::Debug for OperationStackRule {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("MappingRule")
-            .field("map", &self.map)
+        f.debug_struct("OperationStackRule")
+            .field("frame", &self.frame)
             .field("label", &self.label)
             .field("pattern", &self.pattern)
             .finish()
@@ -108,37 +102,37 @@ impl std::fmt::Debug for MappingRule {
 }
 
 #[derive(Clone, Debug)]
-pub struct ProfileOptions {
-    stack: StackSpec,
-    mappings: Vec<MappingRule>,
+pub struct OperationStackConfig {
+    stack: OperationStackSpec,
+    rules: Vec<OperationStackRule>,
 }
 
-impl ProfileOptions {
+impl OperationStackConfig {
     pub fn for_view(view: ProfileView) -> Self {
         Self {
-            stack: StackSpec::default_for_view(view),
-            mappings: Vec::new(),
+            stack: OperationStackSpec::default_for_view(view),
+            rules: Vec::new(),
         }
     }
 
-    pub fn with_stack(mut self, stack: StackSpec) -> Self {
+    pub fn with_stack(mut self, stack: OperationStackSpec) -> Self {
         self.stack = stack;
         self
     }
 
-    pub fn with_mappings(mut self, mappings: Vec<MappingRule>) -> Self {
-        self.mappings = mappings;
+    pub fn with_rules(mut self, rules: Vec<OperationStackRule>) -> Self {
+        self.rules = rules;
         self
     }
 }
 
 #[derive(Clone, Debug)]
-struct OperationSample {
+struct Operation {
     fields: BTreeMap<String, Vec<String>>,
     value: u64,
 }
 
-impl OperationSample {
+impl Operation {
     fn new(value: u64) -> Self {
         Self {
             fields: BTreeMap::new(),
@@ -172,50 +166,45 @@ impl OperationSample {
     }
 }
 
-pub fn parse_stack_spec(raw: &str) -> Result<StackSpec> {
+pub fn parse_stack_spec(raw: &str) -> Result<OperationStackSpec> {
     let mut frames = Vec::new();
     for part in raw.split([',', ';']) {
         let part = part.trim();
         if part.is_empty() {
             continue;
         }
-        if let Some(name) = part.strip_prefix("map:") {
-            validate_frame_name(name, "mapping name")?;
-            frames.push(StackFrame::Map(name.to_string()));
-        } else {
-            validate_frame_name(part, "stack field")?;
-            frames.push(StackFrame::Field(part.to_string()));
-        }
+        validate_frame_name(part, "stack frame")?;
+        frames.push(part.to_string());
     }
     if frames.is_empty() {
         bail!("stack spec cannot be empty");
     }
-    Ok(StackSpec { frames })
+    Ok(OperationStackSpec { frames })
 }
 
-pub fn parse_mapping_rules(raw_rules: &[String]) -> Result<Vec<MappingRule>> {
+pub fn parse_stack_rules(raw_rules: &[String]) -> Result<Vec<OperationStackRule>> {
     raw_rules
         .iter()
-        .map(|rule| parse_mapping_rule(rule))
+        .map(|rule| parse_stack_rule(rule))
         .collect()
 }
 
-fn parse_mapping_rule(raw: &str) -> Result<MappingRule> {
-    let (left, pattern) = raw
-        .split_once('=')
-        .ok_or_else(|| anyhow::anyhow!("invalid --map-rule {raw:?}; expected MAP:LABEL=REGEX"))?;
-    let (map, label) = left
-        .split_once(':')
-        .ok_or_else(|| anyhow::anyhow!("invalid --map-rule {raw:?}; expected MAP:LABEL=REGEX"))?;
-    validate_frame_name(map, "mapping name")?;
-    validate_frame_name(label, "mapping label")?;
+fn parse_stack_rule(raw: &str) -> Result<OperationStackRule> {
+    let (left, pattern) = raw.split_once('=').ok_or_else(|| {
+        anyhow::anyhow!("invalid --stack-rule {raw:?}; expected FRAME:LABEL=REGEX")
+    })?;
+    let (frame, label) = left.split_once(':').ok_or_else(|| {
+        anyhow::anyhow!("invalid --stack-rule {raw:?}; expected FRAME:LABEL=REGEX")
+    })?;
+    validate_frame_name(frame, "stack frame")?;
+    validate_frame_name(label, "stack label")?;
     if pattern.is_empty() {
-        bail!("invalid --map-rule {raw:?}; regex pattern cannot be empty");
+        bail!("invalid --stack-rule {raw:?}; regex pattern cannot be empty");
     }
     let regex = Regex::new(pattern)
-        .map_err(|error| anyhow::anyhow!("invalid --map-rule regex {pattern:?}: {error}"))?;
-    Ok(MappingRule {
-        map: map.to_string(),
+        .map_err(|error| anyhow::anyhow!("invalid --stack-rule regex {pattern:?}: {error}"))?;
+    Ok(OperationStackRule {
+        frame: frame.to_string(),
         label: label.to_string(),
         pattern: pattern.to_string(),
         regex,
@@ -380,7 +369,7 @@ pub fn build_profile_with_options(
     sessions: &[SessionRecord],
     project_name: &str,
     view: ProfileView,
-    options: &ProfileOptions,
+    options: &OperationStackConfig,
 ) -> Profile {
     let (name, sample_type, unit) = view_metadata(view);
     let mut profile = Profile::new(name, sample_type, unit);
@@ -406,30 +395,21 @@ fn frame(kind: &str, value: impl Into<String>) -> Frame {
     (kind.to_string(), value.into())
 }
 
-fn stack_frames(sample: &OperationSample, options: &ProfileOptions) -> Vec<Frame> {
+fn stack_frames(sample: &Operation, options: &OperationStackConfig) -> Vec<Frame> {
     let mut frames = Vec::new();
-    for frame_spec in &options.stack.frames {
-        match frame_spec {
-            StackFrame::Field(name) => {
-                for value in sample.values(name) {
-                    frames.push(frame(name, value.clone()));
-                }
-            }
-            StackFrame::Map(name) => {
-                for value in mapping_values(name, sample, &options.mappings) {
-                    frames.push(frame(name, value));
-                }
-            }
+    for name in &options.stack.frames {
+        for value in stack_frame_values(name, sample, &options.rules) {
+            frames.push(frame(name, value));
         }
     }
     frames
 }
 
-fn mapping_values(name: &str, sample: &OperationSample, rules: &[MappingRule]) -> Vec<String> {
+fn stack_frame_values(name: &str, sample: &Operation, rules: &[OperationStackRule]) -> Vec<String> {
     let searchable = sample.searchable_text();
     if let Some(rule) = rules
         .iter()
-        .find(|rule| rule.map == name && rule.regex.is_match(&searchable))
+        .find(|rule| rule.frame == name && rule.regex.is_match(&searchable))
     {
         return vec![rule.label.clone()];
     }
@@ -461,7 +441,7 @@ fn session_samples(
     session: &SessionRecord,
     project_name: &str,
     view: ProfileView,
-) -> Vec<OperationSample> {
+) -> Vec<Operation> {
     match view {
         ProfileView::Tokens => token_samples(session, project_name),
         ProfileView::Files => file_samples(session, project_name),
@@ -470,7 +450,7 @@ fn session_samples(
     }
 }
 
-fn token_samples(session: &SessionRecord, project_name: &str) -> Vec<OperationSample> {
+fn token_samples(session: &SessionRecord, project_name: &str) -> Vec<Operation> {
     let mut samples = Vec::new();
     for call in &session.llm_calls {
         for (kind, value) in call.token_components() {
@@ -488,7 +468,7 @@ fn token_samples(session: &SessionRecord, project_name: &str) -> Vec<OperationSa
     samples
 }
 
-fn file_samples(session: &SessionRecord, project_name: &str) -> Vec<OperationSample> {
+fn file_samples(session: &SessionRecord, project_name: &str) -> Vec<Operation> {
     let mut samples = Vec::new();
     for event in &session.tools {
         if event.path_groups.is_empty() {
@@ -503,7 +483,7 @@ fn file_samples(session: &SessionRecord, project_name: &str) -> Vec<OperationSam
     samples
 }
 
-fn network_samples(session: &SessionRecord, project_name: &str) -> Vec<OperationSample> {
+fn network_samples(session: &SessionRecord, project_name: &str) -> Vec<Operation> {
     let mut samples = Vec::new();
     for event in &session.tools {
         if event.effect != "network" && event.domains.is_empty() {
@@ -523,7 +503,7 @@ fn network_samples(session: &SessionRecord, project_name: &str) -> Vec<Operation
     samples
 }
 
-fn time_samples(session: &SessionRecord, project_name: &str) -> Vec<OperationSample> {
+fn time_samples(session: &SessionRecord, project_name: &str) -> Vec<Operation> {
     let mut events = Vec::new();
     let mut ordinal = 0usize;
 
@@ -577,9 +557,9 @@ fn base_sample(
     project_name: &str,
     prompt_index: usize,
     value: u64,
-) -> OperationSample {
+) -> Operation {
     let req = session.request_by_index(prompt_index);
-    let mut sample = OperationSample::new(value);
+    let mut sample = Operation::new(value);
     sample.insert("project", project_name);
     sample.insert("agent", session.source.clone());
     sample.insert("session", session.session_tag.clone());
@@ -594,7 +574,7 @@ fn tool_sample(
     project_name: &str,
     event: &crate::session::ToolEvent,
     value: u64,
-) -> OperationSample {
+) -> Operation {
     let mut sample = base_sample(session, project_name, event.prompt_index, value);
     sample.insert("op", "tool");
     sample.insert("phase", tool_phase_label(event));
@@ -1360,7 +1340,7 @@ mod tests {
             vec![shell_tool(3000, 0, "ok", vec!["repo"])],
             vec![llm(8000, 0, "gpt-5", "summarize")],
         );
-        let options = ProfileOptions::for_view(ProfileView::Time);
+        let options = OperationStackConfig::for_view(ProfileView::Time);
         let profile =
             build_profile_with_options(&[session], "agentsight", ProfileView::Time, &options);
         let stacks = profile_to_stacks(&profile);
@@ -1393,7 +1373,7 @@ mod tests {
             ],
             Vec::new(),
         );
-        let options = ProfileOptions::for_view(ProfileView::Files);
+        let options = OperationStackConfig::for_view(ProfileView::Files);
         let profile =
             build_profile_with_options(&[session], "agentsight", ProfileView::Files, &options);
         let stacks = profile_to_stacks(&profile);
@@ -1409,7 +1389,7 @@ mod tests {
     }
 
     #[test]
-    fn custom_stack_and_mapping_rules_fold_recursively() {
+    fn custom_operation_stack_rules_fold_recursively() {
         let session = test_session(
             "codex",
             "rustfix",
@@ -1420,18 +1400,17 @@ mod tests {
             ],
             Vec::new(),
         );
-        let stack =
-            parse_stack_spec("project,agent,map:task,map:phase,op,tool,path,status").unwrap();
-        let mappings = parse_mapping_rules(&[
+        let stack = parse_stack_spec("project,agent,task,phase,op,tool,path,status").unwrap();
+        let rules = parse_stack_rules(&[
             "task:verify=(effect=test|cmd=cargo|path=tests)".to_string(),
             "task:explore=(effect=read|path=src)".to_string(),
             "phase:inspect=(effect=read)".to_string(),
             "phase:execute=(effect=test)".to_string(),
         ])
         .unwrap();
-        let options = ProfileOptions::for_view(ProfileView::Files)
+        let options = OperationStackConfig::for_view(ProfileView::Files)
             .with_stack(stack)
-            .with_mappings(mappings);
+            .with_rules(rules);
         let profile =
             build_profile_with_options(&[session], "agentsight", ProfileView::Files, &options);
         let stacks = profile_to_stacks(&profile);

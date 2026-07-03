@@ -189,17 +189,17 @@ xdg-open .agentsight/agentpprof/latest/tokens.flame.svg
 ## Stack Projections
 
 `--view` selects the measured operation samples and their weights. `--stack`
-selects the operation stack shape. `map:NAME` frames are recursive fold points
-computed from built-in fields or `--map-rule` rules:
+selects the operation stack shape. A stack frame can come directly from an
+operation field or from the first matching `--stack-rule` for that frame:
 
 ```bash
 agentpprof -o files.folded --view files \
-  --stack 'project,agent,map:task,map:phase,op,tool,path,status' \
-  --map-rule 'task:verify=(effect=test|cmd=cargo|path=tests)' \
-  --map-rule 'task:explore=(effect=read|tool=read)'
+  --stack 'project,agent,task,phase,op,tool,path,status' \
+  --stack-rule 'task:verify=(effect=test|cmd=cargo|path=tests)' \
+  --stack-rule 'task:explore=(effect=read|tool=read)'
 ```
 
-Mapping rules match a searchable `key=value` string built from operation fields
+Operation stack rules match a searchable `key=value` string built from operation fields
 such as `prompt`, `prompt_preview`, `op`, `tool`, `category`, `command`, `cmd`,
 `process`, `effect`, `status`, `path`, `domain`, `llm`, `llm_preview`, `model`,
 and `token`.
@@ -224,8 +224,8 @@ File and network profiles use the configured semantic context, then continue
 down the operation path to `path:<group>` or `domain:<domain>`. Their widths are
 file target event count and network target event count.
 Drop `prompt` from `--stack` when several prompts should fold into one inferred
-task, or add more `map:*` frames when a task should recursively fold into
-subtasks/phases.
+task, or add more stack frames when a task should recursively fold into
+subtasks or phases.
 
 The Python pprof exporter reverses semantic stacks when serializing samples
 because pprof stores the leaf frame first.

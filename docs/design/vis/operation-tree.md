@@ -1,9 +1,9 @@
-# Operation Tree：语义 flamegraph 的递归模型
+# Operation Stack：语义 profiler 的递归模型
 
 状态：设计提案（2026-07）。当前 `agentpprof` 已实现本模型的第一步：
-`--stack` 可任意选择 operation stack，`map:NAME` 和 `--map-rule`
-可把线性轨迹递归折叠成 task/subtask/phase 等多层；本文描述完整目标模型
-和后续演进路径。视觉设计见
+`--stack` 可任意选择 operation stack，`--stack-rule` 可把线性轨迹递归
+折叠成 task/subtask/phase 等多层；本文描述完整目标模型和后续演进路径。
+视觉设计见
 [intent-to-effect-flame-graph.md](intent-to-effect-flame-graph.md)，
 实验证据与 claim 边界见
 [../visexp/paper/evaluation-claims-setup.zh-CN.md](../visexp/paper/evaluation-claims-setup.zh-CN.md)。
@@ -15,9 +15,9 @@ Flamegraph 的本质能力是同类事物的递归嵌套：每一帧在更细的
 早期 agentpprof 的语义轴只有一层：prompt 打完标签，下面直接跳到机制帧
 （call/tool/path）。一个「写代码」intent 底下的 explore → edit → test → fix
 子结构会被压平，flamegraph 只有一层语义可钻。当前实现已经把 stack
-构造改成可配置 mapping：用户可以保留 prompt，也可以去掉 prompt，用
-`map:task,map:subtask,map:phase` 把多个 prompt 或单个 prompt 内事件折成
-任意深度的语义层。完整的持久化 operation tree 仍需要继续推进。
+构造改成可配置 operation stack：用户可以保留 prompt，也可以去掉 prompt，用
+`task,subtask,phase` 把多个 prompt 或单个 prompt 内事件折成
+任意深度的语义层。
 
 真实的 agent 工作是递归的：一个 intent 分解为多个 subtask，subtask（例如
 subagent）内部还有自己的计划。模型应该表达这个结构。
@@ -31,36 +31,22 @@ process、一次 syscall 级的文件/网络效果，都是操作。每个操作
 粒度操作构成按时间排序的序列 O = [o₁, …, oₙ]；粗粒度操作包含细粒度
 操作。
 
-**定义 2（operation tree，操作树）。** 操作树 T 是有根树，**每个节点都
-是一个操作**，父子边表示包含。树是同构的：intent 包含 subtask，subtask
-包含 tool call，tool call 包含 process，process 包含子 process 和效果，
-可以无限递归。区别只在**边的来源**：
+**定义 2（operation stack，操作栈）。** 操作栈是把一个 operation 投影成
+有序 frame 序列的函数 σ(o) = [f₁; f₂; …; f_k]。frame 可以直接来自
+operation 字段，也可以由 `--stack-rule FRAME:LABEL=REGEX` 从 operation
+字段中计算出来。prompt、session、tool call、process、path、domain 都不是
+独立抽象，只是 operation 或 operation stack frame 的一种取值。
 
-- **切段边**（不确定，需推断或规则）：intent → subtask 等语义分组；
-- **调用边**（事实，日志记录）：prompt → LLM 调用 → tool call；
-- **血缘边**（事实，系统观测）：tool call → shell → 子进程 →
-  文件/网络效果（eBPF 进程树或时间跨度包含）。
+因此完整求值只有一个形式：
 
-操作栈由树派生：σ(o) = root 到 o 的路径。不再有独立的「机制帧」概念，
-process 链、路径、域名本来就是路径上的操作节点。栈不是第一性抽象，
-树才是。
+```text
+eval(φ, σ, w, O) = { (σ(o), w(o)) | o ∈ O, φ(o) }
+```
 
-**定义 3（segmenter，切段器）。** 切段器负责生成树中所有**切段边**：
-seg: O → T 的语义分组部分。调用边和血缘边是观测事实，不需要切段器。
-切段器可插拔：边界**不**与 session/prompt/tool 等任何特定事件类型强
-绑定，那些只是某种切段器的证据来源。
-
-**定义 4（view，视图）。** 与现有模型相同：V = (φ, σ, w)，φ 选择操作，
-σ 读出树路径，w 给权重；求值产出 folded stacks。视图层不感知树是怎么
-建出来的。由于内部节点也是操作，w 可以取「自身度量」（process 自己的
-CPU 时间）或「聚合子树」，对应 flamegraph 的 self/total 语义。
-
-这个模型把两个工具统一成一棵树：agentpprof 从日志恢复上半棵
-（intent → subtask → tool call），AgentSight live capture 用 eBPF 观测
-下半棵（process → 效果），两者在 tool call 节点拼接（血缘边，R114 一系
-实验验证的正是这个拼接）。当前已发布版本可看作「以 prompt 标记做
-深度-1 切段，process 链作为帧内联」这一特例；当前研究分支已经把
-stack 构造提升为 `--stack` + `map:NAME` + `--map-rule` 的查询模型。
+`--view` 选择 φ 和 w，即采样哪些 operation、用什么权重；`--stack` 和
+`--stack-rule` 选择 σ，即 operation stack 怎么递归折叠。切段、标注、
+血缘拼接、process 展开都只是产生 operation 字段或 stack frame 的机制，
+不是额外的核心抽象。
 
 ## 两个对称的难问题
 
@@ -73,7 +59,7 @@ stack 构造提升为 `--stack` + `map:NAME` + `--map-rule` 的查询模型。
 
 | 后端类型 | 标注侧（已有） | 切段侧（提案） |
 | --- | --- | --- |
-| 确定性规则 | regex `--tag-rule` | 标记切段 + 用户 `--span-rule` |
+| 确定性规则 | regex `--tag-rule` | operation stack rule `--stack-rule` |
 | 模型推断 | 本地 LLM 标签器 | LLM 判段边界（研究方向） |
 | 无监督 | TF-IDF + K-Means 聚类 | 变化点检测 / 序列聚类 |
 
@@ -85,40 +71,36 @@ span 内部继续切。
 比任何标记更细（一个 prompt 内的多个阶段）；推断结果可以像 LLM 标签
 蒸馏成 regex 规则一样，蒸馏成可复现的 span 规则。
 
-## 切段证据来源（按强度排序）
+## Stack Frame 证据来源（按强度排序）
 
-确定性标记切段器可用的证据，从强到弱：
+`--stack-rule` 和未来推断后端可用的证据，从强到弱：
 
 1. **Subagent 调用**：Claude Code 的 subagent 写独立 session 文件且有派生
-   关系（R170 中 77 个），是数据里已有的真 subtask，无需推断。当前实现把
-   它们当平级 session；第一步就是嵌套回父 prompt 的 span 内。
+   关系（R170 中 77 个），是数据里已有的真 subtask，无需推断。当前实现仍把
+   它们当平级 session；下一步应把它们作为 operation 字段或 stack frame。
 2. **Agent 自己声明的计划**：TodoWrite / update_plan 的 item 内容加
    pending → in_progress → completed 状态转换，是 agent 亲口声明的 subtask
    边界。当前 parser 仅归类为 `category:"plan"`，内容被丢弃。
-3. **用户 prompt**：当前唯一使用的边界（parser 的 `current_prompt_index`
-   游标，时间跨度包含语义）。
+3. **用户 prompt**：parser 的 `current_prompt_index` 游标提供时间跨度证据，
+   但 prompt 只是 operation 字段，不是固定边界。
 4. **LLM call / tool 标签升级为 phase**：同一 prompt 内按 LLM 标签、
-   tool effect/category 的变化检测 phase span，零新数据。当前实现已把
-   这一步泛化成 `map:NAME`：phase 只是默认 mapping，用户可定义 task、
+   tool effect/category 的变化检测 phase，零新数据。当前实现已把
+   这一步泛化成 operation stack frame：phase 只是默认 frame，用户可定义 task、
    subtask、intent 等任意递归层。
 5. **推断切段**：对事件序列做变化点检测或聚类（特征：工具类别、触碰
    路径、call 标签、时间间隔）。
 
-用户 `--span-rule` 可以覆盖或补充以上任何一层。
+用户 `--stack-rule` 可以覆盖或补充以上任何一层。
 
 ## 实现现状与差距
 
 | 模型组件 | 现状 | 需要的改动 |
 | --- | --- | --- |
-| 操作序列 | `agent-session` 已产出 | 无 |
-| 切段器 | parser 保留 prompt 游标；`agentpprof` 投影前用 `--map-rule` 和内置字段生成任意 `map:NAME` 折叠层 | 提出公共 `Segmenter` 接口；标记/规则/推断三实现 |
-| 操作树 | `agentpprof` 有内存中的 configurable operation path（字段 + `map:NAME` + op → process/path/domain）；`SessionRecord` 仍未持久化 span | `SessionRecord` 增加 span 层；subagent 挂回父 span；process 链成为节点 |
-| 标注 | 标签器只标 prompt/LLM call | 推广为标注任意 span 节点（接口不变） |
-| σ | 四个内置视图已共享 `StackSpec`；用户可用 `--stack` 动态配置路径；完整树路径仍未成为公共 IR | 改为读持久化树路径 |
-| 视图 | `ProfileView` 四个内置 | 不变 |
+| Operation | `agent-session` 已产出 prompt、LLM call、tool/effect 等 operation 字段 | 继续补齐 plan、subagent、process/syscall 字段 |
+| Operation stack | `agentpprof` 用 `--stack` 和 `--stack-rule` 从 operation 字段生成任意深度栈 | 增加更多内置证据后端和推断式 rule 生成 |
 
 演进顺序建议：subagent 嵌套（证据最硬、改动最小）→ todo/plan span →
-公共 `Segmenter` 接口 + `--span-rule` → 推断切段。
+更强的 `--stack-rule` 预设 → 推断式 stack rule 生成。
 
 ## 评估影响
 
