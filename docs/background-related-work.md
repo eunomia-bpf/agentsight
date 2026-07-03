@@ -1,0 +1,80 @@
+# Background And Related Work
+
+Last updated: 2026-07-03
+Stage at update: stage 1 novelty / stage 3 design bridge
+Source/command: primary-source web search, PDF download to `docs/reference/`, HF Dataset Viewer checks
+Completeness: partial
+
+## Search Log
+
+| Date | Query/source | Purpose | Result |
+|---|---|---|---|
+| 2026-07-03 | `Mind2Web dataset web agent trajectories annotated actions official GitHub Hugging Face` | Find labeled web-agent action traces | Primary project page, arXiv paper, GitHub, and HF dataset found. |
+| 2026-07-03 | `WebLINX dataset web navigation demonstrations official GitHub Hugging Face` | Find expert web navigation demonstrations | Primary project page, GitHub, arXiv/PMLR paper, and HF dataset found. |
+| 2026-07-03 | `AndroidControl dataset Google Research agent demonstrations` | Find labeled mobile control demonstrations | Google Research GitHub README and arXiv paper found; HF mirrors exist but viewer row groups are too large for lightweight rows API. |
+| 2026-07-03 | `Android in the Wild dataset device control human demonstrations` | Find larger mobile-control oracle | Google Research publication and official google-research release found. |
+| 2026-07-03 | `ToolBench ToolLLM official paper GitHub dataset` | Find tool-use action/reasoning traces | Official OpenBMB GitHub and paper found; release is hosted outside HF Dataset Viewer. |
+
+## PDF Corpus
+
+| Work | Local PDF path | Verification status | Why kept |
+|---|---|---|---|
+| Mind2Web | `docs/reference/2023-deng-mind2web.pdf` | arXiv / official project page | Web task descriptions and manually annotated action sequences are a direct oracle for operation-stack folding. |
+| WebLINX | `docs/reference/2024-lu-weblinx.pdf` | PMLR asset / official project page | Expert web-navigation demonstrations provide action, turn, and demo-level structure. |
+| AndroidControl | `docs/reference/2024-bishop-androidcontrol.pdf` | arXiv / Google Research repo | Mobile UI demonstrations include high-level goals, step instructions, screenshots, trees, and actions. |
+| Android in the Wild | `docs/reference/2023-rawles-android-in-the-wild.pdf` | NeurIPS Datasets and Benchmarks / Google Research publication | Large-scale device-control oracle for robustness and generalization tests. |
+| ToolLLM / ToolBench | `docs/reference/2023-qin-toolllm-toolbench.pdf` | Official OpenBMB GitHub asset | Tool-use paths and real API calls are the closest non-GUI oracle for operation stacks. |
+
+## Claim-Oriented Novelty Map
+
+| Claim | Closest prior work | Same-claim risk | Novelty delta | Baselines implied | Expansion opportunity |
+|---|---|---|---|---|---|
+| C1: AgentSight can profile agent behavior as operations and recursively folded operation stacks independent of prompt/session boundaries. | Mind2Web, WebLINX, AndroidControl, AITW, ToolBench | Medium | Prior datasets provide trajectories and labels, but not a profiler abstraction or pprof/flamegraph-compatible recursive folding over heterogeneous traces. | Flat action list, fixed prompt/session stack, dataset-native hierarchy, no stack-rule ablation. | Show the same profiler handles local Codex/Claude traces, web demos, mobile demos, and tool-use traces by changing only operation fields and stack rules. |
+| C2: Operation-stack folding can expose task/subtask/phase structure from linear event histories. | WebLINX demos, Mind2Web action sequences, AndroidControl step instructions, ToolBench solution paths | Medium | Prior work uses labels to train/evaluate agents; our use is an observability/profile projection with explicit boundary and compression metrics. | Gold demo/session boundaries, action-type phase oracle, step-instruction oracle, solution-path oracle. | Add boundary adequacy metrics and compare deterministic stack rules with inferred boundary rules. |
+
+## Closest Work
+
+| Work | Claim / data shape | Method/artifact | Evaluation | Same problem/mechanism/metric/setting? | Gap relative to this project |
+|---|---|---|---|---|---|
+| Mind2Web | Generalist web agents over real websites; official page reports 2,350 tasks, 137 websites, 31 domains, and action sequences with Click/Hover/Type/Select operations. Source: https://osu-nlp-group.github.io/Mind2Web/ | Project page, GitHub, HF training data, raw trace/snapshot dump. | Web action prediction and generalization across task/website/domain. | Same setting and oracle data; different mechanism and metric. | Good oracle for operation boundaries and action phases, but not an observability profiler. |
+| WebLINX | Conversational web navigation; official page reports 100K interactions over 2,300 expert demonstrations across 150+ websites. Source: https://mcgill-nlp.github.io/weblinx/ | HF dataset with chat/reranking configs, GitHub, BrowserGym integration. | Next-action prediction and generalization to held-out website/category/visual/geographic splits. | Same setting and action traces; different system goal. | Best first external smoke because HF Dataset Viewer rows are small enough to sample. |
+| AndroidControl | Google Research repo reports 15K+ human demonstrations over 833 apps and 40 categories, with screenshots, accessibility trees, instructions, and JSON actions. Source: https://github.com/google-research/google-research/blob/master/android_control/README.md | Official TFRecord release plus HF mirrors. | Offline low-level/high-level action prediction and OOD app/task generalization. | Same operation-boundary problem in mobile setting. | Requires a heavier converter; step instructions are a strong oracle for recursive folding depth. |
+| Android in the Wild | Google Research page reports 715K episodes and 30K unique instructions with screens/actions/instructions. Source: https://research.google/pubs/android-in-the-wild-a-large-scale-dataset-for-android-device-control/ | Official google-research release. | Device-control generalization across instructions/apps/platform versions. | Same operation sequence setting, much larger scale. | Useful for scale/robustness after AndroidControl converter exists. |
+| ToolBench / ToolLLM | Official GitHub reports 3,451 tools, 16,464 APIs, 126,486 instances, 469,585 real API calls, and reasoning traces. Source: https://github.com/OpenBMB/ToolBench | Official dataset, training/eval scripts, ToolLLaMA, ToolEval. | Tool-use instruction following and API-call success/preference. | Same tool-call setting; different UI domain. | Strong oracle for planner/tool/API call stack layers once official data is converted. |
+
+## Mandatory Baselines
+
+| Baseline | Why reviewer will expect it | Reproduction risk | Fairness notes | Required for claim |
+|---|---|---|---|---|
+| Dataset-native sequence view | Shows what the benchmark already gives without AgentSight profiling. | Low | Use identical sampled rows and no inferred frames. | C1, C2 |
+| Fixed prompt/session stack | Tests the user's objection directly: prompt/session boundaries should not be privileged. | Low for local traces; N/A for many external datasets. | For external datasets, use demo/session as the fixed boundary analog. | C1 |
+| Flat action-type aggregation | Checks whether recursive stack adds value beyond counting action classes. | Low | Same operations and weights; stack is only `dataset,action,status`. | C2 |
+| Rule-free default stack | Measures cost of no domain-specific folding rules. | Low | Use same operation JSONL and default view stack. | C2 |
+| Inferred boundary rules | Needed before claiming automatic boundary detection. | Medium | Keep deterministic stack-rule runs separate from inferred-rule runs. | Future C3 |
+
+## Absorbable Ideas
+
+| Source/community | Idea to absorb | Claim expansion enabled | Experiment implication | Risk |
+|---|---|---|---|---|
+| Web agent benchmarks | Held-out website/category/domain splits | Generalization of stack rules across task distributions | Run train-derived rules on WebLINX test_web/test_cat and Mind2Web cross-domain splits. | Rules may overfit action schemas. |
+| Mobile control datasets | Step instruction to action alignment | Boundary adequacy oracle deeper than action type | Score task/subtask/phase recovery against step instructions. | Large files and screenshot/tree dependencies. |
+| Tool-use benchmarks | Solution paths and real API calls | Non-GUI operation-stack support | Convert ToolBench answer/toolenv JSON into planner/tool/api frames. | Official data is outside HF viewer. |
+
+## Must-Read List
+
+| Priority | Work | Why |
+|---|---|---|
+| P0 | WebLINX paper and dataset docs | First sampled external oracle and immediate operation-file smoke. |
+| P0 | Mind2Web paper and repo | Strong web action sequence oracle with raw traces and snapshots. |
+| P1 | AndroidControl paper and README | Best mobile step-instruction oracle for recursive boundary tests. |
+| P1 | ToolLLM / ToolBench paper and repo | Best tool-use oracle for non-GUI stack layers. |
+| P2 | Android in the Wild | Scale/robustness after AndroidControl converter stabilizes. |
+
+## Novelty Verdict
+
+- Overall same-claim risk: medium. These works have labeled trajectories, but they do not claim a general operation-stack profiler or pprof/flamegraph projection for agent observability.
+- Claims safe to keep: operation/operation-stack as a unifying profiling abstraction across local traces and third-party trajectories.
+- Claims to narrow or drop: automatic boundary detection is not supported yet; current evidence supports deterministic stack rules plus normalized operation input.
+- Larger claim opportunities: a single profiler can compare local coding-agent traces, web navigation demos, mobile UI demos, and tool-use traces by changing stack rules rather than the profiler abstraction.
+- Mandatory baselines: dataset-native sequence view, fixed prompt/session or demo/session stack, flat action aggregation, rule-free default stack.
+- Next action: expand from WebLINX smoke to Mind2Web and AndroidControl converters, then add boundary adequacy and compression metrics.

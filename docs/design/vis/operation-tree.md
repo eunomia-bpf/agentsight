@@ -96,8 +96,8 @@ span 内部继续切。
 
 | 模型组件 | 现状 | 需要的改动 |
 | --- | --- | --- |
-| Operation | `agent-session` 已产出 prompt、LLM call、tool/effect 等 operation 字段 | 继续补齐 plan、subagent、process/syscall 字段 |
-| Operation stack | `agentpprof` 用 `--stack` 和 `--stack-rule` 从 operation 字段生成任意深度栈 | 增加更多内置证据后端和推断式 rule 生成 |
+| Operation | `agent-session` 已产出 prompt、LLM call、tool/effect 等 operation 字段；`--operation-file` 可直接读取第三方 normalized operation JSONL | 继续补齐 plan、subagent、process/syscall 字段和更多第三方转换器 |
+| Operation stack | `agentpprof` 用 `--stack` 和 `--stack-rule` 从 operation 字段生成任意深度栈，本地 session 和外部 operation JSONL 共用同一求值路径 | 增加更多内置证据后端和推断式 rule 生成 |
 
 演进顺序建议：subagent 嵌套（证据最硬、改动最小）→ todo/plan span →
 更强的 `--stack-rule` 预设 → 推断式 stack rule 生成。

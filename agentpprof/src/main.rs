@@ -10,8 +10,9 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use profile::{
-    OperationStackConfig, OutputFormat, ProfileView, build_profile_with_options,
-    infer_output_format, parse_stack_rules, parse_stack_spec, profile_to_stacks, write_projection,
+    OperationStackConfig, OutputFormat, ProfileView, build_profile_from_operation_files,
+    build_profile_with_options, infer_output_format, parse_stack_rules, parse_stack_spec,
+    profile_to_stacks, write_projection,
 };
 use session::{SessionRecord, default_claude_root, discover_sessions};
 use tagger::{
@@ -94,6 +95,9 @@ struct Cli {
     claude_root: Option<PathBuf>,
     #[arg(long = "session-file")]
     session_files: Vec<PathBuf>,
+    /// Read already-normalized operation JSONL instead of local Codex/Claude sessions.
+    #[arg(long = "operation-file")]
+    operation_files: Vec<PathBuf>,
     #[arg(long)]
     session_id: Option<String>,
     #[arg(long)]
@@ -190,6 +194,44 @@ fn command_export(args: Cli) -> Result<()> {
             .unwrap_or("project")
             .to_string()
     });
+    let view = args.view.into();
+    let mut profile_options = OperationStackConfig::for_view(view);
+    if let Some(stack) = args.stack.as_deref() {
+        profile_options = profile_options.with_stack(parse_stack_spec(stack)?);
+    }
+    profile_options = profile_options.with_rules(parse_stack_rules(&args.stack_rules)?);
+    if !args.operation_files.is_empty() {
+        let profile =
+            build_profile_from_operation_files(&args.operation_files, view, &profile_options)?;
+        let stacks = profile_to_stacks(&profile);
+        if stacks.is_empty() {
+            bail!("operation input produced no folded stacks");
+        }
+        write_projection(
+            &profile,
+            format,
+            &output,
+            args.include_previews,
+            &[],
+            args.svg_width,
+        )?;
+        let result = json!({
+            "status": "ok",
+            "output": output,
+            "format": format!("{:?}", format).to_ascii_lowercase(),
+            "view": profile.view,
+            "sample_type": profile.sample_type,
+            "unit": profile.unit,
+            "stack": args.stack.as_deref().unwrap_or("default"),
+            "stack_rules": args.stack_rules,
+            "operation_files": args.operation_files,
+            "samples": stacks.values().sum::<u64>(),
+            "unique_stacks": stacks.len(),
+            "warnings": [],
+        });
+        println!("{}", serde_json::to_string_pretty(&result)?);
+        return Ok(());
+    }
     let codex_root = args.codex_root.clone().unwrap_or_else(|| {
         dirs::home_dir()
             .unwrap_or_else(|| PathBuf::from("."))
@@ -221,12 +263,6 @@ fn command_export(args: Cli) -> Result<()> {
     if sessions.is_empty() {
         bail!("sessions were found, but none matched the requested tag filters");
     }
-    let view = args.view.into();
-    let mut profile_options = OperationStackConfig::for_view(view);
-    if let Some(stack) = args.stack.as_deref() {
-        profile_options = profile_options.with_stack(parse_stack_spec(stack)?);
-    }
-    profile_options = profile_options.with_rules(parse_stack_rules(&args.stack_rules)?);
     let profile = build_profile_with_options(&sessions, &project_name, view, &profile_options);
     let stacks = profile_to_stacks(&profile);
     if stacks.is_empty() {

@@ -264,6 +264,14 @@ agentpprof -o tokens.svg --prompt-tag review
 
 语义 flamegraph 的调用栈是一种投影而非字面意义的函数调用栈：`--view` 决定采样哪些 operation 及其权重，`--stack` 决定 operation stack 的 frame 序列，frame 可以直接来自 operation 字段，也可以由 `--stack-rule` 生成，用来递归折叠 intent/task/subtask/phase 等层级。
 
+对于第三方 trace 或 benchmark 数据集，`--operation-file` 可以直接读取规范化后的 operation JSONL。每一行是一条 operation，包含数值 `value` 和 `fields` 对象。它会跳过 Codex/Claude session discovery，但复用同一条 operation stack 投影路径：
+
+```bash
+agentpprof -o external.folded --view files \
+  --operation-file .agentsight/datasets/agent-traces/weblinx-chat/chat-validation/operations-0-50.jsonl \
+  --stack 'project,agent,dataset,task,session,phase,op,action,target,status'
+```
+
 例如，下面的 stack 不保留 prompt，而是把多个 prompt/tool event 折到 task/phase 两层：
 
 ```bash

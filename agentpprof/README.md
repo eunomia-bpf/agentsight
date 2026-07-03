@@ -4,6 +4,8 @@
 profiles. It reads Codex and Claude Code JSONL history, assigns short semantic
 tags to sessions, prompts, LLM calls, and effects, and writes outputs that can
 be inspected with standard pprof or flamegraph tooling.
+It can also read normalized operation JSONL from third-party trajectory
+datasets via `--operation-file`.
 
 The profiles are not CPU profiles. They are projections over agent activity:
 token usage, tool events, file effects, network effects, or elapsed session
@@ -156,6 +158,30 @@ agentpprof -o tokens.pb.gz --prompt-tag review
 No output directory is created unless the explicit `-o/--output` path contains
 one.
 
+## Operation JSONL Input
+
+Codex and Claude session files are one source of operations, not a separate
+profiling abstraction. For external datasets or converters, pass one or more
+operation JSONL files:
+
+```bash
+agentpprof -o external.folded --view files \
+  --operation-file .agentsight/datasets/agent-traces/weblinx-chat/chat-validation/operations-0-50.jsonl \
+  --stack 'project,agent,dataset,task,session,phase,op,action,target,status'
+```
+
+Each JSONL line is one sampled operation:
+
+```json
+{"value":1,"fields":{"project":"external-agent-traces","agent":"human-demo","dataset":"weblinx-chat","task":"web-navigation","phase":"click","op":"action","action":"click","target":"login","status":"gold"}}
+```
+
+Field values may be strings, numbers, booleans, arrays, or JSON objects. The
+chosen `--stack` decides which fields become stack frames, and `--stack-rule`
+can compute recursive frames such as task, subtask, and phase from those fields.
+Use `script/agent_trace_datasets.py` to sample known labeled datasets into this
+format without committing raw external data.
+
 ## Python Prototype
 
 The earlier experimental Python exporter now lives under
@@ -202,7 +228,7 @@ agentpprof -o files.folded --view files \
 Operation stack rules match a searchable `key=value` string built from operation fields
 such as `prompt`, `prompt_preview`, `op`, `tool`, `category`, `command`, `cmd`,
 `process`, `effect`, `status`, `path`, `domain`, `llm`, `llm_preview`, `model`,
-and `token`.
+and `token`, plus any fields supplied by `--operation-file`.
 
 Token profile:
 

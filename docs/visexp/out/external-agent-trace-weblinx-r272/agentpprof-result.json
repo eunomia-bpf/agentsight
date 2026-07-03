@@ -1,0 +1,23 @@
+{
+  "format": "folded",
+  "operation_files": [
+    ".agentsight/datasets/agent-traces/weblinx-chat/chat-validation/operations-0-25.jsonl"
+  ],
+  "output": "docs/visexp/out/external-agent-trace-weblinx-r272/weblinx.folded",
+  "sample_type": "file_events",
+  "samples": 25,
+  "stack": "project,agent,dataset,task,session,phase,op,action,target,status",
+  "stack_rules": [
+    "task:authenticate=(target=login|target=email|action=type)",
+    "task:navigate=(action=click|action=load|action=say)",
+    "phase:select=(action=click)",
+    "phase:input=(action=type)",
+    "phase:open=(action=load)",
+    "phase:dialogue=(action=say)"
+  ],
+  "status": "ok",
+  "unique_stacks": 18,
+  "unit": "count",
+  "view": "files",
+  "warnings": []
+}

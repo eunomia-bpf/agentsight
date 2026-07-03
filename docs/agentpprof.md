@@ -308,6 +308,17 @@ stack. A stack frame can come directly from an operation field or from the first
 matching `--stack-rule` for that frame, which lets one operation sequence fold
 to arbitrary task/subtask/phase depths.
 
+For third-party traces or benchmark datasets, `--operation-file` accepts
+normalized operation JSONL directly. Each line is one operation with a numeric
+`value` and a `fields` object. This bypasses Codex/Claude session discovery but
+uses the same projection path:
+
+```bash
+agentpprof -o external.folded --view files \
+  --operation-file .agentsight/datasets/agent-traces/weblinx-chat/chat-validation/operations-0-50.jsonl \
+  --stack 'project,agent,dataset,task,session,phase,op,action,target,status'
+```
+
 For example, this folds several prompt/tool events into inferred task and phase
 layers without making either prompt or phase a special boundary:
 
@@ -323,8 +334,8 @@ agentpprof -o files.folded --view files \
 Operation stack rules match a `key=value` string assembled from operation fields such
 as `prompt`, `prompt_preview`, `op`, `tool`, `category`, `command`, `cmd`,
 `process`, `effect`, `status`, `path`, `domain`, `llm`, `llm_preview`, `model`,
-and `token`. Default stacks use `phase`, but users can add or remove any
-field or stack frame.
+and `token`, plus any field supplied by `--operation-file`. Default stacks use
+`phase`, but users can add or remove any field or stack frame.
 
 The `tokens` view uses model budget as the width:
 
