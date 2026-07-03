@@ -2,15 +2,15 @@
 
 Last updated: 2026-07-03
 Stage at update: stage 3 design / stage 4 execute
-Source/command: `script/agent_trace_datasets.py`, `agentpprof --operation-file`, `cargo test --manifest-path agentpprof/Cargo.toml`
+Source/command: `script/agent_trace_datasets.py`, `agentpprof --operation-file`, `script/operation_stack_quality.py`, `cargo test --manifest-path agentpprof/Cargo.toml`
 Completeness: partial
 
 ## Claim-To-Experiment Map
 
 | Claim | Required evidence | Current status | Next experiment |
 |---|---|---|---|
-| C1: `agentpprof` profiles operations and operation stacks without privileging prompt/session boundaries. | A non-Codex/Claude labeled trajectory enters as operation JSONL and folds with arbitrary `--stack` frames. | Supported for deterministic projection by R278 across 8 external datasets and 3,932 operations. | Scale Mind2Web/AndroidControl/ToolBench samples. |
-| C2: Recursive operation stacks recover useful task/subtask/phase structure from linear agent trajectories. | Compare mapped-stack output against dataset-native boundaries and action/step labels. | Partially supported by R274/R277/R278: mapped task/phase stack keeps aggregation while fixed session stack explodes to 1,083 unique stacks. | Add boundary adequacy scoring against step/task oracles. |
+| C1: `agentpprof` profiles operations and operation stacks without privileging prompt/session boundaries. | A non-Codex/Claude labeled trajectory enters as operation JSONL and folds with arbitrary `--stack` frames. | Supported for deterministic projection by R279 across 9 external datasets and 13,265 operations. | Scale the best 3-4 datasets and add inferred mappings. |
+| C2: Recursive operation stacks recover useful task/subtask/phase structure from linear agent trajectories. | Compare mapped-stack output against dataset-native boundaries and action/step labels. | Partially supported by R277/R280: fixed session stack explodes to 1,083 unique stacks; mapped phase/action boundary F1 is 0.8139 on R279 operations. | Add deeper subtask/step oracle scoring beyond action-level boundaries. |
 | C3: Inferred boundary detection can replace hand-written stack rules. | Model/unsupervised boundary backend compared with deterministic rule oracle. | Unsupported; design only. | Implement inferred rule generation after deterministic dataset converters. |
 
 ## Dataset Matrix
@@ -24,8 +24,9 @@ Completeness: partial
 | SWE-agent trajectories | issue instance, command trajectory, success target | HF Dataset Viewer: `nebius/SWE-agent-trajectories` | `script/agent_trace_datasets.py sample swe-agent-trajectories` emits one operation per command action. | Closest external software-agent source; current top candidate. |
 | Mind2Web | task description, action sequence, website/domain, snapshots/traces | HF repo `osunlp/Mind2Web`; official raw dump | `script/agent_trace_datasets.py sample mind2web` downloads an HF repo JSON shard and emits operation JSONL; R274 sampled 9 tasks / 49 operations. | Cross-domain web operation-stack oracle. |
 | AndroidControl | high-level goal, step instructions, screenshots, accessibility trees, JSON actions | Official Google Research TFRecord; HF mirror `smolagents/android-control` | `script/agent_trace_datasets.py sample android-control` emits one operation per UI action and strips screenshot payloads from saved raw rows; R278 sampled 2 episodes / 9 operations. | Step-instruction boundary oracle for recursive depth. |
+| GUI-Odyssey | episode id, category, app combo, instruction, annotated step actions | HF Dataset Viewer: `OpenGVLab/GUI-Odyssey`, config `default`, split `all` | `script/agent_trace_datasets.py sample gui-odyssey` emits one operation per annotated GUI step; R279 sampled 500 episodes / 7,868 operations. | Best current large-scale mobile/cross-app trajectory source. |
 | Android in the Wild | instruction, screen/action episodes | Official google-research release | Manifested; converter pending. | Large-scale robustness once mobile converter exists. |
-| ToolBench | instruction, solution path, toolenv, API calls, reasoning traces | Official OpenBMB release plus HF mirror `tuandunghcmut/toolbench-v1` | `script/agent_trace_datasets.py sample toolbench` emits one operation per assistant tool action; R278 sampled 40 rows / 126 operations. | Tool/planner/API operation-stack oracle. |
+| ToolBench | instruction, solution path, toolenv, API calls, reasoning traces | Official OpenBMB release plus HF mirror `tuandunghcmut/toolbench-v1` | `script/agent_trace_datasets.py sample toolbench` emits one operation per assistant tool action; R279 sampled 300 rows / 866 operations. | Tool/planner/API operation-stack oracle. |
 | TRAIL | human-annotated reasoning/planning/execution errors | HF auto-gated dataset plus official benchmark repo | Manifested; gated access pending. | Best future failure-boundary oracle. |
 
 ## Run Tracker
@@ -39,6 +40,8 @@ Completeness: partial
 | R276 | C1, C2 | ToolBench tool/API stack oracle | official data converter for instruction/answer/toolenv | todo | local | at least G1/G2/G3 samples | `docs/visexp/out/external-agent-trace-toolbench-r276/` | todo |
 | R277 | C2 | Stack abstraction ablation | flat stack vs fixed demo/session stack vs mapped operation stack | worktree after `8125c26` | local | same 3,797 operations as R274 | `docs/visexp/out/operation-stack-ablation-r277/` | done |
 | R278 | C1, C2 | Expanded 8-dataset mapped-stack smoke | R274 inputs + ToolBench 40 + AndroidControl 2; `--view operations` + `--op-map` task/phase mapping | worktree after `04169d7` | local | 3,932 operations | `docs/visexp/out/external-agent-trace-expanded-r278/` | done |
+| R279 | C1, C2 | Scaled 9-dataset mapped-stack run | R278 inputs + GUI-Odyssey 500, ToolBench 300, Mind2Web train_0 100; `--view operations` + `--op-map` task/phase mapping | worktree after `2a2528d` | local | 13,265 operations | `docs/visexp/out/external-agent-trace-scaled-r279/` | done |
+| R280 | C2 | Operation-stack quality scorer | R279 operation files; coverage, V-measure, and sequence boundary F1 via `script/operation_stack_quality.py` | worktree after `2a2528d` | local | same 13,265 operations as R279 | `docs/visexp/out/operation-stack-quality-r280/` | done |
 
 R272 command:
 
@@ -70,19 +73,22 @@ cargo run --manifest-path agentpprof/Cargo.toml -- \
 | R274 | 6 external datasets produced 3,797 operations and 103 folded stacks under `--view operations`; compression ratio 36.864. Outputs: `mapped.folded`, `agentpprof-result.json`, `stack-analysis.json`, `stack-analysis.html`. | Confirms `--op-map` derives reusable task/phase operation fields before `--stack` without adding a third abstraction or binding stacks to prompt/session boundaries. | Mind2Web sample is a small shard; mappings are deterministic and hand-written. |
 | R277 | On the same 3,797 operations, flat stack produced 103 unique stacks, fixed session/demo stack produced 1,083 unique stacks, and mapped stack produced 103 unique stacks with added task/phase frames. | Directly tests the prompt/session-boundary objection: fixed boundaries fragment aggregation by 10.5x, while mapped operation stacks keep aggregation and add semantic depth. | Boundary adequacy is still structural/compression-based; no gold span scorer yet. |
 | R278 | 8 external datasets produced 3,932 operations and 190 folded stacks; compression ratio 20.695. Outputs: `expanded.folded`, `agentpprof-result.json`, `stack-analysis.json`, `stack-analysis.html`. | Adds mobile UI and tool/API traces without changing the profiler abstraction; ToolBench intentionally increases stack diversity through long-tail API names. | AndroidControl is only a 2-episode smoke because row download includes screenshot payloads; ToolBench uses an HF mirror for lightweight sampling. |
+| R279 | 9 external datasets produced 13,265 operations and 455 folded stacks; compression ratio 29.154. Outputs: `scaled.folded`, `agentpprof-result.json`, `stack-analysis.json`, `stack-analysis.html`. | Scaling GUI-Odyssey, ToolBench, and Mind2Web preserves aggregation and broadens the claim to cross-app mobile, web, software, and API/tool traces. | Still deterministic mapping; GUI-Odyssey dominates operation count and should be balanced in final figures. |
+| R280 | On R279 operations, mapped fields have 100% coverage for stack fields; phase/action V-measure is 0.765; phase/action boundary precision is 1.0, recall 0.6862, F1 0.8139; task/dataset V-measure is 0.862. | First reusable quality scorer for operation-stack adequacy beyond flamegraphs. It shows deterministic mappings are conservative: they avoid false positive action-boundary changes but miss some fine-grained action changes. | Action labels are a proxy oracle for phase boundaries; deeper task/subtask adequacy still needs step-instruction or solution-path scoring. |
 
 ## Candidate Selection
 
 | Rank | Dataset | Current judgment | Why |
 |---|---|---|---|
-| 1 | WebShop expert | Keep as primary | Long expert trajectories, many operations per task, rewards, strong compression signal. |
-| 2 | WebLINX chat | Keep as primary | Human/expert web demonstrations with clean action/demo/turn fields and multiple held-out splits. |
-| 3 | SWE-agent trajectories | Keep as primary | Closest to coding-agent domain and has command/action trajectories plus success labels. |
-| 4 | AgentTrek | Keep as secondary primary | Large verified GUI/web trajectory source; useful for scale, but synthetic provenance weakens human-oracle claims. |
-| 5 | Mind2Web | Keep as primary after scaling | Strong cross-domain web oracle with task/domain/action labels; R274 only uses a small JSON shard. |
-| 6 | ToolBench | Keep as primary after scaling | Best current tool/API long-tail source; R278 exposes API-domain stack diversity. |
-| 7 | AndroidControl | Keep as boundary oracle after heavier sampling | Step instructions provide a stronger subtask oracle than action type, but screenshot payloads make sampling heavier. |
-| 8 | API-Bank | Keep as baseline | Good tool-call oracle, but mostly single-step and less useful for recursive boundary depth. |
+| 1 | GUI-Odyssey | Keep as primary | Large cross-app mobile episodes, clean step/action labels, easy HF sampling, strong scale signal in R279. |
+| 2 | WebShop expert | Keep as primary | Long expert trajectories, many operations per task, rewards, strong compression signal. |
+| 3 | ToolBench | Keep as primary | Best current tool/API long-tail source; R279 exposes API-domain stack diversity. |
+| 4 | WebLINX chat | Keep as primary | Human/expert web demonstrations with clean action/demo/turn fields and multiple held-out splits. |
+| 5 | Mind2Web | Keep as secondary primary | Strong cross-domain web oracle with task/domain/action labels; train_0 shard scales to 100 rows / 774 ops. |
+| 6 | SWE-agent trajectories | Keep as domain bridge | Closest to coding-agent domain and has command/action trajectories plus success labels, but sampled rows are smaller than GUI/web sources. |
+| 7 | AgentTrek | Keep as scale supplement | Large verified GUI/web trajectory source; useful for scale, but synthetic provenance weakens human-oracle claims. |
+| 8 | AndroidControl | Keep as boundary oracle after heavier sampling | Step instructions provide a stronger subtask oracle than action type, but screenshot payloads make sampling heavier. |
+| 9 | API-Bank | Keep as baseline | Good compact tool-call oracle, but mostly single-step and less useful for recursive boundary depth. |
 
 ## Metrics And Oracles
 
@@ -93,6 +99,8 @@ cargo run --manifest-path agentpprof/Cargo.toml -- \
 | Stack compression ratio | Total operation weight divided by unique folded stacks. | `agentpprof` JSON summary or folded stack count. | C2 |
 | Fixed-boundary expansion factor | Unique stacks under fixed demo/session boundaries divided by unique stacks under mapped operation stacks. | R277 ablation on identical operation JSONL. | C1, C2 |
 | Boundary adequacy | Agreement between inferred task/subtask/phase frames and dataset labels such as demo id, action type, step instruction, or solution path. | Dataset-native labels; manual adjudication for ambiguous cases. | C2, C3 |
+| Phase/action V-measure | Homogeneity/completeness between mapped phase labels and dataset action labels. | `operation_stack_quality.py --oracle-pair phase:action`. | C2 |
+| Sequence boundary F1 | Precision/recall of mapped phase changes against action-label changes within each session. | `operation_stack_quality.py --boundary-pair phase:action`. | C2 |
 | Abstraction ablation delta | Difference in compression and boundary adequacy between flat, fixed-boundary, and recursive stacks. | Same operation JSONL under different `--stack` configs. | C1, C2 |
 | Transition concentration | Top weighted parent-child stack transitions from `operation_stack_analysis.py`. | Folded stack transition table. | C2 |
 
@@ -109,6 +117,8 @@ cargo run --manifest-path agentpprof/Cargo.toml -- \
 | Mind2Web HF repo JSON shard sampling is implemented. | done |
 | ToolBench HF mirror conversation sampling is implemented. | done |
 | AndroidControl lightweight sampling is implemented with screenshot redaction for saved raw rows. | done |
+| GUI-Odyssey lightweight sampling is implemented. | done |
 | Flat/fixed/mapped stack ablation is tracked under R277. | done |
+| Operation-stack quality scorer is implemented and tracked under R280. | done |
 | Large full-dataset conversion commands are not yet implemented for AndroidControl, AITW, or official ToolBench; Mind2Web still needs larger shard/raw-dump runs. | pending |
-| Boundary adequacy scorer is not yet implemented. | pending |
+| Deeper subtask/step adequacy scorer is not yet implemented. | pending |

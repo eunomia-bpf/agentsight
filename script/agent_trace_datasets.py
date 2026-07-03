@@ -10,6 +10,7 @@ the same `--stack`, `--op-map`, and `--stack-rule` machinery used for local trac
 from __future__ import annotations
 
 import argparse
+import ast
 import datetime as dt
 import hashlib
 import json
@@ -116,6 +117,17 @@ DATASETS: dict[str, dict[str, Any]] = {
         "paper": "https://arxiv.org/abs/2406.03679",
         "why": "Human Android demonstrations with high-level goals, step instructions, screenshots, trees, and actions.",
         "note": "Rows include screenshot payloads; the sampler strips screenshots from saved raw rows after download.",
+    },
+    "gui-odyssey": {
+        "title": "GUI-Odyssey",
+        "hf_repo": "OpenGVLab/GUI-Odyssey",
+        "config": "default",
+        "split": "all",
+        "access": "hf-viewer",
+        "adapter": "gui-odyssey",
+        "source": "https://github.com/OpenGVLab/GUI-Odyssey",
+        "paper": "https://arxiv.org/abs/2406.08451",
+        "why": "Cross-app mobile GUI episodes with task/category/app metadata and annotated action steps.",
     },
     "aitw": {
         "title": "Android in the Wild",
@@ -317,6 +329,8 @@ def normalize_row(
         return normalize_swe_agent(dataset_id, dataset, row, row_index, include_text)
     if adapter == "android-control":
         return normalize_android_control(dataset_id, dataset, row, row_index, include_text)
+    if adapter == "gui-odyssey":
+        return normalize_gui_odyssey(dataset_id, dataset, row, row_index, include_text)
     if adapter == "toolbench-conversation":
         return normalize_toolbench_conversation(dataset_id, dataset, row, row_index, include_text)
     raise SystemExit(f"no adapter for dataset {dataset_id}")
@@ -587,6 +601,43 @@ def normalize_android_control(
     return operations
 
 
+def normalize_gui_odyssey(
+    dataset_id: str,
+    dataset: dict[str, Any],
+    row: dict[str, Any],
+    row_index: int,
+    include_text: bool,
+) -> list[dict[str, Any]]:
+    session = str(row.get("episode_id") or f"gui-odyssey-{row_index}")
+    operations = []
+    for turn, step in enumerate(parse_gui_odyssey_steps(row.get("steps"))):
+        action_name = sanitize_label(str(step.get("action") or "unknown"))
+        fields: dict[str, Any] = {
+            "project": "external-agent-traces",
+            "agent": "human-demo",
+            "dataset": dataset_id,
+            "source": dataset["hf_repo"],
+            "session": session,
+            "turn": str(step.get("step") if step.get("step") is not None else turn),
+            "task": "mobile-cross-app",
+            "phase": action_name,
+            "op": "action",
+            "tool": "mobile-gui",
+            "action": action_name,
+            "category": sanitize_label(str(row.get("category") or "unknown")),
+            "device": sanitize_label(str(row.get("device_name") or "unknown")),
+            "status": "gold",
+        }
+        app = sanitize_label(str(row.get("app") or "unknown-app"))
+        if app != "none":
+            fields["app"] = app
+        if include_text:
+            fields["task_preview"] = truncate_clean(str(row.get("instruction") or ""), 180)
+            fields["action_raw"] = truncate_clean(str(step.get("info") or ""), 180)
+        operations.append({"value": 1, "fields": fields})
+    return operations
+
+
 def normalize_toolbench_conversation(
     dataset_id: str,
     dataset: dict[str, Any],
@@ -626,6 +677,20 @@ def normalize_toolbench_conversation(
             fields["action_raw"] = truncate_clean(content, 180)
         operations.append({"value": 1, "fields": fields})
     return operations
+
+
+def parse_gui_odyssey_steps(raw_steps: Any) -> list[dict[str, Any]]:
+    if isinstance(raw_steps, list):
+        return [step for step in raw_steps if isinstance(step, dict)]
+    if not raw_steps:
+        return []
+    try:
+        parsed = ast.literal_eval(str(raw_steps))
+    except (SyntaxError, ValueError):
+        return []
+    if isinstance(parsed, list):
+        return [step for step in parsed if isinstance(step, dict)]
+    return []
 
 
 def first_match(pattern: str, text: str, default: str) -> str:
