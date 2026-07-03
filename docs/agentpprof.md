@@ -328,6 +328,7 @@ special boundary:
 ```bash
 agentpprof -o files.folded --view files \
   --stack 'project,agent,task,phase,op,tool,path,status' \
+  --op-map-file project-op-map.txt \
   --op-map 'task:verify=(effect=test|cmd=cargo|path=tests)' \
   --op-map 'task:explore=(effect=read|tool=read)' \
   --op-map 'phase:inspect=(effect=read)' \
@@ -341,9 +342,27 @@ agentpprof -o files.folded --view files \
 `effect`, `status`, `path`, `domain`, `llm`, `llm_preview`, `model`, and
 `token`, plus any field supplied by `--operation-file`. `--op-map` runs first
 and rewrites operation fields in order, so later mappings can match fields
-derived by earlier mappings; `--stack-rule` is a frame-local override during
-stack construction. Default stacks use `phase`, but users can add or remove any
-field or stack frame.
+derived by earlier mappings; `--op-map-file` reads the same rules from a text
+file, one per line, ignoring blank lines and `#` comments. Inline `--op-map`
+rules run before file rules, so the CLI can override shared defaults.
+`--stack-rule` is a frame-local override during stack construction. Default
+stacks use `phase`, but users can add or remove any field or stack frame.
+
+For labeled external traces, `script/operation_map_infer.py` can derive a
+reusable mapping file from observed `dataset`, `tool`, `task`, and `action`
+labels:
+
+```bash
+python3 script/operation_map_infer.py \
+  --operation-file .agentsight/datasets/agent-traces/weblinx-chat/chat-validation/operations-0-50.jsonl \
+  --out op-map.txt \
+  --json-out op-map.json
+
+agentpprof -o external.folded --view operations \
+  --operation-file .agentsight/datasets/agent-traces/weblinx-chat/chat-validation/operations-0-50.jsonl \
+  --op-map-file op-map.txt \
+  --stack 'project,dataset,task,phase,op,tool,action,status'
+```
 
 The `tokens` view uses model budget as the width:
 

@@ -34,6 +34,13 @@ def main() -> int:
     parser.add_argument("--operation-file", action="append", type=Path, required=True)
     parser.add_argument("--stack", required=True, help="Comma- or semicolon-separated stack fields")
     parser.add_argument("--op-map", action="append", default=[], help="FIELD:LABEL=REGEX")
+    parser.add_argument(
+        "--op-map-file",
+        action="append",
+        type=Path,
+        default=[],
+        help="Read FIELD:LABEL=REGEX rules; blank lines and # comments are ignored",
+    )
     parser.add_argument("--coverage-field", action="append", default=[])
     parser.add_argument("--oracle-pair", action="append", default=[], help="PREDICTED_FIELD:ORACLE_FIELD")
     parser.add_argument("--boundary-pair", action="append", default=[], help="PREDICTED_FIELD:ORACLE_FIELD")
@@ -45,7 +52,8 @@ def main() -> int:
     args = parser.parse_args()
 
     stack = parse_stack(args.stack)
-    rules = [parse_rule(raw) for raw in args.op_map]
+    op_maps = load_rule_lines(args.op_map, args.op_map_file)
+    rules = [parse_rule(raw) for raw in op_maps]
     operations = []
     for path in args.operation_file:
         operations.extend(load_operations(path))
@@ -61,7 +69,8 @@ def main() -> int:
         turn_field=args.turn_field,
         top=args.top,
         operation_files=[str(path) for path in args.operation_file],
-        op_maps=args.op_map,
+        op_maps=op_maps,
+        op_map_files=[str(path) for path in args.op_map_file],
     )
     args.json_out.parent.mkdir(parents=True, exist_ok=True)
     args.json_out.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n")
@@ -77,6 +86,27 @@ def parse_stack(raw: str) -> list[str]:
     if not fields:
         raise SystemExit("--stack cannot be empty")
     return fields
+
+
+def load_rule_lines(inline_rules: list[str], rule_files: list[Path]) -> list[str]:
+    rules = list(inline_rules)
+    for path in rule_files:
+        try:
+            lines = path.read_text(encoding="utf-8").splitlines()
+        except OSError as exc:
+            raise SystemExit(f"failed to read --op-map-file {path}: {exc}") from exc
+        for line_number, line in enumerate(lines, 1):
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            try:
+                parse_rule(stripped)
+            except SystemExit as exc:
+                raise SystemExit(
+                    f"invalid --op-map-file {path} line {line_number}: {exc}"
+                ) from exc
+            rules.append(stripped)
+    return rules
 
 
 def parse_rule(raw: str) -> Rule:
@@ -170,6 +200,7 @@ def build_report(
     top: int,
     operation_files: list[str],
     op_maps: list[str],
+    op_map_files: list[str],
 ) -> dict[str, Any]:
     stack_counts = Counter()
     for operation in operations:
@@ -186,6 +217,7 @@ def build_report(
         },
         "operation_files": operation_files,
         "op_maps": op_maps,
+        "op_map_files": op_map_files,
         "stack": stack,
         "coverage": coverage_report(operations, coverage_names),
         "top_stacks": [

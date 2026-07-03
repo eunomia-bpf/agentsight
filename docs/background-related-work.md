@@ -20,6 +20,10 @@ Completeness: partial
 | 2026-07-03 | `SWE-agent trajectories dataset Hugging Face` | Find software-engineering agent trajectories | HF dataset with 80K SWE-agent trajectories found; sampled in R273. |
 | 2026-07-03 | `TRAIL trace reasoning agentic issue localization dataset annotated traces` | Find human-annotated failure traces | Official GitHub/HF gated dataset and paper found; access requires accepted HF gate. |
 | 2026-07-03 | `GUI Odyssey dataset agent trajectories annotated actions Hugging Face` | Find large cross-app mobile GUI traces | Official GitHub, arXiv/ICCV 2025 paper, and HF dataset found; sampled 500 episodes in R279. |
+| 2026-07-03 | `AGUVIS stage2 dataset agent trajectories xlangai aguvis-stage2 Hugging Face official GitHub` | Find additional cross-platform GUI trajectory training data | Official AGUVIS GitHub/project and HF `xlangai/aguvis-stage2` found; candidate for a larger mobile/desktop/web converter. |
+| 2026-07-03 | `OSWorld verified trajectories Hugging Face ubuntu_osworld_verified_trajs official` | Find desktop/computer-use evaluation trajectories | Official OSWorld page says verified trajectories are hosted on HF; `xlangai/ubuntu_osworld_verified_trajs` found as a candidate desktop trajectory source. |
+| 2026-07-03 | `BrowserGym WorkArena web agent benchmark trajectories official GitHub` | Find enterprise/browser workflow benchmark sources | Official BrowserGym and WorkArena repositories/pages found; useful benchmark environment, but not yet a lightweight labeled trajectory source in this repo. |
+| 2026-07-03 | `PC Agent-E OS-Genesis agent trajectories dataset official GitHub Hugging Face` | Find newer computer-use trajectory corpora | PC Agent-E and OS-Genesis official repos/pages found; candidates for later trajectory conversion and scale comparison. |
 
 ## PDF Corpus
 
@@ -78,6 +82,8 @@ Completeness: partial
 | Mobile control datasets | Step instruction to action alignment | Boundary adequacy oracle deeper than action type | Score task/subtask/phase recovery against step instructions. | Large files and screenshot/tree dependencies. |
 | Cross-app mobile datasets | App-combo and category labels | Larger, more realistic mobile operation-stack scope | Use GUI-Odyssey as primary mobile scale source and AndroidControl as step-instruction oracle. | GUI-Odyssey action boundaries are strong, but subtask labels are still coarser than ideal. |
 | Tool-use benchmarks | Solution paths and real API calls | Non-GUI operation-stack support | Convert ToolBench answer/toolenv JSON into planner/tool/api frames. | Official data is outside HF viewer. |
+| Desktop/computer-use benchmarks | Verified desktop trajectories and environment tasks | Extend operation-stack folding beyond web/mobile/API into real OS task execution | Add OSWorld-Verified and PC Agent-E/OS-Genesis converters once row formats are inspected. | Some sources are generated/model trajectories rather than human-demonstration labels. |
+| Browser benchmark environments | BrowserGym and WorkArena task suites | Stronger held-out benchmark protocol for web-operation stacks | Use them as evaluation environments or trace-generation baselines after static labeled datasets are exhausted. | Environment setup may be heavier than Dataset Viewer sampling. |
 
 ## Must-Read List
 
@@ -93,6 +99,10 @@ Completeness: partial
 | P2 | AgentTrek | Large verified synthetic web GUI source; selected as a current top candidate if synthetic data is acceptable. |
 | P2 | TRAIL | Human trace-error annotations; best future failure-boundary oracle after gated access. |
 | P1 | GUI-Odyssey | Best current mobile/cross-app scale source; selected as a primary candidate after R279. |
+| P2 | AGUVIS stage2 | Cross-platform GUI trajectory training data; likely useful after GUI-Odyssey/AndroidControl. |
+| P2 | OSWorld-Verified trajectories | Desktop/computer-use verified trajectories; likely best next non-web/non-mobile expansion. |
+| P2 | PC Agent-E / OS-Genesis | Newer computer-use trajectory corpora for scale and synthetic-data comparison. |
+| P3 | BrowserGym / WorkArena | Strong web-agent benchmark environment; use after static trace converters stabilize. |
 
 ## Novelty Verdict
 
@@ -101,5 +111,5 @@ Completeness: partial
 - Claims to narrow or drop: automatic boundary detection is not supported yet; current evidence supports deterministic operation mapping/stack rules plus normalized operation input.
 - Larger claim opportunities: a single profiler can compare local coding-agent traces, web navigation demos, mobile UI demos, and tool-use traces by changing operation fields and stack projection rather than the profiler abstraction.
 - Mandatory baselines: dataset-native sequence view, fixed prompt/session or demo/session stack, flat action aggregation, rule-free default stack.
-- Current best candidates: GUI-Odyssey, WebShop, ToolBench, and WebLINX. Mind2Web and SWE-agent are strong secondary candidates; AndroidControl is the best deeper boundary oracle after heavier screenshot-aware sampling; API-Bank remains a compact baseline; TRAIL is likely strong but gated.
-- Next action: scale the top four candidates and extend R280 beyond action-boundary scoring to subtask/step-instruction adequacy.
+- Current best candidates: GUI-Odyssey, WebShop, ToolBench, and WebLINX. Mind2Web and SWE-agent are strong secondary candidates; AndroidControl is the best deeper boundary oracle after heavier screenshot-aware sampling; API-Bank remains a compact baseline; TRAIL is likely strong but gated. AGUVIS stage2, OSWorld-Verified, PC Agent-E, and OS-Genesis are the next expansion candidates once the current 9-dataset pipeline is stable.
+- Next action: scale the top four candidates, validate generated op-map rules on held-out splits, and extend R280/R281 beyond action-boundary scoring to subtask/step-instruction adequacy.

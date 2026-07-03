@@ -264,7 +264,7 @@ agentpprof -o tokens.svg --prompt-tag review
 
 ## 调用栈模型
 
-语义 flamegraph 的调用栈是一种投影而非字面意义的函数调用栈：`--view` 决定采样哪些 operation 及其权重，`--op-map` 在栈化前派生 operation 字段，`--stack` 决定 operation stack 的 frame 序列，frame 可以直接来自 operation 字段，也可以由 `--stack-rule` 局部生成，用来递归折叠 intent/task/subtask/phase 等层级。
+语义 flamegraph 的调用栈是一种投影而非字面意义的函数调用栈：`--view` 决定采样哪些 operation 及其权重，`--op-map` 或 `--op-map-file` 在栈化前派生 operation 字段，`--stack` 决定 operation stack 的 frame 序列，frame 可以直接来自 operation 字段，也可以由 `--stack-rule` 局部生成，用来递归折叠 intent/task/subtask/phase 等层级。
 
 对于第三方 trace 或 benchmark 数据集，`--operation-file` 可以直接读取规范化后的 operation JSONL。每一行是一条 operation，包含数值 `value` 和 `fields` 对象。它会跳过 Codex/Claude session discovery，但复用同一条 operation stack 投影路径：
 
@@ -279,11 +279,26 @@ agentpprof -o external.folded --view operations \
 ```bash
 agentpprof -o files.folded --view files \
   --stack 'project,agent,task,phase,op,tool,path,status' \
+  --op-map-file project-op-map.txt \
   --op-map 'task:verify=(effect=test|cmd=cargo|path=tests)' \
   --op-map 'task:explore=(effect=read|tool=read)' \
   --op-map 'phase:inspect=(effect=read)' \
   --op-map 'phase:execute=(effect=test)' \
   --stack-rule 'path:tests=(path=tests)'
+```
+
+`--op-map-file` 读取同样的 `FIELD:LABEL=REGEX` 规则文件，每行一条，空行和 `#` 注释会被忽略。命令行上的 `--op-map` 会排在文件规则前面，因此可以覆盖共享规则文件里的默认映射。对于已有标注的外部轨迹，可以先用 `script/operation_map_infer.py` 从 `dataset`、`tool`、`task` 和 `action` 等字段生成规则文件：
+
+```bash
+python3 script/operation_map_infer.py \
+  --operation-file .agentsight/datasets/agent-traces/weblinx-chat/chat-validation/operations-0-50.jsonl \
+  --out op-map.txt \
+  --json-out op-map.json
+
+agentpprof -o external.folded --view operations \
+  --operation-file .agentsight/datasets/agent-traces/weblinx-chat/chat-validation/operations-0-50.jsonl \
+  --op-map-file op-map.txt \
+  --stack 'project,dataset,task,phase,op,tool,action,status'
 ```
 
 `tokens` 视图以模型预算作为宽度：

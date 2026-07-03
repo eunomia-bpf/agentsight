@@ -181,16 +181,29 @@ Each JSONL line is one sampled operation:
 Field values may be strings, numbers, booleans, arrays, or JSON objects. The
 chosen `--stack` decides which fields become stack frames. `--op-map` can derive
 or overwrite operation fields before stacking, and `--stack-rule` can override a
-single frame while building the stack.
+single frame while building the stack. `--op-map-file` reads the same
+`FIELD:LABEL=REGEX` rules from a text file, one rule per line; blank lines and
+`#` comments are ignored.
 Use `script/agent_trace_datasets.py` to sample known labeled datasets into this
 format without committing raw external data.
 
 ```bash
 agentpprof -o external.folded --view operations \
   --operation-file .agentsight/datasets/agent-traces/weblinx-chat/chat-validation/operations-0-50.jsonl \
+  --op-map-file docs/visexp/out/operation-map-infer-r281/inferred-op-map.txt \
   --op-map 'task:web=(dataset=weblinx-chat|tool=browser)' \
   --op-map 'phase:navigate=(action=click|action=goto|action=load)' \
   --stack 'project,dataset,task,phase,op,tool,action,status'
+```
+
+For labeled external traces, `script/operation_map_infer.py` can generate an
+op-map file from observed `dataset`, `tool`, `task`, and `action` labels:
+
+```bash
+python3 script/operation_map_infer.py \
+  --operation-file .agentsight/datasets/agent-traces/weblinx-chat/chat-validation/operations-0-50.jsonl \
+  --out op-map.txt \
+  --json-out op-map.json
 ```
 
 ## Python Prototype
@@ -233,6 +246,7 @@ matching `--stack-rule` for that frame:
 ```bash
 agentpprof -o files.folded --view files \
   --stack 'project,agent,task,phase,op,tool,path,status' \
+  --op-map-file project-op-map.txt \
   --op-map 'task:verify=(effect=test|cmd=cargo|path=tests)' \
   --op-map 'task:explore=(effect=read|tool=read)' \
   --op-map 'phase:inspect=(effect=read)' \
@@ -244,7 +258,9 @@ from operation fields such as `prompt`, `prompt_preview`, `op`, `tool`,
 `category`, `command`, `cmd`, `process`, `effect`, `status`, `path`, `domain`,
 `llm`, `llm_preview`, `model`, and `token`, plus any fields supplied by
 `--operation-file`. Mapping rules are evaluated in order against the fields
-derived so far; the first match wins for each derived field.
+derived so far; the first match wins for each derived field. Inline `--op-map`
+rules run before `--op-map-file` rules, so command-line rules can override a
+shared mapping file.
 
 Token profile:
 

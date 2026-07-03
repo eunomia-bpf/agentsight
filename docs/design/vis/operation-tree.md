@@ -1,9 +1,9 @@
 # Operation Stack：语义 profiler 的递归模型
 
 状态：设计提案（2026-07）。当前 `agentpprof` 已实现本模型的第一步：
-`--op-map` 可派生 operation 字段，`--stack` 可任意选择 operation stack，
-`--stack-rule` 可做局部 frame 覆盖，从而把线性轨迹递归折叠成
-task/subtask/phase 等多层；本文描述完整目标模型和后续演进路径。
+`--op-map`/`--op-map-file` 可派生 operation 字段，`--stack` 可任意选择
+operation stack，`--stack-rule` 可做局部 frame 覆盖，从而把线性轨迹递归折叠
+成 task/subtask/phase 等多层；本文描述完整目标模型和后续演进路径。
 视觉设计见
 [intent-to-effect-flame-graph.md](intent-to-effect-flame-graph.md)，
 实验证据与 claim 边界见
@@ -46,7 +46,7 @@ eval(φ, σ, w, O) = { (σ(o), w(o)) | o ∈ O, φ(o) }
 ```
 
 `--view` 选择 φ 和 w，即采样哪些 operation、用什么权重；`--op-map`、
-`--stack` 和 `--stack-rule` 选择 σ，即 operation stack 怎么递归折叠。
+`--op-map-file`、`--stack` 和 `--stack-rule` 选择 σ，即 operation stack 怎么递归折叠。
 切段、标注、血缘拼接、process 展开都只是产生 operation 字段或 stack frame
 的机制，不是额外的核心抽象。
 `operations` view 是最通用的 operation-count 查询，适合本地 trace 和
@@ -102,7 +102,7 @@ span 内部继续切。
 | 模型组件 | 现状 | 需要的改动 |
 | --- | --- | --- |
 | Operation | `agent-session` 已产出 prompt、LLM call、tool/effect 等 operation 字段；`--operation-file` 可直接读取第三方 normalized operation JSONL | 继续补齐 plan、subagent、process/syscall 字段和更多第三方转换器 |
-| Operation stack | `agentpprof` 用 `--op-map`、`--stack` 和 `--stack-rule` 从 operation 字段生成任意深度栈，本地 session 和外部 operation JSONL 共用同一求值路径 | 增加更多内置证据后端和推断式 rule 生成 |
+| Operation stack | `agentpprof` 用 `--op-map`/`--op-map-file`、`--stack` 和 `--stack-rule` 从 operation 字段生成任意深度栈，本地 session 和外部 operation JSONL 共用同一求值路径；`script/operation_map_infer.py` 可从已标注轨迹生成普通 op-map 规则文件 | 增加更多内置证据后端和推断式 rule 生成 |
 
 演进顺序建议：subagent 嵌套（证据最硬、改动最小）→ todo/plan span →
 更强的 `--op-map`/`--stack-rule` 预设 → 推断式 stack rule 生成。

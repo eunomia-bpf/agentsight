@@ -2,10 +2,11 @@ mod profile;
 mod session;
 mod tagger;
 
-use anyhow::{Result, bail};
+use anyhow::{Context, Result, bail};
 use clap::{Parser, ValueEnum};
 use serde_json::json;
 use std::collections::HashMap;
+use std::fs;
 use std::path::PathBuf;
 use std::time::Duration;
 
@@ -47,10 +48,12 @@ OPERATION STACK WORKFLOW:
   --view chooses which operation samples are measured. --stack chooses how those
   operations fold into a stack. Use --op-map to derive reusable operation
   fields, then --stack chooses how those fields recursively fold. Use
-  --stack-rule for one-off stack-frame overrides.
+  --op-map-file to load reusable mappings, and --stack-rule for one-off
+  stack-frame overrides.
 
      agentpprof --view files -o files.folded \
        --stack 'project,agent,task,phase,op,tool,path,status' \
+       --op-map-file operation-map.txt \
        --op-map 'task:verify=(effect=test|cmd=cargo)' \
        --op-map 'phase:inspect=(effect=read)'
 "#;
@@ -83,6 +86,10 @@ struct Cli {
     /// Rules are evaluated in order against updated fields; first match wins for each field.
     #[arg(long = "op-map", value_name = "FIELD:LABEL=REGEX")]
     op_maps: Vec<String>,
+    /// Read operation-field mapping rules from a file. Blank lines and lines starting with '#' are ignored.
+    /// Inline --op-map rules run before file rules, so command-line rules can override defaults.
+    #[arg(long = "op-map-file", value_name = "PATH")]
+    op_map_files: Vec<PathBuf>,
     #[arg(long, value_enum, default_value_t = TaggerKind::Regex)]
     tagger: TaggerKind,
     /// Add a deterministic tag rule, for example prompt:review='(?i)review|diff'.
@@ -205,9 +212,11 @@ fn command_export(args: Cli) -> Result<()> {
     if let Some(stack) = args.stack.as_deref() {
         profile_options = profile_options.with_stack(parse_stack_spec(stack)?);
     }
+    let op_maps = load_op_map_rules(&args.op_maps, &args.op_map_files)?;
+    let stack_rules = args.stack_rules.clone();
     profile_options = profile_options
-        .with_field_rules(parse_stack_rules_with_flag(&args.op_maps, "--op-map")?)
-        .with_rules(parse_stack_rules(&args.stack_rules)?);
+        .with_field_rules(parse_stack_rules_with_flag(&op_maps, "--op-map")?)
+        .with_rules(parse_stack_rules(&stack_rules)?);
     if !args.operation_files.is_empty() {
         let profile =
             build_profile_from_operation_files(&args.operation_files, view, &profile_options)?;
@@ -231,8 +240,9 @@ fn command_export(args: Cli) -> Result<()> {
             "sample_type": profile.sample_type,
             "unit": profile.unit,
             "stack": args.stack.as_deref().unwrap_or("default"),
-            "op_maps": args.op_maps,
-            "stack_rules": args.stack_rules,
+            "op_maps": op_maps,
+            "op_map_files": args.op_map_files,
+            "stack_rules": stack_rules,
             "operation_files": args.operation_files,
             "samples": stacks.values().sum::<u64>(),
             "unique_stacks": stacks.len(),
@@ -294,8 +304,9 @@ fn command_export(args: Cli) -> Result<()> {
         "sample_type": profile.sample_type,
         "unit": profile.unit,
         "stack": args.stack.as_deref().unwrap_or("default"),
-        "op_maps": args.op_maps,
-        "stack_rules": args.stack_rules,
+        "op_maps": op_maps,
+        "op_map_files": args.op_map_files,
+        "stack_rules": stack_rules,
         "sessions": sessions.len(),
         "samples": stacks.values().sum::<u64>(),
         "unique_stacks": stacks.len(),
@@ -347,6 +358,29 @@ fn command_export(args: Cli) -> Result<()> {
 
     println!("{}", serde_json::to_string_pretty(&result)?);
     Ok(())
+}
+
+fn load_op_map_rules(inline_rules: &[String], rule_files: &[PathBuf]) -> Result<Vec<String>> {
+    let mut rules = inline_rules.to_vec();
+    for path in rule_files {
+        let contents = fs::read_to_string(path)
+            .with_context(|| format!("failed to read --op-map-file {}", path.display()))?;
+        for (line_idx, line) in contents.lines().enumerate() {
+            let trimmed = line.trim();
+            if trimmed.is_empty() || trimmed.starts_with('#') {
+                continue;
+            }
+            parse_stack_rules_with_flag(&[trimmed.to_string()], "--op-map").with_context(|| {
+                format!(
+                    "invalid --op-map-file {} line {}",
+                    path.display(),
+                    line_idx + 1
+                )
+            })?;
+            rules.push(trimmed.to_string());
+        }
+    }
+    Ok(rules)
 }
 
 fn filter_sessions_before_tagging(sessions: &mut Vec<SessionRecord>, args: &Cli) {
@@ -450,6 +484,28 @@ mod tests {
     use super::*;
     use crate::session::{LlmEvent, ToolEvent, UserRequest};
     use std::path::PathBuf;
+
+    #[test]
+    fn op_map_file_rules_ignore_comments_and_follow_inline_rules() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("operation-map.txt");
+        std::fs::write(
+            &path,
+            "\n# default mappings\nphase:inspect=(effect=read)\nphase:execute=(effect=test)\n",
+        )
+        .unwrap();
+
+        let rules = load_op_map_rules(&["phase:verify=(cmd=cargo)".to_string()], &[path]).unwrap();
+
+        assert_eq!(
+            rules,
+            vec![
+                "phase:verify=(cmd=cargo)",
+                "phase:inspect=(effect=read)",
+                "phase:execute=(effect=test)"
+            ]
+        );
+    }
 
     #[test]
     fn prompt_tag_filter_uses_prompt_row_ordinal_not_bare_index() {
