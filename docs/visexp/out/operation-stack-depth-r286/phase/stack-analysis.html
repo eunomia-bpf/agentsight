@@ -1,0 +1,91 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Operation Stack Analysis</title>
+<style>
+body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;margin:24px;background:#fafafa;color:#171717}
+h1{font-size:22px;margin:0 0 8px}
+h2{font-size:16px;margin:28px 0 10px}
+.meta{color:#555;margin-bottom:18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.panel{background:white;border:1px solid #ddd;border-radius:6px;padding:14px}
+.bar{height:18px;background:#e8eef9;border-radius:3px;margin:6px 0;position:relative;overflow:hidden}
+.fill{height:100%;background:#4f7cac}
+.label{font:12px ui-monospace,Menlo,monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+table{border-collapse:collapse;width:100%;font-size:13px}
+td,th{border-bottom:1px solid #eee;padding:6px;text-align:left;vertical-align:top}
+.tree{font:12px ui-monospace,Menlo,monospace;line-height:1.45;max-height:520px;overflow:auto;background:white;border:1px solid #ddd;border-radius:6px;padding:12px}
+</style>
+</head>
+<body>
+<h1>Operation Stack Analysis</h1>
+<div class="meta">total=13265 operations; unique stacks=57; compression=232.719</div>
+<div class="grid">
+<div class='panel'><h2>dataset</h2><div class='label'>gui-odyssey 7868</div><div class='bar'><div class='fill' style='width:100.0%'></div></div>
+<div class='label'>webshop-expert 2504</div><div class='bar'><div class='fill' style='width:31.8%'></div></div>
+<div class='label'>toolbench 866</div><div class='bar'><div class='fill' style='width:11.0%'></div></div>
+<div class='label'>mind2web 774</div><div class='bar'><div class='fill' style='width:9.8%'></div></div>
+<div class='label'>weblinx-chat 500</div><div class='bar'><div class='fill' style='width:6.4%'></div></div>
+<div class='label'>swe-agent-trajectories 496</div><div class='bar'><div class='fill' style='width:6.3%'></div></div>
+<div class='label'>agenttrek 200</div><div class='bar'><div class='fill' style='width:2.5%'></div></div>
+<div class='label'>api-bank 48</div><div class='bar'><div class='fill' style='width:0.6%'></div></div>
+<div class='label'>android-control 9</div><div class='bar'><div class='fill' style='width:0.1%'></div></div></div>
+<div class='panel'><h2>task</h2><div class='label'>mobile 7877</div><div class='bar'><div class='fill' style='width:100.0%'></div></div>
+<div class='label'>web 3980</div><div class='bar'><div class='fill' style='width:50.5%'></div></div>
+<div class='label'>tool 860</div><div class='bar'><div class='fill' style='width:10.9%'></div></div>
+<div class='label'>software 496</div><div class='bar'><div class='fill' style='width:6.3%'></div></div>
+<div class='label'>api 52</div><div class='bar'><div class='fill' style='width:0.7%'></div></div></div>
+<div class='panel'><h2>phase</h2><div class='label'>navigate 8628</div><div class='bar'><div class='fill' style='width:100.0%'></div></div>
+<div class='label'>modify 1047</div><div class='bar'><div class='fill' style='width:12.1%'></div></div>
+<div class='label'>api 806</div><div class='bar'><div class='fill' style='width:9.3%'></div></div>
+<div class='label'>finish 628</div><div class='bar'><div class='fill' style='width:7.3%'></div></div>
+<div class='label'>inspect 259</div><div class='bar'><div class='fill' style='width:3.0%'></div></div>
+<div class='label'>connect 240</div><div class='bar'><div class='fill' style='width:2.8%'></div></div>
+<div class='label'>focus 227</div><div class='bar'><div class='fill' style='width:2.6%'></div></div>
+<div class='label'>move 213</div><div class='bar'><div class='fill' style='width:2.5%'></div></div>
+<div class='label'>use 165</div><div class='bar'><div class='fill' style='width:1.9%'></div></div>
+<div class='label'>examine 156</div><div class='bar'><div class='fill' style='width:1.8%'></div></div>
+<div class='label'>ls 147</div><div class='bar'><div class='fill' style='width:1.7%'></div></div>
+<div class='label'>pick 144</div><div class='bar'><div class='fill' style='width:1.7%'></div></div>
+<div class='label'>say 129</div><div class='bar'><div class='fill' style='width:1.5%'></div></div>
+<div class='label'>wait1 126</div><div class='bar'><div class='fill' style='width:1.5%'></div></div>
+<div class='label'>pour 42</div><div class='bar'><div class='fill' style='width:0.5%'></div></div></div>
+</div>
+<h2>Top Transitions</h2>
+<table><tr><th>From</th><th>To</th><th>Weight</th></tr>
+<tr><td>project:external-agent-traces</td><td>dataset:gui-odyssey</td><td>7868</td></tr>
+<tr><td>dataset:gui-odyssey</td><td>task:mobile</td><td>7868</td></tr>
+<tr><td>task:mobile</td><td>phase:navigate</td><td>6528</td></tr>
+<tr><td>project:external-agent-traces</td><td>dataset:webshop-expert</td><td>2504</td></tr>
+<tr><td>dataset:webshop-expert</td><td>task:web</td><td>2504</td></tr>
+<tr><td>task:web</td><td>phase:navigate</td><td>1977</td></tr>
+<tr><td>project:external-agent-traces</td><td>dataset:toolbench</td><td>866</td></tr>
+<tr><td>dataset:toolbench</td><td>task:tool</td><td>860</td></tr>
+<tr><td>task:mobile</td><td>phase:modify</td><td>805</td></tr>
+<tr><td>project:external-agent-traces</td><td>dataset:mind2web</td><td>774</td></tr>
+<tr><td>dataset:mind2web</td><td>task:web</td><td>774</td></tr>
+<tr><td>task:tool</td><td>phase:api</td><td>752</td></tr>
+<tr><td>project:external-agent-traces</td><td>dataset:weblinx-chat</td><td>500</td></tr>
+<tr><td>dataset:weblinx-chat</td><td>task:web</td><td>500</td></tr>
+<tr><td>project:external-agent-traces</td><td>dataset:swe-agent-trajectories</td><td>496</td></tr>
+<tr><td>dataset:swe-agent-trajectories</td><td>task:software</td><td>496</td></tr>
+<tr><td>task:mobile</td><td>phase:finish</td><td>487</td></tr>
+<tr><td>task:web</td><td>phase:connect</td><td>240</td></tr>
+<tr><td>task:web</td><td>phase:focus</td><td>227</td></tr>
+<tr><td>task:web</td><td>phase:move</td><td>213</td></tr>
+<tr><td>task:web</td><td>phase:inspect</td><td>211</td></tr>
+<tr><td>project:external-agent-traces</td><td>dataset:agenttrek</td><td>200</td></tr>
+<tr><td>dataset:agenttrek</td><td>task:web</td><td>200</td></tr>
+<tr><td>task:web</td><td>phase:use</td><td>165</td></tr>
+<tr><td>task:web</td><td>phase:examine</td><td>156</td></tr>
+<tr><td>task:web</td><td>phase:modify</td><td>153</td></tr>
+<tr><td>task:software</td><td>phase:ls</td><td>147</td></tr>
+<tr><td>task:web</td><td>phase:pick</td><td>144</td></tr>
+<tr><td>task:web</td><td>phase:say</td><td>129</td></tr>
+<tr><td>task:web</td><td>phase:wait1</td><td>126</td></tr>
+</table>
+<h2>Stack Tree</h2>
+<div class="tree">root (13265)<br>&nbsp;&nbsp;project:external-agent-traces (53060)<br>&nbsp;&nbsp;&nbsp;&nbsp;dataset:gui-odyssey (23604)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;task:mobile (15736)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:navigate (6522)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:modify (805)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:finish (487)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:long_press (41)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:incomplete (13)<br>&nbsp;&nbsp;&nbsp;&nbsp;dataset:webshop-expert (7512)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;task:web (5008)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:navigate (880)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:connect (240)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:focus (224)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:move (213)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:inspect (211)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:use (165)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:examine (156)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:pick (144)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:wait1 (126)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:pour (42)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:drop (30)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:mix (29)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:activate (26)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:wait (11)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:deactivate (6)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:measure (1)<br>&nbsp;&nbsp;&nbsp;&nbsp;dataset:toolbench (2598)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;task:tool (1720)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:api (752)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:finish (108)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;task:api (8)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:api (4)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;task:web (4)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:api (2)<br>&nbsp;&nbsp;&nbsp;&nbsp;dataset:mind2web (2322)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;task:web (1548)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:navigate (645)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:modify (106)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:select (23)<br>&nbsp;&nbsp;&nbsp;&nbsp;dataset:weblinx-chat (1500)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;task:web (1000)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:navigate (332)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:say (129)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:modify (27)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:finish (7)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:change (5)<br>&nbsp;&nbsp;&nbsp;&nbsp;dataset:swe-agent-trajectories (1488)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;task:software (992)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:ls (147)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:navigate (123)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:modify (89)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:inspect (48)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:pwd (23)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:python (19)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:lexicon (18)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:finish (15)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:rm (5)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:grep (3)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:pytest (3)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:cd (2)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:array (1)<br>&nbsp;&nbsp;&nbsp;&nbsp;dataset:agenttrek (600)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;task:web (400)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:navigate (120)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:noop (37)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:modify (20)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:finish (11)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:press (8)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:focus (3)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:hover (1)<br>&nbsp;&nbsp;&nbsp;&nbsp;dataset:api-bank (144)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;task:api (96)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:api (48)<br>&nbsp;&nbsp;&nbsp;&nbsp;dataset:android-control (27)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;task:mobile (18)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:navigate (6)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:wait (2)<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;phase:input_text (1)<br></div>
+</body>
+</html>
