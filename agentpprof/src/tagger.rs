@@ -417,10 +417,7 @@ pub fn annotate_sessions_regex(
     // Collect samples and tag counts (sequential)
     for session in sessions.iter() {
         if session.session_tag == UNMATCHED_TAG && diagnostics.unmatched_samples.len() < 30 {
-            let session_input = truncate_clean(
-                &format!("{} {}", session.cwd, session.title),
-                120,
-            );
+            let session_input = truncate_clean(&format!("{} {}", session.cwd, session.title), 120);
             diagnostics.unmatched_samples.push(UnmatchedSample {
                 kind: "session".to_string(),
                 preview: session_input,
@@ -530,7 +527,10 @@ fn print_distribution_analysis(kind: &str, tag_counts: &BTreeMap<String, usize>)
     sorted.sort_by_key(|item| std::cmp::Reverse(item.1));
 
     // Calculate distribution metrics
-    let top1_pct = sorted.first().map(|(_, v)| *v as f64 / total as f64 * 100.0).unwrap_or(0.0);
+    let top1_pct = sorted
+        .first()
+        .map(|(_, v)| *v as f64 / total as f64 * 100.0)
+        .unwrap_or(0.0);
     let top3_sum: usize = sorted.iter().take(3).map(|(_, v)| *v).sum();
     let top3_pct = top3_sum as f64 / total as f64 * 100.0;
     let top5_sum: usize = sorted.iter().take(5).map(|(_, v)| *v).sum();
@@ -545,7 +545,11 @@ fn print_distribution_analysis(kind: &str, tag_counts: &BTreeMap<String, usize>)
         })
         .sum();
     let max_entropy = (num_tags as f64).ln();
-    let normalized_entropy = if max_entropy > 0.0 { entropy / max_entropy } else { 0.0 };
+    let normalized_entropy = if max_entropy > 0.0 {
+        entropy / max_entropy
+    } else {
+        0.0
+    };
 
     // Print distribution summary
     eprintln!(
