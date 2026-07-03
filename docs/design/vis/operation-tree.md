@@ -1,8 +1,9 @@
 # Operation Tree：语义 flamegraph 的递归模型
 
 状态：设计提案（2026-07）。当前 `agentpprof` 已实现本模型的第一步：
-prompt span 之下可按 LLM 标签和 tool effect/category 检测 `phase` span；
-本文描述完整目标模型和后续演进路径。视觉设计见
+`--stack` 可任意选择 operation stack，`map:NAME` 和 `--map-rule`
+可把线性轨迹递归折叠成 task/subtask/phase 等多层；本文描述完整目标模型
+和后续演进路径。视觉设计见
 [intent-to-effect-flame-graph.md](intent-to-effect-flame-graph.md)，
 实验证据与 claim 边界见
 [../visexp/paper/evaluation-claims-setup.zh-CN.md](../visexp/paper/evaluation-claims-setup.zh-CN.md)。
@@ -13,8 +14,10 @@ Flamegraph 的本质能力是同类事物的递归嵌套：每一帧在更细的
 「为了什么在做这件事」，深度不限。CPU 栈因为代码天然递归而白拿这个结构。
 早期 agentpprof 的语义轴只有一层：prompt 打完标签，下面直接跳到机制帧
 （call/tool/path）。一个「写代码」intent 底下的 explore → edit → test → fix
-子结构会被压平，flamegraph 只有一层语义可钻。当前实现已经把这些
-同一 prompt 内的阶段提升为 `phase` span，但完整递归切段仍需要继续推进。
+子结构会被压平，flamegraph 只有一层语义可钻。当前实现已经把 stack
+构造改成可配置 mapping：用户可以保留 prompt，也可以去掉 prompt，用
+`map:task,map:subtask,map:phase` 把多个 prompt 或单个 prompt 内事件折成
+任意深度的语义层。完整的持久化 operation tree 仍需要继续推进。
 
 真实的 agent 工作是递归的：一个 intent 分解为多个 subtask，subtask（例如
 subagent）内部还有自己的计划。模型应该表达这个结构。
@@ -57,7 +60,7 @@ CPU 时间）或「聚合子树」，对应 flamegraph 的 self/total 语义。
 下半棵（process → 效果），两者在 tool call 节点拼接（血缘边，R114 一系
 实验验证的正是这个拼接）。当前已发布版本可看作「以 prompt 标记做
 深度-1 切段，process 链作为帧内联」这一特例；当前研究分支已经把
-LLM/tool 序列的 phase 边界提升为第二层 span。
+stack 构造提升为 `--stack` + `map:NAME` + `--map-rule` 的查询模型。
 
 ## 两个对称的难问题
 
@@ -95,8 +98,9 @@ span 内部继续切。
 3. **用户 prompt**：当前唯一使用的边界（parser 的 `current_prompt_index`
    游标，时间跨度包含语义）。
 4. **LLM call / tool 标签升级为 phase**：同一 prompt 内按 LLM 标签、
-   tool effect/category 的变化检测 phase span，零新数据。当前实现已覆盖
-   这一步的确定性版本。
+   tool effect/category 的变化检测 phase span，零新数据。当前实现已把
+   这一步泛化成 `map:NAME`：phase 只是默认 mapping，用户可定义 task、
+   subtask、intent 等任意递归层。
 5. **推断切段**：对事件序列做变化点检测或聚类（特征：工具类别、触碰
    路径、call 标签、时间间隔）。
 
@@ -107,10 +111,10 @@ span 内部继续切。
 | 模型组件 | 现状 | 需要的改动 |
 | --- | --- | --- |
 | 操作序列 | `agent-session` 已产出 | 无 |
-| 切段器 | parser 保留 prompt 游标；`agentpprof` 投影前用 `SegmentIndex` 检测 phase | 提出公共 `Segmenter` 接口；标记/规则/推断三实现 |
-| 操作树 | `agentpprof` 有内存中的 operation path（prompt → phase → op → process/path/domain）；`SessionRecord` 仍未持久化 span | `SessionRecord` 增加 span 层；subagent 挂回父 span；process 链成为节点 |
+| 切段器 | parser 保留 prompt 游标；`agentpprof` 投影前用 `--map-rule` 和内置字段生成任意 `map:NAME` 折叠层 | 提出公共 `Segmenter` 接口；标记/规则/推断三实现 |
+| 操作树 | `agentpprof` 有内存中的 configurable operation path（字段 + `map:NAME` + op → process/path/domain）；`SessionRecord` 仍未持久化 span | `SessionRecord` 增加 span 层；subagent 挂回父 span；process 链成为节点 |
 | 标注 | 标签器只标 prompt/LLM call | 推广为标注任意 span 节点（接口不变） |
-| σ | 四个内置视图已共享同一 operation path；完整树路径仍未成为公共 IR | 改为读持久化树路径 |
+| σ | 四个内置视图已共享 `StackSpec`；用户可用 `--stack` 动态配置路径；完整树路径仍未成为公共 IR | 改为读持久化树路径 |
 | 视图 | `ProfileView` 四个内置 | 不变 |
 
 演进顺序建议：subagent 嵌套（证据最硬、改动最小）→ todo/plan span →

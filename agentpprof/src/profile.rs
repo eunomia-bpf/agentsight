@@ -1,7 +1,8 @@
-use anyhow::Result;
+use anyhow::{Result, bail};
 use chrono::Utc;
 use flate2::{Compression, write::GzEncoder};
 use prost::Message;
+use regex::Regex;
 use serde::Serialize;
 use serde_json::{Value, json};
 use sha2::{Digest, Sha256};
@@ -17,11 +18,11 @@ use crate::session::{
 
 pub type Counter = BTreeMap<String, u64>;
 pub type OpId = usize;
-type Frame = (&'static str, String);
+type Frame = (String, String);
 
 pub struct Operation {
     pub parent: Option<OpId>,
-    pub kind: &'static str,
+    pub kind: String,
     pub name: String,
     pub value: u64,
 }
@@ -59,126 +60,179 @@ impl Profile {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-enum EventKey {
-    Prompt(usize),
-    Tool(usize),
-    Llm(usize),
+#[derive(Clone, Debug)]
+enum StackFrame {
+    Field(String),
+    Map(String),
 }
 
 #[derive(Clone, Debug)]
-struct SegmentEvent {
-    key: EventKey,
-    prompt_index: usize,
-    ts_ms: Option<i64>,
-    ordinal: usize,
+pub struct StackSpec {
+    frames: Vec<StackFrame>,
+}
+
+impl StackSpec {
+    fn default_for_view(view: ProfileView) -> Self {
+        let raw = match view {
+            ProfileView::Tokens => "project,agent,session,prompt,map:phase,op,call,model,token",
+            ProfileView::Files => {
+                "project,agent,session,prompt,map:phase,op,tool,cmd,process,path,effect,status"
+            }
+            ProfileView::Network => {
+                "project,agent,session,prompt,map:phase,op,tool,cmd,process,domain,status"
+            }
+            ProfileView::Time => {
+                "project,agent,session,prompt,map:phase,op,tool,cmd,process,call,model"
+            }
+        };
+        parse_stack_spec(raw).expect("default stack spec is valid")
+    }
+}
+
+#[derive(Clone)]
+pub struct MappingRule {
+    map: String,
     label: String,
+    pattern: String,
+    regex: Regex,
 }
 
-#[derive(Default)]
-struct SegmentIndex {
-    phases: HashMap<EventKey, String>,
-}
-
-impl SegmentIndex {
-    /// Detect view-independent span labels inside the parsed event stream.
-    ///
-    /// Prompt is the outer span available in today's IR. This pass adds a
-    /// second, task-like phase span from changes in LLM labels and tool
-    /// effects/categories so one prompt can still fold into recursive stacks.
-    fn detect(session: &SessionRecord) -> Self {
-        let mut events = Vec::new();
-        let mut ordinal = 0usize;
-
-        for (idx, event) in session.tools.iter().enumerate() {
-            events.push(SegmentEvent {
-                key: EventKey::Tool(idx),
-                prompt_index: event.prompt_index,
-                ts_ms: event.ts_ms,
-                ordinal,
-                label: tool_phase_label(event),
-            });
-            ordinal += 1;
-        }
-        for (idx, call) in session.llm_calls.iter().enumerate() {
-            events.push(SegmentEvent {
-                key: EventKey::Llm(idx),
-                prompt_index: call.prompt_index,
-                ts_ms: call.ts_ms,
-                ordinal,
-                label: llm_phase_label(call),
-            });
-            ordinal += 1;
-        }
-
-        events.sort_by_key(|event| {
-            (
-                event.prompt_index,
-                event.ts_ms.unwrap_or(i64::MAX),
-                event.ordinal,
-            )
-        });
-
-        let mut phases = HashMap::new();
-        let mut current_prompt = None;
-        let mut current_label = String::new();
-        for event in events {
-            if current_prompt != Some(event.prompt_index) {
-                current_prompt = Some(event.prompt_index);
-                current_label.clear();
-            }
-            if current_label != event.label {
-                current_label = event.label.clone();
-            }
-            phases.insert(event.key, current_label.clone());
-        }
-
-        Self { phases }
-    }
-
-    fn phase_for(&self, key: EventKey) -> Option<&str> {
-        self.phases.get(&key).map(String::as_str)
+impl std::fmt::Debug for MappingRule {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MappingRule")
+            .field("map", &self.map)
+            .field("label", &self.label)
+            .field("pattern", &self.pattern)
+            .finish()
     }
 }
 
-/// View-independent operation path builder for one session.
-///
-/// Built-in views select different leaves and weights, but they share this
-/// context path instead of inventing separate stack grammars.
-struct SessionPath<'a> {
-    project_name: &'a str,
-    session: &'a SessionRecord,
-    segments: SegmentIndex,
+#[derive(Clone, Debug)]
+pub struct ProfileOptions {
+    stack: StackSpec,
+    mappings: Vec<MappingRule>,
 }
 
-impl<'a> SessionPath<'a> {
-    fn new(project_name: &'a str, session: &'a SessionRecord) -> Self {
+impl ProfileOptions {
+    pub fn for_view(view: ProfileView) -> Self {
         Self {
-            project_name,
-            session,
-            segments: SegmentIndex::detect(session),
+            stack: StackSpec::default_for_view(view),
+            mappings: Vec::new(),
         }
     }
 
-    fn root_frames(&self) -> Vec<Frame> {
-        vec![
-            ("project", self.project_name.to_string()),
-            ("agent", self.session.source.clone()),
-            ("session", self.session.session_tag.clone()),
-        ]
+    pub fn with_stack(mut self, stack: StackSpec) -> Self {
+        self.stack = stack;
+        self
     }
 
-    fn frames_for(&self, key: EventKey, prompt_index: usize) -> Vec<Frame> {
-        let mut frames = self.root_frames();
-        let prompt = self.session.request_by_index(prompt_index);
-        frames.push(("prompt", prompt.tag.clone()));
-        if let Some(phase) = self.segments.phase_for(key)
-            && !phase.is_empty()
-        {
-            frames.push(("phase", phase.to_string()));
-        }
-        frames
+    pub fn with_mappings(mut self, mappings: Vec<MappingRule>) -> Self {
+        self.mappings = mappings;
+        self
     }
+}
+
+#[derive(Clone, Debug)]
+struct OperationSample {
+    fields: BTreeMap<String, Vec<String>>,
+    value: u64,
+}
+
+impl OperationSample {
+    fn new(value: u64) -> Self {
+        Self {
+            fields: BTreeMap::new(),
+            value,
+        }
+    }
+
+    fn insert(&mut self, key: &str, value: impl Into<String>) {
+        let value = value.into();
+        if !value.is_empty() {
+            self.fields.entry(key.to_string()).or_default().push(value);
+        }
+    }
+
+    fn extend(&mut self, key: &str, values: impl IntoIterator<Item = String>) {
+        for value in values {
+            self.insert(key, value);
+        }
+    }
+
+    fn values(&self, key: &str) -> &[String] {
+        self.fields.get(key).map(Vec::as_slice).unwrap_or(&[])
+    }
+
+    fn searchable_text(&self) -> String {
+        self.fields
+            .iter()
+            .flat_map(|(key, values)| values.iter().map(move |value| format!("{key}={value}")))
+            .collect::<Vec<_>>()
+            .join(" ")
+    }
+}
+
+pub fn parse_stack_spec(raw: &str) -> Result<StackSpec> {
+    let mut frames = Vec::new();
+    for part in raw.split([',', ';']) {
+        let part = part.trim();
+        if part.is_empty() {
+            continue;
+        }
+        if let Some(name) = part.strip_prefix("map:") {
+            validate_frame_name(name, "mapping name")?;
+            frames.push(StackFrame::Map(name.to_string()));
+        } else {
+            validate_frame_name(part, "stack field")?;
+            frames.push(StackFrame::Field(part.to_string()));
+        }
+    }
+    if frames.is_empty() {
+        bail!("stack spec cannot be empty");
+    }
+    Ok(StackSpec { frames })
+}
+
+pub fn parse_mapping_rules(raw_rules: &[String]) -> Result<Vec<MappingRule>> {
+    raw_rules
+        .iter()
+        .map(|rule| parse_mapping_rule(rule))
+        .collect()
+}
+
+fn parse_mapping_rule(raw: &str) -> Result<MappingRule> {
+    let (left, pattern) = raw
+        .split_once('=')
+        .ok_or_else(|| anyhow::anyhow!("invalid --map-rule {raw:?}; expected MAP:LABEL=REGEX"))?;
+    let (map, label) = left
+        .split_once(':')
+        .ok_or_else(|| anyhow::anyhow!("invalid --map-rule {raw:?}; expected MAP:LABEL=REGEX"))?;
+    validate_frame_name(map, "mapping name")?;
+    validate_frame_name(label, "mapping label")?;
+    if pattern.is_empty() {
+        bail!("invalid --map-rule {raw:?}; regex pattern cannot be empty");
+    }
+    let regex = Regex::new(pattern)
+        .map_err(|error| anyhow::anyhow!("invalid --map-rule regex {pattern:?}: {error}"))?;
+    Ok(MappingRule {
+        map: map.to_string(),
+        label: label.to_string(),
+        pattern: pattern.to_string(),
+        regex,
+    })
+}
+
+fn validate_frame_name(value: &str, what: &str) -> Result<()> {
+    if value.is_empty() {
+        bail!("{what} cannot be empty");
+    }
+    if !value
+        .chars()
+        .all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '_' || ch == '-')
+    {
+        bail!("{what} {value:?} must contain only lowercase letters, digits, '_' or '-'");
+    }
+    Ok(())
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -322,13 +376,64 @@ impl StringInterner {
     }
 }
 
-pub fn build_profile(sessions: &[SessionRecord], project_name: &str, view: ProfileView) -> Profile {
-    match view {
-        ProfileView::Tokens => build_token_profile(sessions, project_name),
-        ProfileView::Files => build_file_profile(sessions, project_name),
-        ProfileView::Network => build_network_profile(sessions, project_name),
-        ProfileView::Time => build_time_profile(sessions, project_name),
+pub fn build_profile_with_options(
+    sessions: &[SessionRecord],
+    project_name: &str,
+    view: ProfileView,
+    options: &ProfileOptions,
+) -> Profile {
+    let (name, sample_type, unit) = view_metadata(view);
+    let mut profile = Profile::new(name, sample_type, unit);
+    for session in sessions {
+        for sample in session_samples(session, project_name, view) {
+            let frames = stack_frames(&sample, options);
+            profile.sample(frames, sample.value);
+        }
     }
+    profile
+}
+
+fn view_metadata(view: ProfileView) -> (&'static str, &'static str, &'static str) {
+    match view {
+        ProfileView::Tokens => ("tokens", "tokens", "count"),
+        ProfileView::Files => ("files", "file_events", "count"),
+        ProfileView::Network => ("network", "network_events", "count"),
+        ProfileView::Time => ("time", "duration", "seconds"),
+    }
+}
+
+fn frame(kind: &str, value: impl Into<String>) -> Frame {
+    (kind.to_string(), value.into())
+}
+
+fn stack_frames(sample: &OperationSample, options: &ProfileOptions) -> Vec<Frame> {
+    let mut frames = Vec::new();
+    for frame_spec in &options.stack.frames {
+        match frame_spec {
+            StackFrame::Field(name) => {
+                for value in sample.values(name) {
+                    frames.push(frame(name, value.clone()));
+                }
+            }
+            StackFrame::Map(name) => {
+                for value in mapping_values(name, sample, &options.mappings) {
+                    frames.push(frame(name, value));
+                }
+            }
+        }
+    }
+    frames
+}
+
+fn mapping_values(name: &str, sample: &OperationSample, rules: &[MappingRule]) -> Vec<String> {
+    let searchable = sample.searchable_text();
+    if let Some(rule) = rules
+        .iter()
+        .find(|rule| rule.map == name && rule.regex.is_match(&searchable))
+    {
+        return vec![rule.label.clone()];
+    }
+    sample.values(name).to_vec()
 }
 
 fn tool_phase_label(event: &crate::session::ToolEvent) -> String {
@@ -352,147 +457,157 @@ fn llm_phase_label(call: &crate::session::LlmEvent) -> String {
     }
 }
 
-fn tool_operation_frames(event: &crate::session::ToolEvent) -> Vec<Frame> {
-    let mut frames = vec![
-        ("op", "tool".to_string()),
-        ("tool", event.tool_name.clone()),
-    ];
+fn session_samples(
+    session: &SessionRecord,
+    project_name: &str,
+    view: ProfileView,
+) -> Vec<OperationSample> {
+    match view {
+        ProfileView::Tokens => token_samples(session, project_name),
+        ProfileView::Files => file_samples(session, project_name),
+        ProfileView::Network => network_samples(session, project_name),
+        ProfileView::Time => time_samples(session, project_name),
+    }
+}
+
+fn token_samples(session: &SessionRecord, project_name: &str) -> Vec<OperationSample> {
+    let mut samples = Vec::new();
+    for call in &session.llm_calls {
+        for (kind, value) in call.token_components() {
+            let mut sample = base_sample(session, project_name, call.prompt_index, value);
+            sample.insert("op", "llm");
+            sample.insert("phase", llm_phase_label(call));
+            sample.insert("call", format!("llm/{}", call.tag));
+            sample.insert("llm", call.tag.clone());
+            sample.insert("llm_preview", call.preview.clone());
+            sample.insert("model", last_model_segment(&call.model));
+            sample.insert("token", kind);
+            samples.push(sample);
+        }
+    }
+    samples
+}
+
+fn file_samples(session: &SessionRecord, project_name: &str) -> Vec<OperationSample> {
+    let mut samples = Vec::new();
+    for event in &session.tools {
+        if event.path_groups.is_empty() {
+            continue;
+        }
+        for group in &event.path_groups {
+            let mut sample = tool_sample(session, project_name, event, 1);
+            sample.insert("path", group.clone());
+            samples.push(sample);
+        }
+    }
+    samples
+}
+
+fn network_samples(session: &SessionRecord, project_name: &str) -> Vec<OperationSample> {
+    let mut samples = Vec::new();
+    for event in &session.tools {
+        if event.effect != "network" && event.domains.is_empty() {
+            continue;
+        }
+        let domains = if event.domains.is_empty() {
+            vec!["unknown".to_string()]
+        } else {
+            event.domains.clone()
+        };
+        for domain in domains {
+            let mut sample = tool_sample(session, project_name, event, 1);
+            sample.insert("domain", domain);
+            samples.push(sample);
+        }
+    }
+    samples
+}
+
+fn time_samples(session: &SessionRecord, project_name: &str) -> Vec<OperationSample> {
+    let mut events = Vec::new();
+    let mut ordinal = 0usize;
+
+    for (idx, req) in session.user_requests.iter().enumerate() {
+        if let Some(ts) = req.ts_ms {
+            let mut sample = base_sample(session, project_name, idx, 0);
+            sample.insert("op", "prompt");
+            sample.insert("prompt_hash", req.text_hash.clone());
+            events.push((ts, ordinal, sample));
+            ordinal += 1;
+        }
+    }
+    for event in &session.tools {
+        if let Some(ts) = event.ts_ms {
+            events.push((ts, ordinal, tool_sample(session, project_name, event, 0)));
+            ordinal += 1;
+        }
+    }
+    for call in &session.llm_calls {
+        if let Some(ts) = call.ts_ms {
+            let mut sample = base_sample(session, project_name, call.prompt_index, 0);
+            sample.insert("op", "llm");
+            sample.insert("phase", llm_phase_label(call));
+            sample.insert("call", format!("llm/{}", call.tag));
+            sample.insert("llm", call.tag.clone());
+            sample.insert("llm_preview", call.preview.clone());
+            sample.insert("model", last_model_segment(&call.model));
+            events.push((ts, ordinal, sample));
+            ordinal += 1;
+        }
+    }
+
+    events.sort_by_key(|(ts, ordinal, _)| (*ts, *ordinal));
+    let mut samples = Vec::new();
+    for i in 0..events.len() {
+        let duration_sec = if i + 1 < events.len() {
+            let next_ts = events[i + 1].0;
+            ((next_ts - events[i].0) / 1000).max(1) as u64
+        } else {
+            1
+        };
+        let mut sample = events[i].2.clone();
+        sample.value = duration_sec;
+        samples.push(sample);
+    }
+    samples
+}
+
+fn base_sample(
+    session: &SessionRecord,
+    project_name: &str,
+    prompt_index: usize,
+    value: u64,
+) -> OperationSample {
+    let req = session.request_by_index(prompt_index);
+    let mut sample = OperationSample::new(value);
+    sample.insert("project", project_name);
+    sample.insert("agent", session.source.clone());
+    sample.insert("session", session.session_tag.clone());
+    sample.insert("prompt", req.tag.clone());
+    sample.insert("prompt_hash", req.text_hash.clone());
+    sample.insert("prompt_preview", req.preview.clone());
+    sample
+}
+
+fn tool_sample(
+    session: &SessionRecord,
+    project_name: &str,
+    event: &crate::session::ToolEvent,
+    value: u64,
+) -> OperationSample {
+    let mut sample = base_sample(session, project_name, event.prompt_index, value);
+    sample.insert("op", "tool");
+    sample.insert("phase", tool_phase_label(event));
+    sample.insert("tool", event.tool_name.clone());
+    sample.insert("category", event.category.clone());
+    sample.insert("command", event.command.clone());
+    sample.insert("effect", event.effect.clone());
+    sample.insert("status", event.status.clone());
     if event.category == "shell" && !event.command_name.is_empty() {
-        frames.push(("cmd", event.command_name.clone()));
+        sample.insert("cmd", event.command_name.clone());
     }
-    for process in &event.process_chain {
-        frames.push(("process", process.clone()));
-    }
-    frames
-}
-
-fn llm_operation_frames(call: &crate::session::LlmEvent) -> Vec<Frame> {
-    vec![
-        ("op", "llm".to_string()),
-        ("call", format!("llm/{}", call.tag)),
-        ("model", last_model_segment(&call.model).to_string()),
-    ]
-}
-
-fn build_time_profile(sessions: &[SessionRecord], project_name: &str) -> Profile {
-    let mut profile = Profile::new("time", "duration", "seconds");
-    for session in sessions {
-        let paths = SessionPath::new(project_name, session);
-        let mut events = Vec::new();
-
-        for (idx, req) in session.user_requests.iter().enumerate() {
-            if let Some(ts) = req.ts_ms {
-                events.push((
-                    ts,
-                    EventKey::Prompt(idx),
-                    idx,
-                    vec![("op", "prompt".to_string())],
-                ));
-            }
-        }
-        for (idx, event) in session.tools.iter().enumerate() {
-            if let Some(ts) = event.ts_ms {
-                events.push((
-                    ts,
-                    EventKey::Tool(idx),
-                    event.prompt_index,
-                    tool_operation_frames(event),
-                ));
-            }
-        }
-        for (idx, call) in session.llm_calls.iter().enumerate() {
-            if let Some(ts) = call.ts_ms {
-                events.push((
-                    ts,
-                    EventKey::Llm(idx),
-                    call.prompt_index,
-                    llm_operation_frames(call),
-                ));
-            }
-        }
-
-        events.sort_by_key(|(ts, _, _, _)| *ts);
-
-        // Calculate duration between consecutive events
-        for i in 0..events.len() {
-            let (ts, key, prompt_index, detail_frames) = &events[i];
-            let duration_sec = if i + 1 < events.len() {
-                let next_ts = events[i + 1].0;
-                ((next_ts - ts) / 1000).max(1) as u64
-            } else {
-                1 // Last event gets 1 second
-            };
-
-            let mut frames = paths.frames_for(*key, *prompt_index);
-            frames.extend(detail_frames.clone());
-            profile.sample(frames, duration_sec);
-        }
-    }
-    profile
-}
-
-fn build_token_profile(sessions: &[SessionRecord], project_name: &str) -> Profile {
-    let mut profile = Profile::new("tokens", "tokens", "count");
-    for session in sessions {
-        let paths = SessionPath::new(project_name, session);
-        for (idx, call) in session.llm_calls.iter().enumerate() {
-            for (kind, value) in call.token_components() {
-                let mut frames = paths.frames_for(EventKey::Llm(idx), call.prompt_index);
-                frames.extend(llm_operation_frames(call));
-                frames.push(("token", kind.to_string()));
-                profile.sample(frames, value);
-            }
-        }
-    }
-    profile
-}
-
-fn build_file_profile(sessions: &[SessionRecord], project_name: &str) -> Profile {
-    let mut profile = Profile::new("files", "file_events", "count");
-    for session in sessions {
-        let paths = SessionPath::new(project_name, session);
-        for (idx, event) in session.tools.iter().enumerate() {
-            if event.path_groups.is_empty() {
-                continue;
-            }
-            for group in &event.path_groups {
-                let mut frames = paths.frames_for(EventKey::Tool(idx), event.prompt_index);
-                frames.extend(tool_operation_frames(event));
-                frames.extend([
-                    ("path", group.clone()),
-                    ("effect", event.effect.clone()),
-                    ("status", event.status.clone()),
-                ]);
-                profile.sample(frames, 1);
-            }
-        }
-    }
-    profile
-}
-
-fn build_network_profile(sessions: &[SessionRecord], project_name: &str) -> Profile {
-    let mut profile = Profile::new("network", "network_events", "count");
-    for session in sessions {
-        let paths = SessionPath::new(project_name, session);
-        for (idx, event) in session.tools.iter().enumerate() {
-            if event.effect != "network" && event.domains.is_empty() {
-                continue;
-            }
-            let domains = if event.domains.is_empty() {
-                vec!["unknown".to_string()]
-            } else {
-                event.domains.clone()
-            };
-            for domain in domains {
-                let mut frames = paths.frames_for(EventKey::Tool(idx), event.prompt_index);
-                frames.extend(tool_operation_frames(event));
-                frames.push(("domain", domain));
-                frames.push(("status", event.status.clone()));
-                profile.sample(frames, 1);
-            }
-        }
-    }
-    profile
+    sample.extend("process", event.process_chain.clone());
+    sample
 }
 
 pub fn profile_to_stacks(profile: &Profile) -> Counter {
@@ -512,7 +627,7 @@ fn op_frames(profile: &Profile, id: OpId) -> Vec<String> {
     let mut current = Some(id);
     while let Some(id) = current {
         let op = &profile.ops[id];
-        frames.push(safe_frame(&op.name, Some(op.kind)));
+        frames.push(safe_frame(&op.name, Some(op.kind.as_str())));
         current = op.parent;
     }
     frames.reverse();
@@ -1245,7 +1360,9 @@ mod tests {
             vec![shell_tool(3000, 0, "ok", vec!["repo"])],
             vec![llm(8000, 0, "gpt-5", "summarize")],
         );
-        let profile = build_time_profile(&[session], "agentsight");
+        let options = ProfileOptions::for_view(ProfileView::Time);
+        let profile =
+            build_profile_with_options(&[session], "agentsight", ProfileView::Time, &options);
         let stacks = profile_to_stacks(&profile);
         // prompt at 1000ms, tool at 3000ms -> 2 seconds
         assert_eq!(
@@ -1276,7 +1393,9 @@ mod tests {
             ],
             Vec::new(),
         );
-        let profile = build_file_profile(&[session], "agentsight");
+        let options = ProfileOptions::for_view(ProfileView::Files);
+        let profile =
+            build_profile_with_options(&[session], "agentsight", ProfileView::Files, &options);
         let stacks = profile_to_stacks(&profile);
 
         assert_eq!(
@@ -1285,6 +1404,44 @@ mod tests {
         );
         assert_eq!(
             stacks.get("project:agentsight;agent:codex;session:rustfix;prompt:debug;phase:test;op:tool;tool:exec_command;cmd:cargo;process:cargo;path:tests;effect:test;status:ok"),
+            Some(&1)
+        );
+    }
+
+    #[test]
+    fn custom_stack_and_mapping_rules_fold_recursively() {
+        let session = test_session(
+            "codex",
+            "rustfix",
+            vec![prompt(0, 1000, "h1", "fix rust tests", "debug")],
+            vec![
+                read_tool(2000, 0, vec!["src"]),
+                shell_tool(3000, 0, "ok", vec!["tests"]),
+            ],
+            Vec::new(),
+        );
+        let stack =
+            parse_stack_spec("project,agent,map:task,map:phase,op,tool,path,status").unwrap();
+        let mappings = parse_mapping_rules(&[
+            "task:verify=(effect=test|cmd=cargo|path=tests)".to_string(),
+            "task:explore=(effect=read|path=src)".to_string(),
+            "phase:inspect=(effect=read)".to_string(),
+            "phase:execute=(effect=test)".to_string(),
+        ])
+        .unwrap();
+        let options = ProfileOptions::for_view(ProfileView::Files)
+            .with_stack(stack)
+            .with_mappings(mappings);
+        let profile =
+            build_profile_with_options(&[session], "agentsight", ProfileView::Files, &options);
+        let stacks = profile_to_stacks(&profile);
+
+        assert_eq!(
+            stacks.get("project:agentsight;agent:codex;task:explore;phase:inspect;op:tool;tool:read;path:src;status:ok"),
+            Some(&1)
+        );
+        assert_eq!(
+            stacks.get("project:agentsight;agent:codex;task:verify;phase:execute;op:tool;tool:exec_command;path:tests;status:ok"),
             Some(&1)
         );
     }

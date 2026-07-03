@@ -300,11 +300,30 @@ agentpprof -o tokens.svg --prompt-tag review
 ## The stack model
 
 The semantic flamegraph stack is a projection, not a literal function call
-stack: lower frames provide context (project, agent, prompt type), detected
-`phase` frames split a prompt into task-like spans, and upper frames describe
-the operation being counted. The exact shape varies by view, but all built-in
-views now read the same operation path instead of hand-building unrelated stack
-formats.
+stack. Operations are the only profiled entities: a prompt, inferred task, LLM
+call, tool call, process, path, or domain is just an operation at a different
+granularity. `--view` chooses which operations are sampled and how they are
+weighted. `--stack` chooses which fields and mapping frames form the operation
+stack. `map:NAME` frames are recursive fold points, and repeated `--map-rule`
+arguments define how trace fields map into those frames.
+
+For example, this folds several prompt/tool events into inferred task and phase
+layers without making either prompt or phase a special boundary:
+
+```bash
+agentpprof -o files.folded --view files \
+  --stack 'project,agent,map:task,map:phase,op,tool,path,status' \
+  --map-rule 'task:verify=(effect=test|cmd=cargo|path=tests)' \
+  --map-rule 'task:explore=(effect=read|tool=read)' \
+  --map-rule 'phase:inspect=(effect=read)' \
+  --map-rule 'phase:execute=(effect=test)'
+```
+
+Mapping rules match a `key=value` string assembled from operation fields such
+as `prompt`, `prompt_preview`, `op`, `tool`, `category`, `command`, `cmd`,
+`process`, `effect`, `status`, `path`, `domain`, `llm`, `llm_preview`, `model`,
+and `token`. Default stacks use `map:phase`, but users can add or remove any
+field or mapping layer.
 
 The `tokens` view uses model budget as the width:
 

@@ -166,9 +166,11 @@ agentpprof --project-root . --tag-cache tags.json -o flamegraph.svg
 
 操作的粒度在解析时就固定了，与视图无关。视图改变的是计量方式：一个操作可以展开成多个样本，tokens 视图把一次 LLM 调用按 input/output/cache 展开成三个样本，files 视图把一次工具调用按触碰的路径逐一展开。样本是视图相关的，操作不是。
 
-**定义 2（operation stack，操作栈）。** 栈化函数 σ 把操作映射为有序帧序列 σ(o) = [f₁; f₂; …; f_k]。低层帧是语义上下文（project → agent → session），中间帧是切段器产出的 span（例如 prompt 意图、同一 prompt 内的 phase），高层帧是被计数的操作及其子操作（LLM 调用、模型、工具、进程链、路径、域名、状态）。与 CPU 调用栈不同，操作栈表达的是**归因链**而非控制流：每一帧回答「这个活动发生在什么上下文里」。
+**定义 2（operation stack，操作栈）。** 栈化函数 σ 把操作映射为有序帧序列 σ(o) = [f₁; f₂; …; f_k]。每一帧都是某种 operation 属性或 mapping 结果：project、agent、session、prompt、tool call、process、path、domain 都不是独立抽象，只是 operation 在不同粒度上的形态。与 CPU 调用栈不同，操作栈表达的是**归因链**而非控制流：每一帧回答「这个活动发生在什么上下文里」。
 
-层级从哪里来？agent 历史本身是一条线性事件序列，没有现成的树。当前实现先按 prompt 把这条序列切成外层 span，再在单个 prompt 内根据 LLM 标签、tool effect/category 的变化检测 phase 边界。这一步把平坦的时间线折叠出了 task/subtask 式的结构：prompt 像任务，phase 像该任务内部的 explore/edit/test 等阶段，宽度是这些原子操作的权重之和。但此时每个跨度还带着独一无二的文本或事件细节，只有经过意图识别把跨度换成稳定标签，不同 session 里做同类任务的跨度才能互相合并。折叠出结构在前，标签聚合在后。
+层级从哪里来？agent 历史本身是一条线性事件序列，没有现成的树。当前实现把 mapping 作为一等公民：`--stack` 选择栈中要出现的字段和 `map:NAME` 递归折叠层，`--map-rule NAME:LABEL=REGEX` 根据 operation 字段把事件映射到 task、phase、subtask 等任意层。默认 `map:phase` 只是一个内置例子，它根据 LLM 标签和 tool effect/category 给单个 prompt 内的事件生成阶段；用户也可以去掉 prompt、增加 `map:task,map:subtask,map:phase`，让几个 prompt 合并到同一个 intent/task 下。折叠出结构在前，标签聚合在后。
+
+`--map-rule` 匹配的是由 operation 字段组成的 `key=value` 字符串，可用字段包括 `prompt`、`prompt_preview`、`op`、`tool`、`category`、`command`、`cmd`、`process`、`effect`、`status`、`path`、`domain`、`llm`、`llm_preview`、`model` 和 `token`。默认栈使用 `map:phase`，但用户可以增删任意字段或 mapping 层。
 
 **定义 3（view，视图）。** 视图是三元组 V = (φ, σ, w)：谓词 φ 选择参与统计的操作子集，σ 决定栈结构，权重函数 w 把每个操作映射为非负数。视图的求值结果是 folded stacks，即按栈分组、权重求和的多重集：
 
@@ -180,10 +182,10 @@ eval(V, O) = { (s, w_s) : w_s = Σ w(o), 对所有 o ∈ O 满足 φ(o) 且 σ(o
 
 | 视图 | φ（选择哪些操作） | σ（栈结构） | w（权重） |
 | --- | --- | --- | --- |
-| `tokens` | LLM 调用 | project; agent; session; prompt; phase; op; call; model; token | token 数（input/output/cache 各为一个样本） |
-| `time` | 全部带时间戳的操作 | project; agent; session; prompt; phase; op; ⟨子操作帧⟩ | 到下一事件的间隔秒数 |
-| `files` | 有路径效果的工具操作 | project; agent; session; prompt; phase; op; tool; ⟨process⟩; path; effect; status | 事件次数 |
-| `network` | 有网络效果的工具操作 | project; agent; session; prompt; phase; op; tool; ⟨process⟩; domain; status | 事件次数 |
+| `tokens` | LLM 调用 | 默认 project; agent; session; prompt; map:phase; op; call; model; token，可用 `--stack` 覆盖 | token 数（input/output/cache 各为一个样本） |
+| `time` | 全部带时间戳的操作 | 默认 project; agent; session; prompt; map:phase; op; ⟨子操作帧⟩，可用 `--stack` 覆盖 | 到下一事件的间隔秒数 |
+| `files` | 有路径效果的工具操作 | 默认 project; agent; session; prompt; map:phase; op; tool; ⟨process⟩; path; effect; status，可用 `--stack` 覆盖 | 事件次数 |
+| `network` | 有网络效果的工具操作 | 默认 project; agent; session; prompt; map:phase; op; tool; ⟨process⟩; domain; status，可用 `--stack` 覆盖 | 事件次数 |
 
 四个视图共享同一操作集合 O 和同一低层语义前缀，只在高层帧和权重函数上不同，因此跨视图对照是良定义的：`tokens` 视图里的 `prompt:review` 与 `files` 视图里的 `prompt:review` 指同一批操作在不同 (σ, w) 下的投影。flamegraph、pprof、folded 文本和 JSON 只是同一求值结果的不同序列化，各视图的具体栈示例见后文「调用栈模型」。
 
@@ -260,7 +262,18 @@ agentpprof -o tokens.svg --prompt-tag review
 
 ## 调用栈模型
 
-语义 flamegraph 的调用栈是一种投影而非字面意义的函数调用栈：下层 frame 提供上下文（project、agent、prompt 类型），中间的 `phase` frame 把同一个 prompt 内的事件序列切成任务阶段，上层 frame 描述被计数的操作，具体形状由每个视图的 σ 决定。
+语义 flamegraph 的调用栈是一种投影而非字面意义的函数调用栈：`--view` 决定采样哪些 operation 及其权重，`--stack` 决定 operation stack 的字段序列，`map:NAME` frame 由 `--map-rule` 或内置字段生成，用来递归折叠 intent/task/subtask/phase 等层级。
+
+例如，下面的 stack 不保留 prompt，而是把多个 prompt/tool event 折到 task/phase 两层：
+
+```bash
+agentpprof -o files.folded --view files \
+  --stack 'project,agent,map:task,map:phase,op,tool,path,status' \
+  --map-rule 'task:verify=(effect=test|cmd=cargo|path=tests)' \
+  --map-rule 'task:explore=(effect=read|tool=read)' \
+  --map-rule 'phase:inspect=(effect=read)' \
+  --map-rule 'phase:execute=(effect=test)'
+```
 
 `tokens` 视图以模型预算作为宽度：
 
