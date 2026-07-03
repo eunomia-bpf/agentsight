@@ -1,0 +1,942 @@
+{
+  "compression_ratio": 1.021,
+  "depth_weight": {
+    "0": 48,
+    "1": 48,
+    "2": 48,
+    "3": 48,
+    "4": 48,
+    "5": 48,
+    "6": 48,
+    "7": 48
+  },
+  "top_by_kind": {
+    "action": [
+      {
+        "name": "get_classes",
+        "weight": 2
+      },
+      {
+        "name": "add_medication",
+        "weight": 1
+      },
+      {
+        "name": "bill_dispute_resolution",
+        "weight": 1
+      },
+      {
+        "name": "book_appointment",
+        "weight": 1
+      },
+      {
+        "name": "book_class",
+        "weight": 1
+      },
+      {
+        "name": "book_retreat",
+        "weight": 1
+      },
+      {
+        "name": "cancel_booking",
+        "weight": 1
+      },
+      {
+        "name": "cancel_cardiology_appointment",
+        "weight": 1
+      },
+      {
+        "name": "cancel_consultation",
+        "weight": 1
+      },
+      {
+        "name": "check_allergies",
+        "weight": 1
+      },
+      {
+        "name": "check_up_schedule",
+        "weight": 1
+      },
+      {
+        "name": "compare_insurance_plans",
+        "weight": 1
+      },
+      {
+        "name": "daily_journal",
+        "weight": 1
+      },
+      {
+        "name": "delete_medication",
+        "weight": 1
+      },
+      {
+        "name": "get_all_sessions",
+        "weight": 1
+      },
+      {
+        "name": "get_ambulance_eta",
+        "weight": 1
+      },
+      {
+        "name": "get_claim_history",
+        "weight": 1
+      },
+      {
+        "name": "get_class_schedule",
+        "weight": 1
+      },
+      {
+        "name": "get_delivery_status",
+        "weight": 1
+      },
+      {
+        "name": "get_device_details",
+        "weight": 1
+      },
+      {
+        "name": "get_expiring_medications",
+        "weight": 1
+      },
+      {
+        "name": "get_insurance_plans",
+        "weight": 1
+      },
+      {
+        "name": "get_interactions",
+        "weight": 1
+      },
+      {
+        "name": "get_locations",
+        "weight": 1
+      },
+      {
+        "name": "get_nearby_hospital",
+        "weight": 1
+      },
+      {
+        "name": "get_patient_info",
+        "weight": 1
+      },
+      {
+        "name": "get_policy_list",
+        "weight": 1
+      },
+      {
+        "name": "get_prescriptions",
+        "weight": 1
+      },
+      {
+        "name": "get_provider_info",
+        "weight": 1
+      },
+      {
+        "name": "get_therapists",
+        "weight": 1
+      }
+    ],
+    "dataset": [
+      {
+        "name": "api-bank",
+        "weight": 48
+      }
+    ],
+    "op": [
+      {
+        "name": "tool",
+        "weight": 48
+      }
+    ],
+    "phase": [
+      {
+        "name": "api",
+        "weight": 44
+      },
+      {
+        "name": "inspect",
+        "weight": 2
+      },
+      {
+        "name": "modify",
+        "weight": 2
+      }
+    ],
+    "project": [
+      {
+        "name": "external-agent-traces",
+        "weight": 48
+      }
+    ],
+    "status": [
+      {
+        "name": "gold",
+        "weight": 48
+      }
+    ],
+    "task": [
+      {
+        "name": "api-call",
+        "weight": 48
+      }
+    ],
+    "tool": [
+      {
+        "name": "api",
+        "weight": 48
+      }
+    ]
+  },
+  "top_leaves": [
+    {
+      "name": "status:gold",
+      "weight": 48
+    }
+  ],
+  "top_transitions": [
+    {
+      "from": "project:external-agent-traces",
+      "to": "dataset:api-bank",
+      "weight": 48
+    },
+    {
+      "from": "dataset:api-bank",
+      "to": "task:api-call",
+      "weight": 48
+    },
+    {
+      "from": "op:tool",
+      "to": "tool:api",
+      "weight": 48
+    },
+    {
+      "from": "task:api-call",
+      "to": "phase:api",
+      "weight": 44
+    },
+    {
+      "from": "phase:api",
+      "to": "op:tool",
+      "weight": 44
+    },
+    {
+      "from": "tool:api",
+      "to": "action:get_classes",
+      "weight": 2
+    },
+    {
+      "from": "action:get_classes",
+      "to": "status:gold",
+      "weight": 2
+    },
+    {
+      "from": "task:api-call",
+      "to": "phase:inspect",
+      "weight": 2
+    },
+    {
+      "from": "phase:inspect",
+      "to": "op:tool",
+      "weight": 2
+    },
+    {
+      "from": "task:api-call",
+      "to": "phase:modify",
+      "weight": 2
+    },
+    {
+      "from": "phase:modify",
+      "to": "op:tool",
+      "weight": 2
+    },
+    {
+      "from": "tool:api",
+      "to": "action:add_medication",
+      "weight": 1
+    },
+    {
+      "from": "action:add_medication",
+      "to": "status:gold",
+      "weight": 1
+    },
+    {
+      "from": "tool:api",
+      "to": "action:bill_dispute_resolution",
+      "weight": 1
+    },
+    {
+      "from": "action:bill_dispute_resolution",
+      "to": "status:gold",
+      "weight": 1
+    },
+    {
+      "from": "tool:api",
+      "to": "action:book_appointment",
+      "weight": 1
+    },
+    {
+      "from": "action:book_appointment",
+      "to": "status:gold",
+      "weight": 1
+    },
+    {
+      "from": "tool:api",
+      "to": "action:book_class",
+      "weight": 1
+    },
+    {
+      "from": "action:book_class",
+      "to": "status:gold",
+      "weight": 1
+    },
+    {
+      "from": "tool:api",
+      "to": "action:book_retreat",
+      "weight": 1
+    },
+    {
+      "from": "action:book_retreat",
+      "to": "status:gold",
+      "weight": 1
+    },
+    {
+      "from": "tool:api",
+      "to": "action:cancel_booking",
+      "weight": 1
+    },
+    {
+      "from": "action:cancel_booking",
+      "to": "status:gold",
+      "weight": 1
+    },
+    {
+      "from": "tool:api",
+      "to": "action:cancel_cardiology_appointment",
+      "weight": 1
+    },
+    {
+      "from": "action:cancel_cardiology_appointment",
+      "to": "status:gold",
+      "weight": 1
+    },
+    {
+      "from": "tool:api",
+      "to": "action:cancel_consultation",
+      "weight": 1
+    },
+    {
+      "from": "action:cancel_consultation",
+      "to": "status:gold",
+      "weight": 1
+    },
+    {
+      "from": "tool:api",
+      "to": "action:check_allergies",
+      "weight": 1
+    },
+    {
+      "from": "action:check_allergies",
+      "to": "status:gold",
+      "weight": 1
+    },
+    {
+      "from": "tool:api",
+      "to": "action:check_up_schedule",
+      "weight": 1
+    }
+  ],
+  "total_weight": 48,
+  "tree": {
+    "children": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 2
+                                  }
+                                ],
+                                "name": "action:get_classes",
+                                "value": 4
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:add_medication",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:bill_dispute_resolution",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:book_appointment",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:book_class",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:book_retreat",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:cancel_booking",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:cancel_cardiology_appointment",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:cancel_consultation",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:check_allergies",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:check_up_schedule",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:compare_insurance_plans",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:daily_journal",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:delete_medication",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:get_all_sessions",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:get_ambulance_eta",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:get_claim_history",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:get_class_schedule",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:get_delivery_status",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:get_device_details",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:get_expiring_medications",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:get_insurance_plans",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:get_interactions",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:get_locations",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:get_nearby_hospital",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:get_patient_info",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:get_policy_list",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:get_prescriptions",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:get_provider_info",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:get_therapists",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:get_upcoming_payments",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:getbmiinformation",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:make_payment",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:medication_lookup",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:nutrition_recommendation",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:rent_equipment",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:reserve_class",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:return_equipment",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:schedule_appointment",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:schedule_consultation",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:share_medical_record",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:update_claim_status",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:update_delivery_status",
+                                "value": 2
+                              }
+                            ],
+                            "name": "tool:api",
+                            "value": 132
+                          }
+                        ],
+                        "name": "op:tool",
+                        "value": 176
+                      }
+                    ],
+                    "name": "phase:api",
+                    "value": 220
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:search_retreats",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:searchhealtharticles",
+                                "value": 2
+                              }
+                            ],
+                            "name": "tool:api",
+                            "value": 6
+                          }
+                        ],
+                        "name": "op:tool",
+                        "value": 8
+                      }
+                    ],
+                    "name": "phase:inspect",
+                    "value": 10
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:create_delivery_order",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:create_new_session",
+                                "value": 2
+                              }
+                            ],
+                            "name": "tool:api",
+                            "value": 6
+                          }
+                        ],
+                        "name": "op:tool",
+                        "value": 8
+                      }
+                    ],
+                    "name": "phase:modify",
+                    "value": 10
+                  }
+                ],
+                "name": "task:api-call",
+                "value": 288
+              }
+            ],
+            "name": "dataset:api-bank",
+            "value": 336
+          }
+        ],
+        "name": "project:external-agent-traces",
+        "value": 384
+      }
+    ],
+    "name": "root",
+    "value": 48
+  },
+  "unique_stacks": 47
+}

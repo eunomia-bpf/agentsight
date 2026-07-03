@@ -1,0 +1,891 @@
+{
+  "compression_ratio": 24.8,
+  "depth_weight": {
+    "0": 496,
+    "1": 496,
+    "2": 496,
+    "3": 496,
+    "4": 496,
+    "5": 496,
+    "6": 496,
+    "7": 496
+  },
+  "top_by_kind": {
+    "action": [
+      {
+        "name": "ls",
+        "weight": 147
+      },
+      {
+        "name": "edit",
+        "weight": 81
+      },
+      {
+        "name": "open",
+        "weight": 76
+      },
+      {
+        "name": "search_dir",
+        "weight": 25
+      },
+      {
+        "name": "pwd",
+        "weight": 23
+      },
+      {
+        "name": "python",
+        "weight": 19
+      },
+      {
+        "name": "lexicon",
+        "weight": 18
+      },
+      {
+        "name": "goto",
+        "weight": 18
+      },
+      {
+        "name": "scroll_down",
+        "weight": 17
+      },
+      {
+        "name": "submit",
+        "weight": 15
+      },
+      {
+        "name": "search_file",
+        "weight": 13
+      },
+      {
+        "name": "scroll_up",
+        "weight": 12
+      },
+      {
+        "name": "create",
+        "weight": 8
+      },
+      {
+        "name": "find_file",
+        "weight": 7
+      },
+      {
+        "name": "rm",
+        "weight": 5
+      },
+      {
+        "name": "find",
+        "weight": 3
+      },
+      {
+        "name": "grep",
+        "weight": 3
+      },
+      {
+        "name": "pytest",
+        "weight": 3
+      },
+      {
+        "name": "cd",
+        "weight": 2
+      },
+      {
+        "name": "array",
+        "weight": 1
+      }
+    ],
+    "dataset": [
+      {
+        "name": "swe-agent-trajectories",
+        "weight": 496
+      }
+    ],
+    "op": [
+      {
+        "name": "tool",
+        "weight": 496
+      }
+    ],
+    "phase": [
+      {
+        "name": "ls",
+        "weight": 147
+      },
+      {
+        "name": "navigate",
+        "weight": 123
+      },
+      {
+        "name": "edit",
+        "weight": 81
+      },
+      {
+        "name": "inspect",
+        "weight": 38
+      },
+      {
+        "name": "pwd",
+        "weight": 23
+      },
+      {
+        "name": "python",
+        "weight": 19
+      },
+      {
+        "name": "lexicon",
+        "weight": 18
+      },
+      {
+        "name": "finish",
+        "weight": 15
+      },
+      {
+        "name": "create",
+        "weight": 8
+      },
+      {
+        "name": "find_file",
+        "weight": 7
+      },
+      {
+        "name": "rm",
+        "weight": 5
+      },
+      {
+        "name": "find",
+        "weight": 3
+      },
+      {
+        "name": "grep",
+        "weight": 3
+      },
+      {
+        "name": "pytest",
+        "weight": 3
+      },
+      {
+        "name": "cd",
+        "weight": 2
+      },
+      {
+        "name": "array",
+        "weight": 1
+      }
+    ],
+    "project": [
+      {
+        "name": "external-agent-traces",
+        "weight": 496
+      }
+    ],
+    "status": [
+      {
+        "name": "failure",
+        "weight": 496
+      }
+    ],
+    "task": [
+      {
+        "name": "software-issue",
+        "weight": 496
+      }
+    ],
+    "tool": [
+      {
+        "name": "swe-agent",
+        "weight": 496
+      }
+    ]
+  },
+  "top_leaves": [
+    {
+      "name": "status:failure",
+      "weight": 496
+    }
+  ],
+  "top_transitions": [
+    {
+      "from": "project:external-agent-traces",
+      "to": "dataset:swe-agent-trajectories",
+      "weight": 496
+    },
+    {
+      "from": "dataset:swe-agent-trajectories",
+      "to": "task:software-issue",
+      "weight": 496
+    },
+    {
+      "from": "op:tool",
+      "to": "tool:swe-agent",
+      "weight": 496
+    },
+    {
+      "from": "task:software-issue",
+      "to": "phase:ls",
+      "weight": 147
+    },
+    {
+      "from": "phase:ls",
+      "to": "op:tool",
+      "weight": 147
+    },
+    {
+      "from": "tool:swe-agent",
+      "to": "action:ls",
+      "weight": 147
+    },
+    {
+      "from": "action:ls",
+      "to": "status:failure",
+      "weight": 147
+    },
+    {
+      "from": "task:software-issue",
+      "to": "phase:navigate",
+      "weight": 123
+    },
+    {
+      "from": "phase:navigate",
+      "to": "op:tool",
+      "weight": 123
+    },
+    {
+      "from": "task:software-issue",
+      "to": "phase:edit",
+      "weight": 81
+    },
+    {
+      "from": "phase:edit",
+      "to": "op:tool",
+      "weight": 81
+    },
+    {
+      "from": "tool:swe-agent",
+      "to": "action:edit",
+      "weight": 81
+    },
+    {
+      "from": "action:edit",
+      "to": "status:failure",
+      "weight": 81
+    },
+    {
+      "from": "tool:swe-agent",
+      "to": "action:open",
+      "weight": 76
+    },
+    {
+      "from": "action:open",
+      "to": "status:failure",
+      "weight": 76
+    },
+    {
+      "from": "task:software-issue",
+      "to": "phase:inspect",
+      "weight": 38
+    },
+    {
+      "from": "phase:inspect",
+      "to": "op:tool",
+      "weight": 38
+    },
+    {
+      "from": "tool:swe-agent",
+      "to": "action:search_dir",
+      "weight": 25
+    },
+    {
+      "from": "action:search_dir",
+      "to": "status:failure",
+      "weight": 25
+    },
+    {
+      "from": "task:software-issue",
+      "to": "phase:pwd",
+      "weight": 23
+    },
+    {
+      "from": "phase:pwd",
+      "to": "op:tool",
+      "weight": 23
+    },
+    {
+      "from": "tool:swe-agent",
+      "to": "action:pwd",
+      "weight": 23
+    },
+    {
+      "from": "action:pwd",
+      "to": "status:failure",
+      "weight": 23
+    },
+    {
+      "from": "task:software-issue",
+      "to": "phase:python",
+      "weight": 19
+    },
+    {
+      "from": "phase:python",
+      "to": "op:tool",
+      "weight": 19
+    },
+    {
+      "from": "tool:swe-agent",
+      "to": "action:python",
+      "weight": 19
+    },
+    {
+      "from": "action:python",
+      "to": "status:failure",
+      "weight": 19
+    },
+    {
+      "from": "task:software-issue",
+      "to": "phase:lexicon",
+      "weight": 18
+    },
+    {
+      "from": "phase:lexicon",
+      "to": "op:tool",
+      "weight": 18
+    },
+    {
+      "from": "tool:swe-agent",
+      "to": "action:lexicon",
+      "weight": 18
+    }
+  ],
+  "total_weight": 496,
+  "tree": {
+    "children": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:failure",
+                                    "value": 147
+                                  }
+                                ],
+                                "name": "action:ls",
+                                "value": 294
+                              }
+                            ],
+                            "name": "tool:swe-agent",
+                            "value": 441
+                          }
+                        ],
+                        "name": "op:tool",
+                        "value": 588
+                      }
+                    ],
+                    "name": "phase:ls",
+                    "value": 735
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:failure",
+                                    "value": 76
+                                  }
+                                ],
+                                "name": "action:open",
+                                "value": 152
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:failure",
+                                    "value": 18
+                                  }
+                                ],
+                                "name": "action:goto",
+                                "value": 36
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:failure",
+                                    "value": 17
+                                  }
+                                ],
+                                "name": "action:scroll_down",
+                                "value": 34
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:failure",
+                                    "value": 12
+                                  }
+                                ],
+                                "name": "action:scroll_up",
+                                "value": 24
+                              }
+                            ],
+                            "name": "tool:swe-agent",
+                            "value": 369
+                          }
+                        ],
+                        "name": "op:tool",
+                        "value": 492
+                      }
+                    ],
+                    "name": "phase:navigate",
+                    "value": 615
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:failure",
+                                    "value": 81
+                                  }
+                                ],
+                                "name": "action:edit",
+                                "value": 162
+                              }
+                            ],
+                            "name": "tool:swe-agent",
+                            "value": 243
+                          }
+                        ],
+                        "name": "op:tool",
+                        "value": 324
+                      }
+                    ],
+                    "name": "phase:edit",
+                    "value": 405
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:failure",
+                                    "value": 25
+                                  }
+                                ],
+                                "name": "action:search_dir",
+                                "value": 50
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:failure",
+                                    "value": 13
+                                  }
+                                ],
+                                "name": "action:search_file",
+                                "value": 26
+                              }
+                            ],
+                            "name": "tool:swe-agent",
+                            "value": 114
+                          }
+                        ],
+                        "name": "op:tool",
+                        "value": 152
+                      }
+                    ],
+                    "name": "phase:inspect",
+                    "value": 190
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:failure",
+                                    "value": 23
+                                  }
+                                ],
+                                "name": "action:pwd",
+                                "value": 46
+                              }
+                            ],
+                            "name": "tool:swe-agent",
+                            "value": 69
+                          }
+                        ],
+                        "name": "op:tool",
+                        "value": 92
+                      }
+                    ],
+                    "name": "phase:pwd",
+                    "value": 115
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:failure",
+                                    "value": 19
+                                  }
+                                ],
+                                "name": "action:python",
+                                "value": 38
+                              }
+                            ],
+                            "name": "tool:swe-agent",
+                            "value": 57
+                          }
+                        ],
+                        "name": "op:tool",
+                        "value": 76
+                      }
+                    ],
+                    "name": "phase:python",
+                    "value": 95
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:failure",
+                                    "value": 18
+                                  }
+                                ],
+                                "name": "action:lexicon",
+                                "value": 36
+                              }
+                            ],
+                            "name": "tool:swe-agent",
+                            "value": 54
+                          }
+                        ],
+                        "name": "op:tool",
+                        "value": 72
+                      }
+                    ],
+                    "name": "phase:lexicon",
+                    "value": 90
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:failure",
+                                    "value": 15
+                                  }
+                                ],
+                                "name": "action:submit",
+                                "value": 30
+                              }
+                            ],
+                            "name": "tool:swe-agent",
+                            "value": 45
+                          }
+                        ],
+                        "name": "op:tool",
+                        "value": 60
+                      }
+                    ],
+                    "name": "phase:finish",
+                    "value": 75
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:failure",
+                                    "value": 8
+                                  }
+                                ],
+                                "name": "action:create",
+                                "value": 16
+                              }
+                            ],
+                            "name": "tool:swe-agent",
+                            "value": 24
+                          }
+                        ],
+                        "name": "op:tool",
+                        "value": 32
+                      }
+                    ],
+                    "name": "phase:create",
+                    "value": 40
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:failure",
+                                    "value": 7
+                                  }
+                                ],
+                                "name": "action:find_file",
+                                "value": 14
+                              }
+                            ],
+                            "name": "tool:swe-agent",
+                            "value": 21
+                          }
+                        ],
+                        "name": "op:tool",
+                        "value": 28
+                      }
+                    ],
+                    "name": "phase:find_file",
+                    "value": 35
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:failure",
+                                    "value": 5
+                                  }
+                                ],
+                                "name": "action:rm",
+                                "value": 10
+                              }
+                            ],
+                            "name": "tool:swe-agent",
+                            "value": 15
+                          }
+                        ],
+                        "name": "op:tool",
+                        "value": 20
+                      }
+                    ],
+                    "name": "phase:rm",
+                    "value": 25
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:failure",
+                                    "value": 3
+                                  }
+                                ],
+                                "name": "action:find",
+                                "value": 6
+                              }
+                            ],
+                            "name": "tool:swe-agent",
+                            "value": 9
+                          }
+                        ],
+                        "name": "op:tool",
+                        "value": 12
+                      }
+                    ],
+                    "name": "phase:find",
+                    "value": 15
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:failure",
+                                    "value": 3
+                                  }
+                                ],
+                                "name": "action:grep",
+                                "value": 6
+                              }
+                            ],
+                            "name": "tool:swe-agent",
+                            "value": 9
+                          }
+                        ],
+                        "name": "op:tool",
+                        "value": 12
+                      }
+                    ],
+                    "name": "phase:grep",
+                    "value": 15
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:failure",
+                                    "value": 3
+                                  }
+                                ],
+                                "name": "action:pytest",
+                                "value": 6
+                              }
+                            ],
+                            "name": "tool:swe-agent",
+                            "value": 9
+                          }
+                        ],
+                        "name": "op:tool",
+                        "value": 12
+                      }
+                    ],
+                    "name": "phase:pytest",
+                    "value": 15
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:failure",
+                                    "value": 2
+                                  }
+                                ],
+                                "name": "action:cd",
+                                "value": 4
+                              }
+                            ],
+                            "name": "tool:swe-agent",
+                            "value": 6
+                          }
+                        ],
+                        "name": "op:tool",
+                        "value": 8
+                      }
+                    ],
+                    "name": "phase:cd",
+                    "value": 10
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:failure",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:array",
+                                "value": 2
+                              }
+                            ],
+                            "name": "tool:swe-agent",
+                            "value": 3
+                          }
+                        ],
+                        "name": "op:tool",
+                        "value": 4
+                      }
+                    ],
+                    "name": "phase:array",
+                    "value": 5
+                  }
+                ],
+                "name": "task:software-issue",
+                "value": 2976
+              }
+            ],
+            "name": "dataset:swe-agent-trajectories",
+            "value": 3472
+          }
+        ],
+        "name": "project:external-agent-traces",
+        "value": 3968
+      }
+    ],
+    "name": "root",
+    "value": 496
+  },
+  "unique_stacks": 20
+}

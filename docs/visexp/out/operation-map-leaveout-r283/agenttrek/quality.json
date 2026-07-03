@@ -1,0 +1,339 @@
+{
+  "boundary_alignment": [
+    {
+      "adjacent_pairs": 0,
+      "f1": 0.0,
+      "false_negative": 0,
+      "false_positive": 0,
+      "oracle": "action",
+      "precision": 0.0,
+      "predicted": "phase",
+      "recall": 0.0,
+      "sequence_field": "session",
+      "true_negative": 0,
+      "true_positive": 0,
+      "turn_field": "turn"
+    }
+  ],
+  "coverage": [
+    {
+      "coverage": 1.0,
+      "field": "action",
+      "present": 200,
+      "total": 200
+    },
+    {
+      "coverage": 1.0,
+      "field": "dataset",
+      "present": 200,
+      "total": 200
+    },
+    {
+      "coverage": 1.0,
+      "field": "op",
+      "present": 200,
+      "total": 200
+    },
+    {
+      "coverage": 1.0,
+      "field": "phase",
+      "present": 200,
+      "total": 200
+    },
+    {
+      "coverage": 1.0,
+      "field": "project",
+      "present": 200,
+      "total": 200
+    },
+    {
+      "coverage": 1.0,
+      "field": "status",
+      "present": 200,
+      "total": 200
+    },
+    {
+      "coverage": 1.0,
+      "field": "task",
+      "present": 200,
+      "total": 200
+    },
+    {
+      "coverage": 1.0,
+      "field": "tool",
+      "present": 200,
+      "total": 200
+    }
+  ],
+  "op_map_files": [
+    "docs/visexp/out/operation-map-leaveout-r283/agenttrek/train-op-map.txt"
+  ],
+  "op_maps": [
+    "task:software=(dataset=swe\\-agent\\-trajectories|tool=swe\\-agent)",
+    "task:web=(dataset=weblinx\\-chat|dataset=webshop\\-expert|dataset=mind2web|tool=browser|tool=webshop|task=web\\-navigation|task=shopping|task=travel)",
+    "task:api=(dataset=api\\-bank|tool=api|task=api\\-call)",
+    "task:tool=(dataset=toolbench|task=tool\\-use)",
+    "task:mobile=(dataset=android\\-control|dataset=gui\\-odyssey|tool=android|tool=mobile\\-gui|task=mobile\\-control|task=mobile\\-cross\\-app)",
+    "phase:finish=(action=submit|action=finish|action=complete)",
+    "phase:navigate=(action=click|action=go|action=goto|action=open|action=load|action=open_app|action=scroll)",
+    "phase:inspect=(action=look|action=search|action=find|action=find_file|action=search_dir|action=search_file)",
+    "phase:modify=(action=edit|action=create|action=type|action=text|action=text_input)",
+    "phase:api=(dataset=toolbench|tool=api)"
+  ],
+  "operation_files": [
+    "docs/visexp/out/operation-map-leaveout-r283/agenttrek/test.operations.jsonl"
+  ],
+  "oracle_alignment": [
+    {
+      "completeness": 1.0,
+      "homogeneity": 0.757,
+      "oracle": "action",
+      "oracle_labels": 9,
+      "predicted": "phase",
+      "predicted_labels": 7,
+      "support": 200,
+      "top_confusions": [
+        {
+          "oracle": "click",
+          "predicted": "navigate",
+          "weight": 94
+        },
+        {
+          "oracle": "noop",
+          "predicted": "noop",
+          "weight": 37
+        },
+        {
+          "oracle": "fill",
+          "predicted": "fill",
+          "weight": 20
+        },
+        {
+          "oracle": "goto",
+          "predicted": "navigate",
+          "weight": 18
+        },
+        {
+          "oracle": "send_msg_to_user",
+          "predicted": "send_msg_to_user",
+          "weight": 11
+        },
+        {
+          "oracle": "scroll",
+          "predicted": "navigate",
+          "weight": 8
+        },
+        {
+          "oracle": "press",
+          "predicted": "press",
+          "weight": 8
+        },
+        {
+          "oracle": "focus",
+          "predicted": "focus",
+          "weight": 3
+        },
+        {
+          "oracle": "hover",
+          "predicted": "hover",
+          "weight": 1
+        }
+      ],
+      "v_measure": 0.8617
+    },
+    {
+      "completeness": 1.0,
+      "homogeneity": 1.0,
+      "oracle": "dataset",
+      "oracle_labels": 1,
+      "predicted": "task",
+      "predicted_labels": 1,
+      "support": 200,
+      "top_confusions": [
+        {
+          "oracle": "agenttrek",
+          "predicted": "web",
+          "weight": 200
+        }
+      ],
+      "v_measure": 1.0
+    },
+    {
+      "completeness": 1.0,
+      "homogeneity": 1.0,
+      "oracle": "dataset",
+      "oracle_labels": 1,
+      "predicted": "tool",
+      "predicted_labels": 1,
+      "support": 200,
+      "top_confusions": [
+        {
+          "oracle": "agenttrek",
+          "predicted": "browser",
+          "weight": 200
+        }
+      ],
+      "v_measure": 1.0
+    }
+  ],
+  "stack": [
+    "project",
+    "dataset",
+    "task",
+    "phase",
+    "op",
+    "tool",
+    "action",
+    "status"
+  ],
+  "summary": {
+    "compression_ratio": 22.222,
+    "operations": 200,
+    "total_weight": 200,
+    "unique_stacks": 9
+  },
+  "top_by_field": {
+    "action": [
+      {
+        "value": "click",
+        "weight": 94
+      },
+      {
+        "value": "noop",
+        "weight": 37
+      },
+      {
+        "value": "fill",
+        "weight": 20
+      },
+      {
+        "value": "goto",
+        "weight": 18
+      },
+      {
+        "value": "send_msg_to_user",
+        "weight": 11
+      },
+      {
+        "value": "scroll",
+        "weight": 8
+      },
+      {
+        "value": "press",
+        "weight": 8
+      },
+      {
+        "value": "focus",
+        "weight": 3
+      },
+      {
+        "value": "hover",
+        "weight": 1
+      }
+    ],
+    "dataset": [
+      {
+        "value": "agenttrek",
+        "weight": 200
+      }
+    ],
+    "op": [
+      {
+        "value": "action",
+        "weight": 200
+      }
+    ],
+    "phase": [
+      {
+        "value": "navigate",
+        "weight": 120
+      },
+      {
+        "value": "noop",
+        "weight": 37
+      },
+      {
+        "value": "fill",
+        "weight": 20
+      },
+      {
+        "value": "send_msg_to_user",
+        "weight": 11
+      },
+      {
+        "value": "press",
+        "weight": 8
+      },
+      {
+        "value": "focus",
+        "weight": 3
+      },
+      {
+        "value": "hover",
+        "weight": 1
+      }
+    ],
+    "project": [
+      {
+        "value": "external-agent-traces",
+        "weight": 200
+      }
+    ],
+    "status": [
+      {
+        "value": "verified",
+        "weight": 200
+      }
+    ],
+    "task": [
+      {
+        "value": "web",
+        "weight": 200
+      }
+    ],
+    "tool": [
+      {
+        "value": "browser",
+        "weight": 200
+      }
+    ]
+  },
+  "top_stacks": [
+    {
+      "stack": "project:external-agent-traces;dataset:agenttrek;task:web;phase:navigate;op:action;tool:browser;action:click;status:verified",
+      "weight": 94
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agenttrek;task:web;phase:noop;op:action;tool:browser;action:noop;status:verified",
+      "weight": 37
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agenttrek;task:web;phase:fill;op:action;tool:browser;action:fill;status:verified",
+      "weight": 20
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agenttrek;task:web;phase:navigate;op:action;tool:browser;action:goto;status:verified",
+      "weight": 18
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agenttrek;task:web;phase:send_msg_to_user;op:action;tool:browser;action:send_msg_to_user;status:verified",
+      "weight": 11
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agenttrek;task:web;phase:navigate;op:action;tool:browser;action:scroll;status:verified",
+      "weight": 8
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agenttrek;task:web;phase:press;op:action;tool:browser;action:press;status:verified",
+      "weight": 8
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agenttrek;task:web;phase:focus;op:action;tool:browser;action:focus;status:verified",
+      "weight": 3
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:agenttrek;task:web;phase:hover;op:action;tool:browser;action:hover;status:verified",
+      "weight": 1
+    }
+  ]
+}

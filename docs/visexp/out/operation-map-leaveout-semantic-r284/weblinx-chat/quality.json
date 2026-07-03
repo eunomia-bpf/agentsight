@@ -1,0 +1,268 @@
+{
+  "boundary_alignment": [
+    {
+      "adjacent_pairs": 476,
+      "f1": 0.8598,
+      "false_negative": 74,
+      "false_positive": 0,
+      "oracle": "action",
+      "precision": 1.0,
+      "predicted": "phase",
+      "recall": 0.7542,
+      "sequence_field": "session",
+      "true_negative": 175,
+      "true_positive": 227,
+      "turn_field": "turn"
+    }
+  ],
+  "coverage": [
+    {
+      "coverage": 1.0,
+      "field": "dataset",
+      "present": 500,
+      "total": 500
+    },
+    {
+      "coverage": 1.0,
+      "field": "op",
+      "present": 500,
+      "total": 500
+    },
+    {
+      "coverage": 1.0,
+      "field": "phase",
+      "present": 500,
+      "total": 500
+    },
+    {
+      "coverage": 1.0,
+      "field": "project",
+      "present": 500,
+      "total": 500
+    },
+    {
+      "coverage": 1.0,
+      "field": "status",
+      "present": 500,
+      "total": 500
+    },
+    {
+      "coverage": 1.0,
+      "field": "task",
+      "present": 500,
+      "total": 500
+    },
+    {
+      "coverage": 1.0,
+      "field": "tool",
+      "present": 500,
+      "total": 500
+    }
+  ],
+  "op_map_files": [
+    "docs/visexp/out/operation-map-leaveout-semantic-r284/weblinx-chat/train-op-map.txt"
+  ],
+  "op_maps": [
+    "task:software=(dataset=swe\\-agent\\-trajectories|tool=swe\\-agent)",
+    "task:web=(dataset=webshop\\-expert|dataset=agenttrek|dataset=mind2web|tool=browser|tool=webshop|task=shopping|task=travel)",
+    "task:api=(dataset=api\\-bank|tool=api|task=api\\-call)",
+    "task:tool=(dataset=toolbench|task=tool\\-use)",
+    "task:mobile=(dataset=android\\-control|dataset=gui\\-odyssey|tool=android|tool=mobile\\-gui|task=mobile\\-control|task=mobile\\-cross\\-app)",
+    "phase:finish=(action=submit|action=send_msg_to_user|action=finish|action=complete)",
+    "phase:navigate=(action=click|action=go|action=goto|action=open|action=open_app|action=scroll)",
+    "phase:inspect=(action=look|action=search|action=find|action=find_file|action=search_dir|action=search_file)",
+    "phase:modify=(action=edit|action=create|action=fill|action=type|action=text)",
+    "phase:api=(dataset=toolbench|tool=api)"
+  ],
+  "operation_files": [
+    "docs/visexp/out/operation-map-leaveout-semantic-r284/weblinx-chat/test.operations.jsonl"
+  ],
+  "oracle_alignment": [
+    {
+      "completeness": 1.0,
+      "homogeneity": 0.7727,
+      "oracle": "action",
+      "oracle_labels": 7,
+      "predicted": "phase",
+      "predicted_labels": 6,
+      "support": 500,
+      "top_confusions": [
+        {
+          "oracle": "click",
+          "predicted": "navigate",
+          "weight": 280
+        },
+        {
+          "oracle": "say",
+          "predicted": "say",
+          "weight": 129
+        },
+        {
+          "oracle": "scroll",
+          "predicted": "navigate",
+          "weight": 48
+        },
+        {
+          "oracle": "text_input",
+          "predicted": "modify",
+          "weight": 27
+        },
+        {
+          "oracle": "submit",
+          "predicted": "finish",
+          "weight": 7
+        },
+        {
+          "oracle": "change",
+          "predicted": "change",
+          "weight": 5
+        },
+        {
+          "oracle": "load",
+          "predicted": "load",
+          "weight": 4
+        }
+      ],
+      "v_measure": 0.8717
+    },
+    {
+      "completeness": 1.0,
+      "homogeneity": 1.0,
+      "oracle": "dataset",
+      "oracle_labels": 1,
+      "predicted": "task",
+      "predicted_labels": 1,
+      "support": 500,
+      "top_confusions": [
+        {
+          "oracle": "weblinx-chat",
+          "predicted": "web",
+          "weight": 500
+        }
+      ],
+      "v_measure": 1.0
+    },
+    {
+      "completeness": 1.0,
+      "homogeneity": 1.0,
+      "oracle": "dataset",
+      "oracle_labels": 1,
+      "predicted": "tool",
+      "predicted_labels": 1,
+      "support": 500,
+      "top_confusions": [
+        {
+          "oracle": "weblinx-chat",
+          "predicted": "browser",
+          "weight": 500
+        }
+      ],
+      "v_measure": 1.0
+    }
+  ],
+  "stack": [
+    "project",
+    "dataset",
+    "task",
+    "phase",
+    "op",
+    "tool",
+    "status"
+  ],
+  "summary": {
+    "compression_ratio": 83.333,
+    "operations": 500,
+    "total_weight": 500,
+    "unique_stacks": 6
+  },
+  "top_by_field": {
+    "dataset": [
+      {
+        "value": "weblinx-chat",
+        "weight": 500
+      }
+    ],
+    "op": [
+      {
+        "value": "action",
+        "weight": 500
+      }
+    ],
+    "phase": [
+      {
+        "value": "navigate",
+        "weight": 328
+      },
+      {
+        "value": "say",
+        "weight": 129
+      },
+      {
+        "value": "modify",
+        "weight": 27
+      },
+      {
+        "value": "finish",
+        "weight": 7
+      },
+      {
+        "value": "change",
+        "weight": 5
+      },
+      {
+        "value": "load",
+        "weight": 4
+      }
+    ],
+    "project": [
+      {
+        "value": "external-agent-traces",
+        "weight": 500
+      }
+    ],
+    "status": [
+      {
+        "value": "gold",
+        "weight": 500
+      }
+    ],
+    "task": [
+      {
+        "value": "web",
+        "weight": 500
+      }
+    ],
+    "tool": [
+      {
+        "value": "browser",
+        "weight": 500
+      }
+    ]
+  },
+  "top_stacks": [
+    {
+      "stack": "project:external-agent-traces;dataset:weblinx-chat;task:web;phase:navigate;op:action;tool:browser;status:gold",
+      "weight": 328
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:weblinx-chat;task:web;phase:say;op:action;tool:browser;status:gold",
+      "weight": 129
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:weblinx-chat;task:web;phase:modify;op:action;tool:browser;status:gold",
+      "weight": 27
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:weblinx-chat;task:web;phase:finish;op:action;tool:browser;status:gold",
+      "weight": 7
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:weblinx-chat;task:web;phase:change;op:action;tool:browser;status:gold",
+      "weight": 5
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:weblinx-chat;task:web;phase:load;op:action;tool:browser;status:gold",
+      "weight": 4
+    }
+  ]
+}

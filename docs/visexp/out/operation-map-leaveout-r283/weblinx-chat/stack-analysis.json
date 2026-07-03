@@ -1,0 +1,471 @@
+{
+  "compression_ratio": 71.429,
+  "depth_weight": {
+    "0": 500,
+    "1": 500,
+    "2": 500,
+    "3": 500,
+    "4": 500,
+    "5": 500,
+    "6": 500,
+    "7": 500
+  },
+  "top_by_kind": {
+    "action": [
+      {
+        "name": "click",
+        "weight": 280
+      },
+      {
+        "name": "say",
+        "weight": 129
+      },
+      {
+        "name": "scroll",
+        "weight": 48
+      },
+      {
+        "name": "text_input",
+        "weight": 27
+      },
+      {
+        "name": "submit",
+        "weight": 7
+      },
+      {
+        "name": "change",
+        "weight": 5
+      },
+      {
+        "name": "load",
+        "weight": 4
+      }
+    ],
+    "dataset": [
+      {
+        "name": "weblinx-chat",
+        "weight": 500
+      }
+    ],
+    "op": [
+      {
+        "name": "action",
+        "weight": 500
+      }
+    ],
+    "phase": [
+      {
+        "name": "navigate",
+        "weight": 328
+      },
+      {
+        "name": "say",
+        "weight": 129
+      },
+      {
+        "name": "modify",
+        "weight": 27
+      },
+      {
+        "name": "finish",
+        "weight": 7
+      },
+      {
+        "name": "change",
+        "weight": 5
+      },
+      {
+        "name": "load",
+        "weight": 4
+      }
+    ],
+    "project": [
+      {
+        "name": "external-agent-traces",
+        "weight": 500
+      }
+    ],
+    "status": [
+      {
+        "name": "gold",
+        "weight": 500
+      }
+    ],
+    "task": [
+      {
+        "name": "web",
+        "weight": 500
+      }
+    ],
+    "tool": [
+      {
+        "name": "browser",
+        "weight": 500
+      }
+    ]
+  },
+  "top_leaves": [
+    {
+      "name": "status:gold",
+      "weight": 500
+    }
+  ],
+  "top_transitions": [
+    {
+      "from": "project:external-agent-traces",
+      "to": "dataset:weblinx-chat",
+      "weight": 500
+    },
+    {
+      "from": "dataset:weblinx-chat",
+      "to": "task:web",
+      "weight": 500
+    },
+    {
+      "from": "op:action",
+      "to": "tool:browser",
+      "weight": 500
+    },
+    {
+      "from": "task:web",
+      "to": "phase:navigate",
+      "weight": 328
+    },
+    {
+      "from": "phase:navigate",
+      "to": "op:action",
+      "weight": 328
+    },
+    {
+      "from": "tool:browser",
+      "to": "action:click",
+      "weight": 280
+    },
+    {
+      "from": "action:click",
+      "to": "status:gold",
+      "weight": 280
+    },
+    {
+      "from": "task:web",
+      "to": "phase:say",
+      "weight": 129
+    },
+    {
+      "from": "phase:say",
+      "to": "op:action",
+      "weight": 129
+    },
+    {
+      "from": "tool:browser",
+      "to": "action:say",
+      "weight": 129
+    },
+    {
+      "from": "action:say",
+      "to": "status:gold",
+      "weight": 129
+    },
+    {
+      "from": "tool:browser",
+      "to": "action:scroll",
+      "weight": 48
+    },
+    {
+      "from": "action:scroll",
+      "to": "status:gold",
+      "weight": 48
+    },
+    {
+      "from": "task:web",
+      "to": "phase:modify",
+      "weight": 27
+    },
+    {
+      "from": "phase:modify",
+      "to": "op:action",
+      "weight": 27
+    },
+    {
+      "from": "tool:browser",
+      "to": "action:text_input",
+      "weight": 27
+    },
+    {
+      "from": "action:text_input",
+      "to": "status:gold",
+      "weight": 27
+    },
+    {
+      "from": "task:web",
+      "to": "phase:finish",
+      "weight": 7
+    },
+    {
+      "from": "phase:finish",
+      "to": "op:action",
+      "weight": 7
+    },
+    {
+      "from": "tool:browser",
+      "to": "action:submit",
+      "weight": 7
+    },
+    {
+      "from": "action:submit",
+      "to": "status:gold",
+      "weight": 7
+    },
+    {
+      "from": "task:web",
+      "to": "phase:change",
+      "weight": 5
+    },
+    {
+      "from": "phase:change",
+      "to": "op:action",
+      "weight": 5
+    },
+    {
+      "from": "tool:browser",
+      "to": "action:change",
+      "weight": 5
+    },
+    {
+      "from": "action:change",
+      "to": "status:gold",
+      "weight": 5
+    },
+    {
+      "from": "task:web",
+      "to": "phase:load",
+      "weight": 4
+    },
+    {
+      "from": "phase:load",
+      "to": "op:action",
+      "weight": 4
+    },
+    {
+      "from": "tool:browser",
+      "to": "action:load",
+      "weight": 4
+    },
+    {
+      "from": "action:load",
+      "to": "status:gold",
+      "weight": 4
+    }
+  ],
+  "total_weight": 500,
+  "tree": {
+    "children": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 280
+                                  }
+                                ],
+                                "name": "action:click",
+                                "value": 560
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 48
+                                  }
+                                ],
+                                "name": "action:scroll",
+                                "value": 96
+                              }
+                            ],
+                            "name": "tool:browser",
+                            "value": 984
+                          }
+                        ],
+                        "name": "op:action",
+                        "value": 1312
+                      }
+                    ],
+                    "name": "phase:navigate",
+                    "value": 1640
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 129
+                                  }
+                                ],
+                                "name": "action:say",
+                                "value": 258
+                              }
+                            ],
+                            "name": "tool:browser",
+                            "value": 387
+                          }
+                        ],
+                        "name": "op:action",
+                        "value": 516
+                      }
+                    ],
+                    "name": "phase:say",
+                    "value": 645
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 27
+                                  }
+                                ],
+                                "name": "action:text_input",
+                                "value": 54
+                              }
+                            ],
+                            "name": "tool:browser",
+                            "value": 81
+                          }
+                        ],
+                        "name": "op:action",
+                        "value": 108
+                      }
+                    ],
+                    "name": "phase:modify",
+                    "value": 135
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 7
+                                  }
+                                ],
+                                "name": "action:submit",
+                                "value": 14
+                              }
+                            ],
+                            "name": "tool:browser",
+                            "value": 21
+                          }
+                        ],
+                        "name": "op:action",
+                        "value": 28
+                      }
+                    ],
+                    "name": "phase:finish",
+                    "value": 35
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 5
+                                  }
+                                ],
+                                "name": "action:change",
+                                "value": 10
+                              }
+                            ],
+                            "name": "tool:browser",
+                            "value": 15
+                          }
+                        ],
+                        "name": "op:action",
+                        "value": 20
+                      }
+                    ],
+                    "name": "phase:change",
+                    "value": 25
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 4
+                                  }
+                                ],
+                                "name": "action:load",
+                                "value": 8
+                              }
+                            ],
+                            "name": "tool:browser",
+                            "value": 12
+                          }
+                        ],
+                        "name": "op:action",
+                        "value": 16
+                      }
+                    ],
+                    "name": "phase:load",
+                    "value": 20
+                  }
+                ],
+                "name": "task:web",
+                "value": 3000
+              }
+            ],
+            "name": "dataset:weblinx-chat",
+            "value": 3500
+          }
+        ],
+        "name": "project:external-agent-traces",
+        "value": 4000
+      }
+    ],
+    "name": "root",
+    "value": 500
+  },
+  "unique_stacks": 7
+}

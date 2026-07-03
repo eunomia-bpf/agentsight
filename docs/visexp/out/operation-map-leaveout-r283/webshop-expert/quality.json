@@ -1,0 +1,497 @@
+{
+  "boundary_alignment": [
+    {
+      "adjacent_pairs": 2404,
+      "f1": 1.0,
+      "false_negative": 0,
+      "false_positive": 0,
+      "oracle": "action",
+      "precision": 1.0,
+      "predicted": "phase",
+      "recall": 1.0,
+      "sequence_field": "session",
+      "true_negative": 400,
+      "true_positive": 2004,
+      "turn_field": "turn"
+    }
+  ],
+  "coverage": [
+    {
+      "coverage": 1.0,
+      "field": "action",
+      "present": 2504,
+      "total": 2504
+    },
+    {
+      "coverage": 1.0,
+      "field": "dataset",
+      "present": 2504,
+      "total": 2504
+    },
+    {
+      "coverage": 1.0,
+      "field": "op",
+      "present": 2504,
+      "total": 2504
+    },
+    {
+      "coverage": 1.0,
+      "field": "phase",
+      "present": 2504,
+      "total": 2504
+    },
+    {
+      "coverage": 1.0,
+      "field": "project",
+      "present": 2504,
+      "total": 2504
+    },
+    {
+      "coverage": 1.0,
+      "field": "status",
+      "present": 2504,
+      "total": 2504
+    },
+    {
+      "coverage": 1.0,
+      "field": "task",
+      "present": 2504,
+      "total": 2504
+    },
+    {
+      "coverage": 1.0,
+      "field": "tool",
+      "present": 2504,
+      "total": 2504
+    }
+  ],
+  "op_map_files": [
+    "docs/visexp/out/operation-map-leaveout-r283/webshop-expert/train-op-map.txt"
+  ],
+  "op_maps": [
+    "task:software=(dataset=swe\\-agent\\-trajectories|tool=swe\\-agent)",
+    "task:web=(dataset=weblinx\\-chat|dataset=agenttrek|dataset=mind2web|tool=browser|task=web\\-navigation|task=shopping|task=travel)",
+    "task:api=(dataset=api\\-bank|tool=api|task=api\\-call)",
+    "task:tool=(dataset=toolbench|task=tool\\-use)",
+    "task:mobile=(dataset=android\\-control|dataset=gui\\-odyssey|tool=android|tool=mobile\\-gui|task=mobile\\-control|task=mobile\\-cross\\-app)",
+    "phase:finish=(action=submit|action=send_msg_to_user|action=finish|action=complete)",
+    "phase:navigate=(action=click|action=goto|action=open|action=load|action=open_app|action=scroll)",
+    "phase:inspect=(action=search|action=find|action=find_file|action=search_dir|action=search_file)",
+    "phase:modify=(action=edit|action=create|action=fill|action=type|action=text|action=text_input)",
+    "phase:api=(dataset=toolbench|tool=api)"
+  ],
+  "operation_files": [
+    "docs/visexp/out/operation-map-leaveout-r283/webshop-expert/test.operations.jsonl"
+  ],
+  "oracle_alignment": [
+    {
+      "completeness": 1.0,
+      "homogeneity": 1.0,
+      "oracle": "action",
+      "oracle_labels": 17,
+      "predicted": "phase",
+      "predicted_labels": 17,
+      "support": 2504,
+      "top_confusions": [
+        {
+          "oracle": "open",
+          "predicted": "navigate",
+          "weight": 449
+        },
+        {
+          "oracle": "go",
+          "predicted": "go",
+          "weight": 431
+        },
+        {
+          "oracle": "connect",
+          "predicted": "connect",
+          "weight": 240
+        },
+        {
+          "oracle": "focus",
+          "predicted": "focus",
+          "weight": 224
+        },
+        {
+          "oracle": "move",
+          "predicted": "move",
+          "weight": 213
+        },
+        {
+          "oracle": "look",
+          "predicted": "look",
+          "weight": 211
+        },
+        {
+          "oracle": "use",
+          "predicted": "use",
+          "weight": 165
+        },
+        {
+          "oracle": "examine",
+          "predicted": "examine",
+          "weight": 156
+        },
+        {
+          "oracle": "pick",
+          "predicted": "pick",
+          "weight": 144
+        },
+        {
+          "oracle": "wait1",
+          "predicted": "wait1",
+          "weight": 126
+        },
+        {
+          "oracle": "pour",
+          "predicted": "pour",
+          "weight": 42
+        },
+        {
+          "oracle": "drop",
+          "predicted": "drop",
+          "weight": 30
+        }
+      ],
+      "v_measure": 1.0
+    },
+    {
+      "completeness": 0.0,
+      "homogeneity": 1.0,
+      "oracle": "dataset",
+      "oracle_labels": 1,
+      "predicted": "task",
+      "predicted_labels": 17,
+      "support": 2504,
+      "top_confusions": [
+        {
+          "oracle": "webshop-expert",
+          "predicted": "test-conductivity",
+          "weight": 662
+        },
+        {
+          "oracle": "webshop-expert",
+          "predicted": "measure-melting-point-known-substance",
+          "weight": 490
+        },
+        {
+          "oracle": "webshop-expert",
+          "predicted": "test-conductivity-of-unknown-substances",
+          "weight": 280
+        },
+        {
+          "oracle": "webshop-expert",
+          "predicted": "find-living-thing",
+          "weight": 241
+        },
+        {
+          "oracle": "webshop-expert",
+          "predicted": "use-thermometer",
+          "weight": 193
+        },
+        {
+          "oracle": "webshop-expert",
+          "predicted": "find-plant",
+          "weight": 104
+        },
+        {
+          "oracle": "webshop-expert",
+          "predicted": "power-component-renewable-vs-nonrenewable-energy",
+          "weight": 98
+        },
+        {
+          "oracle": "webshop-expert",
+          "predicted": "identify-life-stages-2",
+          "weight": 98
+        },
+        {
+          "oracle": "webshop-expert",
+          "predicted": "lifespan-longest-lived-then-shortest-lived",
+          "weight": 56
+        },
+        {
+          "oracle": "webshop-expert",
+          "predicted": "lifespan-shortest-lived",
+          "weight": 54
+        },
+        {
+          "oracle": "webshop-expert",
+          "predicted": "chemistry-mix-paint-tertiary-color",
+          "weight": 49
+        },
+        {
+          "oracle": "webshop-expert",
+          "predicted": "power-component",
+          "weight": 49
+        }
+      ],
+      "v_measure": 0.0
+    },
+    {
+      "completeness": 1.0,
+      "homogeneity": 1.0,
+      "oracle": "dataset",
+      "oracle_labels": 1,
+      "predicted": "tool",
+      "predicted_labels": 1,
+      "support": 2504,
+      "top_confusions": [
+        {
+          "oracle": "webshop-expert",
+          "predicted": "webshop",
+          "weight": 2504
+        }
+      ],
+      "v_measure": 1.0
+    }
+  ],
+  "stack": [
+    "project",
+    "dataset",
+    "task",
+    "phase",
+    "op",
+    "tool",
+    "action",
+    "status"
+  ],
+  "summary": {
+    "compression_ratio": 21.042,
+    "operations": 2504,
+    "total_weight": 2504,
+    "unique_stacks": 119
+  },
+  "top_by_field": {
+    "action": [
+      {
+        "value": "open",
+        "weight": 449
+      },
+      {
+        "value": "go",
+        "weight": 431
+      },
+      {
+        "value": "connect",
+        "weight": 240
+      },
+      {
+        "value": "focus",
+        "weight": 224
+      },
+      {
+        "value": "move",
+        "weight": 213
+      },
+      {
+        "value": "look",
+        "weight": 211
+      },
+      {
+        "value": "use",
+        "weight": 165
+      },
+      {
+        "value": "examine",
+        "weight": 156
+      },
+      {
+        "value": "pick",
+        "weight": 144
+      },
+      {
+        "value": "wait1",
+        "weight": 126
+      },
+      {
+        "value": "pour",
+        "weight": 42
+      },
+      {
+        "value": "drop",
+        "weight": 30
+      }
+    ],
+    "dataset": [
+      {
+        "value": "webshop-expert",
+        "weight": 2504
+      }
+    ],
+    "op": [
+      {
+        "value": "action",
+        "weight": 2504
+      }
+    ],
+    "phase": [
+      {
+        "value": "navigate",
+        "weight": 449
+      },
+      {
+        "value": "go",
+        "weight": 431
+      },
+      {
+        "value": "connect",
+        "weight": 240
+      },
+      {
+        "value": "focus",
+        "weight": 224
+      },
+      {
+        "value": "move",
+        "weight": 213
+      },
+      {
+        "value": "look",
+        "weight": 211
+      },
+      {
+        "value": "use",
+        "weight": 165
+      },
+      {
+        "value": "examine",
+        "weight": 156
+      },
+      {
+        "value": "pick",
+        "weight": 144
+      },
+      {
+        "value": "wait1",
+        "weight": 126
+      },
+      {
+        "value": "pour",
+        "weight": 42
+      },
+      {
+        "value": "drop",
+        "weight": 30
+      }
+    ],
+    "project": [
+      {
+        "value": "external-agent-traces",
+        "weight": 2504
+      }
+    ],
+    "status": [
+      {
+        "value": "success",
+        "weight": 2504
+      }
+    ],
+    "task": [
+      {
+        "value": "test-conductivity",
+        "weight": 662
+      },
+      {
+        "value": "measure-melting-point-known-substance",
+        "weight": 490
+      },
+      {
+        "value": "test-conductivity-of-unknown-substances",
+        "weight": 280
+      },
+      {
+        "value": "find-living-thing",
+        "weight": 241
+      },
+      {
+        "value": "use-thermometer",
+        "weight": 193
+      },
+      {
+        "value": "find-plant",
+        "weight": 104
+      },
+      {
+        "value": "power-component-renewable-vs-nonrenewable-energy",
+        "weight": 98
+      },
+      {
+        "value": "identify-life-stages-2",
+        "weight": 98
+      },
+      {
+        "value": "lifespan-longest-lived-then-shortest-lived",
+        "weight": 56
+      },
+      {
+        "value": "lifespan-shortest-lived",
+        "weight": 54
+      },
+      {
+        "value": "chemistry-mix-paint-tertiary-color",
+        "weight": 49
+      },
+      {
+        "value": "power-component",
+        "weight": 49
+      }
+    ],
+    "tool": [
+      {
+        "value": "webshop",
+        "weight": 2504
+      }
+    ]
+  },
+  "top_stacks": [
+    {
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:measure-melting-point-known-substance;phase:examine;op:action;tool:webshop;action:examine;status:success",
+      "weight": 143
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:measure-melting-point-known-substance;phase:use;op:action;tool:webshop;action:use;status:success",
+      "weight": 142
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:test-conductivity;phase:connect;op:action;tool:webshop;action:connect;status:success",
+      "weight": 114
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:test-conductivity;phase:navigate;op:action;tool:webshop;action:open;status:success",
+      "weight": 103
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:test-conductivity;phase:go;op:action;tool:webshop;action:go;status:success",
+      "weight": 100
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:test-conductivity-of-unknown-substances;phase:connect;op:action;tool:webshop;action:connect;status:success",
+      "weight": 84
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:find-living-thing;phase:navigate;op:action;tool:webshop;action:open;status:success",
+      "weight": 72
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:find-living-thing;phase:go;op:action;tool:webshop;action:go;status:success",
+      "weight": 71
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:test-conductivity;phase:wait1;op:action;tool:webshop;action:wait1;status:success",
+      "weight": 63
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:test-conductivity;phase:look;op:action;tool:webshop;action:look;status:success",
+      "weight": 60
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:test-conductivity;phase:move;op:action;tool:webshop;action:move;status:success",
+      "weight": 58
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:find-living-thing;phase:move;op:action;tool:webshop;action:move;status:success",
+      "weight": 57
+    }
+  ]
+}

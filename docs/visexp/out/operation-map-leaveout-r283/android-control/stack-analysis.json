@@ -1,0 +1,325 @@
+{
+  "compression_ratio": 1.8,
+  "depth_weight": {
+    "0": 9,
+    "1": 9,
+    "2": 9,
+    "3": 9,
+    "4": 9,
+    "5": 9,
+    "6": 9,
+    "7": 9
+  },
+  "top_by_kind": {
+    "action": [
+      {
+        "name": "click",
+        "weight": 3
+      },
+      {
+        "name": "open_app",
+        "weight": 2
+      },
+      {
+        "name": "wait",
+        "weight": 2
+      },
+      {
+        "name": "input_text",
+        "weight": 1
+      },
+      {
+        "name": "scroll",
+        "weight": 1
+      }
+    ],
+    "dataset": [
+      {
+        "name": "android-control",
+        "weight": 9
+      }
+    ],
+    "op": [
+      {
+        "name": "action",
+        "weight": 9
+      }
+    ],
+    "phase": [
+      {
+        "name": "navigate",
+        "weight": 6
+      },
+      {
+        "name": "wait",
+        "weight": 2
+      },
+      {
+        "name": "input_text",
+        "weight": 1
+      }
+    ],
+    "project": [
+      {
+        "name": "external-agent-traces",
+        "weight": 9
+      }
+    ],
+    "status": [
+      {
+        "name": "gold",
+        "weight": 9
+      }
+    ],
+    "task": [
+      {
+        "name": "mobile-control",
+        "weight": 9
+      }
+    ],
+    "tool": [
+      {
+        "name": "android",
+        "weight": 9
+      }
+    ]
+  },
+  "top_leaves": [
+    {
+      "name": "status:gold",
+      "weight": 9
+    }
+  ],
+  "top_transitions": [
+    {
+      "from": "project:external-agent-traces",
+      "to": "dataset:android-control",
+      "weight": 9
+    },
+    {
+      "from": "dataset:android-control",
+      "to": "task:mobile-control",
+      "weight": 9
+    },
+    {
+      "from": "op:action",
+      "to": "tool:android",
+      "weight": 9
+    },
+    {
+      "from": "task:mobile-control",
+      "to": "phase:navigate",
+      "weight": 6
+    },
+    {
+      "from": "phase:navigate",
+      "to": "op:action",
+      "weight": 6
+    },
+    {
+      "from": "tool:android",
+      "to": "action:click",
+      "weight": 3
+    },
+    {
+      "from": "action:click",
+      "to": "status:gold",
+      "weight": 3
+    },
+    {
+      "from": "tool:android",
+      "to": "action:open_app",
+      "weight": 2
+    },
+    {
+      "from": "action:open_app",
+      "to": "status:gold",
+      "weight": 2
+    },
+    {
+      "from": "task:mobile-control",
+      "to": "phase:wait",
+      "weight": 2
+    },
+    {
+      "from": "phase:wait",
+      "to": "op:action",
+      "weight": 2
+    },
+    {
+      "from": "tool:android",
+      "to": "action:wait",
+      "weight": 2
+    },
+    {
+      "from": "action:wait",
+      "to": "status:gold",
+      "weight": 2
+    },
+    {
+      "from": "task:mobile-control",
+      "to": "phase:input_text",
+      "weight": 1
+    },
+    {
+      "from": "phase:input_text",
+      "to": "op:action",
+      "weight": 1
+    },
+    {
+      "from": "tool:android",
+      "to": "action:input_text",
+      "weight": 1
+    },
+    {
+      "from": "action:input_text",
+      "to": "status:gold",
+      "weight": 1
+    },
+    {
+      "from": "tool:android",
+      "to": "action:scroll",
+      "weight": 1
+    },
+    {
+      "from": "action:scroll",
+      "to": "status:gold",
+      "weight": 1
+    }
+  ],
+  "total_weight": 9,
+  "tree": {
+    "children": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 3
+                                  }
+                                ],
+                                "name": "action:click",
+                                "value": 6
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 2
+                                  }
+                                ],
+                                "name": "action:open_app",
+                                "value": 4
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:scroll",
+                                "value": 2
+                              }
+                            ],
+                            "name": "tool:android",
+                            "value": 18
+                          }
+                        ],
+                        "name": "op:action",
+                        "value": 24
+                      }
+                    ],
+                    "name": "phase:navigate",
+                    "value": 30
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 2
+                                  }
+                                ],
+                                "name": "action:wait",
+                                "value": 4
+                              }
+                            ],
+                            "name": "tool:android",
+                            "value": 6
+                          }
+                        ],
+                        "name": "op:action",
+                        "value": 8
+                      }
+                    ],
+                    "name": "phase:wait",
+                    "value": 10
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:input_text",
+                                "value": 2
+                              }
+                            ],
+                            "name": "tool:android",
+                            "value": 3
+                          }
+                        ],
+                        "name": "op:action",
+                        "value": 4
+                      }
+                    ],
+                    "name": "phase:input_text",
+                    "value": 5
+                  }
+                ],
+                "name": "task:mobile-control",
+                "value": 54
+              }
+            ],
+            "name": "dataset:android-control",
+            "value": 63
+          }
+        ],
+        "name": "project:external-agent-traces",
+        "value": 72
+      }
+    ],
+    "name": "root",
+    "value": 9
+  },
+  "unique_stacks": 5
+}

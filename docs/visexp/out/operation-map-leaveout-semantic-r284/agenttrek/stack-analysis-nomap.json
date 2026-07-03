@@ -1,0 +1,439 @@
+{
+  "compression_ratio": 22.222,
+  "depth_weight": {
+    "0": 200,
+    "1": 200,
+    "2": 200,
+    "3": 200,
+    "4": 200,
+    "5": 200,
+    "6": 200
+  },
+  "top_by_kind": {
+    "dataset": [
+      {
+        "name": "agenttrek",
+        "weight": 200
+      }
+    ],
+    "op": [
+      {
+        "name": "action",
+        "weight": 200
+      }
+    ],
+    "phase": [
+      {
+        "name": "click",
+        "weight": 94
+      },
+      {
+        "name": "noop",
+        "weight": 37
+      },
+      {
+        "name": "fill",
+        "weight": 20
+      },
+      {
+        "name": "goto",
+        "weight": 18
+      },
+      {
+        "name": "send_msg_to_user",
+        "weight": 11
+      },
+      {
+        "name": "press",
+        "weight": 8
+      },
+      {
+        "name": "scroll",
+        "weight": 8
+      },
+      {
+        "name": "focus",
+        "weight": 3
+      },
+      {
+        "name": "hover",
+        "weight": 1
+      }
+    ],
+    "project": [
+      {
+        "name": "external-agent-traces",
+        "weight": 200
+      }
+    ],
+    "status": [
+      {
+        "name": "verified",
+        "weight": 200
+      }
+    ],
+    "task": [
+      {
+        "name": "web-gui",
+        "weight": 200
+      }
+    ],
+    "tool": [
+      {
+        "name": "browser",
+        "weight": 200
+      }
+    ]
+  },
+  "top_leaves": [
+    {
+      "name": "status:verified",
+      "weight": 200
+    }
+  ],
+  "top_transitions": [
+    {
+      "from": "project:external-agent-traces",
+      "to": "dataset:agenttrek",
+      "weight": 200
+    },
+    {
+      "from": "dataset:agenttrek",
+      "to": "task:web-gui",
+      "weight": 200
+    },
+    {
+      "from": "op:action",
+      "to": "tool:browser",
+      "weight": 200
+    },
+    {
+      "from": "tool:browser",
+      "to": "status:verified",
+      "weight": 200
+    },
+    {
+      "from": "task:web-gui",
+      "to": "phase:click",
+      "weight": 94
+    },
+    {
+      "from": "phase:click",
+      "to": "op:action",
+      "weight": 94
+    },
+    {
+      "from": "task:web-gui",
+      "to": "phase:noop",
+      "weight": 37
+    },
+    {
+      "from": "phase:noop",
+      "to": "op:action",
+      "weight": 37
+    },
+    {
+      "from": "task:web-gui",
+      "to": "phase:fill",
+      "weight": 20
+    },
+    {
+      "from": "phase:fill",
+      "to": "op:action",
+      "weight": 20
+    },
+    {
+      "from": "task:web-gui",
+      "to": "phase:goto",
+      "weight": 18
+    },
+    {
+      "from": "phase:goto",
+      "to": "op:action",
+      "weight": 18
+    },
+    {
+      "from": "task:web-gui",
+      "to": "phase:send_msg_to_user",
+      "weight": 11
+    },
+    {
+      "from": "phase:send_msg_to_user",
+      "to": "op:action",
+      "weight": 11
+    },
+    {
+      "from": "task:web-gui",
+      "to": "phase:press",
+      "weight": 8
+    },
+    {
+      "from": "phase:press",
+      "to": "op:action",
+      "weight": 8
+    },
+    {
+      "from": "task:web-gui",
+      "to": "phase:scroll",
+      "weight": 8
+    },
+    {
+      "from": "phase:scroll",
+      "to": "op:action",
+      "weight": 8
+    },
+    {
+      "from": "task:web-gui",
+      "to": "phase:focus",
+      "weight": 3
+    },
+    {
+      "from": "phase:focus",
+      "to": "op:action",
+      "weight": 3
+    },
+    {
+      "from": "task:web-gui",
+      "to": "phase:hover",
+      "weight": 1
+    },
+    {
+      "from": "phase:hover",
+      "to": "op:action",
+      "weight": 1
+    }
+  ],
+  "total_weight": 200,
+  "tree": {
+    "children": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "name": "status:verified",
+                                "value": 94
+                              }
+                            ],
+                            "name": "tool:browser",
+                            "value": 188
+                          }
+                        ],
+                        "name": "op:action",
+                        "value": 282
+                      }
+                    ],
+                    "name": "phase:click",
+                    "value": 376
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "name": "status:verified",
+                                "value": 37
+                              }
+                            ],
+                            "name": "tool:browser",
+                            "value": 74
+                          }
+                        ],
+                        "name": "op:action",
+                        "value": 111
+                      }
+                    ],
+                    "name": "phase:noop",
+                    "value": 148
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "name": "status:verified",
+                                "value": 20
+                              }
+                            ],
+                            "name": "tool:browser",
+                            "value": 40
+                          }
+                        ],
+                        "name": "op:action",
+                        "value": 60
+                      }
+                    ],
+                    "name": "phase:fill",
+                    "value": 80
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "name": "status:verified",
+                                "value": 18
+                              }
+                            ],
+                            "name": "tool:browser",
+                            "value": 36
+                          }
+                        ],
+                        "name": "op:action",
+                        "value": 54
+                      }
+                    ],
+                    "name": "phase:goto",
+                    "value": 72
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "name": "status:verified",
+                                "value": 11
+                              }
+                            ],
+                            "name": "tool:browser",
+                            "value": 22
+                          }
+                        ],
+                        "name": "op:action",
+                        "value": 33
+                      }
+                    ],
+                    "name": "phase:send_msg_to_user",
+                    "value": 44
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "name": "status:verified",
+                                "value": 8
+                              }
+                            ],
+                            "name": "tool:browser",
+                            "value": 16
+                          }
+                        ],
+                        "name": "op:action",
+                        "value": 24
+                      }
+                    ],
+                    "name": "phase:press",
+                    "value": 32
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "name": "status:verified",
+                                "value": 8
+                              }
+                            ],
+                            "name": "tool:browser",
+                            "value": 16
+                          }
+                        ],
+                        "name": "op:action",
+                        "value": 24
+                      }
+                    ],
+                    "name": "phase:scroll",
+                    "value": 32
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "name": "status:verified",
+                                "value": 3
+                              }
+                            ],
+                            "name": "tool:browser",
+                            "value": 6
+                          }
+                        ],
+                        "name": "op:action",
+                        "value": 9
+                      }
+                    ],
+                    "name": "phase:focus",
+                    "value": 12
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "name": "status:verified",
+                                "value": 1
+                              }
+                            ],
+                            "name": "tool:browser",
+                            "value": 2
+                          }
+                        ],
+                        "name": "op:action",
+                        "value": 3
+                      }
+                    ],
+                    "name": "phase:hover",
+                    "value": 4
+                  }
+                ],
+                "name": "task:web-gui",
+                "value": 1000
+              }
+            ],
+            "name": "dataset:agenttrek",
+            "value": 1200
+          }
+        ],
+        "name": "project:external-agent-traces",
+        "value": 1400
+      }
+    ],
+    "name": "root",
+    "value": 200
+  },
+  "unique_stacks": 9
+}
