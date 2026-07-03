@@ -109,11 +109,13 @@ DATASETS: dict[str, dict[str, Any]] = {
         "hf_repo": "smolagents/android-control",
         "config": "default",
         "split": "train",
-        "access": "large-parquet",
+        "access": "hf-viewer",
+        "adapter": "android-control",
+        "drop_raw_fields": ["screenshots_b64"],
         "source": "https://github.com/google-research/google-research/blob/master/android_control/README.md",
         "paper": "https://arxiv.org/abs/2406.03679",
         "why": "Human Android demonstrations with high-level goals, step instructions, screenshots, trees, and actions.",
-        "note": "Dataset Viewer row groups are too large; use full parquet/TFRecord workflows for full runs.",
+        "note": "Rows include screenshot payloads; the sampler strips screenshots from saved raw rows after download.",
     },
     "aitw": {
         "title": "Android in the Wild",
@@ -125,11 +127,15 @@ DATASETS: dict[str, dict[str, Any]] = {
     },
     "toolbench": {
         "title": "ToolBench / ToolLLM",
-        "access": "official-drive",
+        "hf_repo": "tuandunghcmut/toolbench-v1",
+        "config": "default",
+        "split": "validation",
+        "access": "hf-viewer",
+        "adapter": "toolbench-conversation",
         "source": "https://github.com/OpenBMB/ToolBench",
         "paper": "https://arxiv.org/abs/2307.16789",
         "why": "Tool-use instructions, solution paths, real API calls, and reasoning traces.",
-        "note": "Official release is hosted outside Dataset Viewer; convert answer/toolenv JSON after download.",
+        "note": "Uses a Hugging Face mirror for lightweight sampling; official release remains the canonical source.",
     },
 }
 
@@ -203,7 +209,7 @@ def cmd_sample(args: argparse.Namespace) -> int:
         operations.extend(
             normalize_row(args.dataset, dataset, row, args.offset + row_index, args.include_text)
         )
-    write_jsonl(raw_path, rows)
+    write_jsonl(raw_path, redact_raw_rows(rows, dataset.get("drop_raw_fields", [])))
     write_jsonl(op_path, operations)
     manifest = {
         "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
@@ -309,6 +315,10 @@ def normalize_row(
         return normalize_agenttrek(dataset_id, dataset, row, row_index, include_text)
     if adapter == "swe-agent":
         return normalize_swe_agent(dataset_id, dataset, row, row_index, include_text)
+    if adapter == "android-control":
+        return normalize_android_control(dataset_id, dataset, row, row_index, include_text)
+    if adapter == "toolbench-conversation":
+        return normalize_toolbench_conversation(dataset_id, dataset, row, row_index, include_text)
     raise SystemExit(f"no adapter for dataset {dataset_id}")
 
 
@@ -535,6 +545,89 @@ def normalize_swe_agent(
     return operations
 
 
+def normalize_android_control(
+    dataset_id: str,
+    dataset: dict[str, Any],
+    row: dict[str, Any],
+    row_index: int,
+    include_text: bool,
+) -> list[dict[str, Any]]:
+    session = str(row.get("episode_id") or f"android-control-{row_index}")
+    step_instructions = row.get("step_instructions") or []
+    operations = []
+    for turn, action in enumerate(row.get("actions") or []):
+        action_name = sanitize_label(str(action.get("action_type") or "unknown"))
+        app_name = sanitize_label(str(action.get("app_name") or "unknown-app"))
+        fields: dict[str, Any] = {
+            "project": "external-agent-traces",
+            "agent": "human-demo",
+            "dataset": dataset_id,
+            "source": dataset["hf_repo"],
+            "session": session,
+            "turn": str(turn),
+            "task": "mobile-control",
+            "step": str(turn),
+            "phase": action_name,
+            "op": "action",
+            "tool": "android",
+            "action": action_name,
+            "app": app_name,
+            "status": "gold",
+        }
+        direction = sanitize_label(str(action.get("direction") or ""))
+        if direction != "none":
+            fields["direction"] = direction
+        if include_text:
+            fields["task_preview"] = truncate_clean(str(row.get("goal") or ""), 180)
+            if turn < len(step_instructions):
+                fields["step_preview"] = truncate_clean(str(step_instructions[turn]), 180)
+            if action.get("text"):
+                fields["action_raw"] = truncate_clean(str(action.get("text")), 180)
+        operations.append({"value": 1, "fields": fields})
+    return operations
+
+
+def normalize_toolbench_conversation(
+    dataset_id: str,
+    dataset: dict[str, Any],
+    row: dict[str, Any],
+    row_index: int,
+    include_text: bool,
+) -> list[dict[str, Any]]:
+    session = stable_id(row.get("id") or row_index)
+    operations = []
+    messages = conversation_messages(row.get("conversations"))
+    for turn, message in enumerate(messages):
+        if str(message.get("from") or "").lower() != "assistant":
+            continue
+        content = str(message.get("value") or "")
+        action = extract_action_block(content)
+        if not action:
+            continue
+        action_name = action_verb(action)
+        tool_name = infer_toolbench_tool(action)
+        fields: dict[str, Any] = {
+            "project": "external-agent-traces",
+            "agent": "autogpt",
+            "dataset": dataset_id,
+            "source": dataset["hf_repo"],
+            "session": session,
+            "turn": str(turn),
+            "task": "tool-use",
+            "phase": "finish" if action_name == "finish" else "api",
+            "op": "finish" if action_name == "finish" else "tool",
+            "tool": tool_name,
+            "action": action_name,
+            "domain": tool_name,
+            "status": "gold",
+        }
+        if include_text:
+            fields["task_preview"] = truncate_clean(str(row.get("id") or ""), 180)
+            fields["action_raw"] = truncate_clean(content, 180)
+        operations.append({"value": 1, "fields": fields})
+    return operations
+
+
 def first_match(pattern: str, text: str, default: str) -> str:
     match = re.search(pattern, text)
     if not match:
@@ -569,6 +662,23 @@ def action_verb(action: str) -> str:
     return sanitize_label(verb)
 
 
+def infer_toolbench_tool(action: str) -> str:
+    match = re.search(r"_for_([A-Za-z0-9_]+)", action)
+    if match:
+        return sanitize_label(match.group(1))
+    return action_verb(action)
+
+
+def conversation_messages(conversations: Any) -> list[dict[str, Any]]:
+    if isinstance(conversations, list):
+        return [message for message in conversations if isinstance(message, dict)]
+    if isinstance(conversations, dict):
+        senders = conversations.get("from") or []
+        values = conversations.get("value") or []
+        return [{"from": sender, "value": value} for sender, value in zip(senders, values)]
+    return []
+
+
 def stable_id(value: Any) -> str:
     payload = json.dumps(value, sort_keys=True, ensure_ascii=True)
     return hashlib.sha1(payload.encode("utf-8")).hexdigest()[:12]
@@ -597,6 +707,15 @@ def write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
         for row in rows:
             f.write(json.dumps(row, sort_keys=True, ensure_ascii=False))
             f.write("\n")
+
+
+def redact_raw_rows(rows: list[dict[str, Any]], drop_fields: list[str]) -> list[dict[str, Any]]:
+    if not drop_fields:
+        return rows
+    return [
+        {key: value for key, value in row.items() if key not in drop_fields}
+        for row in rows
+    ]
 
 
 if __name__ == "__main__":

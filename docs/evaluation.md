@@ -9,8 +9,8 @@ Completeness: partial
 
 | Claim | Required evidence | Current status | Next experiment |
 |---|---|---|---|
-| C1: `agentpprof` profiles operations and operation stacks without privileging prompt/session boundaries. | A non-Codex/Claude labeled trajectory enters as operation JSONL and folds with arbitrary `--stack` frames. | Supported for deterministic projection by R274 across 6 external datasets and 3,797 operations. | Add AndroidControl/ToolBench converters and larger Mind2Web shards. |
-| C2: Recursive operation stacks recover useful task/subtask/phase structure from linear agent trajectories. | Compare mapped-stack output against dataset-native boundaries and action/step labels. | Partially supported by R274/R277: mapped task/phase stack keeps 103 unique stacks while fixed session stack explodes to 1,083. | Add boundary adequacy scoring against step/task oracles. |
+| C1: `agentpprof` profiles operations and operation stacks without privileging prompt/session boundaries. | A non-Codex/Claude labeled trajectory enters as operation JSONL and folds with arbitrary `--stack` frames. | Supported for deterministic projection by R278 across 8 external datasets and 3,932 operations. | Scale Mind2Web/AndroidControl/ToolBench samples. |
+| C2: Recursive operation stacks recover useful task/subtask/phase structure from linear agent trajectories. | Compare mapped-stack output against dataset-native boundaries and action/step labels. | Partially supported by R274/R277/R278: mapped task/phase stack keeps aggregation while fixed session stack explodes to 1,083 unique stacks. | Add boundary adequacy scoring against step/task oracles. |
 | C3: Inferred boundary detection can replace hand-written stack rules. | Model/unsupervised boundary backend compared with deterministic rule oracle. | Unsupported; design only. | Implement inferred rule generation after deterministic dataset converters. |
 
 ## Dataset Matrix
@@ -23,9 +23,9 @@ Completeness: partial
 | AgentTrek | verified web GUI action tags | HF Dataset Viewer: `xlangai/AgentTrek` | `script/agent_trace_datasets.py sample agenttrek` emits one operation per action tag. | Large web GUI source; current top candidate if synthetic verified data is acceptable. |
 | SWE-agent trajectories | issue instance, command trajectory, success target | HF Dataset Viewer: `nebius/SWE-agent-trajectories` | `script/agent_trace_datasets.py sample swe-agent-trajectories` emits one operation per command action. | Closest external software-agent source; current top candidate. |
 | Mind2Web | task description, action sequence, website/domain, snapshots/traces | HF repo `osunlp/Mind2Web`; official raw dump | `script/agent_trace_datasets.py sample mind2web` downloads an HF repo JSON shard and emits operation JSONL; R274 sampled 9 tasks / 49 operations. | Cross-domain web operation-stack oracle. |
-| AndroidControl | high-level goal, step instructions, screenshots, accessibility trees, JSON actions | Official Google Research TFRecord; HF mirrors | Manifested; converter pending. | Step-instruction boundary oracle for recursive depth. |
+| AndroidControl | high-level goal, step instructions, screenshots, accessibility trees, JSON actions | Official Google Research TFRecord; HF mirror `smolagents/android-control` | `script/agent_trace_datasets.py sample android-control` emits one operation per UI action and strips screenshot payloads from saved raw rows; R278 sampled 2 episodes / 9 operations. | Step-instruction boundary oracle for recursive depth. |
 | Android in the Wild | instruction, screen/action episodes | Official google-research release | Manifested; converter pending. | Large-scale robustness once mobile converter exists. |
-| ToolBench | instruction, solution path, toolenv, API calls, reasoning traces | Official OpenBMB release | Manifested; converter pending. | Tool/planner/API operation-stack oracle. |
+| ToolBench | instruction, solution path, toolenv, API calls, reasoning traces | Official OpenBMB release plus HF mirror `tuandunghcmut/toolbench-v1` | `script/agent_trace_datasets.py sample toolbench` emits one operation per assistant tool action; R278 sampled 40 rows / 126 operations. | Tool/planner/API operation-stack oracle. |
 | TRAIL | human-annotated reasoning/planning/execution errors | HF auto-gated dataset plus official benchmark repo | Manifested; gated access pending. | Best future failure-boundary oracle. |
 
 ## Run Tracker
@@ -38,6 +38,7 @@ Completeness: partial
 | R275 | C1, C2 | AndroidControl step-boundary oracle | TFRecord/parquet converter to operation JSONL | todo | local | at least 100 episodes | `docs/visexp/out/external-agent-trace-androidcontrol-r275/` | todo |
 | R276 | C1, C2 | ToolBench tool/API stack oracle | official data converter for instruction/answer/toolenv | todo | local | at least G1/G2/G3 samples | `docs/visexp/out/external-agent-trace-toolbench-r276/` | todo |
 | R277 | C2 | Stack abstraction ablation | flat stack vs fixed demo/session stack vs mapped operation stack | worktree after `8125c26` | local | same 3,797 operations as R274 | `docs/visexp/out/operation-stack-ablation-r277/` | done |
+| R278 | C1, C2 | Expanded 8-dataset mapped-stack smoke | R274 inputs + ToolBench 40 + AndroidControl 2; `--view operations` + `--op-map` task/phase mapping | worktree after `04169d7` | local | 3,932 operations | `docs/visexp/out/external-agent-trace-expanded-r278/` | done |
 
 R272 command:
 
@@ -68,6 +69,7 @@ cargo run --manifest-path agentpprof/Cargo.toml -- \
 | R273 | 5 external datasets produced 3,748 operations and 100 folded stacks under `--view operations`; compression ratio 37.48. Outputs: `cross-dataset.folded`, `stack-analysis.json`, `stack-analysis.html`. | Confirms the same operation/operation-stack path works across web navigation, shopping, API calls, GUI replay, and software-engineering commands. | API-Bank is limited to first rows via Dataset Viewer; no Mind2Web/AndroidControl/ToolBench full converters yet. |
 | R274 | 6 external datasets produced 3,797 operations and 103 folded stacks under `--view operations`; compression ratio 36.864. Outputs: `mapped.folded`, `agentpprof-result.json`, `stack-analysis.json`, `stack-analysis.html`. | Confirms `--op-map` derives reusable task/phase operation fields before `--stack` without adding a third abstraction or binding stacks to prompt/session boundaries. | Mind2Web sample is a small shard; mappings are deterministic and hand-written. |
 | R277 | On the same 3,797 operations, flat stack produced 103 unique stacks, fixed session/demo stack produced 1,083 unique stacks, and mapped stack produced 103 unique stacks with added task/phase frames. | Directly tests the prompt/session-boundary objection: fixed boundaries fragment aggregation by 10.5x, while mapped operation stacks keep aggregation and add semantic depth. | Boundary adequacy is still structural/compression-based; no gold span scorer yet. |
+| R278 | 8 external datasets produced 3,932 operations and 190 folded stacks; compression ratio 20.695. Outputs: `expanded.folded`, `agentpprof-result.json`, `stack-analysis.json`, `stack-analysis.html`. | Adds mobile UI and tool/API traces without changing the profiler abstraction; ToolBench intentionally increases stack diversity through long-tail API names. | AndroidControl is only a 2-episode smoke because row download includes screenshot payloads; ToolBench uses an HF mirror for lightweight sampling. |
 
 ## Candidate Selection
 
@@ -78,7 +80,9 @@ cargo run --manifest-path agentpprof/Cargo.toml -- \
 | 3 | SWE-agent trajectories | Keep as primary | Closest to coding-agent domain and has command/action trajectories plus success labels. |
 | 4 | AgentTrek | Keep as secondary primary | Large verified GUI/web trajectory source; useful for scale, but synthetic provenance weakens human-oracle claims. |
 | 5 | Mind2Web | Keep as primary after scaling | Strong cross-domain web oracle with task/domain/action labels; R274 only uses a small JSON shard. |
-| 6 | API-Bank | Keep as baseline | Good tool-call oracle, but mostly single-step and less useful for recursive boundary depth. |
+| 6 | ToolBench | Keep as primary after scaling | Best current tool/API long-tail source; R278 exposes API-domain stack diversity. |
+| 7 | AndroidControl | Keep as boundary oracle after heavier sampling | Step instructions provide a stronger subtask oracle than action type, but screenshot payloads make sampling heavier. |
+| 8 | API-Bank | Keep as baseline | Good tool-call oracle, but mostly single-step and less useful for recursive boundary depth. |
 
 ## Metrics And Oracles
 
@@ -103,6 +107,8 @@ cargo run --manifest-path agentpprof/Cargo.toml -- \
 | Rust unit tests cover operation JSONL input. | done |
 | Rust unit tests cover `--op-map` operation field mapping before stacking. | done |
 | Mind2Web HF repo JSON shard sampling is implemented. | done |
+| ToolBench HF mirror conversation sampling is implemented. | done |
+| AndroidControl lightweight sampling is implemented with screenshot redaction for saved raw rows. | done |
 | Flat/fixed/mapped stack ablation is tracked under R277. | done |
-| Large dataset download/conversion commands are not yet implemented for AndroidControl, AITW, or ToolBench; Mind2Web still needs larger shard/raw-dump runs. | pending |
+| Large full-dataset conversion commands are not yet implemented for AndroidControl, AITW, or official ToolBench; Mind2Web still needs larger shard/raw-dump runs. | pending |
 | Boundary adequacy scorer is not yet implemented. | pending |
