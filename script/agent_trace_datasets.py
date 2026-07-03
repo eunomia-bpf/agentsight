@@ -220,6 +220,20 @@ DATASETS: dict[str, dict[str, Any]] = {
         "why": "Large desktop computer-use trajectories with success, safety, reward, and attack labels.",
         "note": "The capability config is not fully readable through Dataset Viewer; the safety config is sampled through rows and raw messages are redacted from saved raw rows.",
     },
+    "scalecua-navigation": {
+        "title": "ScaleCUA Ubuntu navigation trajectories",
+        "hf_repo": "OpenGVLab/ScaleCUA-Data",
+        "config": "default",
+        "split": "train",
+        "repo_file": "annotations/data_20250428_ubuntu_navigation_20250506.jsonl",
+        "access": "hf-repo-jsonl-stream",
+        "adapter": "scalecua",
+        "drop_raw_fields": ["conversations"],
+        "source": "https://huggingface.co/datasets/OpenGVLab/ScaleCUA-Data",
+        "paper": "https://arxiv.org/abs/2509.15221",
+        "why": "Large cross-platform GUI operation trajectories; the Ubuntu navigation subset exposes multi-step tasks, previous operations, and gold actions.",
+        "note": "Sampler streams the requested annotation JSONL range from Hugging Face instead of downloading image archives or full annotation files.",
+    },
     "osworld-human": {
         "title": "OSWorld-Human reference trajectories",
         "github_repo": "WukLab/osworld-human",
@@ -616,6 +630,8 @@ def normalize_row(
         return normalize_agent_reward_bench(dataset_id, dataset, row, row_index, include_text)
     if adapter == "satraj-os":
         return normalize_satraj_os(dataset_id, dataset, row, row_index, include_text)
+    if adapter == "scalecua":
+        return [normalize_scalecua(dataset_id, dataset, row, row_index, include_text)]
     if adapter == "osworld-human":
         return normalize_osworld_human(dataset_id, dataset, row, row_index, include_text)
     raise SystemExit(f"no adapter for dataset {dataset_id}")
@@ -1320,6 +1336,174 @@ def normalize_satraj_os(
             fields["parameter_shape"] = sanitize_label("-".join(sorted(params)) or "none")
         operations.append({"value": 1, "fields": fields})
     return operations
+
+
+def normalize_scalecua(
+    dataset_id: str,
+    dataset: dict[str, Any],
+    row: dict[str, Any],
+    row_index: int,
+    include_text: bool,
+) -> dict[str, Any]:
+    image = str(row.get("image") or "")
+    session = sanitize_label(scalecua_session_from_image(image) or f"scalecua-{row_index}")
+    step = scalecua_step_from_image(image, row_index)
+    platform = scalecua_platform(dataset, image)
+    trajectory_type = scalecua_trajectory_type(dataset)
+    conversations = conversation_messages(row.get("conversations"))
+    human_text = "\n".join(
+        str(message.get("value") or "")
+        for message in conversations
+        if str(message.get("from") or "").lower() == "human"
+    )
+    gpt_text = "\n".join(
+        str(message.get("value") or "")
+        for message in conversations
+        if str(message.get("from") or "").lower() == "gpt"
+    )
+    action_raw = scalecua_action_payload(gpt_text)
+    action = scalecua_action_verb(action_raw)
+    target = scalecua_action_target(action, action_raw)
+    history_depth = scalecua_history_depth(human_text)
+    status = target if action == "terminate" and target in {"success", "failure"} else "gold"
+    task_family = "web-navigation" if platform == "web" else (
+        "mobile-control" if platform in {"android", "iphone", "ios"} else "desktop-computer-use"
+    )
+    fields: dict[str, Any] = {
+        "project": "external-agent-traces",
+        "agent": "human-expert-plus-model-annotated",
+        "dataset": dataset_id,
+        "source": dataset["hf_repo"],
+        "session": session,
+        "turn": str(step),
+        "step": str(step),
+        "task": task_family,
+        "benchmark": "scalecua",
+        "environment": scalecua_environment_from_image(image),
+        "platform": platform,
+        "trajectory_type": trajectory_type,
+        "phase": scalecua_action_phase(action),
+        "op": "action",
+        "tool": "computer" if task_family == "desktop-computer-use" else (
+            "browser" if task_family == "web-navigation" else "mobile-gui"
+        ),
+        "action": action,
+        "target": target,
+        "status": status,
+        "history_depth": str(history_depth),
+        "history_state": "with-history" if history_depth > 0 else "start",
+        "screen_size": scalecua_screen_bucket(row),
+    }
+    if include_text:
+        fields["task_preview"] = truncate_clean(scalecua_task_text(human_text), 180)
+        fields["action_raw"] = truncate_clean(action_raw or gpt_text, 180)
+    return {"value": 1, "fields": fields}
+
+
+def scalecua_session_from_image(image: str) -> str:
+    if "/images/" in image:
+        return image.split("/images/", 1)[0]
+    return str(Path(image).parent)
+
+
+def scalecua_step_from_image(image: str, row_index: int) -> int:
+    match = re.search(r"(?:step|before_screenshot)_([0-9]+)", image)
+    if match:
+        return int(match.group(1))
+    return row_index
+
+
+def scalecua_platform(dataset: dict[str, Any], image: str) -> str:
+    repo_file = str(dataset.get("repo_file") or "").lower()
+    image_l = image.lower()
+    for platform in ["ubuntu", "windows", "android", "iphone", "mac", "web"]:
+        if platform in repo_file or platform in image_l:
+            return "ios" if platform == "iphone" else platform
+    return "gui"
+
+
+def scalecua_trajectory_type(dataset: dict[str, Any]) -> str:
+    repo_file = str(dataset.get("repo_file") or "")
+    if "navigation" in repo_file:
+        return "navigation"
+    if "human_action_grounding" in repo_file:
+        return "human-action-grounding"
+    if "action_grounding" in repo_file:
+        return "action-grounding"
+    if "internvl_grounding" in repo_file:
+        return "grounding"
+    return "gui-operation"
+
+
+def scalecua_environment_from_image(image: str) -> str:
+    if not image:
+        return "unknown"
+    return sanitize_label(image.split("/", 1)[0])
+
+
+def scalecua_action_payload(text: str) -> str:
+    match = re.search(r"<action>\s*(.*?)\s*</action>", text, re.DOTALL | re.IGNORECASE)
+    if match:
+        return re.sub(r"\s+", " ", match.group(1)).strip()
+    return extract_action_block(text)
+
+
+def scalecua_action_verb(action_raw: str) -> str:
+    action = action_verb(action_raw)
+    aliases = {
+        "doubleclick": "double_click",
+        "tripleclick": "triple_click",
+        "rightclick": "right_click",
+        "leftclick": "click",
+        "moveto": "move_to",
+        "dragto": "drag",
+        "typewrite": "type",
+        "write": "type",
+    }
+    return aliases.get(action, action)
+
+
+def scalecua_action_phase(action: str) -> str:
+    if action == "terminate":
+        return "finish"
+    return osworld_action_phase(action)
+
+
+def scalecua_action_target(action: str, action_raw: str) -> str:
+    if action in {"click", "double_click", "triple_click", "right_click", "move_to", "drag"}:
+        return coordinate_bucket(action_raw)
+    if action in {"type", "write"}:
+        return "text"
+    if action in {"press", "hotkey", "key_down", "key_up"}:
+        keys = re.findall(r"['\"]([^'\"]+)['\"]", action_raw)
+        return sanitize_label("-".join(keys[:4]) or "key")
+    if action == "scroll":
+        return "scroll"
+    if action == "terminate":
+        return sanitize_label(first_match(r"status=['\"]([^'\"]+)['\"]", action_raw, "complete"))
+    return "none"
+
+
+def scalecua_history_depth(human_text: str) -> int:
+    if "Previous operations:" not in human_text:
+        return 0
+    tail = human_text.split("Previous operations:", 1)[1]
+    return len(re.findall(r"\bStep\s+[0-9]+:", tail))
+
+
+def scalecua_task_text(human_text: str) -> str:
+    match = re.search(r"\bTask:\s*(.*?)(?:\n\nPrevious operations:|$)", human_text, re.DOTALL)
+    if match:
+        return re.sub(r"\s+", " ", match.group(1)).strip()
+    return re.sub(r"\s+", " ", human_text.replace("<image>", " ")).strip()
+
+
+def scalecua_screen_bucket(row: dict[str, Any]) -> str:
+    width = row.get("width")
+    height = row.get("height")
+    if isinstance(width, int) and isinstance(height, int):
+        return f"{width}x{height}"
+    return "unknown"
 
 
 def normalize_osworld_human(

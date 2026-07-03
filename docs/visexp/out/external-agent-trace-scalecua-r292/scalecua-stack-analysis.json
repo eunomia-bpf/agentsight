@@ -1,0 +1,496 @@
+{
+  "compression_ratio": 833.333,
+  "depth_weight": {
+    "0": 5000,
+    "1": 5000,
+    "10": 5000,
+    "11": 5000,
+    "12": 5000,
+    "2": 5000,
+    "3": 5000,
+    "4": 5000,
+    "5": 5000,
+    "6": 5000,
+    "7": 5000,
+    "8": 5000,
+    "9": 5000
+  },
+  "top_by_kind": {
+    "action": [
+      {
+        "name": "click",
+        "weight": 4086
+      },
+      {
+        "name": "terminate",
+        "weight": 914
+      }
+    ],
+    "benchmark": [
+      {
+        "name": "scalecua",
+        "weight": 5000
+      }
+    ],
+    "dataset": [
+      {
+        "name": "scalecua-navigation",
+        "weight": 5000
+      }
+    ],
+    "environment": [
+      {
+        "name": "libreoffice_writer",
+        "weight": 3131
+      },
+      {
+        "name": "firefox",
+        "weight": 1869
+      }
+    ],
+    "history_state": [
+      {
+        "name": "with-history",
+        "weight": 4085
+      },
+      {
+        "name": "start",
+        "weight": 915
+      }
+    ],
+    "op": [
+      {
+        "name": "action",
+        "weight": 5000
+      }
+    ],
+    "phase": [
+      {
+        "name": "navigate",
+        "weight": 4086
+      },
+      {
+        "name": "finish",
+        "weight": 914
+      }
+    ],
+    "platform": [
+      {
+        "name": "ubuntu",
+        "weight": 5000
+      }
+    ],
+    "project": [
+      {
+        "name": "external-agent-traces",
+        "weight": 5000
+      }
+    ],
+    "status": [
+      {
+        "name": "gold",
+        "weight": 4086
+      },
+      {
+        "name": "success",
+        "weight": 914
+      }
+    ],
+    "task": [
+      {
+        "name": "desktop",
+        "weight": 5000
+      }
+    ],
+    "tool": [
+      {
+        "name": "computer",
+        "weight": 5000
+      }
+    ],
+    "trajectory_type": [
+      {
+        "name": "navigation",
+        "weight": 5000
+      }
+    ]
+  },
+  "top_leaves": [
+    {
+      "name": "status:gold",
+      "weight": 4086
+    },
+    {
+      "name": "status:success",
+      "weight": 914
+    }
+  ],
+  "top_transitions": [
+    {
+      "from": "project:external-agent-traces",
+      "to": "dataset:scalecua-navigation",
+      "weight": 5000
+    },
+    {
+      "from": "dataset:scalecua-navigation",
+      "to": "benchmark:scalecua",
+      "weight": 5000
+    },
+    {
+      "from": "benchmark:scalecua",
+      "to": "platform:ubuntu",
+      "weight": 5000
+    },
+    {
+      "from": "trajectory_type:navigation",
+      "to": "task:desktop",
+      "weight": 5000
+    },
+    {
+      "from": "op:action",
+      "to": "tool:computer",
+      "weight": 5000
+    },
+    {
+      "from": "phase:navigate",
+      "to": "op:action",
+      "weight": 4086
+    },
+    {
+      "from": "tool:computer",
+      "to": "action:click",
+      "weight": 4086
+    },
+    {
+      "from": "action:click",
+      "to": "status:gold",
+      "weight": 4086
+    },
+    {
+      "from": "task:desktop",
+      "to": "history_state:with-history",
+      "weight": 4085
+    },
+    {
+      "from": "history_state:with-history",
+      "to": "phase:navigate",
+      "weight": 3171
+    },
+    {
+      "from": "platform:ubuntu",
+      "to": "environment:libreoffice_writer",
+      "weight": 3131
+    },
+    {
+      "from": "environment:libreoffice_writer",
+      "to": "trajectory_type:navigation",
+      "weight": 3131
+    },
+    {
+      "from": "platform:ubuntu",
+      "to": "environment:firefox",
+      "weight": 1869
+    },
+    {
+      "from": "environment:firefox",
+      "to": "trajectory_type:navigation",
+      "weight": 1869
+    },
+    {
+      "from": "task:desktop",
+      "to": "history_state:start",
+      "weight": 915
+    },
+    {
+      "from": "history_state:start",
+      "to": "phase:navigate",
+      "weight": 915
+    },
+    {
+      "from": "history_state:with-history",
+      "to": "phase:finish",
+      "weight": 914
+    },
+    {
+      "from": "phase:finish",
+      "to": "op:action",
+      "weight": 914
+    },
+    {
+      "from": "tool:computer",
+      "to": "action:terminate",
+      "weight": 914
+    },
+    {
+      "from": "action:terminate",
+      "to": "status:success",
+      "weight": 914
+    }
+  ],
+  "total_weight": 5000,
+  "tree": {
+    "children": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [
+                                                      {
+                                                        "children": [],
+                                                        "name": "status:gold",
+                                                        "value": 1963
+                                                      }
+                                                    ],
+                                                    "name": "action:click",
+                                                    "value": 3926
+                                                  }
+                                                ],
+                                                "name": "tool:computer",
+                                                "value": 5889
+                                              }
+                                            ],
+                                            "name": "op:action",
+                                            "value": 7852
+                                          }
+                                        ],
+                                        "name": "phase:navigate",
+                                        "value": 9815
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [
+                                                      {
+                                                        "children": [],
+                                                        "name": "status:success",
+                                                        "value": 584
+                                                      }
+                                                    ],
+                                                    "name": "action:terminate",
+                                                    "value": 1168
+                                                  }
+                                                ],
+                                                "name": "tool:computer",
+                                                "value": 1752
+                                              }
+                                            ],
+                                            "name": "op:action",
+                                            "value": 2336
+                                          }
+                                        ],
+                                        "name": "phase:finish",
+                                        "value": 2920
+                                      }
+                                    ],
+                                    "name": "history_state:with-history",
+                                    "value": 15282
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [
+                                                      {
+                                                        "children": [],
+                                                        "name": "status:gold",
+                                                        "value": 584
+                                                      }
+                                                    ],
+                                                    "name": "action:click",
+                                                    "value": 1168
+                                                  }
+                                                ],
+                                                "name": "tool:computer",
+                                                "value": 1752
+                                              }
+                                            ],
+                                            "name": "op:action",
+                                            "value": 2336
+                                          }
+                                        ],
+                                        "name": "phase:navigate",
+                                        "value": 2920
+                                      }
+                                    ],
+                                    "name": "history_state:start",
+                                    "value": 3504
+                                  }
+                                ],
+                                "name": "task:desktop",
+                                "value": 21917
+                              }
+                            ],
+                            "name": "trajectory_type:navigation",
+                            "value": 25048
+                          }
+                        ],
+                        "name": "environment:libreoffice_writer",
+                        "value": 28179
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [
+                                                      {
+                                                        "children": [],
+                                                        "name": "status:gold",
+                                                        "value": 1208
+                                                      }
+                                                    ],
+                                                    "name": "action:click",
+                                                    "value": 2416
+                                                  }
+                                                ],
+                                                "name": "tool:computer",
+                                                "value": 3624
+                                              }
+                                            ],
+                                            "name": "op:action",
+                                            "value": 4832
+                                          }
+                                        ],
+                                        "name": "phase:navigate",
+                                        "value": 6040
+                                      },
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [
+                                                      {
+                                                        "children": [],
+                                                        "name": "status:success",
+                                                        "value": 330
+                                                      }
+                                                    ],
+                                                    "name": "action:terminate",
+                                                    "value": 660
+                                                  }
+                                                ],
+                                                "name": "tool:computer",
+                                                "value": 990
+                                              }
+                                            ],
+                                            "name": "op:action",
+                                            "value": 1320
+                                          }
+                                        ],
+                                        "name": "phase:finish",
+                                        "value": 1650
+                                      }
+                                    ],
+                                    "name": "history_state:with-history",
+                                    "value": 9228
+                                  },
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [
+                                                  {
+                                                    "children": [
+                                                      {
+                                                        "children": [],
+                                                        "name": "status:gold",
+                                                        "value": 331
+                                                      }
+                                                    ],
+                                                    "name": "action:click",
+                                                    "value": 662
+                                                  }
+                                                ],
+                                                "name": "tool:computer",
+                                                "value": 993
+                                              }
+                                            ],
+                                            "name": "op:action",
+                                            "value": 1324
+                                          }
+                                        ],
+                                        "name": "phase:navigate",
+                                        "value": 1655
+                                      }
+                                    ],
+                                    "name": "history_state:start",
+                                    "value": 1986
+                                  }
+                                ],
+                                "name": "task:desktop",
+                                "value": 13083
+                              }
+                            ],
+                            "name": "trajectory_type:navigation",
+                            "value": 14952
+                          }
+                        ],
+                        "name": "environment:firefox",
+                        "value": 16821
+                      }
+                    ],
+                    "name": "platform:ubuntu",
+                    "value": 50000
+                  }
+                ],
+                "name": "benchmark:scalecua",
+                "value": 55000
+              }
+            ],
+            "name": "dataset:scalecua-navigation",
+            "value": 60000
+          }
+        ],
+        "name": "project:external-agent-traces",
+        "value": 65000
+      }
+    ],
+    "name": "root",
+    "value": 5000
+  },
+  "unique_stacks": 6
+}

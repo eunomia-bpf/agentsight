@@ -1,7 +1,6 @@
 \documentclass[10pt,twocolumn]{ctexart}
 
-\usepackage[letterpaper,margin=0.60in]{geometry}
-\usepackage{graphicx}
+\usepackage[letterpaper,margin=0.62in]{geometry}
 \usepackage{booktabs}
 \usepackage{array}
 \usepackage{url}
@@ -18,465 +17,296 @@
 \setlength{\floatsep}{6pt plus 1pt minus 2pt}
 \setlength{\intextsep}{6pt plus 1pt minus 2pt}
 \setlist[itemize]{leftmargin=*,itemsep=1pt,topsep=2pt}
-\setlist[enumerate]{leftmargin=*,itemsep=1pt,topsep=2pt}
 \captionsetup{font=footnotesize,skip=2pt}
 \titlespacing*{\section}{0pt}{0.7ex plus 0.2ex}{0.4ex}
-\titlespacing*{\subsection}{0pt}{0.5ex plus 0.2ex}{0.25ex}
+\titlespacing*{\subsection}{0pt}{0.55ex plus 0.2ex}{0.25ex}
 
-\newcommand{\stackshape}{\texttt{sessionTag;promptTag;llmcall/tool;process*;effect}}
+\newcommand{\toolname}{agentpprof}
+\newcommand{\op}{\texttt{operation}}
+\newcommand{\opstack}{\texttt{operation stack}}
 
-\title{\vspace{-1.2em}AgentFlame: 面向 AI 编程 Agent 系统效应的语义归因剖析}
+\title{\vspace{-1.2em}面向 AI Agent 轨迹的可配置语义剖析}
 \author{AgentSight 研究原型}
-\date{2026 年 6 月 19 日}
+\date{2026 年 7 月 3 日}
 
 \begin{document}
 \maketitle
 \vspace{-1.4em}
 
 \begin{abstract}
-AI 编程 agent 的可观测性问题不只是 ``模型调用了哪个 tool''，而是用户语义意图如何导致真实系统副作用：进程、文件、网络、测试、失败重试和 token 消耗。
-现有 LLM observability 工具擅长单次 trace tree、span duration、tool call 和 cost；传统 profiler 擅长聚合系统行为；二者分开时仍难回答：哪个任务语义造成了哪些重复、沉重或越界的系统足迹？
-本文提出 AgentFlame，一种语义系统效应剖析模型：本地小模型只给 session、prompt 和 LLM call 生成一个词标签；tool、shell、child process 与 file/network effect 通过确定性 lineage 继承这些标签；最终以 folded stack 聚合为 flamegraph。
-在 R170 current refresh 的 325 个可读 Codex/Claude 真实 session 上，AgentFlame 标注 2,859 个 prompt rows 和 114,837 个 LLM-call events，0 个最终标签失败；它把 183,714 个系统观测折叠成 26,829 条语义系统栈，并记录 35,136 次真实 llama.cpp tag calls。
-去掉 session/prompt 语义后，nonsemantic 和 flat effect baselines 分别有 90.402\% 和 90.918\% 的观测权重落入混合多个语义区域的 buckets；R224 消融显示 prompt-only 将 mixed weight 降到 36.722\%，说明 prompt 语义帧能分开传统 process/effect summary 会合并的 task-effect 区域。
-本文也明确边界：R114/R191/R229/R232/R234 在固定 command-mode、外部仓库和受控 target-network probes 中给出 100.0\% scoped precision/recall 且 negative-control joins 为 0；但 Codex/Claude-launched target-network rows 仍有 orphan/missing-action cases。
-因此用户任务实验、任意仓库泛化、更多 agent family、same-tag duplicate prompt-row identity 和人工标签 adequacy 仍未完成，不能声称用户效用或完整系统 provenance 已被证明。
+AI agent 的执行历史已经不再只是一次 prompt 或一棵 trace tree。
+一个真实轨迹可能同时包含用户意图、LLM 响应、tool call、API 调用、GUI 动作、浏览器动作、进程、文件、网络、计划步骤、subagent 以及 benchmark 给出的成功、失败、安全、重复和冗余标签。
+现有 agent observability 工具通常把这些对象固定成 prompt、session 或 span 层级；传统 profiler 则固定成函数或进程层级。
+这两种做法都会把 profiling 问题过早绑定到某一种边界上，使同一段轨迹很难按任务、阶段、工具、动作、质量标签或人工分组递归折叠。
+
+本文提出一种更小的语义剖析模型：系统只保留两个核心抽象，\op{} 和 \opstack{}。
+\op{} 是带字段和权重的观测，prompt、session、tool call、process、syscall、GUI action 和 plan step 都只是 operation 的不同形态或字段。
+\opstack{} 是用户从字段中选择的递归投影，mapping 和 tagging 在 stack 构造前派生字段，而不是创建第三种 profiler 对象。
+我们在 Rust \toolname{} 中实现该模型，支持 \texttt{--view}、\texttt{--stack}、\texttt{--op-map} 和 \texttt{--op-map-file}，并把 15 个公开标注 agent 轨迹数据源投影为同一类 operation JSONL。
+
+评估使用 WebLINX、WebShop、API-Bank、AgentTrek、SWE-agent、Mind2Web、AndroidControl、GUI-Odyssey、ToolBench、tau-bench、AgentRewardBench、SATraj-OS、OSWorld-Human、AgentNet 和 ScaleCUA 的轻量采样，不同步完整测试集或图片归档。
+核心 14 数据集包含 42,590 个 operations，补充 ScaleCUA 后为 47,590 个 operations。
+同一批 operations 可以从 9 个 dataset stacks 递归展开到 57 个 phase stacks、226 个 tool/semantic stacks、455 个 action stacks，加入固定 session 后膨胀到 3,757 个 stacks。
+在 OSWorld-Human 中，单动作轨迹与人工 grouped-action 边界的保守匹配达到 0.627 F1 且 precision 为 1.0；在 AgentNet 中，1,000 个 Ubuntu 人工桌面任务的 16,741 个 PyAutoGUI operations 全部携带 step correctness 和 redundancy 字段；在 AgentRewardBench 中，action-derived repetition signal 对 expert looping label 的 V-measure 从单步错误标签的 0.011 提升到 0.378。
+这些结果支持一个机制性 claim：agent 轨迹可以被统一为 operations，并通过可配置 mappings 递归折叠为多个有用的 analysis views。
+当前结果仍不支持完整无监督边界发现或人类用户效用 claim。
 \end{abstract}
 
 \section{问题}
 
-一个 AI 编程 agent 运行结束后，开发者通常不想逐条回放消息。
-他们想知道：这次运行哪里最重，哪里绕路，哪里反复试错，哪些文件或网络目标被碰过，哪类用户请求导致最多测试、最多读取、最多失败或最多 token。
-传统工具各自只覆盖一半。
-LLM trace 工具能展示 agent、LLM call、tool call、prompt、completion、latency 和 cost。
-进程或文件审计工具能展示 \texttt{git}、\texttt{cargo}、\texttt{rg}、\texttt{sed}、\texttt{docker} 等系统行为。
-Span-duration flamegraph 甚至已经出现在 multi-agent workflow debugging 中，用于看 critical path、parallelism、error cascade 和 tool overhead。
+AI agent 轨迹的调试问题正在从单次调用回放变成跨任务剖析问题。
+开发者不只想知道某个 span 什么时候开始和结束，也想知道哪类任务导致最多重复点击，哪些 GUI 轨迹反复输入，哪个工具调用族对应失败，哪些安全攻击类型集中在某些操作阶段，或者一个 prompt 序列能否被折叠成 task、phase、action 和人工 subtask 等多个深度。
+如果 profiler 把 session、prompt 或 tool call 写死成核心层级，这些问题会被迫使用同一个边界。
+如果 profiler 只保留进程或函数栈，上层语义和 benchmark oracle 又会丢失。
 
-但是这些视图仍难回答跨层问题：
+本文的出发点是把 agent trace 中所有可剖析对象都降到同一层。
+一个 prompt 可以是 operation，一个 tool call 可以是 operation，一串 prompt 也可以通过 mapping 被派生为同一个 intent 或 task operation field。
+同样，GUI action、API call、browser action、process event、syscall、安全标签、step correctness 和人工 grouped-action id 都不是新的 profiler 抽象，而是 operation fields。
+Profiler 的核心任务不是决定唯一正确边界，而是让用户和实验可以在同一批 operations 上选择 stack 字段、派生 mappings，并得到不同深度的递归折叠。
 
-\begin{quote}\small
-为了哪个用户任务，agent 反复运行了哪些命令、读取了哪些路径、产生了哪些网络或文件副作用？
-\end{quote}
-
-本文的核心判断是：agent observability 的对象不应只是 span，也不应只是进程，而应是 \emph{task-grounded system effect}。
-我们把目标栈写成：
-
-\begin{quote}\small\ttfamily
-sessionTag;promptTag;llmcall/tool;process*;effect
-\end{quote}
-
-这个模型把两类传统工具分开的信息合并起来。
-上层的 session、prompt、LLM call 用本地小模型压缩成一个词；下层 tool、process、file/network effect 不由模型猜测，而通过确定性关联继承语义上下文。
-最后用 folded stack 聚合重复路径，让宽度表示 event count、effect weight 或 token weight，而不是只表示 span duration。
-
-本文的贡献不应表述为 ``agent flamegraph''。
-已有系统已经把 agent spans 画成 flamegraph。
-本文的贡献是一个更具体的系统归因模型：在 agent-native local histories 中把用户语义意图与系统行为代理接起来，并为 live AgentSight traces 定义 exact provenance 目标，使跨 session 的重复副作用可聚合、可检查、可比较。
+这个问题有两个系统挑战。
+第一，抽象必须足够小，否则 prompt、session、tool call、plan、subagent 和 process 会各自形成独立 pipeline。
+第二，抽象又必须足够可配置，否则 flamegraph 只会成为固定视图，不能回答边界、失败、安全和质量诊断问题。
+本文的目标不是证明某个单一 flamegraph 最好，而是证明 operation 和 operation stack 足以覆盖多类真实标注 agent 轨迹，并能产生 flamegraph 以外的质量、边界和转移分析。
 
 \section{设计}
 
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\linewidth]{figures/fig-model.pdf}
-  \caption{AgentFlame 的归因模型。小模型只标注 session、prompt、LLM-call 语义；tool/process/file/network effects 通过确定性 lineage 继承语义帧并折叠成 stacks。}
-  \label{fig:model}
-\end{figure}
+\subsection{两个核心抽象}
 
-图~\ref{fig:model} 展示了 AgentFlame 的设计。
-语义层非常小：每个 session、prompt 和 LLM call 只生成一个 lowercase word，例如 \texttt{refactor}、\texttt{review}、\texttt{test}、\texttt{research}。
-这些词不是固定 ontology，也不是 verdict；它们只是给折叠栈提供短、稳定、可搜索的任务帧。
+\op{} 是唯一的样本级对象。
+每个 operation 是一个带权重的字段集合，例如 \texttt{op=prompt}、\texttt{op=llm}、\texttt{op=tool}、\texttt{tool=browser}、\texttt{action=click}、\texttt{phase=navigate}、\texttt{status=failure} 或 \texttt{step\_correct=incorrect}。
+这些字段可以来自本地 Codex/Claude session，也可以来自外部 benchmark 的标注轨迹。
+实现上，外部轨迹使用每行一个 JSON object 的 operation JSONL，并把原始任务文本、截图和长对话默认排除在提交 artifact 之外。
 
-系统层不交给 LLM 判断。
-Agent-native 历史模式从 Codex/Claude JSONL 中恢复 tool 类型、命令入口、状态、路径组和粗 effect 类别。
-AgentSight exact 模式的目标输入是：
+\opstack{} 是从 operation fields 中选择出的有序 frame 列表。
+例如同一批 operations 可以用 \texttt{project,dataset} 查看数据来源，也可以用 \texttt{project,dataset,task,phase,op,tool,action,status} 查看动作深度，或者加入 \texttt{human\_group}、\texttt{step\_correct}、\texttt{safety} 和 \texttt{looping} 做诊断视图。
+Stack 不是 trace tree，也不是 session hierarchy。
+它是一个查询结果，用户可以按问题改变深度和字段。
 
-\begin{quote}\small\ttfamily
-tool\_call -> shell -> child process -> file/network effect
-\end{quote}
+\subsection{Mapping 和 tagging}
 
-每个 in-scope effect 必须能追溯到 tool call 和 prompt ancestry。
-如果只能用 PID 或时间戳模糊匹配，就不能作为强 provenance claim。
-因此，语义由上层继承，系统事实由 instrumentation 或 session parser 产生。
+Mapping 和 tagging 是派生 operation fields 的一等机制。
+它们在 stack 构造前运行，读取 operation 的 \texttt{key=value} 文本，并写入新的字段。
+例如 desktop action 中的 \texttt{type} 和 \texttt{key} 应先被映射到 \texttt{phase=input}，再考虑通用 web action verb；API/tool traces 应先进入 tool/API phase family，再处理 \texttt{search} 或 \texttt{create} 这类词。
+这一顺序是 R285、R289、R290 和 R291 暴露出的关键设计约束。
+如果通用 action rule 抢在 operation-family rule 前面运行，desktop、web 和 API 轨迹会被错误合并。
 
-\subsection{为什么是一个词}
+Mapping 不引入第三个抽象。
+它只是在 operation 上写字段，使同一个 stack specification 可以跨数据集复用。
+当前 Rust CLI 支持 inline \texttt{--op-map FIELD:LABEL=REGEX} 和文件形式 \texttt{--op-map-file}。
+\texttt{script/operation\_map\_infer.py} 可以从已标注 operations 中生成同样格式的规则文件，R281--R285 使用这些规则测试 held-out 和 leave-dataset-out 泛化。
 
-一个词标签有三个工程优点。
-第一，火焰图帧必须短；长摘要会让图不可读。
-第二，标签只用于导航和聚合，不承担安全、正确性或因果判决。
-第三，一个词标签容易本地化和缓存化。
-当前实现对 session/prompt/LLM 文本各处理一次，后续数十万条系统事件只做普通程序关联和聚合。
+\subsection{Views 和非火焰图分析}
 
-这也约束了论文 claim。
-AgentFlame 不证明标签是真实意图 ontology。
-它先证明一个更可审计的机制：加入这些短语义帧后，传统 baseline 会合并掉的系统效应是否被分开。
-
-\subsection{Stack 语法}
-
-系统效应栈形如：
-
-\begin{quote}\small\ttfamily
-\begin{tabular}{@{}l@{}}project;agent;session;prompt;\\ call:tool/...;process*;effect;path/domain;status\end{tabular}
-\end{quote}
-
-Token 栈形如：
-
-\begin{quote}\small\ttfamily
-\begin{tabular}{@{}l@{}}project;agent;session;prompt;\\ call:llm/...;model;kind\end{tabular}
-\end{quote}
-
-完整视图保留 session、prompt、LLM-call 语义。
-消融视图删除部分语义轴：\texttt{session-system}、\texttt{prompt-system}、\texttt{llm-token} 等。
-所有视图共享同一事实表；投影不应改变总权重。
-
-\subsection{可视化模型}
-
-AgentFlame 不把所有信息塞进一张图。
-面向开发者的核心界面应有四类互补视图。
-第一，semantic system flamegraph 用宽度表达 system-effect count，用于回答 ``哪里重、哪里绕、哪里重复''。
-它适合跨 session 聚合，因为 folded stack 会把同一语义任务下重复出现的 \texttt{rg}、\texttt{cargo test}、文件读取或网络目标折叠到同一横条。
-Duration 是单独的 projection：当前 R225 只支持 prompt wall-clock baseline，不支持 active runtime 或 tool/LLM span-duration。
-第二，token flamegraph 使用同样的 session/prompt/LLM-call 语义帧，但叶子变成 model/prompt/completion token，回答 ``哪类任务消耗上下文和模型预算''。
-
-第三，exact-lineage tree 不是聚合图，而是 provenance drill-down。
-它展示一个 prompt 下的 tool call、shell、child process 和 file/network effect 链，用来确认某个横条是否真的来自目标 agent process family。
-R182/R183 说明这个视图不能省略：低层 \texttt{codex} network rows 可以被 join，但只有 R191 这种 target \texttt{python3} child-process rows 也被观察并 join 后，UI 才能把对应固定 workload 标成 covered。
-第四，claim/evidence board 把每个 claim 连接到 artifact、oracle 和 status，防止用户把 smoke run 当成完整结论。
-
-因此 flamegraph 与 tree 的职责不同。
-Flamegraph 负责发现热点和重复模式；tree 负责解释一个热点能不能被信任；claim board 负责告诉用户哪些结论还只是 partial。
-这种三层设计是传统 profiler 和普通 agent trace 都缺的：前者没有 prompt 语义，后者通常没有系统副作用的 deterministic ancestry，更不会把 claim boundary 作为一等视图。
+\texttt{--view} 决定采样和权重，例如 operation count、token、file、network 或 time。
+\texttt{--stack} 决定递归折叠形状。
+Folded stack 和 SVG flamegraph 是其中一种输出，但不是唯一输出。
+我们同时生成 JSON profile、stack tree、top-field table、parent-child transition、depth sweep、boundary F1、V-measure、coverage report、grouped-action report 和 HTML quality report。
+这些视图共享同一 operation 输入和 stack 语法，因此 failure、safety、looping、redundancy 和 human group 可以被当作普通字段评分，而不是另建 failure profiler 或 safety profiler。
 
 \section{实现}
 
-本文的实验结果来自 AgentFlame 研究原型及其生成 artifacts。
-该原型当时是独立 Rust CLI，并输出 \texttt{agentflame.json}、\texttt{tags.json}、folded stack 文件、SVG 和 HTML dashboard。
-当前开源仓库的产品化入口已经收敛到 \texttt{agentpprof/}：它复用 \texttt{agent-session}，输出 pprof-compatible \texttt{.pb.gz}、folded、SVG 和 JSON。
-因此，本文的 headline 数字评估的是 AgentFlame 研究原型；\texttt{agentpprof} 是产品化方向，除 smoke artifacts 外还没有替代本文所有 RQ1--RQ6 结果。
-默认输出路径是：
+\toolname{} 是当前被测实现。
+它是 Rust CLI，读取本地 Codex/Claude 历史或外部 operation JSONL，并输出 pprof-compatible profile、folded stacks、SVG 和 JSON。
+核心命令形态如下：
 
-\begin{quote}\small\ttfamily
-.agentsight/agentflame/latest/
+\begin{quote}\scriptsize\ttfamily
+\begin{tabular}{@{}l@{}}
+agentpprof --operation-file ops.jsonl --view operations \\
+\quad --stack project,dataset,task,phase,op,tool, \\
+\quad action,status --op-map-file operation-map.txt \\
+\quad -o out.folded
+\end{tabular}
 \end{quote}
 
-本次 full run 的命令为：
+外部数据集转换器位于 \texttt{script/agent\_trace\_datasets.py}。
+转换器只下载或流式读取所需公开文件的采样前缀。
+对于包含截图、长 prompt 或完整对话的数据集，默认保存 redacted rows 和 operation JSONL，不提交原始数据。
+质量评估脚本位于 \texttt{script/operation\_stack\_quality.py}，它复用 \toolname{} 的 operation mapping contract，并计算字段覆盖率、oracle V-measure 和序列相邻边界 F1。
+Stack 结构分析脚本位于 \texttt{script/operation\_stack\_analysis.py}，用于生成 flamegraph 之外的 tree、top-kind 和 transition 报告。
 
-\begin{quote}\small\ttfamily
-cargo run --manifest-path agentflame/Cargo.toml -- run --project-root . --scan-files 10000 --max-sessions 10000 --llama-url http://127.0.0.1:18080 --model local-r170 --timeout 60 --out .agentsight/agentflame/r170-full-current
-\end{quote}
+这个实现刻意保留简单接口。
+它不像 jq 那样完整表达 JSON 查询语言，但它已经把 profiler 的关键自由度暴露为 flags：数据源由 \texttt{--operation-file} 选择，权重由 \texttt{--view} 选择，字段派生由 \texttt{--op-map} 选择，递归边界由 \texttt{--stack} 选择。
+因此 prompt、session、toolcall、process、syscall、plan 和 subagent 都可以在同一套 mechanism 中出现，而不是成为互不兼容的 object model。
 
-这条命令是研究 artifact 的 provenance，不是当前仓库的用户入口。
-R170 的 committed summary 记录 \texttt{repo\_dirty=true}，因此本文把它作为 dirty-provenance mechanism evidence 使用：数值可以用于当前本机历史 characterization 与 folded-total 检查，但它不是 clean release artifact run，也不支持 C5/C6 outcome claims。
-当前用户入口示例是：
+\section{实验方法}
 
-\begin{quote}\small\ttfamily
-cargo run --manifest-path agentpprof/Cargo.toml -- --project-root . -o agent.pb.gz
-\end{quote}
-
-模型为本地 \texttt{qwen2.5-3b-instruct-q4\_k\_m.gguf}，通过 llama.cpp server 运行，temperature 为 0，并用 grammar 约束输出一个词。
-AgentFlame 没有 heuristic fallback：如果 LLM server 缺失，或模型重试后仍不能输出合法一词标签，run 失败。
-
-\subsection{隐私与可复现}
-
-原始 agent trace 不提交。
-\texttt{agentflame.json} 默认包含 redacted previews、hash、tag、计数和路径组；\texttt{tags.json} 保存 tag cache 和 LLM provenance，不保存原始 prompt 文本。
-本次 run 遇到一个 root-owned Claude JSONL，不可读；系统没有要求 root 权限读取，而是跳过并写入 \texttt{warnings}。
-这让覆盖范围可审计，而不是静默假装完整。
-
-\subsection{与 AgentSight 的关系}
-
-AgentFlame 的第一模式是零 instrumentation 的历史分析。
-AgentSight 的独特点是运行时 exact provenance：\texttt{tool\_call -> shell -> child process -> file/network effect}。
-正确集成后，AgentFlame 负责语义帧，AgentSight 负责系统效应事实，两者通过 tool/session/prompt ancestry 连接。
-当前 full run 还不是 live exact-effect 结果；它验证的是 agent-native history projection。
-Live lineage 证据来自独立 scoped suites：R114/R191/R229/R232/R234 覆盖固定 Codex command-mode、target HTTP probe、controlled multi-workspace、外部仓库和局部 Claude/Codex HTTP-family workloads；R238/R240 进一步修复 direct process/network readiness 并加入 over-attribution regression guard。
-这些证据支持固定范围内的 exact provenance，但不支持广义 Claude-launched、raw-socket、任意仓库或 HTTP payload/URL reconstruction。
-R230--R233 则审计 generated full-history projection：folded rows 有 semantic/call/effect frames，display projection 与 event-local prompt tags 一致，duplicate prompt indexes 被降级为 non-keyed row identity。
-
-\section{评估}
-
-\subsection{RQ1：本地小模型能否全量标注？}
-
-表~\ref{tab:fullrun} 给出 R170 current full-history refresh 结果。
-AgentFlame 分析了 325 个可读 session（198 个 Codex、50 个 Claude、77 个 Claude subagent），处理 2,859 个 prompt rows 和 114,837 个 LLM-call events。
-标签器共有 118,021 个请求，82,886 个命中 cache，35,136 次真实 llama.cpp HTTP calls，35,135 个成功最终 uncached tags，0 个最终失败；Prompt 和 LLM-call tag 非法计数均为 0。
-这说明一词语法和本地 3B 模型路径在真实历史规模上可运行，但仍不是 C5/C6 outcome evidence。
-R180 在同一组 300 个 redacted fragments 上进一步确认 0.6B、1.1B 和 3B GGUF 都能输出符合语法的一词标签；该实验只支持 syntax/latency/stability，不支持 semantic adequacy。
-
-\begin{table}[t]
-  \centering
-  \small
-  \caption{R170 current full-history refresh 的本机 AgentSight session 运行指标。}
-  \label{tab:fullrun}
-  \begin{tabular}{lr}
-    \toprule
-    指标 & 数值 \\
-    \midrule
-    Readable sessions & 325 \\
-    Codex / Claude / Claude-subagent & 198 / 50 / 77 \\
-    Raw tool events & 142,468 \\
-    Raw LLM events & 114,837 \\
-    Prompt rows & 2,859 \\
-    Unique prompt tags & 328 \\
-    LLM-call tags & 114,837 \\
-    Unique LLM-call tags & 1,423 \\
-    Tag requests & 118,021 \\
-    Cache hits & 82,886 \\
-    llama.cpp HTTP calls & 35,136 \\
-    Successful final uncached tags & 35,135 \\
-    Final tag failures & 0 \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-这个结果不等于标签语义充分。
-例如某些 tag 明显带噪声：\texttt{agentsightsm}、\texttt{testcodex}、\texttt{bashoutput}。
-因此系统区分 raw tag 和 canonical display tag：R189 保留 raw tag，并把 prompt-effect/prompt-row/LLM-event tag 从 263/328/1,423 降到 216/279/1,254，同时保持 folded 总权重不变，system/token stacks 从 26,829/8,569 降到 26,067/7,661。
-这只是可审计的候选长尾降噪空间，不证明 raw tags 一定语义冗余。
-AgentFlame 因此使用 semantic compaction lifecycle：raw tag 不变，canonical map 只作版本化展示层，pending actions 保存 keep/merge/regenerate/split，\texttt{regenerated\_tag} 只有经过 R203 paired/adjudicated promotion review 和 display-map diff 后才能进入 canonical view。
-R209 将这个 lifecycle 落成可消费数据契约：active display map 每个 raw tag 一行，drilldown index 保留 raw 支持和 top system profile，reviewed diff 只在人工 promotion 后产生。
-因此 RQ1 支持的是 feasibility 和 syntax claim；tag adequacy 需要单独实验。
-
-\subsection{RQ2：projection 方法如何取舍？}
-
-\begin{figure}[t]
-  \centering
-  \includegraphics[width=\linewidth]{figures/fig-results.pdf}
-  \caption{当前机制结果。图由 \texttt{docs/visexp/paper/make\_figures.py} 从 \texttt{.agentsight/agentflame/r170-full-current/agentflame.json} 重新生成；它反映 Rust full-run 输出，而不是旧的 Python sampled-run artifact。}
-  \label{fig:results}
-\end{figure}
-
-R170 full run 产生 183,714 个 system observations，并折叠成 26,829 条 unique semantic system stacks，压缩率为 6.848 倍。
-关键不是压缩本身，而是 baseline mixing。
-当删除 session/prompt 语义帧后，nonsemantic folded baseline 有 4,685 个 mixed buckets，覆盖 166,081 个观测，也就是 90.402\% 的系统权重。
-如果进一步退化成 flat effect baseline，mixed weight 占 90.918\%。
-
-\begin{table}[t]
-  \centering
-  \small
-  \caption{语义栈与 baseline mixing。}
-  \label{tab:mixing}
-  \begin{tabular}{lr}
-    \toprule
-    指标 & 数值 \\
-    \midrule
-    System observations & 183,714 \\
-    Unique semantic system stacks & 26,829 \\
-    Semantic compression & 6.848x \\
-    Max stack reuse & 6,004 \\
-    Nonsemantic mixed buckets & 4,685 \\
-    Nonsemantic mixed weight & 90.402\% \\
-    Flat mixed weight & 90.918\% \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-这为回应 ``传统工具也能看出来'' 的质疑提供了机制性证据。
-传统 flat summary 可以告诉我们 \texttt{sed read} 有 25,755 次、\texttt{rg read} 有 15,336 次、\texttt{cargo test} 有 2,903 次。
-但是它不知道这些行为分别来自 \texttt{refactor}、\texttt{review}、\texttt{research}、\texttt{design} 还是 \texttt{test} prompt 区域。
-R211 把这个失败模式量化：\texttt{rg}/\texttt{sed}/\texttt{git}/\texttt{cargo} 分别覆盖 176/180/147/68 个 prompt tags；\texttt{process:git;effect:read;status:ok} 有 116 个 prompt tags，top prompt 只占 24.977\%；\texttt{process:cargo;effect:test;status:ok} 有 48 个 prompt tags，non-top-prompt weight 为 68.05\%。
-因此传统 process/effect summary 不是少一个漂亮标签，而是把许多不同用户意图造成的相同行为合成同一个 bucket。
-
-R251 检查这些 prompt tags 是否只是随机词。
-它在每个 session 内随机打乱 prompt tags 1,000 次；真实 tags 对 sanitized process/effect/status behavior 的 session-beyond 信息增益为 8.419\%，高于 null p95 的 1.903\%（\(p=0.0010\)），top-behavior purity 为 20.196\%，也高于 null p95 的 18.367\%。
-这个结果只支持 tags 与系统行为有 weighted association，不支持人工语义 adequacy；低绝对 purity 和 broad tags 仍需要 R124 人工标签。
-
-R224/R131 则把问题改成 projection ablation：同一份 folded input、同一 183,714 denominator、总权重不变，只删除或保留 session/prompt 语义轴。
-表~\ref{tab:ablation} 显示 system-effect 分割主要来自 prompt 轴：session-only 只把 mixed full-semantic bucket weight 从 90.402\% 降到 84.407\%，prompt-only 则降到 36.722\%；按 residual mixed weight 计算，prompt-only 从 no-semantic 的 44.716\% 降到 7.485\%。
-完整 session+prompt 的 0.000\% mixed weight 是定义上的上界，只能作为 audit/drilldown 视图，不能被解释成用户效用。
-
-\begin{table}[t]
-  \centering
-  \small
-  \caption{R224/R170 system-effect 语义轴消融。所有行都保持 183,714 总权重。}
-  \label{tab:ablation}
-  \begin{tabular}{lrrr}
-    \toprule
-    Variant & Unique stacks & Bucket & Residual \\
-    \midrule
-    No semantic & 11,967 & 90.402\% & 44.716\% \\
-    Session only & 15,027 & 84.407\% & 33.434\% \\
-    Prompt only & 24,703 & 36.722\% & 7.485\% \\
-    Session + prompt & 26,829 & 0.000\% & 0.000\% \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-
-R223 因此给出的不是单一最佳火焰图，而是分层默认。
-No-semantic 适合作为 hotspot baseline：11,967 个 stacks、15.352x 压缩，但 90.402\% effect weight 被混合。
-Prompt-only 是 system-effect profile 的最佳单语义轴：mixed/residual mixed weight 降到 36.722\%/7.485\%，仍保持 7.437x 压缩。
-完整 session+prompt 保留给 audit 和 drilldown。
-Display policy 同样可插拔：R209/R212 的 conservative display 与 alias-only 等价，26,612 个 stacks 且 0.0\% unreviewed active weight；profile-guarded candidate view 可降到 26,067 个 stacks，但会激活 2.532\% 未审查 effect weight，所以只能作为上界消融。
-Vocabulary overlay 把 raw unique tag strings 从 1,546 降到 1,364，top-20 support coverage 从 93.683\% 提升到 95.186\%，但这只是 display-support concentration，不是 tag correctness。
-
-R225 给出另一个边界：prompt wall-clock duration 与 system-effect count 相关但回答不同问题。
-它覆盖 324/325 个有 prompt spans 的 sessions 和 183,714/183,714 个 system-effect observations，总 duration 为 859.019 小时；duration top-10 与 effect-count top-10 只重合 7 个，top-20 重合 12 个，rank Spearman 为 0.623。
-例如 \texttt{network} 在 duration 中排第 8、占 2.837\%，但在 effect weight 中排第 93、占 0.040\%；\texttt{benchmark} 则相反。
-历史 artifact 没有 tool/LLM start-end span，所以 R225 不是 active runtime 或 workflow span-duration trace，也不能支持 C5。
-这就是系统设计需要可插拔 projection 的原因：不同视图优化不同问题，而不是让小模型一次性决定最终语义真相。
-
-\subsection{Case Study：能看出什么}
-
-本次 full run 中，最大的 semantic stack 是：
-
-\begin{quote}\small\ttfamily
-\begin{tabular}{@{}l@{}}project:agentsight;agent:codex;session:refactor;prompt:refactor;\\ call:tool/tool;effect:process;status:ok\end{tabular}
-\end{quote}
-
-权重为 6,004。
-另一个明确的系统例子是 \texttt{cargo test}。
-Flat summary 只会显示 2,903 次 successful \texttt{cargo test}。
-Nonsemantic stack 会保留 \texttt{call:tool/shell;process:cargo;effect:test;status:ok}，但仍把不同语义区域混在一起。
-Semantic stack 将它拆成多个区域，包括 \texttt{review/review}、\texttt{refactor/refactor}、\texttt{research/explain}、\texttt{research/refactor}、\texttt{design/review} 等。
-R211 的 R170 刷新版本进一步显示 \texttt{process:cargo;effect:test;status:ok} 在 48 个 prompt tags 中分布，\texttt{refactor} 只占 31.95\%，其余 68.05\% 来自 \texttt{review}、\texttt{research}、\texttt{commitlog}、\texttt{explain}、\texttt{test} 等 prompt。
-这生成了一个可检查的候选分解：同样是 test process，语义来源不同；后续 C5 才能测试开发者是否能更快或更准确地使用它。
-
-这类结果生成可供检查的候选分解，作为 planned C5 tasks 的输入，而不是已验证的 developer-assistance 结论：
-
-\begin{itemize}
-  \item 哪个任务导致最多重复测试或读取？
-  \item 哪些 prompt tag 反复触碰同一组路径或域名？
-  \item 哪些失败行为集中在特定 semantic region，而不是全局系统问题？
-\end{itemize}
-
-Trace tree 能回放某次调用，span flamegraph 能看 duration bottleneck，flat summary 能看重命令。
-但它们都不直接给出跨 session 的 task-effect 聚合。
-
-\subsection{RQ3：exact lineage 是否成立？}
-
-当前答案是：固定 command-mode suite 已经成立，但 broad full-history provenance 仍不足。
-R110--R113 先把 agent-run envelope 从 fixture、SQLite export 推到 \texttt{record -- <command>} capture path；R113-live 在 5 个只读 \texttt{codex exec} 任务上创建 5/5 sessions/tools 并 join 508/508 raw effects。
-R114 是主要支持性证据：20 个固定 Codex tasks 加 per-task negative controls 后，1,273/1,273 in-scope effects joined，0 false positives，0 false negatives，3,170 个 negative-control effects 中 0 个被 join；raw join 只有 22.055\%，因为 wrapper、sibling 和 out-of-scope effects 应保持 orphan。
-
-Network 和泛化证据是 scoped 的。
-R182 修复 record-mode \texttt{--trace-net} 后能 join 35/35 个低层 \texttt{codex} network rows，但 target rows 仍为 0/0；R191 的固定 Python HTTP probe 才给出 4/4 target rows joined、0/310 negative controls。
-R229/R232/R234 分别在 controlled multi-workspace、外部 fresh repo 和局部 Claude/Codex HTTP-family workload 上复用同一 oracle，得到 394/394、353/353+4/4、269+8/8 in-scope/target rows joined，negative controls 均为 0。
-R235--R240 则故意触碰 raw/multiprocess/Claude-launched boundary：direct controls 被修复并有 regression guard，但 broader agent-launched target-network coverage 仍 partial。
-
-Full-history projection 是另一类证据。
-R230 证明 183,714/183,714 folded system-observation weight 都有 semantic session/prompt tag frames 和 call/effect frames；R231 证明 display projection 与 event-local prompt tags 一致；R233 将 duplicate prompt indexes 降级为 non-keyed row identity 后把 normalized semantic drift 降为 0。
-因此 C4 支持 ``固定 command-mode suite、controlled external cross-repo workload，以及局部 Claude/Codex target-network probes 中 exact semantic-effect lineage 成立''，不支持任意历史、任意仓库、任意 agent、HTTP URL 语义恢复或完整 row-identity proof。
-
-\subsection{RQ4：用户效用是否成立？}
-
-当前答案是不成立，或者更准确地说：未验证。
-已有 task packet、answer key、scorer 和 launch package，但没有真实参与者响应。
-R184/R186 把状态固定为 \texttt{ready\_for\_participant\_collection}，并要求先跑真实 R142 五人 pilot。
-R187/R193/R195/R207 准备了 R142 participant packets、空白 response CSV、R124/R190/R203 label sheets、R195 ingestion/scoring contract 和 return filenames；这些只支持 launch readiness，仍记录 0 个参与者响应、0 个人工标签。
-R242--R247 用 synthetic returns、static forms、headless Chrome 和离线 tarball 验证 collection pipeline 能加载、导出和拒绝错误输入；R244 synthetic exports 不进入 R195 inbox，R263--R271 只覆盖 marker 拒绝、private preflight、adjudication、public summary、C5/C6 scoring orchestration 和 human-evidence review-readiness gate。
-R249/R255/R258/R259 把 C5 扩到 paper-scale：R258 生成 43-member tarball；R259 生成 12 个 participant forms、6 个 labeler forms、168 行 synthetic C5 merged CSV 和 1,002 行 C6 synthetic labeler rows；R259 仍记录 0 个真实响应和 0 个人工标签，C5/C6/weak-accept gates 保持 false。
-当前 baseline 应设为 trace tree、\texttt{event-count-proxy}、flat process summary、nonsemantic folded stack 和 semantic folded stack，比较 accuracy、time、false positives 和 confidence。
-当前 R142 packet 中原来的 span-like 条件已经明确命名为 event-count proxy，因为 folded artifact 没有真实 duration；它不能直接当作 span-duration baseline。
-R225 已经从 R170 timestamps 重构出 prompt wall-clock duration baseline，并显示它与 effect-count profile 的 top tags 和排序有明显差异；但该 baseline 可能包含 idle/user-wait time，且 tool/LLM 调用仍没有 start-end span，因此它只能作为下一版 preregistered packet 的 prompt-span baseline，而不是 active runtime 或完整 workflow span-duration baseline。
-如果这个实验失败，AgentFlame 仍可能是专家 forensic 工具，但不能写成提升普通开发者效率。
-
-\subsection{RQ5：小模型成本和标签质量}
-
-R123/R180 说明本地小模型路径在工程上可用，但这只是 syntax、latency 和 repeated-input stability。
-R123 对 300 个 redacted session/prompt/LLM-call fragments 做三次 identical repeats，900/900 输出合法，285/300 fragments 完全稳定，p50/p95 latency 为 11/31 ms。
-R180 用同一输入比较 0.6b、TinyLlama 1.1b 和 3b GGUF，三者都是 900/900 valid；exact-stable fragments 为 299/300、279/300、285/300，p95 为 23/18/32 ms。
-但 TinyLlama 虽然稳定，却大量输出 \texttt{localization/localized}，说明语法稳定不能替代标签 adequacy。
-标签问题的核心不是 ``能不能输出一个词''，而是如何在不丢 raw drilldown 的前提下减少无意义长尾。
-R189/R190/R196/R201/R202/R203/R205/R209/R212/R213/R214 形成一个可审计 display-governance pipeline：raw tags 不被覆盖；dictionary aliases 可以 active；lexical/profile merges 和 regenerated labels 在没有人工审核前只能 pending；系统不使用隐藏 \texttt{other}。
-当前 display map 中 1,811/1,811 raw rows 都有 active display rows，active display labels 为 1,509，63 个 deterministic alias rows active，209 个 candidate rows 和 323 个 review-required rows 只作为 overlay；482,398 support 全部 preserved，drilldown CSV 保留每个 display bucket 的 raw membership。
-在 compactness 上，canonical display 把 raw unique tag strings 从 1,546 降到 1,364，top-20 support coverage 从 93.683\% 提升到 95.186\%；在 projection 上，alias-only/R209 conservative display 把 system stacks 从 26,829 降到 26,612，而假设激活所有 profile-guarded candidates 可降到 26,067，但会激活 2.532\% 未审查 effect weight。
-这套治理机制也有明确失败 gate。
-R190-score 仍是 \texttt{human\_labels\_empty}，R203 final labels 为 0，canonical map 未更新。
-R214 还显示 prompt-level review-required support 为 3.258\%，超过 3\% 预算；higher-tail-threshold 下 head stability 只有 65.217\%，低于 80\% gate。
-因此系统可以建议合并或重生成，但不能为了让火焰图更干净就自动提升 candidate merges。
-前端与 collection runs 只证明这个 contract 可被消费。
-R215/R216/R217 分别覆盖 TypeScript renderer model、headless browser DOM harness 和 Next production default render：raw/display/pending 都保持 482,398 support，display/pending buckets 为 1,748，candidate promotion 和错误 drilldown 负例会被拒绝。
-R218 只用 synthetic review fixtures 验证 promotion gate 会拒绝 unsafe rows，不证明 promotion quality。
-R219/R242--R247 把 C5/C6 collection、forms、CSV export 和 scorer handoff 固定下来，但仍记录 C5 responses 为 0、C6 final adequacy labels 为 0、\texttt{weak\_accept\_supported=false}。
-OSDI 版本还需要真实 R124/R190/R203 人工标签；一词标签应被定位为 lossy navigation frames，而不是 semantic truth。
-
-\subsection{RQ6：开源 artifact 路径是否可用？}
-
-R160/R200/R220/R248/R253/R254/R256 检查的是 artifact usability，不是 C5 用户效用或 C6 标签正确性。
-R160 用 8 个固定历史 Codex session 文件跑 Rust CLI：clean run 生成 dashboard、folded stacks、SVGs 和 \texttt{tags.json}，76 个 tag requests 中 60 次真实 llama.cpp calls、耗时 1.64 s；cached rerun 76/76 cache hits、0 次 LLM call、0.11 s。
-R200 换成 public-safe Codex fixture，并确认没有读取真实 \texttt{.codex}/\texttt{.claude} traces、没有 prompt preview 泄漏。
-R220/R248/R253/R254 把入口推进到产品化 \texttt{agentpprof}：clean clone、本地 install、GitHub branch install 和 pinned-revision install 都能在 committed public fixture 上生成 pprof/folded/JSON/SVG outputs，且 \texttt{go tool pprof -top} 读回 6/6 task samples。
-R256 验证 crate package 边界：8 个 intended package files、35,438-byte crate archive、archive/list equality、无 target/docs/out/private-history 泄漏，并观测到 registry dependency \texttt{agent-session v0.3.3}。
-这些结果说明固定输入下的 local artifact path、public fixture path、install/readback path 和 crate-package dry-run 可审计。
-它们不等于 crates.io publish/readback、external-machine install、真实 report public sanitization 或社区开发者已经能顺利使用。
-36-session discovery run 首次标注耗时 173.05 s，cached rerun 因活跃 session 增长又出现 34 次新 LLM call；因此默认体验仍需要明确采样、缓存和活跃 session 漂移。
-
-\subsection{评估完整性审计}
-
-表~\ref{tab:gates} 把当前证据按 claim gate 汇总。
-这个表的作用不是装饰，而是防止论文把 smoke evidence 写成系统结论。
-OSDI reviewer 最可能挑战 C4、C5 和 C6：C4 仍有 Codex/Claude-launched target-network orphan/missing-action cases，C5 没有 participant responses，C6 没有人工 adequacy labels。
-R184/R186/R187/R188/R245/R246 的作用是防止过度声明：它们把状态固定为 \texttt{not\_weak\_accept}，区分 launch material 与 outcome evidence，并确认当前文本没有把缺口写成 supported claims。
-因此当前最诚实的定位是 ``supported mechanism plus partial systems artifact''。
+评估遵循三个原则。
+第一，只使用公开的、别人已经标注好的 agent 轨迹或交互轨迹。
+我们使用 Hugging Face Dataset Viewer、HF repo JSONL、公开 GitHub JSON 和公开 benchmark artifacts 进行轻量采样，不同步完整测试集，也不提交原始外部样本。
+第二，每个 claim 都必须对应可执行 oracle。
+对于 phase/action 结构使用 V-measure 和相邻边界 F1；对于 grouped-action 使用人工 group id；对于 looping、safety、step correctness 和 redundancy 使用数据集原生标签；对于递归深度使用同一批 operations 下 unique stack 和 compression 变化。
+第三，负结果保留在论文中。
+例如 AgentNet 的 task status 很弱地预测 per-step correctness，repeat signal 也很弱地预测 step redundancy。
+这说明 profiler 能承载这些诊断字段，但简单 mapping 不能替代专门质量模型。
 
 \begin{table*}[t]
   \centering
   \scriptsize
-  \renewcommand{\arraystretch}{0.92}
-  \caption{当前 claim gate 的主文摘要。完整证据 ledger 保存在 \texttt{CLAIM\_VERDICT.md}；这里仅保留 reviewer 需要的 status、最强证据锚点和下一步 gate。}
-  \label{tab:gates}
-  \begin{tabular}{p{0.17\linewidth}p{0.16\linewidth}p{0.36\linewidth}p{0.23\linewidth}}
+  \renewcommand{\arraystretch}{0.95}
+  \caption{公开标注轨迹数据源和当前用途。ScaleCUA 是 R292 补充点，主结论主要依赖 R279--R291。}
+  \label{tab:datasets}
+  \begin{tabular}{p{0.13\linewidth}p{0.23\linewidth}p{0.28\linewidth}p{0.25\linewidth}}
     \toprule
-    Claim & Verdict & Evidence anchor & Next gate \\
+    数据源 & 原生标注 & 转换方式 & 主要用途 \\
     \midrule
-    C1 folded aggregation & supported & R170 folds 183,714 system observations into 26,829 semantic stacks with folded totals matching the report. & Fresh-clone release workflow and public packaging. \\
-    C2 one-word tags & syntax supported; adequacy open & R170 tags 2,859 prompt rows and 114,837 LLM-call events with 0 final tag failures; R180 shows local 0.6B/1B/3B-class syntax/latency stability. & Human adequacy labels, not grammar validity. \\
-    C3 semantic partitioning & mechanism supported & R170/R224 show nonsemantic/flat mixed weight 90.402\%/90.918\%; prompt-only reduces system bucket/residual mixed weight to 36.722\%/7.485\%; R209/R212 keep display compaction reversible. & More repositories, user tasks, token/display ablations, and human-reviewed merge/promotion quality. \\
-    C4 exact lineage & fixed/controlled workloads supported; broad scope partial & R114/R191/R229/R232/R234 give scoped precision/recall evidence with zero negative joins; R238/R240 add direct-process readiness and regression guards while exposing Codex/Claude-launched target-network orphan cases. & Agent-launched network boundary, same-tag prompt-row identity, more agent families, and richer target network workloads. \\
-    C5 user utility & unsupported & Outcome evidence: none yet. Protocol/logistics readiness includes R142/R187/R207/R249/R255/R258 and the R259 paper-scale static collection kit; there are still 0 participant responses. & Score real paper-scale participant responses under the frozen preregistration. \\
-    C6 tag adequacy & syntax/protocol partial; adequacy unsupported & Outcome evidence: no human adequacy labels yet. R180/R251 provide syntax/stability and behavior-association evidence; R252 plus R258/R259 static forms only prepare the C6 label handoff. & R124/R190/R203 independent human labels and adjudication. \\
-    C7 artifact usability & partial & R160/R200/R220/R248/R253/R254/R256 cover bounded local artifacts, public fixture, local install, GitHub install, pinned revision, pprof readback, and crate-package dry run. & crates.io publish/readback, external-machine install, sanitized real report, setup docs, write-set audit, and external developer feedback. \\
+    WebLINX, Mind2Web, AgentTrek, WebShop & web action、demo/task、reward 或 action history & HF Dataset Viewer 或 HF repo shard & web navigation 和 shopping trajectories 的跨源 smoke。 \\
+    API-Bank, ToolBench, tau-bench & API/tool call、solution path、多轮 user/assistant/tool messages、outcome & HF rows 或 repo JSONL & tool/API/dialogue phases 和 user-agent-tool operation 形态。 \\
+    SWE-agent & issue trajectory、command action、success target & HF Dataset Viewer & software-agent command 轨迹。 \\
+    AndroidControl, GUI-Odyssey & mobile/cross-app step action 与 instruction & public/HF samples & 移动 GUI action depth 和跨 app scale。 \\
+    AgentRewardBench & expert success、side-effect、looping、optimality & annotation rows 加 cleaned BrowserGym steps & failure、looping、side-effect 的非 flamegraph 诊断。 \\
+    SATraj-OS & desktop action、success、safety、reward、attack type & HF safety config & 桌面安全和 attack-type operation fields。 \\
+    OSWorld-Human & human single-action 和 grouped-action 轨迹 & GitHub JSON files & 人工 grouped-action 边界 oracle。 \\
+    AgentNet & human desktop PyAutoGUI、task outcome、step correctness、redundancy & HF repo JSONL streaming & 最大 human desktop step-quality oracle。 \\
+    ScaleCUA & GUI navigation action、previous-operation context、gold action & HF annotation JSONL streaming & 补充多步 GUI history-depth smoke。 \\
     \bottomrule
   \end{tabular}
 \end{table*}
-\subsection{Gate Lesson：为什么保留 orphan}
 
-R183 的作用是防止把 ``有网络事件'' 写成 ``目标 workload 的网络事件已被 lineage 捕获''。
-R182 能 join 低层 \texttt{codex} network rows，但 target-specific loopback/child-process rows 为 0/0；因此后续 gate 要求 target rows 被观察并 join，negative controls 仍保持 orphan。
-R191/R229/R232/R234 用同一 oracle 扩展到 target HTTP probe、controlled multi-workspace、外部仓库和局部 agent-family workload；R235--R240 则暴露并部分修复 raw/Claude-launched target-network 边界，同时把 command-root over-attribution 和 target-child capture 写成 regression tests。
-R230--R233 把同一思想用于 generated full-history projection：folded rows 必须带 semantic/call/effect frames，duplicate prompt indexes 不能伪装成可证明 row identity。
-这体现本文的系统性：AgentFlame 不把 trace 与 process summary 并排展示，而是把 claim 也放入 lineage model 下审计，区分用户任务 effect、agent runtime 噪声和必须保持 orphan 的事件。
+\section{结果}
+
+\subsection{RQ1：两个抽象是否覆盖多类轨迹？}
+
+核心 14 数据集产生 42,590 个 operations 和 1,497 个 unique stacks，compression ratio 为 28.45。
+加入 R292 ScaleCUA 补充样本后，总量为 47,590 个 operations 和 1,611 个 unique stacks，compression ratio 为 29.541。
+这些 operations 覆盖 web、mobile、desktop、software、API、tool-agent-user dialogue、expert failure labels、safety labels、human grouped-action labels 和 desktop step-quality labels。
+所有这些标签都以 operation fields 形式进入同一 pipeline。
+没有任何数据集需要新增 prompt、session、GUI、safety 或 quality-specific profiler object。
+
+这支持 C1 的机制性版本：\toolname{} 可以把异构 agent 轨迹统一为 operations，并用用户指定 stack 折叠。
+它不支持所有 agent 数据都容易转换。
+适合该方法的轨迹通常具备四个特征：有有序 step 或 turn，有稳定 session/task id，有动作或阶段标签，有 outcome、quality、group 或 safety 等较高层 oracle。
+只有静态截图 grounding、缺少顺序、缺少 action label、强依赖大图片归档或 gated access 的数据源更适合作为后续扩展，而不是当前主证据。
+
+\subsection{RQ2：递归 stack 是否比固定边界有价值？}
+
+R286 在同一批 13,265 个 operations 上扫过 8 个 stack depths。
+只保留 dataset 时有 9 个 stacks；加入 task 后为 11 个；phase depth 为 57 个；tool/semantic depth 为 226 个；action depth 为 455 个；加入固定 session 后膨胀到 3,757 个。
+相对于 dataset depth，固定 session 的 unique stacks 增加 417.4 倍。
+这个结果直接反驳把 session 或 prompt 作为默认 profiling 边界的设计。
+Session 是有用 drilldown field，但如果默认写死在 stack 里，它会把可聚合的行为切碎。
+
+R277 在较早 3,797-operation set 上给出同样信号。
+Flat/mapped stack 为 103 个 unique stacks，而固定 demo/session stack 为 1,083 个 unique stacks。
+这说明固定边界会带来约 10.5 倍碎片化，而 mapped operation stack 可以保留聚合同时增加语义深度。
+因此论文中的 novelty 不是“画 flamegraph”，而是把 agent profiling 的边界选择变成 operation-stack query。
+
+\subsection{RQ3：mapping 是否能泛化？}
+
+R281 从 13,265 个 labeled operations 中生成 10 条 mapping rules，复现手写 mapping 的 folded 输出。
+R282 使用 dataset-stratified held-out split，在 9,275 个 train operations 上生成规则，并在 3,990 个 held-out operations 上评估。
+Mapped stack 产生 209 个 held-out stacks，compression ratio 为 19.091；无 mapping baseline 为 284 个 stacks，compression ratio 为 14.049。
+Task/dataset V-measure 从 0.837 提升到 0.853。
+Phase/action boundary F1 为 0.777，precision 为 1.0，说明当前 mapping 是保守的。
+它不会制造 false positive phase changes，但会合并一些 fine-grained action changes。
+
+R283--R285 进一步做 leave-dataset-out。
+在修正 API/tool phase precedence 后，R285 对 9 个 held-out datasets 中的 6 个减少 unique stacks，0 个出现 negative stack reduction，weighted stack reduction 为每 1,000 operations 1162.005。
+这说明 mapping 不是单个数据集的 ad hoc pretty printer。
+它仍然是 deterministic taxonomy-seeded mapping，不是无监督边界发现。
+当前可支持的 claim 是 configurable mapping 能在 held-out 和 leave-dataset-out 设置下改善语义聚合；完整 model-backed 或 unsupervised boundary detector 仍是后续工作。
+
+\subsection{RQ4：能否恢复真实人工边界？}
+
+OSWorld-Human 是当前最强的 grouped-boundary oracle。
+R290 转换全部 369 个 human desktop tasks，得到 6,010 个 single-action operations。
+转换器把 grouped-action 序列展平后与 single-action 序列对齐，只有 exact-aligned tasks 才写入 \texttt{human\_group}、\texttt{group\_pattern} 和 \texttt{group\_position} 字段。
+最终 320 个 tasks、4,011 个 operations 和 2,075 个 session-local groups 进入 grouped-boundary scoring；31 个 content-mismatch tasks 和 18 个 length-mismatch tasks 保留用于 action profiling，但不被当作 gold group oracle。
+
+在 OSWorld-Human 上，普通 action-depth stack 有 482 个 unique stacks，grouped-depth stack 降到 106 个。
+Phase/action boundary F1 为 0.638，precision 为 1.0。
+更重要的是，保守的 \texttt{group\_pattern} 对人工 \texttt{human\_group} boundary 的 F1 为 0.627，precision 为 1.0，recall 为 0.456。
+这不是完美边界 detector，但它给出有意义结论：operation stack 可以在同一条单动作序列上选择 action-depth 或 group-depth，并以人工 grouped-action 标签作为 oracle 验证。
+Prompt 或 session 没有参与这个抽象。
+
+\subsection{RQ5：能否做失败、安全和质量诊断？}
+
+AgentRewardBench、SATraj-OS 和 AgentNet 说明 operation stack 不局限于 flamegraph 热点。
+AgentRewardBench 的 729 个 expert-reviewed web-agent operations 全部携带 success、side-effect、looping 和 optimality 字段。
+Action-derived \texttt{repeat\_signal} 对 expert looping label 的 V-measure 为 0.378，而单步 \texttt{step\_error} 对 looping 的 V-measure 只有 0.011。
+这说明 sequence-derived operation fields 可以捕捉一部分真实 failure mode，也说明简单错误标签不能替代序列诊断。
+
+SATraj-OS 的 4,285 个 desktop computer-use operations 全部携带 safety、attack type、status 和 reward-related fields。
+其中 622 个 operations 标为 unsafe，attack type 覆盖 account、induced-text、popup、OS 和 unknown-file。
+这些标签与 phase/action 关系较弱，例如 attack-type/action V-measure 只有 0.093。
+这个负结果是有价值的：安全攻击类别不是 action taxonomy 的简单函数，因此应该作为独立 operation field 被折叠和过滤，而不是强行塞进 phase。
+
+AgentNet 是当前最大的 human desktop step-quality oracle。
+R291 采样 1,000 个 Ubuntu tasks，得到 16,741 个 PyAutoGUI operations。
+所有 operations 都有 task outcome、alignment score、efficiency score、difficulty、step correctness 和 redundancy 字段。
+Step correctness 覆盖 13,844 correct、874 incorrect 和 2,023 unknown；step redundancy 覆盖 9,334 necessary、733 redundant 和 6,674 unknown。
+Task status 对 step correctness 的 V-measure 只有 0.015，repeat signal 对 step redundancy 的 V-measure 只有 0.010。
+这说明 profiler 的价值不是用一个粗标签预测所有质量问题，而是把质量 oracle 保留为可折叠、可 drilldown、可评分的 operation fields。
+
+\begin{table*}[t]
+  \centering
+  \scriptsize
+  \renewcommand{\arraystretch}{0.95}
+  \caption{当前最强结果。数值均来自 tracked artifacts 下的 JSON/HTML reports。}
+  \label{tab:results}
+  \begin{tabular}{p{0.18\linewidth}p{0.21\linewidth}p{0.22\linewidth}p{0.29\linewidth}}
+    \toprule
+    结果块 & 数据规模 & 关键数值 & 支持的结论 \\
+    \midrule
+    R286 recursive depth & 13,265 operations & 9 dataset stacks、57 phase stacks、226 tool/semantic stacks、455 action stacks、3,757 fixed-session stacks & Stack 深度是 query，固定 session 是 drilldown 而不是核心边界。 \\
+    R282/R285 mapping validation & 3,990 held-out operations；9 leave-out datasets & Held-out compression 19.091 vs no-map 14.049；leave-out 6/9 positive、0 negative & Label-derived mappings 能泛化到 unseen sessions/datasets，但仍不是无监督 detector。 \\
+    R290 OSWorld-Human & 369 tasks、6,010 operations；4,011 exact grouped-oracle operations & grouped stack 106 vs action stack 482；human-group boundary F1 0.627、precision 1.0 & 同一单动作序列可折叠到人工 grouped-action 深度。 \\
+    R291 AgentNet & 1,000 tasks、16,741 operations & step correctness/redundancy 100\% field coverage；phase/action F1 0.715、precision 1.0 & 质量标签是 ordinary operation fields，可被折叠、评分和诊断。 \\
+    R288/R289 diagnostics & 729 AgentRewardBench ops；4,285 SATraj ops & repeat-signal/looping V-measure 0.378 vs step-error 0.011；622 unsafe SATraj ops & Profiler 支持 failure/safety views，且负结果能揭示粗标签不足。 \\
+    \bottomrule
+  \end{tabular}
+\end{table*}
+
+\section{哪些数据集最适合}
+
+从当前 15 个方案看，最适合支撑论文主 claim 的不是“最大”数据集，而是同时具备顺序、动作、边界或质量 oracle 的数据集。
+第一类是 OSWorld-Human，因为它同时给 single-action 和 grouped-action，是验证递归边界的最直接 oracle。
+第二类是 AgentNet，因为它规模大、人工桌面任务多，并带 per-step correctness/redundancy。
+第三类是 AgentRewardBench 和 SATraj-OS，因为它们把 profiler 从 action taxonomy 推到 failure、looping、安全和 side-effect diagnostics。
+第四类是 GUI-Odyssey/tau-bench/ToolBench 这组跨域补充，它们覆盖移动 GUI、user-agent-tool dialogue 和 API/tool traces，证明 operation abstraction 不局限于桌面。
+
+ScaleCUA 是有用补充，但不是当前主证据。
+R292 流式采样 5,000 个 Ubuntu navigation rows，覆盖 131 个 sessions，最大 step 为 48。
+该子集的 action taxonomy 主要是 click 和 terminate，所以 phase/action 指标达到 1.0 并不表示强泛化。
+它更适合证明 multi-step GUI history context 可以被投影为 \texttt{history\_state} 和 \texttt{history\_depth} fields，而不是证明复杂边界 detector。
 
 \section{相关工作}
 
-\textbf{Flamegraphs 与 profiling.}
-Brendan Gregg 的 flamegraph 让用户通过宽度定位 hot stacks。
-Grafana/Pyroscope、Datadog、Sentry 等系统已经把 flamegraph 用于 CPU、内存、profile 和 traces。
-AgentFlame 借用 folded stack 表示，但 stack frame 来自 agent semantic context 与 system-effect lineage，而不是函数调用栈。
+\textbf{Profiling 和 flamegraphs.}
+传统 flamegraph 把函数调用栈折叠为热点视图。
+本文复用 folded-stack 表示，但 stack frame 来自 operation fields，而不是语言运行时函数调用。
+因此同一批 operations 可以被折叠为 task、phase、tool、action、quality 或 safety 视图。
+这与 CPU profiler 的固定调用栈不同，也与只画一次 agent span tree 的 tracing 工具不同。
 
-\textbf{Distributed tracing 与 agent observability.}
-OpenTelemetry/Dapper 风格 tracing 把一次请求表示为 span tree。
-LangSmith、Langfuse、Phoenix、AgentOps 等工具已经记录 agent、LLM、tool、retrieval、cost 和 latency。
-SigNoz/Inkeep 公开展示了 multi-agent workflow 的 span-duration flamegraph。
-这些系统擅长解释单次 workflow 如何执行；AgentFlame 的目标是跨 session 聚合 ``哪个语义任务造成哪些系统副作用''。
+\textbf{Agent tracing 和 LLM observability.}
+LangSmith、Langfuse、Phoenix、AgentOps 和 OpenTelemetry GenAI 等系统记录 LLM call、tool call、latency、token 和 trace tree。
+这些工具适合单次 workflow inspection。
+本文关注的是跨轨迹的 semantic profiling：把异构标注轨迹或本地 agent 历史统一为 operations，并允许用户选择 stack 深度和 mappings。
 
-\textbf{Token/context profiling.}
-Context 和 token profiling 工具关注 prompt/context window 中的热点。
-AgentFlame 包含 token flamegraph，但当前只作为 source-local accounting。
-论文主贡献是 token/semantic/tool/process/effect 共享同一 folded-stack 语法，而不是 token cost 本身。
+\textbf{Computer-use 和 tool-use benchmarks.}
+WebLINX、Mind2Web、GUI-Odyssey、OSWorld-Human、AgentNet、SATraj-OS、AgentRewardBench、ToolBench 和 tau-bench 为本文提供真实标注轨迹。
+本文不提出新 benchmark。
+贡献是把这些 benchmark 的动作、质量、安全和人工 group 标签统一为 operation fields，并用同一个 profiler 机制比较它们适合回答哪些 profiling 问题。
 
-\section{局限与下一步}
+\section{局限}
 
-当前版本仍不到 OSDI weak accept。
-Supported 的部分是 scoped mechanism：R114/R191/R229/R232/R234 给出固定 command-mode、target HTTP probe、controlled multi-workspace、外部仓库和局部 agent-family workload 的 exact-lineage 证据；R230--R233 给出 generated full-history projection/normalization audit；R160/R200/R220/R248/R253/R254/R256 给出本机 artifact、GitHub install、pinned revision、pprof readback 和 crate-package dry-run 证据。
-Partial 的部分是 capture boundary。
-R235--R240 修复 direct multiprocess readiness race，并把 command-root fallback 与 target-child network capture 写成 regression guard；但 R238 仍暴露 Codex/Claude-launched target-network orphan/missing-action cases。
-同样，R230--R233 解决 semantic drift，却把 same-tag duplicate row identity 明确降级为尚未证明的问题。
-Unsupported 的部分是 outcome。
-C5 仍然没有真实 participant responses：R142/R187/R207/R249/R255/R258/R259 只说明任务包、answer key、scorer、paper-scale bundle 和 static collection forms 已准备好。
-R259 static collection forms 仍需要真实参与者响应，不能作为 C5 outcome evidence。
-C6 仍然没有真实 human adequacy labels：R252/R258/R259 只是把 R124/R190/R203 labeler packets 和 handoff 固定下来；R251 的行为关联、R180 的语法稳定、R189--R218 的 display governance 都不能替代人工 adequacy、merge quality、promotion quality、visual drilldown 或 user utility。
-Artifact 也还不是社区级结论。
-仍缺 crates.io publish/readback、external-machine install、真实 report public sanitization、llama.cpp tagger setup、默认采样策略、full write-set audit 和外部开发者反馈。
-R245/R246/R250/R260--R271 这类检查只保证 hygiene，不提升 C5/C6 或 weak-accept gate。
+当前结果仍不是 OSDI 或 NeurIPS 最终接收级完整证据。
+第一，boundary detection 主要是 deterministic mapping 和 label-derived rule inference。
+R282/R285 证明它们有 held-out 和 leave-dataset-out 泛化，但不证明无监督或 LLM-backed boundary detector 已经解决。
+第二，用户效用还没有完成。
+我们证明了 profiler 能产生更结构化的 views 和可执行 oracle，但没有证明开发者使用这些 views 会更快、更准确。
+第三，外部数据集采样为了避免同步完整测试集而保持轻量，有些数据源只覆盖前缀、子配置或 redacted rows。
+第四，非文本/图像密集数据集仍需要更好的 streaming 和 artifact policy，才能在不保存图片归档的前提下做更大规模评估。
+第五，paper 当前证据支持“operation/operation-stack 是一致且有价值的 profiling abstraction”，不支持“所有 agent 行为都能自动恢复真实意图边界”。
 
 \section{结论}
 
-AgentFlame 的核心不是再画一张 agent flamegraph，而是把用户语义意图、LLM/tool 历史和系统副作用放入同一个可折叠、可聚合、可审计的栈模型。
-当前 full run 说明该模型在真实本地 agent 历史上可运行，并且语义帧能分开 nonsemantic 和 flat baselines 大量混合的系统效应。
-R114/R191/R229/R232/R234 说明 scoped exact lineage 在固定 command-mode、target HTTP、controlled multi-workspace、外部仓库和局部 agent-family workloads 上成立；R235--R240 同时暴露 broad raw/Claude target-network 边界，R230--R233 说明 full-history projection 和 duplicate-index normalization 可审计。
-R160/R200/R220/R248/R253/R254/R256 说明 bounded artifact、public fixture、install/readback 和 crate-package dry-run 已经可审计，但还不是社区级 artifact 结论。
-顶会版本必须继续证明 Codex/Claude-launched target-network 边界、更多 agent family 和任意仓库 scope、same-tag prompt-row identity policy、标签 adequacy 和用户任务收益。
-在当前证据下，最诚实的论文定位是：一个有完整系统化方向和真实 characterization 的语义系统效应 profiler，而不是已经完成的 OSDI artifact。
+本文把 agent semantic profiling 收敛为两个核心抽象：operation 和 operation stack。
+Prompt、session、toolcall、process、syscall、plan、subagent、GUI action、安全标签和质量标签都只是 operation shapes 或 fields。
+Mapping 和 tagging 负责派生 fields，\texttt{--view} 和 \texttt{--stack} 负责选择权重和递归折叠形状。
+在 15 个公开标注轨迹数据源上的结果显示，这个模型能统一 web、mobile、desktop、software、API、dialogue、failure、安全、human group 和 step-quality 轨迹，并产生 flamegraph、stack tree、transition、quality 和 boundary reports。
+最强证据来自 OSWorld-Human 的人工 grouped-action 边界、AgentNet 的大规模 human desktop step-quality 标签、AgentRewardBench/SATraj 的 failure/safety diagnostics，以及 R286 的递归深度消融。
+下一步不是继续无差别增加数据集，而是把 mapping backend、boundary detector 和用户任务实验推进到能支持更强 claim 的程度。
 
 \vspace{-0.8em}
 \section*{参考文献}
@@ -484,12 +314,14 @@ R160/R200/R220/R248/R253/R254/R256 说明 bounded artifact、public fixture、in
 \setlength{\parskip}{0pt}
 \setlength{\baselineskip}{6.2pt}
 \noindent [1] Brendan Gregg. Flame Graphs. \url{https://www.brendangregg.com/flamegraphs.html}.\par
-\noindent [2] Benjamin H. Sigelman et al. Dapper, a Large-Scale Distributed Systems Tracing Infrastructure. Google Technical Report, 2010.\par
-\noindent [3] SigNoz. Understanding Flame Graphs for Visualizing Distributed Tracing. \url{https://signoz.io/blog/flamegraphs/}.\par
-\noindent [4] SigNoz. How Inkeep Monitors Their AI Agent Framework with SigNoz. \url{https://signoz.io/blog/inkeep-ai-agent-monitoring/}.\par
-\noindent [5] Datadog. Trace View. \url{https://docs.datadoghq.com/tracing/trace_explorer/trace_view/}.\par
-\noindent [6] LangChain. LangSmith tracing documentation. \url{https://docs.langchain.com/langsmith/}.\par
-\noindent [7] Langfuse. Observability documentation. \url{https://langfuse.com/docs/observability}.\par
-\noindent [8] Arize Phoenix. Tracing documentation. \url{https://arize.com/docs/phoenix}.
+\noindent [2] OpenTelemetry GenAI semantic conventions. \url{https://opentelemetry.io/docs/specs/semconv/gen-ai/}.\par
+\noindent [3] McGill-NLP WebLINX. \url{https://huggingface.co/datasets/McGill-NLP/WebLINX}.\par
+\noindent [4] OpenGVLab GUI-Odyssey. \url{https://huggingface.co/datasets/OpenGVLab/GUI-Odyssey}.\par
+\noindent [5] WukLab OSWorld-Human. \url{https://github.com/WukLab/osworld-human}.\par
+\noindent [6] xlangai AgentNet. \url{https://huggingface.co/datasets/xlangai/AgentNet}.\par
+\noindent [7] McGill-NLP AgentRewardBench. \url{https://huggingface.co/datasets/McGill-NLP/agent-reward-bench}.\par
+\noindent [8] AI45Research SATraj-OS. \url{https://huggingface.co/datasets/AI45Research/SATraj-OS}.\par
+\noindent [9] AgentSuite tau-bench trajectories. \url{https://huggingface.co/datasets/AgentSuite/tau-bench-trajectories}.\par
+\noindent [10] OpenGVLab ScaleCUA-Data. \url{https://huggingface.co/datasets/OpenGVLab/ScaleCUA-Data}.
 
 \end{document}

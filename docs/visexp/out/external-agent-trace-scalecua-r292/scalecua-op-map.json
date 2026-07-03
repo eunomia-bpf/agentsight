@@ -1,0 +1,99 @@
+{
+  "observed_fields": {
+    "action": [
+      {
+        "value": "click",
+        "weight": 4086
+      },
+      {
+        "value": "terminate",
+        "weight": 914
+      }
+    ],
+    "dataset": [
+      {
+        "value": "scalecua-navigation",
+        "weight": 5000
+      }
+    ],
+    "phase": [
+      {
+        "value": "navigate",
+        "weight": 4086
+      },
+      {
+        "value": "finish",
+        "weight": 914
+      }
+    ],
+    "task": [
+      {
+        "value": "desktop-computer-use",
+        "weight": 5000
+      }
+    ],
+    "tool": [
+      {
+        "value": "computer",
+        "weight": 5000
+      }
+    ]
+  },
+  "operation_files": [
+    "docs/visexp/out/external-agent-trace-scalecua-r292/scalecua-operations.jsonl"
+  ],
+  "rules": [
+    {
+      "effective_support": 5000,
+      "field": "task",
+      "label": "desktop",
+      "predicates": [
+        {
+          "field": "tool",
+          "value": "computer"
+        },
+        {
+          "field": "task",
+          "value": "desktop-computer-use"
+        }
+      ],
+      "raw_pattern": null,
+      "rule": "task:desktop=(tool=computer|task=desktop\\-computer\\-use)",
+      "support": 5000
+    },
+    {
+      "effective_support": 914,
+      "field": "phase",
+      "label": "finish",
+      "predicates": [
+        {
+          "field": "action",
+          "value": "terminate"
+        }
+      ],
+      "raw_pattern": null,
+      "rule": "phase:finish=(action=terminate)",
+      "support": 914
+    },
+    {
+      "effective_support": 4086,
+      "field": "phase",
+      "label": "navigate",
+      "predicates": [
+        {
+          "field": "action",
+          "value": "click"
+        }
+      ],
+      "raw_pattern": null,
+      "rule": "phase:navigate=(action=click)",
+      "support": 4086
+    }
+  ],
+  "summary": {
+    "operations": 5000,
+    "rule_source": "seeded taxonomy over observed labeled operation fields",
+    "rules": 3,
+    "total_weight": 5000
+  }
+}
