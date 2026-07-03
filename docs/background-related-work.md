@@ -14,6 +14,11 @@ Completeness: partial
 | 2026-07-03 | `AndroidControl dataset Google Research agent demonstrations` | Find labeled mobile control demonstrations | Google Research GitHub README and arXiv paper found; HF mirrors exist but viewer row groups are too large for lightweight rows API. |
 | 2026-07-03 | `Android in the Wild dataset device control human demonstrations` | Find larger mobile-control oracle | Google Research publication and official google-research release found. |
 | 2026-07-03 | `ToolBench ToolLLM official paper GitHub dataset` | Find tool-use action/reasoning traces | Official OpenBMB GitHub and paper found; release is hosted outside HF Dataset Viewer. |
+| 2026-07-03 | `WebShop dataset expert demonstrations action trajectories official GitHub` | Find web-shopping human/expert trajectories | Official project and HF mirror with expert trajectories found; sampled in R273. |
+| 2026-07-03 | `API-Bank tool use dataset API calls official GitHub Hugging Face` | Find gold API-call trajectories | HF mirror and official repo found; sampled 48 first rows in R273. |
+| 2026-07-03 | `AgentTrek web trajectory synthesis dataset Hugging Face official` | Find large GUI/web trajectory source | Official project and HF dataset found; sampled in R273. |
+| 2026-07-03 | `SWE-agent trajectories dataset Hugging Face` | Find software-engineering agent trajectories | HF dataset with 80K SWE-agent trajectories found; sampled in R273. |
+| 2026-07-03 | `TRAIL trace reasoning agentic issue localization dataset annotated traces` | Find human-annotated failure traces | Official GitHub/HF gated dataset and paper found; access requires accepted HF gate. |
 
 ## PDF Corpus
 
@@ -24,6 +29,11 @@ Completeness: partial
 | AndroidControl | `docs/reference/2024-bishop-androidcontrol.pdf` | arXiv / Google Research repo | Mobile UI demonstrations include high-level goals, step instructions, screenshots, trees, and actions. |
 | Android in the Wild | `docs/reference/2023-rawles-android-in-the-wild.pdf` | NeurIPS Datasets and Benchmarks / Google Research publication | Large-scale device-control oracle for robustness and generalization tests. |
 | ToolLLM / ToolBench | `docs/reference/2023-qin-toolllm-toolbench.pdf` | Official OpenBMB GitHub asset | Tool-use paths and real API calls are the closest non-GUI oracle for operation stacks. |
+| WebShop | `docs/reference/2022-yao-webshop.pdf` | NeurIPS proceedings / official project page | Human/expert web-shopping trajectories provide long action sequences with task rewards. |
+| API-Bank | `docs/reference/2023-li-api-bank.pdf` | arXiv / official repo | Gold API requests provide a compact tool-use oracle. |
+| AgentTrek | `docs/reference/2024-xu-agenttrek.pdf` | arXiv / official project page | Verified tutorial-guided GUI/web trajectories provide large-scale browser action traces. |
+| SWE-agent | `docs/reference/2024-yang-swe-agent.pdf` | arXiv / HF dataset | Software-engineering trajectories test whether operation stacks generalize back to coding-agent behavior. |
+| TRAIL | `docs/reference/2025-trail-trace-reasoning.pdf` | arXiv / official benchmark repo | Human annotated trace errors are a direct future oracle for boundary/failure analysis. |
 
 ## Claim-Oriented Novelty Map
 
@@ -41,6 +51,11 @@ Completeness: partial
 | AndroidControl | Google Research repo reports 15K+ human demonstrations over 833 apps and 40 categories, with screenshots, accessibility trees, instructions, and JSON actions. Source: https://github.com/google-research/google-research/blob/master/android_control/README.md | Official TFRecord release plus HF mirrors. | Offline low-level/high-level action prediction and OOD app/task generalization. | Same operation-boundary problem in mobile setting. | Requires a heavier converter; step instructions are a strong oracle for recursive folding depth. |
 | Android in the Wild | Google Research page reports 715K episodes and 30K unique instructions with screens/actions/instructions. Source: https://research.google/pubs/android-in-the-wild-a-large-scale-dataset-for-android-device-control/ | Official google-research release. | Device-control generalization across instructions/apps/platform versions. | Same operation sequence setting, much larger scale. | Useful for scale/robustness after AndroidControl converter exists. |
 | ToolBench / ToolLLM | Official GitHub reports 3,451 tools, 16,464 APIs, 126,486 instances, 469,585 real API calls, and reasoning traces. Source: https://github.com/OpenBMB/ToolBench | Official dataset, training/eval scripts, ToolLLaMA, ToolEval. | Tool-use instruction following and API-call success/preference. | Same tool-call setting; different UI domain. | Strong oracle for planner/tool/API call stack layers once official data is converted. |
+| WebShop | Official project reports 12,087 crowd-sourced instructions and over 1,600 human demonstrations. Source: https://webshop-pnlp.github.io/ | Simulated shopping environment plus HF expert trajectory mirror. | Web shopping success and imitation/RL baselines. | Same web-action sequence setting with long trajectories. | Excellent for operation-stack compression because each row expands to many expert actions. |
+| API-Bank | API-call benchmark for tool-augmented dialogue agents. Source: https://github.com/AlibabaResearch/DAMO-ConvAI/tree/main/api-bank | Official repo plus HF mirror. | API request generation and tool-use evaluation. | Same tool-call setting, but mostly single-step per row. | Good compact baseline; weaker for recursive boundary claims than WebShop/WebLINX/SWE-agent. |
+| AgentTrek | Tutorial-guided web trajectory synthesis with VLM verification. Source: https://agenttrek.github.io/ | Official project and HF dataset. | GUI/web agent training and online/offline benchmark transfer. | Same GUI action setting and large-scale trajectory source. | Useful large-scale web GUI source; labels are synthetic/verified rather than human. |
+| SWE-agent trajectories | HF page reports 80,036 trajectories generated by a SWE-agent framework. Source: https://huggingface.co/datasets/nebius/SWE-agent-trajectories | HF Dataset Viewer rows with action/observation trajectory fields. | SWE-bench issue-solving trajectories. | Same software-agent setting with commands, observations, success flags. | Strong coding-agent external oracle and closest to AgentSight's target domain. |
+| TRAIL | Official benchmark reports 148 annotated execution traces and 841 errors. Source: https://github.com/patronus-ai/trail-benchmark | Official repo and HF auto-gated dataset. | Trace reasoning and issue localization. | Same trace-debugging setting, with human failure annotations. | Very strong future oracle once access is accepted; not yet sampled because gated. |
 
 ## Mandatory Baselines
 
@@ -69,6 +84,10 @@ Completeness: partial
 | P1 | AndroidControl paper and README | Best mobile step-instruction oracle for recursive boundary tests. |
 | P1 | ToolLLM / ToolBench paper and repo | Best tool-use oracle for non-GUI stack layers. |
 | P2 | Android in the Wild | Scale/robustness after AndroidControl converter stabilizes. |
+| P1 | WebShop | Long human/expert web trajectories with rewards; selected as a current top candidate. |
+| P1 | SWE-agent trajectories | Large software-engineering trajectories; selected as a current top candidate. |
+| P2 | AgentTrek | Large verified synthetic web GUI source; selected as a current top candidate if synthetic data is acceptable. |
+| P2 | TRAIL | Human trace-error annotations; best future failure-boundary oracle after gated access. |
 
 ## Novelty Verdict
 
@@ -77,4 +96,5 @@ Completeness: partial
 - Claims to narrow or drop: automatic boundary detection is not supported yet; current evidence supports deterministic stack rules plus normalized operation input.
 - Larger claim opportunities: a single profiler can compare local coding-agent traces, web navigation demos, mobile UI demos, and tool-use traces by changing stack rules rather than the profiler abstraction.
 - Mandatory baselines: dataset-native sequence view, fixed prompt/session or demo/session stack, flat action aggregation, rule-free default stack.
-- Next action: expand from WebLINX smoke to Mind2Web and AndroidControl converters, then add boundary adequacy and compression metrics.
+- Current best 3-4 candidates: WebShop, WebLINX, SWE-agent trajectories, and AgentTrek. API-Bank is useful as a compact tool-call baseline; TRAIL is likely strong but gated; Mind2Web/AndroidControl/AITW/ToolBench need heavier converters.
+- Next action: expand WebShop/WebLINX/SWE-agent/AgentTrek runs, add Mind2Web and AndroidControl converters, then add boundary adequacy and compression metrics.

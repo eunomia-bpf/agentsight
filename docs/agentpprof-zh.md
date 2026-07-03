@@ -29,16 +29,17 @@ Flamegraph 的价值不只是聚合，还在于**用堆栈表达因果关联**�
 
 这种因果关联让你能从任意一层回溯或下钻：从某个文件被修改，追溯到是哪个工具、哪个 LLM 决策、哪个用户意图导致的；或者从某类 prompt 出发，看它触发了什么 LLM 调用、什么工具执行、什么系统效果。
 
-在这个模型里，视图不是固定的图，而是对同一批数据的查询：选哪些事件、栈怎么排、宽度算什么，换一个问题只需换一组投影。`agentpprof` 内置了四个这样的视图，每种回答不同的问题：
+在这个模型里，视图不是固定的图，而是对同一批数据的查询：选哪些事件、栈怎么排、宽度算什么，换一个问题只需换一组投影。`agentpprof` 内置了几个这样的视图，每种回答不同的问题：
 
 | 视图 | 宽度含义 | 主要回答的问题 |
 | --- | ---: | --- |
+| `operations` | operation 次数 | 本地或外部轨迹里哪些递归 operation stack 占比最高？ |
 | `tokens` | 报告的 token 数量（input/output/cache） | 哪些 prompt 消耗了最多的模型预算？ |
 | `time` | 持续时间（秒） | 每个 prompt/活动花了多长时间？ |
 | `files` | 文件/路径操作次数 | 哪些 prompt 触及了仓库的哪些部分？ |
 | `network` | 网络/域名请求次数 | 哪些 prompt 联系了哪些域名？ |
 
-从 `tokens` 视图开始定位成本热点，再用 `time` 追踪 wall-clock 时间去向，`files` 和 `network` 则适合安全审计场景。
+用 `operations` 分析通用本地或外部轨迹，用 `tokens` 定位成本热点，再用 `time` 追踪 wall-clock 时间去向，`files` 和 `network` 则适合安全审计场景。
 
 ## Flamegraph 示例
 
@@ -178,16 +179,17 @@ agentpprof --project-root . --tag-cache tags.json -o flamegraph.svg
 eval(V, O) = { (s, w_s) : w_s = Σ w(o), 对所有 o ∈ O 满足 φ(o) 且 σ(o) = s }
 ```
 
-这个模型的直接推论是：栈不是预定义的固定结构，视图也不是预先画好的图，两者都由查询决定，换一个分析问题只需换一组 (φ, σ, w)。栈里的语义帧也不是内置词表，而是来自意图识别层你为项目定义的标签规则。四个内置视图就是四组预定义查询：
+这个模型的直接推论是：栈不是预定义的固定结构，视图也不是预先画好的图，两者都由查询决定，换一个分析问题只需换一组 (φ, σ, w)。栈里的语义帧也不是内置词表，而是来自意图识别层你为项目定义的标签规则。内置视图就是几组预定义查询：
 
 | 视图 | φ（选择哪些操作） | σ（栈结构） | w（权重） |
 | --- | --- | --- | --- |
+| `operations` | 全部 operation | 默认 project; agent; dataset; task; session; prompt; phase; op; tool; action; status，可用 `--stack` 覆盖 | operation 次数 |
 | `tokens` | LLM 调用 | 默认 project; agent; session; prompt; phase; op; call; model; token，可用 `--stack` 覆盖 | token 数（input/output/cache 各为一个样本） |
 | `time` | 全部带时间戳的操作 | 默认 project; agent; session; prompt; phase; op; ⟨子操作帧⟩，可用 `--stack` 覆盖 | 到下一事件的间隔秒数 |
 | `files` | 有路径效果的工具操作 | 默认 project; agent; session; prompt; phase; op; tool; ⟨process⟩; path; effect; status，可用 `--stack` 覆盖 | 事件次数 |
 | `network` | 有网络效果的工具操作 | 默认 project; agent; session; prompt; phase; op; tool; ⟨process⟩; domain; status，可用 `--stack` 覆盖 | 事件次数 |
 
-四个视图共享同一操作集合 O 和同一低层语义前缀，只在高层帧和权重函数上不同，因此跨视图对照是良定义的：`tokens` 视图里的 `prompt:review` 与 `files` 视图里的 `prompt:review` 指同一批操作在不同 (σ, w) 下的投影。flamegraph、pprof、folded 文本和 JSON 只是同一求值结果的不同序列化，各视图的具体栈示例见后文「调用栈模型」。
+这些视图共享同一操作集合 O 和同一低层语义前缀，只在高层帧和权重函数上不同，因此跨视图对照是良定义的：`tokens` 视图里的 `prompt:review` 与 `files` 视图里的 `prompt:review` 指同一批操作在不同 (σ, w) 下的投影。flamegraph、pprof、folded 文本和 JSON 只是同一求值结果的不同序列化，各视图的具体栈示例见后文「调用栈模型」。
 
 ## 安装
 
@@ -267,7 +269,7 @@ agentpprof -o tokens.svg --prompt-tag review
 对于第三方 trace 或 benchmark 数据集，`--operation-file` 可以直接读取规范化后的 operation JSONL。每一行是一条 operation，包含数值 `value` 和 `fields` 对象。它会跳过 Codex/Claude session discovery，但复用同一条 operation stack 投影路径：
 
 ```bash
-agentpprof -o external.folded --view files \
+agentpprof -o external.folded --view operations \
   --operation-file .agentsight/datasets/agent-traces/weblinx-chat/chat-validation/operations-0-50.jsonl \
   --stack 'project,agent,dataset,task,session,phase,op,action,target,status'
 ```

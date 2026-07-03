@@ -68,6 +68,9 @@ pub struct OperationStackSpec {
 impl OperationStackSpec {
     fn default_for_view(view: ProfileView) -> Self {
         let raw = match view {
+            ProfileView::Operations => {
+                "project,agent,dataset,task,session,prompt,phase,op,tool,action,cmd,process,path,domain,status"
+            }
             ProfileView::Tokens => "project,agent,session,prompt,phase,op,call,model,token",
             ProfileView::Files => {
                 "project,agent,session,prompt,phase,op,tool,cmd,process,path,effect,status"
@@ -236,6 +239,7 @@ fn validate_frame_name(value: &str, what: &str) -> Result<()> {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ProfileView {
+    Operations,
     Tokens,
     Files,
     Network,
@@ -477,6 +481,7 @@ fn insert_json_field(operation: &mut Operation, key: &str, value: Value) -> Resu
 
 fn view_metadata(view: ProfileView) -> (&'static str, &'static str, &'static str) {
     match view {
+        ProfileView::Operations => ("operations", "operations", "count"),
         ProfileView::Tokens => ("tokens", "tokens", "count"),
         ProfileView::Files => ("files", "file_events", "count"),
         ProfileView::Network => ("network", "network_events", "count"),
@@ -536,11 +541,39 @@ fn session_samples(
     view: ProfileView,
 ) -> Vec<Operation> {
     match view {
+        ProfileView::Operations => operation_samples(session, project_name),
         ProfileView::Tokens => token_samples(session, project_name),
         ProfileView::Files => file_samples(session, project_name),
         ProfileView::Network => network_samples(session, project_name),
         ProfileView::Time => time_samples(session, project_name),
     }
+}
+
+fn operation_samples(session: &SessionRecord, project_name: &str) -> Vec<Operation> {
+    let mut samples = Vec::new();
+    for (idx, req) in session.user_requests.iter().enumerate() {
+        let mut sample = base_sample(session, project_name, idx, 1);
+        sample.insert("op", "prompt");
+        sample.insert("phase", "prompt");
+        sample.insert("status", "observed");
+        sample.insert("prompt_hash", req.text_hash.clone());
+        samples.push(sample);
+    }
+    for event in &session.tools {
+        samples.push(tool_sample(session, project_name, event, 1));
+    }
+    for call in &session.llm_calls {
+        let mut sample = base_sample(session, project_name, call.prompt_index, 1);
+        sample.insert("op", "llm");
+        sample.insert("phase", llm_phase_label(call));
+        sample.insert("call", format!("llm/{}", call.tag));
+        sample.insert("llm", call.tag.clone());
+        sample.insert("llm_preview", call.preview.clone());
+        sample.insert("model", last_model_segment(&call.model));
+        sample.insert("status", "observed");
+        samples.push(sample);
+    }
+    samples
 }
 
 fn token_samples(session: &SessionRecord, project_name: &str) -> Vec<Operation> {
@@ -1477,6 +1510,35 @@ mod tests {
         );
         assert_eq!(
             stacks.get("project:agentsight;agent:codex;session:rustfix;prompt:debug;phase:test;op:tool;tool:exec_command;cmd:cargo;process:cargo;path:tests;effect:test;status:ok"),
+            Some(&1)
+        );
+    }
+
+    #[test]
+    fn operations_view_counts_prompts_tools_and_llm_calls() {
+        let session = test_session(
+            "codex",
+            "rustfix",
+            vec![prompt(0, 1000, "h1", "fix rust tests", "debug")],
+            vec![read_tool(2000, 0, vec!["src"])],
+            vec![llm(3000, 0, "gpt-5", "answer")],
+        );
+        let stack = parse_stack_spec("project,agent,op,phase,status").unwrap();
+        let options = OperationStackConfig::for_view(ProfileView::Operations).with_stack(stack);
+        let profile =
+            build_profile_with_options(&[session], "agentsight", ProfileView::Operations, &options);
+        let stacks = profile_to_stacks(&profile);
+
+        assert_eq!(
+            stacks.get("project:agentsight;agent:codex;op:prompt;phase:prompt;status:observed"),
+            Some(&1)
+        );
+        assert_eq!(
+            stacks.get("project:agentsight;agent:codex;op:tool;phase:read;status:ok"),
+            Some(&1)
+        );
+        assert_eq!(
+            stacks.get("project:agentsight;agent:codex;op:llm;phase:answer;status:observed"),
             Some(&1)
         );
     }

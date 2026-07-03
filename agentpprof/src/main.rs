@@ -152,6 +152,7 @@ impl From<CliOutputFormat> for OutputFormat {
 
 #[derive(Clone, Copy, Debug, ValueEnum, PartialEq, Eq)]
 enum CliProfileView {
+    Operations,
     Tokens,
     Files,
     Network,
@@ -161,6 +162,7 @@ enum CliProfileView {
 impl From<CliProfileView> for ProfileView {
     fn from(val: CliProfileView) -> Self {
         match val {
+            CliProfileView::Operations => ProfileView::Operations,
             CliProfileView::Tokens => ProfileView::Tokens,
             CliProfileView::Files => ProfileView::Files,
             CliProfileView::Network => ProfileView::Network,

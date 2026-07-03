@@ -47,6 +47,9 @@ eval(φ, σ, w, O) = { (σ(o), w(o)) | o ∈ O, φ(o) }
 `--stack-rule` 选择 σ，即 operation stack 怎么递归折叠。切段、标注、
 血缘拼接、process 展开都只是产生 operation 字段或 stack frame 的机制，
 不是额外的核心抽象。
+`operations` view 是最通用的 operation-count 查询，适合本地 trace 和
+第三方 normalized operation JSONL；`tokens`、`files`、`network`、`time`
+只是更具体的 φ/w 预设。
 
 ## 两个对称的难问题
 

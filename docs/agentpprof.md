@@ -78,13 +78,15 @@ different question:
 
 | View | Width means | Primary question |
 | --- | ---: | --- |
+| `operations` | operation count | Which recursive operation stacks dominate a local or external trajectory set? |
 | `tokens` | reported token count (input/output/cache) | Which prompts consumed the most model budget? |
 | `time` | duration in seconds | How long did each prompt/activity take? |
 | `files` | file/path effect count | Which prompts touched which parts of the repository? |
 | `network` | network/domain effect count | Which prompts contacted which domains? |
 
-Start with `tokens` to find cost hotspots, use `time` to trace where wall-clock
-time went, and use `files` and `network` for security audits.
+Start with `operations` for generic local or external trajectory analysis,
+`tokens` to find cost hotspots, `time` to trace where wall-clock time went, and
+`files` and `network` for security audits.
 
 ## Example Flamegraphs
 
@@ -314,7 +316,7 @@ normalized operation JSONL directly. Each line is one operation with a numeric
 uses the same projection path:
 
 ```bash
-agentpprof -o external.folded --view files \
+agentpprof -o external.folded --view operations \
   --operation-file .agentsight/datasets/agent-traces/weblinx-chat/chat-validation/operations-0-50.jsonl \
   --stack 'project,agent,dataset,task,session,phase,op,action,target,status'
 ```

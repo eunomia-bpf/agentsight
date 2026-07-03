@@ -72,6 +72,7 @@ Use `--view` to choose the projection:
 
 ```bash
 agentpprof -o tokens.pb.gz --view tokens
+agentpprof -o operations.pb.gz --view operations
 agentpprof -o files.pb.gz --view files
 agentpprof -o network.pb.gz --view network
 agentpprof -o time.pb.gz --view time
@@ -79,6 +80,7 @@ agentpprof -o time.pb.gz --view time
 
 Widths mean different things by view:
 
+- `operations`: operation count across prompts, LLM calls, tools, or external operation JSONL.
 - `tokens`: token count when reported by the agent log.
 - `files`: file/path effect count.
 - `network`: network/domain effect count.
@@ -165,7 +167,7 @@ profiling abstraction. For external datasets or converters, pass one or more
 operation JSONL files:
 
 ```bash
-agentpprof -o external.folded --view files \
+agentpprof -o external.folded --view operations \
   --operation-file .agentsight/datasets/agent-traces/weblinx-chat/chat-validation/operations-0-50.jsonl \
   --stack 'project,agent,dataset,task,session,phase,op,action,target,status'
 ```
