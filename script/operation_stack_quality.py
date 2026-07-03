@@ -357,12 +357,20 @@ def boundary_report(
     for operation in operations:
         sequence = first_value(operation, sequence_field, "unknown")
         groups[sequence].append(operation)
-    tp = fp = fn = tn = support = 0
+    tp = fp = fn = tn = support = candidate_pairs = skipped_missing_fields = 0
     for group in groups.values():
         ordered = sorted(group, key=lambda operation: turn_key(operation, turn_field))
         for previous, current in zip(ordered, ordered[1:]):
-            pred_boundary = first_value(previous, predicted) != first_value(current, predicted)
-            oracle_boundary = first_value(previous, oracle) != first_value(current, oracle)
+            candidate_pairs += 1
+            previous_pred = first_value(previous, predicted)
+            current_pred = first_value(current, predicted)
+            previous_oracle = first_value(previous, oracle)
+            current_oracle = first_value(current, oracle)
+            if not (previous_pred and current_pred and previous_oracle and current_oracle):
+                skipped_missing_fields += 1
+                continue
+            pred_boundary = previous_pred != current_pred
+            oracle_boundary = previous_oracle != current_oracle
             support += 1
             if pred_boundary and oracle_boundary:
                 tp += 1
@@ -380,7 +388,9 @@ def boundary_report(
         "oracle": oracle,
         "sequence_field": sequence_field,
         "turn_field": turn_field,
+        "candidate_pairs": candidate_pairs,
         "adjacent_pairs": support,
+        "skipped_missing_fields": skipped_missing_fields,
         "true_positive": tp,
         "false_positive": fp,
         "false_negative": fn,

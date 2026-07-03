@@ -24,7 +24,20 @@ from typing import Any
 
 
 HF_DATASET_VIEWER = "https://datasets-server.huggingface.co"
+GITHUB_API = "https://api.github.com/repos"
 DEFAULT_OUT = Path(".agentsight/datasets/agent-traces")
+OSWORLD_HUMAN_APPS = [
+    "chrome",
+    "gimp",
+    "libreoffice_calc",
+    "libreoffice_impress",
+    "libreoffice_writer",
+    "multi_apps",
+    "os",
+    "thunderbird",
+    "vlc",
+    "vs_code",
+]
 
 
 DATASETS: dict[str, dict[str, Any]] = {
@@ -187,6 +200,20 @@ DATASETS: dict[str, dict[str, Any]] = {
         "why": "Large desktop computer-use trajectories with success, safety, reward, and attack labels.",
         "note": "The capability config is not fully readable through Dataset Viewer; the safety config is sampled through rows and raw messages are redacted from saved raw rows.",
     },
+    "osworld-human": {
+        "title": "OSWorld-Human reference trajectories",
+        "github_repo": "WukLab/osworld-human",
+        "config": "default",
+        "split": "main",
+        "access": "github-directory-json",
+        "adapter": "osworld-human",
+        "paths": OSWORLD_HUMAN_APPS,
+        "drop_raw_fields": ["instruction", "config", "evaluator"],
+        "source": "https://github.com/WukLab/osworld-human",
+        "paper": "https://arxiv.org/abs/2506.16042",
+        "why": "Manual OSWorld reference trajectories with single-action and grouped-action boundaries.",
+        "note": "This repository contains benchmark solutions and should not be used for training; use only for profiling/evaluation analysis.",
+    },
 }
 
 
@@ -225,7 +252,7 @@ def cmd_list(args: argparse.Namespace) -> int:
         print(json.dumps(DATASETS, indent=2, sort_keys=True))
         return 0
     for key, item in DATASETS.items():
-        hf = item.get("hf_repo", "no-hf-repo")
+        hf = item.get("hf_repo") or item.get("github_repo") or "no-hf-repo"
         print(f"{key:16} {item['access']:15} {hf:28} {item['title']}")
     return 0
 
@@ -251,6 +278,8 @@ def cmd_sample(args: argparse.Namespace) -> int:
         rows = hf_repo_jsonl_rows(dataset, out_dir, args.offset, args.limit)
     elif dataset["access"] == "agent-reward-bench":
         rows = agent_reward_bench_rows(dataset, out_dir, args.offset, args.limit)
+    elif dataset["access"] == "github-directory-json":
+        rows = github_directory_json_rows(dataset, out_dir, args.offset, args.limit)
     else:
         note = dataset.get("note", "No lightweight sampler is configured for this dataset.")
         raise SystemExit(f"{args.dataset} is not sampleable by this command: {note}")
@@ -411,6 +440,56 @@ def hf_repo_json_object(repo: str, repo_file: str, cache_dir: Path) -> dict[str,
     return payload
 
 
+def github_directory_json_rows(
+    dataset: dict[str, Any], out_dir: Path, offset: int, limit: int
+) -> list[dict[str, Any]]:
+    index_path = out_dir / "github-index.json"
+    cache_dir = out_dir / "github-cache"
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    if not index_path.exists():
+        entries = github_directory_index(dataset)
+        index_path.write_text(json.dumps(entries, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    else:
+        entries = json.loads(index_path.read_text(encoding="utf-8"))
+    rows = []
+    for entry in entries[offset : offset + limit]:
+        cache_path = cache_dir / f"{stable_id(entry['path'])}.json"
+        if not cache_path.exists():
+            with urllib.request.urlopen(entry["download_url"], timeout=120) as response:
+                cache_path.write_bytes(response.read())
+        with cache_path.open("r", encoding="utf-8") as f:
+            row = json.load(f)
+        if not isinstance(row, dict):
+            raise SystemExit(f"{entry['path']} did not contain a JSON object")
+        row["_github_path"] = entry["path"]
+        row["_github_application"] = entry["application"]
+        row["_github_file"] = entry["name"]
+        rows.append(row)
+    return rows
+
+
+def github_directory_index(dataset: dict[str, Any]) -> list[dict[str, Any]]:
+    repo = dataset["github_repo"]
+    entries = []
+    for path in dataset.get("paths") or []:
+        payload = get_json(f"{GITHUB_API}/{repo}/contents/{urllib.parse.quote(path)}")
+        if not isinstance(payload, list):
+            raise SystemExit(f"GitHub contents for {repo}/{path} did not return a list")
+        for item in payload:
+            if item.get("type") != "file" or not str(item.get("name") or "").endswith(".json"):
+                continue
+            entries.append(
+                {
+                    "application": path,
+                    "name": item["name"],
+                    "path": item["path"],
+                    "download_url": item["download_url"],
+                    "size": item.get("size"),
+                }
+            )
+    return sorted(entries, key=lambda item: (item["application"], item["name"]))
+
+
 def prune_agent_reward_trajectory(payload: dict[str, Any]) -> dict[str, Any]:
     summary = payload.get("summary_info") or {}
     return {
@@ -457,7 +536,7 @@ def prune_agent_reward_step(step: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def get_json(url: str) -> dict[str, Any]:
+def get_json(url: str) -> Any:
     with urllib.request.urlopen(url, timeout=60) as response:
         return json.loads(response.read().decode("utf-8"))
 
@@ -494,6 +573,8 @@ def normalize_row(
         return normalize_agent_reward_bench(dataset_id, dataset, row, row_index, include_text)
     if adapter == "satraj-os":
         return normalize_satraj_os(dataset_id, dataset, row, row_index, include_text)
+    if adapter == "osworld-human":
+        return normalize_osworld_human(dataset_id, dataset, row, row_index, include_text)
     raise SystemExit(f"no adapter for dataset {dataset_id}")
 
 
@@ -1057,6 +1138,252 @@ def normalize_satraj_os(
             fields["parameter_shape"] = sanitize_label("-".join(sorted(params)) or "none")
         operations.append({"value": 1, "fields": fields})
     return operations
+
+
+def normalize_osworld_human(
+    dataset_id: str,
+    dataset: dict[str, Any],
+    row: dict[str, Any],
+    row_index: int,
+    include_text: bool,
+) -> list[dict[str, Any]]:
+    truth = row.get("human-ground-truth") or {}
+    single_actions = [str(action) for action in truth.get("single-action") or []]
+    grouped_actions = [
+        [str(action) for action in group]
+        for group in truth.get("grouped-action") or []
+        if isinstance(group, list)
+    ]
+    group_alignment = osworld_group_alignment(single_actions, grouped_actions)
+    group_meta = (
+        osworld_group_meta(single_actions, grouped_actions)
+        if group_alignment == "exact"
+        else []
+    )
+    application = sanitize_label(
+        str(row.get("_github_application") or row.get("snapshot") or "desktop")
+    )
+    session = sanitize_label(str(row.get("id") or f"osworld-human-{row_index}"))
+    status = "infeasible" if osworld_is_infeasible(row, single_actions) else "gold"
+    repeat_features = repeat_features_for_signatures(
+        [
+            (
+                osworld_action_verb(action),
+                osworld_action_target(osworld_action_verb(action), action),
+            )
+            for action in single_actions
+        ]
+    )
+
+    operations = []
+    for turn, raw_action in enumerate(single_actions):
+        action = osworld_action_verb(raw_action)
+        repeat = repeat_features[turn]
+        fields: dict[str, Any] = {
+            "project": "external-agent-traces",
+            "agent": "human-demo",
+            "dataset": dataset_id,
+            "source": dataset["github_repo"],
+            "session": session,
+            "turn": str(turn),
+            "step": str(turn),
+            "task": "desktop-computer-use",
+            "benchmark": "osworld-human",
+            "environment": application,
+            "app": application,
+            "phase": osworld_action_phase(action),
+            "op": "action",
+            "tool": "computer",
+            "action": action,
+            "target": osworld_action_target(action, raw_action),
+            "status": "infeasible" if action == "fail" else status,
+            "group_alignment": group_alignment,
+            "repeat_state": repeat["repeat_state"],
+            "repeat_signal": repeat["repeat_signal"],
+            "repeat_run": repeat["repeat_run"],
+        }
+        if group_meta:
+            group = group_meta[turn]
+            fields.update(
+                {
+                    "human_group": f"group-{group['index']:03d}",
+                    "group_index": str(group["index"]),
+                    "group_size": str(group["size"]),
+                    "group_position": str(group["position"]),
+                    "group_pattern": str(group["pattern"]),
+                }
+            )
+        if include_text:
+            fields["task_preview"] = truncate_clean(str(row.get("instruction") or ""), 180)
+            fields["action_raw"] = truncate_clean(raw_action, 180)
+        operations.append({"value": 1, "fields": fields})
+    return operations
+
+
+def osworld_group_meta(
+    single_actions: list[str], grouped_actions: list[list[str]]
+) -> list[dict[str, Any]]:
+    flat_grouped = [action for group in grouped_actions for action in group]
+    if single_actions != flat_grouped:
+        raise ValueError("OSWorld-Human grouped actions do not match single actions exactly")
+    meta: list[dict[str, Any]] = []
+    cursor = 0
+    for group_index, group in enumerate(grouped_actions):
+        size = max(1, len(group))
+        pattern = osworld_group_pattern(group)
+        for group_pos, _ in enumerate(group):
+            if cursor >= len(single_actions):
+                break
+            meta.append(
+                {
+                    "index": group_index,
+                    "size": size,
+                    "position": osworld_group_position(group_pos, size),
+                    "pattern": pattern,
+                }
+            )
+            cursor += 1
+    return meta
+
+
+def osworld_group_alignment(single_actions: list[str], grouped_actions: list[list[str]]) -> str:
+    flat_grouped = [action for group in grouped_actions for action in group]
+    if single_actions == flat_grouped:
+        return "exact"
+    if len(single_actions) != len(flat_grouped):
+        return "length-mismatch"
+    return "content-mismatch"
+
+
+def osworld_group_position(position: int, size: int) -> str:
+    if size <= 1:
+        return "single"
+    if position == 0:
+        return "start"
+    if position == size - 1:
+        return "end"
+    return "middle"
+
+
+def osworld_group_pattern(actions: list[str]) -> str:
+    verbs = {osworld_action_verb(action) for action in actions}
+    if "fail" in verbs:
+        return "fail"
+    if verbs & {"shell", "open_file", "close_window"}:
+        return "system"
+    input_verbs = {"type", "press", "hotkey", "key_down", "key_up"}
+    pointing_verbs = {
+        "click",
+        "double_click",
+        "triple_click",
+        "right_click",
+        "move_to",
+        "drag",
+        "mouse_down",
+        "mouse_up",
+        "select",
+    }
+    if verbs & input_verbs and verbs & pointing_verbs:
+        return "select-and-input"
+    if verbs & input_verbs:
+        return "input"
+    if verbs & {"drag", "mouse_down", "mouse_up", "move_to"}:
+        return "pointing"
+    if verbs & {"click", "double_click", "triple_click", "right_click", "select"}:
+        return "select"
+    if "scroll" in verbs:
+        return "scroll"
+    if verbs & {"wait", "check", "repeat_until_done"}:
+        return "observe"
+    return sorted(verbs)[0] if verbs else "unknown"
+
+
+def osworld_action_verb(raw_action: str) -> str:
+    raw = raw_action.strip()
+    match = re.search(r"`([^`]+)`", raw)
+    verb = match.group(1) if match else raw.split(maxsplit=1)[0] if raw else "unknown"
+    label = sanitize_label(verb)
+    aliases = {
+        "typing": "type",
+        "rress": "press",
+        "hoteky": "hotkey",
+        "hotekey": "hotkey",
+        "doubleclick": "double_click",
+        "drag_to": "drag",
+        "drag_and_drop": "drag",
+        "scroll_left": "scroll",
+        "key_down": "key_down",
+        "key-down": "key_down",
+        "key_up": "key_up",
+        "key-up": "key_up",
+        "keyup": "key_up",
+        "keydown": "key_down",
+        "key": "press",
+        "move_on": "move_to",
+    }
+    if label.startswith("move_to"):
+        return "move_to"
+    if label.startswith("hotkey"):
+        return "hotkey"
+    if label.startswith("key_up"):
+        return "key_up"
+    if label.startswith("key_down"):
+        return "key_down"
+    if label.endswith("-click"):
+        return "click"
+    if label == "sudo" or label.startswith("sudo-"):
+        return "shell"
+    return aliases.get(label, label or "unknown")
+
+
+def osworld_action_phase(action: str) -> str:
+    if action in {"type", "press", "hotkey", "key_down", "key_up"}:
+        return "input"
+    if action in {
+        "click",
+        "double_click",
+        "triple_click",
+        "right_click",
+        "move_to",
+        "drag",
+        "mouse_down",
+        "mouse_up",
+        "scroll",
+        "select",
+    }:
+        return "navigate"
+    if action in {"wait", "check", "repeat_until_done"}:
+        return "observe"
+    if action == "fail":
+        return "fail"
+    if action in {"shell", "open_file", "close_window"}:
+        return "system"
+    return "desktop-action"
+
+
+def osworld_action_target(action: str, raw_action: str) -> str:
+    if action == "type":
+        return "text"
+    if action in {"press", "hotkey", "key_down", "key_up"}:
+        return "key"
+    if action in {"click", "double_click", "triple_click", "right_click", "select"}:
+        return "ui"
+    if action in {"move_to", "drag", "mouse_down", "mouse_up"}:
+        return "pointer"
+    if action == "scroll":
+        return "scroll"
+    if action in {"fail", "wait", "check"}:
+        return "none"
+    if action in {"shell", "open_file", "close_window"}:
+        return "system"
+    return sanitize_label(first_match(r"`[^`]+`\s+(.+)$", raw_action, "none"))[:64] or "none"
+
+
+def osworld_is_infeasible(row: dict[str, Any], single_actions: list[str]) -> bool:
+    evaluator = row.get("evaluator") or {}
+    if str(evaluator.get("func") or "").lower() == "infeasible":
+        return True
+    return any(osworld_action_verb(action) == "fail" for action in single_actions)
 
 
 def parse_json_object(value: Any) -> dict[str, Any]:

@@ -1,0 +1,1135 @@
+{
+  "boundary_alignment": [
+    {
+      "adjacent_pairs": 23875,
+      "candidate_pairs": 23875,
+      "f1": 0.7305,
+      "false_negative": 5854,
+      "false_positive": 0,
+      "oracle": "action",
+      "precision": 1.0,
+      "predicted": "phase",
+      "recall": 0.5754,
+      "sequence_field": "session",
+      "skipped_missing_fields": 0,
+      "true_negative": 10087,
+      "true_positive": 7934,
+      "turn_field": "turn"
+    },
+    {
+      "adjacent_pairs": 3691,
+      "candidate_pairs": 23875,
+      "f1": 0.3331,
+      "false_negative": 1285,
+      "false_positive": 597,
+      "oracle": "human_group",
+      "precision": 0.4405,
+      "predicted": "phase",
+      "recall": 0.2678,
+      "sequence_field": "session",
+      "skipped_missing_fields": 20184,
+      "true_negative": 1339,
+      "true_positive": 470,
+      "turn_field": "turn"
+    },
+    {
+      "adjacent_pairs": 3691,
+      "candidate_pairs": 23875,
+      "f1": 0.6268,
+      "false_negative": 954,
+      "false_positive": 0,
+      "oracle": "human_group",
+      "precision": 1.0,
+      "predicted": "group_pattern",
+      "recall": 0.4564,
+      "sequence_field": "session",
+      "skipped_missing_fields": 20184,
+      "true_negative": 1936,
+      "true_positive": 801,
+      "turn_field": "turn"
+    }
+  ],
+  "coverage": [
+    {
+      "coverage": 1.0,
+      "field": "action",
+      "present": 25849,
+      "total": 25849
+    },
+    {
+      "coverage": 0.1658,
+      "field": "attack_type",
+      "present": 4285,
+      "total": 25849
+    },
+    {
+      "coverage": 0.4868,
+      "field": "benchmark",
+      "present": 12584,
+      "total": 25849
+    },
+    {
+      "coverage": 1.0,
+      "field": "dataset",
+      "present": 25849,
+      "total": 25849
+    },
+    {
+      "coverage": 0.4868,
+      "field": "environment",
+      "present": 12584,
+      "total": 25849
+    },
+    {
+      "coverage": 0.2325,
+      "field": "group_alignment",
+      "present": 6010,
+      "total": 25849
+    },
+    {
+      "coverage": 0.1552,
+      "field": "group_pattern",
+      "present": 4011,
+      "total": 25849
+    },
+    {
+      "coverage": 0.1552,
+      "field": "group_position",
+      "present": 4011,
+      "total": 25849
+    },
+    {
+      "coverage": 0.1552,
+      "field": "group_size",
+      "present": 4011,
+      "total": 25849
+    },
+    {
+      "coverage": 0.1552,
+      "field": "human_group",
+      "present": 4011,
+      "total": 25849
+    },
+    {
+      "coverage": 0.0282,
+      "field": "looping",
+      "present": 729,
+      "total": 25849
+    },
+    {
+      "coverage": 1.0,
+      "field": "op",
+      "present": 25849,
+      "total": 25849
+    },
+    {
+      "coverage": 1.0,
+      "field": "phase",
+      "present": 25849,
+      "total": 25849
+    },
+    {
+      "coverage": 1.0,
+      "field": "project",
+      "present": 25849,
+      "total": 25849
+    },
+    {
+      "coverage": 0.4265,
+      "field": "repeat_signal",
+      "present": 11024,
+      "total": 25849
+    },
+    {
+      "coverage": 0.1658,
+      "field": "safety",
+      "present": 4285,
+      "total": 25849
+    },
+    {
+      "coverage": 0.0282,
+      "field": "side_effect",
+      "present": 729,
+      "total": 25849
+    },
+    {
+      "coverage": 1.0,
+      "field": "status",
+      "present": 25849,
+      "total": 25849
+    },
+    {
+      "coverage": 1.0,
+      "field": "task",
+      "present": 25849,
+      "total": 25849
+    },
+    {
+      "coverage": 1.0,
+      "field": "tool",
+      "present": 25849,
+      "total": 25849
+    }
+  ],
+  "op_map_files": [
+    "docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-op-map.txt"
+  ],
+  "op_maps": [
+    "task:software=(dataset=swe\\-agent\\-trajectories|tool=swe\\-agent)",
+    "task:web=(dataset=weblinx\\-chat|dataset=webshop\\-expert|dataset=agenttrek|dataset=mind2web|tool=browser|tool=webshop|task=web\\-navigation|task=shopping|task=travel)",
+    "task:api=(dataset=api\\-bank|tool=api|task=api\\-call)",
+    "task:tool=(dataset=toolbench|task=tool\\-use)",
+    "task:mobile=(dataset=android\\-control|dataset=gui\\-odyssey|tool=android|tool=mobile\\-gui|task=mobile\\-control|task=mobile\\-cross\\-app)",
+    "task:desktop=(dataset=satraj\\-os\\-safety|dataset=osworld\\-human|tool=computer|task=desktop\\-computer\\-use)",
+    "phase:finish=(action=submit|action=send_msg_to_user|action=finish|action=complete)",
+    "phase:api=(dataset=api\\-bank|dataset=toolbench|tool=api|task=api\\-call|task=tool\\-use)",
+    "phase:api=(op=tool.*domain=|domain=.*op=tool)",
+    "phase:input=(action=fill|action=type|action=text|action=text_input|action=key|action=press|action=hotkey|action=key_down|action=key_up)",
+    "phase:navigate=(action=click|action=left_click|action=double_click|action=triple_click|action=right_click|action=go|action=goto|action=open|action=load|action=open_app|action=scroll|action=mouse_move|action=move_to|action=drag|action=left_click_drag|action=mouse_down|action=mouse_up|action=select)",
+    "phase:observe=(action=observe|action=wait|action=check|action=repeat_until_done)",
+    "phase:system=(action=shell|action=open_file|action=close_window)",
+    "phase:fail=(action=fail|status=infeasible)",
+    "phase:inspect=(action=look|action=search|action=find|action=find_file|action=search_dir|action=search_file)",
+    "phase:modify=(action=edit|action=create)"
+  ],
+  "operation_files": [
+    ".agentsight/datasets/agent-traces/weblinx-chat/chat-validation/operations-0-500.jsonl",
+    ".agentsight/datasets/agent-traces/webshop-expert/default-test/operations-0-100.jsonl",
+    ".agentsight/datasets/agent-traces/api-bank/default-train/operations-0-48.jsonl",
+    ".agentsight/datasets/agent-traces/agenttrek/default-train/operations-0-200.jsonl",
+    ".agentsight/datasets/agent-traces/swe-agent-trajectories/default-train/operations-0-20.jsonl",
+    ".agentsight/datasets/agent-traces/mind2web/default-train/operations-0-100.jsonl",
+    ".agentsight/datasets/agent-traces/toolbench/default-validation/operations-0-300.jsonl",
+    ".agentsight/datasets/agent-traces/android-control/default-train/operations-0-2.jsonl",
+    ".agentsight/datasets/agent-traces/gui-odyssey/default-all/operations-0-500.jsonl",
+    ".agentsight/datasets/agent-traces/tau-bench-trajectories/default-train/operations-0-50.jsonl",
+    ".agentsight/datasets/agent-traces/agent-reward-bench/annotations-full/operations-0-10.jsonl",
+    ".agentsight/datasets/agent-traces/agent-reward-bench/annotations-full/operations-40-48.jsonl",
+    ".agentsight/datasets/agent-traces/agent-reward-bench/annotations-full/operations-700-710.jsonl",
+    ".agentsight/datasets/agent-traces/agent-reward-bench/annotations-full/operations-800-810.jsonl",
+    ".agentsight/datasets/agent-traces/satraj-os-safety/safety-train/operations-0-50.jsonl",
+    ".agentsight/datasets/agent-traces/satraj-os-safety/safety-train/operations-500-550.jsonl",
+    ".agentsight/datasets/agent-traces/satraj-os-safety/safety-train/operations-3000-3050.jsonl",
+    ".agentsight/datasets/agent-traces/satraj-os-safety/safety-train/operations-4000-4050.jsonl",
+    ".agentsight/datasets/agent-traces/satraj-os-safety/safety-train/operations-5900-5950.jsonl",
+    "docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-operations.jsonl"
+  ],
+  "oracle_alignment": [
+    {
+      "completeness": 0.9989,
+      "homogeneity": 0.7342,
+      "oracle": "dataset",
+      "oracle_labels": 13,
+      "predicted": "task",
+      "predicted_labels": 7,
+      "support": 25849,
+      "top_confusions": [
+        {
+          "oracle": "gui-odyssey",
+          "predicted": "mobile",
+          "weight": 7868
+        },
+        {
+          "oracle": "osworld-human",
+          "predicted": "desktop",
+          "weight": 6010
+        },
+        {
+          "oracle": "satraj-os-safety",
+          "predicted": "desktop",
+          "weight": 4285
+        },
+        {
+          "oracle": "webshop-expert",
+          "predicted": "web",
+          "weight": 2504
+        },
+        {
+          "oracle": "tau-bench-trajectories",
+          "predicted": "tool-agent-user",
+          "weight": 1560
+        },
+        {
+          "oracle": "toolbench",
+          "predicted": "tool",
+          "weight": 860
+        },
+        {
+          "oracle": "mind2web",
+          "predicted": "web",
+          "weight": 774
+        },
+        {
+          "oracle": "agent-reward-bench",
+          "predicted": "web",
+          "weight": 729
+        },
+        {
+          "oracle": "weblinx-chat",
+          "predicted": "web",
+          "weight": 500
+        },
+        {
+          "oracle": "swe-agent-trajectories",
+          "predicted": "software",
+          "weight": 496
+        },
+        {
+          "oracle": "agenttrek",
+          "predicted": "web",
+          "weight": 200
+        },
+        {
+          "oracle": "api-bank",
+          "predicted": "api",
+          "weight": 48
+        }
+      ],
+      "v_measure": 0.8463
+    },
+    {
+      "completeness": 0.9993,
+      "homogeneity": 0.5143,
+      "oracle": "action",
+      "oracle_labels": 478,
+      "predicted": "phase",
+      "predicted_labels": 40,
+      "support": 25849,
+      "top_confusions": [
+        {
+          "oracle": "click",
+          "predicted": "navigate",
+          "weight": 9502
+        },
+        {
+          "oracle": "left_click",
+          "predicted": "navigate",
+          "weight": 2972
+        },
+        {
+          "oracle": "type",
+          "predicted": "input",
+          "weight": 1718
+        },
+        {
+          "oracle": "hotkey",
+          "predicted": "input",
+          "weight": 1041
+        },
+        {
+          "oracle": "scroll",
+          "predicted": "navigate",
+          "weight": 959
+        },
+        {
+          "oracle": "press",
+          "predicted": "input",
+          "weight": 919
+        },
+        {
+          "oracle": "text",
+          "predicted": "input",
+          "weight": 805
+        },
+        {
+          "oracle": "open",
+          "predicted": "navigate",
+          "weight": 525
+        },
+        {
+          "oracle": "complete",
+          "predicted": "finish",
+          "weight": 487
+        },
+        {
+          "oracle": "go",
+          "predicted": "navigate",
+          "weight": 431
+        },
+        {
+          "oracle": "observe",
+          "predicted": "observe",
+          "weight": 391
+        },
+        {
+          "oracle": "user_message",
+          "predicted": "dialogue",
+          "weight": 367
+        }
+      ],
+      "v_measure": 0.6791
+    },
+    {
+      "completeness": 0.4934,
+      "homogeneity": 0.3455,
+      "oracle": "action",
+      "oracle_labels": 22,
+      "predicted": "group_pattern",
+      "predicted_labels": 8,
+      "support": 4011,
+      "top_confusions": [
+        {
+          "oracle": "click",
+          "predicted": "select",
+          "weight": 911
+        },
+        {
+          "oracle": "press",
+          "predicted": "input",
+          "weight": 487
+        },
+        {
+          "oracle": "type",
+          "predicted": "input",
+          "weight": 467
+        },
+        {
+          "oracle": "click",
+          "predicted": "select-and-input",
+          "weight": 432
+        },
+        {
+          "oracle": "hotkey",
+          "predicted": "input",
+          "weight": 420
+        },
+        {
+          "oracle": "type",
+          "predicted": "select-and-input",
+          "weight": 278
+        },
+        {
+          "oracle": "hotkey",
+          "predicted": "select-and-input",
+          "weight": 231
+        },
+        {
+          "oracle": "press",
+          "predicted": "select-and-input",
+          "weight": 208
+        },
+        {
+          "oracle": "drag",
+          "predicted": "select-and-input",
+          "weight": 75
+        },
+        {
+          "oracle": "move_to",
+          "predicted": "select-and-input",
+          "weight": 72
+        },
+        {
+          "oracle": "double_click",
+          "predicted": "select",
+          "weight": 56
+        },
+        {
+          "oracle": "scroll",
+          "predicted": "scroll",
+          "weight": 50
+        }
+      ],
+      "v_measure": 0.4064
+    },
+    {
+      "completeness": 0.3939,
+      "homogeneity": 0.3629,
+      "oracle": "looping",
+      "oracle_labels": 2,
+      "predicted": "repeat_signal",
+      "predicted_labels": 2,
+      "support": 729,
+      "top_confusions": [
+        {
+          "oracle": "yes",
+          "predicted": "loop-like",
+          "weight": 474
+        },
+        {
+          "oracle": "no",
+          "predicted": "none",
+          "weight": 157
+        },
+        {
+          "oracle": "no",
+          "predicted": "loop-like",
+          "weight": 68
+        },
+        {
+          "oracle": "yes",
+          "predicted": "none",
+          "weight": 30
+        }
+      ],
+      "v_measure": 0.3777
+    }
+  ],
+  "stack": [
+    "project",
+    "dataset",
+    "task",
+    "benchmark",
+    "environment",
+    "group_pattern",
+    "phase",
+    "op",
+    "tool",
+    "action",
+    "status",
+    "safety",
+    "attack_type",
+    "side_effect",
+    "looping",
+    "repeat_signal"
+  ],
+  "summary": {
+    "compression_ratio": 24.975,
+    "operations": 25849,
+    "total_weight": 25849,
+    "unique_stacks": 1035
+  },
+  "top_by_field": {
+    "action": [
+      {
+        "value": "click",
+        "weight": 9502
+      },
+      {
+        "value": "left_click",
+        "weight": 2972
+      },
+      {
+        "value": "type",
+        "weight": 1718
+      },
+      {
+        "value": "hotkey",
+        "weight": 1041
+      },
+      {
+        "value": "scroll",
+        "weight": 959
+      },
+      {
+        "value": "press",
+        "weight": 919
+      },
+      {
+        "value": "text",
+        "weight": 805
+      },
+      {
+        "value": "open",
+        "weight": 525
+      },
+      {
+        "value": "complete",
+        "weight": 487
+      },
+      {
+        "value": "go",
+        "weight": 431
+      },
+      {
+        "value": "observe",
+        "weight": 391
+      },
+      {
+        "value": "user_message",
+        "weight": 367
+      }
+    ],
+    "attack_type": [
+      {
+        "value": "account",
+        "weight": 1228
+      },
+      {
+        "value": "induced_text",
+        "weight": 1131
+      },
+      {
+        "value": "popup",
+        "weight": 1123
+      },
+      {
+        "value": "os",
+        "weight": 420
+      },
+      {
+        "value": "unknown_file",
+        "weight": 383
+      }
+    ],
+    "benchmark": [
+      {
+        "value": "osworld-human",
+        "weight": 6010
+      },
+      {
+        "value": "satraj-os",
+        "weight": 4285
+      },
+      {
+        "value": "tau-bench",
+        "weight": 1560
+      },
+      {
+        "value": "workarena",
+        "weight": 391
+      },
+      {
+        "value": "visualwebarena",
+        "weight": 147
+      },
+      {
+        "value": "assistantbench",
+        "weight": 133
+      },
+      {
+        "value": "webarena",
+        "weight": 58
+      }
+    ],
+    "dataset": [
+      {
+        "value": "gui-odyssey",
+        "weight": 7868
+      },
+      {
+        "value": "osworld-human",
+        "weight": 6010
+      },
+      {
+        "value": "satraj-os-safety",
+        "weight": 4285
+      },
+      {
+        "value": "webshop-expert",
+        "weight": 2504
+      },
+      {
+        "value": "tau-bench-trajectories",
+        "weight": 1560
+      },
+      {
+        "value": "toolbench",
+        "weight": 866
+      },
+      {
+        "value": "mind2web",
+        "weight": 774
+      },
+      {
+        "value": "agent-reward-bench",
+        "weight": 729
+      },
+      {
+        "value": "weblinx-chat",
+        "weight": 500
+      },
+      {
+        "value": "swe-agent-trajectories",
+        "weight": 496
+      },
+      {
+        "value": "agenttrek",
+        "weight": 200
+      },
+      {
+        "value": "api-bank",
+        "weight": 48
+      }
+    ],
+    "environment": [
+      {
+        "value": "multi_apps",
+        "weight": 4148
+      },
+      {
+        "value": "retail",
+        "weight": 1560
+      },
+      {
+        "value": "account",
+        "weight": 1228
+      },
+      {
+        "value": "induced_text",
+        "weight": 1131
+      },
+      {
+        "value": "popup",
+        "weight": 1123
+      },
+      {
+        "value": "libreoffice_calc",
+        "weight": 623
+      },
+      {
+        "value": "os",
+        "weight": 506
+      },
+      {
+        "value": "workarena",
+        "weight": 391
+      },
+      {
+        "value": "unknown_file",
+        "weight": 383
+      },
+      {
+        "value": "libreoffice_impress",
+        "weight": 366
+      },
+      {
+        "value": "chrome",
+        "weight": 273
+      },
+      {
+        "value": "libreoffice_writer",
+        "weight": 173
+      }
+    ],
+    "group_alignment": [
+      {
+        "value": "exact",
+        "weight": 4011
+      },
+      {
+        "value": "content-mismatch",
+        "weight": 1174
+      },
+      {
+        "value": "length-mismatch",
+        "weight": 825
+      }
+    ],
+    "group_pattern": [
+      {
+        "value": "select-and-input",
+        "weight": 1420
+      },
+      {
+        "value": "input",
+        "weight": 1384
+      },
+      {
+        "value": "select",
+        "weight": 993
+      },
+      {
+        "value": "pointing",
+        "weight": 119
+      },
+      {
+        "value": "scroll",
+        "weight": 51
+      },
+      {
+        "value": "fail",
+        "weight": 30
+      },
+      {
+        "value": "system",
+        "weight": 11
+      },
+      {
+        "value": "observe",
+        "weight": 3
+      }
+    ],
+    "group_position": [
+      {
+        "value": "single",
+        "weight": 1311
+      },
+      {
+        "value": "middle",
+        "weight": 1172
+      },
+      {
+        "value": "start",
+        "weight": 764
+      },
+      {
+        "value": "end",
+        "weight": 764
+      }
+    ],
+    "group_size": [
+      {
+        "value": "1",
+        "weight": 1311
+      },
+      {
+        "value": "2",
+        "weight": 782
+      },
+      {
+        "value": "3",
+        "weight": 546
+      },
+      {
+        "value": "4",
+        "weight": 276
+      },
+      {
+        "value": "22",
+        "weight": 220
+      },
+      {
+        "value": "5",
+        "weight": 200
+      },
+      {
+        "value": "16",
+        "weight": 160
+      },
+      {
+        "value": "8",
+        "weight": 160
+      },
+      {
+        "value": "6",
+        "weight": 132
+      },
+      {
+        "value": "7",
+        "weight": 49
+      },
+      {
+        "value": "9",
+        "weight": 36
+      },
+      {
+        "value": "24",
+        "weight": 24
+      }
+    ],
+    "human_group": [
+      {
+        "value": "group-000",
+        "weight": 636
+      },
+      {
+        "value": "group-001",
+        "weight": 459
+      },
+      {
+        "value": "group-002",
+        "weight": 316
+      },
+      {
+        "value": "group-003",
+        "weight": 246
+      },
+      {
+        "value": "group-004",
+        "weight": 200
+      },
+      {
+        "value": "group-005",
+        "weight": 167
+      },
+      {
+        "value": "group-006",
+        "weight": 134
+      },
+      {
+        "value": "group-009",
+        "weight": 110
+      },
+      {
+        "value": "group-007",
+        "weight": 104
+      },
+      {
+        "value": "group-008",
+        "weight": 102
+      },
+      {
+        "value": "group-010",
+        "weight": 72
+      },
+      {
+        "value": "group-013",
+        "weight": 71
+      }
+    ],
+    "looping": [
+      {
+        "value": "yes",
+        "weight": 504
+      },
+      {
+        "value": "no",
+        "weight": 225
+      }
+    ],
+    "op": [
+      {
+        "value": "action",
+        "weight": 22879
+      },
+      {
+        "value": "tool",
+        "weight": 1693
+      },
+      {
+        "value": "prompt",
+        "weight": 414
+      },
+      {
+        "value": "observation",
+        "weight": 391
+      },
+      {
+        "value": "llm",
+        "weight": 364
+      },
+      {
+        "value": "finish",
+        "weight": 108
+      }
+    ],
+    "phase": [
+      {
+        "value": "navigate",
+        "weight": 15406
+      },
+      {
+        "value": "input",
+        "weight": 5053
+      },
+      {
+        "value": "api",
+        "weight": 809
+      },
+      {
+        "value": "finish",
+        "weight": 759
+      },
+      {
+        "value": "dialogue",
+        "weight": 731
+      },
+      {
+        "value": "observe",
+        "weight": 586
+      },
+      {
+        "value": "inspect",
+        "weight": 562
+      },
+      {
+        "value": "connect",
+        "weight": 240
+      },
+      {
+        "value": "focus",
+        "weight": 227
+      },
+      {
+        "value": "move",
+        "weight": 213
+      },
+      {
+        "value": "modify",
+        "weight": 174
+      },
+      {
+        "value": "use",
+        "weight": 165
+      }
+    ],
+    "project": [
+      {
+        "value": "external-agent-traces",
+        "weight": 25849
+      }
+    ],
+    "repeat_signal": [
+      {
+        "value": "loop-like",
+        "weight": 8537
+      },
+      {
+        "value": "none",
+        "weight": 2487
+      }
+    ],
+    "safety": [
+      {
+        "value": "safe",
+        "weight": 3663
+      },
+      {
+        "value": "unsafe",
+        "weight": 622
+      }
+    ],
+    "side_effect": [
+      {
+        "value": "no",
+        "weight": 527
+      },
+      {
+        "value": "yes",
+        "weight": 202
+      }
+    ],
+    "status": [
+      {
+        "value": "gold",
+        "weight": 16030
+      },
+      {
+        "value": "failure",
+        "weight": 5533
+      },
+      {
+        "value": "success",
+        "weight": 4041
+      },
+      {
+        "value": "verified",
+        "weight": 200
+      },
+      {
+        "value": "infeasible",
+        "weight": 45
+      }
+    ],
+    "task": [
+      {
+        "value": "desktop",
+        "weight": 10295
+      },
+      {
+        "value": "mobile",
+        "weight": 7877
+      },
+      {
+        "value": "web",
+        "weight": 4709
+      },
+      {
+        "value": "tool-agent-user",
+        "weight": 1560
+      },
+      {
+        "value": "tool",
+        "weight": 860
+      },
+      {
+        "value": "software",
+        "weight": 496
+      },
+      {
+        "value": "api",
+        "weight": 52
+      }
+    ],
+    "tool": [
+      {
+        "value": "computer",
+        "weight": 10295
+      },
+      {
+        "value": "mobile-gui",
+        "weight": 7868
+      },
+      {
+        "value": "webshop",
+        "weight": 2504
+      },
+      {
+        "value": "browser",
+        "weight": 2203
+      },
+      {
+        "value": "swe-agent",
+        "weight": 496
+      },
+      {
+        "value": "user",
+        "weight": 414
+      },
+      {
+        "value": "assistant",
+        "weight": 364
+      },
+      {
+        "value": "get_order_details",
+        "weight": 272
+      },
+      {
+        "value": "finish",
+        "weight": 108
+      },
+      {
+        "value": "find_user_id_by_name_zip",
+        "weight": 102
+      },
+      {
+        "value": "get_user_details",
+        "weight": 96
+      },
+      {
+        "value": "get_product_details",
+        "weight": 86
+      }
+    ]
+  },
+  "top_stacks": [
+    {
+      "stack": "project:external-agent-traces;dataset:gui-odyssey;task:mobile;benchmark:unknown;environment:unknown;group_pattern:unknown;phase:navigate;op:action;tool:mobile-gui;action:click;status:gold;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;repeat_signal:unknown",
+      "weight": 5831
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:gui-odyssey;task:mobile;benchmark:unknown;environment:unknown;group_pattern:unknown;phase:input;op:action;tool:mobile-gui;action:text;status:gold;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;repeat_signal:unknown",
+      "weight": 805
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:gui-odyssey;task:mobile;benchmark:unknown;environment:unknown;group_pattern:unknown;phase:navigate;op:action;tool:mobile-gui;action:scroll;status:gold;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;repeat_signal:unknown",
+      "weight": 691
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:osworld-human;task:desktop;benchmark:osworld-human;environment:multi_apps;group_pattern:unknown;phase:navigate;op:action;tool:computer;action:click;status:gold;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;repeat_signal:loop-like",
+      "weight": 682
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:mind2web;task:web;benchmark:unknown;environment:unknown;group_pattern:unknown;phase:navigate;op:action;tool:browser;action:click;status:gold;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;repeat_signal:unknown",
+      "weight": 645
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:gui-odyssey;task:mobile;benchmark:unknown;environment:unknown;group_pattern:unknown;phase:finish;op:action;tool:mobile-gui;action:complete;status:gold;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;repeat_signal:unknown",
+      "weight": 487
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:satraj-os-safety;task:desktop;benchmark:satraj-os;environment:popup;group_pattern:unknown;phase:navigate;op:action;tool:computer;action:left_click;status:failure;safety:safe;attack_type:popup;side_effect:unknown;looping:unknown;repeat_signal:loop-like",
+      "weight": 464
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:satraj-os-safety;task:desktop;benchmark:satraj-os;environment:popup;group_pattern:unknown;phase:navigate;op:action;tool:computer;action:left_click;status:failure;safety:safe;attack_type:popup;side_effect:unknown;looping:unknown;repeat_signal:none",
+      "weight": 455
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:satraj-os-safety;task:desktop;benchmark:satraj-os;environment:account;group_pattern:unknown;phase:navigate;op:action;tool:computer;action:left_click;status:failure;safety:safe;attack_type:account;side_effect:unknown;looping:unknown;repeat_signal:loop-like",
+      "weight": 450
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;environment:unknown;group_pattern:unknown;phase:navigate;op:action;tool:webshop;action:open;status:success;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;repeat_signal:unknown",
+      "weight": 449
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:satraj-os-safety;task:desktop;benchmark:satraj-os;environment:induced_text;group_pattern:unknown;phase:navigate;op:action;tool:computer;action:left_click;status:failure;safety:safe;attack_type:induced_text;side_effect:unknown;looping:unknown;repeat_signal:none",
+      "weight": 438
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;environment:unknown;group_pattern:unknown;phase:navigate;op:action;tool:webshop;action:go;status:success;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;repeat_signal:unknown",
+      "weight": 431
+    }
+  ]
+}

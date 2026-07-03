@@ -1,0 +1,1717 @@
+{
+  "compression_ratio": 56.698,
+  "depth_weight": {
+    "0": 6010,
+    "1": 6010,
+    "2": 6010,
+    "3": 6010,
+    "4": 6010,
+    "5": 6010,
+    "6": 6010,
+    "7": 4011
+  },
+  "top_by_kind": {
+    "benchmark": [
+      {
+        "name": "osworld-human",
+        "weight": 6010
+      }
+    ],
+    "dataset": [
+      {
+        "name": "osworld-human",
+        "weight": 6010
+      }
+    ],
+    "environment": [
+      {
+        "name": "multi_apps",
+        "weight": 4148
+      },
+      {
+        "name": "libreoffice_calc",
+        "weight": 623
+      },
+      {
+        "name": "libreoffice_impress",
+        "weight": 366
+      },
+      {
+        "name": "chrome",
+        "weight": 273
+      },
+      {
+        "name": "libreoffice_writer",
+        "weight": 173
+      },
+      {
+        "name": "thunderbird",
+        "weight": 101
+      },
+      {
+        "name": "os",
+        "weight": 86
+      },
+      {
+        "name": "vlc",
+        "weight": 86
+      },
+      {
+        "name": "vs_code",
+        "weight": 83
+      },
+      {
+        "name": "gimp",
+        "weight": 71
+      }
+    ],
+    "group_pattern": [
+      {
+        "name": "select-and-input",
+        "weight": 1420
+      },
+      {
+        "name": "input",
+        "weight": 1384
+      },
+      {
+        "name": "select",
+        "weight": 993
+      },
+      {
+        "name": "pointing",
+        "weight": 119
+      },
+      {
+        "name": "scroll",
+        "weight": 51
+      },
+      {
+        "name": "fail",
+        "weight": 30
+      },
+      {
+        "name": "system",
+        "weight": 11
+      },
+      {
+        "name": "observe",
+        "weight": 3
+      }
+    ],
+    "project": [
+      {
+        "name": "external-agent-traces",
+        "weight": 6010
+      }
+    ],
+    "repeat_signal": [
+      {
+        "name": "loop-like",
+        "weight": 5495
+      },
+      {
+        "name": "none",
+        "weight": 515
+      }
+    ],
+    "status": [
+      {
+        "name": "gold",
+        "weight": 5965
+      },
+      {
+        "name": "infeasible",
+        "weight": 45
+      }
+    ],
+    "task": [
+      {
+        "name": "desktop",
+        "weight": 6010
+      }
+    ]
+  },
+  "top_leaves": [
+    {
+      "name": "repeat_signal:loop-like",
+      "weight": 5495
+    },
+    {
+      "name": "repeat_signal:none",
+      "weight": 515
+    }
+  ],
+  "top_transitions": [
+    {
+      "from": "project:external-agent-traces",
+      "to": "dataset:osworld-human",
+      "weight": 6010
+    },
+    {
+      "from": "dataset:osworld-human",
+      "to": "benchmark:osworld-human",
+      "weight": 6010
+    },
+    {
+      "from": "status:gold",
+      "to": "repeat_signal:loop-like",
+      "weight": 5495
+    },
+    {
+      "from": "benchmark:osworld-human",
+      "to": "environment:multi_apps",
+      "weight": 4148
+    },
+    {
+      "from": "environment:multi_apps",
+      "to": "task:desktop",
+      "weight": 4148
+    },
+    {
+      "from": "task:desktop",
+      "to": "status:gold",
+      "weight": 1999
+    },
+    {
+      "from": "task:desktop",
+      "to": "group_pattern:select-and-input",
+      "weight": 1420
+    },
+    {
+      "from": "group_pattern:select-and-input",
+      "to": "status:gold",
+      "weight": 1417
+    },
+    {
+      "from": "task:desktop",
+      "to": "group_pattern:input",
+      "weight": 1384
+    },
+    {
+      "from": "group_pattern:input",
+      "to": "status:gold",
+      "weight": 1378
+    },
+    {
+      "from": "task:desktop",
+      "to": "group_pattern:select",
+      "weight": 993
+    },
+    {
+      "from": "group_pattern:select",
+      "to": "status:gold",
+      "weight": 992
+    },
+    {
+      "from": "benchmark:osworld-human",
+      "to": "environment:libreoffice_calc",
+      "weight": 623
+    },
+    {
+      "from": "environment:libreoffice_calc",
+      "to": "task:desktop",
+      "weight": 623
+    },
+    {
+      "from": "status:gold",
+      "to": "repeat_signal:none",
+      "weight": 470
+    },
+    {
+      "from": "benchmark:osworld-human",
+      "to": "environment:libreoffice_impress",
+      "weight": 366
+    },
+    {
+      "from": "environment:libreoffice_impress",
+      "to": "task:desktop",
+      "weight": 366
+    },
+    {
+      "from": "benchmark:osworld-human",
+      "to": "environment:chrome",
+      "weight": 273
+    },
+    {
+      "from": "environment:chrome",
+      "to": "task:desktop",
+      "weight": 273
+    },
+    {
+      "from": "benchmark:osworld-human",
+      "to": "environment:libreoffice_writer",
+      "weight": 173
+    },
+    {
+      "from": "environment:libreoffice_writer",
+      "to": "task:desktop",
+      "weight": 173
+    },
+    {
+      "from": "task:desktop",
+      "to": "group_pattern:pointing",
+      "weight": 119
+    },
+    {
+      "from": "group_pattern:pointing",
+      "to": "status:gold",
+      "weight": 119
+    },
+    {
+      "from": "benchmark:osworld-human",
+      "to": "environment:thunderbird",
+      "weight": 101
+    },
+    {
+      "from": "environment:thunderbird",
+      "to": "task:desktop",
+      "weight": 101
+    },
+    {
+      "from": "benchmark:osworld-human",
+      "to": "environment:os",
+      "weight": 86
+    },
+    {
+      "from": "environment:os",
+      "to": "task:desktop",
+      "weight": 86
+    },
+    {
+      "from": "benchmark:osworld-human",
+      "to": "environment:vlc",
+      "weight": 86
+    },
+    {
+      "from": "environment:vlc",
+      "to": "task:desktop",
+      "weight": 86
+    },
+    {
+      "from": "benchmark:osworld-human",
+      "to": "environment:vs_code",
+      "weight": 83
+    }
+  ],
+  "total_weight": 6010,
+  "tree": {
+    "children": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 1172
+                                  },
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 47
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 2438
+                              }
+                            ],
+                            "name": "group_pattern:input",
+                            "value": 3657
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "name": "repeat_signal:loop-like",
+                                "value": 1718
+                              }
+                            ],
+                            "name": "status:gold",
+                            "value": 3436
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 677
+                                  },
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 21
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 1396
+                              }
+                            ],
+                            "name": "group_pattern:select-and-input",
+                            "value": 2094
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 440
+                                  },
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 7
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 894
+                              }
+                            ],
+                            "name": "group_pattern:select",
+                            "value": 1341
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 28
+                                  },
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 2
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 60
+                              }
+                            ],
+                            "name": "group_pattern:scroll",
+                            "value": 90
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 23
+                                  },
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 3
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 52
+                              }
+                            ],
+                            "name": "group_pattern:pointing",
+                            "value": 78
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 4
+                                  },
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 2
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 12
+                              }
+                            ],
+                            "name": "group_pattern:system",
+                            "value": 18
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 3
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 6
+                              }
+                            ],
+                            "name": "group_pattern:observe",
+                            "value": 9
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "status:infeasible",
+                                "value": 2
+                              }
+                            ],
+                            "name": "group_pattern:fail",
+                            "value": 3
+                          }
+                        ],
+                        "name": "task:desktop",
+                        "value": 14874
+                      }
+                    ],
+                    "name": "environment:multi_apps",
+                    "value": 19022
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 253
+                                  },
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 68
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 642
+                              }
+                            ],
+                            "name": "group_pattern:select-and-input",
+                            "value": 963
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "name": "repeat_signal:loop-like",
+                                "value": 143
+                              },
+                              {
+                                "children": [],
+                                "name": "repeat_signal:none",
+                                "value": 22
+                              }
+                            ],
+                            "name": "status:gold",
+                            "value": 330
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 78
+                                  },
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 4
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 164
+                              }
+                            ],
+                            "name": "group_pattern:select",
+                            "value": 246
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 41
+                                  },
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 84
+                              }
+                            ],
+                            "name": "group_pattern:pointing",
+                            "value": 126
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 10
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 20
+                              }
+                            ],
+                            "name": "group_pattern:input",
+                            "value": 30
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 2
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 4
+                              }
+                            ],
+                            "name": "group_pattern:scroll",
+                            "value": 6
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "status:infeasible",
+                                "value": 2
+                              }
+                            ],
+                            "name": "group_pattern:fail",
+                            "value": 3
+                          }
+                        ],
+                        "name": "task:desktop",
+                        "value": 2327
+                      }
+                    ],
+                    "name": "environment:libreoffice_calc",
+                    "value": 2950
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 139
+                                  },
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 15
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 308
+                              }
+                            ],
+                            "name": "group_pattern:select",
+                            "value": 462
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 111
+                                  },
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 35
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 292
+                              }
+                            ],
+                            "name": "group_pattern:select-and-input",
+                            "value": 438
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "name": "repeat_signal:loop-like",
+                                "value": 39
+                              }
+                            ],
+                            "name": "status:gold",
+                            "value": 78
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 9
+                                  },
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 6
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 30
+                              }
+                            ],
+                            "name": "group_pattern:pointing",
+                            "value": 45
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 5
+                                  },
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 3
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 16
+                              }
+                            ],
+                            "name": "group_pattern:input",
+                            "value": 24
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 2
+                                  },
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 2
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 8
+                              }
+                            ],
+                            "name": "group_pattern:scroll",
+                            "value": 12
+                          }
+                        ],
+                        "name": "task:desktop",
+                        "value": 1425
+                      }
+                    ],
+                    "name": "environment:libreoffice_impress",
+                    "value": 1791
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 117
+                                  },
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 14
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 262
+                              }
+                            ],
+                            "name": "group_pattern:select",
+                            "value": 393
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 47
+                                  },
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 18
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 130
+                              }
+                            ],
+                            "name": "group_pattern:select-and-input",
+                            "value": 195
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 12
+                                  },
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 11
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 46
+                              }
+                            ],
+                            "name": "group_pattern:input",
+                            "value": 69
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "name": "repeat_signal:loop-like",
+                                "value": 21
+                              },
+                              {
+                                "children": [],
+                                "name": "repeat_signal:none",
+                                "value": 9
+                              }
+                            ],
+                            "name": "status:gold",
+                            "value": 60
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 11
+                                  },
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 2
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 26
+                              }
+                            ],
+                            "name": "group_pattern:scroll",
+                            "value": 39
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 7
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 14
+                              }
+                            ],
+                            "name": "group_pattern:pointing",
+                            "value": 21
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 4
+                                  }
+                                ],
+                                "name": "status:infeasible",
+                                "value": 8
+                              }
+                            ],
+                            "name": "group_pattern:fail",
+                            "value": 12
+                          }
+                        ],
+                        "name": "task:desktop",
+                        "value": 1062
+                      }
+                    ],
+                    "name": "environment:chrome",
+                    "value": 1335
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 74
+                                  },
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 10
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 168
+                              }
+                            ],
+                            "name": "group_pattern:select-and-input",
+                            "value": 252
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 35
+                                  },
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 8
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 86
+                              }
+                            ],
+                            "name": "group_pattern:select",
+                            "value": 129
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 14
+                                  },
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 6
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 40
+                              }
+                            ],
+                            "name": "group_pattern:pointing",
+                            "value": 60
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 9
+                                  },
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 3
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 24
+                              }
+                            ],
+                            "name": "group_pattern:input",
+                            "value": 36
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "name": "repeat_signal:loop-like",
+                                "value": 9
+                              },
+                              {
+                                "children": [],
+                                "name": "repeat_signal:none",
+                                "value": 3
+                              }
+                            ],
+                            "name": "status:gold",
+                            "value": 24
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "status:infeasible",
+                                "value": 2
+                              }
+                            ],
+                            "name": "group_pattern:fail",
+                            "value": 3
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 2
+                              }
+                            ],
+                            "name": "group_pattern:scroll",
+                            "value": 3
+                          }
+                        ],
+                        "name": "task:desktop",
+                        "value": 680
+                      }
+                    ],
+                    "name": "environment:libreoffice_writer",
+                    "value": 853
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 53
+                                  },
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 7
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 120
+                              }
+                            ],
+                            "name": "group_pattern:select-and-input",
+                            "value": 180
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 31
+                                  },
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 64
+                              }
+                            ],
+                            "name": "group_pattern:select",
+                            "value": 96
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "name": "repeat_signal:none",
+                                "value": 6
+                              }
+                            ],
+                            "name": "status:gold",
+                            "value": 12
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "status:infeasible",
+                                "value": 2
+                              }
+                            ],
+                            "name": "group_pattern:fail",
+                            "value": 3
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 2
+                              }
+                            ],
+                            "name": "group_pattern:pointing",
+                            "value": 3
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 2
+                              }
+                            ],
+                            "name": "group_pattern:scroll",
+                            "value": 3
+                          }
+                        ],
+                        "name": "task:desktop",
+                        "value": 398
+                      }
+                    ],
+                    "name": "environment:thunderbird",
+                    "value": 499
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 41
+                                  },
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 3
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 88
+                              }
+                            ],
+                            "name": "group_pattern:select",
+                            "value": 132
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 15
+                                  },
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 3
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 36
+                              }
+                            ],
+                            "name": "group_pattern:select-and-input",
+                            "value": 54
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 8
+                                  },
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 3
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 22
+                              }
+                            ],
+                            "name": "group_pattern:input",
+                            "value": 33
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "name": "repeat_signal:loop-like",
+                                "value": 6
+                              },
+                              {
+                                "children": [],
+                                "name": "repeat_signal:none",
+                                "value": 3
+                              }
+                            ],
+                            "name": "status:gold",
+                            "value": 18
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 3
+                                  }
+                                ],
+                                "name": "status:infeasible",
+                                "value": 6
+                              }
+                            ],
+                            "name": "group_pattern:fail",
+                            "value": 9
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 2
+                              }
+                            ],
+                            "name": "group_pattern:pointing",
+                            "value": 3
+                          }
+                        ],
+                        "name": "task:desktop",
+                        "value": 335
+                      }
+                    ],
+                    "name": "environment:vlc",
+                    "value": 421
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 30
+                                  },
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 17
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 94
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 2
+                                  }
+                                ],
+                                "name": "status:infeasible",
+                                "value": 4
+                              }
+                            ],
+                            "name": "group_pattern:input",
+                            "value": 147
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 5
+                                  },
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 3
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 16
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "status:infeasible",
+                                "value": 2
+                              }
+                            ],
+                            "name": "group_pattern:select",
+                            "value": 27
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "name": "repeat_signal:loop-like",
+                                "value": 7
+                              },
+                              {
+                                "children": [],
+                                "name": "repeat_signal:none",
+                                "value": 5
+                              }
+                            ],
+                            "name": "status:gold",
+                            "value": 24
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 4
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 8
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 3
+                                  }
+                                ],
+                                "name": "status:infeasible",
+                                "value": 6
+                              }
+                            ],
+                            "name": "group_pattern:select-and-input",
+                            "value": 21
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 5
+                                  }
+                                ],
+                                "name": "status:infeasible",
+                                "value": 10
+                              }
+                            ],
+                            "name": "group_pattern:system",
+                            "value": 15
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 4
+                                  }
+                                ],
+                                "name": "status:infeasible",
+                                "value": 8
+                              }
+                            ],
+                            "name": "group_pattern:fail",
+                            "value": 12
+                          }
+                        ],
+                        "name": "task:desktop",
+                        "value": 332
+                      }
+                    ],
+                    "name": "environment:os",
+                    "value": 418
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 39
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 78
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 4
+                                  }
+                                ],
+                                "name": "status:infeasible",
+                                "value": 8
+                              }
+                            ],
+                            "name": "group_pattern:input",
+                            "value": 129
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 13
+                                  },
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 8
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 42
+                              }
+                            ],
+                            "name": "group_pattern:select",
+                            "value": 63
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 10
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 20
+                              }
+                            ],
+                            "name": "group_pattern:select-and-input",
+                            "value": 30
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 5
+                                  }
+                                ],
+                                "name": "status:infeasible",
+                                "value": 10
+                              }
+                            ],
+                            "name": "group_pattern:fail",
+                            "value": 15
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "name": "repeat_signal:none",
+                                "value": 4
+                              }
+                            ],
+                            "name": "status:gold",
+                            "value": 8
+                          }
+                        ],
+                        "name": "task:desktop",
+                        "value": 328
+                      }
+                    ],
+                    "name": "environment:vs_code",
+                    "value": 411
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 26
+                                  },
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 4
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 60
+                              }
+                            ],
+                            "name": "group_pattern:select",
+                            "value": 90
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 11
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 22
+                              }
+                            ],
+                            "name": "group_pattern:select-and-input",
+                            "value": 33
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 10
+                                  }
+                                ],
+                                "name": "status:infeasible",
+                                "value": 20
+                              }
+                            ],
+                            "name": "group_pattern:fail",
+                            "value": 30
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 8
+                                  },
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:loop-like",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 18
+                              }
+                            ],
+                            "name": "group_pattern:input",
+                            "value": 27
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "repeat_signal:none",
+                                    "value": 7
+                                  }
+                                ],
+                                "name": "status:gold",
+                                "value": 14
+                              }
+                            ],
+                            "name": "group_pattern:pointing",
+                            "value": 21
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "name": "repeat_signal:loop-like",
+                                "value": 4
+                              }
+                            ],
+                            "name": "status:gold",
+                            "value": 8
+                          }
+                        ],
+                        "name": "task:desktop",
+                        "value": 280
+                      }
+                    ],
+                    "name": "environment:gimp",
+                    "value": 351
+                  }
+                ],
+                "name": "benchmark:osworld-human",
+                "value": 34061
+              }
+            ],
+            "name": "dataset:osworld-human",
+            "value": 40071
+          }
+        ],
+        "name": "project:external-agent-traces",
+        "value": 46081
+      }
+    ],
+    "name": "root",
+    "value": 6010
+  },
+  "unique_stacks": 106
+}

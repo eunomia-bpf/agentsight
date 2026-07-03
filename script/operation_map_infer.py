@@ -99,6 +99,15 @@ TASK_FAMILIES: tuple[tuple[str, tuple[Predicate, ...]], ...] = (
             Predicate("task", "mobile-cross-app"),
         ),
     ),
+    (
+        "desktop",
+        (
+            Predicate("dataset", "satraj-os-safety"),
+            Predicate("dataset", "osworld-human"),
+            Predicate("tool", "computer"),
+            Predicate("task", "desktop-computer-use"),
+        ),
+    ),
 )
 
 PHASE_FAMILIES: tuple[tuple[str, tuple[Predicate, ...]], ...] = (
@@ -122,15 +131,66 @@ PHASE_FAMILIES: tuple[tuple[str, tuple[Predicate, ...]], ...] = (
         ),
     ),
     (
+        "input",
+        (
+            Predicate("action", "fill"),
+            Predicate("action", "type"),
+            Predicate("action", "text"),
+            Predicate("action", "text_input"),
+            Predicate("action", "key"),
+            Predicate("action", "press"),
+            Predicate("action", "hotkey"),
+            Predicate("action", "key_down"),
+            Predicate("action", "key_up"),
+        ),
+    ),
+    (
         "navigate",
         (
             Predicate("action", "click"),
+            Predicate("action", "left_click"),
+            Predicate("action", "double_click"),
+            Predicate("action", "triple_click"),
+            Predicate("action", "right_click"),
+            Predicate("action", "middle_click"),
             Predicate("action", "go"),
             Predicate("action", "goto"),
             Predicate("action", "open"),
             Predicate("action", "load"),
             Predicate("action", "open_app"),
             Predicate("action", "scroll"),
+            Predicate("action", "hscroll"),
+            Predicate("action", "mouse_move"),
+            Predicate("action", "move_to"),
+            Predicate("action", "drag"),
+            Predicate("action", "left_click_drag"),
+            Predicate("action", "mouse_down"),
+            Predicate("action", "mouse_up"),
+            Predicate("action", "select"),
+        ),
+    ),
+    (
+        "observe",
+        (
+            Predicate("action", "observe"),
+            Predicate("action", "wait"),
+            Predicate("action", "check"),
+            Predicate("action", "repeat_until_done"),
+        ),
+    ),
+    (
+        "system",
+        (
+            Predicate("action", "shell"),
+            Predicate("action", "open_file"),
+            Predicate("action", "close_window"),
+        ),
+    ),
+    (
+        "fail",
+        (
+            Predicate("action", "fail"),
+            Predicate("status", "infeasible"),
         ),
     ),
     (
@@ -149,10 +209,6 @@ PHASE_FAMILIES: tuple[tuple[str, tuple[Predicate, ...]], ...] = (
         (
             Predicate("action", "edit"),
             Predicate("action", "create"),
-            Predicate("action", "fill"),
-            Predicate("action", "type"),
-            Predicate("action", "text"),
-            Predicate("action", "text_input"),
         ),
     ),
 )
@@ -258,7 +314,7 @@ def infer_rules(operations: list[dict[str, Any]], min_support: int) -> list[Infe
             if field == "phase" and label == "api":
                 rules.extend(infer_generic_phase_rules(operations, min_support))
     effective = effective_supports(operations, rules)
-    return [
+    mapped = [
         InferredRule(
             field=rule.field,
             label=rule.label,
@@ -269,6 +325,7 @@ def infer_rules(operations: list[dict[str, Any]], min_support: int) -> list[Infe
         )
         for rule in rules
     ]
+    return [rule for rule in mapped if rule.effective_support >= min_support]
 
 
 def infer_generic_phase_rules(

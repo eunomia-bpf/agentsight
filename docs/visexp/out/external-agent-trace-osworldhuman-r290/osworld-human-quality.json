@@ -1,0 +1,801 @@
+{
+  "boundary_alignment": [
+    {
+      "adjacent_pairs": 5641,
+      "candidate_pairs": 5641,
+      "f1": 0.6383,
+      "false_negative": 2288,
+      "false_positive": 0,
+      "oracle": "action",
+      "precision": 1.0,
+      "predicted": "phase",
+      "recall": 0.4688,
+      "sequence_field": "session",
+      "skipped_missing_fields": 0,
+      "true_negative": 1334,
+      "true_positive": 2019,
+      "turn_field": "turn"
+    },
+    {
+      "adjacent_pairs": 3691,
+      "candidate_pairs": 5641,
+      "f1": 0.3331,
+      "false_negative": 1285,
+      "false_positive": 597,
+      "oracle": "human_group",
+      "precision": 0.4405,
+      "predicted": "phase",
+      "recall": 0.2678,
+      "sequence_field": "session",
+      "skipped_missing_fields": 1950,
+      "true_negative": 1339,
+      "true_positive": 470,
+      "turn_field": "turn"
+    },
+    {
+      "adjacent_pairs": 3691,
+      "candidate_pairs": 5641,
+      "f1": 0.6268,
+      "false_negative": 954,
+      "false_positive": 0,
+      "oracle": "human_group",
+      "precision": 1.0,
+      "predicted": "group_pattern",
+      "recall": 0.4564,
+      "sequence_field": "session",
+      "skipped_missing_fields": 1950,
+      "true_negative": 1936,
+      "true_positive": 801,
+      "turn_field": "turn"
+    }
+  ],
+  "coverage": [
+    {
+      "coverage": 1.0,
+      "field": "action",
+      "present": 6010,
+      "total": 6010
+    },
+    {
+      "coverage": 1.0,
+      "field": "benchmark",
+      "present": 6010,
+      "total": 6010
+    },
+    {
+      "coverage": 1.0,
+      "field": "dataset",
+      "present": 6010,
+      "total": 6010
+    },
+    {
+      "coverage": 1.0,
+      "field": "environment",
+      "present": 6010,
+      "total": 6010
+    },
+    {
+      "coverage": 1.0,
+      "field": "group_alignment",
+      "present": 6010,
+      "total": 6010
+    },
+    {
+      "coverage": 0.6674,
+      "field": "group_pattern",
+      "present": 4011,
+      "total": 6010
+    },
+    {
+      "coverage": 0.6674,
+      "field": "group_position",
+      "present": 4011,
+      "total": 6010
+    },
+    {
+      "coverage": 0.6674,
+      "field": "group_size",
+      "present": 4011,
+      "total": 6010
+    },
+    {
+      "coverage": 0.6674,
+      "field": "human_group",
+      "present": 4011,
+      "total": 6010
+    },
+    {
+      "coverage": 1.0,
+      "field": "op",
+      "present": 6010,
+      "total": 6010
+    },
+    {
+      "coverage": 1.0,
+      "field": "phase",
+      "present": 6010,
+      "total": 6010
+    },
+    {
+      "coverage": 1.0,
+      "field": "project",
+      "present": 6010,
+      "total": 6010
+    },
+    {
+      "coverage": 1.0,
+      "field": "repeat_signal",
+      "present": 6010,
+      "total": 6010
+    },
+    {
+      "coverage": 1.0,
+      "field": "status",
+      "present": 6010,
+      "total": 6010
+    },
+    {
+      "coverage": 1.0,
+      "field": "task",
+      "present": 6010,
+      "total": 6010
+    },
+    {
+      "coverage": 1.0,
+      "field": "tool",
+      "present": 6010,
+      "total": 6010
+    }
+  ],
+  "op_map_files": [
+    "docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-op-map.txt"
+  ],
+  "op_maps": [
+    "task:software=(dataset=swe\\-agent\\-trajectories|tool=swe\\-agent)",
+    "task:web=(dataset=weblinx\\-chat|dataset=webshop\\-expert|dataset=agenttrek|dataset=mind2web|tool=browser|tool=webshop|task=web\\-navigation|task=shopping|task=travel)",
+    "task:api=(dataset=api\\-bank|tool=api|task=api\\-call)",
+    "task:tool=(dataset=toolbench|task=tool\\-use)",
+    "task:mobile=(dataset=android\\-control|dataset=gui\\-odyssey|tool=android|tool=mobile\\-gui|task=mobile\\-control|task=mobile\\-cross\\-app)",
+    "task:desktop=(dataset=satraj\\-os\\-safety|dataset=osworld\\-human|tool=computer|task=desktop\\-computer\\-use)",
+    "phase:finish=(action=submit|action=send_msg_to_user|action=finish|action=complete)",
+    "phase:api=(dataset=api\\-bank|dataset=toolbench|tool=api|task=api\\-call|task=tool\\-use)",
+    "phase:api=(op=tool.*domain=|domain=.*op=tool)",
+    "phase:input=(action=fill|action=type|action=text|action=text_input|action=key|action=press|action=hotkey|action=key_down|action=key_up)",
+    "phase:navigate=(action=click|action=left_click|action=double_click|action=triple_click|action=right_click|action=go|action=goto|action=open|action=load|action=open_app|action=scroll|action=mouse_move|action=move_to|action=drag|action=left_click_drag|action=mouse_down|action=mouse_up|action=select)",
+    "phase:observe=(action=observe|action=wait|action=check|action=repeat_until_done)",
+    "phase:system=(action=shell|action=open_file|action=close_window)",
+    "phase:fail=(action=fail|status=infeasible)",
+    "phase:inspect=(action=look|action=search|action=find|action=find_file|action=search_dir|action=search_file)",
+    "phase:modify=(action=edit|action=create)"
+  ],
+  "operation_files": [
+    "docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-operations.jsonl"
+  ],
+  "oracle_alignment": [
+    {
+      "completeness": 1.0,
+      "homogeneity": 0.4142,
+      "oracle": "action",
+      "oracle_labels": 22,
+      "predicted": "phase",
+      "predicted_labels": 5,
+      "support": 6010,
+      "top_confusions": [
+        {
+          "oracle": "click",
+          "predicted": "navigate",
+          "weight": 2187
+        },
+        {
+          "oracle": "type",
+          "predicted": "input",
+          "weight": 1140
+        },
+        {
+          "oracle": "hotkey",
+          "predicted": "input",
+          "weight": 1041
+        },
+        {
+          "oracle": "press",
+          "predicted": "input",
+          "weight": 910
+        },
+        {
+          "oracle": "drag",
+          "predicted": "navigate",
+          "weight": 143
+        },
+        {
+          "oracle": "move_to",
+          "predicted": "navigate",
+          "weight": 137
+        },
+        {
+          "oracle": "double_click",
+          "predicted": "navigate",
+          "weight": 120
+        },
+        {
+          "oracle": "scroll",
+          "predicted": "navigate",
+          "weight": 99
+        },
+        {
+          "oracle": "right_click",
+          "predicted": "navigate",
+          "weight": 45
+        },
+        {
+          "oracle": "fail",
+          "predicted": "fail",
+          "weight": 30
+        },
+        {
+          "oracle": "triple_click",
+          "predicted": "navigate",
+          "weight": 30
+        },
+        {
+          "oracle": "key_down",
+          "predicted": "input",
+          "weight": 26
+        }
+      ],
+      "v_measure": 0.5858
+    },
+    {
+      "completeness": 0.4934,
+      "homogeneity": 0.3455,
+      "oracle": "action",
+      "oracle_labels": 22,
+      "predicted": "group_pattern",
+      "predicted_labels": 8,
+      "support": 4011,
+      "top_confusions": [
+        {
+          "oracle": "click",
+          "predicted": "select",
+          "weight": 911
+        },
+        {
+          "oracle": "press",
+          "predicted": "input",
+          "weight": 487
+        },
+        {
+          "oracle": "type",
+          "predicted": "input",
+          "weight": 467
+        },
+        {
+          "oracle": "click",
+          "predicted": "select-and-input",
+          "weight": 432
+        },
+        {
+          "oracle": "hotkey",
+          "predicted": "input",
+          "weight": 420
+        },
+        {
+          "oracle": "type",
+          "predicted": "select-and-input",
+          "weight": 278
+        },
+        {
+          "oracle": "hotkey",
+          "predicted": "select-and-input",
+          "weight": 231
+        },
+        {
+          "oracle": "press",
+          "predicted": "select-and-input",
+          "weight": 208
+        },
+        {
+          "oracle": "drag",
+          "predicted": "select-and-input",
+          "weight": 75
+        },
+        {
+          "oracle": "move_to",
+          "predicted": "select-and-input",
+          "weight": 72
+        },
+        {
+          "oracle": "double_click",
+          "predicted": "select",
+          "weight": 56
+        },
+        {
+          "oracle": "scroll",
+          "predicted": "scroll",
+          "weight": 50
+        }
+      ],
+      "v_measure": 0.4064
+    },
+    {
+      "completeness": 0.0849,
+      "homogeneity": 0.0319,
+      "oracle": "human_group",
+      "oracle_labels": 181,
+      "predicted": "group_position",
+      "predicted_labels": 4,
+      "support": 4011,
+      "top_confusions": [
+        {
+          "oracle": "group-000",
+          "predicted": "single",
+          "weight": 212
+        },
+        {
+          "oracle": "group-000",
+          "predicted": "middle",
+          "weight": 208
+        },
+        {
+          "oracle": "group-001",
+          "predicted": "single",
+          "weight": 154
+        },
+        {
+          "oracle": "group-002",
+          "predicted": "single",
+          "weight": 127
+        },
+        {
+          "oracle": "group-001",
+          "predicted": "middle",
+          "weight": 123
+        },
+        {
+          "oracle": "group-000",
+          "predicted": "start",
+          "weight": 108
+        },
+        {
+          "oracle": "group-000",
+          "predicted": "end",
+          "weight": 108
+        },
+        {
+          "oracle": "group-001",
+          "predicted": "start",
+          "weight": 91
+        },
+        {
+          "oracle": "group-001",
+          "predicted": "end",
+          "weight": 91
+        },
+        {
+          "oracle": "group-003",
+          "predicted": "single",
+          "weight": 89
+        },
+        {
+          "oracle": "group-004",
+          "predicted": "single",
+          "weight": 74
+        },
+        {
+          "oracle": "group-002",
+          "predicted": "start",
+          "weight": 68
+        }
+      ],
+      "v_measure": 0.0464
+    }
+  ],
+  "stack": [
+    "project",
+    "dataset",
+    "benchmark",
+    "environment",
+    "task",
+    "group_pattern",
+    "phase",
+    "op",
+    "tool",
+    "action",
+    "status",
+    "group_position",
+    "repeat_signal"
+  ],
+  "summary": {
+    "compression_ratio": 12.469,
+    "operations": 6010,
+    "total_weight": 6010,
+    "unique_stacks": 482
+  },
+  "top_by_field": {
+    "action": [
+      {
+        "value": "click",
+        "weight": 2187
+      },
+      {
+        "value": "type",
+        "weight": 1140
+      },
+      {
+        "value": "hotkey",
+        "weight": 1041
+      },
+      {
+        "value": "press",
+        "weight": 910
+      },
+      {
+        "value": "drag",
+        "weight": 143
+      },
+      {
+        "value": "move_to",
+        "weight": 137
+      },
+      {
+        "value": "double_click",
+        "weight": 120
+      },
+      {
+        "value": "scroll",
+        "weight": 99
+      },
+      {
+        "value": "right_click",
+        "weight": 45
+      },
+      {
+        "value": "fail",
+        "weight": 30
+      },
+      {
+        "value": "triple_click",
+        "weight": 30
+      },
+      {
+        "value": "key_down",
+        "weight": 26
+      }
+    ],
+    "benchmark": [
+      {
+        "value": "osworld-human",
+        "weight": 6010
+      }
+    ],
+    "dataset": [
+      {
+        "value": "osworld-human",
+        "weight": 6010
+      }
+    ],
+    "environment": [
+      {
+        "value": "multi_apps",
+        "weight": 4148
+      },
+      {
+        "value": "libreoffice_calc",
+        "weight": 623
+      },
+      {
+        "value": "libreoffice_impress",
+        "weight": 366
+      },
+      {
+        "value": "chrome",
+        "weight": 273
+      },
+      {
+        "value": "libreoffice_writer",
+        "weight": 173
+      },
+      {
+        "value": "thunderbird",
+        "weight": 101
+      },
+      {
+        "value": "os",
+        "weight": 86
+      },
+      {
+        "value": "vlc",
+        "weight": 86
+      },
+      {
+        "value": "vs_code",
+        "weight": 83
+      },
+      {
+        "value": "gimp",
+        "weight": 71
+      }
+    ],
+    "group_alignment": [
+      {
+        "value": "exact",
+        "weight": 4011
+      },
+      {
+        "value": "content-mismatch",
+        "weight": 1174
+      },
+      {
+        "value": "length-mismatch",
+        "weight": 825
+      }
+    ],
+    "group_pattern": [
+      {
+        "value": "select-and-input",
+        "weight": 1420
+      },
+      {
+        "value": "input",
+        "weight": 1384
+      },
+      {
+        "value": "select",
+        "weight": 993
+      },
+      {
+        "value": "pointing",
+        "weight": 119
+      },
+      {
+        "value": "scroll",
+        "weight": 51
+      },
+      {
+        "value": "fail",
+        "weight": 30
+      },
+      {
+        "value": "system",
+        "weight": 11
+      },
+      {
+        "value": "observe",
+        "weight": 3
+      }
+    ],
+    "group_position": [
+      {
+        "value": "single",
+        "weight": 1311
+      },
+      {
+        "value": "middle",
+        "weight": 1172
+      },
+      {
+        "value": "start",
+        "weight": 764
+      },
+      {
+        "value": "end",
+        "weight": 764
+      }
+    ],
+    "group_size": [
+      {
+        "value": "1",
+        "weight": 1311
+      },
+      {
+        "value": "2",
+        "weight": 782
+      },
+      {
+        "value": "3",
+        "weight": 546
+      },
+      {
+        "value": "4",
+        "weight": 276
+      },
+      {
+        "value": "22",
+        "weight": 220
+      },
+      {
+        "value": "5",
+        "weight": 200
+      },
+      {
+        "value": "16",
+        "weight": 160
+      },
+      {
+        "value": "8",
+        "weight": 160
+      },
+      {
+        "value": "6",
+        "weight": 132
+      },
+      {
+        "value": "7",
+        "weight": 49
+      },
+      {
+        "value": "9",
+        "weight": 36
+      },
+      {
+        "value": "24",
+        "weight": 24
+      }
+    ],
+    "human_group": [
+      {
+        "value": "group-000",
+        "weight": 636
+      },
+      {
+        "value": "group-001",
+        "weight": 459
+      },
+      {
+        "value": "group-002",
+        "weight": 316
+      },
+      {
+        "value": "group-003",
+        "weight": 246
+      },
+      {
+        "value": "group-004",
+        "weight": 200
+      },
+      {
+        "value": "group-005",
+        "weight": 167
+      },
+      {
+        "value": "group-006",
+        "weight": 134
+      },
+      {
+        "value": "group-009",
+        "weight": 110
+      },
+      {
+        "value": "group-007",
+        "weight": 104
+      },
+      {
+        "value": "group-008",
+        "weight": 102
+      },
+      {
+        "value": "group-010",
+        "weight": 72
+      },
+      {
+        "value": "group-013",
+        "weight": 71
+      }
+    ],
+    "op": [
+      {
+        "value": "action",
+        "weight": 6010
+      }
+    ],
+    "phase": [
+      {
+        "value": "input",
+        "weight": 3139
+      },
+      {
+        "value": "navigate",
+        "weight": 2814
+      },
+      {
+        "value": "fail",
+        "weight": 30
+      },
+      {
+        "value": "observe",
+        "weight": 20
+      },
+      {
+        "value": "system",
+        "weight": 7
+      }
+    ],
+    "project": [
+      {
+        "value": "external-agent-traces",
+        "weight": 6010
+      }
+    ],
+    "repeat_signal": [
+      {
+        "value": "loop-like",
+        "weight": 5495
+      },
+      {
+        "value": "none",
+        "weight": 515
+      }
+    ],
+    "status": [
+      {
+        "value": "gold",
+        "weight": 5965
+      },
+      {
+        "value": "infeasible",
+        "weight": 45
+      }
+    ],
+    "task": [
+      {
+        "value": "desktop",
+        "weight": 6010
+      }
+    ],
+    "tool": [
+      {
+        "value": "computer",
+        "weight": 6010
+      }
+    ]
+  },
+  "top_stacks": [
+    {
+      "stack": "project:external-agent-traces;dataset:osworld-human;benchmark:osworld-human;environment:multi_apps;task:desktop;group_pattern:unknown;phase:navigate;op:action;tool:computer;action:click;status:gold;group_position:unknown;repeat_signal:loop-like",
+      "weight": 682
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:osworld-human;benchmark:osworld-human;environment:multi_apps;task:desktop;group_pattern:unknown;phase:input;op:action;tool:computer;action:hotkey;status:gold;group_position:unknown;repeat_signal:loop-like",
+      "weight": 381
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:osworld-human;benchmark:osworld-human;environment:multi_apps;task:desktop;group_pattern:unknown;phase:input;op:action;tool:computer;action:type;status:gold;group_position:unknown;repeat_signal:loop-like",
+      "weight": 360
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:osworld-human;benchmark:osworld-human;environment:multi_apps;task:desktop;group_pattern:select;phase:navigate;op:action;tool:computer;action:click;status:gold;group_position:single;repeat_signal:loop-like",
+      "weight": 333
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:osworld-human;benchmark:osworld-human;environment:multi_apps;task:desktop;group_pattern:input;phase:input;op:action;tool:computer;action:hotkey;status:gold;group_position:single;repeat_signal:loop-like",
+      "weight": 209
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:osworld-human;benchmark:osworld-human;environment:multi_apps;task:desktop;group_pattern:unknown;phase:input;op:action;tool:computer;action:press;status:gold;group_position:unknown;repeat_signal:loop-like",
+      "weight": 184
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:osworld-human;benchmark:osworld-human;environment:multi_apps;task:desktop;group_pattern:input;phase:input;op:action;tool:computer;action:press;status:gold;group_position:end;repeat_signal:loop-like",
+      "weight": 173
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:osworld-human;benchmark:osworld-human;environment:multi_apps;task:desktop;group_pattern:input;phase:input;op:action;tool:computer;action:type;status:gold;group_position:start;repeat_signal:loop-like",
+      "weight": 172
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:osworld-human;benchmark:osworld-human;environment:multi_apps;task:desktop;group_pattern:input;phase:input;op:action;tool:computer;action:type;status:gold;group_position:middle;repeat_signal:loop-like",
+      "weight": 168
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:osworld-human;benchmark:osworld-human;environment:multi_apps;task:desktop;group_pattern:input;phase:input;op:action;tool:computer;action:press;status:gold;group_position:middle;repeat_signal:loop-like",
+      "weight": 163
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:osworld-human;benchmark:osworld-human;environment:multi_apps;task:desktop;group_pattern:select-and-input;phase:input;op:action;tool:computer;action:hotkey;status:gold;group_position:end;repeat_signal:loop-like",
+      "weight": 107
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:osworld-human;benchmark:osworld-human;environment:chrome;task:desktop;group_pattern:select;phase:navigate;op:action;tool:computer;action:click;status:gold;group_position:single;repeat_signal:loop-like",
+      "weight": 97
+    }
+  ]
+}
