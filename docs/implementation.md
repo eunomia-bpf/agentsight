@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-03
 Stage at update: stage 4 execute
-Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `script/operation_*.py`, `script/agent_trace_datasets.py sample tau-bench-trajectories`, `script/agent_trace_datasets.py sample agent-reward-bench`, `cargo test --manifest-path agentpprof/Cargo.toml`
+Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `script/operation_*.py`, `script/agent_trace_datasets.py sample tau-bench-trajectories`, `script/agent_trace_datasets.py sample agent-reward-bench`, `script/agent_trace_datasets.py sample satraj-os-safety`, `cargo test --manifest-path agentpprof/Cargo.toml`
 Completeness: partial
 
 ## Repository Layout Relevant To Semantic Profiling
@@ -37,16 +37,25 @@ The current Rust implementation supports:
 - local Codex/Claude session projections and external dataset projections
   through the same stack construction code path.
 
-The external sampler currently covers 11 labeled trajectory sources, including
-R287's tau-bench converter and R288's AgentRewardBench converter. The tau-bench
-converter treats user messages, assistant responses, tool calls, and tool
-observations as operation shapes, so tool-agent-user dialogue still uses the
-same operation/operation-stack path. The AgentRewardBench converter reads the HF
-annotations table, downloads only matching `cleaned/` trajectory JSON files, and
-turns BrowserGym steps into browser-action operations with expert `status`,
-`side_effect`, `looping`, and `optimality` fields plus action-derived
-`repeat_state` and `repeat_signal` fields for sequence-level repetition
-diagnostics.
+The external sampler currently covers 12 labeled trajectory sources, including
+R287's tau-bench converter, R288's AgentRewardBench converter, and R289's
+SATraj-OS converter. The tau-bench converter treats user messages, assistant
+responses, tool calls, and tool observations as operation shapes, so
+tool-agent-user dialogue still uses the same operation/operation-stack path. The
+AgentRewardBench converter reads the HF annotations table, downloads only
+matching `cleaned/` trajectory JSON files, and turns BrowserGym steps into
+browser-action operations with expert `status`, `side_effect`, `looping`, and
+`optimality` fields plus action-derived `repeat_state` and `repeat_signal`
+fields for sequence-level repetition diagnostics.
+
+The SATraj-OS converter reads the Dataset Viewer `safety` config, extracts
+assistant `computer_use` XML tool-call parameters, and emits desktop
+computer-action operations. Saved raw rows drop `messages` and `task`, and
+operation JSONL records bucketed coordinate targets or generic text/key targets
+instead of raw prompt, screenshot, or typed text content. SATraj `success`,
+`safety`, `reward`, and `attack_type` labels are stored as operation fields, so
+they can be folded as stack frames or scored by the same HTML/JSON analysis
+scripts without adding a safety-specific profiler object.
 
 The Python scripts are experiment harnesses. They download or normalize
 third-party traces, generate mapping files, call the Rust CLI, and score
@@ -102,8 +111,9 @@ Purpose: name work still needed before a paper-ready artifact.
 | Task | Why it matters | Status |
 |---|---|---|
 | Add deeper boundary scorers for step instructions, solution paths, and failure labels. | Action-label F1 is too shallow for final recursive-boundary claims. | pending |
-| Add converters for the best next trajectory sources: OSWorld-Verified/OSWorld 2.0 trajectories and VisualWebArena trajectories. | Expands scale and domain coverage beyond the current 11 datasets. | pending |
+| Add converters for the best next trajectory sources: AgentNet, OSWorld-Verified/OSWorld 2.0 trajectories, and VisualWebArena trajectories. | Expands scale and domain coverage beyond the current 12 datasets and covers desktop sources whose rows are not as lightweight as SATraj safety. | pending |
 | Scale tau-bench beyond the R287 `gpt-4o-mini` 50-episode sample. | Multi-model tau-bench trajectories can support outcome/failure and model-comparison analysis. | pending |
 | Scale AgentRewardBench beyond the R288 38-trajectory lightweight sample. | Expert side-effect and looping labels are sparse; larger balanced sampling is needed for paper-grade failure diagnostics and better sequence-derived repetition rules. | pending |
+| Scale SATraj-OS beyond the R289 safety sample and revisit the capability config. | Desktop computer-use is now represented, but capability rows were not fully readable through Dataset Viewer and need a heavier access path. | pending |
 | Add a config-file profile spec that bundles mappings, stack depth, and output choices. | Makes the jq-like configurable workflow easier than long CLI command lines. | pending |
-| Add stronger non-flamegraph comparison reports across datasets and depths. | Paper needs visual/analysis alternatives beyond flamegraphs. | partial via R273-R288 |
+| Add stronger non-flamegraph comparison reports across datasets and depths. | Paper needs visual/analysis alternatives beyond flamegraphs. | partial via R273-R289 |

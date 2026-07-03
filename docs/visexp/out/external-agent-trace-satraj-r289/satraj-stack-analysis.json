@@ -1,0 +1,2501 @@
+{
+  "compression_ratio": 29.15,
+  "depth_weight": {
+    "0": 4285,
+    "1": 4285,
+    "10": 4285,
+    "2": 4285,
+    "3": 4285,
+    "4": 4285,
+    "5": 4285,
+    "6": 4285,
+    "7": 4285,
+    "8": 4285,
+    "9": 4285
+  },
+  "top_by_kind": {
+    "action": [
+      {
+        "name": "left_click",
+        "weight": 2972
+      },
+      {
+        "name": "type",
+        "weight": 472
+      },
+      {
+        "name": "key",
+        "weight": 366
+      },
+      {
+        "name": "double_click",
+        "weight": 123
+      },
+      {
+        "name": "scroll",
+        "weight": 93
+      },
+      {
+        "name": "left_click_drag",
+        "weight": 80
+      },
+      {
+        "name": "mouse_move",
+        "weight": 61
+      },
+      {
+        "name": "right_click",
+        "weight": 51
+      },
+      {
+        "name": "terminate",
+        "weight": 33
+      },
+      {
+        "name": "wait",
+        "weight": 28
+      },
+      {
+        "name": "answer",
+        "weight": 3
+      },
+      {
+        "name": "system_command",
+        "weight": 1
+      },
+      {
+        "name": "open_terminal",
+        "weight": 1
+      },
+      {
+        "name": "wrong",
+        "weight": 1
+      }
+    ],
+    "attack_type": [
+      {
+        "name": "account",
+        "weight": 1228
+      },
+      {
+        "name": "induced_text",
+        "weight": 1131
+      },
+      {
+        "name": "popup",
+        "weight": 1123
+      },
+      {
+        "name": "os",
+        "weight": 420
+      },
+      {
+        "name": "unknown_file",
+        "weight": 383
+      }
+    ],
+    "benchmark": [
+      {
+        "name": "satraj-os",
+        "weight": 4285
+      }
+    ],
+    "dataset": [
+      {
+        "name": "satraj-os-safety",
+        "weight": 4285
+      }
+    ],
+    "op": [
+      {
+        "name": "action",
+        "weight": 4285
+      }
+    ],
+    "phase": [
+      {
+        "name": "navigate",
+        "weight": 3380
+      },
+      {
+        "name": "input",
+        "weight": 838
+      },
+      {
+        "name": "finish",
+        "weight": 36
+      },
+      {
+        "name": "observe",
+        "weight": 28
+      },
+      {
+        "name": "computer-action",
+        "weight": 3
+      }
+    ],
+    "project": [
+      {
+        "name": "external-agent-traces",
+        "weight": 4285
+      }
+    ],
+    "repeat_signal": [
+      {
+        "name": "loop-like",
+        "weight": 2500
+      },
+      {
+        "name": "none",
+        "weight": 1785
+      }
+    ],
+    "safety": [
+      {
+        "name": "safe",
+        "weight": 3663
+      },
+      {
+        "name": "unsafe",
+        "weight": 622
+      }
+    ],
+    "status": [
+      {
+        "name": "failure",
+        "weight": 3351
+      },
+      {
+        "name": "success",
+        "weight": 934
+      }
+    ],
+    "tool": [
+      {
+        "name": "computer",
+        "weight": 4285
+      }
+    ]
+  },
+  "top_leaves": [
+    {
+      "name": "repeat_signal:loop-like",
+      "weight": 2500
+    },
+    {
+      "name": "repeat_signal:none",
+      "weight": 1785
+    }
+  ],
+  "top_transitions": [
+    {
+      "from": "project:external-agent-traces",
+      "to": "dataset:satraj-os-safety",
+      "weight": 4285
+    },
+    {
+      "from": "dataset:satraj-os-safety",
+      "to": "benchmark:satraj-os",
+      "weight": 4285
+    },
+    {
+      "from": "op:action",
+      "to": "tool:computer",
+      "weight": 4285
+    },
+    {
+      "from": "phase:navigate",
+      "to": "op:action",
+      "weight": 3380
+    },
+    {
+      "from": "safety:safe",
+      "to": "status:failure",
+      "weight": 3334
+    },
+    {
+      "from": "tool:computer",
+      "to": "action:left_click",
+      "weight": 2972
+    },
+    {
+      "from": "status:failure",
+      "to": "phase:navigate",
+      "weight": 2780
+    },
+    {
+      "from": "action:left_click",
+      "to": "repeat_signal:loop-like",
+      "weight": 1639
+    },
+    {
+      "from": "action:left_click",
+      "to": "repeat_signal:none",
+      "weight": 1333
+    },
+    {
+      "from": "benchmark:satraj-os",
+      "to": "attack_type:account",
+      "weight": 1228
+    },
+    {
+      "from": "attack_type:account",
+      "to": "safety:safe",
+      "weight": 1228
+    },
+    {
+      "from": "benchmark:satraj-os",
+      "to": "attack_type:induced_text",
+      "weight": 1131
+    },
+    {
+      "from": "attack_type:induced_text",
+      "to": "safety:safe",
+      "weight": 1131
+    },
+    {
+      "from": "benchmark:satraj-os",
+      "to": "attack_type:popup",
+      "weight": 1123
+    },
+    {
+      "from": "attack_type:popup",
+      "to": "safety:safe",
+      "weight": 1123
+    },
+    {
+      "from": "phase:input",
+      "to": "op:action",
+      "weight": 838
+    },
+    {
+      "from": "safety:unsafe",
+      "to": "status:success",
+      "weight": 605
+    },
+    {
+      "from": "status:success",
+      "to": "phase:navigate",
+      "weight": 600
+    },
+    {
+      "from": "status:failure",
+      "to": "phase:input",
+      "weight": 518
+    },
+    {
+      "from": "tool:computer",
+      "to": "action:type",
+      "weight": 472
+    },
+    {
+      "from": "benchmark:satraj-os",
+      "to": "attack_type:os",
+      "weight": 420
+    },
+    {
+      "from": "benchmark:satraj-os",
+      "to": "attack_type:unknown_file",
+      "weight": 383
+    },
+    {
+      "from": "tool:computer",
+      "to": "action:key",
+      "weight": 366
+    },
+    {
+      "from": "safety:safe",
+      "to": "status:success",
+      "weight": 329
+    },
+    {
+      "from": "status:success",
+      "to": "phase:input",
+      "weight": 320
+    },
+    {
+      "from": "action:type",
+      "to": "repeat_signal:loop-like",
+      "weight": 313
+    },
+    {
+      "from": "attack_type:os",
+      "to": "safety:unsafe",
+      "weight": 313
+    },
+    {
+      "from": "attack_type:unknown_file",
+      "to": "safety:unsafe",
+      "weight": 309
+    },
+    {
+      "from": "action:key",
+      "to": "repeat_signal:loop-like",
+      "weight": 279
+    },
+    {
+      "from": "action:type",
+      "to": "repeat_signal:none",
+      "weight": 159
+    }
+  ],
+  "total_weight": 4285,
+  "tree": {
+    "children": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 450
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 151
+                                              }
+                                            ],
+                                            "name": "action:left_click",
+                                            "value": 1202
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 39
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 16
+                                              }
+                                            ],
+                                            "name": "action:scroll",
+                                            "value": 110
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 17
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 6
+                                              }
+                                            ],
+                                            "name": "action:double_click",
+                                            "value": 46
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 12
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 3
+                                              }
+                                            ],
+                                            "name": "action:right_click",
+                                            "value": 30
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 7
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 4
+                                              }
+                                            ],
+                                            "name": "action:left_click_drag",
+                                            "value": 22
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 5
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "action:mouse_move",
+                                            "value": 14
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 2136
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 2848
+                                  }
+                                ],
+                                "name": "phase:navigate",
+                                "value": 3560
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 145
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 54
+                                              }
+                                            ],
+                                            "name": "action:type",
+                                            "value": 398
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 114
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 19
+                                              }
+                                            ],
+                                            "name": "action:key",
+                                            "value": 266
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 996
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 1328
+                                  }
+                                ],
+                                "name": "phase:input",
+                                "value": 1660
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 11
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 3
+                                              }
+                                            ],
+                                            "name": "action:wait",
+                                            "value": 28
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 42
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 56
+                                  }
+                                ],
+                                "name": "phase:observe",
+                                "value": 70
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 7
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "action:terminate",
+                                            "value": 18
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 27
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 36
+                                  }
+                                ],
+                                "name": "phase:finish",
+                                "value": 45
+                              }
+                            ],
+                            "name": "status:failure",
+                            "value": 6402
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 69
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 43
+                                              }
+                                            ],
+                                            "name": "action:left_click",
+                                            "value": 224
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 5
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "action:scroll",
+                                            "value": 14
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 3
+                                              }
+                                            ],
+                                            "name": "action:double_click",
+                                            "value": 6
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "action:mouse_move",
+                                            "value": 4
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 372
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 496
+                                  }
+                                ],
+                                "name": "phase:navigate",
+                                "value": 620
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 17
+                                              }
+                                            ],
+                                            "name": "action:type",
+                                            "value": 34
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 12
+                                              }
+                                            ],
+                                            "name": "action:key",
+                                            "value": 24
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 87
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 116
+                                  }
+                                ],
+                                "name": "phase:input",
+                                "value": 145
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 4
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "action:terminate",
+                                            "value": 12
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 18
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 24
+                                  }
+                                ],
+                                "name": "phase:finish",
+                                "value": 30
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 1
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 1
+                                              }
+                                            ],
+                                            "name": "action:wait",
+                                            "value": 4
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 6
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 8
+                                  }
+                                ],
+                                "name": "phase:observe",
+                                "value": 10
+                              }
+                            ],
+                            "name": "status:success",
+                            "value": 966
+                          }
+                        ],
+                        "name": "safety:safe",
+                        "value": 8596
+                      }
+                    ],
+                    "name": "attack_type:account",
+                    "value": 9824
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 438
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 413
+                                              }
+                                            ],
+                                            "name": "action:left_click",
+                                            "value": 1702
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 20
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 15
+                                              }
+                                            ],
+                                            "name": "action:left_click_drag",
+                                            "value": 70
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 17
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 13
+                                              }
+                                            ],
+                                            "name": "action:double_click",
+                                            "value": 60
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 8
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 7
+                                              }
+                                            ],
+                                            "name": "action:mouse_move",
+                                            "value": 30
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 6
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 4
+                                              }
+                                            ],
+                                            "name": "action:scroll",
+                                            "value": 20
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "action:right_click",
+                                            "value": 4
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 2829
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 3772
+                                  }
+                                ],
+                                "name": "phase:navigate",
+                                "value": 4715
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 14
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 9
+                                              }
+                                            ],
+                                            "name": "action:key",
+                                            "value": 46
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 9
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 4
+                                              }
+                                            ],
+                                            "name": "action:type",
+                                            "value": 26
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 108
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 144
+                                  }
+                                ],
+                                "name": "phase:input",
+                                "value": 180
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 4
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "action:terminate",
+                                            "value": 12
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 18
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 24
+                                  }
+                                ],
+                                "name": "phase:finish",
+                                "value": 30
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 1
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 1
+                                              }
+                                            ],
+                                            "name": "action:wait",
+                                            "value": 4
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 6
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 8
+                                  }
+                                ],
+                                "name": "phase:observe",
+                                "value": 10
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 1
+                                              }
+                                            ],
+                                            "name": "action:system_command",
+                                            "value": 2
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 3
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 4
+                                  }
+                                ],
+                                "name": "phase:computer-action",
+                                "value": 5
+                              }
+                            ],
+                            "name": "status:failure",
+                            "value": 5928
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 71
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 42
+                                              }
+                                            ],
+                                            "name": "action:left_click",
+                                            "value": 226
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 5
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "action:double_click",
+                                            "value": 14
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 4
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 1
+                                              }
+                                            ],
+                                            "name": "action:left_click_drag",
+                                            "value": 10
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 1
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 1
+                                              }
+                                            ],
+                                            "name": "action:mouse_move",
+                                            "value": 4
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 1
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 1
+                                              }
+                                            ],
+                                            "name": "action:right_click",
+                                            "value": 4
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 387
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 516
+                                  }
+                                ],
+                                "name": "phase:navigate",
+                                "value": 645
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 6
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "action:type",
+                                            "value": 16
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 2
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 1
+                                              }
+                                            ],
+                                            "name": "action:key",
+                                            "value": 6
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 33
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 44
+                                  }
+                                ],
+                                "name": "phase:input",
+                                "value": 55
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 1
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 1
+                                              }
+                                            ],
+                                            "name": "action:terminate",
+                                            "value": 4
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 6
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 8
+                                  }
+                                ],
+                                "name": "phase:finish",
+                                "value": 10
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 1
+                                              }
+                                            ],
+                                            "name": "action:wait",
+                                            "value": 2
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 3
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 4
+                                  }
+                                ],
+                                "name": "phase:observe",
+                                "value": 5
+                              }
+                            ],
+                            "name": "status:success",
+                            "value": 858
+                          }
+                        ],
+                        "name": "safety:safe",
+                        "value": 7917
+                      }
+                    ],
+                    "name": "attack_type:induced_text",
+                    "value": 9048
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 464
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 455
+                                              }
+                                            ],
+                                            "name": "action:left_click",
+                                            "value": 1838
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 19
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 15
+                                              }
+                                            ],
+                                            "name": "action:double_click",
+                                            "value": 68
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 18
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 15
+                                              }
+                                            ],
+                                            "name": "action:mouse_move",
+                                            "value": 66
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 14
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 13
+                                              }
+                                            ],
+                                            "name": "action:left_click_drag",
+                                            "value": 54
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 16
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 3
+                                              }
+                                            ],
+                                            "name": "action:scroll",
+                                            "value": 38
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 4
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 3
+                                              }
+                                            ],
+                                            "name": "action:right_click",
+                                            "value": 14
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 3117
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 4156
+                                  }
+                                ],
+                                "name": "phase:navigate",
+                                "value": 5195
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 18
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 17
+                                              }
+                                            ],
+                                            "name": "action:key",
+                                            "value": 70
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 12
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 3
+                                              }
+                                            ],
+                                            "name": "action:type",
+                                            "value": 30
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 150
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 200
+                                  }
+                                ],
+                                "name": "phase:input",
+                                "value": 250
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 2
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 1
+                                              }
+                                            ],
+                                            "name": "action:terminate",
+                                            "value": 6
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 1
+                                              }
+                                            ],
+                                            "name": "action:answer",
+                                            "value": 2
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 12
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 16
+                                  }
+                                ],
+                                "name": "phase:finish",
+                                "value": 20
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 3
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 1
+                                              }
+                                            ],
+                                            "name": "action:wait",
+                                            "value": 8
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 12
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 16
+                                  }
+                                ],
+                                "name": "phase:observe",
+                                "value": 20
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 1
+                                              }
+                                            ],
+                                            "name": "action:wrong",
+                                            "value": 2
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 3
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 4
+                                  }
+                                ],
+                                "name": "phase:computer-action",
+                                "value": 5
+                              }
+                            ],
+                            "name": "status:failure",
+                            "value": 6588
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 13
+                                              }
+                                            ],
+                                            "name": "action:left_click",
+                                            "value": 26
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "action:left_click_drag",
+                                            "value": 4
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 45
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 60
+                                  }
+                                ],
+                                "name": "phase:navigate",
+                                "value": 75
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 7
+                                              }
+                                            ],
+                                            "name": "action:type",
+                                            "value": 14
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 3
+                                              }
+                                            ],
+                                            "name": "action:key",
+                                            "value": 6
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 30
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 40
+                                  }
+                                ],
+                                "name": "phase:input",
+                                "value": 50
+                              }
+                            ],
+                            "name": "status:success",
+                            "value": 150
+                          }
+                        ],
+                        "name": "safety:safe",
+                        "value": 7861
+                      }
+                    ],
+                    "name": "attack_type:popup",
+                    "value": 8984
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 98
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 53
+                                              }
+                                            ],
+                                            "name": "action:left_click",
+                                            "value": 302
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 10
+                                              }
+                                            ],
+                                            "name": "action:right_click",
+                                            "value": 20
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 3
+                                              }
+                                            ],
+                                            "name": "action:double_click",
+                                            "value": 6
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 1
+                                              }
+                                            ],
+                                            "name": "action:mouse_move",
+                                            "value": 2
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 1
+                                              }
+                                            ],
+                                            "name": "action:scroll",
+                                            "value": 2
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 498
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 664
+                                  }
+                                ],
+                                "name": "phase:navigate",
+                                "value": 830
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 45
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 39
+                                              }
+                                            ],
+                                            "name": "action:type",
+                                            "value": 168
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 36
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 20
+                                              }
+                                            ],
+                                            "name": "action:key",
+                                            "value": 112
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 420
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 560
+                                  }
+                                ],
+                                "name": "phase:input",
+                                "value": 700
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 1
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 1
+                                              }
+                                            ],
+                                            "name": "action:wait",
+                                            "value": 4
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 6
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 8
+                                  }
+                                ],
+                                "name": "phase:observe",
+                                "value": 10
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 1
+                                              }
+                                            ],
+                                            "name": "action:open_terminal",
+                                            "value": 2
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 3
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 4
+                                  }
+                                ],
+                                "name": "phase:computer-action",
+                                "value": 5
+                              }
+                            ],
+                            "name": "status:success",
+                            "value": 1854
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "action:key",
+                                            "value": 4
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "action:type",
+                                            "value": 4
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 12
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 16
+                                  }
+                                ],
+                                "name": "phase:input",
+                                "value": 20
+                              }
+                            ],
+                            "name": "status:failure",
+                            "value": 24
+                          }
+                        ],
+                        "name": "safety:unsafe",
+                        "value": 2191
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 36
+                                              }
+                                            ],
+                                            "name": "action:key",
+                                            "value": 72
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 27
+                                              }
+                                            ],
+                                            "name": "action:type",
+                                            "value": 54
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 189
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 252
+                                  }
+                                ],
+                                "name": "phase:input",
+                                "value": 315
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 22
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 5
+                                              }
+                                            ],
+                                            "name": "action:left_click",
+                                            "value": 54
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 5
+                                              }
+                                            ],
+                                            "name": "action:right_click",
+                                            "value": 10
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "action:double_click",
+                                            "value": 4
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 1
+                                              }
+                                            ],
+                                            "name": "action:mouse_move",
+                                            "value": 2
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 105
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 140
+                                  }
+                                ],
+                                "name": "phase:navigate",
+                                "value": 175
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 4
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "action:terminate",
+                                            "value": 12
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 18
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 24
+                                  }
+                                ],
+                                "name": "phase:finish",
+                                "value": 30
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 3
+                                              }
+                                            ],
+                                            "name": "action:wait",
+                                            "value": 6
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 9
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 12
+                                  }
+                                ],
+                                "name": "phase:observe",
+                                "value": 15
+                              }
+                            ],
+                            "name": "status:failure",
+                            "value": 642
+                          }
+                        ],
+                        "name": "safety:safe",
+                        "value": 749
+                      }
+                    ],
+                    "name": "attack_type:os",
+                    "value": 3360
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 70
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 69
+                                              }
+                                            ],
+                                            "name": "action:left_click",
+                                            "value": 278
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 13
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 4
+                                              }
+                                            ],
+                                            "name": "action:double_click",
+                                            "value": 34
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 7
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "action:right_click",
+                                            "value": 18
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 1
+                                              }
+                                            ],
+                                            "name": "action:scroll",
+                                            "value": 2
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 498
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 664
+                                  }
+                                ],
+                                "name": "phase:navigate",
+                                "value": 830
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 48
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 34
+                                              }
+                                            ],
+                                            "name": "action:type",
+                                            "value": 164
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 34
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 14
+                                              }
+                                            ],
+                                            "name": "action:key",
+                                            "value": 96
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 390
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 520
+                                  }
+                                ],
+                                "name": "phase:input",
+                                "value": 650
+                              }
+                            ],
+                            "name": "status:success",
+                            "value": 1776
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 5
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 3
+                                              }
+                                            ],
+                                            "name": "action:left_click",
+                                            "value": 16
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 24
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 32
+                                  }
+                                ],
+                                "name": "phase:navigate",
+                                "value": 40
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 2
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 1
+                                              }
+                                            ],
+                                            "name": "action:type",
+                                            "value": 6
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "action:key",
+                                            "value": 4
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 15
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 20
+                                  }
+                                ],
+                                "name": "phase:input",
+                                "value": 25
+                              }
+                            ],
+                            "name": "status:failure",
+                            "value": 78
+                          }
+                        ],
+                        "name": "safety:unsafe",
+                        "value": 2163
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 28
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 10
+                                              }
+                                            ],
+                                            "name": "action:left_click",
+                                            "value": 76
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 3
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 1
+                                              }
+                                            ],
+                                            "name": "action:double_click",
+                                            "value": 8
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 1
+                                              }
+                                            ],
+                                            "name": "action:right_click",
+                                            "value": 2
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 129
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 172
+                                  }
+                                ],
+                                "name": "phase:navigate",
+                                "value": 215
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 10
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 5
+                                              }
+                                            ],
+                                            "name": "action:type",
+                                            "value": 30
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:loop-like",
+                                                "value": 9
+                                              },
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 4
+                                              }
+                                            ],
+                                            "name": "action:key",
+                                            "value": 26
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 84
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 112
+                                  }
+                                ],
+                                "name": "phase:input",
+                                "value": 140
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [
+                                      {
+                                        "children": [
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 2
+                                              }
+                                            ],
+                                            "name": "action:answer",
+                                            "value": 4
+                                          },
+                                          {
+                                            "children": [
+                                              {
+                                                "children": [],
+                                                "name": "repeat_signal:none",
+                                                "value": 1
+                                              }
+                                            ],
+                                            "name": "action:terminate",
+                                            "value": 2
+                                          }
+                                        ],
+                                        "name": "tool:computer",
+                                        "value": 9
+                                      }
+                                    ],
+                                    "name": "op:action",
+                                    "value": 12
+                                  }
+                                ],
+                                "name": "phase:finish",
+                                "value": 15
+                              }
+                            ],
+                            "name": "status:failure",
+                            "value": 444
+                          }
+                        ],
+                        "name": "safety:safe",
+                        "value": 518
+                      }
+                    ],
+                    "name": "attack_type:unknown_file",
+                    "value": 3064
+                  }
+                ],
+                "name": "benchmark:satraj-os",
+                "value": 38565
+              }
+            ],
+            "name": "dataset:satraj-os-safety",
+            "value": 42850
+          }
+        ],
+        "name": "project:external-agent-traces",
+        "value": 47135
+      }
+    ],
+    "name": "root",
+    "value": 4285
+  },
+  "unique_stacks": 147
+}

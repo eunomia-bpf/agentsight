@@ -174,6 +174,19 @@ DATASETS: dict[str, dict[str, Any]] = {
         "why": "Expert-reviewed web-agent trajectories with success, side-effect, looping, and optimality labels.",
         "note": "Sampler reads the annotations table, then downloads only matching cleaned trajectory JSON files; screenshots are never downloaded.",
     },
+    "satraj-os-safety": {
+        "title": "SATraj-OS safety trajectories",
+        "hf_repo": "AI45Research/SATraj-OS",
+        "config": "safety",
+        "split": "train",
+        "access": "hf-viewer",
+        "adapter": "satraj-os",
+        "drop_raw_fields": ["messages", "task"],
+        "source": "https://huggingface.co/datasets/AI45Research/SATraj-OS",
+        "paper": "https://arxiv.org/abs/2605.06230",
+        "why": "Large desktop computer-use trajectories with success, safety, reward, and attack labels.",
+        "note": "The capability config is not fully readable through Dataset Viewer; the safety config is sampled through rows and raw messages are redacted from saved raw rows.",
+    },
 }
 
 
@@ -479,6 +492,8 @@ def normalize_row(
         return normalize_tau_bench(dataset_id, dataset, row, row_index, include_text)
     if adapter == "agent-reward-bench":
         return normalize_agent_reward_bench(dataset_id, dataset, row, row_index, include_text)
+    if adapter == "satraj-os":
+        return normalize_satraj_os(dataset_id, dataset, row, row_index, include_text)
     raise SystemExit(f"no adapter for dataset {dataset_id}")
 
 
@@ -898,57 +913,7 @@ def agent_reward_repeat_features(steps: list[dict[str, Any]]) -> list[dict[str, 
     for step in steps:
         action_raw = str(step.get("action") or "")
         signatures.append((action_verb(action_raw), sanitize_label(agent_reward_action_target(action_raw))))
-
-    features: list[dict[str, str]] = []
-    last_signature: tuple[str, str] | None = None
-    same_run = 0
-    max_same_run = 0
-    max_recent_signature = 0
-    max_recent_target = 0
-    for index, signature in enumerate(signatures):
-        if signature == last_signature:
-            same_run += 1
-        else:
-            same_run = 1
-        last_signature = signature
-        max_same_run = max(max_same_run, same_run)
-
-        window = signatures[max(0, index - 4) : index + 1]
-        recent_signature = sum(1 for item in window if item == signature)
-        target = signature[1]
-        recent_target = (
-            sum(1 for item in window if item[1] == target)
-            if target and target != "none"
-            else recent_signature
-        )
-        max_recent_signature = max(max_recent_signature, recent_signature)
-        max_recent_target = max(max_recent_target, recent_target)
-
-        if same_run >= 3:
-            repeat_state = "same-action-run"
-        elif recent_signature >= 3:
-            repeat_state = "same-action-window"
-        elif target != "none" and recent_target >= 4:
-            repeat_state = "target-window"
-        elif same_run == 2 or recent_signature == 2 or recent_target == 2:
-            repeat_state = "light-repeat"
-        else:
-            repeat_state = "single"
-        features.append(
-            {
-                "repeat_state": repeat_state,
-                "repeat_run": "3plus" if same_run >= 3 else str(same_run),
-            }
-        )
-
-    trajectory_signal = (
-        "loop-like"
-        if max_same_run >= 3 or max_recent_signature >= 3 or max_recent_target >= 4
-        else "none"
-    )
-    for feature in features:
-        feature["repeat_signal"] = trajectory_signal
-    return features
+    return repeat_features_for_signatures(signatures)
 
 
 def agent_reward_base_fields(
@@ -1026,6 +991,208 @@ def normalize_yes_no_label(value: str) -> str:
 def normalize_optimality_label(value: str) -> str:
     label = re.sub(r"^\s*\d+\.\s*", "", value.strip())
     return sanitize_label(label or value)
+
+
+def normalize_satraj_os(
+    dataset_id: str,
+    dataset: dict[str, Any],
+    row: dict[str, Any],
+    row_index: int,
+    include_text: bool,
+) -> list[dict[str, Any]]:
+    result = row.get("result") or {}
+    attack = result.get("attack") or {}
+    task_meta = parse_json_object(row.get("task"))
+    session = sanitize_label(str(row.get("trajectory_id") or f"satraj-{row_index}"))
+    domain = sanitize_label(str(task_meta.get("domain") or row.get("trajectory_category") or "desktop"))
+    status = normalize_bool_outcome(result.get("success"), "success", "failure")
+    safety = normalize_bool_outcome(result.get("safety"), "safe", "unsafe")
+    attack_flag = normalize_bool_outcome(attack.get("is_attack"), "attack", "benign")
+    messages = [message for message in row.get("messages") or [] if isinstance(message, dict)]
+
+    operations = []
+    action_signatures: list[tuple[str, str]] = []
+    parsed_steps: list[tuple[int, dict[str, str], str, str]] = []
+    for message_index, message in enumerate(messages):
+        if str(message.get("role") or "").lower() != "assistant":
+            continue
+        params = extract_xml_tool_call_params(str(message.get("content") or ""))
+        action = sanitize_label(params.get("action") or "")
+        if not action:
+            continue
+        target = satraj_action_target(action, params)
+        action_signatures.append((action, target))
+        parsed_steps.append((message_index, params, action, target))
+
+    repeat_features = repeat_features_for_signatures(action_signatures)
+    for ordinal, (message_index, params, action, target) in enumerate(parsed_steps):
+        repeat = repeat_features[ordinal]
+        fields: dict[str, Any] = {
+            "project": "external-agent-traces",
+            "agent": "computer-use-agent",
+            "dataset": dataset_id,
+            "source": dataset["hf_repo"],
+            "session": session,
+            "turn": str(message_index),
+            "step": str(ordinal),
+            "task": "desktop-computer-use",
+            "benchmark": "satraj-os",
+            "environment": domain,
+            "category": sanitize_label(str(row.get("trajectory_category") or "unknown")),
+            "phase": satraj_action_phase(action),
+            "op": "action",
+            "tool": "computer",
+            "action": action,
+            "target": target,
+            "status": status,
+            "safety": safety,
+            "attack": attack_flag,
+            "attack_type": sanitize_label(str(attack.get("attack_type") or "none")),
+            "reward": sanitize_label(str(result.get("reward") if result.get("reward") is not None else "unknown")),
+            "repeat_state": repeat["repeat_state"],
+            "repeat_signal": repeat["repeat_signal"],
+            "repeat_run": repeat["repeat_run"],
+        }
+        if include_text:
+            fields["parameter_shape"] = sanitize_label("-".join(sorted(params)) or "none")
+        operations.append({"value": 1, "fields": fields})
+    return operations
+
+
+def parse_json_object(value: Any) -> dict[str, Any]:
+    if isinstance(value, dict):
+        return value
+    if not value:
+        return {}
+    try:
+        parsed = json.loads(str(value))
+    except json.JSONDecodeError:
+        return {}
+    return parsed if isinstance(parsed, dict) else {}
+
+
+def extract_xml_tool_call_params(content: str) -> dict[str, str]:
+    params: dict[str, str] = {}
+    for match in re.finditer(r"<parameter=([^>]+)>\s*(.*?)\s*</parameter>", content, re.DOTALL):
+        key = sanitize_label(match.group(1))
+        value = re.sub(r"\s+", " ", match.group(2)).strip()
+        if key and value:
+            params[key] = value
+    return params
+
+
+def satraj_action_phase(action: str) -> str:
+    if action in {"key", "type"}:
+        return "input"
+    if action in {
+        "mouse_move",
+        "left_click",
+        "left_click_drag",
+        "right_click",
+        "middle_click",
+        "double_click",
+        "triple_click",
+        "scroll",
+        "hscroll",
+    }:
+        return "navigate"
+    if action == "wait":
+        return "observe"
+    if action in {"terminate", "answer"}:
+        return "finish"
+    return "computer-action"
+
+
+def satraj_action_target(action: str, params: dict[str, str]) -> str:
+    if action in {"type", "answer"} and params.get("text"):
+        return "text"
+    if params.get("coordinate"):
+        return coordinate_bucket(params["coordinate"])
+    if params.get("keys"):
+        return sanitize_label(params["keys"])
+    if params.get("pixels"):
+        return "pixels"
+    if params.get("time"):
+        return "time"
+    if params.get("status"):
+        return sanitize_label(params["status"])
+    return "none"
+
+
+def coordinate_bucket(value: str) -> str:
+    numbers = re.findall(r"-?\d+(?:\.\d+)?", value)
+    if len(numbers) < 2:
+        return "coordinate"
+    try:
+        x = float(numbers[0])
+        y = float(numbers[1])
+    except ValueError:
+        return "coordinate"
+    if 0.0 <= x <= 1.0 and 0.0 <= y <= 1.0:
+        x *= 1000.0
+        y *= 1000.0
+    return f"x{int(x // 100) * 100}-y{int(y // 100) * 100}"
+
+
+def normalize_bool_outcome(value: Any, true_label: str, false_label: str) -> str:
+    if value is True:
+        return true_label
+    if value is False:
+        return false_label
+    return "unknown"
+
+
+def repeat_features_for_signatures(signatures: list[tuple[str, str]]) -> list[dict[str, str]]:
+    features: list[dict[str, str]] = []
+    last_signature: tuple[str, str] | None = None
+    same_run = 0
+    max_same_run = 0
+    max_recent_signature = 0
+    max_recent_target = 0
+    for index, signature in enumerate(signatures):
+        if signature == last_signature:
+            same_run += 1
+        else:
+            same_run = 1
+        last_signature = signature
+        max_same_run = max(max_same_run, same_run)
+
+        window = signatures[max(0, index - 4) : index + 1]
+        recent_signature = sum(1 for item in window if item == signature)
+        target = signature[1]
+        recent_target = (
+            sum(1 for item in window if item[1] == target)
+            if target and target != "none"
+            else recent_signature
+        )
+        max_recent_signature = max(max_recent_signature, recent_signature)
+        max_recent_target = max(max_recent_target, recent_target)
+
+        if same_run >= 3:
+            repeat_state = "same-action-run"
+        elif recent_signature >= 3:
+            repeat_state = "same-action-window"
+        elif target != "none" and recent_target >= 4:
+            repeat_state = "target-window"
+        elif same_run == 2 or recent_signature == 2 or recent_target == 2:
+            repeat_state = "light-repeat"
+        else:
+            repeat_state = "single"
+        features.append(
+            {
+                "repeat_state": repeat_state,
+                "repeat_run": "3plus" if same_run >= 3 else str(same_run),
+            }
+        )
+
+    trajectory_signal = (
+        "loop-like"
+        if max_same_run >= 3 or max_recent_signature >= 3 or max_recent_target >= 4
+        else "none"
+    )
+    for feature in features:
+        feature["repeat_signal"] = trajectory_signal
+    return features
 
 
 def normalize_tau_bench(

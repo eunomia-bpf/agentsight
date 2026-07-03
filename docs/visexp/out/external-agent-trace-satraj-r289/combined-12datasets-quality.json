@@ -1,0 +1,1171 @@
+{
+  "boundary_alignment": [
+    {
+      "adjacent_pairs": 18234,
+      "f1": 0.7721,
+      "false_negative": 3520,
+      "false_positive": 0,
+      "oracle": "action",
+      "precision": 1.0,
+      "predicted": "phase",
+      "recall": 0.6287,
+      "sequence_field": "session",
+      "true_negative": 8753,
+      "true_positive": 5961,
+      "turn_field": "turn"
+    }
+  ],
+  "coverage": [
+    {
+      "coverage": 1.0,
+      "field": "action",
+      "present": 19839,
+      "total": 19839
+    },
+    {
+      "coverage": 0.216,
+      "field": "attack_type",
+      "present": 4285,
+      "total": 19839
+    },
+    {
+      "coverage": 0.3314,
+      "field": "benchmark",
+      "present": 6574,
+      "total": 19839
+    },
+    {
+      "coverage": 1.0,
+      "field": "dataset",
+      "present": 19839,
+      "total": 19839
+    },
+    {
+      "coverage": 0.0367,
+      "field": "looping",
+      "present": 729,
+      "total": 19839
+    },
+    {
+      "coverage": 1.0,
+      "field": "op",
+      "present": 19839,
+      "total": 19839
+    },
+    {
+      "coverage": 1.0,
+      "field": "phase",
+      "present": 19839,
+      "total": 19839
+    },
+    {
+      "coverage": 1.0,
+      "field": "project",
+      "present": 19839,
+      "total": 19839
+    },
+    {
+      "coverage": 0.2527,
+      "field": "repeat_signal",
+      "present": 5014,
+      "total": 19839
+    },
+    {
+      "coverage": 0.216,
+      "field": "safety",
+      "present": 4285,
+      "total": 19839
+    },
+    {
+      "coverage": 0.0367,
+      "field": "side_effect",
+      "present": 729,
+      "total": 19839
+    },
+    {
+      "coverage": 1.0,
+      "field": "status",
+      "present": 19839,
+      "total": 19839
+    },
+    {
+      "coverage": 1.0,
+      "field": "task",
+      "present": 19839,
+      "total": 19839
+    },
+    {
+      "coverage": 1.0,
+      "field": "tool",
+      "present": 19839,
+      "total": 19839
+    }
+  ],
+  "op_map_files": [
+    "docs/visexp/out/external-agent-trace-satraj-r289/satraj-op-map.txt"
+  ],
+  "op_maps": [
+    "task:desktop=(dataset=satraj\\-os\\-safety|tool=computer|task=desktop\\-computer\\-use)",
+    "phase:input=(dataset=satraj\\-os\\-safety.*action=(key|type)|action=(key|type).*dataset=satraj\\-os\\-safety)",
+    "phase:navigate=(dataset=satraj\\-os\\-safety.*action=(mouse_move|left_click|left_click_drag|right_click|middle_click|double_click|triple_click|scroll|hscroll)|action=(mouse_move|left_click|left_click_drag|right_click|middle_click|double_click|triple_click|scroll|hscroll).*dataset=satraj\\-os\\-safety)",
+    "phase:finish=(dataset=satraj\\-os\\-safety.*action=(terminate|answer)|action=(terminate|answer).*dataset=satraj\\-os\\-safety)",
+    "phase:observe=(dataset=satraj\\-os\\-safety.*action=wait|action=wait.*dataset=satraj\\-os\\-safety)",
+    "task:software=(dataset=swe\\-agent\\-trajectories|tool=swe\\-agent)",
+    "task:web=(dataset=weblinx\\-chat|dataset=webshop\\-expert|dataset=agenttrek|dataset=mind2web|tool=browser|tool=webshop|task=web\\-navigation|task=shopping|task=travel)",
+    "task:api=(dataset=api\\-bank|tool=api|task=api\\-call)",
+    "task:tool=(dataset=toolbench|task=tool\\-use)",
+    "task:mobile=(dataset=android\\-control|dataset=gui\\-odyssey|tool=android|tool=mobile\\-gui|task=mobile\\-control|task=mobile\\-cross\\-app)",
+    "phase:finish=(action=submit|action=send_msg_to_user|action=finish|action=complete)",
+    "phase:api=(dataset=api\\-bank|dataset=toolbench|tool=api|task=api\\-call|task=tool\\-use)",
+    "phase:api=(op=tool.*domain=|domain=.*op=tool)",
+    "phase:navigate=(action=click|action=go|action=goto|action=open|action=load|action=open_app|action=scroll)",
+    "phase:inspect=(action=look|action=search|action=find|action=find_file|action=search_dir|action=search_file)",
+    "phase:modify=(action=edit|action=create|action=fill|action=type|action=text|action=text_input)"
+  ],
+  "operation_files": [
+    ".agentsight/datasets/agent-traces/weblinx-chat/chat-validation/operations-0-500.jsonl",
+    ".agentsight/datasets/agent-traces/webshop-expert/default-test/operations-0-100.jsonl",
+    ".agentsight/datasets/agent-traces/api-bank/default-train/operations-0-48.jsonl",
+    ".agentsight/datasets/agent-traces/agenttrek/default-train/operations-0-200.jsonl",
+    ".agentsight/datasets/agent-traces/swe-agent-trajectories/default-train/operations-0-20.jsonl",
+    ".agentsight/datasets/agent-traces/mind2web/default-train/operations-0-100.jsonl",
+    ".agentsight/datasets/agent-traces/toolbench/default-validation/operations-0-300.jsonl",
+    ".agentsight/datasets/agent-traces/android-control/default-train/operations-0-2.jsonl",
+    ".agentsight/datasets/agent-traces/gui-odyssey/default-all/operations-0-500.jsonl",
+    ".agentsight/datasets/agent-traces/tau-bench-trajectories/default-train/operations-0-50.jsonl",
+    "docs/visexp/out/external-agent-trace-agentreward-r288/agentreward-operations.jsonl",
+    "docs/visexp/out/external-agent-trace-satraj-r289/satraj-operations.jsonl"
+  ],
+  "oracle_alignment": [
+    {
+      "completeness": 0.9987,
+      "homogeneity": 0.8259,
+      "oracle": "dataset",
+      "oracle_labels": 12,
+      "predicted": "task",
+      "predicted_labels": 7,
+      "support": 19839,
+      "top_confusions": [
+        {
+          "oracle": "gui-odyssey",
+          "predicted": "mobile",
+          "weight": 7868
+        },
+        {
+          "oracle": "satraj-os-safety",
+          "predicted": "desktop",
+          "weight": 4285
+        },
+        {
+          "oracle": "webshop-expert",
+          "predicted": "web",
+          "weight": 2504
+        },
+        {
+          "oracle": "tau-bench-trajectories",
+          "predicted": "tool-agent-user",
+          "weight": 1560
+        },
+        {
+          "oracle": "toolbench",
+          "predicted": "tool",
+          "weight": 860
+        },
+        {
+          "oracle": "mind2web",
+          "predicted": "web",
+          "weight": 774
+        },
+        {
+          "oracle": "agent-reward-bench",
+          "predicted": "web",
+          "weight": 729
+        },
+        {
+          "oracle": "weblinx-chat",
+          "predicted": "web",
+          "weight": 500
+        },
+        {
+          "oracle": "swe-agent-trajectories",
+          "predicted": "software",
+          "weight": 496
+        },
+        {
+          "oracle": "agenttrek",
+          "predicted": "web",
+          "weight": 200
+        },
+        {
+          "oracle": "api-bank",
+          "predicted": "api",
+          "weight": 48
+        },
+        {
+          "oracle": "android-control",
+          "predicted": "mobile",
+          "weight": 9
+        }
+      ],
+      "v_measure": 0.9041
+    },
+    {
+      "completeness": 0.99,
+      "homogeneity": 0.562,
+      "oracle": "action",
+      "oracle_labels": 465,
+      "predicted": "phase",
+      "predicted_labels": 42,
+      "support": 19839,
+      "top_confusions": [
+        {
+          "oracle": "click",
+          "predicted": "navigate",
+          "weight": 7315
+        },
+        {
+          "oracle": "left_click",
+          "predicted": "navigate",
+          "weight": 2972
+        },
+        {
+          "oracle": "scroll",
+          "predicted": "navigate",
+          "weight": 860
+        },
+        {
+          "oracle": "text",
+          "predicted": "modify",
+          "weight": 805
+        },
+        {
+          "oracle": "open",
+          "predicted": "navigate",
+          "weight": 525
+        },
+        {
+          "oracle": "complete",
+          "predicted": "finish",
+          "weight": 487
+        },
+        {
+          "oracle": "type",
+          "predicted": "input",
+          "weight": 472
+        },
+        {
+          "oracle": "go",
+          "predicted": "navigate",
+          "weight": 431
+        },
+        {
+          "oracle": "observe",
+          "predicted": "observe",
+          "weight": 391
+        },
+        {
+          "oracle": "user_message",
+          "predicted": "dialogue",
+          "weight": 367
+        },
+        {
+          "oracle": "key",
+          "predicted": "input",
+          "weight": 366
+        },
+        {
+          "oracle": "respond",
+          "predicted": "dialogue",
+          "weight": 364
+        }
+      ],
+      "v_measure": 0.717
+    },
+    {
+      "completeness": 0.064,
+      "homogeneity": 0.1653,
+      "oracle": "phase",
+      "oracle_labels": 5,
+      "predicted": "attack_type",
+      "predicted_labels": 5,
+      "support": 4285,
+      "top_confusions": [
+        {
+          "oracle": "navigate",
+          "predicted": "induced_text",
+          "weight": 1072
+        },
+        {
+          "oracle": "navigate",
+          "predicted": "popup",
+          "weight": 1054
+        },
+        {
+          "oracle": "navigate",
+          "predicted": "account",
+          "weight": 836
+        },
+        {
+          "oracle": "input",
+          "predicted": "account",
+          "weight": 361
+        },
+        {
+          "oracle": "navigate",
+          "predicted": "unknown_file",
+          "weight": 217
+        },
+        {
+          "oracle": "input",
+          "predicted": "os",
+          "weight": 207
+        },
+        {
+          "oracle": "navigate",
+          "predicted": "os",
+          "weight": 202
+        },
+        {
+          "oracle": "input",
+          "predicted": "unknown_file",
+          "weight": 163
+        },
+        {
+          "oracle": "input",
+          "predicted": "popup",
+          "weight": 60
+        },
+        {
+          "oracle": "input",
+          "predicted": "induced_text",
+          "weight": 47
+        },
+        {
+          "oracle": "observe",
+          "predicted": "account",
+          "weight": 16
+        },
+        {
+          "oracle": "finish",
+          "predicted": "account",
+          "weight": 15
+        }
+      ],
+      "v_measure": 0.0923
+    },
+    {
+      "completeness": 0.0727,
+      "homogeneity": 0.0517,
+      "oracle": "phase",
+      "oracle_labels": 5,
+      "predicted": "safety",
+      "predicted_labels": 2,
+      "support": 4285,
+      "top_confusions": [
+        {
+          "oracle": "navigate",
+          "predicted": "safe",
+          "weight": 3040
+        },
+        {
+          "oracle": "input",
+          "predicted": "safe",
+          "weight": 559
+        },
+        {
+          "oracle": "navigate",
+          "predicted": "unsafe",
+          "weight": 341
+        },
+        {
+          "oracle": "input",
+          "predicted": "unsafe",
+          "weight": 279
+        },
+        {
+          "oracle": "finish",
+          "predicted": "safe",
+          "weight": 36
+        },
+        {
+          "oracle": "observe",
+          "predicted": "safe",
+          "weight": 26
+        },
+        {
+          "oracle": "computer-action",
+          "predicted": "safe",
+          "weight": 2
+        },
+        {
+          "oracle": "observe",
+          "predicted": "unsafe",
+          "weight": 2
+        }
+      ],
+      "v_measure": 0.0604
+    },
+    {
+      "completeness": 0.3939,
+      "homogeneity": 0.3629,
+      "oracle": "looping",
+      "oracle_labels": 2,
+      "predicted": "repeat_signal",
+      "predicted_labels": 2,
+      "support": 729,
+      "top_confusions": [
+        {
+          "oracle": "yes",
+          "predicted": "loop-like",
+          "weight": 474
+        },
+        {
+          "oracle": "no",
+          "predicted": "none",
+          "weight": 157
+        },
+        {
+          "oracle": "no",
+          "predicted": "loop-like",
+          "weight": 68
+        },
+        {
+          "oracle": "yes",
+          "predicted": "none",
+          "weight": 30
+        }
+      ],
+      "v_measure": 0.3777
+    }
+  ],
+  "stack": [
+    "project",
+    "dataset",
+    "task",
+    "benchmark",
+    "phase",
+    "op",
+    "tool",
+    "action",
+    "status",
+    "safety",
+    "attack_type",
+    "side_effect",
+    "looping",
+    "repeat_signal"
+  ],
+  "summary": {
+    "compression_ratio": 28.021,
+    "operations": 19839,
+    "total_weight": 19839,
+    "unique_stacks": 708
+  },
+  "top_by_field": {
+    "action": [
+      {
+        "value": "click",
+        "weight": 7315
+      },
+      {
+        "value": "left_click",
+        "weight": 2972
+      },
+      {
+        "value": "scroll",
+        "weight": 860
+      },
+      {
+        "value": "text",
+        "weight": 805
+      },
+      {
+        "value": "type",
+        "weight": 578
+      },
+      {
+        "value": "open",
+        "weight": 525
+      },
+      {
+        "value": "complete",
+        "weight": 487
+      },
+      {
+        "value": "go",
+        "weight": 431
+      },
+      {
+        "value": "observe",
+        "weight": 391
+      },
+      {
+        "value": "user_message",
+        "weight": 367
+      },
+      {
+        "value": "key",
+        "weight": 366
+      },
+      {
+        "value": "respond",
+        "weight": 364
+      },
+      {
+        "value": "connect",
+        "weight": 240
+      },
+      {
+        "value": "focus",
+        "weight": 227
+      },
+      {
+        "value": "move",
+        "weight": 213
+      },
+      {
+        "value": "look",
+        "weight": 211
+      },
+      {
+        "value": "use",
+        "weight": 165
+      },
+      {
+        "value": "examine",
+        "weight": 156
+      },
+      {
+        "value": "finish",
+        "weight": 155
+      },
+      {
+        "value": "ls",
+        "weight": 147
+      },
+      {
+        "value": "pick",
+        "weight": 144
+      },
+      {
+        "value": "get_order_details",
+        "weight": 136
+      },
+      {
+        "value": "say",
+        "weight": 129
+      },
+      {
+        "value": "fill",
+        "weight": 129
+      },
+      {
+        "value": "wait1",
+        "weight": 126
+      },
+      {
+        "value": "double_click",
+        "weight": 123
+      },
+      {
+        "value": "edit",
+        "weight": 81
+      },
+      {
+        "value": "left_click_drag",
+        "weight": 80
+      },
+      {
+        "value": "mouse_move",
+        "weight": 61
+      },
+      {
+        "value": "send_msg_to_user",
+        "weight": 51
+      }
+    ],
+    "attack_type": [
+      {
+        "value": "account",
+        "weight": 1228
+      },
+      {
+        "value": "induced_text",
+        "weight": 1131
+      },
+      {
+        "value": "popup",
+        "weight": 1123
+      },
+      {
+        "value": "os",
+        "weight": 420
+      },
+      {
+        "value": "unknown_file",
+        "weight": 383
+      }
+    ],
+    "benchmark": [
+      {
+        "value": "satraj-os",
+        "weight": 4285
+      },
+      {
+        "value": "tau-bench",
+        "weight": 1560
+      },
+      {
+        "value": "workarena",
+        "weight": 391
+      },
+      {
+        "value": "visualwebarena",
+        "weight": 147
+      },
+      {
+        "value": "assistantbench",
+        "weight": 133
+      },
+      {
+        "value": "webarena",
+        "weight": 58
+      }
+    ],
+    "dataset": [
+      {
+        "value": "gui-odyssey",
+        "weight": 7868
+      },
+      {
+        "value": "satraj-os-safety",
+        "weight": 4285
+      },
+      {
+        "value": "webshop-expert",
+        "weight": 2504
+      },
+      {
+        "value": "tau-bench-trajectories",
+        "weight": 1560
+      },
+      {
+        "value": "toolbench",
+        "weight": 866
+      },
+      {
+        "value": "mind2web",
+        "weight": 774
+      },
+      {
+        "value": "agent-reward-bench",
+        "weight": 729
+      },
+      {
+        "value": "weblinx-chat",
+        "weight": 500
+      },
+      {
+        "value": "swe-agent-trajectories",
+        "weight": 496
+      },
+      {
+        "value": "agenttrek",
+        "weight": 200
+      },
+      {
+        "value": "api-bank",
+        "weight": 48
+      },
+      {
+        "value": "android-control",
+        "weight": 9
+      }
+    ],
+    "looping": [
+      {
+        "value": "yes",
+        "weight": 504
+      },
+      {
+        "value": "no",
+        "weight": 225
+      }
+    ],
+    "op": [
+      {
+        "value": "action",
+        "weight": 16869
+      },
+      {
+        "value": "tool",
+        "weight": 1693
+      },
+      {
+        "value": "prompt",
+        "weight": 414
+      },
+      {
+        "value": "observation",
+        "weight": 391
+      },
+      {
+        "value": "llm",
+        "weight": 364
+      },
+      {
+        "value": "finish",
+        "weight": 108
+      }
+    ],
+    "phase": [
+      {
+        "value": "navigate",
+        "weight": 12544
+      },
+      {
+        "value": "modify",
+        "weight": 1241
+      },
+      {
+        "value": "input",
+        "weight": 839
+      },
+      {
+        "value": "api",
+        "weight": 809
+      },
+      {
+        "value": "finish",
+        "weight": 759
+      },
+      {
+        "value": "dialogue",
+        "weight": 731
+      },
+      {
+        "value": "inspect",
+        "weight": 562
+      },
+      {
+        "value": "observe",
+        "weight": 427
+      },
+      {
+        "value": "connect",
+        "weight": 240
+      },
+      {
+        "value": "focus",
+        "weight": 227
+      },
+      {
+        "value": "move",
+        "weight": 213
+      },
+      {
+        "value": "use",
+        "weight": 165
+      },
+      {
+        "value": "examine",
+        "weight": 156
+      },
+      {
+        "value": "ls",
+        "weight": 147
+      },
+      {
+        "value": "pick",
+        "weight": 144
+      },
+      {
+        "value": "say",
+        "weight": 129
+      },
+      {
+        "value": "wait1",
+        "weight": 126
+      },
+      {
+        "value": "pour",
+        "weight": 42
+      },
+      {
+        "value": "long_press",
+        "weight": 41
+      },
+      {
+        "value": "noop",
+        "weight": 37
+      },
+      {
+        "value": "drop",
+        "weight": 30
+      },
+      {
+        "value": "mix",
+        "weight": 29
+      },
+      {
+        "value": "browser-action",
+        "weight": 28
+      },
+      {
+        "value": "activate",
+        "weight": 26
+      },
+      {
+        "value": "pwd",
+        "weight": 23
+      },
+      {
+        "value": "select",
+        "weight": 23
+      },
+      {
+        "value": "python",
+        "weight": 19
+      },
+      {
+        "value": "lexicon",
+        "weight": 18
+      },
+      {
+        "value": "wait",
+        "weight": 13
+      },
+      {
+        "value": "incomplete",
+        "weight": 13
+      }
+    ],
+    "project": [
+      {
+        "value": "external-agent-traces",
+        "weight": 19839
+      }
+    ],
+    "repeat_signal": [
+      {
+        "value": "loop-like",
+        "weight": 3042
+      },
+      {
+        "value": "none",
+        "weight": 1972
+      }
+    ],
+    "safety": [
+      {
+        "value": "safe",
+        "weight": 3663
+      },
+      {
+        "value": "unsafe",
+        "weight": 622
+      }
+    ],
+    "side_effect": [
+      {
+        "value": "no",
+        "weight": 527
+      },
+      {
+        "value": "yes",
+        "weight": 202
+      }
+    ],
+    "status": [
+      {
+        "value": "gold",
+        "weight": 10065
+      },
+      {
+        "value": "failure",
+        "weight": 5533
+      },
+      {
+        "value": "success",
+        "weight": 4041
+      },
+      {
+        "value": "verified",
+        "weight": 200
+      }
+    ],
+    "task": [
+      {
+        "value": "mobile",
+        "weight": 7877
+      },
+      {
+        "value": "web",
+        "weight": 4709
+      },
+      {
+        "value": "desktop",
+        "weight": 4285
+      },
+      {
+        "value": "tool-agent-user",
+        "weight": 1560
+      },
+      {
+        "value": "tool",
+        "weight": 860
+      },
+      {
+        "value": "software",
+        "weight": 496
+      },
+      {
+        "value": "api",
+        "weight": 52
+      }
+    ],
+    "tool": [
+      {
+        "value": "mobile-gui",
+        "weight": 7868
+      },
+      {
+        "value": "computer",
+        "weight": 4285
+      },
+      {
+        "value": "webshop",
+        "weight": 2504
+      },
+      {
+        "value": "browser",
+        "weight": 2203
+      },
+      {
+        "value": "swe-agent",
+        "weight": 496
+      },
+      {
+        "value": "user",
+        "weight": 414
+      },
+      {
+        "value": "assistant",
+        "weight": 364
+      },
+      {
+        "value": "get_order_details",
+        "weight": 272
+      },
+      {
+        "value": "finish",
+        "weight": 108
+      },
+      {
+        "value": "find_user_id_by_name_zip",
+        "weight": 102
+      },
+      {
+        "value": "get_user_details",
+        "weight": 96
+      },
+      {
+        "value": "get_product_details",
+        "weight": 86
+      },
+      {
+        "value": "return_delivered_order_items",
+        "weight": 58
+      },
+      {
+        "value": "api",
+        "weight": 48
+      },
+      {
+        "value": "exchange_delivered_order_items",
+        "weight": 40
+      },
+      {
+        "value": "find_user_id_by_email",
+        "weight": 36
+      },
+      {
+        "value": "modify_pending_order_items",
+        "weight": 28
+      },
+      {
+        "value": "deezer",
+        "weight": 25
+      },
+      {
+        "value": "cancel_pending_order",
+        "weight": 22
+      },
+      {
+        "value": "web_image_storage",
+        "weight": 14
+      },
+      {
+        "value": "my_store",
+        "weight": 14
+      },
+      {
+        "value": "list_all_product_types",
+        "weight": 14
+      },
+      {
+        "value": "modify_user_address",
+        "weight": 14
+      },
+      {
+        "value": "qvantana",
+        "weight": 13
+      },
+      {
+        "value": "weather",
+        "weight": 12
+      },
+      {
+        "value": "sms_receive",
+        "weight": 12
+      },
+      {
+        "value": "billboard_api",
+        "weight": 12
+      },
+      {
+        "value": "greyhound_racing_uk",
+        "weight": 11
+      },
+      {
+        "value": "image_cdn",
+        "weight": 11
+      },
+      {
+        "value": "famous_quotes",
+        "weight": 11
+      }
+    ]
+  },
+  "top_stacks": [
+    {
+      "stack": "project:external-agent-traces;dataset:gui-odyssey;task:mobile;benchmark:unknown;phase:navigate;op:action;tool:mobile-gui;action:click;status:gold;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;repeat_signal:unknown",
+      "weight": 5831
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:gui-odyssey;task:mobile;benchmark:unknown;phase:modify;op:action;tool:mobile-gui;action:text;status:gold;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;repeat_signal:unknown",
+      "weight": 805
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:gui-odyssey;task:mobile;benchmark:unknown;phase:navigate;op:action;tool:mobile-gui;action:scroll;status:gold;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;repeat_signal:unknown",
+      "weight": 691
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:mind2web;task:web;benchmark:unknown;phase:navigate;op:action;tool:browser;action:click;status:gold;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;repeat_signal:unknown",
+      "weight": 645
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:gui-odyssey;task:mobile;benchmark:unknown;phase:finish;op:action;tool:mobile-gui;action:complete;status:gold;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;repeat_signal:unknown",
+      "weight": 487
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:satraj-os-safety;task:desktop;benchmark:satraj-os;phase:navigate;op:action;tool:computer;action:left_click;status:failure;safety:safe;attack_type:popup;side_effect:unknown;looping:unknown;repeat_signal:loop-like",
+      "weight": 464
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:satraj-os-safety;task:desktop;benchmark:satraj-os;phase:navigate;op:action;tool:computer;action:left_click;status:failure;safety:safe;attack_type:popup;side_effect:unknown;looping:unknown;repeat_signal:none",
+      "weight": 455
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:satraj-os-safety;task:desktop;benchmark:satraj-os;phase:navigate;op:action;tool:computer;action:left_click;status:failure;safety:safe;attack_type:account;side_effect:unknown;looping:unknown;repeat_signal:loop-like",
+      "weight": 450
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;phase:navigate;op:action;tool:webshop;action:open;status:success;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;repeat_signal:unknown",
+      "weight": 449
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:satraj-os-safety;task:desktop;benchmark:satraj-os;phase:navigate;op:action;tool:computer;action:left_click;status:failure;safety:safe;attack_type:induced_text;side_effect:unknown;looping:unknown;repeat_signal:none",
+      "weight": 438
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;phase:navigate;op:action;tool:webshop;action:go;status:success;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;repeat_signal:unknown",
+      "weight": 431
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:satraj-os-safety;task:desktop;benchmark:satraj-os;phase:navigate;op:action;tool:computer;action:left_click;status:failure;safety:safe;attack_type:induced_text;side_effect:unknown;looping:unknown;repeat_signal:loop-like",
+      "weight": 413
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:weblinx-chat;task:web;benchmark:unknown;phase:navigate;op:action;tool:browser;action:click;status:gold;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;repeat_signal:unknown",
+      "weight": 280
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;phase:connect;op:action;tool:webshop;action:connect;status:success;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;repeat_signal:unknown",
+      "weight": 240
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;phase:focus;op:action;tool:webshop;action:focus;status:success;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;repeat_signal:unknown",
+      "weight": 224
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:tau-bench-trajectories;task:tool-agent-user;benchmark:tau-bench;phase:dialogue;op:prompt;tool:user;action:user_message;status:failure;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;repeat_signal:unknown",
+      "weight": 222
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:tau-bench-trajectories;task:tool-agent-user;benchmark:tau-bench;phase:dialogue;op:llm;tool:assistant;action:respond;status:failure;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;repeat_signal:unknown",
+      "weight": 222
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;phase:move;op:action;tool:webshop;action:move;status:success;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;repeat_signal:unknown",
+      "weight": 213
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;phase:inspect;op:action;tool:webshop;action:look;status:success;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;repeat_signal:unknown",
+      "weight": 211
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;phase:use;op:action;tool:webshop;action:use;status:success;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;repeat_signal:unknown",
+      "weight": 165
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;phase:examine;op:action;tool:webshop;action:examine;status:success;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;repeat_signal:unknown",
+      "weight": 156
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:satraj-os-safety;task:desktop;benchmark:satraj-os;phase:navigate;op:action;tool:computer;action:left_click;status:failure;safety:safe;attack_type:account;side_effect:unknown;looping:unknown;repeat_signal:none",
+      "weight": 151
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:swe-agent-trajectories;task:software;benchmark:unknown;phase:ls;op:tool;tool:swe-agent;action:ls;status:failure;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;repeat_signal:unknown",
+      "weight": 147
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:tau-bench-trajectories;task:tool-agent-user;benchmark:tau-bench;phase:dialogue;op:prompt;tool:user;action:user_message;status:success;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;repeat_signal:unknown",
+      "weight": 145
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:satraj-os-safety;task:desktop;benchmark:satraj-os;phase:input;op:action;tool:computer;action:type;status:failure;safety:safe;attack_type:account;side_effect:unknown;looping:unknown;repeat_signal:loop-like",
+      "weight": 145
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;phase:pick;op:action;tool:webshop;action:pick;status:success;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;repeat_signal:unknown",
+      "weight": 144
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:tau-bench-trajectories;task:tool-agent-user;benchmark:tau-bench;phase:dialogue;op:llm;tool:assistant;action:respond;status:success;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;repeat_signal:unknown",
+      "weight": 142
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:weblinx-chat;task:web;benchmark:unknown;phase:say;op:action;tool:browser;action:say;status:gold;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;repeat_signal:unknown",
+      "weight": 129
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;benchmark:unknown;phase:wait1;op:action;tool:webshop;action:wait1;status:success;safety:unknown;attack_type:unknown;side_effect:unknown;looping:unknown;repeat_signal:unknown",
+      "weight": 126
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:satraj-os-safety;task:desktop;benchmark:satraj-os;phase:input;op:action;tool:computer;action:key;status:failure;safety:safe;attack_type:account;side_effect:unknown;looping:unknown;repeat_signal:loop-like",
+      "weight": 114
+    }
+  ]
+}

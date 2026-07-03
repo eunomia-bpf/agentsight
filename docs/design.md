@@ -15,7 +15,7 @@ AgentSight's semantic profiler should expose only two core abstractions:
 event, network event, syscall, plan step, and subagent event are concrete
 operation shapes or operation fields, not separate profiler abstractions.
 
-The current blocking gate is stronger boundary detection evidence. R279-R286
+The current blocking gate is stronger boundary detection evidence. R279-R289
 show that external labeled trajectories can be projected through the current
 Rust implementation and folded at multiple depths, but unsupervised or
 model-backed boundary inference is still future work.
@@ -80,6 +80,11 @@ tool/semantic depth, 455 at action depth, and 3,757 when fixed session is added.
 This is expected behavior: users choose the stack depth that matches the
 question instead of accepting a fixed prompt/session hierarchy.
 
+R289 extends the same model to SATraj-OS desktop computer-use traces. The stack
+does not add a GUI, safety, prompt, or OS-specific object: `safety`,
+`attack_type`, `status`, `action`, and `repeat_signal` are ordinary operation
+fields that can be selected or omitted from the operation stack.
+
 ## Mapping And Tagging
 
 Purpose: align mapping/tagging with the two-abstraction model.
@@ -94,9 +99,16 @@ The intended contract is:
 - mappings run before stack construction;
 - later mappings can match fields derived by earlier mappings;
 - first match wins per destination field;
+- operation-family mappings must run before generic action-verb mappings;
 - stack specs remain independent of the mapping backend;
 - learned mappings can be generated from labeled traces and reused through the
 same `--op-map-file` path.
+
+R285 and R289 are the current regression tests for mapping precedence. Tool/API
+operations should derive `phase=api` from tool/API structure before generic
+verbs such as `search` or `create`; desktop computer-use operations should
+derive `phase=input` for `key`/`type` before generic web rules map `type` to
+`modify`. This is ordering over operation fields, not a separate abstraction.
 
 ## Assumptions And Invariants
 
@@ -119,6 +131,6 @@ Purpose: keep open risks tied to experiments.
 | Risk | Validation hook | Current evidence |
 |---|---|---|
 | Prompt/session boundaries leak back into the abstraction. | Run fixed-boundary ablations against recursive stacks. | R277 and R286 show fixed session greatly fragments stacks. |
-| Hand-written mappings overfit one dataset family. | Held-out and leave-dataset-out mapping evaluation. | R282-R285 cover held-out sessions and 9 leave-out datasets. |
-| Action labels are too shallow as boundary oracles. | Add step-instruction, solution-path, outcome, side-effect, looping, repetition, and failure-label scorers. | R287 adds tau-bench outcomes and expected task actions; R288 adds AgentRewardBench expert success, side-effect, looping, optimality, and action-derived `repeat_signal` fields. AndroidControl and TRAIL remain deeper oracle candidates. |
-| Visualizations collapse back to flamegraphs only. | Generate tree, transition, top-field, quality, and depth-sweep HTML/JSON reports. | R273-R288 include non-flamegraph analyses. |
+| Hand-written mappings overfit one dataset family. | Held-out and leave-dataset-out mapping evaluation plus operation-family precedence checks. | R282-R285 cover held-out sessions and 9 leave-out datasets; R289 adds a desktop computer-use precedence check. |
+| Action labels are too shallow as boundary oracles. | Add step-instruction, solution-path, outcome, side-effect, looping, repetition, safety/attack, and failure-label scorers. | R287 adds tau-bench outcomes and expected task actions; R288 adds AgentRewardBench expert success, side-effect, looping, optimality, and action-derived `repeat_signal` fields; R289 adds SATraj safety and attack labels. AndroidControl and TRAIL remain deeper oracle candidates. |
+| Visualizations collapse back to flamegraphs only. | Generate tree, transition, top-field, quality, and depth-sweep HTML/JSON reports. | R273-R289 include non-flamegraph analyses. |
