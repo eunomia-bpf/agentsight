@@ -24,6 +24,8 @@ Completeness: partial
 | 2026-07-03 | `OSWorld verified trajectories Hugging Face ubuntu_osworld_verified_trajs official` | Find desktop/computer-use evaluation trajectories | Official OSWorld page says verified trajectories are hosted on HF; `xlangai/ubuntu_osworld_verified_trajs` found as a candidate desktop trajectory source. |
 | 2026-07-03 | `BrowserGym WorkArena web agent benchmark trajectories official GitHub` | Find enterprise/browser workflow benchmark sources | Official BrowserGym and WorkArena repositories/pages found; useful benchmark environment, but not yet a lightweight labeled trajectory source in this repo. |
 | 2026-07-03 | `PC Agent-E OS-Genesis agent trajectories dataset official GitHub Hugging Face` | Find newer computer-use trajectory corpora | PC Agent-E and OS-Genesis official repos/pages found; candidates for later trajectory conversion and scale comparison. |
+| 2026-07-03 | `2025 2026 GUI agent trajectory dataset Mobile-R1 MobilityBench SATraj-OS Hugging Face` | Find newer large GUI/computer-use trajectory corpora | HF `AI45Research/SATraj-OS` found as a large-scale OSWorld GUI trajectory dataset; `PG23/Mobile-R1` reports 24,521 manually annotated instances from 4,635 mobile trajectories and an open 1,007-trajectory sample. |
+| 2026-07-03 | `xlangai AgentNet desktop computer-use trajectory dataset human annotated` | Find desktop human-annotated computer-use trajectories | HF `xlangai/AgentNet` found; dataset card reports 22.6K human-annotated desktop computer-use tasks across Windows, macOS, and Ubuntu. |
 
 ## PDF Corpus
 
@@ -84,6 +86,7 @@ Completeness: partial
 | Tool-use benchmarks | Solution paths and real API calls | Non-GUI operation-stack support | Convert ToolBench answer/toolenv JSON into planner/tool/api frames. | Official data is outside HF viewer. |
 | Desktop/computer-use benchmarks | Verified desktop trajectories and environment tasks | Extend operation-stack folding beyond web/mobile/API into real OS task execution | Add OSWorld-Verified and PC Agent-E/OS-Genesis converters once row formats are inspected. | Some sources are generated/model trajectories rather than human-demonstration labels. |
 | Browser benchmark environments | BrowserGym and WorkArena task suites | Stronger held-out benchmark protocol for web-operation stacks | Use them as evaluation environments or trace-generation baselines after static labeled datasets are exhausted. | Environment setup may be heavier than Dataset Viewer sampling. |
+| New GUI/computer-use trajectory corpora | SATraj-OS, AgentNet, Mobile-R1 | Move from 9-dataset breadth to larger desktop/mobile scale and human-annotated task variety | Inspect HF row formats and add lightweight converters after R282 held-out validation. | Dataset cards differ in whether trajectories are human, model-generated, or safety-oriented. |
 
 ## Must-Read List
 
@@ -103,6 +106,9 @@ Completeness: partial
 | P2 | OSWorld-Verified trajectories | Desktop/computer-use verified trajectories; likely best next non-web/non-mobile expansion. |
 | P2 | PC Agent-E / OS-Genesis | Newer computer-use trajectory corpora for scale and synthetic-data comparison. |
 | P3 | BrowserGym / WorkArena | Strong web-agent benchmark environment; use after static trace converters stabilize. |
+| P1 | AgentNet | Large human-annotated desktop computer-use trajectory corpus; likely strongest next desktop converter target. |
+| P1 | SATraj-OS | Large OSWorld-style GUI trajectory dataset; useful for scale and desktop GUI stress tests. |
+| P2 | Mobile-R1 | Mobile GUI trajectory dataset with manually annotated instances and an open trajectory sample. |
 
 ## Novelty Verdict
 
@@ -111,5 +117,5 @@ Completeness: partial
 - Claims to narrow or drop: automatic boundary detection is not supported yet; current evidence supports deterministic operation mapping/stack rules plus normalized operation input.
 - Larger claim opportunities: a single profiler can compare local coding-agent traces, web navigation demos, mobile UI demos, and tool-use traces by changing operation fields and stack projection rather than the profiler abstraction.
 - Mandatory baselines: dataset-native sequence view, fixed prompt/session or demo/session stack, flat action aggregation, rule-free default stack.
-- Current best candidates: GUI-Odyssey, WebShop, ToolBench, and WebLINX. Mind2Web and SWE-agent are strong secondary candidates; AndroidControl is the best deeper boundary oracle after heavier screenshot-aware sampling; API-Bank remains a compact baseline; TRAIL is likely strong but gated. AGUVIS stage2, OSWorld-Verified, PC Agent-E, and OS-Genesis are the next expansion candidates once the current 9-dataset pipeline is stable.
-- Next action: scale the top four candidates, validate generated op-map rules on held-out splits, and extend R280/R281 beyond action-boundary scoring to subtask/step-instruction adequacy.
+- Current best candidates: GUI-Odyssey, WebShop, ToolBench, and WebLINX. Mind2Web and SWE-agent are strong secondary candidates; AndroidControl is the best deeper boundary oracle after heavier screenshot-aware sampling; API-Bank remains a compact baseline; TRAIL is likely strong but gated. AGUVIS stage2, OSWorld-Verified, AgentNet, SATraj-OS, PC Agent-E, OS-Genesis, and Mobile-R1 are the next expansion candidates once the current 9-dataset pipeline is stable.
+- Next action: scale the top four candidates, add AgentNet/SATraj-OS or AGUVIS converters, and extend R280/R282 beyond action-boundary scoring to subtask/step-instruction adequacy.

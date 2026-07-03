@@ -2,16 +2,16 @@
 
 Last updated: 2026-07-03
 Stage at update: stage 3 design / stage 4 execute
-Source/command: `script/agent_trace_datasets.py`, `script/operation_map_infer.py`, `agentpprof --operation-file`, `script/operation_stack_quality.py`, `cargo test --manifest-path agentpprof/Cargo.toml`
+Source/command: `script/agent_trace_datasets.py`, `script/operation_split.py`, `script/operation_map_infer.py`, `agentpprof --operation-file`, `script/operation_stack_quality.py`, `cargo test --manifest-path agentpprof/Cargo.toml`
 Completeness: partial
 
 ## Claim-To-Experiment Map
 
 | Claim | Required evidence | Current status | Next experiment |
 |---|---|---|---|
-| C1: `agentpprof` profiles operations and operation stacks without privileging prompt/session boundaries. | A non-Codex/Claude labeled trajectory enters as operation JSONL and folds with arbitrary `--stack` frames. | Supported for deterministic projection by R279/R281 across 9 external datasets and 13,265 operations. | Scale the best 3-4 datasets and add held-out split tests. |
-| C2: Recursive operation stacks recover useful task/subtask/phase structure from linear agent trajectories. | Compare mapped-stack output against dataset-native boundaries and action/step labels. | Partially supported by R277/R280/R281: fixed session stack explodes to 1,083 unique stacks; mapped phase/action boundary F1 is 0.8139 on R279 operations, reproduced from a generated rule file in R281. | Add deeper subtask/step oracle scoring beyond action-level boundaries. |
-| C3: Inferred boundary detection can replace hand-written stack rules. | Generated or model-inferred boundary backend compared with deterministic rule oracle. | Partially supported only for a deterministic learned-from-labeled-fields rule file in R281; unsupported for unsupervised/model boundary detection. | Add held-out rule generation and a non-rule boundary backend. |
+| C1: `agentpprof` profiles operations and operation stacks without privileging prompt/session boundaries. | A non-Codex/Claude labeled trajectory enters as operation JSONL and folds with arbitrary `--stack` frames. | Supported for deterministic projection by R279/R281/R282 across 9 external datasets and 13,265 operations, with R282 evaluating only held-out sessions. | Scale the best 3-4 datasets and add larger desktop/computer-use sources. |
+| C2: Recursive operation stacks recover useful task/subtask/phase structure from linear agent trajectories. | Compare mapped-stack output against dataset-native boundaries and action/step labels. | Partially supported by R277/R280/R281/R282: fixed session stack explodes to 1,083 unique stacks; mapped phase/action boundary F1 is 0.8139 on R279 operations and 0.7774 on held-out R282 test operations. | Add deeper subtask/step oracle scoring beyond action-level boundaries. |
+| C3: Inferred boundary detection can replace hand-written stack rules. | Generated or model-inferred boundary backend compared with deterministic rule oracle. | Partially supported for deterministic learned-from-labeled-fields rule files, including held-out session validation in R282; unsupported for unsupervised/model boundary detection. | Add leave-dataset-out validation and a non-rule boundary backend. |
 
 ## Dataset Matrix
 
@@ -43,6 +43,7 @@ Completeness: partial
 | R279 | C1, C2 | Scaled 9-dataset mapped-stack run | R278 inputs + GUI-Odyssey 500, ToolBench 300, Mind2Web train_0 100; `--view operations` + `--op-map` task/phase mapping | worktree after `2a2528d` | local | 13,265 operations | `docs/visexp/out/external-agent-trace-scaled-r279/` | done |
 | R280 | C2 | Operation-stack quality scorer | R279 operation files; coverage, V-measure, and sequence boundary F1 via `script/operation_stack_quality.py` | worktree after `2a2528d` | local | same 13,265 operations as R279 | `docs/visexp/out/operation-stack-quality-r280/` | done |
 | R281 | C1, C2, C3 | Learned-from-labels operation mapping baseline | R279 operation files; `script/operation_map_infer.py` generates `--op-map-file`, then `agentpprof --operation-file --op-map-file` and `script/operation_stack_quality.py --op-map-file` rerun the same stack | worktree after `74ff667` | local | same 13,265 operations as R279 | `docs/visexp/out/operation-map-infer-r281/` | done |
+| R282 | C1, C2, C3 | Held-out generated mapping validation | `script/operation_split.py` splits R279 operations by `dataset,session` with dataset stratification; `script/operation_map_infer.py` trains on 9,275 train operations; `agentpprof` and quality scorer evaluate 3,990 held-out operations with learned `--op-map-file` and no-map baseline | worktree after `027c4f2` | local | 1 deterministic 70/30 group split, seed `r282` | `docs/visexp/out/operation-map-heldout-r282/` | done |
 
 R272 command:
 
@@ -77,6 +78,7 @@ cargo run --manifest-path agentpprof/Cargo.toml -- \
 | R279 | 9 external datasets produced 13,265 operations and 455 folded stacks; compression ratio 29.154. Outputs: `scaled.folded`, `agentpprof-result.json`, `stack-analysis.json`, `stack-analysis.html`. | Scaling GUI-Odyssey, ToolBench, and Mind2Web preserves aggregation and broadens the claim to cross-app mobile, web, software, and API/tool traces. | Still deterministic mapping; GUI-Odyssey dominates operation count and should be balanced in final figures. |
 | R280 | On R279 operations, mapped fields have 100% coverage for stack fields; phase/action V-measure is 0.765; phase/action boundary precision is 1.0, recall 0.6862, F1 0.8139; task/dataset V-measure is 0.862. | First reusable quality scorer for operation-stack adequacy beyond flamegraphs. It shows deterministic mappings are conservative: they avoid false positive action-boundary changes but miss some fine-grained action changes. | Action labels are a proxy oracle for phase boundaries; deeper task/subtask adequacy still needs step-instruction or solution-path scoring. |
 | R281 | `script/operation_map_infer.py` inferred 10 operation-field mapping rules from the 13,265 labeled operations. The resulting `learned.folded` is byte-identical to R279's hand-mapped `scaled.folded`; quality metrics reproduce R280: phase/action V-measure 0.765 and boundary F1 0.8139. | Confirms rule files can be generated from dataset labels and consumed by the same operation/operation-stack path; mapping rules are no longer tied to ad hoc CLI invocations. | This is a seeded deterministic taxonomy over observed labels, not a full unsupervised boundary detector. Held-out split validation is still required before a stronger C3 claim. |
+| R282 | A deterministic group split produced 9,275 train operations and 3,990 held-out test operations across all 9 datasets. Train-only rules produce 209 held-out stacks (compression 19.091), versus 284 no-map stacks (compression 14.049). Held-out task/dataset V-measure improves from 0.8374 no-map to 0.8531 mapped; phase/action boundary F1 is 0.7774 mapped versus 0.9677 no-map because no-map leaves `phase` nearly identical to the fine-grained action label. | Shows generated mappings generalize across held-out sessions and improve semantic aggregation on unseen trajectories. It also clarifies the intended tradeoff: operation stacks deliberately coarsen low-level actions into reusable task/phase frames, so action-boundary F1 is not the only success metric. | Still not leave-dataset-out or unsupervised; action labels remain a proxy for phase boundaries. Need step-instruction and solution-path scoring for deeper recursive adequacy. |
 
 ## Candidate Selection
 
@@ -103,6 +105,7 @@ cargo run --manifest-path agentpprof/Cargo.toml -- \
 | Boundary adequacy | Agreement between inferred task/subtask/phase frames and dataset labels such as demo id, action type, step instruction, or solution path. | Dataset-native labels; manual adjudication for ambiguous cases. | C2, C3 |
 | Phase/action V-measure | Homogeneity/completeness between mapped phase labels and dataset action labels. | `operation_stack_quality.py --oracle-pair phase:action`. | C2 |
 | Sequence boundary F1 | Precision/recall of mapped phase changes against action-label changes within each session. | `operation_stack_quality.py --boundary-pair phase:action`. | C2 |
+| Held-out mapping compression delta | Unique stack reduction and compression improvement when train-derived op-map rules are applied to unseen sessions. | R282 mapped vs no-map folded stacks on identical held-out operation JSONL. | C2, C3 |
 | Abstraction ablation delta | Difference in compression and boundary adequacy between flat, fixed-boundary, and recursive stacks. | Same operation JSONL under different `--stack` configs. | C1, C2 |
 | Transition concentration | Top weighted parent-child stack transitions from `operation_stack_analysis.py`. | Folded stack transition table. | C2 |
 
@@ -123,6 +126,7 @@ cargo run --manifest-path agentpprof/Cargo.toml -- \
 | Flat/fixed/mapped stack ablation is tracked under R277. | done |
 | Operation-stack quality scorer is implemented and tracked under R280. | done |
 | Learned-from-labeled-fields op-map generation is implemented and tracked under R281. | done |
+| Held-out split validation for generated op-map rules is implemented and tracked under R282. | done |
 | Large full-dataset conversion commands are not yet implemented for AndroidControl, AITW, or official ToolBench; Mind2Web still needs larger shard/raw-dump runs. | pending |
 | Deeper subtask/step adequacy scorer is not yet implemented. | pending |
-| Held-out split validation for generated op-map rules is not yet implemented. | pending |
+| Leave-dataset-out validation for generated op-map rules is not yet implemented. | pending |

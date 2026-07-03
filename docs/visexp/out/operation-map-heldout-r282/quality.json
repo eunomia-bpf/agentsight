@@ -1,0 +1,615 @@
+{
+  "boundary_alignment": [
+    {
+      "adjacent_pairs": 3607,
+      "f1": 0.7774,
+      "false_negative": 693,
+      "false_positive": 0,
+      "oracle": "action",
+      "precision": 1.0,
+      "predicted": "phase",
+      "recall": 0.6358,
+      "sequence_field": "session",
+      "true_negative": 1704,
+      "true_positive": 1210,
+      "turn_field": "turn"
+    }
+  ],
+  "coverage": [
+    {
+      "coverage": 1.0,
+      "field": "action",
+      "present": 3990,
+      "total": 3990
+    },
+    {
+      "coverage": 1.0,
+      "field": "dataset",
+      "present": 3990,
+      "total": 3990
+    },
+    {
+      "coverage": 1.0,
+      "field": "op",
+      "present": 3990,
+      "total": 3990
+    },
+    {
+      "coverage": 1.0,
+      "field": "phase",
+      "present": 3990,
+      "total": 3990
+    },
+    {
+      "coverage": 1.0,
+      "field": "project",
+      "present": 3990,
+      "total": 3990
+    },
+    {
+      "coverage": 1.0,
+      "field": "status",
+      "present": 3990,
+      "total": 3990
+    },
+    {
+      "coverage": 1.0,
+      "field": "task",
+      "present": 3990,
+      "total": 3990
+    },
+    {
+      "coverage": 1.0,
+      "field": "tool",
+      "present": 3990,
+      "total": 3990
+    }
+  ],
+  "op_map_files": [
+    "docs/visexp/out/operation-map-heldout-r282/train-op-map.txt"
+  ],
+  "op_maps": [
+    "task:software=(dataset=swe\\-agent\\-trajectories|tool=swe\\-agent)",
+    "task:web=(dataset=weblinx\\-chat|dataset=webshop\\-expert|dataset=agenttrek|dataset=mind2web|tool=browser|tool=webshop|task=web\\-navigation|task=shopping|task=travel)",
+    "task:api=(dataset=api\\-bank|tool=api|task=api\\-call)",
+    "task:tool=(dataset=toolbench|task=tool\\-use)",
+    "task:mobile=(dataset=android\\-control|dataset=gui\\-odyssey|tool=android|tool=mobile\\-gui|task=mobile\\-control|task=mobile\\-cross\\-app)",
+    "phase:finish=(action=submit|action=send_msg_to_user|action=finish|action=complete)",
+    "phase:navigate=(action=click|action=go|action=goto|action=open|action=load|action=open_app|action=scroll)",
+    "phase:inspect=(action=look|action=search|action=find_file|action=search_dir)",
+    "phase:modify=(action=edit|action=create|action=fill|action=type|action=text|action=text_input)",
+    "phase:api=(dataset=toolbench|tool=api)"
+  ],
+  "operation_files": [
+    "docs/visexp/out/operation-map-heldout-r282/test.operations.jsonl"
+  ],
+  "oracle_alignment": [
+    {
+      "completeness": 1.0,
+      "homogeneity": 0.5893,
+      "oracle": "action",
+      "oracle_labels": 197,
+      "predicted": "phase",
+      "predicted_labels": 29,
+      "support": 3990,
+      "top_confusions": [
+        {
+          "oracle": "click",
+          "predicted": "navigate",
+          "weight": 2057
+        },
+        {
+          "oracle": "scroll",
+          "predicted": "navigate",
+          "weight": 256
+        },
+        {
+          "oracle": "text",
+          "predicted": "modify",
+          "weight": 234
+        },
+        {
+          "oracle": "open",
+          "predicted": "navigate",
+          "weight": 194
+        },
+        {
+          "oracle": "go",
+          "predicted": "navigate",
+          "weight": 162
+        },
+        {
+          "oracle": "complete",
+          "predicted": "finish",
+          "weight": 149
+        },
+        {
+          "oracle": "focus",
+          "predicted": "focus",
+          "weight": 113
+        },
+        {
+          "oracle": "use",
+          "predicted": "use",
+          "weight": 56
+        },
+        {
+          "oracle": "look",
+          "predicted": "inspect",
+          "weight": 55
+        },
+        {
+          "oracle": "examine",
+          "predicted": "examine",
+          "weight": 52
+        },
+        {
+          "oracle": "pick",
+          "predicted": "pick",
+          "weight": 50
+        },
+        {
+          "oracle": "move",
+          "predicted": "move",
+          "weight": 41
+        }
+      ],
+      "v_measure": 0.7416
+    },
+    {
+      "completeness": 0.9941,
+      "homogeneity": 0.7471,
+      "oracle": "dataset",
+      "oracle_labels": 9,
+      "predicted": "task",
+      "predicted_labels": 5,
+      "support": 3990,
+      "top_confusions": [
+        {
+          "oracle": "gui-odyssey",
+          "predicted": "mobile",
+          "weight": 2373
+        },
+        {
+          "oracle": "webshop-expert",
+          "predicted": "web",
+          "weight": 784
+        },
+        {
+          "oracle": "toolbench",
+          "predicted": "tool",
+          "weight": 247
+        },
+        {
+          "oracle": "mind2web",
+          "predicted": "web",
+          "weight": 240
+        },
+        {
+          "oracle": "weblinx-chat",
+          "predicted": "web",
+          "weight": 148
+        },
+        {
+          "oracle": "swe-agent-trajectories",
+          "predicted": "software",
+          "weight": 114
+        },
+        {
+          "oracle": "agenttrek",
+          "predicted": "web",
+          "weight": 60
+        },
+        {
+          "oracle": "api-bank",
+          "predicted": "api",
+          "weight": 14
+        },
+        {
+          "oracle": "android-control",
+          "predicted": "mobile",
+          "weight": 6
+        },
+        {
+          "oracle": "toolbench",
+          "predicted": "api",
+          "weight": 3
+        },
+        {
+          "oracle": "toolbench",
+          "predicted": "web",
+          "weight": 1
+        }
+      ],
+      "v_measure": 0.8531
+    },
+    {
+      "completeness": 0.8159,
+      "homogeneity": 0.9155,
+      "oracle": "dataset",
+      "oracle_labels": 9,
+      "predicted": "tool",
+      "predicted_labels": 103,
+      "support": 3990,
+      "top_confusions": [
+        {
+          "oracle": "gui-odyssey",
+          "predicted": "mobile-gui",
+          "weight": 2373
+        },
+        {
+          "oracle": "webshop-expert",
+          "predicted": "webshop",
+          "weight": 784
+        },
+        {
+          "oracle": "mind2web",
+          "predicted": "browser",
+          "weight": 240
+        },
+        {
+          "oracle": "weblinx-chat",
+          "predicted": "browser",
+          "weight": 148
+        },
+        {
+          "oracle": "swe-agent-trajectories",
+          "predicted": "swe-agent",
+          "weight": 114
+        },
+        {
+          "oracle": "agenttrek",
+          "predicted": "browser",
+          "weight": 60
+        },
+        {
+          "oracle": "toolbench",
+          "predicted": "finish",
+          "weight": 23
+        },
+        {
+          "oracle": "api-bank",
+          "predicted": "api",
+          "weight": 14
+        },
+        {
+          "oracle": "toolbench",
+          "predicted": "deezer",
+          "weight": 12
+        },
+        {
+          "oracle": "toolbench",
+          "predicted": "chuck_norris",
+          "weight": 7
+        },
+        {
+          "oracle": "toolbench",
+          "predicted": "aspose_tasks_cloud",
+          "weight": 7
+        },
+        {
+          "oracle": "android-control",
+          "predicted": "android",
+          "weight": 6
+        }
+      ],
+      "v_measure": 0.8629
+    }
+  ],
+  "stack": [
+    "project",
+    "dataset",
+    "task",
+    "phase",
+    "op",
+    "tool",
+    "action",
+    "status"
+  ],
+  "summary": {
+    "compression_ratio": 19.091,
+    "operations": 3990,
+    "total_weight": 3990,
+    "unique_stacks": 209
+  },
+  "top_by_field": {
+    "action": [
+      {
+        "value": "click",
+        "weight": 2057
+      },
+      {
+        "value": "scroll",
+        "weight": 256
+      },
+      {
+        "value": "text",
+        "weight": 234
+      },
+      {
+        "value": "open",
+        "weight": 194
+      },
+      {
+        "value": "go",
+        "weight": 162
+      },
+      {
+        "value": "complete",
+        "weight": 149
+      },
+      {
+        "value": "focus",
+        "weight": 113
+      },
+      {
+        "value": "use",
+        "weight": 56
+      },
+      {
+        "value": "look",
+        "weight": 55
+      },
+      {
+        "value": "examine",
+        "weight": 52
+      },
+      {
+        "value": "pick",
+        "weight": 50
+      },
+      {
+        "value": "move",
+        "weight": 41
+      }
+    ],
+    "dataset": [
+      {
+        "value": "gui-odyssey",
+        "weight": 2373
+      },
+      {
+        "value": "webshop-expert",
+        "weight": 784
+      },
+      {
+        "value": "toolbench",
+        "weight": 251
+      },
+      {
+        "value": "mind2web",
+        "weight": 240
+      },
+      {
+        "value": "weblinx-chat",
+        "weight": 148
+      },
+      {
+        "value": "swe-agent-trajectories",
+        "weight": 114
+      },
+      {
+        "value": "agenttrek",
+        "weight": 60
+      },
+      {
+        "value": "api-bank",
+        "weight": 14
+      },
+      {
+        "value": "android-control",
+        "weight": 6
+      }
+    ],
+    "op": [
+      {
+        "value": "action",
+        "weight": 3611
+      },
+      {
+        "value": "tool",
+        "weight": 356
+      },
+      {
+        "value": "finish",
+        "weight": 23
+      }
+    ],
+    "phase": [
+      {
+        "value": "navigate",
+        "weight": 2704
+      },
+      {
+        "value": "modify",
+        "weight": 295
+      },
+      {
+        "value": "api",
+        "weight": 226
+      },
+      {
+        "value": "finish",
+        "weight": 188
+      },
+      {
+        "value": "focus",
+        "weight": 113
+      },
+      {
+        "value": "inspect",
+        "weight": 96
+      },
+      {
+        "value": "use",
+        "weight": 56
+      },
+      {
+        "value": "examine",
+        "weight": 52
+      },
+      {
+        "value": "pick",
+        "weight": 50
+      },
+      {
+        "value": "move",
+        "weight": 41
+      },
+      {
+        "value": "say",
+        "weight": 38
+      },
+      {
+        "value": "connect",
+        "weight": 36
+      }
+    ],
+    "project": [
+      {
+        "value": "external-agent-traces",
+        "weight": 3990
+      }
+    ],
+    "status": [
+      {
+        "value": "gold",
+        "weight": 3032
+      },
+      {
+        "value": "success",
+        "weight": 784
+      },
+      {
+        "value": "failure",
+        "weight": 114
+      },
+      {
+        "value": "verified",
+        "weight": 60
+      }
+    ],
+    "task": [
+      {
+        "value": "mobile",
+        "weight": 2379
+      },
+      {
+        "value": "web",
+        "weight": 1233
+      },
+      {
+        "value": "tool",
+        "weight": 247
+      },
+      {
+        "value": "software",
+        "weight": 114
+      },
+      {
+        "value": "api",
+        "weight": 17
+      }
+    ],
+    "tool": [
+      {
+        "value": "mobile-gui",
+        "weight": 2373
+      },
+      {
+        "value": "webshop",
+        "weight": 784
+      },
+      {
+        "value": "browser",
+        "weight": 448
+      },
+      {
+        "value": "swe-agent",
+        "weight": 114
+      },
+      {
+        "value": "finish",
+        "weight": 23
+      },
+      {
+        "value": "api",
+        "weight": 14
+      },
+      {
+        "value": "deezer",
+        "weight": 12
+      },
+      {
+        "value": "chuck_norris",
+        "weight": 7
+      },
+      {
+        "value": "aspose_tasks_cloud",
+        "weight": 7
+      },
+      {
+        "value": "android",
+        "weight": 6
+      },
+      {
+        "value": "sandbox_ecombr_com_01_products",
+        "weight": 6
+      },
+      {
+        "value": "image_cdn",
+        "weight": 6
+      }
+    ]
+  },
+  "top_stacks": [
+    {
+      "stack": "project:external-agent-traces;dataset:gui-odyssey;task:mobile;phase:navigate;op:action;tool:mobile-gui;action:click;status:gold",
+      "weight": 1745
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:gui-odyssey;task:mobile;phase:navigate;op:action;tool:mobile-gui;action:scroll;status:gold",
+      "weight": 236
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:gui-odyssey;task:mobile;phase:modify;op:action;tool:mobile-gui;action:text;status:gold",
+      "weight": 234
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:mind2web;task:web;phase:navigate;op:action;tool:browser;action:click;status:gold",
+      "weight": 201
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;phase:navigate;op:action;tool:webshop;action:open;status:success",
+      "weight": 169
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;phase:navigate;op:action;tool:webshop;action:go;status:success",
+      "weight": 162
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:gui-odyssey;task:mobile;phase:finish;op:action;tool:mobile-gui;action:complete;status:gold",
+      "weight": 149
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;phase:focus;op:action;tool:webshop;action:focus;status:success",
+      "weight": 112
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:weblinx-chat;task:web;phase:navigate;op:action;tool:browser;action:click;status:gold",
+      "weight": 83
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;phase:use;op:action;tool:webshop;action:use;status:success",
+      "weight": 56
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;phase:inspect;op:action;tool:webshop;action:look;status:success",
+      "weight": 55
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:webshop-expert;task:web;phase:examine;op:action;tool:webshop;action:examine;status:success",
+      "weight": 52
+    }
+  ]
+}
