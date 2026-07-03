@@ -1,0 +1,422 @@
+{
+  "boundary_alignment": [
+    {
+      "adjacent_pairs": 566,
+      "f1": 0.3533,
+      "false_negative": 388,
+      "false_positive": 0,
+      "oracle": "action",
+      "precision": 1.0,
+      "predicted": "phase",
+      "recall": 0.2146,
+      "sequence_field": "session",
+      "true_negative": 72,
+      "true_positive": 106,
+      "turn_field": "turn"
+    }
+  ],
+  "coverage": [
+    {
+      "coverage": 1.0,
+      "field": "dataset",
+      "present": 866,
+      "total": 866
+    },
+    {
+      "coverage": 1.0,
+      "field": "op",
+      "present": 866,
+      "total": 866
+    },
+    {
+      "coverage": 1.0,
+      "field": "phase",
+      "present": 866,
+      "total": 866
+    },
+    {
+      "coverage": 1.0,
+      "field": "project",
+      "present": 866,
+      "total": 866
+    },
+    {
+      "coverage": 1.0,
+      "field": "status",
+      "present": 866,
+      "total": 866
+    },
+    {
+      "coverage": 1.0,
+      "field": "task",
+      "present": 866,
+      "total": 866
+    },
+    {
+      "coverage": 1.0,
+      "field": "tool",
+      "present": 866,
+      "total": 866
+    }
+  ],
+  "op_map_files": [
+    "docs/visexp/out/operation-map-leaveout-api-r285/toolbench/train-op-map.txt"
+  ],
+  "op_maps": [
+    "task:software=(dataset=swe\\-agent\\-trajectories|tool=swe\\-agent)",
+    "task:web=(dataset=weblinx\\-chat|dataset=webshop\\-expert|dataset=agenttrek|dataset=mind2web|tool=browser|tool=webshop|task=web\\-navigation|task=shopping|task=travel)",
+    "task:api=(dataset=api\\-bank|tool=api|task=api\\-call)",
+    "task:mobile=(dataset=android\\-control|dataset=gui\\-odyssey|tool=android|tool=mobile\\-gui|task=mobile\\-control|task=mobile\\-cross\\-app)",
+    "phase:finish=(action=submit|action=send_msg_to_user|action=complete)",
+    "phase:api=(dataset=api\\-bank|tool=api|task=api\\-call)",
+    "phase:api=(op=tool.*domain=|domain=.*op=tool)",
+    "phase:navigate=(action=click|action=go|action=goto|action=open|action=load|action=open_app|action=scroll)",
+    "phase:inspect=(action=look|action=find|action=find_file|action=search_dir|action=search_file)",
+    "phase:modify=(action=edit|action=create|action=fill|action=type|action=text|action=text_input)"
+  ],
+  "operation_files": [
+    "docs/visexp/out/operation-map-leaveout-api-r285/toolbench/test.operations.jsonl"
+  ],
+  "oracle_alignment": [
+    {
+      "completeness": 1.0,
+      "homogeneity": 0.0719,
+      "oracle": "action",
+      "oracle_labels": 331,
+      "predicted": "phase",
+      "predicted_labels": 2,
+      "support": 866,
+      "top_confusions": [
+        {
+          "oracle": "finish",
+          "predicted": "finish",
+          "weight": 108
+        },
+        {
+          "oracle": "get_history_for_web_image_storage",
+          "predicted": "api",
+          "weight": 14
+        },
+        {
+          "oracle": "search_for_deezer",
+          "predicted": "api",
+          "weight": 12
+        },
+        {
+          "oracle": "show_history_for_image_cdn",
+          "predicted": "api",
+          "weight": 11
+        },
+        {
+          "oracle": "v1_historicalevents_for_historical_events_by_api_ninjas",
+          "predicted": "api",
+          "weight": 11
+        },
+        {
+          "oracle": "unknown",
+          "predicted": "api",
+          "weight": 11
+        },
+        {
+          "oracle": "contests_for_contests",
+          "predicted": "api",
+          "weight": 9
+        },
+        {
+          "oracle": "etthelistofcountriesregistered_for_sandbox_mktplace_eu_04_orders",
+          "predicted": "api",
+          "weight": 8
+        },
+        {
+          "oracle": "halobiru_for_halobiru_store",
+          "predicted": "api",
+          "weight": 8
+        },
+        {
+          "oracle": "languages_for_microsoft_translator_text",
+          "predicted": "api",
+          "weight": 7
+        },
+        {
+          "oracle": "jokes_random_for_chuck_norris",
+          "predicted": "api",
+          "weight": 7
+        },
+        {
+          "oracle": "search_for_shopify_stores_info",
+          "predicted": "api",
+          "weight": 7
+        }
+      ],
+      "v_measure": 0.1342
+    },
+    {
+      "completeness": 0.0,
+      "homogeneity": 1.0,
+      "oracle": "dataset",
+      "oracle_labels": 1,
+      "predicted": "task",
+      "predicted_labels": 3,
+      "support": 866,
+      "top_confusions": [
+        {
+          "oracle": "toolbench",
+          "predicted": "tool-use",
+          "weight": 860
+        },
+        {
+          "oracle": "toolbench",
+          "predicted": "api",
+          "weight": 4
+        },
+        {
+          "oracle": "toolbench",
+          "predicted": "web",
+          "weight": 2
+        }
+      ],
+      "v_measure": 0.0
+    },
+    {
+      "completeness": 0.0,
+      "homogeneity": 1.0,
+      "oracle": "dataset",
+      "oracle_labels": 1,
+      "predicted": "tool",
+      "predicted_labels": 173,
+      "support": 866,
+      "top_confusions": [
+        {
+          "oracle": "toolbench",
+          "predicted": "finish",
+          "weight": 108
+        },
+        {
+          "oracle": "toolbench",
+          "predicted": "deezer",
+          "weight": 25
+        },
+        {
+          "oracle": "toolbench",
+          "predicted": "web_image_storage",
+          "weight": 14
+        },
+        {
+          "oracle": "toolbench",
+          "predicted": "my_store",
+          "weight": 14
+        },
+        {
+          "oracle": "toolbench",
+          "predicted": "qvantana",
+          "weight": 13
+        },
+        {
+          "oracle": "toolbench",
+          "predicted": "weather",
+          "weight": 12
+        },
+        {
+          "oracle": "toolbench",
+          "predicted": "sms_receive",
+          "weight": 12
+        },
+        {
+          "oracle": "toolbench",
+          "predicted": "billboard_api",
+          "weight": 12
+        },
+        {
+          "oracle": "toolbench",
+          "predicted": "greyhound_racing_uk",
+          "weight": 11
+        },
+        {
+          "oracle": "toolbench",
+          "predicted": "image_cdn",
+          "weight": 11
+        },
+        {
+          "oracle": "toolbench",
+          "predicted": "famous_quotes",
+          "weight": 11
+        },
+        {
+          "oracle": "toolbench",
+          "predicted": "historical_events_by_api_ninjas",
+          "weight": 11
+        }
+      ],
+      "v_measure": 0.0
+    }
+  ],
+  "stack": [
+    "project",
+    "dataset",
+    "task",
+    "phase",
+    "op",
+    "tool",
+    "status"
+  ],
+  "summary": {
+    "compression_ratio": 5.006,
+    "operations": 866,
+    "total_weight": 866,
+    "unique_stacks": 173
+  },
+  "top_by_field": {
+    "dataset": [
+      {
+        "value": "toolbench",
+        "weight": 866
+      }
+    ],
+    "op": [
+      {
+        "value": "tool",
+        "weight": 758
+      },
+      {
+        "value": "finish",
+        "weight": 108
+      }
+    ],
+    "phase": [
+      {
+        "value": "api",
+        "weight": 758
+      },
+      {
+        "value": "finish",
+        "weight": 108
+      }
+    ],
+    "project": [
+      {
+        "value": "external-agent-traces",
+        "weight": 866
+      }
+    ],
+    "status": [
+      {
+        "value": "gold",
+        "weight": 866
+      }
+    ],
+    "task": [
+      {
+        "value": "tool-use",
+        "weight": 860
+      },
+      {
+        "value": "api",
+        "weight": 4
+      },
+      {
+        "value": "web",
+        "weight": 2
+      }
+    ],
+    "tool": [
+      {
+        "value": "finish",
+        "weight": 108
+      },
+      {
+        "value": "deezer",
+        "weight": 25
+      },
+      {
+        "value": "web_image_storage",
+        "weight": 14
+      },
+      {
+        "value": "my_store",
+        "weight": 14
+      },
+      {
+        "value": "qvantana",
+        "weight": 13
+      },
+      {
+        "value": "weather",
+        "weight": 12
+      },
+      {
+        "value": "sms_receive",
+        "weight": 12
+      },
+      {
+        "value": "billboard_api",
+        "weight": 12
+      },
+      {
+        "value": "greyhound_racing_uk",
+        "weight": 11
+      },
+      {
+        "value": "image_cdn",
+        "weight": 11
+      },
+      {
+        "value": "famous_quotes",
+        "weight": 11
+      },
+      {
+        "value": "historical_events_by_api_ninjas",
+        "weight": 11
+      }
+    ]
+  },
+  "top_stacks": [
+    {
+      "stack": "project:external-agent-traces;dataset:toolbench;task:tool-use;phase:finish;op:finish;tool:finish;status:gold",
+      "weight": 108
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:toolbench;task:tool-use;phase:api;op:tool;tool:deezer;status:gold",
+      "weight": 25
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:toolbench;task:tool-use;phase:api;op:tool;tool:web_image_storage;status:gold",
+      "weight": 14
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:toolbench;task:tool-use;phase:api;op:tool;tool:my_store;status:gold",
+      "weight": 14
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:toolbench;task:tool-use;phase:api;op:tool;tool:qvantana;status:gold",
+      "weight": 13
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:toolbench;task:tool-use;phase:api;op:tool;tool:weather;status:gold",
+      "weight": 12
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:toolbench;task:tool-use;phase:api;op:tool;tool:sms_receive;status:gold",
+      "weight": 12
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:toolbench;task:tool-use;phase:api;op:tool;tool:billboard_api;status:gold",
+      "weight": 12
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:toolbench;task:tool-use;phase:api;op:tool;tool:greyhound_racing_uk;status:gold",
+      "weight": 11
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:toolbench;task:tool-use;phase:api;op:tool;tool:image_cdn;status:gold",
+      "weight": 11
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:toolbench;task:tool-use;phase:api;op:tool;tool:famous_quotes;status:gold",
+      "weight": 11
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:toolbench;task:tool-use;phase:api;op:tool;tool:historical_events_by_api_ninjas;status:gold",
+      "weight": 11
+    }
+  ]
+}

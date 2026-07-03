@@ -1,0 +1,225 @@
+{
+  "boundary_alignment": [
+    {
+      "adjacent_pairs": 674,
+      "f1": 1.0,
+      "false_negative": 0,
+      "false_positive": 0,
+      "oracle": "action",
+      "precision": 1.0,
+      "predicted": "phase",
+      "recall": 1.0,
+      "sequence_field": "session",
+      "true_negative": 511,
+      "true_positive": 163,
+      "turn_field": "turn"
+    }
+  ],
+  "coverage": [
+    {
+      "coverage": 1.0,
+      "field": "dataset",
+      "present": 774,
+      "total": 774
+    },
+    {
+      "coverage": 1.0,
+      "field": "op",
+      "present": 774,
+      "total": 774
+    },
+    {
+      "coverage": 1.0,
+      "field": "phase",
+      "present": 774,
+      "total": 774
+    },
+    {
+      "coverage": 1.0,
+      "field": "project",
+      "present": 774,
+      "total": 774
+    },
+    {
+      "coverage": 1.0,
+      "field": "status",
+      "present": 774,
+      "total": 774
+    },
+    {
+      "coverage": 1.0,
+      "field": "task",
+      "present": 774,
+      "total": 774
+    },
+    {
+      "coverage": 1.0,
+      "field": "tool",
+      "present": 774,
+      "total": 774
+    }
+  ],
+  "op_map_files": [
+    "docs/visexp/out/operation-map-leaveout-api-r285/mind2web/train-op-map.txt"
+  ],
+  "op_maps": [
+    "task:software=(dataset=swe\\-agent\\-trajectories|tool=swe\\-agent)",
+    "task:web=(dataset=weblinx\\-chat|dataset=webshop\\-expert|dataset=agenttrek|tool=browser|tool=webshop|task=web\\-navigation)",
+    "task:api=(dataset=api\\-bank|tool=api|task=api\\-call)",
+    "task:tool=(dataset=toolbench|task=tool\\-use)",
+    "task:mobile=(dataset=android\\-control|dataset=gui\\-odyssey|tool=android|tool=mobile\\-gui|task=mobile\\-control|task=mobile\\-cross\\-app)",
+    "phase:finish=(action=submit|action=send_msg_to_user|action=finish|action=complete)",
+    "phase:api=(dataset=api\\-bank|dataset=toolbench|tool=api|task=api\\-call|task=tool\\-use)",
+    "phase:api=(op=tool.*domain=|domain=.*op=tool)",
+    "phase:navigate=(action=click|action=go|action=goto|action=open|action=load|action=open_app|action=scroll)",
+    "phase:inspect=(action=look|action=search|action=find|action=find_file|action=search_dir|action=search_file)",
+    "phase:modify=(action=edit|action=create|action=fill|action=text|action=text_input)"
+  ],
+  "operation_files": [
+    "docs/visexp/out/operation-map-leaveout-api-r285/mind2web/test.operations.jsonl"
+  ],
+  "oracle_alignment": [
+    {
+      "completeness": 1.0,
+      "homogeneity": 1.0,
+      "oracle": "action",
+      "oracle_labels": 3,
+      "predicted": "phase",
+      "predicted_labels": 3,
+      "support": 774,
+      "top_confusions": [
+        {
+          "oracle": "click",
+          "predicted": "navigate",
+          "weight": 645
+        },
+        {
+          "oracle": "type",
+          "predicted": "type",
+          "weight": 106
+        },
+        {
+          "oracle": "select",
+          "predicted": "select",
+          "weight": 23
+        }
+      ],
+      "v_measure": 1.0
+    },
+    {
+      "completeness": 1.0,
+      "homogeneity": 1.0,
+      "oracle": "dataset",
+      "oracle_labels": 1,
+      "predicted": "task",
+      "predicted_labels": 1,
+      "support": 774,
+      "top_confusions": [
+        {
+          "oracle": "mind2web",
+          "predicted": "web",
+          "weight": 774
+        }
+      ],
+      "v_measure": 1.0
+    },
+    {
+      "completeness": 1.0,
+      "homogeneity": 1.0,
+      "oracle": "dataset",
+      "oracle_labels": 1,
+      "predicted": "tool",
+      "predicted_labels": 1,
+      "support": 774,
+      "top_confusions": [
+        {
+          "oracle": "mind2web",
+          "predicted": "browser",
+          "weight": 774
+        }
+      ],
+      "v_measure": 1.0
+    }
+  ],
+  "stack": [
+    "project",
+    "dataset",
+    "task",
+    "phase",
+    "op",
+    "tool",
+    "status"
+  ],
+  "summary": {
+    "compression_ratio": 258.0,
+    "operations": 774,
+    "total_weight": 774,
+    "unique_stacks": 3
+  },
+  "top_by_field": {
+    "dataset": [
+      {
+        "value": "mind2web",
+        "weight": 774
+      }
+    ],
+    "op": [
+      {
+        "value": "action",
+        "weight": 774
+      }
+    ],
+    "phase": [
+      {
+        "value": "navigate",
+        "weight": 645
+      },
+      {
+        "value": "type",
+        "weight": 106
+      },
+      {
+        "value": "select",
+        "weight": 23
+      }
+    ],
+    "project": [
+      {
+        "value": "external-agent-traces",
+        "weight": 774
+      }
+    ],
+    "status": [
+      {
+        "value": "gold",
+        "weight": 774
+      }
+    ],
+    "task": [
+      {
+        "value": "web",
+        "weight": 774
+      }
+    ],
+    "tool": [
+      {
+        "value": "browser",
+        "weight": 774
+      }
+    ]
+  },
+  "top_stacks": [
+    {
+      "stack": "project:external-agent-traces;dataset:mind2web;task:web;phase:navigate;op:action;tool:browser;status:gold",
+      "weight": 645
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:mind2web;task:web;phase:type;op:action;tool:browser;status:gold",
+      "weight": 106
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:mind2web;task:web;phase:select;op:action;tool:browser;status:gold",
+      "weight": 23
+    }
+  ]
+}

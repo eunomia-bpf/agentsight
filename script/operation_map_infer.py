@@ -33,14 +33,20 @@ class InferredRule:
     predicates: tuple[Predicate, ...]
     support: int
     effective_support: int
+    raw_pattern: str | None = None
 
     @property
     def text(self) -> str:
+        if self.raw_pattern is not None:
+            return f"{self.field}:{self.label}=({self.raw_pattern})"
         pattern = "|".join(
             f"{predicate.field}={re.escape(predicate.value)}"
             for predicate in self.predicates
         )
         return f"{self.field}:{self.label}=({pattern})"
+
+    def matches(self, text: str) -> bool:
+        return re.search(self.text.split("=", 1)[1], text) is not None
 
 
 TASK_FAMILIES: tuple[tuple[str, tuple[Predicate, ...]], ...] = (
@@ -106,6 +112,16 @@ PHASE_FAMILIES: tuple[tuple[str, tuple[Predicate, ...]], ...] = (
         ),
     ),
     (
+        "api",
+        (
+            Predicate("dataset", "api-bank"),
+            Predicate("dataset", "toolbench"),
+            Predicate("tool", "api"),
+            Predicate("task", "api-call"),
+            Predicate("task", "tool-use"),
+        ),
+    ),
+    (
         "navigate",
         (
             Predicate("action", "click"),
@@ -137,13 +153,6 @@ PHASE_FAMILIES: tuple[tuple[str, tuple[Predicate, ...]], ...] = (
             Predicate("action", "type"),
             Predicate("action", "text"),
             Predicate("action", "text_input"),
-        ),
-    ),
-    (
-        "api",
-        (
-            Predicate("dataset", "toolbench"),
-            Predicate("tool", "api"),
         ),
     ),
 )
@@ -246,6 +255,8 @@ def infer_rules(operations: list[dict[str, Any]], min_support: int) -> list[Infe
                     effective_support=0,
                 )
             )
+            if field == "phase" and label == "api":
+                rules.extend(infer_generic_phase_rules(operations, min_support))
     effective = effective_supports(operations, rules)
     return [
         InferredRule(
@@ -254,8 +265,28 @@ def infer_rules(operations: list[dict[str, Any]], min_support: int) -> list[Infe
             predicates=rule.predicates,
             support=rule.support,
             effective_support=effective[(rule.field, rule.label)],
+            raw_pattern=rule.raw_pattern,
         )
         for rule in rules
+    ]
+
+
+def infer_generic_phase_rules(
+    operations: list[dict[str, Any]], min_support: int
+) -> list[InferredRule]:
+    pattern = r"op=tool.*domain=|domain=.*op=tool"
+    support = raw_rule_support(operations, pattern)
+    if support < min_support:
+        return []
+    return [
+        InferredRule(
+            field="phase",
+            label="api",
+            predicates=(),
+            support=support,
+            effective_support=0,
+            raw_pattern=pattern,
+        )
     ]
 
 
@@ -278,6 +309,15 @@ def rule_support(operations: list[dict[str, Any]], predicates: tuple[Predicate, 
     )
 
 
+def raw_rule_support(operations: list[dict[str, Any]], pattern: str) -> int:
+    regex = re.compile(pattern)
+    return sum(
+        operation["value"]
+        for operation in operations
+        if regex.search(searchable_text(operation["fields"]))
+    )
+
+
 def effective_supports(
     operations: list[dict[str, Any]], rules: list[InferredRule]
 ) -> Counter[tuple[str, str]]:
@@ -288,7 +328,7 @@ def effective_supports(
         for rule in rules:
             if rule.field in claimed:
                 continue
-            if re.search(rule.text.split("=", 1)[1], text):
+            if rule.matches(text):
                 counts[(rule.field, rule.label)] += operation["value"]
                 claimed.add(rule.field)
     return counts
@@ -345,6 +385,7 @@ def build_report(
                     {"field": predicate.field, "value": predicate.value}
                     for predicate in rule.predicates
                 ],
+                "raw_pattern": rule.raw_pattern,
             }
             for rule in rules
         ],

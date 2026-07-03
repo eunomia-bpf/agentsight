@@ -1,0 +1,240 @@
+{
+  "boundary_alignment": [
+    {
+      "adjacent_pairs": 0,
+      "f1": 0.0,
+      "false_negative": 0,
+      "false_positive": 0,
+      "oracle": "action",
+      "precision": 0.0,
+      "predicted": "phase",
+      "recall": 0.0,
+      "sequence_field": "session",
+      "true_negative": 0,
+      "true_positive": 0,
+      "turn_field": "turn"
+    }
+  ],
+  "coverage": [
+    {
+      "coverage": 1.0,
+      "field": "dataset",
+      "present": 48,
+      "total": 48
+    },
+    {
+      "coverage": 1.0,
+      "field": "op",
+      "present": 48,
+      "total": 48
+    },
+    {
+      "coverage": 1.0,
+      "field": "phase",
+      "present": 48,
+      "total": 48
+    },
+    {
+      "coverage": 1.0,
+      "field": "project",
+      "present": 48,
+      "total": 48
+    },
+    {
+      "coverage": 1.0,
+      "field": "status",
+      "present": 48,
+      "total": 48
+    },
+    {
+      "coverage": 1.0,
+      "field": "task",
+      "present": 48,
+      "total": 48
+    },
+    {
+      "coverage": 1.0,
+      "field": "tool",
+      "present": 48,
+      "total": 48
+    }
+  ],
+  "op_map_files": [],
+  "op_maps": [],
+  "operation_files": [
+    "docs/visexp/out/operation-map-leaveout-api-r285/api-bank/test.operations.jsonl"
+  ],
+  "oracle_alignment": [
+    {
+      "completeness": 1.0,
+      "homogeneity": 0.0,
+      "oracle": "action",
+      "oracle_labels": 47,
+      "predicted": "phase",
+      "predicted_labels": 1,
+      "support": 48,
+      "top_confusions": [
+        {
+          "oracle": "get_classes",
+          "predicted": "api",
+          "weight": 2
+        },
+        {
+          "oracle": "get_all_sessions",
+          "predicted": "api",
+          "weight": 1
+        },
+        {
+          "oracle": "create_new_session",
+          "predicted": "api",
+          "weight": 1
+        },
+        {
+          "oracle": "get_device_details",
+          "predicted": "api",
+          "weight": 1
+        },
+        {
+          "oracle": "schedule_appointment",
+          "predicted": "api",
+          "weight": 1
+        },
+        {
+          "oracle": "get_nearby_hospital",
+          "predicted": "api",
+          "weight": 1
+        },
+        {
+          "oracle": "get_ambulance_eta",
+          "predicted": "api",
+          "weight": 1
+        },
+        {
+          "oracle": "get_provider_info",
+          "predicted": "api",
+          "weight": 1
+        },
+        {
+          "oracle": "search_retreats",
+          "predicted": "api",
+          "weight": 1
+        },
+        {
+          "oracle": "book_retreat",
+          "predicted": "api",
+          "weight": 1
+        },
+        {
+          "oracle": "check_up_schedule",
+          "predicted": "api",
+          "weight": 1
+        },
+        {
+          "oracle": "nutrition_recommendation",
+          "predicted": "api",
+          "weight": 1
+        }
+      ],
+      "v_measure": 0.0
+    },
+    {
+      "completeness": 1.0,
+      "homogeneity": 1.0,
+      "oracle": "dataset",
+      "oracle_labels": 1,
+      "predicted": "task",
+      "predicted_labels": 1,
+      "support": 48,
+      "top_confusions": [
+        {
+          "oracle": "api-bank",
+          "predicted": "api-call",
+          "weight": 48
+        }
+      ],
+      "v_measure": 1.0
+    },
+    {
+      "completeness": 1.0,
+      "homogeneity": 1.0,
+      "oracle": "dataset",
+      "oracle_labels": 1,
+      "predicted": "tool",
+      "predicted_labels": 1,
+      "support": 48,
+      "top_confusions": [
+        {
+          "oracle": "api-bank",
+          "predicted": "api",
+          "weight": 48
+        }
+      ],
+      "v_measure": 1.0
+    }
+  ],
+  "stack": [
+    "project",
+    "dataset",
+    "task",
+    "phase",
+    "op",
+    "tool",
+    "status"
+  ],
+  "summary": {
+    "compression_ratio": 48.0,
+    "operations": 48,
+    "total_weight": 48,
+    "unique_stacks": 1
+  },
+  "top_by_field": {
+    "dataset": [
+      {
+        "value": "api-bank",
+        "weight": 48
+      }
+    ],
+    "op": [
+      {
+        "value": "tool",
+        "weight": 48
+      }
+    ],
+    "phase": [
+      {
+        "value": "api",
+        "weight": 48
+      }
+    ],
+    "project": [
+      {
+        "value": "external-agent-traces",
+        "weight": 48
+      }
+    ],
+    "status": [
+      {
+        "value": "gold",
+        "weight": 48
+      }
+    ],
+    "task": [
+      {
+        "value": "api-call",
+        "weight": 48
+      }
+    ],
+    "tool": [
+      {
+        "value": "api",
+        "weight": 48
+      }
+    ]
+  },
+  "top_stacks": [
+    {
+      "stack": "project:external-agent-traces;dataset:api-bank;task:api-call;phase:api;op:tool;tool:api;status:gold",
+      "weight": 48
+    }
+  ]
+}

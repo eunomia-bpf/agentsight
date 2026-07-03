@@ -1,0 +1,237 @@
+{
+  "boundary_alignment": [
+    {
+      "adjacent_pairs": 7,
+      "f1": 1.0,
+      "false_negative": 0,
+      "false_positive": 0,
+      "oracle": "action",
+      "precision": 1.0,
+      "predicted": "phase",
+      "recall": 1.0,
+      "sequence_field": "session",
+      "true_negative": 0,
+      "true_positive": 7,
+      "turn_field": "turn"
+    }
+  ],
+  "coverage": [
+    {
+      "coverage": 1.0,
+      "field": "dataset",
+      "present": 9,
+      "total": 9
+    },
+    {
+      "coverage": 1.0,
+      "field": "op",
+      "present": 9,
+      "total": 9
+    },
+    {
+      "coverage": 1.0,
+      "field": "phase",
+      "present": 9,
+      "total": 9
+    },
+    {
+      "coverage": 1.0,
+      "field": "project",
+      "present": 9,
+      "total": 9
+    },
+    {
+      "coverage": 1.0,
+      "field": "status",
+      "present": 9,
+      "total": 9
+    },
+    {
+      "coverage": 1.0,
+      "field": "task",
+      "present": 9,
+      "total": 9
+    },
+    {
+      "coverage": 1.0,
+      "field": "tool",
+      "present": 9,
+      "total": 9
+    }
+  ],
+  "op_map_files": [],
+  "op_maps": [],
+  "operation_files": [
+    "docs/visexp/out/operation-map-leaveout-api-r285/android-control/test.operations.jsonl"
+  ],
+  "oracle_alignment": [
+    {
+      "completeness": 1.0,
+      "homogeneity": 1.0,
+      "oracle": "action",
+      "oracle_labels": 5,
+      "predicted": "phase",
+      "predicted_labels": 5,
+      "support": 9,
+      "top_confusions": [
+        {
+          "oracle": "click",
+          "predicted": "click",
+          "weight": 3
+        },
+        {
+          "oracle": "open_app",
+          "predicted": "open_app",
+          "weight": 2
+        },
+        {
+          "oracle": "wait",
+          "predicted": "wait",
+          "weight": 2
+        },
+        {
+          "oracle": "scroll",
+          "predicted": "scroll",
+          "weight": 1
+        },
+        {
+          "oracle": "input_text",
+          "predicted": "input_text",
+          "weight": 1
+        }
+      ],
+      "v_measure": 1.0
+    },
+    {
+      "completeness": 1.0,
+      "homogeneity": 1.0,
+      "oracle": "dataset",
+      "oracle_labels": 1,
+      "predicted": "task",
+      "predicted_labels": 1,
+      "support": 9,
+      "top_confusions": [
+        {
+          "oracle": "android-control",
+          "predicted": "mobile-control",
+          "weight": 9
+        }
+      ],
+      "v_measure": 1.0
+    },
+    {
+      "completeness": 1.0,
+      "homogeneity": 1.0,
+      "oracle": "dataset",
+      "oracle_labels": 1,
+      "predicted": "tool",
+      "predicted_labels": 1,
+      "support": 9,
+      "top_confusions": [
+        {
+          "oracle": "android-control",
+          "predicted": "android",
+          "weight": 9
+        }
+      ],
+      "v_measure": 1.0
+    }
+  ],
+  "stack": [
+    "project",
+    "dataset",
+    "task",
+    "phase",
+    "op",
+    "tool",
+    "status"
+  ],
+  "summary": {
+    "compression_ratio": 1.8,
+    "operations": 9,
+    "total_weight": 9,
+    "unique_stacks": 5
+  },
+  "top_by_field": {
+    "dataset": [
+      {
+        "value": "android-control",
+        "weight": 9
+      }
+    ],
+    "op": [
+      {
+        "value": "action",
+        "weight": 9
+      }
+    ],
+    "phase": [
+      {
+        "value": "click",
+        "weight": 3
+      },
+      {
+        "value": "open_app",
+        "weight": 2
+      },
+      {
+        "value": "wait",
+        "weight": 2
+      },
+      {
+        "value": "scroll",
+        "weight": 1
+      },
+      {
+        "value": "input_text",
+        "weight": 1
+      }
+    ],
+    "project": [
+      {
+        "value": "external-agent-traces",
+        "weight": 9
+      }
+    ],
+    "status": [
+      {
+        "value": "gold",
+        "weight": 9
+      }
+    ],
+    "task": [
+      {
+        "value": "mobile-control",
+        "weight": 9
+      }
+    ],
+    "tool": [
+      {
+        "value": "android",
+        "weight": 9
+      }
+    ]
+  },
+  "top_stacks": [
+    {
+      "stack": "project:external-agent-traces;dataset:android-control;task:mobile-control;phase:click;op:action;tool:android;status:gold",
+      "weight": 3
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:android-control;task:mobile-control;phase:open_app;op:action;tool:android;status:gold",
+      "weight": 2
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:android-control;task:mobile-control;phase:wait;op:action;tool:android;status:gold",
+      "weight": 2
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:android-control;task:mobile-control;phase:scroll;op:action;tool:android;status:gold",
+      "weight": 1
+    },
+    {
+      "stack": "project:external-agent-traces;dataset:android-control;task:mobile-control;phase:input_text;op:action;tool:android;status:gold",
+      "weight": 1
+    }
+  ]
+}

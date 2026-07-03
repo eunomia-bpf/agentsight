@@ -1,0 +1,32 @@
+{
+  "format": "folded",
+  "op_map_files": [
+    "docs/visexp/out/operation-map-leaveout-api-r285/webshop-expert/train-op-map.txt"
+  ],
+  "op_maps": [
+    "task:software=(dataset=swe\\-agent\\-trajectories|tool=swe\\-agent)",
+    "task:web=(dataset=weblinx\\-chat|dataset=agenttrek|dataset=mind2web|tool=browser|task=web\\-navigation|task=shopping|task=travel)",
+    "task:api=(dataset=api\\-bank|tool=api|task=api\\-call)",
+    "task:tool=(dataset=toolbench|task=tool\\-use)",
+    "task:mobile=(dataset=android\\-control|dataset=gui\\-odyssey|tool=android|tool=mobile\\-gui|task=mobile\\-control|task=mobile\\-cross\\-app)",
+    "phase:finish=(action=submit|action=send_msg_to_user|action=finish|action=complete)",
+    "phase:api=(dataset=api\\-bank|dataset=toolbench|tool=api|task=api\\-call|task=tool\\-use)",
+    "phase:api=(op=tool.*domain=|domain=.*op=tool)",
+    "phase:navigate=(action=click|action=goto|action=open|action=load|action=open_app|action=scroll)",
+    "phase:inspect=(action=search|action=find|action=find_file|action=search_dir|action=search_file)",
+    "phase:modify=(action=edit|action=create|action=fill|action=type|action=text|action=text_input)"
+  ],
+  "operation_files": [
+    "docs/visexp/out/operation-map-leaveout-api-r285/webshop-expert/test.operations.jsonl"
+  ],
+  "output": "docs/visexp/out/operation-map-leaveout-api-r285/webshop-expert/mapped.folded",
+  "sample_type": "operations",
+  "samples": 2504,
+  "stack": "project,dataset,task,phase,op,tool,status",
+  "stack_rules": [],
+  "status": "ok",
+  "unique_stacks": 119,
+  "unit": "count",
+  "view": "operations",
+  "warnings": []
+}

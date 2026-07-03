@@ -1,0 +1,143 @@
+{
+  "compression_ratio": 48.0,
+  "depth_weight": {
+    "0": 48,
+    "1": 48,
+    "2": 48,
+    "3": 48,
+    "4": 48,
+    "5": 48,
+    "6": 48
+  },
+  "top_by_kind": {
+    "dataset": [
+      {
+        "name": "api-bank",
+        "weight": 48
+      }
+    ],
+    "op": [
+      {
+        "name": "tool",
+        "weight": 48
+      }
+    ],
+    "phase": [
+      {
+        "name": "api",
+        "weight": 48
+      }
+    ],
+    "project": [
+      {
+        "name": "external-agent-traces",
+        "weight": 48
+      }
+    ],
+    "status": [
+      {
+        "name": "gold",
+        "weight": 48
+      }
+    ],
+    "task": [
+      {
+        "name": "api-call",
+        "weight": 48
+      }
+    ],
+    "tool": [
+      {
+        "name": "api",
+        "weight": 48
+      }
+    ]
+  },
+  "top_leaves": [
+    {
+      "name": "status:gold",
+      "weight": 48
+    }
+  ],
+  "top_transitions": [
+    {
+      "from": "project:external-agent-traces",
+      "to": "dataset:api-bank",
+      "weight": 48
+    },
+    {
+      "from": "dataset:api-bank",
+      "to": "task:api-call",
+      "weight": 48
+    },
+    {
+      "from": "task:api-call",
+      "to": "phase:api",
+      "weight": 48
+    },
+    {
+      "from": "phase:api",
+      "to": "op:tool",
+      "weight": 48
+    },
+    {
+      "from": "op:tool",
+      "to": "tool:api",
+      "weight": 48
+    },
+    {
+      "from": "tool:api",
+      "to": "status:gold",
+      "weight": 48
+    }
+  ],
+  "total_weight": 48,
+  "tree": {
+    "children": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [],
+                                "name": "status:gold",
+                                "value": 48
+                              }
+                            ],
+                            "name": "tool:api",
+                            "value": 96
+                          }
+                        ],
+                        "name": "op:tool",
+                        "value": 144
+                      }
+                    ],
+                    "name": "phase:api",
+                    "value": 192
+                  }
+                ],
+                "name": "task:api-call",
+                "value": 240
+              }
+            ],
+            "name": "dataset:api-bank",
+            "value": 288
+          }
+        ],
+        "name": "project:external-agent-traces",
+        "value": 336
+      }
+    ],
+    "name": "root",
+    "value": 48
+  },
+  "unique_stacks": 1
+}
