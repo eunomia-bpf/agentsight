@@ -76,6 +76,7 @@ tool、action、human group、safety、looping 或 step quality 等不同深度�
 | R315 | Analyst-study protocol | 读取 tracked/clean R305 visible packets、R305 hidden answer key、R305/R308/R313 summaries；输出 study-protocol JSON、visible-study-packets JSON、hidden-scoring-key JSON、assignment CSV、Markdown 和 HTML；6 tasks、3 views、24 participants、144 trials；task-view cells balanced；visible-packet leakage check pass。 | 把 user-utility gate 从“未来需要 human/agent analyst study”推进到可直接执行的协议，但它不是 human study result，不能提升到 productivity、accuracy 或 time-to-answer claim。 |
 | R316 | Analyst-study readout sensitivity | 读取 tracked/clean R315 study protocol、visible packets、hidden scoring key 和 assignment；输出 readout-report JSON、trial-scores CSV、Markdown 和 HTML；fixed visible-order top-3 scripted policy 下，operation-stack positive-hit/high-lift hit 为 1.0/0.8333，fixed-session 为 0.8333/0.6667，flat 为 1.0/0.0；operation-stack vs fixed-session 的 task-paired median recall/work delta 为 0.1333/0.0207。 | 证明 R315 protocol 能在真实 assignment 上读出已有 inspectability tradeoff，因此值得执行真实 analyst study；但它仍不是 human/agent analyst result，不能支持 accuracy、time-to-answer 或 productivity claim。 |
 | R317 | Paper real-problem narrative | 读取 tracked/clean R309 problem cards、R313 frontier 和 R316 readout；输出 paper-narrative JSON、Markdown、CSV 和 HTML；6 task narratives across 4 datasets / 34,539 operations / 3,699 positives；operation-stack frontier coverage 为 6/6，high-lift coverage 为 5/6，higher selected recall vs fixed-session 为 5/6，lower selected work vs fixed-session 为 2/6。 | 把 safety、quality、looping、side-effect 和 human-boundary 的强结论与反例压成 reviewer-facing narrative；它不是新实证、人类实验、agent 实验、detector 或第三个 profiler 抽象。 |
+| R318 | Reviewer acceptance closure | 读取当前中文 paper、claim setup、evaluation ledger、R312/R314/R317 artifacts；记录 4 个独立 subagent reviewers 的 final ACCEPT，其中 1 个 NEEDS_CHANGES round 已修复并复审 ACCEPT；检查 claim-centered result table、artifact-log phrase removal、paper-ready prose guidance、R312/R314/R317 guardrails。 | 关闭“subagent review until accept” gate，并证明本轮 blocker 是 paper presentation 而不是 claim evidence；它不是新实证、不是 human/agent analyst-task result，也不支持 productivity、accuracy 或 time-to-answer claim。 |
 
 ## Paper-Ready Wording
 
@@ -94,12 +95,14 @@ tool、action、human group、safety、looping 或 step quality 等不同深度�
 > operation layer; converting them to operation JSONL preserves the same stack
 > projection path. Chrome Trace Event JSON can be used as a standard exchange
 > container, but imported traces still become operation JSONL before profiling.
-> A reviewer evidence packet links claim verdicts to depth sweeps, stack trees,
-> transition/top-field reports, quality reports, grouped-boundary reports,
-> history-depth reports, and negative controls.
 > Supervised boundary backends remain outside the core profiler abstraction:
 > they derive fields such as `learned_group_pattern`; the profiler still folds
 > operations using a user-selected operation stack.
+> On six oracle-backed analysis tasks, operation-stack views provide a
+> configurable inspectability surface: they are more selective than flat
+> summaries, often recover more positives than fixed-session packets, and still
+> preserve fixed-session and flat views as counterpoints when those views are
+> cheaper or complete.
 
 中文论文中应写成：
 
@@ -111,84 +114,28 @@ tool、action、human group、safety、looping 或 step quality 等不同深度�
 > Agent-session trace 是 session 交换格式，不是 profiler 抽象；导入后仍然要转成
 > operations，再由 operation stack 折叠。Chrome/Perfetto-style trace 也是同样的
 > exchange container；它不绕过 operation JSONL，也不新增第三个抽象。
-> R307 把 R300-R306 之后的 paper readiness 固化为当前 claim gate：机制 claim 可以
-> 按 sampled public trajectories 和 fixture-level exchange 写强，但 user utility
-> 仍需 controlled analyst study。
-> Reviewer evidence packet 只是证据导航层，不是第三个抽象；它把 claim gate、
-> 多视图报告、负结果和 source path 放在一起，方便审稿人从论文表述追到 artifact。
 > Boundary backend 也不是第三个抽象；它只派生 `learned_group_pattern` 等字段，
-> 之后仍由 operation stack 做递归折叠。
-> Boundary-family calibration 表明这种 backend 接口可以复制，但不能被写成通用
-> intent detector：SATraj safety 和 ScaleCUA history-state 不是当前样本中的
-> adjacent boundary oracle，AgentRewardBench looping 也应优先由简单 repetition
-> field 解释。
-> Operation-query utility proxy 把 failure、safety、quality 和 human-boundary 标签
-> 变成自动化分析任务，比较 flat、fixed-session、operation-stack 和 label-drilldown
-> views；它支持 inspectability 和 cross-session aggregation，不支持 human productivity。
-> Width-ranked analyst task proxy 进一步把 oracle label 从可见任务包中移除，只用
-> stack 宽度排序，让 hidden answer key 评分；它支持 operation-stack 的默认浏览价值，
-> 也暴露了 width ranking 不是异常检测器的限制。
-> Label-hidden analyst ranking proxy 再进一步比较 width、visible-risk 和 query-aware
-> rankers，证明 operation stack 可以承载多种非 flamegraph 分析策略；它提高了
-> precision/recall tradeoff 的可调性，但仍不是 detector 或 human study。
-> Operation-stack case packet 把 ranked operation-stack groups 转成 reviewer 可审计的
-> visible cases，并把 oracle positives 留在 hidden answer key 中；它支持具体 case evidence，
-> 但不能替代 controlled analyst study。
-> Cross-view case-packet baseline 用同一 hidden-answer-key policy 比较 flat、
-> fixed-session 和 operation-stack packets；它支持 operation stack 的 middle-view
-> tradeoff，但明确保留 fixed-session 在部分任务上 work 更低的限制。
-> Analyst first-evidence proxy 复用同一 visible packet 和 hidden answer key，
-> 衡量 first-positive、first-enriched 和 high-lift evidence；它说明 operation
-> stack 在 high-lift coverage 上强于 flat/fixed-session，但仍不能写成人类效用。
-> Problem-value synthesis 把 R298/R300/R302/R305/R308 合成为真实问题卡片，
-> 区分 safety、step-quality、looping、side-effect 和 human-boundary 等任务上
-> operation stack 的强项、低 recall 情况和 fixed-session 反例；它增强 value/novelty
-> 叙事，但仍是 proxy synthesis。
-> Paper evidence matrix 再读取 R307/R309，把 C1、C2、C4 固化为 scoped paper-ready
-> claim，把 C3 保留为 partial，并把 34,539 operations、5/6 high-lift、6/6 selectivity
-> 和 fixed-session 4/6 lower-work counterpoint 写入可引用表格；它只是 audit surface，
-> 不是新实证结果或第三个抽象。
-> Paper robustness audit 再读取 R302/R305/R308/R309/R310，把 flat baseline、
-> oracle leakage、human utility、boundary discovery 和 fixed-session dominance 等
-> reviewer attacks 机械分成 pass、scoped pass、partial、fail-for-stronger-claim
-> 或 narrow；它把 C4 固定为 automated inspectability tradeoff，而不是 human
-> productivity 或 baseline-dominance claim。
-> Paper submission audit 再读取 R310/R311 和当前中文稿，检查关键数字、两个核心抽象、
-> 以及 human utility、automatic detection、unsupervised boundary discovery、
-> fixed-session dominance 和 trace-ecosystem compatibility 等 must-not-claim guardrails；
-> 当前 number alignment、two-abstraction boundary、must-not-claim guardrails 和
-> paper-structure 检查均通过，overall 为 `scoped_claim_ready`。
-> Operation-view frontier 再读取 R300/R302/R305/R311，把 flat、fixed-session、
-> operation-stack、visible-risk、query-aware 和 case-packet policies 放到同一个
-> 非 oracle Pareto surface 上；它证明 operation-stack 在所有任务上 nondominated，
-> 但同时保留 flat 和 fixed-session 的 frontier counterpoints，因此 C4 应写成
-> configurable inspectability surface，而不是 single-view dominance。
-> Related-work novelty audit 再读取当前 related-work ledger、paper、claim ledger、
-> evaluation ledger 和 R313 frontier，把 classic flamegraph/pprof、OpenTelemetry
-> GenAI、OpenInference、LangSmith、Langfuse、Phoenix、AgentOps 和公开标注轨迹都
-> 放入 same-problem threat map。它要求 fixed trace/span tree 成为 baseline，并把
-> trace/session/span 写成 exchange container 或 baseline，不能写成第三个 profiler
-> 抽象或 trace-platform feature-parity claim。
-> Analyst-study protocol 复用 R305 visible packets 和 hidden answer key，把 6 个
-> tasks、flat/fixed-session/operation-stack 三种 views、24 个 participant slots 和
-> 144 个 trials 组织成 balanced assignment。该 artifact 证明 controlled study 已经
-> 可运行并且 visible packet 没有 oracle-field leakage，但它仍不是 human/agent analyst
-> result。
-> Analyst-study readout sensitivity 进一步在这个 assignment 上运行 fixed
-> visible-order scripted policy。Top-3 operation-stack packets 在 100.0% assigned
-> trials 中命中 positive group，在 83.3% 中命中 high-lift group；fixed-session 为
-> 83.3% 和 66.7%，flat 为 100.0% 和 0.0%。这证明 protocol 能读出 tradeoff，但仍不
-> 是 human/agent accuracy 或 time-to-answer 结果。
-> Paper real-problem narrative 再把 R309/R313/R316 的结果压成 task-level claim
-> matrix：SATraj safety 是最强 selective win，AgentNet quality 是 high-lift but
-> low-recall，AgentRewardBench looping 是 prevalent-positive aggregation，
-> side-effect 和 OSWorld-Human boundary 对 ranker/depth 敏感。该 artifact 让论文可
-> 写 configurable inspectability surface，但仍不能写 human utility、detector、
-> single-view dominance 或新实证。
-> Paper value/novelty synthesis 也不是新实证结果；它把 heterogeneous trace objects、
-> recursive depth choice、field derivation、human/subtask boundaries、
-> failure/safety diagnostics 和 artifact auditability 映射到 tracked artifacts，
-> 并保留 unsupervised intent discovery、developer productivity 等不能声称的边界。
+> 之后仍由 operation stack 做递归折叠。当前 boundary-family calibration 支持
+> “统一 field-derivation extension point” 这个机制 claim，但不支持通用 intent
+> detector。AgentRewardBench looping 被简单 repetition field 完全解释，因此更强
+> backend claim 需要先胜过 simple baseline。
+> 真实问题结果应按任务讲，而不是按 artifact 编号讲。在 4 个数据集、6 个
+> oracle-backed tasks、34,539 个 operations 和 3,699 个 positives 上，
+> operation-stack 比 flat 更 selective 的任务为 6/6，含 high-lift evidence 的任务为
+> 5/6，selected recall 高于 fixed-session 的任务为 5/6。反例同样重要：selected work
+> 低于 fixed-session 只有 2/6，flat 和 fixed-session 在 Pareto frontier 上也都是
+> 6/6 counterpoints。
+> 因此论文应该写成 configurable inspectability surface：SATraj safety 是最强
+> selective win，AgentNet quality 是 high-lift but low-recall，AgentRewardBench
+> looping 更像 prevalence aggregation，side-effect 和 OSWorld-Human boundary 对
+> ranker/depth 敏感。当前 protocol 已经把 visible packets、hidden answer key、
+> balanced assignment 和 scripted readout 准备好，但在真实 analysts 完成前仍不能
+> 写 human/agent accuracy、time-to-answer 或 productivity。
+> Related work 应把 classic flamegraph/pprof、OpenTelemetry GenAI、OpenInference、
+> LangSmith、Langfuse、Phoenix、AgentOps 和公开标注轨迹都当成 same-problem threat。
+> 本文的新意不是替代 trace systems 的功能，而是把 trace/session/span 写成 exchange
+> container 或 baseline，并把 profiling 的核心边界收敛为 operation fields 与
+> operation-stack queries。
 
 不能写：
 

@@ -234,16 +234,14 @@ Profile spec 把这个 query 自由度变成可复现实验配置。
 同一个 AgentNet spec 引用相同 operation JSONL 和 op-map 文件，默认产生 608 个 diagnostic stacks；命令行只覆盖 \texttt{--stack} 和输出路径后，样本数保持 16,741 不变，unique stacks 降到 83。
 这说明 stack 深度是可审计、可覆盖的查询参数，而不是写死在 prompt/session 或某个可视化中的层级。
 
-Claim synthesis 和 reviewer evidence packet 把可审计性从单个图扩展到 claim wording 与 reviewer navigation。
-它们读取 tracked result JSON/folded outputs，生成 \texttt{claim-synthesis.json}、\texttt{reviewer-evidence.json}、\texttt{reviewer-evidence.md} 和 \texttt{index.html}，索引 11 个非 flamegraph 与证据导航条目，包括 depth sweep、stack tree、transition/top-field、quality report、grouped-boundary report、history-depth report 和 claim gate。
-Claim synthesis 把 C1 判为 supported，把 C2 判为 supported with scoped limits，把 C3 判为 partial。
-该 packet 还派生出若干 reviewer-facing 数值：held-out mapping 使 unique stacks 减少 26.408\%，OSWorld grouped-depth stacks 相比 action-depth stacks 减少 78.008\%，AgentRewardBench repeat-signal/looping V-measure 为 0.3777，step-error baseline 为 0.0105，两者相差 35.971 倍；profile-spec override 在不改变 operations 的情况下使 AgentNet stacks 减少 86.349\%。
-这些数字不替代原始结果文件，而是把“为什么这些结果有价值”变成可追溯的证据路径。
-
-后续 paper gates 把这个证据路径进一步收敛成论文价值和新意。
-它们从 claim synthesis、boundary backend 和诊断质量报告中生成 6 个真实问题证据块：异构 trace object model、递归深度选择、field derivation、human/subtask boundaries、failure/safety/quality diagnostics 和 artifact auditability。
-它还把 novelty 限定为 4 点：two-object agent profiling、query-time recursive stacks、统一 field-derivation extension point 和 non-flamegraph diagnostic views。
-当前证据足以支撑机制和诊断价值，但仍只是 level-3 conference-paper evidence、接近 mechanism claims 的 level 4；boundary-family replication、用户效用实验和 boundary calibration 仍是缺口。
+这种可配置性不只改变图的形状，也改变 reviewer 能验证的问题。
+同一套 outputs 同时给出 depth sweep、stack tree、transition/top-field、quality report、grouped-boundary report 和 history-depth report。
+这些报告回答同一个机制问题：一个 profiler 是否可以把边界选择延后到查询时，而不是在采集时固定为 prompt、session 或 span tree。
+当前证据支持三条 scoped 结论。
+第一，异构轨迹和本地 session 可以先进入同一 operation layer，再用用户选择的 stack 折叠。
+第二，recursive stacks 能表达 dataset、task、phase、tool、action、human-group、safety 和 quality-label 等多种深度，但不能声称恢复所有真实意图边界。
+第三，field derivation 是可扩展接口，因为 mapping 和 supervised backend 只写入 operation fields，profiler 仍按 operation stack 折叠。
+这些机制结果给出 paper novelty，但 user-utility、通用 boundary detector 和完整 trace-platform compatibility 仍是后续 gate。
 
 真实问题 proxy 把“定位 looping、side-effect、unsafe、incorrect、redundant 和 group-start positives”变成 6 个自动化分析任务，并比较 flat、fixed-session、semantic operation-stack 和 label-drilldown。
 Visible packets 不含 oracle-positive 字段，hidden answer key 单独保存 positives；query-aware rankers 只读可见字段。
@@ -373,40 +371,23 @@ Operation-stack view 的 median work fraction 为 0.0937、recall 为 0.188、li
 \begin{table*}[t]
   \centering
   \tiny
-  \setlength{\tabcolsep}{2pt}
-  \renewcommand{\arraystretch}{0.86}
-  \caption{当前最强结果。数值均来自 tracked artifacts 下的 JSON/HTML reports。}
+  \setlength{\tabcolsep}{2.2pt}
+  \renewcommand{\arraystretch}{0.92}
+  \caption{Claim-centered result summary。每行对应一个 paper claim 或一个 reviewer-expected counterpoint，具体 provenance 保留在 evaluation ledger。}
   \label{tab:results}
-  \begin{tabular}{p{0.18\linewidth}p{0.21\linewidth}p{0.22\linewidth}p{0.29\linewidth}}
+  \begin{tabular}{p{0.18\linewidth}p{0.22\linewidth}p{0.28\linewidth}p{0.24\linewidth}}
     \toprule
-    结果块 & 数据规模 & 关键数值 & 支持的结论 \\
+    Paper question & Workload / oracle & Main evidence & Scoped conclusion \\
     \midrule
-    R286 recursive depth & 13,265 operations & 9 dataset stacks、57 phase stacks、226 tool/semantic stacks、455 action stacks、3,757 fixed-session stacks & Stack 深度是 query，固定 session 是 drilldown 而不是核心边界。 \\
-    R282/R285 mapping validation & 3,990 held-out operations；9 leave-out datasets & Held-out compression 19.091 vs no-map 14.049；leave-out 6/9 positive、0 negative & Label-derived mappings 能泛化到 unseen sessions/datasets，但仍不是无监督 detector。 \\
-    R290 OSWorld-Human & 369 tasks、6,010 operations；4,011 exact grouped-oracle operations & grouped stack 106 vs action stack 482；human-group boundary F1 0.627、precision 1.0 & 同一单动作序列可折叠到人工 grouped-action 深度。 \\
-    R291 AgentNet & 1,000 tasks、16,741 operations & step correctness/redundancy 100\% field coverage；phase/action F1 0.715、precision 1.0 & 质量标签是 ordinary operation fields，可被折叠、评分和诊断。 \\
-    R293 profile spec & 同一 16,741 AgentNet operations & spec 复现 608 stacks；CLI stack override 产生 83 stacks & 实验配置可复现且可覆盖，stack 不是固定层级。 \\
-    R294/R303 trace exchange & public Codex fixture & 1 trace session、6 operations；\texttt{trace\_filesystem\_portable=true}；trace import 与 operation import 均为 6 samples / 5 stacks 且 folded 字节一致；R303 一条脚本复现该流程 & 本地 session 可导出、导入并桥接到 operation JSONL，而不会成为第三个 profiler 抽象。 \\
-    R306 Chrome trace exchange & public Codex fixture & 6 Chrome complete events；6 direct operations；6 Chrome-import operations；direct trace、direct operation 和 Chrome-import operation 均为 6 samples / 5 stacks 且 folded 字节一致 & 标准 trace 只是 exchange container；导入后仍进入 operation JSONL 和 operation-stack folding。 \\
-    R295 claim synthesis & R282--R294 tracked artifacts & C1 supported；C2 supported with scoped limits；C3 partial & 论文 claim gate 明确支持范围和不能 claim 的内容。 \\
-    R296 reviewer packet & R282--R295 tracked artifacts & 11 个非 flamegraph/evidence-navigation entries；4 个 reviewer questions；39 个 clean input artifacts & 结果可通过 claim-indexed 多视图证据包审计。 \\
-    R297 boundary backend & OSWorld-Human held-out sessions & 1,036 test adjacent pairs；learned F1 0.7735；Rust fold 1,132 ops / 74 stacks & Boundary backend 只是派生 operation fields，递归折叠仍由 operation stack 完成。 \\
-    R298 value/novelty synthesis & R295--R297 与诊断质量 artifacts & 6 个 real-problem evidence blocks；4 个 novelty claims；level-3 evidence approaching level 4 & 论文价值和新意从 tracked artifacts 机械回溯，且保留 must-not-claim gate。 \\
-    R299 boundary-family calibration & 7 个已有候选；4 个训练任务；8,961 folded operations & OSWorld 0.6916 F1；AgentNet step-correct/redundant 0.3197/0.3361 F1；AgentReward learned 0.7833 F1 但 repeat-signal-change baseline 1.0 & Boundary backend 接口可复制，但不是通用 detector；每个家族需要 suitability、calibration 和简单 baseline gate。 \\
-    R300 query utility proxy & 6 个 oracle-backed tasks；34,539 operations & flat/fixed/operation/label stacks 分别为 6/2,012/944/318；operation-stack vs flat lift 5.726x、inspection fraction 0.2879；vs fixed-session group ratio 0.554、session-support ratio 5.5 & Operation stack 改善自动化 inspectability 和跨 session 聚合，但仍不是 human user study。 \\
-    R301 width-ranked task proxy & 同一 6 个 tasks；168 个 task/view/budget scores & 30\% operation budget 下 operation-stack recall 0.336 / 4.5 groups，fixed-session 0.284 / 25.5 groups；top-10 groups 下 0.641 vs 0.195 & Label-hidden 默认浏览仍支持跨 session 聚合，但 width ranking 不是 detector。 \\
-    R302 label-hidden ranking & 同一 6 个 tasks；192 个 task/view/ranker/budget scores & top-10 query-aware stack 检查 0.116 operation fraction、lift 1.587，width 为 0.671 和 1.079；30\% budget recall 0.390 vs 0.340 & Operation stack 支持 query-aware 分析 policy，但 ranker 仍是 heuristic。 \\
-    R304 case packet & 同一 6 个 tasks；30 个 top-5 query-aware case groups & median work fraction 0.0937；recall 0.188；lift 1.6509；visible packet 与 answer key 分离 & Case evidence 可审计，但仍不是 detector 或 human study。 \\
-    R305 case baseline & 同一 6 个 tasks；18 个 task-view case packets & flat work/recall 1.0/1.0；fixed work 0.0163、recall 0.0226、lift 1.6615；operation work 0.0937、recall 0.188、lift 1.6509 & Operation stack 是 selective middle view，但不是每个任务都比 fixed-session 更省 work。 \\
-    R307 claim readiness & R295/R298、R303 与 R300--R306 tracked artifacts & C1 supported；C2 supported with scoped limits；C3 partial；C4 automated proxy only；analysis suite 6 tasks / 34,539 operations & 当前 paper wording 可以强化机制 claim，但 user utility 仍需 controlled analyst study。 \\
-    R308 analyst outcome & R305 visible packets 与 hidden answer key；6 tasks / 18 task-view packets & operation-stack positive/high-lift coverage 为 6/6 和 5/6；fixed-session 为 5/6 和 4/6；flat 为 6/6 和 0/6；operation-stack top-group lift median 1.5739 & First-evidence proxy 支持 operation-stack inspectability，但仍不是 human utility。 \\
-    R309 problem value & R298/R300/R302/R305/R308 tracked artifacts；4 datasets；6 tasks & 34,539 task-operations；3,699 positives；operation-stack 比 flat selective 的任务为 6/6；high-lift coverage 为 5/6；比 fixed-session selected recall 更高的任务为 5/6 & 真实问题卡片增强 value/novelty 叙事，同时保留 fixed-session 在 4/6 tasks 上 selected work 更低。 \\
-    R310/R311 paper audits & R307/R309 evidence matrix 与 R302/R305/R308/R309/R310 reviewer-stress artifacts & C1/C2/C4 scoped paper-ready；C3 partial；6/6 比 flat selective；5/6 high-lift；5/6 selected recall 高于 fixed-session；仅 2/6 selected work 低于 fixed-session & Claim、证据数字、反例和 must-not-claim 边界对齐成 paper audit surface，明确排除 human utility、automatic detection 和 universal fixed-session dominance。 \\
-	    R313 view frontier & R300/R302/R305/R311 tracked artifacts；162 non-oracle candidate points & operation-stack frontier 6/6；best lift 4/6；best recall under 30\% work 4/6；flat/fixed frontier counterpoints 均为 6/6 & C4 是 configurable analysis-surface claim，而不是 single-view dominance。 \\
-	    R314 related-work audit & related-work ledger、paper、claim ledger、evaluation ledger 与 R313 frontier & classic flamegraph/pprof、OpenTelemetry GenAI、OpenInference、LangSmith、Langfuse、Phoenix、AgentOps、公开标注轨迹和 fixed trace/span tree baseline 均进入检查 & Novelty/baseline grounding 是可失败的 audit surface，已有 trace systems 是同问题 baseline 而不是被忽略的相关工作。 \\
-	    R315--R317 study/narrative package & R305/R309/R313/R316 tracked artifacts；4 datasets；6 tasks；34,539 operations；3,699 positives & 6 tasks、3 views、24 participant slots、144 trials；top-3 operation-stack positive/high-lift hit 1.0/0.8333；frontier 6/6；high-lift 5/6；higher recall vs fixed-session 5/6；lower work vs fixed-session 2/6 & Protocol、scripted readout 和 task narrative 把 user-utility gap 收敛为可执行 study 与 claim-first problem matrix，但仍不是 human/agent result 或 detector。 \\
-	    \bottomrule
-	  \end{tabular}
+    Can agent traces share one object model? & 15 sampled public trajectory sources plus local-session exchange fixtures & Core public sources contain 42,590 operations, and ScaleCUA brings the smoke set to 47,590 operations. Agent-session and Chrome Trace Event round trips preserve 6 samples / 5 stacks on the fixture. & Heterogeneous trajectories and exchange traces enter the same operation layer. Trace formats are containers, not profiler abstractions. \\
+    Is stack depth a query rather than a prompt/session tree? & 13,265 operations with depth sweeps, plus 16,741 AgentNet operations with profile-spec override & The same operations fold from 9 dataset stacks to 57 phase, 226 tool/semantic, 455 action, or 3,757 fixed-session stacks. AgentNet stack override changes 608 stacks to 83 without changing input operations. & Operation stack is a recursive query over fields. Fixed session is a useful drilldown field, not the default boundary. \\
+    Can fields be derived without adding a third object? & Held-out mapping splits, leave-dataset-out mapping, and OSWorld-Human supervised boundary probes & Held-out mapping improves compression from 14.049 to 19.091. Leave-dataset-out reduces stacks on 6/9 datasets with 0 negative regressions. OSWorld-Human learned boundary F1 reaches 0.7735 on held-out pairs. & Mapping/tagging/backends derive operation fields before folding. The claim is partial because calibration and simple-baseline checks remain family-specific. \\
+    Does recursive folding match human boundaries? & 369 OSWorld-Human tasks, including 4,011 exact grouped-oracle operations & Grouped-depth stacks reduce 482 action stacks to 106 grouped stacks. Conservative human-group boundary F1 is 0.627 with precision 1.0 and recall 0.456. & The profiler can expose action-depth and human-group-depth views over the same sequence, but it does not fully recover latent intent boundaries. \\
+    Does the profiler solve real labeled problems beyond flamegraphs? & Six failure, safety, quality, and boundary tasks over 34,539 operations and 3,699 positives & Operation-stack packets are more selective than flat on 6/6 tasks, contain high-lift evidence on 5/6, and have higher selected recall than fixed-session on 5/6. They use lower selected work than fixed-session on only 2/6. & The supported value claim is an automated inspectability tradeoff, with fixed-session preserved as a real low-work counterpoint. \\
+    Are view/ranker choices part of the result? & 162 non-oracle view/ranker/budget points over the same six tasks & Operation-stack is on the Pareto frontier for 6/6 tasks, gives best lift for 4/6, and gives best recall under 30\% work for 4/6. Flat and fixed-session also remain frontier points on 6/6 tasks. & The system should expose configurable analysis surfaces instead of hard-coding a single hierarchy or ranker. \\
+    What remains before user-utility claims? & Balanced analyst-study protocol over visible packets and hidden answer keys & The protocol covers 6 tasks, 3 views, 24 participant slots, and 144 trials. A fixed top-3 readout gives operation-stack positive/high-lift hits of 1.0/0.8333, versus 0.8333/0.6667 for fixed-session and 1.0/0.0 for flat. & The study instrument is ready, but accuracy, time-to-answer, productivity, and human/agent utility remain unproven until analysts complete it. \\
+    \bottomrule
+  \end{tabular}
 \end{table*}
 
 \section{哪些数据集最适合}

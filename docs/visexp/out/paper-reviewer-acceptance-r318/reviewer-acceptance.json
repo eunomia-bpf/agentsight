@@ -1,0 +1,152 @@
+{
+  "checks": [
+    {
+      "check": "paper_table_claim_centered",
+      "evidence": "main.tex contains the claim-centered result table header and caption.",
+      "status": "pass"
+    },
+    {
+      "check": "rq2_artifact_log_phrase_removed",
+      "evidence": "The former artifact-log phrase is absent from main.tex.",
+      "status": "pass"
+    },
+    {
+      "check": "paper_ready_wording_is_prose_guidance",
+      "evidence": "claim setup now directs authors to write by task/problem rather than artifact number.",
+      "status": "pass"
+    },
+    {
+      "check": "submission_audit_passes",
+      "evidence": "R312 overall is scoped_claim_ready with all checks passing.",
+      "status": "pass"
+    },
+    {
+      "check": "related_work_audit_passes",
+      "evidence": "R314 overall is scoped_related_work_ready with all sections passing.",
+      "status": "pass"
+    },
+    {
+      "check": "r317_two_abstraction_boundary",
+      "evidence": "R317 emits only operation and operation_stack.",
+      "status": "pass"
+    },
+    {
+      "check": "r317_not_empirical_or_analyst_study",
+      "evidence": "R317 is explicitly marked as synthesis, not empirical or analyst-study evidence.",
+      "status": "pass"
+    },
+    {
+      "check": "all_reviewers_final_accept",
+      "evidence": "All four independent reviewers ended with ACCEPT.",
+      "status": "pass"
+    },
+    {
+      "check": "needs_changes_round_closed",
+      "evidence": "The reviewer who requested changes re-reviewed and accepted the fixes.",
+      "status": "pass"
+    }
+  ],
+  "claim_scope": {
+    "does_not_support": [
+      "human analyst accuracy",
+      "agent analyst task accuracy",
+      "time-to-answer improvement",
+      "developer productivity improvement",
+      "automatic detection",
+      "single-view dominance"
+    ],
+    "supports": [
+      "independent reviewer acceptance of scoped R317 paper wording",
+      "paper-structure closure for the artifact-log blocker",
+      "continued two-abstraction and must-not-claim guardrail alignment"
+    ]
+  },
+  "commit": "a1fd72f14ad8d09c27ece122d721b43c3834bcaf",
+  "input_policy": "current-worktree paper and generated R312/R314/R317 artifacts; no dataset sync, no profiler rerun, no human/agent analyst task",
+  "not_a_human_study_result": true,
+  "not_an_agent_analyst_task_result": true,
+  "not_new_empirical_result": true,
+  "outputs": {
+    "csv": "docs/visexp/out/paper-reviewer-acceptance-r318/reviewer-verdicts.csv",
+    "html": "docs/visexp/out/paper-reviewer-acceptance-r318/index.html",
+    "json": "docs/visexp/out/paper-reviewer-acceptance-r318/reviewer-acceptance.json",
+    "markdown": "docs/visexp/out/paper-reviewer-acceptance-r318/reviewer-acceptance.md",
+    "run_result": "docs/visexp/out/paper-reviewer-acceptance-r318/run-result.json"
+  },
+  "overall": "accepted",
+  "profiler_abstractions": [
+    "operation",
+    "operation_stack"
+  ],
+  "review_events": [
+    {
+      "agent_id": "019f2ea0-a261-7102-836e-ddbd51bd59b7",
+      "blocking_issues": [],
+      "final_verdict": "ACCEPT",
+      "focus": "overall R317 paper update",
+      "initial_verdict": "ACCEPT",
+      "residual_risks": [
+        "JSON uses operation_stack while paper prose uses operation stack",
+        "submission polish should continue moving run IDs out of prose",
+        "R312/R314 provenance commit metadata can drift when regenerated before commit"
+      ],
+      "reviewer": "Volta"
+    },
+    {
+      "agent_id": "019f2ea0-f154-7893-866f-cd94f956a3b5",
+      "blocking_issues": [],
+      "final_verdict": "ACCEPT",
+      "focus": "claim/evidence validity",
+      "initial_verdict": "ACCEPT",
+      "residual_risks": [],
+      "reviewer": "Newton"
+    },
+    {
+      "agent_id": "019f2ea0-f501-7341-94ed-c4bc3fad01dc",
+      "blocking_issues": [],
+      "final_verdict": "ACCEPT",
+      "focus": "artifact provenance and reproducibility",
+      "initial_verdict": "ACCEPT",
+      "residual_risks": [],
+      "reviewer": "Mendel"
+    },
+    {
+      "agent_id": "019f2ea0-f322-7343-806e-f242fcf74887",
+      "blocking_issues": [
+        "RQ2 mechanism narrative read like a claim-synthesis artifact ledger",
+        "main result table was dominated by R277-R317 run IDs",
+        "Paper-Ready Wording section listed R307-R317 artifacts sequentially"
+      ],
+      "final_verdict": "ACCEPT",
+      "focus": "paper prose and structure",
+      "initial_verdict": "NEEDS_CHANGES",
+      "residual_risks": [
+        "internal Chinese draft still uses run IDs in some ordinary prose; final submission should move most to appendix or artifact ledger"
+      ],
+      "resolved_by": [
+        "main.tex reframes the former artifact material as mechanism verification",
+        "main.tex replaces the run-ID inventory table with a claim-centered result table",
+        "evaluation-claims-setup.zh-CN.md now gives paper-facing prose guidance"
+      ],
+      "reviewer": "Linnaeus"
+    }
+  ],
+  "run_id": "R318",
+  "schema": "agentsight.paper-reviewer-acceptance.v1",
+  "source": {
+    "claim_setup": "docs/visexp/paper/evaluation-claims-setup.zh-CN.md",
+    "evaluation": "docs/evaluation.md",
+    "paper_main_tex": "docs/visexp/paper/main.tex",
+    "real_problem_narrative": "docs/visexp/out/paper-real-problem-narrative-r317/paper-narrative-report.json",
+    "related_work_audit": "docs/visexp/out/paper-related-work-audit-r314/related-work-audit.json",
+    "submission_audit": "docs/visexp/out/paper-submission-audit-r312/submission-audit.json"
+  },
+  "status": "ok",
+  "summary": {
+    "blocking_issues_resolved": 3,
+    "closed_needs_changes_rounds": 1,
+    "final_accepts": 4,
+    "initial_needs_changes_rounds": 1,
+    "reviewers": 4
+  }
+}
