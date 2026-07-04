@@ -1,0 +1,181 @@
+{
+  "claim_count": 4,
+  "claim_matrix": [
+    {
+      "claim": "C1",
+      "headline_numbers": [
+        "15 sampled public datasets / 47590 operations",
+        "R293 profile-spec replay and stack override",
+        "R294 claim-gated exchange plus R303 scripted agent-session exchange with 1 session / 6 operations and folded equality",
+        "R306 Chrome Trace Event JSON round trip with 6 samples / 5 stacks on all paths"
+      ],
+      "must_not_claim": [
+        "all public agent datasets are fully converted at full scale",
+        "Chrome/OpenTelemetry ecosystem compatibility is complete",
+        "trace exchange is a third profiler abstraction"
+      ],
+      "next_gate": "Import one real external OpenTelemetry GenAI or Perfetto trace bundle and verify operation-stack parity.",
+      "paper_use": "Use in abstract/design as heterogeneous operation model and trace exchange evidence.",
+      "readiness_level": "paper-ready mechanism claim with scoped wording",
+      "source_artifacts": [
+        "docs/visexp/out/paper-claim-readiness-r307/paper-readiness-synthesis.json",
+        ""
+      ],
+      "supported_wording": "AgentSight represents heterogeneous public agent trajectories and local agent-session traces as operations, then profiles them with user-selected operation stacks. Chrome Trace Event JSON is supported as an exchange container that imports back to operation JSONL.",
+      "verdict": "supported"
+    },
+    {
+      "claim": "C2",
+      "headline_numbers": [
+        "R286 recursive depth sweep",
+        "R290 OSWorld-Human grouped boundary evidence",
+        "R291 AgentNet step-quality fields",
+        "R299 boundary-family calibration"
+      ],
+      "must_not_claim": [
+        "perfect intent recovery",
+        "one universal stack depth",
+        "unsupervised boundary discovery"
+      ],
+      "next_gate": "Validate deeper sequence/subtask boundaries beyond adjacent action labels.",
+      "paper_use": "Use in design/results as recursive stack-depth evidence.",
+      "readiness_level": "paper-ready mechanism claim with scoped wording",
+      "source_artifacts": [
+        "docs/visexp/out/paper-claim-readiness-r307/paper-readiness-synthesis.json",
+        ""
+      ],
+      "supported_wording": "Recursive operation stacks recover useful task, phase, action, human-group, safety, and quality-label views on sampled labeled trajectories, and the same operations can be folded at different depths by changing stack fields.",
+      "verdict": "supported with scoped limits"
+    },
+    {
+      "claim": "C3",
+      "headline_numbers": [
+        "R282 held-out mapping",
+        "R285 leave-dataset-out mapping",
+        "R297 OSWorld-Human supervised boundary backend",
+        "R299 family calibration with negative controls"
+      ],
+      "must_not_claim": [
+        "field derivation is unsupervised",
+        "one learned backend generalizes across all families",
+        "AgentRewardBench looping requires learned boundaries when repeat_signal_change is sufficient"
+      ],
+      "next_gate": "Add calibrated boundary backends and compare against simple derived-field baselines on another family.",
+      "paper_use": "Use as extension-point evidence, with negative controls and scoped language.",
+      "readiness_level": "partial extension-point claim; needs stronger calibrated backend evidence",
+      "source_artifacts": [
+        "docs/visexp/out/paper-claim-readiness-r307/paper-readiness-synthesis.json",
+        ""
+      ],
+      "supported_wording": "Deterministic mappings and supervised boundary backends improve semantic aggregation by deriving operation fields before folding.",
+      "verdict": "partial"
+    },
+    {
+      "claim": "C4",
+      "headline_numbers": [
+        "4 datasets / 6 tasks / 34539 task-operations",
+        "operation-stack more selective than flat: 6/6",
+        "high-lift evidence: 5/6",
+        "higher selected recall than fixed-session: 5/6",
+        "fixed-session lower selected work: 4/6",
+        "top-10 query-aware work/lift 0.1163/1.5867 vs width 0.6713/1.0795"
+      ],
+      "must_not_claim": [
+        "human productivity improvement",
+        "automatic anomaly detection",
+        "operation stacks dominate fixed-session views on every work metric"
+      ],
+      "next_gate": "Use the existing R301/R302/R304/R305 visible packets and answer keys for a controlled analyst study before claiming user utility.",
+      "paper_use": "Use in evaluation/discussion as real-problem proxy value and counterpoints.",
+      "readiness_level": "paper-ready automated inspectability proxy; not user utility",
+      "source_artifacts": [
+        "docs/visexp/out/paper-claim-readiness-r307/paper-readiness-synthesis.json",
+        "docs/visexp/out/operation-problem-value-r309/problem-value-report.json"
+      ],
+      "supported_wording": "On six oracle-backed analysis tasks over existing labeled operations, operation-stack views provide a useful inspectability tradeoff: they are far more selective than flat summaries and higher-recall than fixed-session case packets at the same top-k packet count, but they are not uniformly cheaper than fixed-session drilldown.",
+      "verdict": "supported as automated proxy, not user utility"
+    }
+  ],
+  "claim_scope": {
+    "narrowed": "fixed-session packets remain a strong low-work drilldown baseline, and some tasks need better ranking policies or analyst studies",
+    "not_supported": "human accuracy/time improvement, automatic detection, universal dominance over fixed-session baselines, or complete trace-ecosystem compatibility",
+    "supported": "operation stacks provide a configurable, two-abstraction way to inspect real labeled failure, safety, quality, and boundary tasks without collapsing to flat traces or hard-coding session boundaries"
+  },
+  "commit": "bfeb673a5b7fe7a9307a0d9f58e8b5cf4d771bd5",
+  "evidence_level": "level-3 conference-paper evidence for mechanism claims; automated proxy evidence for value; level-4 remains blocked by a controlled analyst study and stronger boundary calibration",
+  "global_must_not_claim": [
+    "Every public agent trajectory dataset can be profiled at full scale without additional engineering.",
+    "R296 reviewer packet is itself empirical evidence",
+    "R297 generalizes beyond OSWorld-Human",
+    "R300-R305 prove human productivity",
+    "R306 proves full OpenTelemetry/Chrome ecosystem compatibility",
+    "The profiler fully discovers latent intent boundaries without labels or rules.",
+    "The profiler improves human developer productivity.",
+    "automatic anomaly detection",
+    "case packets are a new profiler abstraction",
+    "complete trace ecosystem compatibility",
+    "human accuracy or time improvement",
+    "universal dominance over fixed-session baselines",
+    "unsupervised intent discovery"
+  ],
+  "highest_risks": [
+    "user utility is not proven without a controlled analyst study",
+    "boundary generalization remains partial and family-specific",
+    "standard trace exchange is fixture-level, not full ecosystem compatibility"
+  ],
+  "input_policy": {
+    "dataset_sync": "none",
+    "purpose": "paper claim/evidence matrix only; no new empirical result",
+    "source_artifacts": {
+      "r307_claim_readiness": "docs/visexp/out/paper-claim-readiness-r307/paper-readiness-synthesis.json",
+      "r309_problem_value": "docs/visexp/out/operation-problem-value-r309/problem-value-report.json"
+    },
+    "source_requirement": "git-tracked and clean before synthesis"
+  },
+  "outputs": {
+    "csv": "docs/visexp/out/paper-evidence-matrix-r310/evidence-matrix.csv",
+    "html": "docs/visexp/out/paper-evidence-matrix-r310/index.html",
+    "json": "docs/visexp/out/paper-evidence-matrix-r310/evidence-matrix.json",
+    "markdown": "docs/visexp/out/paper-evidence-matrix-r310/evidence-matrix.md",
+    "run_result": "docs/visexp/out/paper-evidence-matrix-r310/run-result.json",
+    "tex": "docs/visexp/out/paper-evidence-matrix-r310/evidence-table.tex"
+  },
+  "partial_claims": [
+    "C3"
+  ],
+  "problem_value_metrics": {
+    "dataset_names": [
+      "agent-reward-bench",
+      "agentnet",
+      "osworld-human",
+      "satraj-os-safety"
+    ],
+    "datasets": 4,
+    "fixed_session_lower_selected_work": "4/6",
+    "median_selected_recall": 0.188,
+    "median_selected_work": 0.0937,
+    "median_top_group_lift": 1.5739,
+    "operation_stack_high_lift_coverage": "5/6",
+    "operation_stack_higher_recall_than_fixed_session": "5/6",
+    "operation_stack_more_selective_than_flat": "6/6",
+    "operation_stack_positive_coverage": "6/6",
+    "operations": 34539,
+    "positive_operations": 3699,
+    "tasks": 6,
+    "top10_query_aware_lift": 1.5867,
+    "top10_query_aware_work": 0.1163,
+    "top10_width_lift": 1.0795,
+    "top10_width_work": 0.6713
+  },
+  "profiler_abstractions": [
+    "operation",
+    "operation stack"
+  ],
+  "run_id": "R310",
+  "schema": "agentsight.paper-evidence-matrix.v1",
+  "scoped_paper_ready_claims": [
+    "C1",
+    "C2",
+    "C4"
+  ]
+}

@@ -64,6 +64,7 @@ R305 将同一 case-packet policy 与 flat、fixed-session baseline 对齐：fla
 R307 读取 R295/R298、R303 和 R300--R306 的 tracked artifacts，刷新当前 paper-readiness gate：C1 supported，C2 supported with scoped limits，C3 partial，C4 只 supported as automated proxy；下一 gate 是基于 R301/R302/R304/R305 visible packets 和 hidden answer keys 的 controlled analyst study。
 R308 进一步把 R305 packets 评分为 first-evidence proxy：operation-stack packets 在 6/6 tasks 中含 positive group，在 5/6 tasks 中含 $\geq$1.5x high-lift group。Fixed-session 为 5/6 和 4/6，flat 为 6/6 和 0/6，同时 fixed-session 仍保留 first-positive work 更低的反例。
 R309 再把这些 proxy 结果合成为 6 个 problem-value cards，覆盖 4 个数据集和 34,539 个 task-operations：operation-stack 在 6/6 tasks 上比 flat 更 selective，在 5/6 tasks 上有 high-lift evidence，在 5/6 tasks 上比 fixed-session 有更高 selected recall，但 fixed-session 在 4/6 tasks 上 selected work 更低。
+R310 最后把 R307/R309 合成为 paper evidence matrix：4 个 claim rows 中 C1、C2 和 C4 是 scoped paper-ready，C3 保持 partial；矩阵保留 34,539 operations、3,699 positives、5/6 high-lift、6/6 比 flat selective、5/6 selected recall 高于 fixed-session，以及 fixed-session 在 4/6 tasks 上 lower selected work 的 counterpoint。
 这些结果支持一个机制性 claim：agent 轨迹可以被统一为 operations，并通过可配置 mappings 和 stack specs 递归折叠为多个有用的 analysis views。
 当前结果仍不支持完整无监督边界发现或人类用户效用 claim。
 \end{abstract}
@@ -140,7 +141,7 @@ agentpprof --operation-file ops.jsonl --view operations \\
 外部数据集转换器位于 \texttt{script/agent\_trace\_datasets.py}。
 转换器只下载或流式读取所需公开文件的采样前缀。
 对于包含截图、长 prompt 或完整对话的数据集，默认保存 redacted rows 和 operation JSONL，不提交原始数据。
-本地 agent session 通过 \texttt{agent-session} 解析为 \texttt{agentsight.agent-session.trace.v1} trace；\toolname{} 可以用 \texttt{--export-trace} 写出 filesystem-normalized trace，用 \texttt{--trace-file} 读回，也可以通过 \texttt{script/agent\_trace\_to\_operations.py} 转成 operation JSONL。\texttt{script/agent\_trace\_exchange\_eval.py} 将这三步、filesystem/tool-command portability check 和 folded-output equality check 固化为一个可复现实验；该检查不声称 prompt/LLM preview 已完整脱敏。\texttt{script/agent\_trace\_chrome\_trace.py} 进一步把该 trace 导出为 Chrome/Perfetto-style \texttt{traceEvents}，也能把标准 trace 再导入为 operation JSONL；\texttt{script/agent\_trace\_chrome\_exchange\_eval.py} 验证该路径不改变 folded operation-stack 输出。
+本地 agent session 通过 \texttt{agent-session} 解析为 \texttt{agentsight.agent-session.trace.v1} trace；\toolname{} 可以用 \texttt{--export-trace} 写出 filesystem-normalized trace，用 \texttt{--trace-file} 读回，也可以通过 \texttt{script/agent\_trace\_convert.py to-operations} 转成 operation JSONL。\texttt{script/agent\_trace\_exchange\_eval.py} 将这三步、filesystem/tool-command portability check 和 folded-output equality check 固化为一个可复现实验；该检查不声称 prompt/LLM preview 已完整脱敏。\texttt{script/agent\_trace\_convert.py export-standard --format chrome} 进一步把该 trace 导出为 Chrome/Perfetto-style \texttt{traceEvents}，\texttt{import-standard --format chrome} 则把标准 trace 再导入为 operation JSONL；\texttt{script/agent\_trace\_chrome\_exchange\_eval.py} 验证该路径不改变 folded operation-stack 输出。
 质量评估脚本位于 \texttt{script/operation\_stack\_quality.py}，它复用 \toolname{} 的 operation mapping contract，并计算字段覆盖率、oracle V-measure 和序列相邻边界 F1。
 Stack 结构分析脚本位于 \texttt{script/operation\_stack\_analysis.py}，用于生成 flamegraph 之外的 tree、top-kind 和 transition 报告。
 
@@ -192,11 +193,13 @@ R308 的 \texttt{script/operation\_analyst\_outcome\_eval.py} 再读取 R305 的
 R308 不读取新的数据集，也不新增 profiler object。它只是对同一 operation/operation-stack packet 的隐藏标签回放评分。
 R309 的 \texttt{script/operation\_problem\_value\_synthesis.py} 读取 R298/R300/R302/R305/R308 的 tracked artifacts，生成真实问题卡片和 claim/counterpoint synthesis。
 它不重新同步数据集，也不新增 profiler object。它只把 failure、safety、step-quality 和 human-boundary 任务解释为 operation-stack 报告上的 value/counterpoint。
+R310 的 \texttt{script/paper\_evidence\_matrix\_synthesis.py} 读取 tracked/clean R307/R309 artifacts，输出 JSON、Markdown、CSV、TeX 和 HTML evidence matrix。
+它不重新同步数据，也不重新计算任务结果；它只把 claim、paper-ready wording、关键数字、must-not-claim 和 next gate 对齐到同一张表，防止论文摘要、评估和结论漂移。
 
 \begin{table*}[t]
   \centering
   \scriptsize
-  \renewcommand{\arraystretch}{0.95}
+  \renewcommand{\arraystretch}{0.9}
   \caption{公开标注轨迹数据源和当前用途。ScaleCUA 是 R292 补充点，主结论主要依赖 R279--R291。}
   \label{tab:datasets}
   \begin{tabular}{p{0.13\linewidth}p{0.23\linewidth}p{0.28\linewidth}p{0.25\linewidth}}
@@ -271,6 +274,7 @@ R305 将该 case evidence 与 flat 和 fixed-session 直接对齐，显示 opera
 R307 在这些结果之后刷新 paper readiness：机制 claim 在 sampled public trajectories 和 fixture-level exchange 范围内已经可写强，user-utility wording 仍必须等待 controlled analyst study。
 R308 则把该 controlled-study gate 具体化为 first-evidence proxy：operation-stack packets 覆盖所有 6 个 tasks 的 positive group，并在 5 个 tasks 中给出 $\geq$1.5x high-lift group。Fixed-session 的 median first-positive work 更低，所以论文仍只能 claim inspectability tradeoff。
 R309 把这个 tradeoff 拆成真实问题卡片：SATraj safety 是最强 selective win，AgentNet quality 显示低 work 下有 high lift 但 recall 低，AgentRewardBench looping 因 positives 太普遍而没有 high-lift top group，side-effect 与 OSWorld human-boundary 暴露了 top-k ranking depth 的敏感性。
+R310 把 R307/R309 的结论压成 paper evidence matrix：C1、C2 和 C4 可以按 scoped wording 写入论文，C3 仍只能写成 deterministic/supervised field-derivation extension point；全局不能声称 human accuracy/time improvement、automatic anomaly detection、universal fixed-session dominance、unsupervised intent discovery 或 complete trace-ecosystem compatibility。
 
 \subsection{RQ3：mapping 是否能泛化？}
 
@@ -392,6 +396,7 @@ Operation-stack view 的 median work fraction 为 0.0937、recall 为 0.188、li
     R307 claim readiness & R295/R298、R303 与 R300--R306 tracked artifacts & C1 supported；C2 supported with scoped limits；C3 partial；C4 automated proxy only；analysis suite 6 tasks / 34,539 operations & 当前 paper wording 可以强化机制 claim，但 user utility 仍需 controlled analyst study。 \\
     R308 analyst outcome & R305 visible packets 与 hidden answer key；6 tasks / 18 task-view packets & operation-stack positive/high-lift coverage 为 6/6 和 5/6；fixed-session 为 5/6 和 4/6；flat 为 6/6 和 0/6；operation-stack top-group lift median 1.5739 & First-evidence proxy 支持 operation-stack inspectability，但仍不是 human utility。 \\
     R309 problem value & R298/R300/R302/R305/R308 tracked artifacts；4 datasets；6 tasks & 34,539 task-operations；3,699 positives；operation-stack 比 flat selective 的任务为 6/6；high-lift coverage 为 5/6；比 fixed-session selected recall 更高的任务为 5/6 & 真实问题卡片增强 value/novelty 叙事，同时保留 fixed-session 在 4/6 tasks 上 selected work 更低。 \\
+    R310 evidence matrix & R307/R309 tracked artifacts & C1/C2/C4 scoped paper-ready；C3 partial；5-format audit outputs & 把 claim、证据数字和 must-not-claim 边界对齐成 paper audit surface，而不是新实验。 \\
     R288/R289 diagnostics & 729 AgentRewardBench ops；4,285 SATraj ops & repeat-signal/looping V-measure 0.378 vs step-error 0.011；622 unsafe SATraj ops & Profiler 支持 failure/safety views，且负结果能揭示粗标签不足。 \\
     \bottomrule
   \end{tabular}
@@ -452,6 +457,7 @@ R282/R285 证明它们有 held-out 和 leave-dataset-out 泛化，但不证明�
 第十七，R307 是 paper-readiness synthesis，不是新 empirical run；它能约束当前投稿 wording，但不能替代它自己指出的 controlled analyst study。
 第十八，R308 是 hidden-answer-key replay，不是 human/agent analyst study；它支持 first-evidence proxy，但不能证明 accuracy、time-to-answer 或 developer productivity。
 第十九，R309 是已有 proxy 结果的 problem-value synthesis，不是新用户实验或 detector；它能说明哪些真实问题支持 value claim，也必须保留 looping、low-recall quality tasks 和 fixed-session lower-work counterexamples。
+第二十，R310 是 paper evidence matrix，不是新实证结果；它提高 claim/evidence/limit 的一致性，但不能把 C3 的 boundary-generalization gap 或 C4 的 human-utility gap 变成已解决问题。
 
 \section{结论}
 
@@ -474,6 +480,7 @@ R306 则把本地 session 互操作路径扩展到 Chrome/Perfetto-style 标准 
 R307 把 R300--R306 后的证据收敛成当前投稿 gate：机制性语义剖析和自动化 inspectability proxy 已经有可审计证据，用户效用和更强边界发现仍需要下一轮实验。
 R308 把受控 analyst study 的评分协议向前推进一步：first-positive、first-enriched 和 high-lift evidence 可以从现有 visible packets 与 hidden answer key 机械计算，但人类或 agent analyst 的正确率和耗时仍未验证。
 R309 把这些 proxy 结果组织成真实问题卡片，说明当前 value claim 最强地来自 safety、step-quality 和跨 session 聚合，同时明确 looping、side-effect 和 human-boundary 任务仍需要更好的 ranking 或 controlled analyst validation。
+R310 把最终投稿前的 claim/evidence/limit 对齐成 evidence matrix，明确 C1、C2 和 C4 的 scoped paper-ready wording，以及 C3 的 partial status。
 下一步不是继续无差别增加数据集，而是把 mapping backend、calibrated boundary detector 和基于 R308/R309 protocol 的受控用户/agent analyst 任务实验推进到能支持更强 claim 的程度。
 
 \vspace{-0.8em}

@@ -34,9 +34,11 @@ bridge can be replayed with `python3 script/agent_trace_exchange_eval.py`,
 which exports a fixture trace, converts it, imports both paths, and checks that
 the folded outputs are byte-identical under the same operation stack.
 For tools that expect a more standard trace container, AgentSight also provides
-`script/agent_trace_chrome_trace.py`: `export` writes Chrome Trace Event JSON
-that can be opened by Chrome/Perfetto-style trace viewers, and `import` converts
-that trace back to operation JSONL before profiling.
+`script/agent_trace_convert.py`: `export-standard --format chrome` writes
+Chrome Trace Event JSON that can be opened by Chrome/Perfetto-style trace
+viewers, and `import-standard --format chrome` converts that trace back to
+operation JSONL before profiling. `script/agent_trace_chrome_trace.py` remains
+the lower-level Chrome bridge used by the exchange evaluation.
 
 ## Scope
 

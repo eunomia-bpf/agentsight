@@ -321,7 +321,7 @@ To feed the same data through the external-dataset path, convert it to
 operation JSONL:
 
 ```bash
-python3 script/agent_trace_to_operations.py \
+python3 script/agent_trace_convert.py to-operations \
   --trace-file agent-session-trace.json \
   --project-name my-project \
   --out operations.jsonl
@@ -332,6 +332,29 @@ agentpprof --operation-file operations.jsonl --view operations -o operations.fol
 The converter exits nonzero if a trace produces no operations. It uses
 event-level prompt/tool/LLM rows when present and falls back to session-level
 tool and token summaries.
+
+When another viewer or tool expects a standard trace container, export Chrome /
+Perfetto Trace Event JSON and import it back to operations before profiling:
+
+```bash
+python3 script/agent_trace_convert.py export-standard \
+  --format chrome \
+  --trace-file agent-session-trace.json \
+  --project-name my-project \
+  --out standard-trace.json
+
+python3 script/agent_trace_convert.py import-standard \
+  --format chrome \
+  --trace-file standard-trace.json \
+  --project-name my-project \
+  --out standard-operations.jsonl
+
+agentpprof --operation-file standard-operations.jsonl --view operations -o standard.folded
+```
+
+The standard trace file is an exchange container, not a third profiler
+abstraction. Imported events still become operation JSONL, and recursive
+folding is controlled by `agentpprof --stack` and `--op-map`.
 
 To reproduce the complete exchange bridge from a public Codex fixture, run:
 

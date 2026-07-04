@@ -68,6 +68,7 @@ tool、action、human group、safety、looping 或 step quality 等不同深度�
 | R307 | Paper claim readiness refresh | 读取 R295/R298、R303 和 R300-R306 tracked artifacts；4 个 claim verdicts；C1 supported，C2 supported with scoped limits，C3 partial，C4 supported as automated proxy only；analysis suite 为 6 tasks / 34,539 operations；next gate 是基于 R301/R302/R304/R305 packets 的 controlled analyst study | 把 R300-R306 后的论文 claim 收敛为当前可投稿 wording，明确机制 claim 与 user-utility gap 的边界。 |
 | R308 | Analyst first-evidence proxy | 读取 R305 visible packets 和 hidden answer key；6 个 tasks / 18 个 task-view packets；operation-stack positive group coverage 为 6/6，high-lift coverage 为 5/6，median selected work/recall/top-group lift 为 0.0937/0.188/1.5739；fixed-session high-lift coverage 为 4/6 且 first-positive work 更低 | 把 user-utility gate 推近到可执行 protocol，但仍只是 automated first-evidence proxy，不是 human study。 |
 | R309 | Problem-value synthesis | 读取 R298/R300/R302/R305/R308 tracked artifacts；6 个 problem cards；4 个 datasets；34,539 task-operations；operation-stack high-lift coverage 为 5/6；selected work/recall/top lift 为 0.0937/0.188/1.5739；top-10 query-aware work/lift 为 0.1163/1.5867，而 width ranking 为 0.6713/1.0795 | 把已有 proxy 结果按真实问题拆解：safety 是强 selective win，AgentNet quality 是低 recall 高 lift，looping 过于普遍而缺少 high-lift，side-effect 和 human-boundary 暴露 ranking-depth sensitivity。 |
+| R310 | Paper evidence matrix | 读取 tracked/clean R307/R309 artifacts；输出 evidence-matrix JSON、Markdown、CSV、TeX 和 HTML；4 个 claim rows 中 C1、C2、C4 是 scoped paper-ready，C3 保持 partial；R309 的 4 datasets / 6 tasks / 34,539 operations / 3,699 positives、5/6 high-lift、6/6 比 flat 更 selective、5/6 selected recall 高于 fixed-session、4/6 fixed-session work 更低都进入 claim matrix。 | 把当前论文 claim、关键数字和 must-not-claim 边界压成可直接引用的表格/audit artifact；它不是新实验，也不是第三个 profiler 抽象。 |
 
 ## Paper-Ready Wording
 
@@ -136,6 +137,10 @@ tool、action、human group、safety、looping 或 step quality 等不同深度�
 > 区分 safety、step-quality、looping、side-effect 和 human-boundary 等任务上
 > operation stack 的强项、低 recall 情况和 fixed-session 反例；它增强 value/novelty
 > 叙事，但仍是 proxy synthesis。
+> Paper evidence matrix 再读取 R307/R309，把 C1、C2、C4 固化为 scoped paper-ready
+> claim，把 C3 保留为 partial，并把 34,539 operations、5/6 high-lift、6/6 selectivity
+> 和 fixed-session 4/6 lower-work counterpoint 写入可引用表格；它只是 audit surface，
+> 不是新实证结果或第三个抽象。
 > Paper value/novelty synthesis 也不是新实证结果；它把 heterogeneous trace objects、
 > recursive depth choice、field derivation、human/subtask boundaries、
 > failure/safety diagnostics 和 artifact auditability 映射到 tracked artifacts，

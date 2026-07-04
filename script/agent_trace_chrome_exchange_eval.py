@@ -275,7 +275,8 @@ def main() -> None:
     direct_convert = run_json(
         [
             "python3",
-            "script/agent_trace_to_operations.py",
+            "script/agent_trace_convert.py",
+            "to-operations",
             "--trace-file",
             command_path(agent_trace_file),
             "--project-name",
@@ -290,8 +291,10 @@ def main() -> None:
     chrome_export = run_json(
         [
             "python3",
-            "script/agent_trace_chrome_trace.py",
-            "export",
+            "script/agent_trace_convert.py",
+            "export-standard",
+            "--format",
+            "chrome",
             "--trace-file",
             command_path(agent_trace_file),
             "--project-name",
@@ -306,8 +309,10 @@ def main() -> None:
     chrome_import = run_json(
         [
             "python3",
-            "script/agent_trace_chrome_trace.py",
-            "import",
+            "script/agent_trace_convert.py",
+            "import-standard",
+            "--format",
+            "chrome",
             "--trace-file",
             command_path(chrome_trace_file),
             "--project-name",

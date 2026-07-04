@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-04
 Stage at update: stage 5 analyze / stage 6 claim gate / stage 9 paper integration
-Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agent-session`, `script/agent_trace_to_operations.py`, `script/agent_trace_exchange_eval.py`, `script/agent_trace_chrome_trace.py`, `script/agent_trace_chrome_exchange_eval.py`, `script/operation_boundary_backend_eval.py`, `script/boundary_family_calibration_eval.py`, `script/operation_query_utility_eval.py`, `script/operation_analyst_task_eval.py`, `script/operation_analyst_ranking_eval.py`, `script/operation_case_study_eval.py`, `script/operation_case_baseline_eval.py`, `script/operation_analyst_outcome_eval.py`, `script/operation_problem_value_synthesis.py`, `script/paper_claim_synthesis.py`, `script/reviewer_evidence_packet.py`, `script/paper_value_novelty_synthesis.py`, `script/paper_claim_readiness_synthesis.py`, `docs/evaluation.md`, `agentpprof --profile-spec`
+Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agent-session`, `script/agent_trace_to_operations.py`, `script/agent_trace_convert.py`, `script/agent_trace_exchange_eval.py`, `script/agent_trace_chrome_trace.py`, `script/agent_trace_chrome_exchange_eval.py`, `script/operation_boundary_backend_eval.py`, `script/boundary_family_calibration_eval.py`, `script/operation_query_utility_eval.py`, `script/operation_analyst_task_eval.py`, `script/operation_analyst_ranking_eval.py`, `script/operation_case_study_eval.py`, `script/operation_case_baseline_eval.py`, `script/operation_analyst_outcome_eval.py`, `script/operation_problem_value_synthesis.py`, `script/paper_claim_synthesis.py`, `script/reviewer_evidence_packet.py`, `script/paper_value_novelty_synthesis.py`, `script/paper_claim_readiness_synthesis.py`, `script/paper_evidence_matrix_synthesis.py`, `docs/evaluation.md`, `agentpprof --profile-spec`
 Completeness: partial
 
 ## Current State And Blocking Gate
@@ -157,7 +157,7 @@ R294 adds a filesystem-normalized trace exchange step for local agent sessions. 
 `agent-session` crate owns the `agentsight.agent-session.trace.v1` schema and
 now exposes parse/serialize helpers on `AgentTrace`; `agentpprof --export-trace`
 writes that parsed IR, `agentpprof --trace-file` imports it, and
-`script/agent_trace_to_operations.py` converts it to operation JSONL.
+`script/agent_trace_convert.py to-operations` converts it to operation JSONL.
 On the public Codex fixture, trace import and operation-file import both produce
 6 samples / 5 stacks with byte-identical folded output under the same stack
 spec. R303 adds `script/agent_trace_exchange_eval.py` as a one-command
@@ -166,7 +166,9 @@ equality. Exported traces use trace-local session paths, `cwd=repo`, path-groupe
 files, and command names rather than full raw shell text; prompt and LLM previews
 remain parsed transcript summaries outside this portability check. This is
 an interoperability layer before operations, not a profiler abstraction. R306
-adds `script/agent_trace_chrome_trace.py` as a Chrome Trace Event JSON bridge:
+adds a Chrome Trace Event JSON bridge, with `script/agent_trace_convert.py`
+as the user-facing import/export entrypoint and
+`script/agent_trace_chrome_trace.py` as the lower-level implementation:
 the same fixture exports to a Perfetto/Chrome-readable `traceEvents` file,
 imports back to operation JSONL, and produces the same 6 samples / 5 stacks and
 byte-identical folded output as direct trace and direct operation imports.
@@ -256,6 +258,12 @@ operation fields and operation-stack reports, while the synthesis only explains
 where operation stacks help, where fixed-session drilldown remains cheaper, and
 which claims remain unsupported.
 
+R310 reads the tracked R307 claim gate and R309 problem-value synthesis to emit
+a paper evidence matrix. It is an audit surface over existing artifacts: C1,
+C2, and C4 become scoped paper-ready rows, C3 remains partial, and the
+must-not-claim list stays explicit. It does not add a profile object, exchange
+object, task object, or visualization object to the runtime model.
+
 ## Mapping And Tagging
 
 Purpose: align mapping/tagging with the two-abstraction model.
@@ -328,5 +336,5 @@ Purpose: keep open risks tied to experiments.
 | User-facing value remains a proxy. | Compare operation-stack views against flat and fixed-session views on oracle-backed analysis tasks, then follow with a controlled human/agent analyst study. | R300 shows semantic operation stacks beat flat summaries on median positive lift and inspection fraction, and beat fixed-session stacks on group count and cross-session support, but it is oracle-sorted clustering quality. R301 hides oracle labels from visible packets and ranks groups by width only; operation stacks recover median 33.6% positives at a 30% operation budget over 4.5 groups versus fixed-session 28.4% over 25.5 groups. R302 adds label-hidden query-aware ranking: top-10 query-aware operation-stack groups inspect 11.6% of operations with lift 1.587, while width ranking inspects 67.1% with lift 1.079; at a 30% operation budget, query-aware recall rises from 34.0% to 39.0% but requires more groups. R304 turns the same tasks into visible case packets and hidden answer keys; top-5 query-aware cases inspect median 9.37% of operations with lift 1.6509. R305 adds flat/fixed-session case-packet baselines: operation stacks inspect 9.37% median work versus flat's 100%, and have 1.268x median lift versus fixed-session, but use 1.717x the fixed-session work. R307 makes this the current claim gate: C4 is supported as automated proxy only. R308 adds first-evidence outcome proxies: operation-stack packets contain a positive group in 6/6 tasks and a >=1.5x high-lift group in 5/6 tasks, while fixed-session remains cheaper on first-positive work. R309 turns the same evidence into 6 real-problem value cards across 4 datasets / 34,539 task-operations and keeps fixed-session's lower-work counterpoint explicit. A controlled analyst study remains the next gate. |
 | Profile experiments remain ad hoc shell commands. | Bundle reproducible operation-file, op-map, view, stack, and output choices in profile specs while preserving CLI overrides. | R293 adds an AgentNet profile spec that reproduces the R291 608-stack diagnostic profile and folds the same operations into an 83-stack override view. |
 | Local agent sessions are hard to exchange or replay outside native logs. | Export parsed sessions as `agentsight.agent-session.trace.v1`, import them through `--trace-file`, convert them to operation JSONL, and bridge through a standard trace container when needed. | R294 public Codex fixture smoke shows direct trace import and converted operation-file import produce identical folded stacks; R303 scripts the same bridge as a tracked reproducer and verifies filesystem/tool-command portability for the exported trace. R306 exports the same fixture to Chrome Trace Event JSON, imports it back to operation JSONL, and preserves the same 6 samples / 5 stacks folded output. |
-| Paper claims drift away from tracked artifact evidence. | Mechanically synthesize claim verdicts, reviewer value, novelty, and remaining gaps from tracked result JSON/folded artifacts while keeping unsupported claims explicit. | R295 reads R282-R294 artifacts and emits supported/partial verdicts plus unsupported final claims under `docs/visexp/out/paper-claim-synthesis-r295/`; R296 indexes those verdicts with reviewer questions, derived ratios, and source paths; R298 maps 6 real-problem evidence blocks and 4 novelty claims to tracked artifacts while marking unsupervised intent discovery and developer productivity as unsupported. |
+| Paper claims drift away from tracked artifact evidence. | Mechanically synthesize claim verdicts, reviewer value, novelty, evidence matrices, and remaining gaps from tracked result JSON/folded artifacts while keeping unsupported claims explicit. | R295 reads R282-R294 artifacts and emits supported/partial verdicts plus unsupported final claims under `docs/visexp/out/paper-claim-synthesis-r295/`; R296 indexes those verdicts with reviewer questions, derived ratios, and source paths; R298 maps 6 real-problem evidence blocks and 4 novelty claims to tracked artifacts while marking unsupervised intent discovery and developer productivity as unsupported; R307 refreshes the post-utility claim gate; R310 turns R307/R309 into JSON/Markdown/CSV/TeX/HTML paper evidence matrix outputs. |
 | Visualizations collapse back to flamegraphs only. | Generate tree, transition, top-field, quality, grouped-stack, history-depth, depth-sweep, case-packet, cross-view case-baseline, analyst-outcome, problem-value, and reviewer-navigation HTML/JSON reports. | R273-R296 include non-flamegraph analyses, reproducible profile specs, trace-exchange smoke tests, and an 11-entry evidence packet under `docs/visexp/out/reviewer-evidence-packet-r296/`; R304 adds a visible case-packet plus answer-key report over operation-stack groups, R305 adds flat/fixed/operation cross-view case-packet baselines, R308 adds a first-evidence analyst-outcome report, and R309 adds real-problem value cards. |

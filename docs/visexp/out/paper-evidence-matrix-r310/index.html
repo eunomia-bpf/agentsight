@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Paper Evidence Matrix R310</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; color: #1f2933; }
+    h1 { font-size: 1.6rem; margin-bottom: 0.25rem; }
+    p { max-width: 900px; line-height: 1.5; }
+    table { border-collapse: collapse; margin-top: 1.5rem; max-width: 1180px; }
+    th, td { border: 1px solid #d8dee9; padding: 0.55rem 0.75rem; text-align: left; vertical-align: top; }
+    th { background: #f6f8fa; width: 70px; }
+    code { background: #f6f8fa; padding: 0.1rem 0.25rem; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Paper Evidence Matrix R310</h1>
+  <p>
+    R310 reads the tracked R307 claim gate and R309 problem-value synthesis.
+    It keeps the model to two abstractions: <code>operation</code> and
+    <code>operation stack</code>.
+  </p>
+  <table>
+    <tr><th>Claim</th><th>Verdict</th><th>Readiness</th><th>Evidence</th><th>Boundary</th></tr>
+<tr><th>C1</th><td>supported</td><td>paper-ready mechanism claim with scoped wording</td><td>15 sampled public datasets / 47590 operations<br>R293 profile-spec replay and stack override<br>R294 claim-gated exchange plus R303 scripted agent-session exchange with 1 session / 6 operations and folded equality<br>R306 Chrome Trace Event JSON round trip with 6 samples / 5 stacks on all paths</td><td>all public agent datasets are fully converted at full scale<br>Chrome/OpenTelemetry ecosystem compatibility is complete<br>trace exchange is a third profiler abstraction</td></tr>
+<tr><th>C2</th><td>supported with scoped limits</td><td>paper-ready mechanism claim with scoped wording</td><td>R286 recursive depth sweep<br>R290 OSWorld-Human grouped boundary evidence<br>R291 AgentNet step-quality fields<br>R299 boundary-family calibration</td><td>perfect intent recovery<br>one universal stack depth<br>unsupervised boundary discovery</td></tr>
+<tr><th>C3</th><td>partial</td><td>partial extension-point claim; needs stronger calibrated backend evidence</td><td>R282 held-out mapping<br>R285 leave-dataset-out mapping<br>R297 OSWorld-Human supervised boundary backend<br>R299 family calibration with negative controls</td><td>field derivation is unsupervised<br>one learned backend generalizes across all families<br>AgentRewardBench looping requires learned boundaries when repeat_signal_change is sufficient</td></tr>
+<tr><th>C4</th><td>supported as automated proxy, not user utility</td><td>paper-ready automated inspectability proxy; not user utility</td><td>4 datasets / 6 tasks / 34539 task-operations<br>operation-stack more selective than flat: 6/6<br>high-lift evidence: 5/6<br>higher selected recall than fixed-session: 5/6<br>fixed-session lower selected work: 4/6<br>top-10 query-aware work/lift 0.1163/1.5867 vs width 0.6713/1.0795</td><td>human productivity improvement<br>automatic anomaly detection<br>operation stacks dominate fixed-session views on every work metric</td></tr>
+  </table>
+</body>
+</html>
