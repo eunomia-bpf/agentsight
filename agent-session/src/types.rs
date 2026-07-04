@@ -10,6 +10,7 @@ use std::fmt;
 use std::path::PathBuf;
 use std::time::{Duration, Instant, SystemTime};
 
+use crate::parser::{path_group, short_hash};
 use crate::{discover_session_files, parse_session_file};
 
 pub const AGENT_TRACE_SCHEMA: &str = "agentsight.agent-session.trace.v1";
@@ -164,12 +165,29 @@ impl AgentTrace {
         }
     }
 
-    /// Parse a portable agent-session trace from JSON text.
+    /// Build an export trace with host-local filesystem and tool-command fields
+    /// normalized.
+    ///
+    /// This is the constructor used by `agentpprof --export-trace`. Parsing a
+    /// trace with `from_json_str` preserves the input rather than applying this
+    /// normalization a second time.
+    pub fn portable(sessions: Vec<AgentSession>) -> Self {
+        Self {
+            schema: AGENT_TRACE_SCHEMA.to_string(),
+            sessions: sessions
+                .into_iter()
+                .map(sanitize_session_for_trace)
+                .collect(),
+        }
+    }
+
+    /// Parse an agent-session trace from JSON text.
     ///
     /// The preferred representation is a schema wrapper with a `sessions`
     /// array. For compatibility with small fixtures and one-off conversion
     /// scripts, this parser also accepts a bare session array or a single
-    /// session object and normalizes both into the schema wrapper.
+    /// session object and wraps both in the schema object. It preserves session
+    /// fields from the input trace.
     pub fn from_json_str(contents: &str) -> Result<Self, AgentTraceError> {
         let value: Value = serde_json::from_str(contents).map_err(AgentTraceError::Json)?;
         if let Some(sessions) = value.get("sessions") {
@@ -181,15 +199,24 @@ impl AgentTrace {
             }
             let sessions =
                 serde_json::from_value(sessions.clone()).map_err(AgentTraceError::Json)?;
-            return Ok(Self::new(sessions));
+            return Ok(Self {
+                schema: AGENT_TRACE_SCHEMA.to_string(),
+                sessions,
+            });
         }
         if value.is_array() {
             let sessions = serde_json::from_value(value).map_err(AgentTraceError::Json)?;
-            return Ok(Self::new(sessions));
+            return Ok(Self {
+                schema: AGENT_TRACE_SCHEMA.to_string(),
+                sessions,
+            });
         }
         if value.is_object() {
             let session = serde_json::from_value(value).map_err(AgentTraceError::Json)?;
-            return Ok(Self::new(vec![session]));
+            return Ok(Self {
+                schema: AGENT_TRACE_SCHEMA.to_string(),
+                sessions: vec![session],
+            });
         }
         Err(AgentTraceError::InvalidRoot)
     }
@@ -197,6 +224,85 @@ impl AgentTrace {
     pub fn to_pretty_json(&self) -> Result<String, AgentTraceError> {
         serde_json::to_string_pretty(self).map_err(AgentTraceError::Json)
     }
+}
+
+fn sanitize_session_for_trace(mut session: AgentSession) -> AgentSession {
+    let original_cwd = session.cwd.clone();
+    session.path = trace_session_path(&session);
+    if session.cwd.as_deref().is_some_and(|cwd| !cwd.is_empty()) {
+        session.cwd = Some("repo".to_string());
+    }
+    session.files = sanitize_file_counts(&session.files, original_cwd.as_deref());
+    session.events.tools = session
+        .events
+        .tools
+        .into_iter()
+        .map(sanitize_tool_event_for_trace)
+        .collect();
+    session
+}
+
+fn trace_session_path(session: &AgentSession) -> PathBuf {
+    let agent = sanitize_path_component(&session.agent_type, "agent");
+    let key = if session.session_id.is_empty() {
+        &session.display_id
+    } else {
+        &session.session_id
+    };
+    PathBuf::from("trace")
+        .join(agent)
+        .join(format!("{}.jsonl", short_hash(key, 12)))
+}
+
+fn sanitize_path_component(raw: &str, fallback: &str) -> String {
+    let value = raw
+        .chars()
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() || ch == '-' || ch == '_' {
+                ch
+            } else {
+                '-'
+            }
+        })
+        .collect::<String>();
+    let value = value.trim_matches('-');
+    if value.is_empty() {
+        fallback.to_string()
+    } else {
+        value.to_string()
+    }
+}
+
+fn sanitize_file_counts(
+    files: &BTreeMap<String, usize>,
+    original_cwd: Option<&str>,
+) -> BTreeMap<String, usize> {
+    let project_root = original_cwd
+        .filter(|cwd| !cwd.is_empty())
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("."));
+    let mut sanitized = BTreeMap::new();
+    for (path, count) in files {
+        let group = path_group(path, &project_root);
+        if group != "none" {
+            *sanitized.entry(group).or_default() += *count;
+        }
+    }
+    sanitized
+}
+
+fn sanitize_tool_event_for_trace(mut event: ToolEvent) -> ToolEvent {
+    if !event.command_name.is_empty() && event.command_name != "none" {
+        event.command = event.command_name.clone();
+    } else if !event.tool_name.is_empty() {
+        event.command.clear();
+    }
+    event.path_groups = event
+        .path_groups
+        .into_iter()
+        .filter(|group| !group.is_empty() && group != "none")
+        .collect();
+    event
 }
 
 #[derive(Debug)]
@@ -377,5 +483,92 @@ mod tests {
         let err = AgentTrace::from_json_str(payload).unwrap_err().to_string();
 
         assert!(err.contains("unsupported agent trace schema"));
+    }
+
+    #[test]
+    fn agent_trace_parse_preserves_input_fields() {
+        let mut session = sample_session("s1");
+        session.path = PathBuf::from("/home/alice/.codex/sessions/s1.jsonl");
+        session.cwd = Some("/home/alice/work/agentsight".to_string());
+        session
+            .files
+            .insert("/home/alice/private/secret.txt".to_string(), 1);
+        session.events.tools.push(ToolEvent {
+            ts_ms: Some(1),
+            prompt_index: 0,
+            tool_name: "bash".to_string(),
+            category: "shell".to_string(),
+            command: "git status --short".to_string(),
+            command_name: "git".to_string(),
+            effect: "repo".to_string(),
+            process_chain: vec!["git".to_string()],
+            status: "ok".to_string(),
+            path_groups: Vec::new(),
+            domains: Vec::new(),
+            call_id: None,
+        });
+
+        let payload = AgentTrace::new(vec![session]).to_pretty_json().unwrap();
+        let parsed = AgentTrace::from_json_str(&payload).unwrap();
+        let imported = &parsed.sessions[0];
+
+        assert_eq!(
+            imported.path,
+            PathBuf::from("/home/alice/.codex/sessions/s1.jsonl")
+        );
+        assert_eq!(imported.cwd.as_deref(), Some("/home/alice/work/agentsight"));
+        assert_eq!(
+            imported.files.get("/home/alice/private/secret.txt"),
+            Some(&1)
+        );
+        assert_eq!(imported.events.tools[0].command, "git status --short");
+    }
+
+    #[test]
+    fn portable_agent_trace_sanitizes_host_paths() {
+        let mut session = sample_session("s1");
+        session.path = PathBuf::from("/home/alice/.codex/sessions/s1.jsonl");
+        session.cwd = Some("/home/alice/work/agentsight".to_string());
+        session.files.insert(
+            "/home/alice/work/agentsight/collector/src/main.rs".to_string(),
+            2,
+        );
+        session
+            .files
+            .insert("/home/alice/private/secret.txt".to_string(), 1);
+        session.events.tools.push(ToolEvent {
+            ts_ms: Some(1),
+            prompt_index: 0,
+            tool_name: "bash".to_string(),
+            category: "shell".to_string(),
+            command: "cat /home/alice/private/secret.txt".to_string(),
+            command_name: "cat".to_string(),
+            effect: "read".to_string(),
+            process_chain: vec!["cat".to_string()],
+            status: "ok".to_string(),
+            path_groups: vec![
+                "collector/src/main.rs".to_string(),
+                "external/home".to_string(),
+            ],
+            domains: Vec::new(),
+            call_id: None,
+        });
+
+        let payload = AgentTrace::portable(vec![session])
+            .to_pretty_json()
+            .unwrap();
+        assert!(!payload.contains("/home/alice"));
+        assert!(!payload.contains("secret.txt"));
+
+        let parsed = AgentTrace::from_json_str(&payload).unwrap();
+        let exported = &parsed.sessions[0];
+        assert_eq!(
+            exported.path,
+            PathBuf::from("trace/codex/e8bc163c82ee.jsonl")
+        );
+        assert_eq!(exported.cwd.as_deref(), Some("repo"));
+        assert_eq!(exported.files.get("collector/src/main.rs"), Some(&2));
+        assert_eq!(exported.files.get("external/home"), Some(&1));
+        assert_eq!(exported.events.tools[0].command, "cat");
     }
 }

@@ -311,7 +311,12 @@ crate owns the schema and exposes `AgentTrace` parse/serialize helpers;
 `agentpprof` imports the trace and then projects it into operations and
 operation stacks. `--export-trace` accepts source selectors such as `--agent`
 and `--session-id`, but rejects `--session-tag` and `--prompt-tag` because
-those tags are profiler annotations.
+those tags are profiler annotations. Exported traces normalize filesystem and
+tool-command fields: session log paths become stable
+`trace/<agent>/<hash>.jsonl` names, `cwd` is reduced to `repo`, file paths are
+merged into path groups, and tool commands keep the extracted command name
+rather than the full raw shell text. Prompt and LLM previews remain parsed
+session summaries; redact or omit them upstream when sharing sensitive content.
 To feed the same data through the external-dataset path, convert it to
 operation JSONL:
 

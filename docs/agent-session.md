@@ -45,7 +45,12 @@ it with `agentpprof --trace-file`, or convert it to operation JSONL with
 `script/agent_trace_to_operations.py` and then profile it through
 `agentpprof --operation-file`. Trace export accepts raw source selectors such
 as `--agent` and `--session-id`; semantic tag filters remain a profiling step
-and are not applied while writing the exchange trace.
+and are not applied while writing the exchange trace. `AgentTrace::new` and
+`from_json_str` preserve their input fields; `AgentTrace::portable` is the
+export constructor that normalizes host-local filesystem fields before
+serialization. Portable export gives sessions stable
+`trace/<agent>/<hash>.jsonl` names, writes `cwd` as `repo`, merges file paths
+into path groups, and reduces tool command text to the extracted command name.
 
 ## Release
 

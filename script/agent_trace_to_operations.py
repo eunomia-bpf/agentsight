@@ -247,6 +247,13 @@ def tool_phase(event: dict[str, Any]) -> str:
     return event.get("tool_name", "tool")
 
 
+def command_preview(event: dict[str, Any]) -> str:
+    command_name = event.get("command_name", "")
+    if isinstance(command_name, str) and command_name and command_name != "none":
+        return command_name
+    return ""
+
+
 def llm_phase(call: dict[str, Any]) -> str:
     tag = call.get("tag", "")
     if tag and tag != "unmatched":
@@ -350,7 +357,7 @@ def operations_for_session(
                 "phase": tool_phase(event),
                 "tool": event.get("tool_name", ""),
                 "category": event.get("category", ""),
-                "command": event.get("command", ""),
+                "command": command_preview(event),
                 "cmd": event.get("command_name", ""),
                 "effect": event.get("effect", ""),
                 "status": event.get("status", "observed"),

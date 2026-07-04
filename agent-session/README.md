@@ -13,13 +13,18 @@ let sessions = agent_session::SessionCache::new()
 The same IR can be serialized as an exchange trace:
 
 ```rust
-let trace = agent_session::AgentTrace::new(sessions);
+let trace = agent_session::AgentTrace::portable(sessions);
 let json = trace.to_pretty_json()?;
 let sessions = agent_session::AgentTrace::from_json_str(&json)?.sessions;
 ```
 
 `agent-session` owns this parsed-session trace schema. Downstream applications
 can import it directly, or convert it to their own storage/profiling formats.
+Use `AgentTrace::portable` for exports that should normalize host-local
+filesystem fields before serialization: session paths become stable trace-local
+names, `cwd` becomes `repo`, file paths become path groups, and tool commands
+keep only the extracted command name. `AgentTrace::new` and `from_json_str`
+preserve their input fields.
 For AgentSight's semantic profiler, `script/agent_trace_to_operations.py`
 converts the trace into normalized operation JSONL consumed by
 `agentpprof --operation-file`. The converter uses event-level prompt/tool/LLM

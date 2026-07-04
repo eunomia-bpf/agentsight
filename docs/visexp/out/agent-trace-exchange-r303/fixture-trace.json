@@ -3,118 +3,118 @@
   "sessions": [
     {
       "agent_type": "codex",
+      "session_id": "agentpprof-public-fixture-session",
       "conversation_id": "agentpprof-public-fixture-session",
-      "cwd": "external/cwd",
       "display_id": "codex:agentp.ssion",
-      "duration_ms": 0,
+      "path": "trace/codex/23772f36a6af.jsonl",
+      "updated": {
+        "secs_since_epoch": 1783060226,
+        "nanos_since_epoch": 730950127
+      },
+      "start_timestamp_ms": 1783060226730,
       "end_timestamp_ms": 1781776812000,
+      "model": "gpt-5-codex-fixture",
+      "usage": {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "cache_creation_tokens": 0,
+        "cache_read_tokens": 0,
+        "total_tokens": 0
+      },
+      "model_usage": {},
+      "tools": {
+        "exec_command": 3
+      },
+      "files": {},
+      "prompt_preview": "Compare the test command with the network command and produce pprof outputs.",
+      "duration_ms": 0,
+      "cwd": "repo",
+      "last_message_at": "2026-06-18T10:00:12Z",
       "events": {
-        "llm_responses": [
-          {
-            "cache_tokens": 0,
-            "input_tokens": 120,
-            "model": "gpt-5-codex-fixture",
-            "output_tokens": 45,
-            "preview": "token report",
-            "prompt_index": 1,
-            "text_hash": "49cb08e50296",
-            "total_tokens": 165,
-            "ts_ms": 1781776812000
-          }
-        ],
         "prompts": [
           {
             "index": 0,
-            "preview": "Profile the repository and find repeated test and network effects.",
+            "ts_ms": 1781776802000,
             "text_hash": "8f1ec64227a9",
-            "ts_ms": 1781776802000
+            "preview": "Profile the repository and find repeated test and network effects."
           },
           {
             "index": 1,
-            "preview": "Compare the test command with the network command and produce pprof outputs.",
+            "ts_ms": 1781776806000,
             "text_hash": "701c3c70ccc3",
-            "ts_ms": 1781776806000
+            "preview": "Compare the test command with the network command and produce pprof outputs."
           }
         ],
         "tools": [
           {
-            "call_id": "call-rg-read",
+            "ts_ms": 1781776803000,
+            "prompt_index": 0,
+            "tool_name": "exec_command",
             "category": "shell",
-            "command": "rg -n TODO README.md agentpprof/src/main.rs",
+            "command": "rg",
             "command_name": "rg",
-            "domains": [],
             "effect": "read",
+            "process_chain": [
+              "rg"
+            ],
+            "status": "ok",
             "path_groups": [
               "README.md",
               "agentpprof/src/main.rs"
             ],
-            "process_chain": [
-              "rg"
-            ],
-            "prompt_index": 0,
-            "status": "ok",
-            "tool_name": "exec_command",
-            "ts_ms": 1781776803000
+            "domains": [],
+            "call_id": "call-rg-read"
           },
           {
-            "call_id": "call-cargo-test",
+            "ts_ms": 1781776807000,
+            "prompt_index": 1,
+            "tool_name": "exec_command",
             "category": "shell",
-            "command": "cargo test --manifest-path agentpprof/Cargo.toml pprof_writer_emits_gzip_profile",
+            "command": "cargo",
             "command_name": "cargo",
-            "domains": [],
             "effect": "test",
-            "path_groups": [
-              "agentpprof/Cargo.toml"
-            ],
             "process_chain": [
               "cargo"
             ],
-            "prompt_index": 1,
             "status": "ok",
-            "tool_name": "exec_command",
-            "ts_ms": 1781776807000
+            "path_groups": [
+              "agentpprof/Cargo.toml"
+            ],
+            "domains": [],
+            "call_id": "call-cargo-test"
           },
           {
-            "call_id": "call-curl-network",
+            "ts_ms": 1781776809000,
+            "prompt_index": 1,
+            "tool_name": "exec_command",
             "category": "shell",
-            "command": "curl -I https://github.com/eunomia-bpf/agentsight",
+            "command": "curl",
             "command_name": "curl",
-            "domains": [
-              "github.com"
-            ],
             "effect": "network",
-            "path_groups": [],
             "process_chain": [
               "curl"
             ],
-            "prompt_index": 1,
             "status": "ok",
-            "tool_name": "exec_command",
-            "ts_ms": 1781776809000
+            "path_groups": [],
+            "domains": [
+              "github.com"
+            ],
+            "call_id": "call-curl-network"
+          }
+        ],
+        "llm_responses": [
+          {
+            "ts_ms": 1781776812000,
+            "prompt_index": 1,
+            "model": "gpt-5-codex-fixture",
+            "text_hash": "49cb08e50296",
+            "preview": "token report",
+            "input_tokens": 120,
+            "output_tokens": 45,
+            "cache_tokens": 0,
+            "total_tokens": 165
           }
         ]
-      },
-      "files": {},
-      "last_message_at": "2026-06-18T10:00:12Z",
-      "model": "gpt-5-codex-fixture",
-      "model_usage": {},
-      "path": "agentpprof/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl",
-      "prompt_preview": "Compare the test command with the network command and produce pprof outputs.",
-      "session_id": "agentpprof-public-fixture-session",
-      "start_timestamp_ms": 1783060226730,
-      "tools": {
-        "exec_command": 3
-      },
-      "updated": {
-        "nanos_since_epoch": 730950127,
-        "secs_since_epoch": 1783060226
-      },
-      "usage": {
-        "cache_creation_tokens": 0,
-        "cache_read_tokens": 0,
-        "input_tokens": 0,
-        "output_tokens": 0,
-        "total_tokens": 0
       }
     }
   ]

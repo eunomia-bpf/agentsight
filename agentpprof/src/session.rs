@@ -129,7 +129,7 @@ pub fn write_agent_trace(path: &Path, sessions: &[AgentSession]) -> Result<()> {
         fs::create_dir_all(parent)
             .with_context(|| format!("failed to create trace dir {}", parent.display()))?;
     }
-    let trace = AgentTrace::new(sessions.to_vec());
+    let trace = AgentTrace::portable(sessions.to_vec());
     let payload = trace.to_pretty_json()?;
     fs::write(path, payload).with_context(|| format!("failed to write trace {}", path.display()))
 }
@@ -308,5 +308,10 @@ mod tests {
         assert_eq!(loaded.len(), 1);
         assert_eq!(loaded[0].session_id, "s1");
         assert_eq!(loaded[0].agent_type, "codex");
+        assert_eq!(
+            loaded[0].path,
+            PathBuf::from("trace/codex/e8bc163c82ee.jsonl")
+        );
+        assert_eq!(loaded[0].cwd.as_deref(), Some("repo"));
     }
 }

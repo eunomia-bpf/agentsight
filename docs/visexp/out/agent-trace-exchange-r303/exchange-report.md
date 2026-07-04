@@ -11,6 +11,7 @@ The direct trace import and converted operation JSONL import must produce byte-i
 - Trace import: 6 samples / 5 stacks
 - Operation import: 6 samples / 5 stacks
 - Folded outputs identical: `True`
+- Trace filesystem portable: `True`
 
 ## Files
 

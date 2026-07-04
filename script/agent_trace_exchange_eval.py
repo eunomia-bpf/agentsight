@@ -30,7 +30,7 @@ TRACE_SCHEMA = "agentsight.agent-session.trace.v1"
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Export a local agent session to the portable trace schema, convert it "
+            "Export a local agent session to the exchange trace schema, convert it "
             "to operation JSONL, and verify both profile paths fold identically."
         )
     )
@@ -58,6 +58,63 @@ def relative(path: Path) -> str:
 
 def command_path(path: Path) -> str:
     return relative(path)
+
+
+def looks_host_path(value: str) -> bool:
+    lowered = value.lower()
+    return (
+        value.startswith("/")
+        or value.startswith("~/")
+        or "/home/" in lowered
+        or "/users/" in lowered
+        or "\\users\\" in lowered
+        or "\\home\\" in lowered
+        or ".codex" in lowered
+        or ".claude" in lowered
+    )
+
+
+def trace_portability_findings(path: Path) -> list[str]:
+    payload = json.loads(path.read_text())
+    sessions = payload.get("sessions", []) if isinstance(payload, dict) else []
+    findings: list[str] = []
+    for idx, session in enumerate(sessions):
+        if not isinstance(session, dict):
+            continue
+        raw_path = session.get("path")
+        if isinstance(raw_path, str) and looks_host_path(raw_path):
+            findings.append(f"sessions[{idx}].path is host-local")
+        if isinstance(raw_path, str) and not raw_path.startswith("trace/"):
+            findings.append(f"sessions[{idx}].path is not trace-local")
+        raw_cwd = session.get("cwd")
+        if isinstance(raw_cwd, str) and raw_cwd not in {"", "repo"}:
+            findings.append(f"sessions[{idx}].cwd is not portable")
+        files = session.get("files")
+        if isinstance(files, dict):
+            for file_path, value in files.items():
+                _ = value
+                if isinstance(file_path, str) and looks_host_path(file_path):
+                    findings.append(f"sessions[{idx}].files has host-local key")
+        tools = session.get("events", {}).get("tools", [])
+        if isinstance(tools, list):
+            for tool_idx, tool in enumerate(tools):
+                if not isinstance(tool, dict):
+                    continue
+                command = tool.get("command")
+                command_name = tool.get("command_name")
+                if command_name and command_name != "none" and command != command_name:
+                    findings.append(
+                        f"sessions[{idx}].events.tools[{tool_idx}].command keeps raw text"
+                    )
+                if (
+                    isinstance(command, str)
+                    and (not command_name or command_name == "none")
+                    and (looks_host_path(command) or " " in command.strip())
+                ):
+                    findings.append(
+                        f"sessions[{idx}].events.tools[{tool_idx}].command is not summarized"
+                    )
+    return findings
 
 
 def agentpprof_command(args: argparse.Namespace) -> list[str]:
@@ -105,38 +162,6 @@ def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
 
 
-def sanitize_path_value(value: str, external_label: str) -> str:
-    parsed = Path(value)
-    if not parsed.is_absolute():
-        return value
-    sanitized = relative(parsed)
-    if not sanitized.startswith("..") and not Path(sanitized).is_absolute():
-        return sanitized
-    return external_label
-
-
-def sanitize_trace_paths(path: Path) -> None:
-    payload = json.loads(path.read_text())
-    sessions = payload.get("sessions", []) if isinstance(payload, dict) else []
-    for session in sessions:
-        if not isinstance(session, dict):
-            continue
-        raw_path = session.get("path")
-        if isinstance(raw_path, str):
-            session["path"] = sanitize_path_value(raw_path, "external/session-file")
-        raw_cwd = session.get("cwd")
-        if isinstance(raw_cwd, str):
-            session["cwd"] = sanitize_path_value(raw_cwd, "external/cwd")
-        files = session.get("files")
-        if isinstance(files, dict):
-            sanitized_files: dict[str, Any] = {}
-            for file_path, value in files.items():
-                if isinstance(file_path, str):
-                    sanitized_files[sanitize_path_value(file_path, "external/file")] = value
-            session["files"] = sanitized_files
-    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
-
-
 def write_markdown(path: Path, report: dict[str, Any]) -> None:
     lines = [
         "# Agent Trace Exchange R303",
@@ -152,6 +177,7 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
         f"- Trace import: {report['trace_import']['samples']} samples / {report['trace_import']['unique_stacks']} stacks",
         f"- Operation import: {report['operation_import']['samples']} samples / {report['operation_import']['unique_stacks']} stacks",
         f"- Folded outputs identical: `{report['folded_outputs_identical']}`",
+        f"- Trace filesystem portable: `{report['trace_filesystem_portable']}`",
         "",
         "## Files",
         "",
@@ -182,6 +208,10 @@ def write_html(path: Path, report: dict[str, Any]) -> None:
             f"{report['operation_import']['samples']} samples / {report['operation_import']['unique_stacks']} stacks",
         ),
         ("Folded equality", status),
+        (
+            "Trace filesystem portability",
+            "pass" if report["trace_filesystem_portable"] else "fail",
+        ),
     ]
     body = "\n".join(
         f"<tr><th>{html.escape(str(key))}</th><td>{html.escape(str(value))}</td></tr>"
@@ -264,7 +294,7 @@ def main() -> None:
         "trace export",
     )
     write_json(out_dir / "export-result.json", export_result)
-    sanitize_trace_paths(trace_file)
+    portability_findings = trace_portability_findings(trace_file)
 
     convert_result = run_json(
         [
@@ -316,6 +346,9 @@ def main() -> None:
         "sessions": export_result.get("sessions", 0),
         "operations": convert_result.get("operations", 0),
         "stack": args.stack,
+        "trace_portability_scope": "filesystem fields and tool command text",
+        "trace_filesystem_portable": not portability_findings,
+        "trace_portability_findings": portability_findings,
         "folded_outputs_identical": folded_outputs_identical,
         "trace_import": {
             "samples": trace_import.get("samples", 0),
@@ -331,6 +364,8 @@ def main() -> None:
     write_html(index_html, report)
 
     print(json.dumps(report, indent=2, sort_keys=True))
+    if portability_findings:
+        raise SystemExit("trace export is not portable: " + "; ".join(portability_findings))
     if not folded_outputs_identical:
         raise SystemExit("trace import and operation import folded outputs differ")
 

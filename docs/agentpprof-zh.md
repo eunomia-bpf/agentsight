@@ -271,7 +271,10 @@ agentpprof \
 Trace schema 是 `agentsight.agent-session.trace.v1`。它只是解析后 session 的交换格式，
 不是 profiler 的第三个抽象。`--export-trace` 支持 `--agent`、`--session-id`
 这类原始来源筛选；`--session-tag` 和 `--prompt-tag` 是 profiler 后处理注解，
-不能混在 trace export 中。若要让同一批数据走外部数据集路径，可以转成
+不能混在 trace export 中。导出的 trace 会归一化 filesystem 和 tool-command 字段：
+session log 路径会变成稳定的 `trace/<agent>/<hash>.jsonl`，`cwd` 会归一成
+`repo`，文件路径会合并成 path group，tool command 只保留抽取出的命令名而不是
+完整 shell 文本。prompt 和 LLM preview 仍是解析后的 session 摘要；共享敏感内容前需要在上游省略或脱敏。若要让同一批数据走外部数据集路径，可以转成
 operation JSONL：
 
 ```bash
