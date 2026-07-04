@@ -55,6 +55,7 @@ R296 进一步把这些证据组织成 reviewer evidence packet：11 个非 flam
 R297 在 OSWorld-Human 上加入第一个 supervised boundary-backend probe：它在 held-out sessions 上预测人工 human-group 边界，F1 为 0.7735，并把预测结果写回 \texttt{learned\_group\_pattern} 字段后交给 Rust profiler 折叠。
 R298 将 R295--R297 的证据进一步综合为 6 个真实问题证据块和 4 个 novelty claims，并把当前成熟度限定为机制 claim 的 level-3 conference-paper evidence、接近 level 4。
 R299 在不同步新数据的前提下对 7 个已有 boundary candidates 做 suitability 和 calibration：4 个候选可训练；OSWorld-Human、AgentNet step-correct、AgentNet step-redundant 和 AgentRewardBench looping 的 held-out learned F1 分别为 0.6916、0.3197、0.3361 和 0.7833，但 AgentRewardBench looping 被更简单的 \texttt{repeat\_signal\_change} baseline 完全解释。
+R300 进一步把 failure、safety、quality 和 human-boundary 标签转成 6 个自动化分析任务，在 34,539 个已有 operations 上比较 flat、fixed-session、semantic operation-stack 和 label-drilldown views；semantic operation stack 相比 flat 的 median top-positive lift 为 5.726x，覆盖 50\% oracle positives 的 inspection fraction 降到 0.2879。
 这些结果支持一个机制性 claim：agent 轨迹可以被统一为 operations，并通过可配置 mappings 和 stack specs 递归折叠为多个有用的 analysis views。
 当前结果仍不支持完整无监督边界发现或人类用户效用 claim。
 \end{abstract}
@@ -165,6 +166,10 @@ R298 的 \texttt{script/paper\_value\_novelty\_synthesis.py} 读取 R295 claim g
 R299 的 \texttt{script/boundary\_family\_calibration\_eval.py} 只读取已有 tracked operation JSONL，不同步新测试集。
 它先判断标签是否形成 session-local adjacent boundary oracle，再训练同一类 field-derivation backend，并把预测结果写回 \texttt{learned\_segment\_pattern}、\texttt{learned\_segment\_position} 和 \texttt{learned\_boundary\_prev}。
 这一步的目的不是证明一个通用 detector，而是防止把 per-trajectory safety、history context 或 repetition proxy 错当作语义边界。
+第九，真实问题价值必须先通过可复现 proxy 任务收敛。
+R300 的 \texttt{script/operation\_query\_utility\_eval.py} 不抓取新数据，而是从 AgentRewardBench、SATraj-OS、AgentNet 和 OSWorld-Human 的已有 operation JSONL 中构造 6 个 oracle-backed analysis tasks。
+它比较 flat、fixed-session、semantic operation-stack 和 label-drilldown 四种 stack specs，并用 positive lift、覆盖 50\% positives 的 inspection fraction、group count 和 top-group session support 作为自动化指标。
+这仍不是人类用户实验，但能把“profiler 是否解决真实问题”从叙述变成可审计的 proxy result。
 
 \begin{table*}[t]
   \centering
@@ -236,6 +241,7 @@ R298 把这个证据路径进一步收敛成论文价值和新意的 claim gate�
 它还把 novelty 限定为 4 点：two-object agent profiling、query-time recursive stacks、统一 field-derivation extension point 和 non-flamegraph diagnostic views。
 R298 的结论是当前证据足以支撑机制和诊断价值，但仍只是 level-3 conference-paper evidence、接近 mechanism claims 的 level 4；boundary-family replication、用户效用实验和 boundary calibration 仍是缺口。
 R299 部分填补了第一个缺口：它没有增加新数据，而是在已有标注 operation JSONL 上检查 7 个候选边界家族，训练其中 4 个，并把失败或不适合的候选也保留下来作为 claim 边界。
+R300 部分填补用户效用缺口的前半步：它不是 human study，但把“定位 looping、side-effect、unsafe、incorrect、redundant 和 group-start positives”变成自动化分析任务，并比较不同 stack 形态的 inspectability。
 
 \subsection{RQ3：mapping 是否能泛化？}
 
@@ -296,6 +302,13 @@ Step correctness 覆盖 13,844 correct、874 incorrect 和 2,023 unknown；step 
 Task status 对 step correctness 的 V-measure 只有 0.015，repeat signal 对 step redundancy 的 V-measure 只有 0.010。
 这说明 profiler 的价值不是用一个粗标签预测所有质量问题，而是把质量 oracle 保留为可折叠、可 drilldown、可评分的 operation fields。
 
+R300 把这些诊断目标组织成 6 个自动化 real-problem proxy tasks。
+任务覆盖 AgentRewardBench looping 和 side-effect、SATraj unsafe、AgentNet incorrect/redundant steps，以及 OSWorld-Human group starts，总计 34,539 个 operations。
+在同一 operation JSONL 上，Rust \toolname{} 的 flat profile 只有 6 个 stacks，fixed-session profile 有 2,012 个 stacks，semantic operation-stack profile 有 944 个 stacks，label-drilldown profile 有 318 个 stacks。
+按 oracle-sorted clustering quality 评价，semantic operation stack 相比 flat summary 的 median top-positive lift 为 5.726x，覆盖 50\% positives 的 median inspection fraction 从 1.0 降到 0.2879。
+相比 fixed-session stack，semantic stack 的 group count ratio 为 0.554，top groups 的 session support ratio 为 5.5，说明它更适合跨轨迹诊断；但 inspection fraction ratio 为 1.302，说明 fixed-session drilldown 在部分 instance-local tasks 上仍更快。
+这支持的是 inspectability 和 aggregation claim，不是人类效率 claim。
+
 \begin{table*}[t]
   \centering
   \scriptsize
@@ -317,6 +330,7 @@ Task status 对 step correctness 的 V-measure 只有 0.015，repeat signal 对 
     R297 boundary backend & OSWorld-Human held-out sessions & 1,036 test adjacent pairs；learned F1 0.7735；Rust fold 1,132 ops / 74 stacks & Boundary backend 只是派生 operation fields，递归折叠仍由 operation stack 完成。 \\
     R298 value/novelty synthesis & R295--R297 与诊断质量 artifacts & 6 个 real-problem evidence blocks；4 个 novelty claims；level-3 evidence approaching level 4 & 论文价值和新意从 tracked artifacts 机械回溯，且保留 must-not-claim gate。 \\
     R299 boundary-family calibration & 7 个已有候选；4 个训练任务；8,961 folded operations & OSWorld 0.6916 F1；AgentNet step-correct/redundant 0.3197/0.3361 F1；AgentReward learned 0.7833 F1 但 repeat-signal-change baseline 1.0 & Boundary backend 接口可复制，但不是通用 detector；每个家族需要 suitability、calibration 和简单 baseline gate。 \\
+    R300 query utility proxy & 6 个 oracle-backed tasks；34,539 operations & flat/fixed/operation/label stacks 分别为 6/2,012/944/318；operation-stack vs flat lift 5.726x、inspection fraction 0.2879；vs fixed-session group ratio 0.554、session-support ratio 5.5 & Operation stack 改善自动化 inspectability 和跨 session 聚合，但仍不是 human user study。 \\
     R288/R289 diagnostics & 729 AgentRewardBench ops；4,285 SATraj ops & repeat-signal/looping V-measure 0.378 vs step-error 0.011；622 unsafe SATraj ops & Profiler 支持 failure/safety views，且负结果能揭示粗标签不足。 \\
     \bottomrule
   \end{tabular}
@@ -368,6 +382,7 @@ R282/R285 证明它们有 held-out 和 leave-dataset-out 泛化，但不证明�
 第八，R297 是 supervised OSWorld-Human expansion probe；它不证明无监督 intent discovery，也没有验证到 AgentNet、tau-bench 或其它轨迹家族。
 第九，R298 是 paper-value synthesis，不是额外数据；它能约束论文 claim 和 novelty 表述，但不能替代 R298 自己列出的 boundary-family replication、用户效用实验和 calibration 缺口。
 第十，R299 是 boundary-family calibration，不是通用 boundary detector；它证明同一 backend 接口可以复制到多个已有标签家族，也证明部分标签不适合作为 adjacent boundary oracle，且简单 baseline 可能优于 learned backend。
+第十一，R300 是自动化 proxy，不是人类实验；它使用 oracle 排序评价 grouping quality，因此只能支持 inspectability、aggregation 和 analysis-task framing，不能支持开发者准确率或耗时改善。
 
 \section{结论}
 
@@ -381,7 +396,8 @@ R296 把 claim gate、非 flamegraph 视图和负结果整理成 reviewer eviden
 R297 进一步验证 boundary backend 的正确接入方式：模型只派生 operation fields，Rust profiler 仍按用户指定 operation stack 折叠。
 R298 把这些结果压缩成 reviewer-facing 价值和 novelty map：当前可以主张机制性语义剖析和真实诊断价值，但仍必须排除无监督 intent discovery 与用户生产力提升。
 R299 则把 boundary detector 的下一步条件写清楚：先做 family-specific suitability 和 calibration，再比较简单 sequence-derived baseline，最后才讨论更强模型。
-下一步不是继续无差别增加数据集，而是把 mapping backend、calibrated boundary detector 和用户任务实验推进到能支持更强 claim 的程度。
+R300 把真实问题价值从叙述推进到自动化 task proxy：operation stack 相比 flat summary 更能集中 oracle positives，并比 fixed-session stack 更能跨 session 聚合。
+下一步不是继续无差别增加数据集，而是把 mapping backend、calibrated boundary detector 和受控用户/agent analyst 任务实验推进到能支持更强 claim 的程度。
 
 \vspace{-0.8em}
 \section*{参考文献}

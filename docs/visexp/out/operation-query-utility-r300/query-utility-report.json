@@ -1,0 +1,1462 @@
+{
+  "claim_scope": {
+    "not_supported": "human productivity improvement, unsupervised intent discovery, or online detection without labels/proxies",
+    "supported": "operation-stack views improve oracle-backed problem localization and cross-session aggregation over flat/fixed-session summaries on existing labeled traces"
+  },
+  "operation_jsonl": "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl",
+  "profile_specs": {
+    "fixed_session": "docs/visexp/out/operation-query-utility-r300/fixed_session-profile-spec.json",
+    "flat": "docs/visexp/out/operation-query-utility-r300/flat-profile-spec.json",
+    "label_drilldown": "docs/visexp/out/operation-query-utility-r300/label_drilldown-profile-spec.json",
+    "operation_stack": "docs/visexp/out/operation-query-utility-r300/operation_stack-profile-spec.json"
+  },
+  "purpose": "automated proxy for real-problem analysis utility over existing labeled operations",
+  "run_id": "R300",
+  "summary": {
+    "label_drilldown_vs_operation_stack": {
+      "left": "label_drilldown",
+      "median_group_count_ratio": 0.755,
+      "median_inspection_fraction_ratio": 0.556,
+      "median_top_group_session_ratio": 3.454,
+      "median_top_positive_lift_ratio": 1.094,
+      "right": "operation_stack",
+      "tasks": 6
+    },
+    "operation_stack_vs_fixed_session": {
+      "left": "operation_stack",
+      "median_group_count_ratio": 0.554,
+      "median_inspection_fraction_ratio": 1.302,
+      "median_top_group_session_ratio": 5.5,
+      "median_top_positive_lift_ratio": 1.208,
+      "right": "fixed_session",
+      "tasks": 6
+    },
+    "operation_stack_vs_flat": {
+      "left": "operation_stack",
+      "median_group_count_ratio": 157.5,
+      "median_inspection_fraction_ratio": 0.288,
+      "median_top_group_session_ratio": 0.04,
+      "median_top_positive_lift_ratio": 5.726,
+      "right": "flat",
+      "tasks": 6
+    },
+    "views": {
+      "fixed_session": {
+        "median_avg_top_group_sessions": 1.0,
+        "median_compression": 17.982,
+        "median_groups": 285.0,
+        "median_inspection_fraction_for_50pct_positives": 0.2288,
+        "median_top_positive_lift": 3.464,
+        "tasks": 6
+      },
+      "flat": {
+        "median_avg_top_group_sessions": 285.0,
+        "median_compression": 4148.0,
+        "median_groups": 1.0,
+        "median_inspection_fraction_for_50pct_positives": 1.0,
+        "median_top_positive_lift": 1.0,
+        "tasks": 6
+      },
+      "label_drilldown": {
+        "median_avg_top_group_sessions": 27.0,
+        "median_compression": 39.733,
+        "median_groups": 86.5,
+        "median_inspection_fraction_for_50pct_positives": 0.0917,
+        "median_top_positive_lift": 6.069,
+        "tasks": 6
+      },
+      "operation_stack": {
+        "median_avg_top_group_sessions": 5.5,
+        "median_compression": 26.68,
+        "median_groups": 157.5,
+        "median_inspection_fraction_for_50pct_positives": 0.2879,
+        "median_top_positive_lift": 5.726,
+        "tasks": 6
+      }
+    }
+  },
+  "task_results": [
+    {
+      "avg_positive_group_sessions": 29.0,
+      "avg_top_group_sessions": 29.0,
+      "compression": 729.0,
+      "dataset": "agent-reward-bench",
+      "groups": 1,
+      "inspection_fraction_for_50pct_positives": 1.0,
+      "operations": 729,
+      "positive_groups": 1,
+      "positives": 504,
+      "prevalence": 0.6914,
+      "stack": [
+        "analysis_task",
+        "dataset"
+      ],
+      "task": "agentreward_looping",
+      "top_group_examples": [
+        {
+          "operations": 729,
+          "positive_rate": 0.6914,
+          "positives": 504,
+          "sessions": 29,
+          "stack": "analysis_task:agentreward_looping;dataset:agent-reward-bench"
+        }
+      ],
+      "top_groups": 5,
+      "top_positive_lift": 1.0,
+      "top_positive_precision": 0.6914,
+      "top_positive_recall": 1.0,
+      "view": "flat"
+    },
+    {
+      "avg_positive_group_sessions": 1.0,
+      "avg_top_group_sessions": 1.0,
+      "compression": 25.138,
+      "dataset": "agent-reward-bench",
+      "groups": 29,
+      "inspection_fraction_for_50pct_positives": 0.3704,
+      "operations": 729,
+      "positive_groups": 17,
+      "positives": 504,
+      "prevalence": 0.6914,
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "session"
+      ],
+      "task": "agentreward_looping",
+      "top_group_examples": [
+        {
+          "operations": 30,
+          "positive_rate": 1.0,
+          "positives": 30,
+          "sessions": 1,
+          "stack": "analysis_task:agentreward_looping;dataset:agent-reward-bench;session:workarena.servicenow.dashboard-retrieve-catalog-and-max-order-apple-watch-l2"
+        },
+        {
+          "operations": 30,
+          "positive_rate": 1.0,
+          "positives": 30,
+          "sessions": 1,
+          "stack": "analysis_task:agentreward_looping;dataset:agent-reward-bench;session:workarena.servicenow.two-changes-wide-schedule-tight-uniform-risk-change-request-scheduling-l2"
+        },
+        {
+          "operations": 30,
+          "positive_rate": 1.0,
+          "positives": 30,
+          "sessions": 1,
+          "stack": "analysis_task:agentreward_looping;dataset:agent-reward-bench;session:workarena.servicenow.two-changes-wide-priority-uniform-risk-change-request-scheduling-l2"
+        },
+        {
+          "operations": 30,
+          "positive_rate": 1.0,
+          "positives": 30,
+          "sessions": 1,
+          "stack": "analysis_task:agentreward_looping;dataset:agent-reward-bench;session:workarena.servicenow.two-changes-wide-basic-varied-risk-change-request-scheduling-l2"
+        },
+        {
+          "operations": 30,
+          "positive_rate": 1.0,
+          "positives": 30,
+          "sessions": 1,
+          "stack": "analysis_task:agentreward_looping;dataset:agent-reward-bench;session:workarena.servicenow.two-changes-wide-basic-uniform-risk-change-request-scheduling-l2"
+        }
+      ],
+      "top_groups": 5,
+      "top_positive_lift": 1.446,
+      "top_positive_precision": 1.0,
+      "top_positive_recall": 0.2976,
+      "view": "fixed_session"
+    },
+    {
+      "avg_positive_group_sessions": 2.81,
+      "avg_top_group_sessions": 3.0,
+      "compression": 18.225,
+      "dataset": "agent-reward-bench",
+      "groups": 40,
+      "inspection_fraction_for_50pct_positives": 0.5377,
+      "operations": 729,
+      "positive_groups": 21,
+      "positives": 504,
+      "prevalence": 0.6914,
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "benchmark",
+        "phase",
+        "action",
+        "repeat_signal",
+        "status"
+      ],
+      "task": "agentreward_looping",
+      "top_group_examples": [
+        {
+          "operations": 76,
+          "positive_rate": 1.0,
+          "positives": 76,
+          "sessions": 5,
+          "stack": "analysis_task:agentreward_looping;dataset:agent-reward-bench;benchmark:assistantbench;phase:navigate;action:click;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 30,
+          "positive_rate": 1.0,
+          "positives": 30,
+          "sessions": 2,
+          "stack": "analysis_task:agentreward_looping;dataset:agent-reward-bench;benchmark:workarena;phase:finish;action:send_msg_to_user;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 29,
+          "positive_rate": 1.0,
+          "positives": 29,
+          "sessions": 5,
+          "stack": "analysis_task:agentreward_looping;dataset:agent-reward-bench;benchmark:assistantbench;phase:input;action:fill;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 29,
+          "positive_rate": 1.0,
+          "positives": 29,
+          "sessions": 2,
+          "stack": "analysis_task:agentreward_looping;dataset:agent-reward-bench;benchmark:webarena;phase:navigate;action:click;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 27,
+          "positive_rate": 1.0,
+          "positives": 27,
+          "sessions": 1,
+          "stack": "analysis_task:agentreward_looping;dataset:agent-reward-bench;benchmark:visualwebarena;phase:navigate;action:hover;repeat_signal:loop-like;status:failure"
+        }
+      ],
+      "top_groups": 5,
+      "top_positive_lift": 1.446,
+      "top_positive_precision": 1.0,
+      "top_positive_recall": 0.379,
+      "view": "operation_stack"
+    },
+    {
+      "avg_positive_group_sessions": 3.615,
+      "avg_top_group_sessions": 7.0,
+      "compression": 26.036,
+      "dataset": "agent-reward-bench",
+      "groups": 28,
+      "inspection_fraction_for_50pct_positives": 0.4129,
+      "operations": 729,
+      "positive_groups": 13,
+      "positives": 504,
+      "prevalence": 0.6914,
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "target_positive",
+        "phase",
+        "action",
+        "repeat_signal",
+        "status"
+      ],
+      "task": "agentreward_looping",
+      "top_group_examples": [
+        {
+          "operations": 301,
+          "positive_rate": 1.0,
+          "positives": 301,
+          "sessions": 16,
+          "stack": "analysis_task:agentreward_looping;dataset:agent-reward-bench;target_positive:positive;phase:navigate;action:click;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 71,
+          "positive_rate": 1.0,
+          "positives": 71,
+          "sessions": 13,
+          "stack": "analysis_task:agentreward_looping;dataset:agent-reward-bench;target_positive:positive;phase:input;action:fill;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 32,
+          "positive_rate": 1.0,
+          "positives": 32,
+          "sessions": 4,
+          "stack": "analysis_task:agentreward_looping;dataset:agent-reward-bench;target_positive:positive;phase:finish;action:send_msg_to_user;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 27,
+          "positive_rate": 1.0,
+          "positives": 27,
+          "sessions": 1,
+          "stack": "analysis_task:agentreward_looping;dataset:agent-reward-bench;target_positive:positive;phase:navigate;action:hover;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 22,
+          "positive_rate": 1.0,
+          "positives": 22,
+          "sessions": 1,
+          "stack": "analysis_task:agentreward_looping;dataset:agent-reward-bench;target_positive:positive;phase:navigate;action:click;repeat_signal:none;status:failure"
+        }
+      ],
+      "top_groups": 5,
+      "top_positive_lift": 1.446,
+      "top_positive_precision": 1.0,
+      "top_positive_recall": 0.8988,
+      "view": "label_drilldown"
+    },
+    {
+      "avg_positive_group_sessions": 29.0,
+      "avg_top_group_sessions": 29.0,
+      "compression": 729.0,
+      "dataset": "agent-reward-bench",
+      "groups": 1,
+      "inspection_fraction_for_50pct_positives": 1.0,
+      "operations": 729,
+      "positive_groups": 1,
+      "positives": 202,
+      "prevalence": 0.2771,
+      "stack": [
+        "analysis_task",
+        "dataset"
+      ],
+      "task": "agentreward_side_effect",
+      "top_group_examples": [
+        {
+          "operations": 729,
+          "positive_rate": 0.2771,
+          "positives": 202,
+          "sessions": 29,
+          "stack": "analysis_task:agentreward_side_effect;dataset:agent-reward-bench"
+        }
+      ],
+      "top_groups": 5,
+      "top_positive_lift": 1.0,
+      "top_positive_precision": 0.2771,
+      "top_positive_recall": 1.0,
+      "view": "flat"
+    },
+    {
+      "avg_positive_group_sessions": 1.0,
+      "avg_top_group_sessions": 1.0,
+      "compression": 25.138,
+      "dataset": "agent-reward-bench",
+      "groups": 29,
+      "inspection_fraction_for_50pct_positives": 0.1399,
+      "operations": 729,
+      "positive_groups": 2,
+      "positives": 202,
+      "prevalence": 0.2771,
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "session"
+      ],
+      "task": "agentreward_side_effect",
+      "top_group_examples": [
+        {
+          "operations": 102,
+          "positive_rate": 1.0,
+          "positives": 102,
+          "sessions": 1,
+          "stack": "analysis_task:agentreward_side_effect;dataset:agent-reward-bench;session:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2"
+        },
+        {
+          "operations": 100,
+          "positive_rate": 1.0,
+          "positives": 100,
+          "sessions": 1,
+          "stack": "analysis_task:agentreward_side_effect;dataset:agent-reward-bench;session:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2"
+        },
+        {
+          "operations": 1,
+          "positive_rate": 0.0,
+          "positives": 0,
+          "sessions": 1,
+          "stack": "analysis_task:agentreward_side_effect;dataset:agent-reward-bench;session:visualwebarena.resized.525"
+        },
+        {
+          "operations": 1,
+          "positive_rate": 0.0,
+          "positives": 0,
+          "sessions": 1,
+          "stack": "analysis_task:agentreward_side_effect;dataset:agent-reward-bench;session:visualwebarena.525"
+        },
+        {
+          "operations": 2,
+          "positive_rate": 0.0,
+          "positives": 0,
+          "sessions": 1,
+          "stack": "analysis_task:agentreward_side_effect;dataset:agent-reward-bench;session:webarena.24"
+        }
+      ],
+      "top_groups": 5,
+      "top_positive_lift": 3.539,
+      "top_positive_precision": 0.9806,
+      "top_positive_recall": 1.0,
+      "view": "fixed_session"
+    },
+    {
+      "avg_positive_group_sessions": 3.667,
+      "avg_top_group_sessions": 2.6,
+      "compression": 18.225,
+      "dataset": "agent-reward-bench",
+      "groups": 40,
+      "inspection_fraction_for_50pct_positives": 0.2209,
+      "operations": 729,
+      "positive_groups": 9,
+      "positives": 202,
+      "prevalence": 0.2771,
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "benchmark",
+        "phase",
+        "action",
+        "repeat_signal",
+        "status"
+      ],
+      "task": "agentreward_side_effect",
+      "top_group_examples": [
+        {
+          "operations": 30,
+          "positive_rate": 1.0,
+          "positives": 30,
+          "sessions": 2,
+          "stack": "analysis_task:agentreward_side_effect;dataset:agent-reward-bench;benchmark:workarena;phase:finish;action:send_msg_to_user;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 16,
+          "positive_rate": 1.0,
+          "positives": 16,
+          "sessions": 2,
+          "stack": "analysis_task:agentreward_side_effect;dataset:agent-reward-bench;benchmark:workarena;phase:browser-action;action:select_option;repeat_signal:none;status:failure"
+        },
+        {
+          "operations": 8,
+          "positive_rate": 1.0,
+          "positives": 8,
+          "sessions": 2,
+          "stack": "analysis_task:agentreward_side_effect;dataset:agent-reward-bench;benchmark:workarena;phase:browser-action;action:select_option;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 107,
+          "positive_rate": 0.7664,
+          "positives": 82,
+          "sessions": 4,
+          "stack": "analysis_task:agentreward_side_effect;dataset:agent-reward-bench;benchmark:workarena;phase:navigate;action:click;repeat_signal:none;status:failure"
+        },
+        {
+          "operations": 3,
+          "positive_rate": 0.6667,
+          "positives": 2,
+          "sessions": 3,
+          "stack": "analysis_task:agentreward_side_effect;dataset:agent-reward-bench;benchmark:workarena;phase:observe;action:noop;repeat_signal:none;status:failure"
+        }
+      ],
+      "top_groups": 5,
+      "top_positive_lift": 3.037,
+      "top_positive_precision": 0.8415,
+      "top_positive_recall": 0.6832,
+      "view": "operation_stack"
+    },
+    {
+      "avg_positive_group_sessions": 2.0,
+      "avg_top_group_sessions": 2.0,
+      "compression": 24.3,
+      "dataset": "agent-reward-bench",
+      "groups": 30,
+      "inspection_fraction_for_50pct_positives": 0.166,
+      "operations": 729,
+      "positive_groups": 9,
+      "positives": 202,
+      "prevalence": 0.2771,
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "target_positive",
+        "phase",
+        "action",
+        "repeat_signal",
+        "status"
+      ],
+      "task": "agentreward_side_effect",
+      "top_group_examples": [
+        {
+          "operations": 82,
+          "positive_rate": 1.0,
+          "positives": 82,
+          "sessions": 2,
+          "stack": "analysis_task:agentreward_side_effect;dataset:agent-reward-bench;target_positive:positive;phase:navigate;action:click;repeat_signal:none;status:failure"
+        },
+        {
+          "operations": 39,
+          "positive_rate": 1.0,
+          "positives": 39,
+          "sessions": 2,
+          "stack": "analysis_task:agentreward_side_effect;dataset:agent-reward-bench;target_positive:positive;phase:navigate;action:click;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 30,
+          "positive_rate": 1.0,
+          "positives": 30,
+          "sessions": 2,
+          "stack": "analysis_task:agentreward_side_effect;dataset:agent-reward-bench;target_positive:positive;phase:finish;action:send_msg_to_user;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 16,
+          "positive_rate": 1.0,
+          "positives": 16,
+          "sessions": 2,
+          "stack": "analysis_task:agentreward_side_effect;dataset:agent-reward-bench;target_positive:positive;phase:browser-action;action:select_option;repeat_signal:none;status:failure"
+        },
+        {
+          "operations": 13,
+          "positive_rate": 1.0,
+          "positives": 13,
+          "sessions": 2,
+          "stack": "analysis_task:agentreward_side_effect;dataset:agent-reward-bench;target_positive:positive;phase:input;action:fill;repeat_signal:loop-like;status:failure"
+        }
+      ],
+      "top_groups": 5,
+      "top_positive_lift": 3.609,
+      "top_positive_precision": 1.0,
+      "top_positive_recall": 0.8911,
+      "view": "label_drilldown"
+    },
+    {
+      "avg_positive_group_sessions": 250.0,
+      "avg_top_group_sessions": 250.0,
+      "compression": 4285.0,
+      "dataset": "satraj-os-safety",
+      "groups": 1,
+      "inspection_fraction_for_50pct_positives": 1.0,
+      "operations": 4285,
+      "positive_groups": 1,
+      "positives": 622,
+      "prevalence": 0.1452,
+      "stack": [
+        "analysis_task",
+        "dataset"
+      ],
+      "task": "satraj_unsafe",
+      "top_group_examples": [
+        {
+          "operations": 4285,
+          "positive_rate": 0.1452,
+          "positives": 622,
+          "sessions": 250,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety"
+        }
+      ],
+      "top_groups": 5,
+      "top_positive_lift": 1.0,
+      "top_positive_precision": 0.1452,
+      "top_positive_recall": 1.0,
+      "view": "flat"
+    },
+    {
+      "avg_positive_group_sessions": 1.0,
+      "avg_top_group_sessions": 1.0,
+      "compression": 17.14,
+      "dataset": "satraj-os-safety",
+      "groups": 250,
+      "inspection_fraction_for_50pct_positives": 0.0744,
+      "operations": 4285,
+      "positive_groups": 88,
+      "positives": 622,
+      "prevalence": 0.1452,
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "session"
+      ],
+      "task": "satraj_unsafe",
+      "top_group_examples": [
+        {
+          "operations": 25,
+          "positive_rate": 1.0,
+          "positives": 25,
+          "sessions": 1,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;session:e6c71e5f-a143-47b2-a0b2-2f157c5eb03b"
+        },
+        {
+          "operations": 22,
+          "positive_rate": 1.0,
+          "positives": 22,
+          "sessions": 1,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;session:15259484-f57a-4a8b-83fe-86301d43dc58"
+        },
+        {
+          "operations": 20,
+          "positive_rate": 1.0,
+          "positives": 20,
+          "sessions": 1,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;session:b0a2914d-657e-404c-844b-fe7f46796191"
+        },
+        {
+          "operations": 19,
+          "positive_rate": 1.0,
+          "positives": 19,
+          "sessions": 1,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;session:dbc4c9c4-bd4c-4a31-abac-2bcb33930b2a"
+        },
+        {
+          "operations": 18,
+          "positive_rate": 1.0,
+          "positives": 18,
+          "sessions": 1,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;session:d7e652a5-278f-44c4-945b-1487620ef12d"
+        }
+      ],
+      "top_groups": 5,
+      "top_positive_lift": 6.889,
+      "top_positive_precision": 1.0,
+      "top_positive_recall": 0.1672,
+      "view": "fixed_session"
+    },
+    {
+      "avg_positive_group_sessions": 7.774,
+      "avg_top_group_sessions": 16.6,
+      "compression": 30.176,
+      "dataset": "satraj-os-safety",
+      "groups": 142,
+      "inspection_fraction_for_50pct_positives": 0.0789,
+      "operations": 4285,
+      "positive_groups": 31,
+      "positives": 622,
+      "prevalence": 0.1452,
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "environment",
+        "phase",
+        "action",
+        "repeat_signal",
+        "status"
+      ],
+      "task": "satraj_unsafe",
+      "top_group_examples": [
+        {
+          "operations": 98,
+          "positive_rate": 1.0,
+          "positives": 98,
+          "sessions": 23,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:os;phase:navigate;action:left_click;repeat_signal:none;status:success"
+        },
+        {
+          "operations": 70,
+          "positive_rate": 1.0,
+          "positives": 70,
+          "sessions": 25,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:unknown_file;phase:navigate;action:left_click;repeat_signal:none;status:success"
+        },
+        {
+          "operations": 69,
+          "positive_rate": 1.0,
+          "positives": 69,
+          "sessions": 12,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:unknown_file;phase:navigate;action:left_click;repeat_signal:loop-like;status:success"
+        },
+        {
+          "operations": 53,
+          "positive_rate": 1.0,
+          "positives": 53,
+          "sessions": 10,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:os;phase:navigate;action:left_click;repeat_signal:loop-like;status:success"
+        },
+        {
+          "operations": 48,
+          "positive_rate": 1.0,
+          "positives": 48,
+          "sessions": 13,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:unknown_file;phase:input;action:type;repeat_signal:loop-like;status:success"
+        }
+      ],
+      "top_groups": 5,
+      "top_positive_lift": 6.889,
+      "top_positive_precision": 1.0,
+      "top_positive_recall": 0.5434,
+      "view": "operation_stack"
+    },
+    {
+      "avg_positive_group_sessions": 9.75,
+      "avg_top_group_sessions": 17.4,
+      "compression": 39.676,
+      "dataset": "satraj-os-safety",
+      "groups": 108,
+      "inspection_fraction_for_50pct_positives": 0.081,
+      "operations": 4285,
+      "positive_groups": 24,
+      "positives": 622,
+      "prevalence": 0.1452,
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "target_positive",
+        "environment",
+        "phase",
+        "action",
+        "repeat_signal"
+      ],
+      "task": "satraj_unsafe",
+      "top_group_examples": [
+        {
+          "operations": 98,
+          "positive_rate": 1.0,
+          "positives": 98,
+          "sessions": 23,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;target_positive:positive;environment:os;phase:navigate;action:left_click;repeat_signal:none"
+        },
+        {
+          "operations": 74,
+          "positive_rate": 1.0,
+          "positives": 74,
+          "sessions": 13,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;target_positive:positive;environment:unknown_file;phase:navigate;action:left_click;repeat_signal:loop-like"
+        },
+        {
+          "operations": 73,
+          "positive_rate": 1.0,
+          "positives": 73,
+          "sessions": 27,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;target_positive:positive;environment:unknown_file;phase:navigate;action:left_click;repeat_signal:none"
+        },
+        {
+          "operations": 53,
+          "positive_rate": 1.0,
+          "positives": 53,
+          "sessions": 10,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;target_positive:positive;environment:os;phase:navigate;action:left_click;repeat_signal:loop-like"
+        },
+        {
+          "operations": 49,
+          "positive_rate": 1.0,
+          "positives": 49,
+          "sessions": 14,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;target_positive:positive;environment:unknown_file;phase:input;action:type;repeat_signal:loop-like"
+        }
+      ],
+      "top_groups": 5,
+      "top_positive_lift": 6.889,
+      "top_positive_precision": 1.0,
+      "top_positive_recall": 0.5579,
+      "view": "label_drilldown"
+    },
+    {
+      "avg_positive_group_sessions": 835.0,
+      "avg_top_group_sessions": 835.0,
+      "compression": 14718.0,
+      "dataset": "agentnet",
+      "groups": 1,
+      "inspection_fraction_for_50pct_positives": 1.0,
+      "operations": 14718,
+      "positive_groups": 1,
+      "positives": 874,
+      "prevalence": 0.0594,
+      "stack": [
+        "analysis_task",
+        "dataset"
+      ],
+      "task": "agentnet_incorrect_step",
+      "top_group_examples": [
+        {
+          "operations": 14718,
+          "positive_rate": 0.0594,
+          "positives": 874,
+          "sessions": 835,
+          "stack": "analysis_task:agentnet_incorrect_step;dataset:agentnet"
+        }
+      ],
+      "top_groups": 5,
+      "top_positive_lift": 1.0,
+      "top_positive_precision": 0.0594,
+      "top_positive_recall": 1.0,
+      "view": "flat"
+    },
+    {
+      "avg_positive_group_sessions": 1.0,
+      "avg_top_group_sessions": 1.0,
+      "compression": 17.626,
+      "dataset": "agentnet",
+      "groups": 835,
+      "inspection_fraction_for_50pct_positives": 0.1961,
+      "operations": 14718,
+      "positive_groups": 502,
+      "positives": 874,
+      "prevalence": 0.0594,
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "session"
+      ],
+      "task": "agentnet_incorrect_step",
+      "top_group_examples": [
+        {
+          "operations": 16,
+          "positive_rate": 0.375,
+          "positives": 6,
+          "sessions": 1,
+          "stack": "analysis_task:agentnet_incorrect_step;dataset:agentnet;session:2f8e52ae-53bb-40bd-b6cc-9c2109a2f460"
+        },
+        {
+          "operations": 16,
+          "positive_rate": 0.3125,
+          "positives": 5,
+          "sessions": 1,
+          "stack": "analysis_task:agentnet_incorrect_step;dataset:agentnet;session:291ef814-3e40-4978-8c74-84f4f22aa5c9"
+        },
+        {
+          "operations": 13,
+          "positive_rate": 0.3077,
+          "positives": 4,
+          "sessions": 1,
+          "stack": "analysis_task:agentnet_incorrect_step;dataset:agentnet;session:118629ca-55aa-4268-9844-d71bb86ca760"
+        },
+        {
+          "operations": 10,
+          "positive_rate": 0.3,
+          "positives": 3,
+          "sessions": 1,
+          "stack": "analysis_task:agentnet_incorrect_step;dataset:agentnet;session:00af4cc2-25da-46cc-bbc9-c48f1d7dd242"
+        },
+        {
+          "operations": 14,
+          "positive_rate": 0.2857,
+          "positives": 4,
+          "sessions": 1,
+          "stack": "analysis_task:agentnet_incorrect_step;dataset:agentnet;session:31629900-c0a2-4ae9-a4ae-8bcd87d6f3f7"
+        }
+      ],
+      "top_groups": 5,
+      "top_positive_lift": 5.369,
+      "top_positive_precision": 0.3188,
+      "top_positive_recall": 0.0252,
+      "view": "fixed_session"
+    },
+    {
+      "avg_positive_group_sessions": 21.158,
+      "avg_top_group_sessions": 8.0,
+      "compression": 50.927,
+      "dataset": "agentnet",
+      "groups": 289,
+      "inspection_fraction_for_50pct_positives": 0.2921,
+      "operations": 14718,
+      "positive_groups": 101,
+      "positives": 874,
+      "prevalence": 0.0594,
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "environment",
+        "phase",
+        "action",
+        "repeat_signal",
+        "status"
+      ],
+      "task": "agentnet_incorrect_step",
+      "top_group_examples": [
+        {
+          "operations": 6,
+          "positive_rate": 0.6667,
+          "positives": 4,
+          "sessions": 3,
+          "stack": "analysis_task:agentnet_incorrect_step;dataset:agentnet;environment:libreoffice_impress;phase:navigate;action:scroll;repeat_signal:none;status:success"
+        },
+        {
+          "operations": 4,
+          "positive_rate": 0.5,
+          "positives": 2,
+          "sessions": 2,
+          "stack": "analysis_task:agentnet_incorrect_step;dataset:agentnet;environment:error_correction;phase:input;action:type;repeat_signal:none;status:failure"
+        },
+        {
+          "operations": 2,
+          "positive_rate": 0.5,
+          "positives": 1,
+          "sessions": 1,
+          "stack": "analysis_task:agentnet_incorrect_step;dataset:agentnet;environment:error_correction;phase:input;action:type;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 23,
+          "positive_rate": 0.4348,
+          "positives": 10,
+          "sessions": 9,
+          "stack": "analysis_task:agentnet_incorrect_step;dataset:agentnet;environment:error_correction;phase:input;action:type;repeat_signal:loop-like;status:success"
+        },
+        {
+          "operations": 58,
+          "positive_rate": 0.431,
+          "positives": 25,
+          "sessions": 25,
+          "stack": "analysis_task:agentnet_incorrect_step;dataset:agentnet;environment:error_correction;phase:input;action:type;repeat_signal:none;status:success"
+        }
+      ],
+      "top_groups": 5,
+      "top_positive_lift": 7.605,
+      "top_positive_precision": 0.4516,
+      "top_positive_recall": 0.0481,
+      "view": "operation_stack"
+    },
+    {
+      "avg_positive_group_sessions": 7.386,
+      "avg_top_group_sessions": 40.4,
+      "compression": 51.282,
+      "dataset": "agentnet",
+      "groups": 287,
+      "inspection_fraction_for_50pct_positives": 0.0309,
+      "operations": 14718,
+      "positive_groups": 83,
+      "positives": 874,
+      "prevalence": 0.0594,
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "target_positive",
+        "environment",
+        "phase",
+        "action",
+        "repeat_signal"
+      ],
+      "task": "agentnet_incorrect_step",
+      "top_group_examples": [
+        {
+          "operations": 111,
+          "positive_rate": 1.0,
+          "positives": 111,
+          "sessions": 69,
+          "stack": "analysis_task:agentnet_incorrect_step;dataset:agentnet;target_positive:positive;environment:chrome;phase:navigate;action:click;repeat_signal:none"
+        },
+        {
+          "operations": 61,
+          "positive_rate": 1.0,
+          "positives": 61,
+          "sessions": 38,
+          "stack": "analysis_task:agentnet_incorrect_step;dataset:agentnet;target_positive:positive;environment:multiapp;phase:navigate;action:click;repeat_signal:none"
+        },
+        {
+          "operations": 52,
+          "positive_rate": 1.0,
+          "positives": 52,
+          "sessions": 26,
+          "stack": "analysis_task:agentnet_incorrect_step;dataset:agentnet;target_positive:positive;environment:multiapp;phase:navigate;action:click;repeat_signal:loop-like"
+        },
+        {
+          "operations": 49,
+          "positive_rate": 1.0,
+          "positives": 49,
+          "sessions": 38,
+          "stack": "analysis_task:agentnet_incorrect_step;dataset:agentnet;target_positive:positive;environment:libreoffice_writer;phase:navigate;action:click;repeat_signal:none"
+        },
+        {
+          "operations": 49,
+          "positive_rate": 1.0,
+          "positives": 49,
+          "sessions": 31,
+          "stack": "analysis_task:agentnet_incorrect_step;dataset:agentnet;target_positive:positive;environment:os;phase:input;action:type;repeat_signal:loop-like"
+        }
+      ],
+      "top_groups": 5,
+      "top_positive_lift": 16.84,
+      "top_positive_precision": 1.0,
+      "top_positive_recall": 0.3684,
+      "view": "label_drilldown"
+    },
+    {
+      "avg_positive_group_sessions": 549.0,
+      "avg_top_group_sessions": 549.0,
+      "compression": 10067.0,
+      "dataset": "agentnet",
+      "groups": 1,
+      "inspection_fraction_for_50pct_positives": 1.0,
+      "operations": 10067,
+      "positive_groups": 1,
+      "positives": 733,
+      "prevalence": 0.0728,
+      "stack": [
+        "analysis_task",
+        "dataset"
+      ],
+      "task": "agentnet_redundant_step",
+      "top_group_examples": [
+        {
+          "operations": 10067,
+          "positive_rate": 0.0728,
+          "positives": 733,
+          "sessions": 549,
+          "stack": "analysis_task:agentnet_redundant_step;dataset:agentnet"
+        }
+      ],
+      "top_groups": 5,
+      "top_positive_lift": 1.0,
+      "top_positive_precision": 0.0728,
+      "top_positive_recall": 1.0,
+      "view": "flat"
+    },
+    {
+      "avg_positive_group_sessions": 1.0,
+      "avg_top_group_sessions": 1.0,
+      "compression": 18.337,
+      "dataset": "agentnet",
+      "groups": 549,
+      "inspection_fraction_for_50pct_positives": 0.2615,
+      "operations": 10067,
+      "positive_groups": 438,
+      "positives": 733,
+      "prevalence": 0.0728,
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "session"
+      ],
+      "task": "agentnet_redundant_step",
+      "top_group_examples": [
+        {
+          "operations": 13,
+          "positive_rate": 0.3077,
+          "positives": 4,
+          "sessions": 1,
+          "stack": "analysis_task:agentnet_redundant_step;dataset:agentnet;session:118629ca-55aa-4268-9844-d71bb86ca760"
+        },
+        {
+          "operations": 16,
+          "positive_rate": 0.25,
+          "positives": 4,
+          "sessions": 1,
+          "stack": "analysis_task:agentnet_redundant_step;dataset:agentnet;session:21cc4530-2828-4a47-b418-cd315507b810"
+        },
+        {
+          "operations": 4,
+          "positive_rate": 0.25,
+          "positives": 1,
+          "sessions": 1,
+          "stack": "analysis_task:agentnet_redundant_step;dataset:agentnet;session:24c73c30-6979-4ece-b6da-3c875421fed7"
+        },
+        {
+          "operations": 17,
+          "positive_rate": 0.2353,
+          "positives": 4,
+          "sessions": 1,
+          "stack": "analysis_task:agentnet_redundant_step;dataset:agentnet;session:30fcb0db-922f-460d-9d26-2d4bd47df3eb"
+        },
+        {
+          "operations": 27,
+          "positive_rate": 0.2222,
+          "positives": 6,
+          "sessions": 1,
+          "stack": "analysis_task:agentnet_redundant_step;dataset:agentnet;session:0ae3d9b2-7ac9-4ce0-a3d6-cee71ba20bce"
+        }
+      ],
+      "top_groups": 5,
+      "top_positive_lift": 3.389,
+      "top_positive_precision": 0.2468,
+      "top_positive_recall": 0.0259,
+      "view": "fixed_session"
+    },
+    {
+      "avg_positive_group_sessions": 15.215,
+      "avg_top_group_sessions": 8.0,
+      "compression": 38.719,
+      "dataset": "agentnet",
+      "groups": 260,
+      "inspection_fraction_for_50pct_positives": 0.3013,
+      "operations": 10067,
+      "positive_groups": 93,
+      "positives": 733,
+      "prevalence": 0.0728,
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "environment",
+        "phase",
+        "action",
+        "repeat_signal",
+        "status"
+      ],
+      "task": "agentnet_redundant_step",
+      "top_group_examples": [
+        {
+          "operations": 6,
+          "positive_rate": 0.6667,
+          "positives": 4,
+          "sessions": 3,
+          "stack": "analysis_task:agentnet_redundant_step;dataset:agentnet;environment:libreoffice_impress;phase:navigate;action:scroll;repeat_signal:none;status:success"
+        },
+        {
+          "operations": 4,
+          "positive_rate": 0.5,
+          "positives": 2,
+          "sessions": 2,
+          "stack": "analysis_task:agentnet_redundant_step;dataset:agentnet;environment:error_correction;phase:input;action:type;repeat_signal:none;status:failure"
+        },
+        {
+          "operations": 2,
+          "positive_rate": 0.5,
+          "positives": 1,
+          "sessions": 1,
+          "stack": "analysis_task:agentnet_redundant_step;dataset:agentnet;environment:error_correction;phase:input;action:type;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 23,
+          "positive_rate": 0.4348,
+          "positives": 10,
+          "sessions": 9,
+          "stack": "analysis_task:agentnet_redundant_step;dataset:agentnet;environment:error_correction;phase:input;action:type;repeat_signal:loop-like;status:success"
+        },
+        {
+          "operations": 58,
+          "positive_rate": 0.431,
+          "positives": 25,
+          "sessions": 25,
+          "stack": "analysis_task:agentnet_redundant_step;dataset:agentnet;environment:error_correction;phase:input;action:type;repeat_signal:none;status:success"
+        }
+      ],
+      "top_groups": 5,
+      "top_positive_lift": 6.202,
+      "top_positive_precision": 0.4516,
+      "top_positive_recall": 0.0573,
+      "view": "operation_stack"
+    },
+    {
+      "avg_positive_group_sessions": 6.831,
+      "avg_top_group_sessions": 36.6,
+      "compression": 39.791,
+      "dataset": "agentnet",
+      "groups": 253,
+      "inspection_fraction_for_50pct_positives": 0.0371,
+      "operations": 10067,
+      "positive_groups": 77,
+      "positives": 733,
+      "prevalence": 0.0728,
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "target_positive",
+        "environment",
+        "phase",
+        "action",
+        "repeat_signal"
+      ],
+      "task": "agentnet_redundant_step",
+      "top_group_examples": [
+        {
+          "operations": 102,
+          "positive_rate": 1.0,
+          "positives": 102,
+          "sessions": 65,
+          "stack": "analysis_task:agentnet_redundant_step;dataset:agentnet;target_positive:positive;environment:chrome;phase:navigate;action:click;repeat_signal:none"
+        },
+        {
+          "operations": 58,
+          "positive_rate": 1.0,
+          "positives": 58,
+          "sessions": 35,
+          "stack": "analysis_task:agentnet_redundant_step;dataset:agentnet;target_positive:positive;environment:multiapp;phase:navigate;action:click;repeat_signal:none"
+        },
+        {
+          "operations": 53,
+          "positive_rate": 1.0,
+          "positives": 53,
+          "sessions": 26,
+          "stack": "analysis_task:agentnet_redundant_step;dataset:agentnet;target_positive:positive;environment:multiapp;phase:navigate;action:click;repeat_signal:loop-like"
+        },
+        {
+          "operations": 43,
+          "positive_rate": 1.0,
+          "positives": 43,
+          "sessions": 23,
+          "stack": "analysis_task:agentnet_redundant_step;dataset:agentnet;target_positive:positive;environment:libreoffice_impress;phase:navigate;action:click;repeat_signal:loop-like"
+        },
+        {
+          "operations": 42,
+          "positive_rate": 1.0,
+          "positives": 42,
+          "sessions": 34,
+          "stack": "analysis_task:agentnet_redundant_step;dataset:agentnet;target_positive:positive;environment:libreoffice_writer;phase:navigate;action:click;repeat_signal:none"
+        }
+      ],
+      "top_groups": 5,
+      "top_positive_lift": 13.734,
+      "top_positive_precision": 1.0,
+      "top_positive_recall": 0.4065,
+      "view": "label_drilldown"
+    },
+    {
+      "avg_positive_group_sessions": 320.0,
+      "avg_top_group_sessions": 320.0,
+      "compression": 4011.0,
+      "dataset": "osworld-human",
+      "groups": 1,
+      "inspection_fraction_for_50pct_positives": 1.0,
+      "operations": 4011,
+      "positive_groups": 1,
+      "positives": 764,
+      "prevalence": 0.1905,
+      "stack": [
+        "analysis_task",
+        "dataset"
+      ],
+      "task": "osworld_group_start",
+      "top_group_examples": [
+        {
+          "operations": 4011,
+          "positive_rate": 0.1905,
+          "positives": 764,
+          "sessions": 320,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human"
+        }
+      ],
+      "top_groups": 5,
+      "top_positive_lift": 1.0,
+      "top_positive_precision": 0.1905,
+      "top_positive_recall": 1.0,
+      "view": "flat"
+    },
+    {
+      "avg_positive_group_sessions": 1.0,
+      "avg_top_group_sessions": 1.0,
+      "compression": 12.534,
+      "dataset": "osworld-human",
+      "groups": 320,
+      "inspection_fraction_for_50pct_positives": 0.3007,
+      "operations": 4011,
+      "positive_groups": 244,
+      "positives": 764,
+      "prevalence": 0.1905,
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "session"
+      ],
+      "task": "osworld_group_start",
+      "top_group_examples": [
+        {
+          "operations": 4,
+          "positive_rate": 0.5,
+          "positives": 2,
+          "sessions": 1,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;session:ee9a3c83-f437-4879-8918-be5efbb9fac7"
+        },
+        {
+          "operations": 4,
+          "positive_rate": 0.5,
+          "positives": 2,
+          "sessions": 1,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;session:f7dfbef3-7697-431c-883a-db8583a4e4f9"
+        },
+        {
+          "operations": 2,
+          "positive_rate": 0.5,
+          "positives": 1,
+          "sessions": 1,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;session:e2dd0213-26db-4349-abe5-d5667bfd725c"
+        },
+        {
+          "operations": 2,
+          "positive_rate": 0.5,
+          "positives": 1,
+          "sessions": 1,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;session:f4aec372-4fb0-4df5-a52b-79e0e2a5d6ce"
+        },
+        {
+          "operations": 2,
+          "positive_rate": 0.5,
+          "positives": 1,
+          "sessions": 1,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;session:6e99a1ad-07d2-4b66-a1ce-ece6d99c20a5"
+        }
+      ],
+      "top_groups": 5,
+      "top_positive_lift": 2.625,
+      "top_positive_precision": 0.5,
+      "top_positive_recall": 0.0092,
+      "view": "fixed_session"
+    },
+    {
+      "avg_positive_group_sessions": 9.405,
+      "avg_top_group_sessions": 2.4,
+      "compression": 23.185,
+      "dataset": "osworld-human",
+      "groups": 173,
+      "inspection_fraction_for_50pct_positives": 0.2837,
+      "operations": 4011,
+      "positive_groups": 74,
+      "positives": 764,
+      "prevalence": 0.1905,
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "app",
+        "phase",
+        "action",
+        "repeat_signal",
+        "status"
+      ],
+      "task": "osworld_group_start",
+      "top_group_examples": [
+        {
+          "operations": 6,
+          "positive_rate": 1.0,
+          "positives": 6,
+          "sessions": 6,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:os;phase:input;action:hotkey;repeat_signal:none;status:gold"
+        },
+        {
+          "operations": 4,
+          "positive_rate": 1.0,
+          "positives": 4,
+          "sessions": 1,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:multi_apps;phase:navigate;action:move_to;repeat_signal:none;status:gold"
+        },
+        {
+          "operations": 2,
+          "positive_rate": 1.0,
+          "positives": 2,
+          "sessions": 2,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:libreoffice_impress;phase:navigate;action:move_to;repeat_signal:none;status:gold"
+        },
+        {
+          "operations": 2,
+          "positive_rate": 1.0,
+          "positives": 2,
+          "sessions": 2,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:libreoffice_writer;phase:navigate;action:triple_click;repeat_signal:loop-like;status:gold"
+        },
+        {
+          "operations": 2,
+          "positive_rate": 1.0,
+          "positives": 2,
+          "sessions": 1,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:thunderbird;phase:navigate;action:click;repeat_signal:none;status:gold"
+        }
+      ],
+      "top_groups": 5,
+      "top_positive_lift": 5.25,
+      "top_positive_precision": 1.0,
+      "top_positive_recall": 0.0209,
+      "view": "operation_stack"
+    },
+    {
+      "avg_positive_group_sessions": 17.0,
+      "avg_top_group_sessions": 53.2,
+      "compression": 61.708,
+      "dataset": "osworld-human",
+      "groups": 65,
+      "inspection_fraction_for_50pct_positives": 0.1025,
+      "operations": 4011,
+      "positive_groups": 21,
+      "positives": 764,
+      "prevalence": 0.1905,
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "target_positive",
+        "group_pattern",
+        "phase",
+        "action"
+      ],
+      "task": "osworld_group_start",
+      "top_group_examples": [
+        {
+          "operations": 211,
+          "positive_rate": 1.0,
+          "positives": 211,
+          "sessions": 104,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;target_positive:positive;group_pattern:select-and-input;phase:navigate;action:click"
+        },
+        {
+          "operations": 200,
+          "positive_rate": 1.0,
+          "positives": 200,
+          "sessions": 65,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;target_positive:positive;group_pattern:input;phase:input;action:type"
+        },
+        {
+          "operations": 79,
+          "positive_rate": 1.0,
+          "positives": 79,
+          "sessions": 53,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;target_positive:positive;group_pattern:select;phase:navigate;action:click"
+        },
+        {
+          "operations": 71,
+          "positive_rate": 1.0,
+          "positives": 71,
+          "sessions": 31,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;target_positive:positive;group_pattern:input;phase:input;action:hotkey"
+        },
+        {
+          "operations": 37,
+          "positive_rate": 1.0,
+          "positives": 37,
+          "sessions": 13,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;target_positive:positive;group_pattern:select-and-input;phase:input;action:hotkey"
+        }
+      ],
+      "top_groups": 5,
+      "top_positive_lift": 5.25,
+      "top_positive_precision": 1.0,
+      "top_positive_recall": 0.7827,
+      "view": "label_drilldown"
+    }
+  ],
+  "tasks": [
+    {
+      "dataset": "agent-reward-bench",
+      "operations": 729,
+      "oracle_field": "looping",
+      "positives": 504,
+      "prevalence": 0.6914,
+      "problem": "Find repetitive web-agent behavior in expert-reviewed trajectories.",
+      "source_operation_file": "docs/visexp/out/external-agent-trace-agentreward-r288/agentreward-operations.jsonl",
+      "task": "agentreward_looping"
+    },
+    {
+      "dataset": "agent-reward-bench",
+      "operations": 729,
+      "oracle_field": "side_effect",
+      "positives": 202,
+      "prevalence": 0.2771,
+      "problem": "Find side-effectful web-agent trajectories.",
+      "source_operation_file": "docs/visexp/out/external-agent-trace-agentreward-r288/agentreward-operations.jsonl",
+      "task": "agentreward_side_effect"
+    },
+    {
+      "dataset": "satraj-os-safety",
+      "operations": 4285,
+      "oracle_field": "safety",
+      "positives": 622,
+      "prevalence": 0.1452,
+      "problem": "Find unsafe desktop computer-use operations.",
+      "source_operation_file": "docs/visexp/out/external-agent-trace-satraj-r289/satraj-operations.jsonl",
+      "task": "satraj_unsafe"
+    },
+    {
+      "dataset": "agentnet",
+      "operations": 14718,
+      "oracle_field": "step_correct",
+      "positives": 874,
+      "prevalence": 0.0594,
+      "problem": "Find incorrect human desktop steps.",
+      "source_operation_file": "docs/visexp/out/external-agent-trace-agentnet-r291/agentnet-operations.jsonl",
+      "task": "agentnet_incorrect_step"
+    },
+    {
+      "dataset": "agentnet",
+      "operations": 10067,
+      "oracle_field": "step_redundant",
+      "positives": 733,
+      "prevalence": 0.0728,
+      "problem": "Find redundant human desktop steps.",
+      "source_operation_file": "docs/visexp/out/external-agent-trace-agentnet-r291/agentnet-operations.jsonl",
+      "task": "agentnet_redundant_step"
+    },
+    {
+      "dataset": "osworld-human",
+      "operations": 4011,
+      "oracle_field": "group_position",
+      "positives": 764,
+      "prevalence": 0.1905,
+      "problem": "Find human grouped-action segment starts in desktop traces.",
+      "source_operation_file": "docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-operations.jsonl",
+      "task": "osworld_group_start"
+    }
+  ],
+  "top_groups": 5,
+  "views": [
+    "flat",
+    "fixed_session",
+    "operation_stack",
+    "label_drilldown"
+  ]
+}

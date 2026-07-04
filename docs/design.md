@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-04
 Stage at update: stage 5 analyze / stage 6 claim gate / stage 9 paper integration
-Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agent-session`, `script/agent_trace_to_operations.py`, `script/operation_boundary_backend_eval.py`, `script/boundary_family_calibration_eval.py`, `script/paper_claim_synthesis.py`, `script/reviewer_evidence_packet.py`, `script/paper_value_novelty_synthesis.py`, `docs/evaluation.md`, `agentpprof --profile-spec`
+Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agent-session`, `script/agent_trace_to_operations.py`, `script/operation_boundary_backend_eval.py`, `script/boundary_family_calibration_eval.py`, `script/operation_query_utility_eval.py`, `script/paper_claim_synthesis.py`, `script/reviewer_evidence_packet.py`, `script/paper_value_novelty_synthesis.py`, `docs/evaluation.md`, `agentpprof --profile-spec`
 Completeness: partial
 
 ## Current State And Blocking Gate
@@ -34,7 +34,12 @@ problems to operation/operation-stack evidence, not a runtime abstraction. R299
 adds the first boundary-family calibration pass over existing non-OSWorld
 labels. It keeps the same extension point, but adds a design constraint:
 boundary backends must pass a suitability/calibration gate for each target
-oracle instead of being presented as one universal detector.
+oracle instead of being presented as one universal detector. R300 adds an
+automated analysis-utility proxy: it converts existing labeled problems into
+ordinary operations with fields such as `analysis_task` and `target_positive`,
+then compares flat, fixed-session, semantic operation-stack, and label-drilldown
+projections. These analysis tasks are not a third profiler abstraction; they are
+evaluation labels over operation-stack queries.
 
 ## System-Under-Test Model
 
@@ -168,6 +173,15 @@ and low-precision, AgentRewardBench looping is better handled by a simple
 `repeat_signal_change` baseline, and SATraj safety is a per-trajectory field
 rather than an adjacent boundary in the current sample.
 
+R300 evaluates whether those operation-stack choices help on real labeled
+analysis tasks. It uses existing AgentRewardBench, SATraj-OS, AgentNet, and
+OSWorld-Human operations to define 6 oracle-backed tasks, then writes a combined
+operation file and four reproducible profile specs. The compared views are just
+different stacks over the same operations: `analysis_task,dataset` for flat,
+`analysis_task,dataset,session` for fixed-session, semantic fields for
+operation-stack, and `target_positive` for label-drilldown. The result supports
+inspectability and cross-session aggregation, not human productivity.
+
 ## Mapping And Tagging
 
 Purpose: align mapping/tagging with the two-abstraction model.
@@ -236,6 +250,7 @@ Purpose: keep open risks tied to experiments.
 | Hand-written mappings overfit one dataset family. | Held-out and leave-dataset-out mapping evaluation plus operation-family precedence checks. | R282-R285 cover held-out sessions and 9 leave-out datasets; R289/R290/R291 add desktop computer-use precedence checks; R292 adds a supplemental GUI history-depth field check. |
 | Action labels are too shallow as boundary oracles. | Add step-instruction, solution-path, outcome, side-effect, looping, repetition, safety/attack, grouped-action, step-quality, and failure-label scorers. | R287 adds tau-bench outcomes and expected task actions; R288 adds AgentRewardBench expert success, side-effect, looping, optimality, and action-derived `repeat_signal` fields; R289 adds SATraj safety and attack labels; R290 adds OSWorld-Human grouped-action boundary labels; R291 adds AgentNet step correctness and redundancy labels. AndroidControl and TRAIL remain deeper oracle candidates. |
 | Boundary detection remains only deterministic mapping. | Evaluate learned boundary backends that derive operation fields before stack construction and compare against held-out human or dataset boundaries; require suitability and calibration checks per oracle family. | R297 trains a supervised adjacent-boundary backend on OSWorld-Human, excludes oracle/group fields from features, reaches held-out human-group F1 0.7735, and folds predicted `learned_group_pattern` fields through Rust `agentpprof`. R299 applies the same pattern to OSWorld-Human, AgentNet step-quality labels, and AgentRewardBench looping; it finds mixed results and keeps SATraj/ScaleCUA/tau-bench out of the trained set when they lack suitable adjacent boundary oracles. This is still supervised and family-specific, not unsupervised discovery. |
+| User-facing value remains a proxy. | Compare operation-stack views against flat and fixed-session views on oracle-backed analysis tasks, then follow with a controlled human/agent analyst study. | R300 shows semantic operation stacks beat flat summaries on median positive lift and inspection fraction, and beat fixed-session stacks on group count and cross-session support, but it is oracle-sorted clustering quality rather than a human study. |
 | Profile experiments remain ad hoc shell commands. | Bundle reproducible operation-file, op-map, view, stack, and output choices in profile specs while preserving CLI overrides. | R293 adds an AgentNet profile spec that reproduces the R291 608-stack diagnostic profile and folds the same operations into an 83-stack override view. |
 | Local agent sessions are hard to exchange or replay outside native logs. | Export parsed sessions as `agentsight.agent-session.trace.v1`, import them through `--trace-file`, and convert them to operation JSONL. | R294 public Codex fixture smoke shows direct trace import and converted operation-file import produce identical folded stacks. |
 | Paper claims drift away from tracked artifact evidence. | Mechanically synthesize claim verdicts, reviewer value, novelty, and remaining gaps from tracked result JSON/folded artifacts while keeping unsupported claims explicit. | R295 reads R282-R294 artifacts and emits supported/partial verdicts plus unsupported final claims under `docs/visexp/out/paper-claim-synthesis-r295/`; R296 indexes those verdicts with reviewer questions, derived ratios, and source paths; R298 maps 6 real-problem evidence blocks and 4 novelty claims to tracked artifacts while marking unsupervised intent discovery and developer productivity as unsupported. |
