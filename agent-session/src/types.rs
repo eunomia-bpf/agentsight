@@ -4,7 +4,9 @@
 //! Data types for agent session representation.
 
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::{BTreeMap, HashMap, HashSet};
+use std::fmt;
 use std::path::PathBuf;
 use std::time::{Duration, Instant, SystemTime};
 
@@ -161,6 +163,68 @@ impl AgentTrace {
             sessions,
         }
     }
+
+    /// Parse a portable agent-session trace from JSON text.
+    ///
+    /// The preferred representation is a schema wrapper with a `sessions`
+    /// array. For compatibility with small fixtures and one-off conversion
+    /// scripts, this parser also accepts a bare session array or a single
+    /// session object and normalizes both into the schema wrapper.
+    pub fn from_json_str(contents: &str) -> Result<Self, AgentTraceError> {
+        let value: Value = serde_json::from_str(contents).map_err(AgentTraceError::Json)?;
+        if let Some(sessions) = value.get("sessions") {
+            let schema = value.get("schema").and_then(Value::as_str);
+            if schema != Some(AGENT_TRACE_SCHEMA) {
+                return Err(AgentTraceError::UnsupportedSchema(
+                    schema.unwrap_or("<missing>").to_string(),
+                ));
+            }
+            let sessions =
+                serde_json::from_value(sessions.clone()).map_err(AgentTraceError::Json)?;
+            return Ok(Self::new(sessions));
+        }
+        if value.is_array() {
+            let sessions = serde_json::from_value(value).map_err(AgentTraceError::Json)?;
+            return Ok(Self::new(sessions));
+        }
+        if value.is_object() {
+            let session = serde_json::from_value(value).map_err(AgentTraceError::Json)?;
+            return Ok(Self::new(vec![session]));
+        }
+        Err(AgentTraceError::InvalidRoot)
+    }
+
+    pub fn to_pretty_json(&self) -> Result<String, AgentTraceError> {
+        serde_json::to_string_pretty(self).map_err(AgentTraceError::Json)
+    }
+}
+
+#[derive(Debug)]
+pub enum AgentTraceError {
+    Json(serde_json::Error),
+    UnsupportedSchema(String),
+    InvalidRoot,
+}
+
+impl fmt::Display for AgentTraceError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Json(err) => write!(f, "{err}"),
+            Self::UnsupportedSchema(schema) => {
+                write!(f, "unsupported agent trace schema {schema}")
+            }
+            Self::InvalidRoot => write!(f, "agent trace JSON must be an object or array"),
+        }
+    }
+}
+
+impl std::error::Error for AgentTraceError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::Json(err) => Some(err),
+            Self::UnsupportedSchema(_) | Self::InvalidRoot => None,
+        }
+    }
 }
 
 /// A candidate session file discovered on disk.
@@ -251,5 +315,67 @@ impl SessionCache {
         self.cached_sessions = sessions;
         self.last_refresh = Some(Instant::now());
         self.last_limit = target;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::UNIX_EPOCH;
+
+    fn sample_session(id: &str) -> AgentSession {
+        AgentSession {
+            agent_type: "codex".to_string(),
+            session_id: id.to_string(),
+            conversation_id: None,
+            display_id: id.to_string(),
+            path: PathBuf::from("session.jsonl"),
+            updated: UNIX_EPOCH,
+            start_timestamp_ms: Some(1),
+            end_timestamp_ms: Some(2),
+            model: Some("model".to_string()),
+            usage: TokenUsage::default(),
+            model_usage: BTreeMap::new(),
+            tools: BTreeMap::new(),
+            files: BTreeMap::new(),
+            prompt_preview: Some("hello".to_string()),
+            duration_ms: 1,
+            cwd: Some("/repo".to_string()),
+            last_message_at: None,
+            events: SessionEvents::default(),
+        }
+    }
+
+    #[test]
+    fn agent_trace_round_trips_schema_wrapper() {
+        let trace = AgentTrace::new(vec![sample_session("s1")]);
+        let payload = trace.to_pretty_json().unwrap();
+        let parsed = AgentTrace::from_json_str(&payload).unwrap();
+
+        assert_eq!(parsed.schema, AGENT_TRACE_SCHEMA);
+        assert_eq!(parsed.sessions.len(), 1);
+        assert_eq!(parsed.sessions[0].session_id, "s1");
+    }
+
+    #[test]
+    fn agent_trace_accepts_bare_session_array_and_single_session() {
+        let sessions = vec![sample_session("s1"), sample_session("s2")];
+        let array_payload = serde_json::to_string(&sessions).unwrap();
+        let single_payload = serde_json::to_string(&sessions[0]).unwrap();
+
+        let parsed_array = AgentTrace::from_json_str(&array_payload).unwrap();
+        let parsed_single = AgentTrace::from_json_str(&single_payload).unwrap();
+
+        assert_eq!(parsed_array.sessions.len(), 2);
+        assert_eq!(parsed_single.sessions.len(), 1);
+        assert_eq!(parsed_single.sessions[0].session_id, "s1");
+    }
+
+    #[test]
+    fn agent_trace_rejects_wrong_schema() {
+        let payload = r#"{"schema":"agentsight.agent-session.trace.v0","sessions":[]}"#;
+        let err = AgentTrace::from_json_str(payload).unwrap_err().to_string();
+
+        assert!(err.contains("unsupported agent trace schema"));
     }
 }

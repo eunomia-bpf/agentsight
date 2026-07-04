@@ -12,11 +12,10 @@ let sessions = agent_session::SessionCache::new()
 
 The same IR can be serialized as an exchange trace:
 
-```json
-{
-  "schema": "agentsight.agent-session.trace.v1",
-  "sessions": []
-}
+```rust
+let trace = agent_session::AgentTrace::new(sessions);
+let json = trace.to_pretty_json()?;
+let sessions = agent_session::AgentTrace::from_json_str(&json)?.sessions;
 ```
 
 `agent-session` owns this parsed-session trace schema. Downstream applications

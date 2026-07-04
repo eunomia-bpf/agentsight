@@ -1,7 +1,6 @@
 use agent_session::{AgentSession, AgentTrace, SessionCandidate};
-use anyhow::{Context, Result, anyhow, bail};
+use anyhow::{Context, Result, anyhow};
 use rayon::prelude::*;
-use serde_json::Value;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -116,7 +115,9 @@ pub fn load_agent_trace_files(paths: &[PathBuf]) -> Result<Vec<AgentSession>> {
     for path in paths {
         let contents = fs::read_to_string(path)
             .with_context(|| format!("failed to read --trace-file {}", path.display()))?;
-        sessions.extend(parse_agent_trace(&contents, path)?);
+        let trace = AgentTrace::from_json_str(&contents)
+            .with_context(|| format!("invalid agent trace {}", path.display()))?;
+        sessions.extend(trace.sessions);
     }
     Ok(sessions)
 }
@@ -129,32 +130,8 @@ pub fn write_agent_trace(path: &Path, sessions: &[AgentSession]) -> Result<()> {
             .with_context(|| format!("failed to create trace dir {}", parent.display()))?;
     }
     let trace = AgentTrace::new(sessions.to_vec());
-    let payload = serde_json::to_string_pretty(&trace)?;
+    let payload = trace.to_pretty_json()?;
     fs::write(path, payload).with_context(|| format!("failed to write trace {}", path.display()))
-}
-
-fn parse_agent_trace(contents: &str, path: &Path) -> Result<Vec<AgentSession>> {
-    let value: Value = serde_json::from_str(contents)
-        .with_context(|| format!("invalid trace JSON {}", path.display()))?;
-    if value.get("sessions").is_some() {
-        let trace: AgentTrace = serde_json::from_value(value)
-            .with_context(|| format!("invalid agent trace {}", path.display()))?;
-        if trace.schema != agent_session::AGENT_TRACE_SCHEMA {
-            bail!(
-                "unsupported trace schema {} in {}",
-                trace.schema,
-                path.display()
-            );
-        }
-        return Ok(trace.sessions);
-    }
-    if value.is_array() {
-        return serde_json::from_value(value)
-            .with_context(|| format!("invalid session array trace {}", path.display()));
-    }
-    let session = serde_json::from_value(value)
-        .with_context(|| format!("invalid single-session trace {}", path.display()))?;
-    Ok(vec![session])
 }
 
 fn discover_configured_roots(codex_root: &Path, claude_root: &Path) -> Vec<SessionCandidate> {

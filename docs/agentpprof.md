@@ -306,9 +306,12 @@ agentpprof \
 ```
 
 The trace schema is `agentsight.agent-session.trace.v1`. It is an exchange
-format for parsed sessions, not a profiler abstraction. `--export-trace`
-accepts source selectors such as `--agent` and `--session-id`, but rejects
-`--session-tag` and `--prompt-tag` because those tags are profiler annotations.
+format for parsed sessions, not a profiler abstraction. The `agent-session`
+crate owns the schema and exposes `AgentTrace` parse/serialize helpers;
+`agentpprof` imports the trace and then projects it into operations and
+operation stacks. `--export-trace` accepts source selectors such as `--agent`
+and `--session-id`, but rejects `--session-tag` and `--prompt-tag` because
+those tags are profiler annotations.
 To feed the same data through the external-dataset path, convert it to
 operation JSONL:
 
