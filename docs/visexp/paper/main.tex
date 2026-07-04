@@ -145,8 +145,9 @@ agentpprof --operation-file ops.jsonl --view operations \\
 Stack 结构分析脚本位于 \texttt{script/operation\_stack\_analysis.py}，用于生成 flamegraph 之外的 tree、top-kind 和 transition 报告。
 
 这个实现刻意保留简单接口。
-它不像 jq 那样完整表达 JSON 查询语言，但它已经把 profiler 的关键自由度暴露为 flags 和可提交配置：数据源由 \texttt{--trace-file} 或 \texttt{--operation-file} 选择，权重由 \texttt{--view} 选择，查询子集由 \texttt{--where} 选择，字段派生由 \texttt{--op-map} 选择，递归边界由 \texttt{--stack} 选择，复现实验由 \texttt{--profile-spec} 固化。
+它不像 jq 那样完整表达 JSON 查询语言，但它已经把 profiler 的关键自由度暴露为 flags 和可提交配置：数据源由 \texttt{--trace-file} 或 \texttt{--operation-file} 选择，权重由 \texttt{--view} 选择，查询子集由 \texttt{--where} 选择，字段派生由 \texttt{--op-map} 选择，递归边界由 \texttt{--stack} 选择，JSON group 排序由 \texttt{--rank-rule} 选择，复现实验由 \texttt{--profile-spec} 固化。
 R321 用同一份 R300 真实标注 operation JSONL 验证该实现路径：profile spec 中的 mapping-derived \texttt{where\_rules} 分别选出 729/729、714/714 和 4,285/4,285 个预期 operations 后再折叠。
+R322 进一步让 Rust JSON profile 输出 visible-rule ranked operation-stack groups；在同一 6 个标注任务上，\texttt{rank\_rules} 相比 width ranking 的 AP 提升覆盖 4/6 tasks，top-5 lift 提升覆盖 3/6 tasks，同时 SATraj 和 side-effect 反例显示二值 stack-text boost 仍弱于 R320 的 group-feature query-aware ranker。
 因此 prompt、session、toolcall、process、syscall、plan 和 subagent 都可以在同一套 mechanism 中出现，而不是成为互不兼容的 object model。
 
 \section{实验方法}
@@ -397,6 +398,7 @@ SATraj unsafe 的 best visible policy 是 operation-stack query-aware，说明 \
 AgentRewardBench looping 中，\texttt{repeat\_signal} mapping 明显改善 top-5 F1，但 positives 过于普遍，需要 prevalence-aware ranking。
 Side-effect 和 OSWorld-Human boundary 留下 oracle AP gap，说明当前 ranker 和 stack depth 需要为 side-effect writes 与 boundary-derived fields 分别调参。
 AgentNet step-quality 上 raw action stack 和 fixed-session drilldown 仍有优势，说明 quality problem 需要先定位到可疑 action family，再进入 session-level examples。
+R322 将其中一个 ranker surface 放入 Rust profiler 本体：它证明 visible rank policy 可以作为 JSON operation-stack projection 被复现和评分，也明确暴露 SATraj safety 对 group-level feature density 的需求。
 这些结论是 profiler 输出对优化方向的归因，而不是人工 analyst 的主观解释。
 
 \begin{table*}[t]
@@ -439,7 +441,7 @@ AgentNet step-quality 上 raw action stack 和 fixed-session drilldown 仍有优
     Does recursive folding match human boundaries? & 369 OSWorld-Human tasks, including 4,011 exact grouped-oracle operations & Grouped-depth stacks reduce 482 action stacks to 106 grouped stacks. Conservative human-group boundary F1 is 0.627 with precision 1.0 and recall 0.456. & The profiler can expose action-depth and human-group-depth views over the same sequence, but it does not fully recover latent intent boundaries. \\
     Does the profiler solve real labeled problems beyond flamegraphs? & Six failure, safety, quality, and boundary tasks over 34,539 operations and 3,699 positives & Operation-stack packets are more selective than flat on 6/6 tasks, contain high-lift evidence on 5/6, and have higher selected recall than fixed-session on 5/6. They use lower selected work than fixed-session on only 2/6. & The supported value claim is an automated inspectability and localization tradeoff, with fixed-session preserved as a real low-work counterpoint. \\
     Does profiling accurately localize and rank positives? & R320 scores 144 view/ranker policies with hidden labels over the same six tasks & Query-aware operation-stack top-5 groups inspect median 0.0937 work versus 1.0 for flat. They improve top-5 recall over fixed-session on 5/6 tasks and reduce median groups from 285.0 to 157.5. & Operation-stack profiling can be claimed as a faithful localization/ranking mechanism on real labeled traces, but not as a universal detector or single best hierarchy. \\
-    Are view, ranker, and mapping choices actionable? & R320 compares flat, fixed-session, dataset-native, raw-action, operation-stack, label-drilldown, width, query-aware, and oracle-upper policies & Query-aware ranking improves AP over width-only operation-stack ranking on 6/6 tasks. Mapping beats raw action on top-5 F1 in 2/6 tasks, and per-task insights identify safety, looping, side-effect, step-quality, and boundary tuning points. & The system should expose configurable stack fields, mapping rules, and rankers because different problems need different depths and drilldowns. \\
+    Are view, ranker, and mapping choices actionable? & R320 compares flat, fixed-session, dataset-native, raw-action, operation-stack, label-drilldown, width, query-aware, and oracle-upper policies; R322 runs Rust visible \texttt{rank\_rules} & Query-aware ranking improves AP over width-only operation-stack ranking on 6/6 tasks. Rust \texttt{rank\_rules} improve AP on 4/6 tasks but preserve SATraj/side-effect counterexamples. Mapping beats raw action on top-5 F1 in 2/6 tasks, and per-task insights identify safety, looping, side-effect, step-quality, and boundary tuning points. & The system should expose configurable stack fields, mapping rules, and rankers because different problems need different depths and drilldowns. \\
     \bottomrule
   \end{tabular}
 \end{table*}

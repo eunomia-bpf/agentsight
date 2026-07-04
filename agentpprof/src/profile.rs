@@ -32,6 +32,7 @@ pub struct Profile {
     pub sample_type: &'static str,
     pub unit: &'static str,
     pub ops: Vec<StackNode>,
+    rank_rules: Vec<StackRankRule>,
 }
 
 impl Profile {
@@ -41,7 +42,13 @@ impl Profile {
             sample_type,
             unit,
             ops: Vec::new(),
+            rank_rules: Vec::new(),
         }
+    }
+
+    fn with_rank_rules(mut self, rules: Vec<StackRankRule>) -> Self {
+        self.rank_rules = rules;
+        self
     }
 
     fn sample(&mut self, frames: Vec<Frame>, value: u64) {
@@ -110,6 +117,7 @@ pub struct OperationStackConfig {
     field_rules: Vec<OperationStackRule>,
     filters: Vec<OperationFilterRule>,
     rules: Vec<OperationStackRule>,
+    rank_rules: Vec<StackRankRule>,
 }
 
 impl OperationStackConfig {
@@ -119,6 +127,7 @@ impl OperationStackConfig {
             field_rules: Vec::new(),
             filters: Vec::new(),
             rules: Vec::new(),
+            rank_rules: Vec::new(),
         }
     }
 
@@ -141,6 +150,11 @@ impl OperationStackConfig {
         self.filters = filters;
         self
     }
+
+    pub fn with_rank_rules(mut self, rank_rules: Vec<StackRankRule>) -> Self {
+        self.rank_rules = rank_rules;
+        self
+    }
 }
 
 #[derive(Clone)]
@@ -157,6 +171,24 @@ impl std::fmt::Debug for OperationFilterRule {
             .field("field", &self.field)
             .field("pattern", &self.pattern)
             .field("negated", &self.negated)
+            .finish()
+    }
+}
+
+#[derive(Clone)]
+pub struct StackRankRule {
+    label: String,
+    pattern: String,
+    weight: f64,
+    regex: Regex,
+}
+
+impl std::fmt::Debug for StackRankRule {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("StackRankRule")
+            .field("label", &self.label)
+            .field("pattern", &self.pattern)
+            .field("weight", &self.weight)
             .finish()
     }
 }
@@ -267,6 +299,40 @@ pub fn parse_operation_filters(raw_filters: &[String]) -> Result<Vec<OperationFi
     parse_operation_filters_with_flag(raw_filters, "--where")
 }
 
+pub fn parse_stack_rank_rules(raw_rules: &[String]) -> Result<Vec<StackRankRule>> {
+    raw_rules
+        .iter()
+        .map(|rule| parse_stack_rank_rule(rule, "--rank-rule"))
+        .collect()
+}
+
+fn parse_stack_rank_rule(raw: &str, flag_name: &str) -> Result<StackRankRule> {
+    let (left, pattern) = raw.split_once('=').ok_or_else(|| {
+        anyhow::anyhow!("invalid {flag_name} {raw:?}; expected LABEL:WEIGHT=REGEX")
+    })?;
+    let (label, weight) = left.split_once(':').ok_or_else(|| {
+        anyhow::anyhow!("invalid {flag_name} {raw:?}; expected LABEL:WEIGHT=REGEX")
+    })?;
+    validate_frame_name(label, "rank rule label")?;
+    let weight = weight
+        .parse::<f64>()
+        .map_err(|error| anyhow::anyhow!("invalid {flag_name} weight {weight:?}: {error}"))?;
+    if !weight.is_finite() || weight <= 0.0 {
+        bail!("invalid {flag_name} {raw:?}; weight must be a positive finite number");
+    }
+    if pattern.is_empty() {
+        bail!("invalid {flag_name} {raw:?}; regex pattern cannot be empty");
+    }
+    let regex = Regex::new(pattern)
+        .map_err(|error| anyhow::anyhow!("invalid {flag_name} regex {pattern:?}: {error}"))?;
+    Ok(StackRankRule {
+        label: label.to_string(),
+        pattern: pattern.to_string(),
+        weight,
+        regex,
+    })
+}
+
 pub fn parse_operation_filters_with_flag(
     raw_filters: &[String],
     flag_name: &str,
@@ -343,6 +409,30 @@ pub struct CounterSummary {
 pub struct WeightedStack {
     stack: String,
     weight: u64,
+}
+
+#[derive(Serialize)]
+pub struct StackRankingSummary {
+    policy: &'static str,
+    groups: usize,
+    limit: usize,
+    rank_rules: Vec<StackRankRuleSpec>,
+    top: Vec<RankedStack>,
+}
+
+#[derive(Serialize)]
+pub struct StackRankRuleSpec {
+    label: String,
+    pattern: String,
+    weight: f64,
+}
+
+#[derive(Serialize)]
+pub struct RankedStack {
+    stack: String,
+    weight: u64,
+    rank_score: f64,
+    matched_rank_rules: Vec<String>,
 }
 
 #[derive(Default)]
@@ -462,7 +552,8 @@ pub fn build_profile_with_options(
     options: &OperationStackConfig,
 ) -> Profile {
     let (name, sample_type, unit) = view_metadata(view);
-    let mut profile = Profile::new(name, sample_type, unit);
+    let mut profile =
+        Profile::new(name, sample_type, unit).with_rank_rules(options.rank_rules.clone());
     for session in sessions {
         for sample in session_samples(session, project_name, view) {
             let sample = apply_operation_field_rules(&sample, &options.field_rules);
@@ -517,7 +608,8 @@ fn build_profile_from_operations(
     options: &OperationStackConfig,
 ) -> Profile {
     let (name, sample_type, unit) = view_metadata(view);
-    let mut profile = Profile::new(name, sample_type, unit);
+    let mut profile =
+        Profile::new(name, sample_type, unit).with_rank_rules(options.rank_rules.clone());
     for sample in operations {
         let sample = apply_operation_field_rules(sample, &options.field_rules);
         if !operation_matches_filters(&sample, &options.filters) {
@@ -914,6 +1006,62 @@ pub fn summarize_counter(counter: &Counter, limit: usize) -> CounterSummary {
     }
 }
 
+pub fn summarize_ranked_counter(
+    counter: &Counter,
+    rules: &[StackRankRule],
+    limit: usize,
+) -> StackRankingSummary {
+    let mut rows = counter
+        .iter()
+        .map(|(stack, weight)| rank_stack(stack, *weight, rules))
+        .collect::<Vec<_>>();
+    rows.sort_by(|left, right| {
+        right
+            .rank_score
+            .partial_cmp(&left.rank_score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| right.weight.cmp(&left.weight))
+            .then_with(|| left.stack.cmp(&right.stack))
+    });
+    rows.truncate(limit);
+
+    StackRankingSummary {
+        policy: if rules.is_empty() {
+            "width"
+        } else {
+            "width_times_visible_rule_multiplier"
+        },
+        groups: counter.len(),
+        limit,
+        rank_rules: rules
+            .iter()
+            .map(|rule| StackRankRuleSpec {
+                label: rule.label.clone(),
+                pattern: rule.pattern.clone(),
+                weight: round3(rule.weight),
+            })
+            .collect(),
+        top: rows,
+    }
+}
+
+fn rank_stack(stack: &str, weight: u64, rules: &[StackRankRule]) -> RankedStack {
+    let mut matched_rank_rules = Vec::new();
+    let mut boost = 0.0;
+    for rule in rules {
+        if rule.regex.is_match(stack) {
+            boost += rule.weight;
+            matched_rank_rules.push(rule.label.clone());
+        }
+    }
+    RankedStack {
+        stack: stack.to_string(),
+        weight,
+        rank_score: round3(weight as f64 * (1.0 + boost)),
+        matched_rank_rules,
+    }
+}
+
 fn top_stacks(counter: &Counter, limit: usize) -> Vec<WeightedStack> {
     let mut rows = counter
         .iter()
@@ -960,6 +1108,7 @@ pub fn write_projection(
                     "sample_type": projection.sample_type,
                     "unit": projection.unit,
                     "summary": summarize_counter(&stacks, 20),
+                    "ranking": summarize_ranked_counter(&stacks, &projection.rank_rules, stacks.len()),
                     "stacks": stacks,
                 },
                 "sessions": sessions.iter().map(|s| session_to_json(s, include_previews)).collect::<Vec<_>>(),
@@ -1825,6 +1974,40 @@ mod tests {
             stacks.get("project:external;agent:gold;task:authenticate;phase:input;op:action;action:type;status:gold"),
             Some(&1)
         );
+    }
+
+    #[test]
+    fn stack_rank_rules_sort_json_groups_by_visible_frames() {
+        let rules = parse_stack_rank_rules(&[
+            "unsafe-risk:2=phase:execute|action:write".to_string(),
+            "error-risk:1.5=status:error".to_string(),
+        ])
+        .unwrap();
+        let stacks = BTreeMap::from([
+            (
+                "project:external;task:safety;phase:inspect;action:read;status:ok".to_string(),
+                9_u64,
+            ),
+            (
+                "project:external;task:safety;phase:execute;action:write;status:error".to_string(),
+                3_u64,
+            ),
+        ]);
+
+        let ranking = summarize_ranked_counter(&stacks, &rules, 10);
+
+        assert_eq!(ranking.policy, "width_times_visible_rule_multiplier");
+        assert_eq!(
+            ranking.top[0].stack,
+            "project:external;task:safety;phase:execute;action:write;status:error"
+        );
+        assert_eq!(ranking.top[0].weight, 3);
+        assert_eq!(ranking.top[0].rank_score, 13.5);
+        assert_eq!(
+            ranking.top[0].matched_rank_rules,
+            vec!["unsafe-risk".to_string(), "error-risk".to_string()]
+        );
+        assert_eq!(ranking.top[1].rank_score, 9.0);
     }
 
     #[test]

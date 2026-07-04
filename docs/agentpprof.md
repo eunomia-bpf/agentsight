@@ -439,18 +439,20 @@ file, one per line, ignoring blank lines and `#` comments. Inline `--op-map`
 rules run before file rules, so the CLI can override shared defaults.
 `--where FIELD=REGEX` and `--where FIELD!=REGEX` run after `--op-map` and
 before stack construction; multiple predicates are ANDed. `--stack-rule` is a
-frame-local override during stack construction. Default stacks use `phase`, but
-users can add or remove any field or stack frame.
+frame-local override during stack construction. `--rank-rule LABEL:WEIGHT=REGEX`
+orders JSON operation-stack groups after folding by visible stack text. Default
+stacks use `phase`, but users can add or remove any field or stack frame.
 
 For example, this derives a reusable task field, selects only that query subset,
 then folds it at an arbitrary depth:
 
 ```bash
-agentpprof -o looping.folded --view operations \
+agentpprof -o looping.json --format json --view operations \
   --operation-file docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl \
   --op-map 'task_family:looping=(analysis_task=agentreward_looping)' \
   --where 'task_family=looping' \
-  --stack 'task_family,dataset,query_family,environment,phase,action,repeat_signal,status'
+  --stack 'task_family,dataset,query_family,environment,phase,action,repeat_signal,status' \
+  --rank-rule 'loop-risk:4=repeat_signal:loop-like|status:failure'
 ```
 
 For labeled external traces, `script/operation_map_infer.py` can derive a
@@ -481,6 +483,7 @@ profile spec:
   "operation_files": ["../external-agent-trace-agentnet-r291/agentnet-operations.jsonl"],
   "op_map_files": ["../external-agent-trace-agentnet-r291/agentnet-op-map.txt"],
   "where_rules": ["dataset=agentnet"],
+  "rank_rules": ["step-risk:2=status:failure|repeat_signal:loop-like"],
   "stack": "project,dataset,benchmark,environment,task,phase,op,tool,action,status,step_correct,step_redundant,repeat_signal"
 }
 ```
@@ -495,9 +498,12 @@ Paths inside a spec are resolved relative to the spec file. Scalar CLI flags
 such as `-o`, `--view`, `--format`, and `--stack` override spec values; CLI
 `--op-map` and `--op-map-file` entries are evaluated before spec defaults.
 When CLI `--where` is present, it replaces spec `where_rules`; otherwise the
-spec predicates are used. A profile spec is only a reproducibility wrapper
-around operations, mappings, predicates, and operation stacks. It is not a third
-profiler abstraction.
+spec predicates are used. CLI `--rank-rule` entries are evaluated before spec
+`rank_rules`. Rank rules use `LABEL:WEIGHT=REGEX` and order JSON
+operation-stack groups by visible folded-stack text; they do not affect pprof,
+folded, or SVG output. A profile spec is only a reproducibility wrapper around
+operations, mappings, predicates, rank policies, and operation stacks. It is
+not a third profiler abstraction.
 
 The `tokens` view uses model budget as the width:
 

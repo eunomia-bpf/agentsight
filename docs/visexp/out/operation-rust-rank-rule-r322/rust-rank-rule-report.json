@@ -1,0 +1,610 @@
+{
+  "claim": "Rust agentpprof can emit visible-rule ranked operation-stack groups that can be scored as localization outputs on existing labeled traces.",
+  "commit": "8afd90ac852f51caf03d14830610fa01e48245cb",
+  "elapsed_s": 12.148,
+  "leakage_check": {
+    "hidden_fields": [
+      "group_index",
+      "group_pattern",
+      "group_position",
+      "group_size",
+      "human_group",
+      "looping",
+      "problem_oracle",
+      "problem_value",
+      "safety",
+      "side_effect",
+      "step_correct",
+      "step_redundant",
+      "target_positive"
+    ],
+    "rank_rule_fields": [
+      "action",
+      "environment",
+      "phase",
+      "repeat_signal",
+      "status"
+    ],
+    "status": "pass",
+    "violations": []
+  },
+  "non_claims": [
+    "This does not replace the full R320 profiler-accuracy benchmark.",
+    "This does not claim human analyst productivity or complete boundary detection.",
+    "This does not use hidden oracle labels inside rank_rules.",
+    "This does not download, sync, or create a new dataset."
+  ],
+  "run_id": "R322",
+  "source_operations": "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl",
+  "status": "pass",
+  "summary": {
+    "rust_rank_ap_at_20_improves_tasks": "4/6",
+    "rust_rank_ap_improves_tasks": "4/6",
+    "rust_rank_top5_lift_improves_tasks": "3/6",
+    "rust_rank_top5_recall_improves_tasks": "2/6"
+  },
+  "tasks": 6,
+  "tasks_detail": [
+    {
+      "agentpprof_result": {
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl"
+        ],
+        "output": "docs/visexp/out/operation-rust-rank-rule-r322/agentreward_looping-rust-ranked.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-rust-rank-rule-r322/agentreward_looping-profile-spec.json"
+        ],
+        "rank_rules": [
+          "loop-like:4=repeat_signal:loop-like",
+          "failure:1.5=status:failure",
+          "navigation:0.5=phase:navigate|action:click|action:goto"
+        ],
+        "sample_type": "operations",
+        "samples": 729,
+        "stack": "analysis_task,dataset,benchmark,phase,action,repeat_signal,status",
+        "stack_rules": [],
+        "status": "ok",
+        "unique_stacks": 40,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=agentreward_looping"
+        ]
+      },
+      "dataset": "agent-reward-bench",
+      "deltas": {
+        "ap": 0.0589,
+        "ap_at_20": 0.0615,
+        "top10_lift": -0.0141,
+        "top10_recall": -0.0158,
+        "top5_lift": 0.0,
+        "top5_recall": 0.0
+      },
+      "metrics": {
+        "rust_visible_rank_rule": {
+          "ap": 0.8242,
+          "ap_at_20": 0.8157,
+          "first_positive_rank": 1,
+          "first_positive_work": 0.2058,
+          "top10_groups": 10,
+          "top10_lift": 1.086,
+          "top10_positive_operations": 443,
+          "top10_precision": 0.7508,
+          "top10_recall": 0.879,
+          "top10_work": 0.8093,
+          "top5_groups": 5,
+          "top5_lift": 1.0359,
+          "top5_positive_operations": 328,
+          "top5_precision": 0.7162,
+          "top5_recall": 0.6508,
+          "top5_work": 0.6283
+        },
+        "width": {
+          "ap": 0.7653,
+          "ap_at_20": 0.7542,
+          "first_positive_rank": 1,
+          "first_positive_work": 0.2058,
+          "top10_groups": 10,
+          "top10_lift": 1.1001,
+          "top10_positive_operations": 451,
+          "top10_precision": 0.7605,
+          "top10_recall": 0.8948,
+          "top10_work": 0.8134,
+          "top5_groups": 5,
+          "top5_lift": 1.0359,
+          "top5_positive_operations": 328,
+          "top5_precision": 0.7162,
+          "top5_recall": 0.6508,
+          "top5_work": 0.6283
+        }
+      },
+      "problem": "Find repetitive web-agent behavior in expert-reviewed trajectories.",
+      "profile_spec": "docs/visexp/out/operation-rust-rank-rule-r322/agentreward_looping-profile-spec.json",
+      "rank_rules": [
+        "loop-like:4=repeat_signal:loop-like",
+        "failure:1.5=status:failure",
+        "navigation:0.5=phase:navigate|action:click|action:goto"
+      ],
+      "rust_json": "docs/visexp/out/operation-rust-rank-rule-r322/agentreward_looping-rust-ranked.json",
+      "summary": {
+        "groups": 40,
+        "operations": 729,
+        "positives": 504,
+        "prevalence": 0.6914
+      },
+      "task": "agentreward_looping"
+    },
+    {
+      "agentpprof_result": {
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl"
+        ],
+        "output": "docs/visexp/out/operation-rust-rank-rule-r322/agentreward_side_effect-rust-ranked.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-rust-rank-rule-r322/agentreward_side_effect-profile-spec.json"
+        ],
+        "rank_rules": [
+          "write-action:4=action:fill|action:press|action:clear|action:select_option",
+          "input-phase:2=phase:input",
+          "failure:1=status:failure"
+        ],
+        "sample_type": "operations",
+        "samples": 729,
+        "stack": "analysis_task,dataset,benchmark,phase,action,repeat_signal,status",
+        "stack_rules": [],
+        "status": "ok",
+        "unique_stacks": 40,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=agentreward_side_effect"
+        ]
+      },
+      "dataset": "agent-reward-bench",
+      "deltas": {
+        "ap": -0.0202,
+        "ap_at_20": -0.0202,
+        "top10_lift": 0.1193,
+        "top10_recall": 0.0792,
+        "top5_lift": 0.4163,
+        "top5_recall": 0.0495
+      },
+      "metrics": {
+        "rust_visible_rank_rule": {
+          "ap": 0.3459,
+          "ap_at_20": 0.3403,
+          "first_positive_rank": 1,
+          "first_positive_work": 0.0645,
+          "top10_groups": 10,
+          "top10_lift": 1.1782,
+          "top10_positive_operations": 190,
+          "top10_precision": 0.3265,
+          "top10_recall": 0.9406,
+          "top10_work": 0.7984,
+          "top5_groups": 5,
+          "top5_lift": 1.4722,
+          "top5_positive_operations": 144,
+          "top5_precision": 0.4079,
+          "top5_recall": 0.7129,
+          "top5_work": 0.4842
+        },
+        "width": {
+          "ap": 0.3661,
+          "ap_at_20": 0.3605,
+          "first_positive_rank": 1,
+          "first_positive_work": 0.2058,
+          "top10_groups": 10,
+          "top10_lift": 1.0589,
+          "top10_positive_operations": 174,
+          "top10_precision": 0.2934,
+          "top10_recall": 0.8614,
+          "top10_work": 0.8134,
+          "top5_groups": 5,
+          "top5_lift": 1.0559,
+          "top5_positive_operations": 134,
+          "top5_precision": 0.2926,
+          "top5_recall": 0.6634,
+          "top5_work": 0.6283
+        }
+      },
+      "problem": "Find side-effectful web-agent trajectories.",
+      "profile_spec": "docs/visexp/out/operation-rust-rank-rule-r322/agentreward_side_effect-profile-spec.json",
+      "rank_rules": [
+        "write-action:4=action:fill|action:press|action:clear|action:select_option",
+        "input-phase:2=phase:input",
+        "failure:1=status:failure"
+      ],
+      "rust_json": "docs/visexp/out/operation-rust-rank-rule-r322/agentreward_side_effect-rust-ranked.json",
+      "summary": {
+        "groups": 40,
+        "operations": 729,
+        "positives": 202,
+        "prevalence": 0.2771
+      },
+      "task": "agentreward_side_effect"
+    },
+    {
+      "agentpprof_result": {
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl"
+        ],
+        "output": "docs/visexp/out/operation-rust-rank-rule-r322/satraj_unsafe-rust-ranked.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-rust-rank-rule-r322/satraj_unsafe-profile-spec.json"
+        ],
+        "rank_rules": [
+          "risky-env:3=environment:account|environment:induced_text|environment:popup|environment:unknown_file",
+          "write-action:2=action:type|action:key|action:left_click_drag|action:system_command",
+          "input-phase:1.5=phase:input"
+        ],
+        "sample_type": "operations",
+        "samples": 4285,
+        "stack": "analysis_task,dataset,environment,phase,action,repeat_signal,status",
+        "stack_rules": [],
+        "status": "ok",
+        "unique_stacks": 142,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=satraj_unsafe"
+        ]
+      },
+      "dataset": "satraj-os-safety",
+      "deltas": {
+        "ap": -0.0038,
+        "ap_at_20": -0.0108,
+        "top10_lift": -0.1202,
+        "top10_recall": -0.0804,
+        "top5_lift": 0.0,
+        "top5_recall": 0.0
+      },
+      "metrics": {
+        "rust_visible_rank_rule": {
+          "ap": 0.0962,
+          "ap_at_20": 0.035,
+          "first_positive_rank": 10,
+          "first_positive_work": 0.6376,
+          "top10_groups": 10,
+          "top10_lift": 0.121,
+          "top10_positive_operations": 48,
+          "top10_precision": 0.0176,
+          "top10_recall": 0.0772,
+          "top10_work": 0.6376,
+          "top5_groups": 5,
+          "top5_lift": 0.0,
+          "top5_positive_operations": 0,
+          "top5_precision": 0.0,
+          "top5_recall": 0.0,
+          "top5_work": 0.5181
+        },
+        "width": {
+          "ap": 0.1,
+          "ap_at_20": 0.0458,
+          "first_positive_rank": 9,
+          "first_positive_work": 0.6366,
+          "top10_groups": 10,
+          "top10_lift": 0.2412,
+          "top10_positive_operations": 98,
+          "top10_precision": 0.035,
+          "top10_recall": 0.1576,
+          "top10_work": 0.6532,
+          "top5_groups": 5,
+          "top5_lift": 0.0,
+          "top5_positive_operations": 0,
+          "top5_precision": 0.0,
+          "top5_recall": 0.0,
+          "top5_work": 0.5181
+        }
+      },
+      "problem": "Find unsafe desktop computer-use operations.",
+      "profile_spec": "docs/visexp/out/operation-rust-rank-rule-r322/satraj_unsafe-profile-spec.json",
+      "rank_rules": [
+        "risky-env:3=environment:account|environment:induced_text|environment:popup|environment:unknown_file",
+        "write-action:2=action:type|action:key|action:left_click_drag|action:system_command",
+        "input-phase:1.5=phase:input"
+      ],
+      "rust_json": "docs/visexp/out/operation-rust-rank-rule-r322/satraj_unsafe-rust-ranked.json",
+      "summary": {
+        "groups": 142,
+        "operations": 4285,
+        "positives": 622,
+        "prevalence": 0.1452
+      },
+      "task": "satraj_unsafe"
+    },
+    {
+      "agentpprof_result": {
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl"
+        ],
+        "output": "docs/visexp/out/operation-rust-rank-rule-r322/agentnet_incorrect_step-rust-ranked.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-rust-rank-rule-r322/agentnet_incorrect_step-profile-spec.json"
+        ],
+        "rank_rules": [
+          "failure:4=status:failure|status:unknown",
+          "loop-like:1.5=repeat_signal:loop-like",
+          "error-env:1=environment:error_correction|environment:infeasible",
+          "input-phase:0.5=phase:input"
+        ],
+        "sample_type": "operations",
+        "samples": 14718,
+        "stack": "analysis_task,dataset,environment,phase,action,repeat_signal,status",
+        "stack_rules": [],
+        "status": "ok",
+        "unique_stacks": 289,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=agentnet_incorrect_step"
+        ]
+      },
+      "dataset": "agentnet",
+      "deltas": {
+        "ap": 0.0061,
+        "ap_at_20": 0.0052,
+        "top10_lift": 0.0986,
+        "top10_recall": -0.0217,
+        "top5_lift": 0.0443,
+        "top5_recall": -0.0023
+      },
+      "metrics": {
+        "rust_visible_rank_rule": {
+          "ap": 0.0748,
+          "ap_at_20": 0.0566,
+          "first_positive_rank": 1,
+          "first_positive_work": 0.0435,
+          "top10_groups": 10,
+          "top10_lift": 1.2184,
+          "top10_positive_operations": 430,
+          "top10_precision": 0.0724,
+          "top10_recall": 0.492,
+          "top10_work": 0.4038,
+          "top5_groups": 5,
+          "top5_lift": 1.1518,
+          "top5_positive_operations": 285,
+          "top5_precision": 0.0684,
+          "top5_recall": 0.3261,
+          "top5_work": 0.2831
+        },
+        "width": {
+          "ap": 0.0687,
+          "ap_at_20": 0.0514,
+          "first_positive_rank": 1,
+          "first_positive_work": 0.0821,
+          "top10_groups": 10,
+          "top10_lift": 1.1198,
+          "top10_positive_operations": 449,
+          "top10_precision": 0.0665,
+          "top10_recall": 0.5137,
+          "top10_work": 0.4588,
+          "top5_groups": 5,
+          "top5_lift": 1.1075,
+          "top5_positive_operations": 287,
+          "top5_precision": 0.0658,
+          "top5_recall": 0.3284,
+          "top5_work": 0.2965
+        }
+      },
+      "problem": "Find incorrect human desktop steps.",
+      "profile_spec": "docs/visexp/out/operation-rust-rank-rule-r322/agentnet_incorrect_step-profile-spec.json",
+      "rank_rules": [
+        "failure:4=status:failure|status:unknown",
+        "loop-like:1.5=repeat_signal:loop-like",
+        "error-env:1=environment:error_correction|environment:infeasible",
+        "input-phase:0.5=phase:input"
+      ],
+      "rust_json": "docs/visexp/out/operation-rust-rank-rule-r322/agentnet_incorrect_step-rust-ranked.json",
+      "summary": {
+        "groups": 289,
+        "operations": 14718,
+        "positives": 874,
+        "prevalence": 0.0594
+      },
+      "task": "agentnet_incorrect_step"
+    },
+    {
+      "agentpprof_result": {
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl"
+        ],
+        "output": "docs/visexp/out/operation-rust-rank-rule-r322/agentnet_redundant_step-rust-ranked.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-rust-rank-rule-r322/agentnet_redundant_step-profile-spec.json"
+        ],
+        "rank_rules": [
+          "loop-like:4=repeat_signal:loop-like",
+          "failure:1=status:failure|status:unknown",
+          "navigation:0.5=phase:navigate|action:click|action:move_to"
+        ],
+        "sample_type": "operations",
+        "samples": 10067,
+        "stack": "analysis_task,dataset,environment,phase,action,repeat_signal,status",
+        "stack_rules": [],
+        "status": "ok",
+        "unique_stacks": 260,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=agentnet_redundant_step"
+        ]
+      },
+      "dataset": "agentnet",
+      "deltas": {
+        "ap": 0.0037,
+        "ap_at_20": 0.0049,
+        "top10_lift": 0.0606,
+        "top10_recall": -0.0955,
+        "top5_lift": 0.1568,
+        "top5_recall": 0.0205
+      },
+      "metrics": {
+        "rust_visible_rank_rule": {
+          "ap": 0.09,
+          "ap_at_20": 0.0709,
+          "first_positive_rank": 1,
+          "first_positive_work": 0.0605,
+          "top10_groups": 10,
+          "top10_lift": 1.2678,
+          "top10_positive_operations": 360,
+          "top10_precision": 0.0923,
+          "top10_recall": 0.4911,
+          "top10_work": 0.3874,
+          "top5_groups": 5,
+          "top5_lift": 1.2727,
+          "top5_positive_operations": 278,
+          "top5_precision": 0.0927,
+          "top5_recall": 0.3793,
+          "top5_work": 0.298
+        },
+        "width": {
+          "ap": 0.0863,
+          "ap_at_20": 0.066,
+          "first_positive_rank": 1,
+          "first_positive_work": 0.0948,
+          "top10_groups": 10,
+          "top10_lift": 1.2072,
+          "top10_positive_operations": 430,
+          "top10_precision": 0.0879,
+          "top10_recall": 0.5866,
+          "top10_work": 0.4859,
+          "top5_groups": 5,
+          "top5_lift": 1.1159,
+          "top5_positive_operations": 263,
+          "top5_precision": 0.0812,
+          "top5_recall": 0.3588,
+          "top5_work": 0.3215
+        }
+      },
+      "problem": "Find redundant human desktop steps.",
+      "profile_spec": "docs/visexp/out/operation-rust-rank-rule-r322/agentnet_redundant_step-profile-spec.json",
+      "rank_rules": [
+        "loop-like:4=repeat_signal:loop-like",
+        "failure:1=status:failure|status:unknown",
+        "navigation:0.5=phase:navigate|action:click|action:move_to"
+      ],
+      "rust_json": "docs/visexp/out/operation-rust-rank-rule-r322/agentnet_redundant_step-rust-ranked.json",
+      "summary": {
+        "groups": 260,
+        "operations": 10067,
+        "positives": 733,
+        "prevalence": 0.0728
+      },
+      "task": "agentnet_redundant_step"
+    },
+    {
+      "agentpprof_result": {
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl"
+        ],
+        "output": "docs/visexp/out/operation-rust-rank-rule-r322/osworld_group_start-rust-ranked.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-rust-rank-rule-r322/osworld_group_start-profile-spec.json"
+        ],
+        "rank_rules": [
+          "input-phase:1.5=phase:input",
+          "navigation:1=phase:navigate|action:click|action:move_to",
+          "write-action:1=action:type|action:press|action:hotkey|action:drag"
+        ],
+        "sample_type": "operations",
+        "samples": 4011,
+        "stack": "analysis_task,dataset,app,phase,action,repeat_signal,status",
+        "stack_rules": [],
+        "status": "ok",
+        "unique_stacks": 173,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=osworld_group_start"
+        ]
+      },
+      "dataset": "osworld-human",
+      "deltas": {
+        "ap": 0.009,
+        "ap_at_20": 0.0049,
+        "top10_lift": -0.0444,
+        "top10_recall": -0.034,
+        "top5_lift": 0.0,
+        "top5_recall": 0.0
+      },
+      "metrics": {
+        "rust_visible_rank_rule": {
+          "ap": 0.2308,
+          "ap_at_20": 0.1889,
+          "first_positive_rank": 1,
+          "first_positive_work": 0.1311,
+          "top10_groups": 10,
+          "top10_lift": 0.9847,
+          "top10_positive_operations": 516,
+          "top10_precision": 0.1876,
+          "top10_recall": 0.6754,
+          "top10_work": 0.6859,
+          "top5_groups": 5,
+          "top5_lift": 1.0417,
+          "top5_positive_operations": 451,
+          "top5_precision": 0.1984,
+          "top5_recall": 0.5903,
+          "top5_work": 0.5667
+        },
+        "width": {
+          "ap": 0.2218,
+          "ap_at_20": 0.184,
+          "first_positive_rank": 1,
+          "first_positive_work": 0.1331,
+          "top10_groups": 10,
+          "top10_lift": 1.0291,
+          "top10_positive_operations": 542,
+          "top10_precision": 0.196,
+          "top10_recall": 0.7094,
+          "top10_work": 0.6894,
+          "top5_groups": 5,
+          "top5_lift": 1.0417,
+          "top5_positive_operations": 451,
+          "top5_precision": 0.1984,
+          "top5_recall": 0.5903,
+          "top5_work": 0.5667
+        }
+      },
+      "problem": "Find human grouped-action segment starts in desktop traces.",
+      "profile_spec": "docs/visexp/out/operation-rust-rank-rule-r322/osworld_group_start-profile-spec.json",
+      "rank_rules": [
+        "input-phase:1.5=phase:input",
+        "navigation:1=phase:navigate|action:click|action:move_to",
+        "write-action:1=action:type|action:press|action:hotkey|action:drag"
+      ],
+      "rust_json": "docs/visexp/out/operation-rust-rank-rule-r322/osworld_group_start-rust-ranked.json",
+      "summary": {
+        "groups": 173,
+        "operations": 4011,
+        "positives": 764,
+        "prevalence": 0.1905
+      },
+      "task": "osworld_group_start"
+    }
+  ],
+  "top_limit": 20
+}

@@ -285,14 +285,15 @@ directly from an operation field or from the first matching `--stack-rule` for
 that frame:
 
 ```bash
-agentpprof -o files.folded --view files \
+agentpprof -o files.json --format json --view files \
   --stack 'project,agent,task,phase,op,tool,path,status' \
   --op-map-file project-op-map.txt \
   --op-map 'task:verify=(effect=test|cmd=cargo|path=tests)' \
   --op-map 'task:explore=(effect=read|tool=read)' \
   --op-map 'phase:inspect=(effect=read)' \
   --where 'task=verify' \
-  --stack-rule 'path:tests=(path=tests)'
+  --stack-rule 'path:tests=(path=tests)' \
+  --rank-rule 'verify-risk:2=phase:execute|status:error'
 ```
 
 Operation mapping and stack rules match a searchable `key=value` string built
@@ -304,6 +305,8 @@ derived so far; the first match wins for each derived field. Inline `--op-map`
 rules run before `--op-map-file` rules, so command-line rules can override a
 shared mapping file. `--where FIELD=REGEX` and `--where FIELD!=REGEX` run after
 mapping and before stack construction; multiple predicates are ANDed.
+`--rank-rule LABEL:WEIGHT=REGEX` orders JSON operation-stack groups by visible
+folded-stack text and does not affect pprof, folded, or SVG output.
 
 Token profile:
 

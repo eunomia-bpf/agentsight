@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-04
 Stage at update: stage 5 analyze / stage 6 claim gate / stage 9 paper integration
-Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agent-session`, `script/agent_trace_to_operations.py`, `script/agent_trace_convert.py`, `script/agent_trace_exchange_eval.py`, `script/agent_trace_chrome_trace.py`, `script/agent_trace_chrome_exchange_eval.py`, `script/operation_boundary_backend_eval.py`, `script/boundary_family_calibration_eval.py`, `script/operation_query_utility_eval.py`, `script/operation_analyst_task_eval.py`, `script/operation_analyst_ranking_eval.py`, `script/operation_case_study_eval.py`, `script/operation_case_baseline_eval.py`, `script/operation_analyst_outcome_eval.py`, `script/operation_problem_value_synthesis.py`, `script/operation_where_filter_eval.py`, `script/paper_claim_synthesis.py`, `script/reviewer_evidence_packet.py`, `script/paper_value_novelty_synthesis.py`, `script/paper_claim_readiness_synthesis.py`, `script/paper_evidence_matrix_synthesis.py`, `script/paper_robustness_audit.py`, `docs/evaluation.md`, `agentpprof --profile-spec`
+Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agent-session`, `script/agent_trace_to_operations.py`, `script/agent_trace_convert.py`, `script/agent_trace_exchange_eval.py`, `script/agent_trace_chrome_trace.py`, `script/agent_trace_chrome_exchange_eval.py`, `script/operation_boundary_backend_eval.py`, `script/boundary_family_calibration_eval.py`, `script/operation_query_utility_eval.py`, `script/operation_analyst_task_eval.py`, `script/operation_analyst_ranking_eval.py`, `script/operation_case_study_eval.py`, `script/operation_case_baseline_eval.py`, `script/operation_analyst_outcome_eval.py`, `script/operation_problem_value_synthesis.py`, `script/operation_where_filter_eval.py`, `script/operation_rust_rank_rule_eval.py`, `script/paper_claim_synthesis.py`, `script/reviewer_evidence_packet.py`, `script/paper_value_novelty_synthesis.py`, `script/paper_claim_readiness_synthesis.py`, `script/paper_evidence_matrix_synthesis.py`, `script/paper_robustness_audit.py`, `docs/evaluation.md`, `agentpprof --profile-spec`
 Completeness: partial
 
 ## Current State And Blocking Gate
@@ -46,7 +46,10 @@ labels separately. The packet and key are evaluation artifacts, not runtime
 objects. R302 adds label-hidden ranking policies over the same grouped
 operation-stack outputs. These policies sort groups by width, visible-risk, or
 query-aware scores computed from ordinary operation fields; they are analysis
-policies over operation-stack groups, not new profiler objects. R304 turns
+policies over operation-stack groups, not new profiler objects. R322 moves a
+bounded version of that idea into Rust JSON output with visible `rank_rules`
+over folded stack text; it is still a projection over operation-stack groups,
+not a third abstraction or detector. R304 turns
 those ranked groups into reviewer-facing case packets with a separate answer
 key. R305 compares the same label-hidden packet construction against flat and
 fixed-session views. A case remains a selected operation-stack or baseline
@@ -71,13 +74,16 @@ agent-native transcript
   -> optional operation predicate
   -> user-selected operation stack frames
   -> weighted profile projection
+  -> optional JSON rank projection over operation-stack groups
 ```
 
 `--view` chooses which operations are sampled and how they are weighted.
 `--op-map` and `--op-map-file` derive or overwrite operation fields before
 stacking. `--where` selects a subset of operations after mapping and before
 stacking. `--stack` chooses the recursive stack shape. `--stack-rule` is a
-frame-local override for one projection.
+frame-local override for one projection. `--rank-rule` orders JSON profile
+groups after folding by visible stack text; it does not change the sampled
+operations or the stack abstraction.
 
 ## Core Abstraction: Operation
 
@@ -321,7 +327,11 @@ profile specs use mapping-derived `task_family` fields plus `where_rules` to
 select AgentRewardBench looping and SATraj safety subsets from the same R300
 operation JSONL, and folded counts match the expected 729/729, 714/714, and
 4,285/4,285 samples. This is ordering over operation fields and query
-configuration, not a separate abstraction.
+configuration, not a separate abstraction. R322 adds visible rank-rule
+profile specs that sort the JSON operation-stack groups emitted by Rust and
+then score them with hidden labels after ranking; AP improves over width on
+4/6 tasks, but the SATraj and side-effect counterexamples show that binary
+stack-text boosts are not a substitute for richer query-aware group features.
 
 ## Assumptions And Invariants
 
@@ -352,7 +362,7 @@ Purpose: keep open risks tied to experiments.
 | Action labels are too shallow as boundary oracles. | Add step-instruction, solution-path, outcome, side-effect, looping, repetition, safety/attack, grouped-action, step-quality, and failure-label scorers. | R287 adds tau-bench outcomes and expected task actions; R288 adds AgentRewardBench expert success, side-effect, looping, optimality, and action-derived `repeat_signal` fields; R289 adds SATraj safety and attack labels; R290 adds OSWorld-Human grouped-action boundary labels; R291 adds AgentNet step correctness and redundancy labels. AndroidControl and TRAIL remain deeper oracle candidates. |
 | Boundary detection remains only deterministic mapping. | Evaluate learned boundary backends that derive operation fields before stack construction and compare against held-out human or dataset boundaries; require suitability and calibration checks per oracle family. | R297 trains a supervised adjacent-boundary backend on OSWorld-Human, excludes oracle/group fields from features, reaches held-out human-group F1 0.7735, and folds predicted `learned_group_pattern` fields through Rust `agentpprof`. R299 applies the same pattern to OSWorld-Human, AgentNet step-quality labels, and AgentRewardBench looping; it finds mixed results and keeps SATraj/ScaleCUA/tau-bench out of the trained set when they lack suitable adjacent boundary oracles. This is still supervised and family-specific, not unsupervised discovery. |
 | User-facing value remains a proxy. | Compare operation-stack views against flat and fixed-session views on oracle-backed analysis tasks, then follow with a controlled human/agent analyst study. | R300 shows semantic operation stacks beat flat summaries on median positive lift and inspection fraction, and beat fixed-session stacks on group count and cross-session support, but it is oracle-sorted clustering quality. R301 hides oracle labels from visible packets and ranks groups by width only; operation stacks recover median 33.6% positives at a 30% operation budget over 4.5 groups versus fixed-session 28.4% over 25.5 groups. R302 adds label-hidden query-aware ranking: top-10 query-aware operation-stack groups inspect 11.6% of operations with lift 1.587, while width ranking inspects 67.1% with lift 1.079; at a 30% operation budget, query-aware recall rises from 34.0% to 39.0% but requires more groups. R304 turns the same tasks into visible case packets and hidden answer keys; top-5 query-aware cases inspect median 9.37% of operations with lift 1.6509. R305 adds flat/fixed-session case-packet baselines: operation stacks inspect 9.37% median work versus flat's 100%, and have 1.268x median lift versus fixed-session, but use 1.717x the fixed-session work. R307 makes this the current claim gate: C4 is supported as automated proxy only. R308 adds first-evidence outcome proxies: operation-stack packets contain a positive group in 6/6 tasks and a >=1.5x high-lift group in 5/6 tasks, while fixed-session remains cheaper on first-positive work. R309 turns the same evidence into 6 real-problem value cards across 4 datasets / 34,539 task-operations and keeps fixed-session's lower-work counterpoint explicit. R311 stress-tests the same evidence: operation stacks are more selective than flat on 6/6 tasks and higher-recall than fixed-session on 5/6 tasks, but lower-work than fixed-session on only 2/6 tasks; therefore a controlled analyst study remains the next gate. |
-| Profile experiments remain ad hoc shell commands. | Bundle reproducible operation-file, op-map, view predicate, stack, and output choices in profile specs while preserving CLI overrides. | R293 adds an AgentNet profile spec that reproduces the R291 608-stack diagnostic profile and folds the same operations into an 83-stack override view. R321 adds `where_rules` profile specs over the R300 real labeled operation JSONL and confirms mapping-derived predicates select 729, 714, and 4,285 operations before stack folding. |
+| Profile experiments remain ad hoc shell commands. | Bundle reproducible operation-file, op-map, view predicate, stack, rank policy, and output choices in profile specs while preserving CLI overrides. | R293 adds an AgentNet profile spec that reproduces the R291 608-stack diagnostic profile and folds the same operations into an 83-stack override view. R321 adds `where_rules` profile specs over the R300 real labeled operation JSONL and confirms mapping-derived predicates select 729, 714, and 4,285 operations before stack folding. R322 adds `rank_rules` profile specs and Rust JSON ranked groups over the same task suite. |
 | Local agent sessions are hard to exchange or replay outside native logs. | Export parsed sessions as `agentsight.agent-session.trace.v1`, import them through `--trace-file`, convert them to operation JSONL, and bridge through a standard trace container when needed. | R294 public Codex fixture smoke shows direct trace import and converted operation-file import produce identical folded stacks; R303 scripts the same bridge as a tracked reproducer and verifies filesystem/tool-command portability for the exported trace. R306 exports the same fixture to Chrome Trace Event JSON, imports it back to operation JSONL, and preserves the same 6 samples / 5 stacks folded output. |
 | Paper claims drift away from tracked artifact evidence. | Mechanically synthesize claim verdicts, reviewer value, novelty, evidence matrices, reviewer-stress audits, and remaining gaps from tracked result JSON/folded artifacts while keeping unsupported claims explicit. | R295 reads R282-R294 artifacts and emits supported/partial verdicts plus unsupported final claims under `docs/visexp/out/paper-claim-synthesis-r295/`; R296 indexes those verdicts with reviewer questions, derived ratios, and source paths; R298 maps 6 real-problem evidence blocks and 4 novelty claims to tracked artifacts while marking unsupervised intent discovery and developer productivity as unsupported; R307 refreshes the post-utility claim gate; R310 turns R307/R309 into JSON/Markdown/CSV/TeX/HTML paper evidence matrix outputs; R311 turns R302/R305/R308/R309/R310 into a reviewer-stress matrix with explicit pass/narrow/partial/fail-for-stronger-claim verdicts. |
 | Visualizations collapse back to flamegraphs only. | Generate tree, transition, top-field, quality, grouped-stack, history-depth, depth-sweep, case-packet, cross-view case-baseline, analyst-outcome, problem-value, reviewer-stress, and reviewer-navigation HTML/JSON reports. | R273-R296 include non-flamegraph analyses, reproducible profile specs, trace-exchange smoke tests, and an 11-entry evidence packet under `docs/visexp/out/reviewer-evidence-packet-r296/`; R304 adds a visible case-packet plus answer-key report over operation-stack groups, R305 adds flat/fixed/operation cross-view case-packet baselines, R308 adds a first-evidence analyst-outcome report, R309 adds real-problem value cards, and R311 adds task-level robustness and reviewer-stress HTML/JSON/CSV/TeX views. |

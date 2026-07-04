@@ -3,19 +3,20 @@
 R319 checks that the maintained Rust semantic-profiler path, canonical docs, and Chinese paper agree on the current implementation boundary. It is not a dataset sync, not a new profiling run, and not a human/agent analyst-task result.
 
 - Overall: `implementation_consistent`
-- Checks passed: 11 / 11
-- Commit at generation: `8cdd35d0456c1a32d784c2fee791ec7a39df45fa`
+- Checks passed: 12 / 12
+- Commit at generation: `8afd90ac852f51caf03d14830610fa01e48245cb`
 
 ## Checks
 
 | Check | Status | Evidence |
 |---|---|---|
-| `rust_profile_spec_cli_present` | pass | agentpprof/src/main.rs defines --profile-spec, RawProfileSpec, operation_files, op_map_files, and where_rules. |
+| `rust_profile_spec_cli_present` | pass | agentpprof/src/main.rs defines --profile-spec, RawProfileSpec, operation_files, op_map_files, where_rules, and rank_rules. |
 | `rust_profile_spec_override_contract` | pass | Profile specs provide operation inputs while CLI stack/rule overrides remain explicit. |
 | `rust_standard_trace_cli_present` | pass | Rust CLI exposes standard trace import/export and routes imports into operation records. |
 | `standard_trace_cli_test_present` | pass | agentpprof has a CLI test for standard trace export and import. |
-| `rust_operation_stack_source_of_truth` | pass | Operation mapping, query predicates, and stack folding live in the Rust profile path used by operation files and trace imports. |
+| `rust_operation_stack_source_of_truth` | pass | Operation mapping, query predicates, stack folding, and visible rank summaries live in the Rust profile path used by operation files and trace imports. |
 | `operation_predicate_documented_as_query_not_object` | pass | Docs record --where/where_rules as a query predicate over operation fields, with R321 as the implementation probe. |
+| `operation_rank_policy_documented_as_projection_not_object` | pass | Docs record --rank-rule/rank_rules as a visible operation-stack group ranking projection, with R322 as the implementation probe. |
 | `implementation_doc_records_current_rust_surface` | pass | docs/implementation.md records profile specs and standard trace support as current implementation. |
 | `profile_spec_not_stale_pending_task` | pass | Profile-spec support is no longer listed as a pending implementation task. |
 | `two_abstraction_boundary_in_docs` | pass | Design, paper, and claim setup preserve operation plus operation stack as the core model. |

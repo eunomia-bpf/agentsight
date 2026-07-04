@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-04
 Stage at update: stage 4 execute / stage 8 audit / stage 11 reproducibility prep
-Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agentpprof/src/standard_trace.rs`, `agentpprof/tests/standard_trace_cli.rs`, `script/operation_*.py`, `script/agent_trace_datasets.py sample tau-bench-trajectories`, `script/agent_trace_datasets.py sample agent-reward-bench`, `script/agent_trace_datasets.py sample satraj-os-safety`, `script/agent_trace_datasets.py sample osworld-human`, `script/agent_trace_datasets.py sample agentnet`, `script/agent_trace_datasets.py sample scalecua-navigation`, `script/agent_trace_exchange_eval.py`, `script/agent_trace_chrome_exchange_eval.py`, `script/operation_where_filter_eval.py`, `script/implementation_consistency_audit.py`, `cargo test --manifest-path agentpprof/Cargo.toml`
+Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agentpprof/src/standard_trace.rs`, `agentpprof/tests/standard_trace_cli.rs`, `script/operation_*.py`, `script/agent_trace_datasets.py sample tau-bench-trajectories`, `script/agent_trace_datasets.py sample agent-reward-bench`, `script/agent_trace_datasets.py sample satraj-os-safety`, `script/agent_trace_datasets.py sample osworld-human`, `script/agent_trace_datasets.py sample agentnet`, `script/agent_trace_datasets.py sample scalecua-navigation`, `script/agent_trace_exchange_eval.py`, `script/agent_trace_chrome_exchange_eval.py`, `script/operation_where_filter_eval.py`, `script/operation_rust_rank_rule_eval.py`, `script/implementation_consistency_audit.py`, `cargo test --manifest-path agentpprof/Cargo.toml`
 Completeness: partial
 
 ## Repository Layout Relevant To Semantic Profiling
@@ -25,6 +25,7 @@ Purpose: identify the maintained implementation boundary.
 | `script/operation_leaveout_eval.py` | Leave-dataset-out mapping validation over external traces. | research harness |
 | `script/operation_stack_depth_eval.py` | R286 recursive depth sweep over the Rust `agentpprof` path. | research harness |
 | `script/operation_where_filter_eval.py` | R321 profile-spec predicate probe over tracked R300 operation JSONL. | research harness |
+| `script/operation_rust_rank_rule_eval.py` | R322 Rust visible rank-rule probe over tracked R300 operation JSONL. | research harness |
 | `script/implementation_consistency_audit.py` | R319 implementation/docs consistency audit over Rust CLI, docs, and paper wording. | paper hygiene harness |
 | `docs/visexp/` | Historical AgentFlame/visual-experiment notes and older prototypes. | archive/reference; not authoritative |
 
@@ -40,6 +41,8 @@ The current Rust implementation supports:
 - reusable mapping files via `--op-map-file`;
 - query-time operation predicates via `--where` and profile-spec
   `where_rules`;
+- visible stack-group ranking via `--rank-rule` and profile-spec
+  `rank_rules` in JSON output;
 - frame-local stack overrides via `--stack-rule`;
 - reusable profile specs via `--profile-spec`;
 - portable local agent-session trace import/export via `--trace-file` and
@@ -58,7 +61,12 @@ operation files, mappings, predicates, views, stacks, and outputs; it is not a
 third profiler abstraction. R321 verifies that `where_rules` run after
 mapping/tagging and before stack folding by selecting 729, 714, and 4,285
 operations from the tracked R300 real labeled operation JSONL with exact folded
-sample-count matches.
+sample-count matches. R322 extends the same Rust JSON output with visible
+`rank_rules` over folded operation-stack text: on the six existing R300 tasks,
+the Rust-ranked groups improve AP over width ranking on 4/6 tasks and top-5
+lift on 3/6 tasks, while SATraj and side-effect remain useful counterexamples
+showing why the full R320 query-aware ranker still needs richer group-level
+features.
 
 Local trace exchange is also implemented through the maintained Rust path.
 R294/R303 show `agentsight.agent-session.trace.v1` export/import and operation
