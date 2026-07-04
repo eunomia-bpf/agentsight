@@ -58,6 +58,7 @@ R299 在不同步新数据的前提下对 7 个已有 boundary candidates 做 su
 R300 进一步把 failure、safety、quality 和 human-boundary 标签转成 6 个自动化分析任务，在 34,539 个已有 operations 上比较 flat、fixed-session、semantic operation-stack 和 label-drilldown views；semantic operation stack 相比 flat 的 median top-positive lift 为 5.726x，覆盖 50\% oracle positives 的 inspection fraction 降到 0.2879。
 R301 将同一任务转成 label-hidden visible packets 和 hidden answer key，只按 stack 宽度排序：在 30\% operation budget 下，operation-stack 找回 median 33.6\% positives、检查 4.5 groups，而 fixed-session 找回 28.4\%、检查 25.5 groups；top-10 width-ranked groups 下 operation-stack 找回 64.1\%，fixed-session 为 19.5\%，但 operation-stack 消耗更多 operation fraction。
 R302 再比较 label-hidden ranking policies：top-10 query-aware operation-stack groups 只检查 11.6\% operations、lift 为 1.587，而 width ranking 检查 67.1\%、lift 为 1.079；在 30\% operation budget 下 query-aware recall 从 34.0\% 提升到 39.0\%，但检查 groups 从 4.5 增至 39.5。
+R304 把同一任务进一步写成 reviewer-facing case packet：top-5 query-aware operation-stack cases 检查 median 9.37\% operations、找回 18.8\% positives、lift 为 1.6509，且 visible packet 与 hidden answer key 分离。
 这些结果支持一个机制性 claim：agent 轨迹可以被统一为 operations，并通过可配置 mappings 和 stack specs 递归折叠为多个有用的 analysis views。
 当前结果仍不支持完整无监督边界发现或人类用户效用 claim。
 \end{abstract}
@@ -178,6 +179,7 @@ R301 的 \texttt{script/operation\_analyst\_task\_eval.py} 复用 R300 的已有
 第十一，非 flamegraph 分析策略也必须避免读 oracle fields。
 R302 的 \texttt{script/operation\_analyst\_ranking\_eval.py} 在同一任务上比较 width、visible-risk、query-aware 和 oracle upper bound rankers。
 非 oracle rankers 只读 \texttt{status}、\texttt{repeat\_signal}、\texttt{phase}、\texttt{action} 和 \texttt{environment} 等可见字段，不读 \texttt{looping}、\texttt{safety}、\texttt{step\_correct} 或 \texttt{target\_positive}。
+R304 的 \texttt{script/operation\_case\_study\_eval.py} 复用 R300/R302 任务，把每个任务的 top-5 query-aware operation-stack groups 写成 visible case packet，并把 oracle positives 只写入单独的 answer key。
 
 \begin{table*}[t]
   \centering
@@ -252,6 +254,7 @@ R299 部分填补了第一个缺口：它没有增加新数据，而是在已有
 R300 部分填补用户效用缺口的前半步：它不是 human study，但把“定位 looping、side-effect、unsafe、incorrect、redundant 和 group-start positives”变成自动化分析任务，并比较不同 stack 形态的 inspectability。
 R301 进一步把这些任务变成 label-hidden visible packets 与 hidden answer key，证明默认宽度排序下 operation stack 仍比 fixed-session 更少碎片化，但也显示宽度排序本身不是异常检测器。
 R302 则把可见字段上的排序策略纳入同一任务框架，说明 operation stack 可以承载 query-aware 分析，而不仅是 flamegraph 宽度视图。
+R304 再把这种分析策略转成可审计 case evidence：visible packet 只包含 stack frames、可见特征比例、hashed session examples 和普通 operation examples，answer key 才包含 positives。
 
 \subsection{RQ3：mapping 是否能泛化？}
 
@@ -330,6 +333,12 @@ R302 进一步比较 label-hidden ranking policies。
 在 30\% operation budget 下，query-aware ranking 把 operation-stack recall 从 0.340 提高到 0.390，但检查 groups 从 4.5 增加到 39.5。
 这说明 profiler 可以支持不同分析 policy 的 precision/recall tradeoff，但这些 policy 仍是 visible-field heuristics，不是 learned detector。
 
+R304 将 R302 的 ranking policy 变成 reviewer-facing case packet。
+每个任务取 top-5 query-aware operation-stack groups，visible packet 不包含 oracle fields，hidden answer key 单独保存 positives。
+在 30 个 case groups 上，median inspected operation fraction 为 0.0937，median positive recall 为 0.188，median positive lift 为 1.6509。
+SATraj unsafe cases 最集中，work fraction 为 0.042、recall 为 0.262、lift 为 6.238；AgentNet quality cases 的 recall 很低，但在很小 work fraction 上仍有 1.98 以上 lift。
+这个结果适合作为 case-study evidence，而不是 detector evidence。
+
 \begin{table*}[t]
   \centering
   \scriptsize
@@ -354,6 +363,7 @@ R302 进一步比较 label-hidden ranking policies。
     R300 query utility proxy & 6 个 oracle-backed tasks；34,539 operations & flat/fixed/operation/label stacks 分别为 6/2,012/944/318；operation-stack vs flat lift 5.726x、inspection fraction 0.2879；vs fixed-session group ratio 0.554、session-support ratio 5.5 & Operation stack 改善自动化 inspectability 和跨 session 聚合，但仍不是 human user study。 \\
     R301 width-ranked task proxy & 同一 6 个 tasks；168 个 task/view/budget scores & 30\% operation budget 下 operation-stack recall 0.336 / 4.5 groups，fixed-session 0.284 / 25.5 groups；top-10 groups 下 0.641 vs 0.195 & Label-hidden 默认浏览仍支持跨 session 聚合，但 width ranking 不是 detector。 \\
     R302 label-hidden ranking & 同一 6 个 tasks；192 个 task/view/ranker/budget scores & top-10 query-aware stack 检查 0.116 operation fraction、lift 1.587，width 为 0.671 和 1.079；30\% budget recall 0.390 vs 0.340 & Operation stack 支持 query-aware 分析 policy，但 ranker 仍是 heuristic。 \\
+    R304 case packet & 同一 6 个 tasks；30 个 top-5 query-aware case groups & median work fraction 0.0937；recall 0.188；lift 1.6509；visible packet 与 answer key 分离 & Case evidence 可审计，但仍不是 detector 或 human study。 \\
     R288/R289 diagnostics & 729 AgentRewardBench ops；4,285 SATraj ops & repeat-signal/looping V-measure 0.378 vs step-error 0.011；622 unsafe SATraj ops & Profiler 支持 failure/safety views，且负结果能揭示粗标签不足。 \\
     \bottomrule
   \end{tabular}
@@ -408,6 +418,7 @@ R282/R285 证明它们有 held-out 和 leave-dataset-out 泛化，但不证明�
 第十一，R300 是自动化 proxy，不是人类实验；它使用 oracle 排序评价 grouping quality，因此只能支持 inspectability、aggregation 和 analysis-task framing，不能支持开发者准确率或耗时改善。
 第十二，R301 是 label-hidden 自动化 proxy，不是人类实验；它消除了 R300 的 oracle 排序乐观假设，但仍只模拟 width-ranked browsing，不能证明默认界面对真实用户最优。
 第十三，R302 是 label-hidden ranking proxy，不是 detector；它说明 query-aware policy 可以改变 precision/recall tradeoff，但没有证明自动报警或人类效率。
+第十四，R304 是 case-packet artifact，不是人工 case study；它让 reviewer 可以审计可见例子和隐藏评分的分离，但不能替代受控 analyst study。
 
 \section{结论}
 
@@ -424,7 +435,8 @@ R299 则把 boundary detector 的下一步条件写清楚：先做 family-specif
 R300 把真实问题价值从叙述推进到自动化 task proxy：operation stack 相比 flat summary 更能集中 oracle positives，并比 fixed-session stack 更能跨 session 聚合。
 R301 把这个 proxy 推进为 label-hidden task packet，说明默认宽度排序下 operation stack 能减少 fixed-session 碎片化，同时保留 width ranking 不是 detector 的限制。
 R302 进一步说明同一 operation stack 可以按 query-aware policy 排序，而不局限于 flamegraph width。
-下一步不是继续无差别增加数据集，而是把 mapping backend、calibrated boundary detector 和基于 R301/R302 packets 的受控用户/agent analyst 任务实验推进到能支持更强 claim 的程度。
+R304 把这些排序结果转成 visible case packet 和 hidden answer key，为 reviewer 提供具体 case evidence。
+下一步不是继续无差别增加数据集，而是把 mapping backend、calibrated boundary detector 和基于 R301/R302/R304 packets 的受控用户/agent analyst 任务实验推进到能支持更强 claim 的程度。
 
 \vspace{-0.8em}
 \section*{参考文献}
