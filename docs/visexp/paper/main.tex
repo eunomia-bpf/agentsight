@@ -54,6 +54,7 @@ R295 从 tracked R282--R294 JSON/folded artifacts 机械生成 claim verdict：C
 R296 进一步把这些证据组织成 reviewer evidence packet：11 个非 flamegraph 与证据导航条目、4 个 reviewer questions 和从 tracked artifacts 派生的 mapping、human-group、diagnostic 与 reproducibility 指标。
 R297 在 OSWorld-Human 上加入第一个 supervised boundary-backend probe：它在 held-out sessions 上预测人工 human-group 边界，F1 为 0.7735，并把预测结果写回 \texttt{learned\_group\_pattern} 字段后交给 Rust profiler 折叠。
 R298 将 R295--R297 的证据进一步综合为 6 个真实问题证据块和 4 个 novelty claims，并把当前成熟度限定为机制 claim 的 level-3 conference-paper evidence、接近 level 4。
+R299 在不同步新数据的前提下对 7 个已有 boundary candidates 做 suitability 和 calibration：4 个候选可训练；OSWorld-Human、AgentNet step-correct、AgentNet step-redundant 和 AgentRewardBench looping 的 held-out learned F1 分别为 0.6916、0.3197、0.3361 和 0.7833，但 AgentRewardBench looping 被更简单的 \texttt{repeat\_signal\_change} baseline 完全解释。
 这些结果支持一个机制性 claim：agent 轨迹可以被统一为 operations，并通过可配置 mappings 和 stack specs 递归折叠为多个有用的 analysis views。
 当前结果仍不支持完整无监督边界发现或人类用户效用 claim。
 \end{abstract}
@@ -160,6 +161,10 @@ R297 的 \texttt{script/operation\_boundary\_backend\_eval.py} 在 OSWorld-Human
 第七，paper value 和 novelty 也必须从 artifact 机械回溯。
 R298 的 \texttt{script/paper\_value\_novelty\_synthesis.py} 读取 R295 claim gate、R296 reviewer packet、R297 boundary report 以及 R288/R289/R291 质量诊断 artifact，输出 6 个真实问题证据块、4 个 novelty claims、must-not-claim 列表和 remaining level-4 gaps。
 它不是新实证结果，而是把“为什么这个 profiler 有价值且有新意”转成 reviewer 可审计的 evidence map。
+第八，boundary-family replication 必须包含适用性和简单 baseline 校准。
+R299 的 \texttt{script/boundary\_family\_calibration\_eval.py} 只读取已有 tracked operation JSONL，不同步新测试集。
+它先判断标签是否形成 session-local adjacent boundary oracle，再训练同一类 field-derivation backend，并把预测结果写回 \texttt{learned\_segment\_pattern}、\texttt{learned\_segment\_position} 和 \texttt{learned\_boundary\_prev}。
+这一步的目的不是证明一个通用 detector，而是防止把 per-trajectory safety、history context 或 repetition proxy 错当作语义边界。
 
 \begin{table*}[t]
   \centering
@@ -230,6 +235,7 @@ R298 把这个证据路径进一步收敛成论文价值和新意的 claim gate�
 它从 R295--R297 和诊断质量报告中生成 6 个真实问题证据块：异构 trace object model、递归深度选择、field derivation、human/subtask boundaries、failure/safety/quality diagnostics 和 artifact auditability。
 它还把 novelty 限定为 4 点：two-object agent profiling、query-time recursive stacks、统一 field-derivation extension point 和 non-flamegraph diagnostic views。
 R298 的结论是当前证据足以支撑机制和诊断价值，但仍只是 level-3 conference-paper evidence、接近 mechanism claims 的 level 4；boundary-family replication、用户效用实验和 boundary calibration 仍是缺口。
+R299 部分填补了第一个缺口：它没有增加新数据，而是在已有标注 operation JSONL 上检查 7 个候选边界家族，训练其中 4 个，并把失败或不适合的候选也保留下来作为 claim 边界。
 
 \subsection{RQ3：mapping 是否能泛化？}
 
@@ -250,6 +256,13 @@ R297 开始测试更强的 boundary backend。
 在 held-out pairs 上，learned backend 的 precision 为 0.7400，recall 为 0.8102，F1 为 0.7735；phase-change baseline 为 0.2919，action-change 为 0.5142，conservative \texttt{group\_pattern} reference 为 0.5810。
 随后脚本把预测边界写成 \texttt{learned\_group\_pattern} 和 \texttt{learned\_group\_position} 字段，Rust \toolname{} 在 1,132 个 held-out operations 上折叠得到 74 个 stacks。
 当前可支持的 claim 是 configurable deterministic/supervised field derivation 能在 held-out 设置下改善语义聚合；完整 model-backed 或 unsupervised boundary detector 仍是后续工作。
+
+R299 将这个 backend 接口复制到现有标注家族，并加入 suitability/calibration gate。
+脚本检查 OSWorld-Human human-group、AgentNet step correctness、AgentNet step redundancy、AgentRewardBench looping、SATraj safety、ScaleCUA history state 和 tau-bench tool-dialogue role 共 7 个候选。
+其中 SATraj safety 在当前样本中没有 session-local adjacent positives，ScaleCUA history state 是 context marker 而不是语义边界，tau-bench 在 R287 没有 tracked operation JSONL，因此不训练。
+四个可训练候选的 held-out learned F1 分别是 OSWorld-Human 0.6916、AgentNet step-correct 0.3197、AgentNet step-redundant 0.3361 和 AgentRewardBench looping 0.7833。
+AgentNet 两个质量状态边界都优于 always-boundary baseline（0.2155 和 0.2645），但 precision 低且 calibration error 仍明显；AgentRewardBench looping 虽然 learned F1 达到 0.7833，却被 \texttt{repeat\_signal\_change} baseline 的 1.0 F1 完全解释。
+这把 C3 的范围收得更清楚：backend 可以统一地派生 stackable operation fields，但每个标签家族都必须证明它真的是边界 oracle，并且必须胜过简单 sequence-derived fields。
 
 \subsection{RQ4：能否恢复真实人工边界？}
 
@@ -303,6 +316,7 @@ Task status 对 step correctness 的 V-measure 只有 0.015，repeat signal 对 
     R296 reviewer packet & R282--R295 tracked artifacts & 11 个非 flamegraph/evidence-navigation entries；4 个 reviewer questions；39 个 clean input artifacts & 结果可通过 claim-indexed 多视图证据包审计。 \\
     R297 boundary backend & OSWorld-Human held-out sessions & 1,036 test adjacent pairs；learned F1 0.7735；Rust fold 1,132 ops / 74 stacks & Boundary backend 只是派生 operation fields，递归折叠仍由 operation stack 完成。 \\
     R298 value/novelty synthesis & R295--R297 与诊断质量 artifacts & 6 个 real-problem evidence blocks；4 个 novelty claims；level-3 evidence approaching level 4 & 论文价值和新意从 tracked artifacts 机械回溯，且保留 must-not-claim gate。 \\
+    R299 boundary-family calibration & 7 个已有候选；4 个训练任务；8,961 folded operations & OSWorld 0.6916 F1；AgentNet step-correct/redundant 0.3197/0.3361 F1；AgentReward learned 0.7833 F1 但 repeat-signal-change baseline 1.0 & Boundary backend 接口可复制，但不是通用 detector；每个家族需要 suitability、calibration 和简单 baseline gate。 \\
     R288/R289 diagnostics & 729 AgentRewardBench ops；4,285 SATraj ops & repeat-signal/looping V-measure 0.378 vs step-error 0.011；622 unsafe SATraj ops & Profiler 支持 failure/safety views，且负结果能揭示粗标签不足。 \\
     \bottomrule
   \end{tabular}
@@ -353,6 +367,7 @@ R282/R285 证明它们有 held-out 和 leave-dataset-out 泛化，但不证明�
 第七，R296 是 evidence navigation，不是新的实证结果；它提高 reviewer 可审计性，但不能替代更强 boundary backend 或用户效用实验。
 第八，R297 是 supervised OSWorld-Human expansion probe；它不证明无监督 intent discovery，也没有验证到 AgentNet、tau-bench 或其它轨迹家族。
 第九，R298 是 paper-value synthesis，不是额外数据；它能约束论文 claim 和 novelty 表述，但不能替代 R298 自己列出的 boundary-family replication、用户效用实验和 calibration 缺口。
+第十，R299 是 boundary-family calibration，不是通用 boundary detector；它证明同一 backend 接口可以复制到多个已有标签家族，也证明部分标签不适合作为 adjacent boundary oracle，且简单 baseline 可能优于 learned backend。
 
 \section{结论}
 
@@ -365,7 +380,8 @@ R295 把这些证据合并为可复现 claim gate：当前可以 claim 统一 op
 R296 把 claim gate、非 flamegraph 视图和负结果整理成 reviewer evidence packet，使论文主张能从 artifact 直接追溯，而不是依赖手写叙述。
 R297 进一步验证 boundary backend 的正确接入方式：模型只派生 operation fields，Rust profiler 仍按用户指定 operation stack 折叠。
 R298 把这些结果压缩成 reviewer-facing 价值和 novelty map：当前可以主张机制性语义剖析和真实诊断价值，但仍必须排除无监督 intent discovery 与用户生产力提升。
-下一步不是继续无差别增加数据集，而是把 mapping backend、boundary detector 和用户任务实验推进到能支持更强 claim 的程度。
+R299 则把 boundary detector 的下一步条件写清楚：先做 family-specific suitability 和 calibration，再比较简单 sequence-derived baseline，最后才讨论更强模型。
+下一步不是继续无差别增加数据集，而是把 mapping backend、calibrated boundary detector 和用户任务实验推进到能支持更强 claim 的程度。
 
 \vspace{-0.8em}
 \section*{参考文献}

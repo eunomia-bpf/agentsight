@@ -21,7 +21,7 @@ tool、action、human group、safety、looping 或 step quality 等不同深度�
 |---|---|---|---|
 | C1：异构标注 agent 轨迹可以统一为 operation JSONL。 | supported | R279-R292 覆盖 15 个公开标注轨迹数据源。核心 R291 14 数据集有 42,590 operations；R292 补充 ScaleCUA 后有 47,590 operations。R293 用 profile spec 复现 R291 AgentNet 查询，不改 operation 输入。R294 证明本地 Codex session 可导出为标准 trace，再导入或转成 operation JSONL，并得到相同 folded stack。R295 机械读取 tracked R282-R294 artifacts，把该 claim gate 为 supported。R296 将 C1 证据放入 reviewer evidence packet。R298 将异构 trace object model 问题映射到 15 数据集 / 47,590 operations 的证据。 | 不能声称任意 agent 数据都可零成本转换，尤其是只有图片、无顺序、gated 或缺少 action label 的数据。 |
 | C2：operation stack 是可递归配置的，不应固定绑定 session/prompt。 | supported with scoped limits | R286 在同一 13,265 operations 上从 9 个 dataset stacks 展开到 57 个 phase stacks、226 个 tool/semantic stacks、455 个 action stacks 和 3,757 个 fixed-session stacks。R277 显示固定 demo/session 比 mapped stack 多 10.5x unique stacks。R293 在同一 16,741 个 AgentNet operations 上复现 608-stack 诊断视图，并用 CLI 覆盖 stack 得到 83-stack 粗粒度视图。R295 gate 结论是 recursive stacks 支持 task/phase/action/human-group/safety/quality views，但不支持完美 intent recovery。R296 索引 11 个非 flamegraph/evidence-navigation entries，使这些结果可以按 claim 审计。R298 把 recursive depth、human/subtask boundaries、failure/safety/quality diagnostics 组织成真实问题证据块。 | 不能声称某一个默认 stack 对所有问题最优，也不能声称完整恢复所有真实意图边界。 |
-| C3：mapping/tagging 可以作为一等字段派生机制。 | partially supported with supervised expansion probe | R281 生成 rules 复现手写 mapping；R282 held-out compression 为 19.091，no-map baseline 为 14.049；R285 leave-dataset-out 在 9 个 datasets 中 6 个减少 stacks，0 个负向回归。R295 将 paper wording 限定为 label-derived deterministic mappings improve semantic aggregation。R296 将 mapping reduction 和 negative controls 做成 reviewer-facing 指标。R297 在 OSWorld-Human held-out sessions 上训练 supervised adjacent-boundary backend，F1=0.7735，并把预测边界写成 `learned_group_pattern` 字段后由 Rust profiler 折叠。R298 把 unified field-derivation extension point 列为 novelty claim。 | 不能声称无监督或 LLM-backed boundary detector 已完成，也不能声称该 backend 已泛化到所有 agent 轨迹。 |
+| C3：mapping/tagging 可以作为一等字段派生机制。 | partially supported with supervised expansion probe | R281 生成 rules 复现手写 mapping；R282 held-out compression 为 19.091，no-map baseline 为 14.049；R285 leave-dataset-out 在 9 个 datasets 中 6 个减少 stacks，0 个负向回归。R295 将 paper wording 限定为 label-derived deterministic mappings improve semantic aggregation。R296 将 mapping reduction 和 negative controls 做成 reviewer-facing 指标。R297 在 OSWorld-Human held-out sessions 上训练 supervised adjacent-boundary backend，F1=0.7735，并把预测边界写成 `learned_group_pattern` 字段后由 Rust profiler 折叠。R298 把 unified field-derivation extension point 列为 novelty claim。R299 在现有 operation JSONL 上检查 7 个 boundary candidates，训练 4 个并做 calibration/simple-baseline comparison：OSWorld-Human F1=0.6916，AgentNet step-correct/redundant F1=0.3197/0.3361，AgentRewardBench looping learned F1=0.7833 但 `repeat_signal_change` baseline F1=1.0。 | 不能声称无监督或 LLM-backed boundary detector 已完成，也不能声称存在一个通用跨家族 boundary detector；每个标签家族都需要 suitability、calibration 和简单 baseline gate。 |
 | C4：operation stacks 能恢复有意义的人工或标注边界。 | partially supported with strong OSWorld-Human evidence | R290 OSWorld-Human 覆盖 369 tasks 和 6,010 operations。Exact grouped oracle 覆盖 320 tasks、4,011 operations、2,075 groups。`group_pattern:human_group` boundary F1 为 0.627，precision 为 1.0。 | Recall 只有 0.456，不能声称完整恢复人工 subtask 边界。 |
 | C5：profiler 能做 failure、safety 和 step-quality 诊断，而不只画 flamegraph。 | supported as mechanism, not user utility | R288 AgentRewardBench 显示 repeat signal 对 looping 的 V-measure 为 0.378，而 step-error baseline 为 0.011。R289 SATraj-OS 带 622 unsafe operations 和 5 类 attack type。R291 AgentNet 带 16,741 operations 的 step correctness/redundancy 字段。 | 不能声称这些 views 已经提升开发者任务准确率或耗时。 |
 | C6：ScaleCUA 是有用补充。 | supplemental only | R292 流式采样 5,000 Ubuntu navigation rows，131 sessions，最大 step 48。它证明 history-state/history-depth 可作为 operation fields。 | 该子集主要是 click/terminate，不能作为复杂 action taxonomy 或 boundary detector 的核心证据。 |
@@ -58,6 +58,7 @@ tool、action、human group、safety、looping 或 step quality 等不同深度�
 | R296 | Reviewer evidence packet | 读取 39 个 tracked/clean R282-R295 artifacts；输出 11 个非 flamegraph/evidence-navigation entries、4 个 reviewer questions 和 3 个 expansion gates | 把 claim、负结果、可视化和源路径组织成一个可审计 evidence packet。 |
 | R297 | Supervised boundary backend | OSWorld-Human held-out：191 train sessions、96 test sessions、1,036 test adjacent pairs；learned F1=0.7735；Rust fold 1,132 ops / 74 stacks | 说明 boundary backend 的正确接口是写 operation fields，operation stack 仍由 profiler 按用户 stack 折叠。 |
 | R298 | Paper value/novelty synthesis | 读取 R295/R296/R297 和 R288/R289/R291 diagnostic artifacts；输出 6 个 real-problem evidence blocks、4 个 novelty claims、must-not-claim gate 和 remaining level-4 gaps | 把“profiler 解决真实问题且有新意”的论证从 tracked artifacts 机械回溯，同时明确当前仍只是机制 claim 的 level-3 evidence、接近 level 4。 |
+| R299 | Boundary-family calibration | 不同步新数据；检查 7 个 existing candidates；4 个通过 suitability/positive split；Rust fold 8,961 ops / 1,548 stacks | 证明 boundary backend 可以作为统一 field-derivation 接口复制到多个标签家族，但结果必须按家族校准；AgentNet 边界可学但低 precision，AgentReward looping 应优先用简单 `repeat_signal_change` 字段。 |
 
 ## Paper-Ready Wording
 
@@ -95,6 +96,10 @@ tool、action、human group、safety、looping 或 step quality 等不同深度�
 > 多视图报告、负结果和 source path 放在一起，方便审稿人从论文表述追到 artifact。
 > Boundary backend 也不是第三个抽象；它只派生 `learned_group_pattern` 等字段，
 > 之后仍由 operation stack 做递归折叠。
+> Boundary-family calibration 表明这种 backend 接口可以复制，但不能被写成通用
+> intent detector：SATraj safety 和 ScaleCUA history-state 不是当前样本中的
+> adjacent boundary oracle，AgentRewardBench looping 也应优先由简单 repetition
+> field 解释。
 > Paper value/novelty synthesis 也不是新实证结果；它把 heterogeneous trace objects、
 > recursive depth choice、field derivation、human/subtask boundaries、
 > failure/safety diagnostics 和 artifact auditability 映射到 tracked artifacts，
@@ -110,8 +115,8 @@ tool、action、human group、safety、looping 或 step quality 等不同深度�
 
 ## Next Gates
 
-1. Boundary detector gate：在 OSWorld-Human 和 AgentNet 上加入非规则或 model-backed
-   mapping backend，并与 current deterministic mapping 比较。
+1. Boundary detector gate：在 R299 的 suitability/calibration 结果上继续加入更强
+   sequence 或 model-backed backend，并只在胜过简单 derived-field baseline 后提升 claim。
 2. User-utility gate：用 OSWorld-Human/AgentRewardBench/SATraj 生成真实 debugging tasks，
    比较 flat trace、fixed session stack 和 operation-stack views 的正确率与耗时。
 3. Scale gate：对 AgentNet full Ubuntu/Windows/macOS 或 OSWorld-Verified 做更大流式

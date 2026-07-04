@@ -1,0 +1,166 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>R299 Boundary-Family Calibration</title>
+<style>
+body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;margin:28px;background:#fafafa;color:#171717}
+h1{font-size:24px;margin-bottom:6px}
+h2{font-size:17px;margin-top:24px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:16px 0}
+.card{background:#fff;border:1px solid #ddd;border-radius:6px;padding:12px}
+.value{font-size:24px;font-weight:700}
+table{border-collapse:collapse;width:100%;background:#fff;border:1px solid #ddd}
+th,td{padding:7px 9px;border-bottom:1px solid #eee;text-align:left;vertical-align:top;font-size:13px}
+th{background:#f0f3f8}
+</style>
+</head>
+<body>
+<h1>R299 Boundary-Family Calibration</h1>
+<p>Existing tracked operation JSONL only; boundary backends derive operation fields and Rust folds them as operation stacks.</p>
+<div class="cards">
+<div class="card"><div>Trained candidates</div><div class="value">4</div></div>
+<div class="card"><div>Suitability candidates</div><div class="value">7</div></div>
+<div class="card"><div>Augmented operations</div><div class="value">8961</div></div>
+</div>
+<h2>Test Results</h2>
+<table><tr>
+<th>candidate</th>
+<th>oracle</th>
+<th>test_pairs</th>
+<th>f1</th>
+<th>precision</th>
+<th>recall</th>
+<th>ece</th>
+<th>best_baseline</th>
+<th>best_baseline_f1</th>
+</tr>
+<tr>
+<td>osworld_human_group</td>
+<td>human_group</td>
+<td>1122</td>
+<td>0.6916</td>
+<td>0.6531</td>
+<td>0.735</td>
+<td>0.3121</td>
+<td>always_boundary</td>
+<td>0.6706</td>
+</tr>
+<tr>
+<td>agentnet_step_correct</td>
+<td>step_correct</td>
+<td>4066</td>
+<td>0.3197</td>
+<td>0.2518</td>
+<td>0.4379</td>
+<td>0.1256</td>
+<td>always_boundary</td>
+<td>0.2155</td>
+</tr>
+<tr>
+<td>agentnet_step_redundant</td>
+<td>step_redundant</td>
+<td>2881</td>
+<td>0.3361</td>
+<td>0.3119</td>
+<td>0.3645</td>
+<td>0.1425</td>
+<td>always_boundary</td>
+<td>0.2645</td>
+</tr>
+<tr>
+<td>agentreward_looping</td>
+<td>looping</td>
+<td>387</td>
+<td>0.7833</td>
+<td>0.7833</td>
+<td>0.7833</td>
+<td>0.0584</td>
+<td>repeat_signal_change</td>
+<td>1.0</td>
+</tr>
+</table>
+<h2>Suitability</h2>
+<table><tr>
+<th>candidate</th>
+<th>dataset</th>
+<th>oracle_field</th>
+<th>adjacent_pairs</th>
+<th>positive_boundaries</th>
+<th>positive_rate</th>
+<th>eligible</th>
+<th>suitability_reason</th>
+</tr>
+<tr>
+<td>osworld_human_group</td>
+<td>osworld-human</td>
+<td>human_group</td>
+<td>3691</td>
+<td>1755</td>
+<td>0.4755</td>
+<td>True</td>
+<td>eligible</td>
+</tr>
+<tr>
+<td>agentnet_step_correct</td>
+<td>agentnet</td>
+<td>step_correct</td>
+<td>13883</td>
+<td>1689</td>
+<td>0.1217</td>
+<td>True</td>
+<td>eligible</td>
+</tr>
+<tr>
+<td>agentnet_step_redundant</td>
+<td>agentnet</td>
+<td>step_redundant</td>
+<td>9518</td>
+<td>1443</td>
+<td>0.1516</td>
+<td>True</td>
+<td>eligible</td>
+</tr>
+<tr>
+<td>agentreward_looping</td>
+<td>agentrewardbench</td>
+<td>looping</td>
+<td>700</td>
+<td>126</td>
+<td>0.18</td>
+<td>True</td>
+<td>eligible</td>
+</tr>
+<tr>
+<td>satraj_safety</td>
+<td>satraj-os</td>
+<td>safety</td>
+<td>4035</td>
+<td>0</td>
+<td>0.0</td>
+<td>False</td>
+<td>safety label is per trajectory, not an adjacent boundary in the sample</td>
+</tr>
+<tr>
+<td>scalecua_history_state</td>
+<td>scalecua</td>
+<td>history_state</td>
+<td>4869</td>
+<td>399</td>
+<td>0.0819</td>
+<td>False</td>
+<td>previous-context marker, not a semantic boundary oracle</td>
+</tr>
+<tr>
+<td>taubench_tool_dialogue</td>
+<td>tau-bench</td>
+<td>role</td>
+<td>0</td>
+<td>0</td>
+<td>0.0</td>
+<td>False</td>
+<td>operation JSONL is not tracked for this run</td>
+</tr>
+</table>
+</body>
+</html>

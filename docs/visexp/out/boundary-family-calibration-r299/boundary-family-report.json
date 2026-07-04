@@ -1,0 +1,2030 @@
+{
+  "augmented_operations": 8961,
+  "claim_scope": {
+    "not_supported": "One shared universal intent-boundary detector across OSWorld-Human, AgentNet, AgentRewardBench, and tool-dialogue traces.",
+    "supported": "The same adjacent-boundary backend pattern can be evaluated on multiple existing labeled operation families and can derive stackable learned segment fields."
+  },
+  "feature_fields": [
+    "action",
+    "phase",
+    "target",
+    "repeat_state",
+    "repeat_signal",
+    "app",
+    "environment",
+    "status",
+    "tool",
+    "op"
+  ],
+  "leakage_policy": {
+    "excluded_fields": [
+      "attack_type",
+      "group_alignment",
+      "group_index",
+      "group_pattern",
+      "group_position",
+      "group_size",
+      "human_group",
+      "learned_boundary_model",
+      "learned_boundary_prev",
+      "learned_boundary_split",
+      "learned_segment_pattern",
+      "learned_segment_position",
+      "learned_segment_size",
+      "looping",
+      "optimality",
+      "oracle_boundary_field",
+      "safety",
+      "side_effect",
+      "step_correct",
+      "step_redundant"
+    ],
+    "excluded_prefixes": [
+      "learned_"
+    ],
+    "note": "Dataset oracle, quality, safety, and learned fields are excluded from model features; they may still define evaluation labels."
+  },
+  "outputs": {
+    "augmented_operations": "docs/visexp/out/boundary-family-calibration-r299/boundary-family-test-operations.jsonl",
+    "html": "docs/visexp/out/boundary-family-calibration-r299/index.html",
+    "json": "docs/visexp/out/boundary-family-calibration-r299/boundary-family-report.json",
+    "markdown": "docs/visexp/out/boundary-family-calibration-r299/boundary-family-report.md",
+    "profile_spec": "docs/visexp/out/boundary-family-calibration-r299/boundary-family-profile-spec.json"
+  },
+  "run_id": "R299",
+  "schema": "agentsight.boundary-family-calibration.v1",
+  "source_operation_files": [
+    "docs/visexp/out/external-agent-trace-agentnet-r291/agentnet-operations.jsonl",
+    "docs/visexp/out/external-agent-trace-agentreward-r288/agentreward-operations.jsonl",
+    "docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-operations.jsonl",
+    "docs/visexp/out/external-agent-trace-satraj-r289/satraj-operations.jsonl",
+    "docs/visexp/out/external-agent-trace-scalecua-r292/scalecua-operations.jsonl"
+  ],
+  "split_skips": [],
+  "suitability": [
+    {
+      "adjacent_pairs": 3691,
+      "candidate": "osworld_human_group",
+      "claim_role": "reference human grouped-action boundary",
+      "dataset": "osworld-human",
+      "eligible": true,
+      "operations": 3978,
+      "oracle_field": "human_group",
+      "oracle_values": [
+        {
+          "value": "group-000",
+          "weight": 603
+        },
+        {
+          "value": "group-001",
+          "weight": 459
+        },
+        {
+          "value": "group-002",
+          "weight": 316
+        },
+        {
+          "value": "group-003",
+          "weight": 246
+        },
+        {
+          "value": "group-004",
+          "weight": 200
+        },
+        {
+          "value": "group-005",
+          "weight": 167
+        },
+        {
+          "value": "group-006",
+          "weight": 134
+        },
+        {
+          "value": "group-009",
+          "weight": 110
+        },
+        {
+          "value": "group-007",
+          "weight": 104
+        },
+        {
+          "value": "group-008",
+          "weight": 102
+        },
+        {
+          "value": "group-010",
+          "weight": 72
+        },
+        {
+          "value": "group-013",
+          "weight": 71
+        },
+        {
+          "value": "group-011",
+          "weight": 60
+        },
+        {
+          "value": "group-012",
+          "weight": 58
+        },
+        {
+          "value": "group-014",
+          "weight": 56
+        },
+        {
+          "value": "group-017",
+          "weight": 52
+        },
+        {
+          "value": "group-033",
+          "weight": 45
+        },
+        {
+          "value": "group-037",
+          "weight": 44
+        },
+        {
+          "value": "group-041",
+          "weight": 44
+        },
+        {
+          "value": "group-016",
+          "weight": 42
+        },
+        {
+          "value": "group-021",
+          "weight": 42
+        },
+        {
+          "value": "group-018",
+          "weight": 40
+        },
+        {
+          "value": "group-019",
+          "weight": 37
+        },
+        {
+          "value": "group-015",
+          "weight": 35
+        },
+        {
+          "value": "group-031",
+          "weight": 34
+        },
+        {
+          "value": "group-020",
+          "weight": 33
+        },
+        {
+          "value": "group-025",
+          "weight": 32
+        },
+        {
+          "value": "group-022",
+          "weight": 29
+        },
+        {
+          "value": "group-035",
+          "weight": 29
+        },
+        {
+          "value": "group-029",
+          "weight": 28
+        },
+        {
+          "value": "group-039",
+          "weight": 28
+        },
+        {
+          "value": "group-024",
+          "weight": 27
+        },
+        {
+          "value": "group-043",
+          "weight": 27
+        },
+        {
+          "value": "group-045",
+          "weight": 26
+        },
+        {
+          "value": "group-047",
+          "weight": 26
+        },
+        {
+          "value": "group-023",
+          "weight": 19
+        },
+        {
+          "value": "group-026",
+          "weight": 19
+        },
+        {
+          "value": "group-028",
+          "weight": 18
+        },
+        {
+          "value": "group-027",
+          "weight": 17
+        },
+        {
+          "value": "group-034",
+          "weight": 16
+        },
+        {
+          "value": "group-030",
+          "weight": 14
+        },
+        {
+          "value": "group-032",
+          "weight": 13
+        },
+        {
+          "value": "group-036",
+          "weight": 12
+        },
+        {
+          "value": "group-038",
+          "weight": 12
+        },
+        {
+          "value": "group-042",
+          "weight": 11
+        },
+        {
+          "value": "group-040",
+          "weight": 9
+        },
+        {
+          "value": "group-046",
+          "weight": 9
+        },
+        {
+          "value": "group-048",
+          "weight": 9
+        },
+        {
+          "value": "group-066",
+          "weight": 8
+        },
+        {
+          "value": "group-044",
+          "weight": 7
+        },
+        {
+          "value": "group-056",
+          "weight": 7
+        },
+        {
+          "value": "group-058",
+          "weight": 7
+        },
+        {
+          "value": "group-062",
+          "weight": 7
+        },
+        {
+          "value": "group-050",
+          "weight": 6
+        },
+        {
+          "value": "group-052",
+          "weight": 6
+        },
+        {
+          "value": "group-054",
+          "weight": 6
+        },
+        {
+          "value": "group-068",
+          "weight": 6
+        },
+        {
+          "value": "group-060",
+          "weight": 5
+        },
+        {
+          "value": "group-064",
+          "weight": 5
+        },
+        {
+          "value": "group-078",
+          "weight": 5
+        },
+        {
+          "value": "group-086",
+          "weight": 5
+        },
+        {
+          "value": "group-098",
+          "weight": 5
+        },
+        {
+          "value": "group-106",
+          "weight": 5
+        },
+        {
+          "value": "group-051",
+          "weight": 4
+        },
+        {
+          "value": "group-053",
+          "weight": 4
+        },
+        {
+          "value": "group-061",
+          "weight": 4
+        },
+        {
+          "value": "group-063",
+          "weight": 4
+        },
+        {
+          "value": "group-069",
+          "weight": 4
+        },
+        {
+          "value": "group-070",
+          "weight": 4
+        },
+        {
+          "value": "group-074",
+          "weight": 4
+        },
+        {
+          "value": "group-076",
+          "weight": 4
+        },
+        {
+          "value": "group-082",
+          "weight": 4
+        },
+        {
+          "value": "group-088",
+          "weight": 4
+        },
+        {
+          "value": "group-090",
+          "weight": 4
+        },
+        {
+          "value": "group-094",
+          "weight": 4
+        },
+        {
+          "value": "group-096",
+          "weight": 4
+        },
+        {
+          "value": "group-102",
+          "weight": 4
+        },
+        {
+          "value": "group-108",
+          "weight": 4
+        },
+        {
+          "value": "group-110",
+          "weight": 4
+        },
+        {
+          "value": "group-049",
+          "weight": 3
+        },
+        {
+          "value": "group-055",
+          "weight": 3
+        },
+        {
+          "value": "group-057",
+          "weight": 3
+        },
+        {
+          "value": "group-059",
+          "weight": 3
+        },
+        {
+          "value": "group-065",
+          "weight": 3
+        },
+        {
+          "value": "group-067",
+          "weight": 3
+        },
+        {
+          "value": "group-071",
+          "weight": 3
+        },
+        {
+          "value": "group-072",
+          "weight": 3
+        },
+        {
+          "value": "group-073",
+          "weight": 3
+        },
+        {
+          "value": "group-080",
+          "weight": 3
+        },
+        {
+          "value": "group-081",
+          "weight": 3
+        },
+        {
+          "value": "group-083",
+          "weight": 3
+        },
+        {
+          "value": "group-084",
+          "weight": 3
+        },
+        {
+          "value": "group-091",
+          "weight": 3
+        },
+        {
+          "value": "group-092",
+          "weight": 3
+        },
+        {
+          "value": "group-093",
+          "weight": 3
+        },
+        {
+          "value": "group-100",
+          "weight": 3
+        },
+        {
+          "value": "group-101",
+          "weight": 3
+        },
+        {
+          "value": "group-103",
+          "weight": 3
+        },
+        {
+          "value": "group-104",
+          "weight": 3
+        },
+        {
+          "value": "group-111",
+          "weight": 3
+        },
+        {
+          "value": "group-112",
+          "weight": 3
+        },
+        {
+          "value": "group-113",
+          "weight": 3
+        },
+        {
+          "value": "group-075",
+          "weight": 2
+        },
+        {
+          "value": "group-077",
+          "weight": 2
+        },
+        {
+          "value": "group-079",
+          "weight": 2
+        },
+        {
+          "value": "group-085",
+          "weight": 2
+        },
+        {
+          "value": "group-087",
+          "weight": 2
+        },
+        {
+          "value": "group-089",
+          "weight": 2
+        },
+        {
+          "value": "group-095",
+          "weight": 2
+        },
+        {
+          "value": "group-097",
+          "weight": 2
+        },
+        {
+          "value": "group-099",
+          "weight": 2
+        },
+        {
+          "value": "group-105",
+          "weight": 2
+        },
+        {
+          "value": "group-107",
+          "weight": 2
+        },
+        {
+          "value": "group-109",
+          "weight": 2
+        },
+        {
+          "value": "group-114",
+          "weight": 2
+        },
+        {
+          "value": "group-115",
+          "weight": 2
+        },
+        {
+          "value": "group-116",
+          "weight": 2
+        },
+        {
+          "value": "group-118",
+          "weight": 2
+        },
+        {
+          "value": "group-121",
+          "weight": 2
+        },
+        {
+          "value": "group-123",
+          "weight": 2
+        },
+        {
+          "value": "group-126",
+          "weight": 2
+        },
+        {
+          "value": "group-128",
+          "weight": 2
+        },
+        {
+          "value": "group-131",
+          "weight": 2
+        },
+        {
+          "value": "group-133",
+          "weight": 2
+        },
+        {
+          "value": "group-136",
+          "weight": 2
+        },
+        {
+          "value": "group-138",
+          "weight": 2
+        },
+        {
+          "value": "group-141",
+          "weight": 2
+        },
+        {
+          "value": "group-143",
+          "weight": 2
+        },
+        {
+          "value": "group-146",
+          "weight": 2
+        },
+        {
+          "value": "group-148",
+          "weight": 2
+        },
+        {
+          "value": "group-151",
+          "weight": 2
+        },
+        {
+          "value": "group-153",
+          "weight": 2
+        },
+        {
+          "value": "group-156",
+          "weight": 2
+        },
+        {
+          "value": "group-158",
+          "weight": 2
+        },
+        {
+          "value": "group-161",
+          "weight": 2
+        },
+        {
+          "value": "group-163",
+          "weight": 2
+        },
+        {
+          "value": "group-166",
+          "weight": 2
+        },
+        {
+          "value": "group-168",
+          "weight": 2
+        },
+        {
+          "value": "group-171",
+          "weight": 2
+        },
+        {
+          "value": "group-173",
+          "weight": 2
+        },
+        {
+          "value": "group-176",
+          "weight": 2
+        },
+        {
+          "value": "group-178",
+          "weight": 2
+        },
+        {
+          "value": "group-117",
+          "weight": 1
+        },
+        {
+          "value": "group-119",
+          "weight": 1
+        },
+        {
+          "value": "group-120",
+          "weight": 1
+        },
+        {
+          "value": "group-122",
+          "weight": 1
+        },
+        {
+          "value": "group-124",
+          "weight": 1
+        },
+        {
+          "value": "group-125",
+          "weight": 1
+        },
+        {
+          "value": "group-127",
+          "weight": 1
+        },
+        {
+          "value": "group-129",
+          "weight": 1
+        },
+        {
+          "value": "group-130",
+          "weight": 1
+        },
+        {
+          "value": "group-132",
+          "weight": 1
+        },
+        {
+          "value": "group-134",
+          "weight": 1
+        },
+        {
+          "value": "group-135",
+          "weight": 1
+        },
+        {
+          "value": "group-137",
+          "weight": 1
+        },
+        {
+          "value": "group-139",
+          "weight": 1
+        },
+        {
+          "value": "group-140",
+          "weight": 1
+        },
+        {
+          "value": "group-142",
+          "weight": 1
+        },
+        {
+          "value": "group-144",
+          "weight": 1
+        },
+        {
+          "value": "group-145",
+          "weight": 1
+        },
+        {
+          "value": "group-147",
+          "weight": 1
+        },
+        {
+          "value": "group-149",
+          "weight": 1
+        },
+        {
+          "value": "group-150",
+          "weight": 1
+        },
+        {
+          "value": "group-152",
+          "weight": 1
+        },
+        {
+          "value": "group-154",
+          "weight": 1
+        },
+        {
+          "value": "group-155",
+          "weight": 1
+        },
+        {
+          "value": "group-157",
+          "weight": 1
+        },
+        {
+          "value": "group-159",
+          "weight": 1
+        },
+        {
+          "value": "group-160",
+          "weight": 1
+        },
+        {
+          "value": "group-162",
+          "weight": 1
+        },
+        {
+          "value": "group-164",
+          "weight": 1
+        },
+        {
+          "value": "group-165",
+          "weight": 1
+        },
+        {
+          "value": "group-167",
+          "weight": 1
+        },
+        {
+          "value": "group-169",
+          "weight": 1
+        },
+        {
+          "value": "group-170",
+          "weight": 1
+        },
+        {
+          "value": "group-172",
+          "weight": 1
+        },
+        {
+          "value": "group-174",
+          "weight": 1
+        },
+        {
+          "value": "group-175",
+          "weight": 1
+        },
+        {
+          "value": "group-177",
+          "weight": 1
+        },
+        {
+          "value": "group-179",
+          "weight": 1
+        },
+        {
+          "value": "group-180",
+          "weight": 1
+        }
+      ],
+      "positive_boundaries": 1755,
+      "positive_rate": 0.4755,
+      "sequences": 287,
+      "suitability_reason": "eligible"
+    },
+    {
+      "adjacent_pairs": 13883,
+      "candidate": "agentnet_step_correct",
+      "claim_role": "desktop step-quality state boundary",
+      "dataset": "agentnet",
+      "eligible": true,
+      "operations": 14718,
+      "oracle_field": "step_correct",
+      "oracle_values": [
+        {
+          "value": "correct",
+          "weight": 13844
+        },
+        {
+          "value": "incorrect",
+          "weight": 874
+        }
+      ],
+      "positive_boundaries": 1689,
+      "positive_rate": 0.1217,
+      "sequences": 835,
+      "suitability_reason": "eligible"
+    },
+    {
+      "adjacent_pairs": 9518,
+      "candidate": "agentnet_step_redundant",
+      "claim_role": "desktop redundancy state boundary",
+      "dataset": "agentnet",
+      "eligible": true,
+      "operations": 10067,
+      "oracle_field": "step_redundant",
+      "oracle_values": [
+        {
+          "value": "necessary",
+          "weight": 9334
+        },
+        {
+          "value": "redundant",
+          "weight": 733
+        }
+      ],
+      "positive_boundaries": 1443,
+      "positive_rate": 0.1516,
+      "sequences": 549,
+      "suitability_reason": "eligible"
+    },
+    {
+      "adjacent_pairs": 700,
+      "candidate": "agentreward_looping",
+      "claim_role": "expert looping state boundary",
+      "dataset": "agentrewardbench",
+      "eligible": true,
+      "operations": 727,
+      "oracle_field": "looping",
+      "oracle_values": [
+        {
+          "value": "yes",
+          "weight": 504
+        },
+        {
+          "value": "no",
+          "weight": 223
+        }
+      ],
+      "positive_boundaries": 126,
+      "positive_rate": 0.18,
+      "sequences": 27,
+      "suitability_reason": "eligible"
+    },
+    {
+      "adjacent_pairs": 4035,
+      "candidate": "satraj_safety",
+      "claim_role": "safety label is per trajectory, not an adjacent boundary in the sample",
+      "dataset": "satraj-os",
+      "eligible": false,
+      "operations": 4282,
+      "oracle_field": "safety",
+      "oracle_values": [
+        {
+          "value": "safe",
+          "weight": 3660
+        },
+        {
+          "value": "unsafe",
+          "weight": 622
+        }
+      ],
+      "positive_boundaries": 0,
+      "positive_rate": 0.0,
+      "sequences": 247,
+      "suitability_reason": "safety label is per trajectory, not an adjacent boundary in the sample"
+    },
+    {
+      "adjacent_pairs": 4869,
+      "candidate": "scalecua_history_state",
+      "claim_role": "previous-context marker, not a semantic boundary oracle",
+      "dataset": "scalecua",
+      "eligible": false,
+      "operations": 5000,
+      "oracle_field": "history_state",
+      "oracle_values": [
+        {
+          "value": "with-history",
+          "weight": 4085
+        },
+        {
+          "value": "start",
+          "weight": 915
+        }
+      ],
+      "positive_boundaries": 399,
+      "positive_rate": 0.0819,
+      "sequences": 131,
+      "suitability_reason": "previous-context marker, not a semantic boundary oracle"
+    },
+    {
+      "adjacent_pairs": 0,
+      "candidate": "taubench_tool_dialogue",
+      "claim_role": "skipped because R287 did not track operation JSONL",
+      "dataset": "tau-bench",
+      "eligible": false,
+      "operations": 0,
+      "oracle_field": "role",
+      "oracle_values": [],
+      "positive_boundaries": 0,
+      "positive_rate": 0.0,
+      "sequences": 0,
+      "suitability_reason": "operation JSONL is not tracked for this run"
+    }
+  ],
+  "trained_results": [
+    {
+      "candidate": "osworld_human_group",
+      "claim_role": "reference human grouped-action boundary",
+      "dataset": "osworld-human",
+      "model": {
+        "features": 346,
+        "kind": "bernoulli-naive-bayes-adjacent-boundary",
+        "threshold": -2.949372
+      },
+      "oracle_field": "human_group",
+      "split": {
+        "base_seed": "r299",
+        "seed": "r299",
+        "test_operations": 1211,
+        "test_positive_pairs": 566,
+        "test_sequences": 89,
+        "train_operations": 2767,
+        "train_percent": 70,
+        "train_positive_pairs": 1189,
+        "train_sequences": 198
+      },
+      "test_metrics": {
+        "baselines": [
+          {
+            "accuracy": 0.5045,
+            "f1": 0.6706,
+            "false_negative": 0,
+            "false_positive": 556,
+            "name": "always_boundary",
+            "precision": 0.5045,
+            "recall": 1.0,
+            "true_negative": 0,
+            "true_positive": 566
+          },
+          {
+            "accuracy": 0.4955,
+            "f1": 0.0,
+            "false_negative": 566,
+            "false_positive": 0,
+            "name": "never_boundary",
+            "precision": 0.0,
+            "recall": 0.0,
+            "true_negative": 556,
+            "true_positive": 0
+          },
+          {
+            "accuracy": 0.4082,
+            "f1": 0.2655,
+            "false_negative": 446,
+            "false_positive": 218,
+            "name": "phase_change",
+            "precision": 0.355,
+            "recall": 0.212,
+            "true_negative": 338,
+            "true_positive": 120
+          },
+          {
+            "accuracy": 0.3619,
+            "f1": 0.49,
+            "false_negative": 222,
+            "false_positive": 494,
+            "name": "action_change",
+            "precision": 0.4105,
+            "recall": 0.6078,
+            "true_negative": 62,
+            "true_positive": 344
+          },
+          {
+            "accuracy": 0.3137,
+            "f1": 0.3879,
+            "false_negative": 322,
+            "false_positive": 448,
+            "name": "target_change",
+            "precision": 0.3526,
+            "recall": 0.4311,
+            "true_negative": 108,
+            "true_positive": 244
+          },
+          {
+            "accuracy": 0.4955,
+            "f1": 0.0,
+            "false_negative": 566,
+            "false_positive": 0,
+            "name": "repeat_signal_change",
+            "precision": 0.0,
+            "recall": 0.0,
+            "true_negative": 556,
+            "true_positive": 0
+          },
+          {
+            "accuracy": 0.4955,
+            "f1": 0.0,
+            "false_negative": 566,
+            "false_positive": 0,
+            "name": "status_change",
+            "precision": 0.0,
+            "recall": 0.0,
+            "true_negative": 556,
+            "true_positive": 0
+          }
+        ],
+        "learned_boundary_backend": {
+          "accuracy": 0.6693,
+          "brier": 0.3138,
+          "calibration_bins": [
+            {
+              "avg_pred": 0.0255,
+              "bin": "0.0-0.2",
+              "count": 627,
+              "observed": 0.3748
+            },
+            {
+              "avg_pred": 0.264,
+              "bin": "0.2-0.4",
+              "count": 26,
+              "observed": 0.1154
+            },
+            {
+              "avg_pred": 0.5342,
+              "bin": "0.4-0.6",
+              "count": 11,
+              "observed": 0.6364
+            },
+            {
+              "avg_pred": 0.7203,
+              "bin": "0.6-0.8",
+              "count": 29,
+              "observed": 0.5517
+            },
+            {
+              "avg_pred": 0.9937,
+              "bin": "0.8-1.0",
+              "count": 429,
+              "observed": 0.711
+            }
+          ],
+          "ece": 0.3121,
+          "f1": 0.6916,
+          "false_negative": 150,
+          "false_positive": 221,
+          "precision": 0.6531,
+          "recall": 0.735,
+          "true_negative": 335,
+          "true_positive": 416
+        }
+      },
+      "test_pairs": 1122,
+      "train_metrics": {
+        "baselines": [
+          {
+            "accuracy": 0.4628,
+            "f1": 0.6328,
+            "false_negative": 0,
+            "false_positive": 1380,
+            "name": "always_boundary",
+            "precision": 0.4628,
+            "recall": 1.0,
+            "true_negative": 0,
+            "true_positive": 1189
+          },
+          {
+            "accuracy": 0.5372,
+            "f1": 0.0,
+            "false_negative": 1189,
+            "false_positive": 0,
+            "name": "never_boundary",
+            "precision": 0.0,
+            "recall": 0.0,
+            "true_negative": 1380,
+            "true_positive": 0
+          },
+          {
+            "accuracy": 0.5263,
+            "f1": 0.3658,
+            "false_negative": 838,
+            "false_positive": 379,
+            "name": "phase_change",
+            "precision": 0.4808,
+            "recall": 0.2952,
+            "true_negative": 1001,
+            "true_positive": 351
+          },
+          {
+            "accuracy": 0.3418,
+            "f1": 0.4714,
+            "false_negative": 435,
+            "false_positive": 1256,
+            "name": "action_change",
+            "precision": 0.3751,
+            "recall": 0.6341,
+            "true_negative": 124,
+            "true_positive": 754
+          },
+          {
+            "accuracy": 0.3628,
+            "f1": 0.4254,
+            "false_negative": 583,
+            "false_positive": 1054,
+            "name": "target_change",
+            "precision": 0.3651,
+            "recall": 0.5097,
+            "true_negative": 326,
+            "true_positive": 606
+          },
+          {
+            "accuracy": 0.5372,
+            "f1": 0.0,
+            "false_negative": 1189,
+            "false_positive": 0,
+            "name": "repeat_signal_change",
+            "precision": 0.0,
+            "recall": 0.0,
+            "true_negative": 1380,
+            "true_positive": 0
+          },
+          {
+            "accuracy": 0.5372,
+            "f1": 0.0,
+            "false_negative": 1189,
+            "false_positive": 0,
+            "name": "status_change",
+            "precision": 0.0,
+            "recall": 0.0,
+            "true_negative": 1380,
+            "true_positive": 0
+          }
+        ],
+        "learned_boundary_backend": {
+          "accuracy": 0.7785,
+          "brier": 0.191,
+          "calibration_bins": [
+            {
+              "avg_pred": 0.0166,
+              "bin": "0.0-0.2",
+              "count": 1375,
+              "observed": 0.2015
+            },
+            {
+              "avg_pred": 0.2638,
+              "bin": "0.2-0.4",
+              "count": 48,
+              "observed": 0.4375
+            },
+            {
+              "avg_pred": 0.5081,
+              "bin": "0.4-0.6",
+              "count": 65,
+              "observed": 0.4769
+            },
+            {
+              "avg_pred": 0.7312,
+              "bin": "0.6-0.8",
+              "count": 86,
+              "observed": 0.5581
+            },
+            {
+              "avg_pred": 0.9906,
+              "bin": "0.8-1.0",
+              "count": 995,
+              "observed": 0.8161
+            }
+          ],
+          "ece": 0.1764,
+          "f1": 0.7775,
+          "false_negative": 195,
+          "false_positive": 374,
+          "precision": 0.7266,
+          "recall": 0.836,
+          "true_negative": 1006,
+          "true_positive": 994
+        }
+      },
+      "train_pairs": 2569
+    },
+    {
+      "candidate": "agentnet_step_correct",
+      "claim_role": "desktop step-quality state boundary",
+      "dataset": "agentnet",
+      "model": {
+        "features": 4045,
+        "kind": "bernoulli-naive-bayes-adjacent-boundary",
+        "threshold": -1.687631
+      },
+      "oracle_field": "step_correct",
+      "split": {
+        "base_seed": "r299",
+        "seed": "r299",
+        "test_operations": 4307,
+        "test_positive_pairs": 491,
+        "test_sequences": 241,
+        "train_operations": 10411,
+        "train_percent": 70,
+        "train_positive_pairs": 1198,
+        "train_sequences": 594
+      },
+      "test_metrics": {
+        "baselines": [
+          {
+            "accuracy": 0.1208,
+            "f1": 0.2155,
+            "false_negative": 0,
+            "false_positive": 3575,
+            "name": "always_boundary",
+            "precision": 0.1208,
+            "recall": 1.0,
+            "true_negative": 0,
+            "true_positive": 491
+          },
+          {
+            "accuracy": 0.8792,
+            "f1": 0.0,
+            "false_negative": 491,
+            "false_positive": 0,
+            "name": "never_boundary",
+            "precision": 0.0,
+            "recall": 0.0,
+            "true_negative": 3575,
+            "true_positive": 0
+          },
+          {
+            "accuracy": 0.6476,
+            "f1": 0.1138,
+            "false_negative": 399,
+            "false_positive": 1034,
+            "name": "phase_change",
+            "precision": 0.0817,
+            "recall": 0.1874,
+            "true_negative": 2541,
+            "true_positive": 92
+          },
+          {
+            "accuracy": 0.4729,
+            "f1": 0.1493,
+            "false_negative": 303,
+            "false_positive": 1840,
+            "name": "action_change",
+            "precision": 0.0927,
+            "recall": 0.3829,
+            "true_negative": 1735,
+            "true_positive": 188
+          },
+          {
+            "accuracy": 0.1498,
+            "f1": 0.1944,
+            "false_negative": 74,
+            "false_positive": 3383,
+            "name": "target_change",
+            "precision": 0.1097,
+            "recall": 0.8493,
+            "true_negative": 192,
+            "true_positive": 417
+          },
+          {
+            "accuracy": 0.8792,
+            "f1": 0.0,
+            "false_negative": 491,
+            "false_positive": 0,
+            "name": "repeat_signal_change",
+            "precision": 0.0,
+            "recall": 0.0,
+            "true_negative": 3575,
+            "true_positive": 0
+          },
+          {
+            "accuracy": 0.8792,
+            "f1": 0.0,
+            "false_negative": 491,
+            "false_positive": 0,
+            "name": "status_change",
+            "precision": 0.0,
+            "recall": 0.0,
+            "true_negative": 3575,
+            "true_positive": 0
+          }
+        ],
+        "learned_boundary_backend": {
+          "accuracy": 0.775,
+          "brier": 0.1361,
+          "calibration_bins": [
+            {
+              "avg_pred": 0.0206,
+              "bin": "0.0-0.2",
+              "count": 3292,
+              "observed": 0.0872
+            },
+            {
+              "avg_pred": 0.2834,
+              "bin": "0.2-0.4",
+              "count": 219,
+              "observed": 0.1553
+            },
+            {
+              "avg_pred": 0.485,
+              "bin": "0.4-0.6",
+              "count": 141,
+              "observed": 0.1986
+            },
+            {
+              "avg_pred": 0.6995,
+              "bin": "0.6-0.8",
+              "count": 108,
+              "observed": 0.2407
+            },
+            {
+              "avg_pred": 0.9465,
+              "bin": "0.8-1.0",
+              "count": 306,
+              "observed": 0.3791
+            }
+          ],
+          "ece": 0.1256,
+          "f1": 0.3197,
+          "false_negative": 276,
+          "false_positive": 639,
+          "precision": 0.2518,
+          "recall": 0.4379,
+          "true_negative": 2936,
+          "true_positive": 215
+        }
+      },
+      "test_pairs": 4066,
+      "train_metrics": {
+        "baselines": [
+          {
+            "accuracy": 0.122,
+            "f1": 0.2175,
+            "false_negative": 0,
+            "false_positive": 8619,
+            "name": "always_boundary",
+            "precision": 0.122,
+            "recall": 1.0,
+            "true_negative": 0,
+            "true_positive": 1198
+          },
+          {
+            "accuracy": 0.878,
+            "f1": 0.0,
+            "false_negative": 1198,
+            "false_positive": 0,
+            "name": "never_boundary",
+            "precision": 0.0,
+            "recall": 0.0,
+            "true_negative": 8619,
+            "true_positive": 0
+          },
+          {
+            "accuracy": 0.6492,
+            "f1": 0.1045,
+            "false_negative": 997,
+            "false_positive": 2447,
+            "name": "phase_change",
+            "precision": 0.0759,
+            "recall": 0.1678,
+            "true_negative": 6172,
+            "true_positive": 201
+          },
+          {
+            "accuracy": 0.4748,
+            "f1": 0.1424,
+            "false_negative": 770,
+            "false_positive": 4386,
+            "name": "action_change",
+            "precision": 0.0889,
+            "recall": 0.3573,
+            "true_negative": 4233,
+            "true_positive": 428
+          },
+          {
+            "accuracy": 0.1553,
+            "f1": 0.1939,
+            "false_negative": 201,
+            "false_positive": 8091,
+            "name": "target_change",
+            "precision": 0.1097,
+            "recall": 0.8322,
+            "true_negative": 528,
+            "true_positive": 997
+          },
+          {
+            "accuracy": 0.878,
+            "f1": 0.0,
+            "false_negative": 1198,
+            "false_positive": 0,
+            "name": "repeat_signal_change",
+            "precision": 0.0,
+            "recall": 0.0,
+            "true_negative": 8619,
+            "true_positive": 0
+          },
+          {
+            "accuracy": 0.878,
+            "f1": 0.0,
+            "false_negative": 1198,
+            "false_positive": 0,
+            "name": "status_change",
+            "precision": 0.0,
+            "recall": 0.0,
+            "true_negative": 8619,
+            "true_positive": 0
+          }
+        ],
+        "learned_boundary_backend": {
+          "accuracy": 0.8016,
+          "brier": 0.1204,
+          "calibration_bins": [
+            {
+              "avg_pred": 0.0217,
+              "bin": "0.0-0.2",
+              "count": 7853,
+              "observed": 0.0684
+            },
+            {
+              "avg_pred": 0.2907,
+              "bin": "0.2-0.4",
+              "count": 532,
+              "observed": 0.2387
+            },
+            {
+              "avg_pred": 0.4924,
+              "bin": "0.4-0.6",
+              "count": 353,
+              "observed": 0.2663
+            },
+            {
+              "avg_pred": 0.7027,
+              "bin": "0.6-0.8",
+              "count": 289,
+              "observed": 0.3218
+            },
+            {
+              "avg_pred": 0.9399,
+              "bin": "0.8-1.0",
+              "count": 790,
+              "observed": 0.4392
+            }
+          ],
+          "ece": 0.0998,
+          "f1": 0.4206,
+          "false_negative": 491,
+          "false_positive": 1457,
+          "precision": 0.3267,
+          "recall": 0.5902,
+          "true_negative": 7162,
+          "true_positive": 707
+        }
+      },
+      "train_pairs": 9817
+    },
+    {
+      "candidate": "agentnet_step_redundant",
+      "claim_role": "desktop redundancy state boundary",
+      "dataset": "agentnet",
+      "model": {
+        "features": 3339,
+        "kind": "bernoulli-naive-bayes-adjacent-boundary",
+        "threshold": -0.507107
+      },
+      "oracle_field": "step_redundant",
+      "split": {
+        "base_seed": "r299",
+        "seed": "r299",
+        "test_operations": 3043,
+        "test_positive_pairs": 439,
+        "test_sequences": 162,
+        "train_operations": 7024,
+        "train_percent": 70,
+        "train_positive_pairs": 1004,
+        "train_sequences": 387
+      },
+      "test_metrics": {
+        "baselines": [
+          {
+            "accuracy": 0.1524,
+            "f1": 0.2645,
+            "false_negative": 0,
+            "false_positive": 2442,
+            "name": "always_boundary",
+            "precision": 0.1524,
+            "recall": 1.0,
+            "true_negative": 0,
+            "true_positive": 439
+          },
+          {
+            "accuracy": 0.8476,
+            "f1": 0.0,
+            "false_negative": 439,
+            "false_positive": 0,
+            "name": "never_boundary",
+            "precision": 0.0,
+            "recall": 0.0,
+            "true_negative": 2442,
+            "true_positive": 0
+          },
+          {
+            "accuracy": 0.6317,
+            "f1": 0.1267,
+            "false_negative": 362,
+            "false_positive": 699,
+            "name": "phase_change",
+            "precision": 0.0992,
+            "recall": 0.1754,
+            "true_negative": 1743,
+            "true_positive": 77
+          },
+          {
+            "accuracy": 0.4606,
+            "f1": 0.1743,
+            "false_negative": 275,
+            "false_positive": 1279,
+            "name": "action_change",
+            "precision": 0.1137,
+            "recall": 0.3736,
+            "true_negative": 1163,
+            "true_positive": 164
+          },
+          {
+            "accuracy": 0.1683,
+            "f1": 0.2355,
+            "false_negative": 70,
+            "false_positive": 2326,
+            "name": "target_change",
+            "precision": 0.1369,
+            "recall": 0.8405,
+            "true_negative": 116,
+            "true_positive": 369
+          },
+          {
+            "accuracy": 0.8476,
+            "f1": 0.0,
+            "false_negative": 439,
+            "false_positive": 0,
+            "name": "repeat_signal_change",
+            "precision": 0.0,
+            "recall": 0.0,
+            "true_negative": 2442,
+            "true_positive": 0
+          },
+          {
+            "accuracy": 0.8476,
+            "f1": 0.0,
+            "false_negative": 439,
+            "false_positive": 0,
+            "name": "status_change",
+            "precision": 0.0,
+            "recall": 0.0,
+            "true_negative": 2442,
+            "true_positive": 0
+          }
+        ],
+        "learned_boundary_backend": {
+          "accuracy": 0.7806,
+          "brier": 0.1619,
+          "calibration_bins": [
+            {
+              "avg_pred": 0.0329,
+              "bin": "0.0-0.2",
+              "count": 2148,
+              "observed": 0.1099
+            },
+            {
+              "avg_pred": 0.2856,
+              "bin": "0.2-0.4",
+              "count": 241,
+              "observed": 0.1909
+            },
+            {
+              "avg_pred": 0.4877,
+              "bin": "0.4-0.6",
+              "count": 116,
+              "observed": 0.1983
+            },
+            {
+              "avg_pred": 0.7061,
+              "bin": "0.6-0.8",
+              "count": 124,
+              "observed": 0.2097
+            },
+            {
+              "avg_pred": 0.9337,
+              "bin": "0.8-1.0",
+              "count": 252,
+              "observed": 0.4286
+            }
+          ],
+          "ece": 0.1425,
+          "f1": 0.3361,
+          "false_negative": 279,
+          "false_positive": 353,
+          "precision": 0.3119,
+          "recall": 0.3645,
+          "true_negative": 2089,
+          "true_positive": 160
+        }
+      },
+      "test_pairs": 2881,
+      "train_metrics": {
+        "baselines": [
+          {
+            "accuracy": 0.1513,
+            "f1": 0.2628,
+            "false_negative": 0,
+            "false_positive": 5633,
+            "name": "always_boundary",
+            "precision": 0.1513,
+            "recall": 1.0,
+            "true_negative": 0,
+            "true_positive": 1004
+          },
+          {
+            "accuracy": 0.8487,
+            "f1": 0.0,
+            "false_negative": 1004,
+            "false_positive": 0,
+            "name": "never_boundary",
+            "precision": 0.0,
+            "recall": 0.0,
+            "true_negative": 5633,
+            "true_positive": 0
+          },
+          {
+            "accuracy": 0.6227,
+            "f1": 0.1312,
+            "false_negative": 815,
+            "false_positive": 1689,
+            "name": "phase_change",
+            "precision": 0.1006,
+            "recall": 0.1882,
+            "true_negative": 3944,
+            "true_positive": 189
+          },
+          {
+            "accuracy": 0.4394,
+            "f1": 0.1636,
+            "false_negative": 640,
+            "false_positive": 3081,
+            "name": "action_change",
+            "precision": 0.1057,
+            "recall": 0.3625,
+            "true_negative": 2552,
+            "true_positive": 364
+          },
+          {
+            "accuracy": 0.1712,
+            "f1": 0.2342,
+            "false_negative": 163,
+            "false_positive": 5338,
+            "name": "target_change",
+            "precision": 0.1361,
+            "recall": 0.8376,
+            "true_negative": 295,
+            "true_positive": 841
+          },
+          {
+            "accuracy": 0.8487,
+            "f1": 0.0,
+            "false_negative": 1004,
+            "false_positive": 0,
+            "name": "repeat_signal_change",
+            "precision": 0.0,
+            "recall": 0.0,
+            "true_negative": 5633,
+            "true_positive": 0
+          },
+          {
+            "accuracy": 0.8487,
+            "f1": 0.0,
+            "false_negative": 1004,
+            "false_positive": 0,
+            "name": "status_change",
+            "precision": 0.0,
+            "recall": 0.0,
+            "true_negative": 5633,
+            "true_positive": 0
+          }
+        ],
+        "learned_boundary_backend": {
+          "accuracy": 0.8216,
+          "brier": 0.1327,
+          "calibration_bins": [
+            {
+              "avg_pred": 0.0309,
+              "bin": "0.0-0.2",
+              "count": 4940,
+              "observed": 0.0777
+            },
+            {
+              "avg_pred": 0.2941,
+              "bin": "0.2-0.4",
+              "count": 505,
+              "observed": 0.2119
+            },
+            {
+              "avg_pred": 0.5002,
+              "bin": "0.4-0.6",
+              "count": 324,
+              "observed": 0.2901
+            },
+            {
+              "avg_pred": 0.7085,
+              "bin": "0.6-0.8",
+              "count": 264,
+              "observed": 0.428
+            },
+            {
+              "avg_pred": 0.9385,
+              "bin": "0.8-1.0",
+              "count": 604,
+              "observed": 0.5066
+            }
+          ],
+          "ece": 0.1018,
+          "f1": 0.477,
+          "false_negative": 464,
+          "false_positive": 720,
+          "precision": 0.4286,
+          "recall": 0.5378,
+          "true_negative": 4913,
+          "true_positive": 540
+        }
+      },
+      "train_pairs": 6637
+    },
+    {
+      "candidate": "agentreward_looping",
+      "claim_role": "expert looping state boundary",
+      "dataset": "agentrewardbench",
+      "model": {
+        "features": 488,
+        "kind": "bernoulli-naive-bayes-adjacent-boundary",
+        "threshold": 6.627993
+      },
+      "oracle_field": "looping",
+      "split": {
+        "base_seed": "r299",
+        "seed": "r299-1",
+        "test_operations": 400,
+        "test_positive_pairs": 60,
+        "test_sequences": 13,
+        "train_operations": 327,
+        "train_percent": 70,
+        "train_positive_pairs": 66,
+        "train_sequences": 14
+      },
+      "test_metrics": {
+        "baselines": [
+          {
+            "accuracy": 0.155,
+            "f1": 0.2685,
+            "false_negative": 0,
+            "false_positive": 327,
+            "name": "always_boundary",
+            "precision": 0.155,
+            "recall": 1.0,
+            "true_negative": 0,
+            "true_positive": 60
+          },
+          {
+            "accuracy": 0.845,
+            "f1": 0.0,
+            "false_negative": 60,
+            "false_positive": 0,
+            "name": "never_boundary",
+            "precision": 0.0,
+            "recall": 0.0,
+            "true_negative": 327,
+            "true_positive": 0
+          },
+          {
+            "accuracy": 0.5762,
+            "f1": 0.2931,
+            "false_negative": 26,
+            "false_positive": 138,
+            "name": "phase_change",
+            "precision": 0.1977,
+            "recall": 0.5667,
+            "true_negative": 189,
+            "true_positive": 34
+          },
+          {
+            "accuracy": 0.4832,
+            "f1": 0.2537,
+            "false_negative": 26,
+            "false_positive": 174,
+            "name": "action_change",
+            "precision": 0.1635,
+            "recall": 0.5667,
+            "true_negative": 153,
+            "true_positive": 34
+          },
+          {
+            "accuracy": 0.3876,
+            "f1": 0.305,
+            "false_negative": 8,
+            "false_positive": 229,
+            "name": "target_change",
+            "precision": 0.1851,
+            "recall": 0.8667,
+            "true_negative": 98,
+            "true_positive": 52
+          },
+          {
+            "accuracy": 1.0,
+            "f1": 1.0,
+            "false_negative": 0,
+            "false_positive": 0,
+            "name": "repeat_signal_change",
+            "precision": 1.0,
+            "recall": 1.0,
+            "true_negative": 327,
+            "true_positive": 60
+          },
+          {
+            "accuracy": 0.845,
+            "f1": 0.0,
+            "false_negative": 60,
+            "false_positive": 0,
+            "name": "status_change",
+            "precision": 0.0,
+            "recall": 0.0,
+            "true_negative": 327,
+            "true_positive": 0
+          }
+        ],
+        "learned_boundary_backend": {
+          "accuracy": 0.9328,
+          "brier": 0.0571,
+          "calibration_bins": [
+            {
+              "avg_pred": 0.0015,
+              "bin": "0.0-0.2",
+              "count": 317,
+              "observed": 0.0221
+            },
+            {
+              "avg_pred": 0.3989,
+              "bin": "0.2-0.4",
+              "count": 1,
+              "observed": 0.0
+            },
+            {
+              "bin": "0.4-0.6",
+              "count": 0
+            },
+            {
+              "avg_pred": 0.7222,
+              "bin": "0.6-0.8",
+              "count": 1,
+              "observed": 0.0
+            },
+            {
+              "avg_pred": 0.9995,
+              "bin": "0.8-1.0",
+              "count": 68,
+              "observed": 0.7794
+            }
+          ],
+          "ece": 0.0584,
+          "f1": 0.7833,
+          "false_negative": 13,
+          "false_positive": 13,
+          "precision": 0.7833,
+          "recall": 0.7833,
+          "true_negative": 314,
+          "true_positive": 47
+        }
+      },
+      "test_pairs": 387,
+      "train_metrics": {
+        "baselines": [
+          {
+            "accuracy": 0.2109,
+            "f1": 0.3483,
+            "false_negative": 0,
+            "false_positive": 247,
+            "name": "always_boundary",
+            "precision": 0.2109,
+            "recall": 1.0,
+            "true_negative": 0,
+            "true_positive": 66
+          },
+          {
+            "accuracy": 0.7891,
+            "f1": 0.0,
+            "false_negative": 66,
+            "false_positive": 0,
+            "name": "never_boundary",
+            "precision": 0.0,
+            "recall": 0.0,
+            "true_negative": 247,
+            "true_positive": 0
+          },
+          {
+            "accuracy": 0.7316,
+            "f1": 0.5281,
+            "false_negative": 19,
+            "false_positive": 65,
+            "name": "phase_change",
+            "precision": 0.4196,
+            "recall": 0.7121,
+            "true_negative": 182,
+            "true_positive": 47
+          },
+          {
+            "accuracy": 0.6965,
+            "f1": 0.4974,
+            "false_negative": 19,
+            "false_positive": 76,
+            "name": "action_change",
+            "precision": 0.3821,
+            "recall": 0.7121,
+            "true_negative": 171,
+            "true_positive": 47
+          },
+          {
+            "accuracy": 0.607,
+            "f1": 0.498,
+            "false_negative": 5,
+            "false_positive": 118,
+            "name": "target_change",
+            "precision": 0.3408,
+            "recall": 0.9242,
+            "true_negative": 129,
+            "true_positive": 61
+          },
+          {
+            "accuracy": 0.9712,
+            "f1": 0.9362,
+            "false_negative": 0,
+            "false_positive": 9,
+            "name": "repeat_signal_change",
+            "precision": 0.88,
+            "recall": 1.0,
+            "true_negative": 238,
+            "true_positive": 66
+          },
+          {
+            "accuracy": 0.7732,
+            "f1": 0.0,
+            "false_negative": 66,
+            "false_positive": 5,
+            "name": "status_change",
+            "precision": 0.0,
+            "recall": 0.0,
+            "true_negative": 242,
+            "true_positive": 0
+          }
+        ],
+        "learned_boundary_backend": {
+          "accuracy": 0.9808,
+          "brier": 0.0378,
+          "calibration_bins": [
+            {
+              "avg_pred": 0.0009,
+              "bin": "0.0-0.2",
+              "count": 235,
+              "observed": 0.0085
+            },
+            {
+              "avg_pred": 0.294,
+              "bin": "0.2-0.4",
+              "count": 3,
+              "observed": 0.3333
+            },
+            {
+              "avg_pred": 0.4457,
+              "bin": "0.4-0.6",
+              "count": 1,
+              "observed": 0.0
+            },
+            {
+              "avg_pred": 0.7007,
+              "bin": "0.6-0.8",
+              "count": 3,
+              "observed": 0.3333
+            },
+            {
+              "avg_pred": 0.9923,
+              "bin": "0.8-1.0",
+              "count": 71,
+              "observed": 0.8732
+            }
+          ],
+          "ece": 0.038,
+          "f1": 0.9538,
+          "false_negative": 4,
+          "false_positive": 2,
+          "precision": 0.9688,
+          "recall": 0.9394,
+          "true_negative": 245,
+          "true_positive": 62
+        }
+      },
+      "train_pairs": 313
+    }
+  ]
+}
