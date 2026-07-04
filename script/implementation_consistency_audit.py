@@ -4,7 +4,8 @@
 This is a reproducibility and paper-hygiene gate. It does not fetch datasets,
 rerun profiler experiments, or execute a human/agent analyst task. It checks
 that the maintained Rust CLI, canonical docs, and Chinese paper agree on the
-two core abstractions, profile specs, and standard trace exchange boundary.
+two core abstractions, profile specs, operation predicates, and standard trace
+exchange boundary.
 """
 
 from __future__ import annotations
@@ -111,10 +112,11 @@ def build_checks(sources: dict[str, str]) -> list[dict[str, Any]]:
                     "fn load_profile_specs",
                     "operation_files: Vec<PathBuf>",
                     "op_map_files: Vec<PathBuf>",
+                    "where_rules: Vec<String>",
                 ],
             ),
             "rust_profile_spec_cli_present",
-            "agentpprof/src/main.rs defines --profile-spec, RawProfileSpec, operation_files, and op_map_files.",
+            "agentpprof/src/main.rs defines --profile-spec, RawProfileSpec, operation_files, op_map_files, and where_rules.",
             "Rust CLI profile-spec support is missing or renamed.",
         ),
         check(
@@ -123,6 +125,7 @@ def build_checks(sources: dict[str, str]) -> list[dict[str, Any]]:
                 [
                     "merge_spec_first(&spec.operation_files, &args.operation_files)",
                     "merge_cli_first(&args.stack_rules, &spec.stack_rules)",
+                    "effective_where_rules(&args.where_rules, &spec.where_rules)",
                     "load_effective_op_map_rules",
                 ],
             ),
@@ -165,13 +168,24 @@ def build_checks(sources: dict[str, str]) -> list[dict[str, Any]]:
                 [
                     "pub struct OperationStackConfig",
                     "with_field_rules",
+                    "with_filters",
+                    "parse_operation_filters",
                     "build_profile_from_operation_files",
                     "build_profile_from_operation_records",
                 ],
             ),
             "rust_operation_stack_source_of_truth",
-            "Operation mapping and stack folding live in the Rust profile path used by operation files and trace imports.",
+            "Operation mapping, query predicates, and stack folding live in the Rust profile path used by operation files and trace imports.",
             "Rust profile source of truth for operation-stack folding is incomplete.",
+        ),
+        check(
+            "`--where`" in design
+            and "`where_rules`" in evaluation
+            and "operation-where-filter-r321" in evaluation
+            and "predicate" in docs_joined,
+            "operation_predicate_documented_as_query_not_object",
+            "Docs record --where/where_rules as a query predicate over operation fields, with R321 as the implementation probe.",
+            "Operation predicates are missing from docs/evaluation or are not tied to R321.",
         ),
         check(
             "`agentpprof/src/standard_trace.rs`" in implementation

@@ -279,9 +279,10 @@ xdg-open .agentsight/agentpprof/latest/tokens.flame.svg
 ## Stack Projections
 
 `--view` selects the measured operation samples and their weights. `--op-map`
-derives reusable operation fields, and `--stack` selects the operation stack
-shape. A stack frame can come directly from an operation field or from the first
-matching `--stack-rule` for that frame:
+derives reusable operation fields, `--where` selects a query subset after
+mapping, and `--stack` selects the operation stack shape. A stack frame can come
+directly from an operation field or from the first matching `--stack-rule` for
+that frame:
 
 ```bash
 agentpprof -o files.folded --view files \
@@ -290,6 +291,7 @@ agentpprof -o files.folded --view files \
   --op-map 'task:verify=(effect=test|cmd=cargo|path=tests)' \
   --op-map 'task:explore=(effect=read|tool=read)' \
   --op-map 'phase:inspect=(effect=read)' \
+  --where 'task=verify' \
   --stack-rule 'path:tests=(path=tests)'
 ```
 
@@ -300,7 +302,8 @@ from operation fields such as `prompt`, `prompt_preview`, `op`, `tool`,
 `--operation-file`. Mapping rules are evaluated in order against the fields
 derived so far; the first match wins for each derived field. Inline `--op-map`
 rules run before `--op-map-file` rules, so command-line rules can override a
-shared mapping file.
+shared mapping file. `--where FIELD=REGEX` and `--where FIELD!=REGEX` run after
+mapping and before stack construction; multiple predicates are ANDed.
 
 Token profile:
 

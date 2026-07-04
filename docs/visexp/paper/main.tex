@@ -43,7 +43,7 @@ AI agent 的执行历史已经不再只是一次 prompt 或一棵 trace tree。
 \op{} 是带字段和权重的观测，prompt、session、tool call、process、syscall、GUI action 和 plan step 都只是 operation 的不同形态或字段。
 \opstack{} 是用户从字段中选择的递归投影，mapping 和 tagging 在 stack 构造前派生字段，而不是创建第三种 profiler 对象。
 关键点是聚合不是第三个对象，也不是固定 trace tree；聚合由 query time 选择的 stack 形态决定。
-		我们在 Rust \toolname{} 中实现该模型，支持 \texttt{--view}、\texttt{--stack}、\texttt{--op-map}、\texttt{--op-map-file}、\texttt{--trace-file}、\texttt{--standard-trace-file} 和可复现实验用的 \texttt{--profile-spec}，并把 15 个公开标注 agent 轨迹数据源投影为同一类 operation JSONL。
+		我们在 Rust \toolname{} 中实现该模型，支持 \texttt{--view}、\texttt{--where}、\texttt{--stack}、\texttt{--op-map}、\texttt{--op-map-file}、\texttt{--trace-file}、\texttt{--standard-trace-file} 和可复现实验用的 \texttt{--profile-spec}，并把 15 个公开标注 agent 轨迹数据源投影为同一类 operation JSONL。
 
 	我们在 15 个轻量采样的公开标注轨迹来源上评估该模型，不同步完整测试集、图片归档或 gated corpus。
 	核心结果显示，Web、mobile、desktop、software、API、tool-dialogue、failure、安全、human group 和 step-quality 轨迹都可以进入同一 operation layer，核心 14 个数据集包含 42,590 个 operations，补充 ScaleCUA 后为 47,590 个 operations。
@@ -108,8 +108,9 @@ Mapping 和 tagging 是派生 operation fields 的一等机制。
 Mapping 不引入第三个抽象。
 它只是在 operation 上写字段，使同一个 stack specification 可以跨数据集复用。
 当前 Rust CLI 支持 inline \texttt{--op-map FIELD:LABEL=REGEX} 和文件形式 \texttt{--op-map-file}。
+\texttt{--where FIELD=REGEX} 和 \texttt{FIELD!=REGEX} 在 mapping 之后、stack 构造之前选择 operation 子集，多条 predicate 取 AND；它实现形式化模型里的 $\phi$，不是新的 profiler 对象。
 \texttt{script/operation\_map\_infer.py} 可以从已标注 operations 中生成同样格式的规则文件，并用这些规则测试 held-out 和 leave-dataset-out 泛化。
-\texttt{--profile-spec} 把 operation files、mapping files、view、stack 和输出路径打包成 JSON 配置，便于 reviewer 复现实验；命令行参数仍可覆盖 spec 默认值。
+\texttt{--profile-spec} 把 operation files、mapping files、predicate、view、stack 和输出路径打包成 JSON 配置，便于 reviewer 复现实验；命令行参数仍可覆盖 spec 默认值。
 它不改变模型本身，只是把已有 operation 和 operation-stack 查询显式记录下来。
 
 \subsection{Views 和非火焰图分析}
@@ -131,6 +132,7 @@ Folded stack 和 SVG flamegraph 是其中一种输出，但不是唯一输出。
 agentpprof --operation-file ops.jsonl --view operations \\
 \quad --stack project,dataset,task,phase,op,tool, \\
 \quad action,status --op-map-file operation-map.txt \\
+\quad --where task=verify \\
 \quad -o out.folded
 \end{tabular}
 \end{quote}
@@ -143,7 +145,8 @@ agentpprof --operation-file ops.jsonl --view operations \\
 Stack 结构分析脚本位于 \texttt{script/operation\_stack\_analysis.py}，用于生成 flamegraph 之外的 tree、top-kind 和 transition 报告。
 
 这个实现刻意保留简单接口。
-它不像 jq 那样完整表达 JSON 查询语言，但它已经把 profiler 的关键自由度暴露为 flags 和可提交配置：数据源由 \texttt{--trace-file} 或 \texttt{--operation-file} 选择，权重由 \texttt{--view} 选择，字段派生由 \texttt{--op-map} 选择，递归边界由 \texttt{--stack} 选择，复现实验由 \texttt{--profile-spec} 固化。
+它不像 jq 那样完整表达 JSON 查询语言，但它已经把 profiler 的关键自由度暴露为 flags 和可提交配置：数据源由 \texttt{--trace-file} 或 \texttt{--operation-file} 选择，权重由 \texttt{--view} 选择，查询子集由 \texttt{--where} 选择，字段派生由 \texttt{--op-map} 选择，递归边界由 \texttt{--stack} 选择，复现实验由 \texttt{--profile-spec} 固化。
+R321 用同一份 R300 真实标注 operation JSONL 验证该实现路径：profile spec 中的 mapping-derived \texttt{where\_rules} 分别选出 729/729、714/714 和 4,285/4,285 个预期 operations 后再折叠。
 因此 prompt、session、toolcall、process、syscall、plan 和 subagent 都可以在同一套 mechanism 中出现，而不是成为互不兼容的 object model。
 
 \section{实验方法}
@@ -431,7 +434,7 @@ AgentNet step-quality 上 raw action stack 和 fixed-session drilldown 仍有优
     Paper question & Workload / oracle & Main evidence & Scoped conclusion \\
     \midrule
     Can agent traces share one object model? & 15 sampled public trajectory sources plus local-session exchange fixtures & Core public sources contain 42,590 operations, and ScaleCUA brings the smoke set to 47,590 operations. Agent-session and Chrome Trace Event round trips preserve 6 samples / 5 stacks on the fixture. & Heterogeneous trajectories and exchange traces enter the same operation layer. Trace formats are containers, not profiler abstractions. \\
-    Is stack depth a query rather than a prompt/session tree? & 13,265 operations with depth sweeps, plus 16,741 AgentNet operations with profile-spec override & The same operations fold from 9 dataset stacks to 57 phase, 226 tool/semantic, 455 action, or 3,757 fixed-session stacks. AgentNet stack override changes 608 stacks to 83 without changing input operations. & Operation stack is a recursive query over fields. Fixed session is a useful drilldown field, not the default boundary. \\
+    Is stack depth a query rather than a prompt/session tree? & 13,265 operations with depth sweeps, plus 16,741 AgentNet operations with profile-spec override and R321 predicate specs & The same operations fold from 9 dataset stacks to 57 phase, 226 tool/semantic, 455 action, or 3,757 fixed-session stacks. AgentNet stack override changes 608 stacks to 83 without changing input operations. R321 predicates select 729, 714, and 4,285 expected operations before folding. & Operation stack is a recursive query over fields. Fixed session is a useful drilldown field, not the default boundary. \\
     Can fields be derived without adding a third object? & Held-out mapping splits, leave-dataset-out mapping, and OSWorld-Human supervised boundary probes & Held-out mapping improves compression from 14.049 to 19.091. Leave-dataset-out reduces stacks on 6/9 datasets with 0 negative regressions. OSWorld-Human learned boundary F1 reaches 0.7735 on held-out pairs. & Mapping/tagging/backends derive operation fields before folding. The claim is partial because calibration and simple-baseline checks remain family-specific. \\
     Does recursive folding match human boundaries? & 369 OSWorld-Human tasks, including 4,011 exact grouped-oracle operations & Grouped-depth stacks reduce 482 action stacks to 106 grouped stacks. Conservative human-group boundary F1 is 0.627 with precision 1.0 and recall 0.456. & The profiler can expose action-depth and human-group-depth views over the same sequence, but it does not fully recover latent intent boundaries. \\
     Does the profiler solve real labeled problems beyond flamegraphs? & Six failure, safety, quality, and boundary tasks over 34,539 operations and 3,699 positives & Operation-stack packets are more selective than flat on 6/6 tasks, contain high-lift evidence on 5/6, and have higher selected recall than fixed-session on 5/6. They use lower selected work than fixed-session on only 2/6. & The supported value claim is an automated inspectability and localization tradeoff, with fixed-session preserved as a real low-work counterpoint. \\
@@ -515,7 +518,7 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld/OSWorld-Human、OpenCUA/AgentNet、SA
 
 	本文把 agent semantic profiling 收敛为两个核心抽象：operation 和 operation stack。
 	Prompt、session、toolcall、process、syscall、plan、subagent、GUI action、安全标签和质量标签都只是 operation shapes 或 fields。
-	Mapping 和 tagging 负责派生 fields，\texttt{--view} 和 \texttt{--stack} 负责选择权重和递归折叠形状，\texttt{--trace-file} 和 \texttt{--operation-file} 负责数据入口，\texttt{--profile-spec} 只把这些选择变成可复现实验配置。
+	Mapping 和 tagging 负责派生 fields，\texttt{--view}、\texttt{--where} 和 \texttt{--stack} 负责选择权重、查询子集和递归折叠形状，\texttt{--trace-file} 和 \texttt{--operation-file} 负责数据入口，\texttt{--profile-spec} 只把这些选择变成可复现实验配置。
 	在 15 个轻量采样的公开标注轨迹数据源上，这个模型统一了 web、mobile、desktop、software、API、dialogue、failure、安全、human group 和 step-quality 轨迹，并产生 flamegraph 之外的 stack tree、transition、quality、boundary、case packet 和 claim-audit reports。
 	这支持本文的核心机制 claim：agent profiling 的边界可以从 prompt/session/span tree 中释放出来，成为 query-time operation-stack projection。
 

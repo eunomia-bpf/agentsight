@@ -14,14 +14,15 @@
 <body>
   <h1>Implementation Consistency R319</h1>
   <p>Overall: <code>implementation_consistent</code></p>
-  <p>Checks passed: 10 / 10</p>
+  <p>Checks passed: 11 / 11</p>
   <table>
     <thead><tr><th>Check</th><th>Status</th><th>Evidence</th></tr></thead>
-    <tbody><tr><td><code>rust_profile_spec_cli_present</code></td><td>pass</td><td>agentpprof/src/main.rs defines --profile-spec, RawProfileSpec, operation_files, and op_map_files.</td></tr>
+    <tbody><tr><td><code>rust_profile_spec_cli_present</code></td><td>pass</td><td>agentpprof/src/main.rs defines --profile-spec, RawProfileSpec, operation_files, op_map_files, and where_rules.</td></tr>
 <tr><td><code>rust_profile_spec_override_contract</code></td><td>pass</td><td>Profile specs provide operation inputs while CLI stack/rule overrides remain explicit.</td></tr>
 <tr><td><code>rust_standard_trace_cli_present</code></td><td>pass</td><td>Rust CLI exposes standard trace import/export and routes imports into operation records.</td></tr>
 <tr><td><code>standard_trace_cli_test_present</code></td><td>pass</td><td>agentpprof has a CLI test for standard trace export and import.</td></tr>
-<tr><td><code>rust_operation_stack_source_of_truth</code></td><td>pass</td><td>Operation mapping and stack folding live in the Rust profile path used by operation files and trace imports.</td></tr>
+<tr><td><code>rust_operation_stack_source_of_truth</code></td><td>pass</td><td>Operation mapping, query predicates, and stack folding live in the Rust profile path used by operation files and trace imports.</td></tr>
+<tr><td><code>operation_predicate_documented_as_query_not_object</code></td><td>pass</td><td>Docs record --where/where_rules as a query predicate over operation fields, with R321 as the implementation probe.</td></tr>
 <tr><td><code>implementation_doc_records_current_rust_surface</code></td><td>pass</td><td>docs/implementation.md records profile specs and standard trace support as current implementation.</td></tr>
 <tr><td><code>profile_spec_not_stale_pending_task</code></td><td>pass</td><td>Profile-spec support is no longer listed as a pending implementation task.</td></tr>
 <tr><td><code>two_abstraction_boundary_in_docs</code></td><td>pass</td><td>Design, paper, and claim setup preserve operation plus operation stack as the core model.</td></tr>

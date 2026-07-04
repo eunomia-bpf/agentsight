@@ -1,0 +1,67 @@
+{
+  "claim": "Rust agentpprof can apply query-time operation predicates after mapping/tagging and before recursive operation-stack folding.",
+  "commit": "8cdd35d0456c1a32d784c2fee791ec7a39df45fa",
+  "elapsed_s": 6.782,
+  "non_claims": [
+    "This does not add a new profiler abstraction beyond operation and operation stack.",
+    "This does not use hidden oracle labels to rank groups.",
+    "This does not download or create a new test dataset."
+  ],
+  "probes": [
+    {
+      "actual_samples": 729,
+      "agentpprof_result": "docs/visexp/out/operation-where-filter-r321/looping_dynamic_task-agentpprof-result.json",
+      "count_matches_expected": true,
+      "expected_samples": 729,
+      "folded": "docs/visexp/out/operation-where-filter-r321/looping_dynamic_task.folded",
+      "op_maps": [
+        "task_family:where_probe_loop=(analysis_task=agentreward_looping)"
+      ],
+      "probe": "looping_dynamic_task",
+      "profile_spec": "docs/visexp/out/operation-where-filter-r321/looping_dynamic_task-profile-spec.json",
+      "stack": "task_family,dataset,query_family,environment,phase,action,repeat_signal,status",
+      "unique_stacks": 40,
+      "where_rules": [
+        "task_family=where_probe_loop"
+      ]
+    },
+    {
+      "actual_samples": 714,
+      "agentpprof_result": "docs/visexp/out/operation-where-filter-r321/looping_dynamic_task_without_success-agentpprof-result.json",
+      "count_matches_expected": true,
+      "expected_samples": 714,
+      "folded": "docs/visexp/out/operation-where-filter-r321/looping_dynamic_task_without_success.folded",
+      "op_maps": [
+        "task_family:where_probe_loop=(analysis_task=agentreward_looping)"
+      ],
+      "probe": "looping_dynamic_task_without_success",
+      "profile_spec": "docs/visexp/out/operation-where-filter-r321/looping_dynamic_task_without_success-profile-spec.json",
+      "stack": "task_family,dataset,query_family,environment,phase,action,repeat_signal,status",
+      "unique_stacks": 37,
+      "where_rules": [
+        "task_family=where_probe_loop",
+        "status!=success"
+      ]
+    },
+    {
+      "actual_samples": 4285,
+      "agentpprof_result": "docs/visexp/out/operation-where-filter-r321/safety_dynamic_task-agentpprof-result.json",
+      "count_matches_expected": true,
+      "expected_samples": 4285,
+      "folded": "docs/visexp/out/operation-where-filter-r321/safety_dynamic_task.folded",
+      "op_maps": [
+        "task_family:where_probe_safety=(analysis_task=satraj_unsafe)"
+      ],
+      "probe": "safety_dynamic_task",
+      "profile_spec": "docs/visexp/out/operation-where-filter-r321/safety_dynamic_task-profile-spec.json",
+      "stack": "task_family,dataset,environment,attack_type,safety,phase,action,status",
+      "unique_stacks": 89,
+      "where_rules": [
+        "task_family=where_probe_safety"
+      ]
+    }
+  ],
+  "run_id": "R321",
+  "source_operations": "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl",
+  "status": "pass"
+}

@@ -2,7 +2,7 @@
   "checks": [
     {
       "check": "rust_profile_spec_cli_present",
-      "evidence": "agentpprof/src/main.rs defines --profile-spec, RawProfileSpec, operation_files, and op_map_files.",
+      "evidence": "agentpprof/src/main.rs defines --profile-spec, RawProfileSpec, operation_files, op_map_files, and where_rules.",
       "status": "pass"
     },
     {
@@ -22,7 +22,12 @@
     },
     {
       "check": "rust_operation_stack_source_of_truth",
-      "evidence": "Operation mapping and stack folding live in the Rust profile path used by operation files and trace imports.",
+      "evidence": "Operation mapping, query predicates, and stack folding live in the Rust profile path used by operation files and trace imports.",
+      "status": "pass"
+    },
+    {
+      "check": "operation_predicate_documented_as_query_not_object",
+      "evidence": "Docs record --where/where_rules as a query predicate over operation fields, with R321 as the implementation probe.",
       "status": "pass"
     },
     {
@@ -51,7 +56,7 @@
       "status": "pass"
     }
   ],
-  "commit": "cb0dd076e17300bf972a535f7ae536e5a079f614",
+  "commit": "8cdd35d0456c1a32d784c2fee791ec7a39df45fa",
   "not_a_human_study_result": true,
   "not_an_agent_study_result": true,
   "not_dataset_sync": true,
@@ -72,12 +77,12 @@
   "status": "ok",
   "summary": {
     "failed_checks": 0,
-    "passed_checks": 10,
+    "passed_checks": 11,
     "remaining_gates": [
       "controlled human/agent analyst study",
       "calibrated boundary backend beyond simple derived-field baselines",
       "real OpenTelemetry GenAI, OpenInference, or Perfetto trace import"
     ],
-    "total_checks": 10
+    "total_checks": 11
   }
 }

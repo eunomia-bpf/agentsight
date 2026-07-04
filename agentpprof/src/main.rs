@@ -15,8 +15,8 @@ use std::time::Duration;
 use profile::{
     OperationStackConfig, OutputFormat, ProfileView, build_profile_from_operation_files,
     build_profile_from_operation_records, build_profile_with_options, infer_output_format,
-    parse_stack_rules, parse_stack_rules_with_flag, parse_stack_spec, profile_to_stacks,
-    write_projection,
+    parse_operation_filters, parse_stack_rules, parse_stack_rules_with_flag, parse_stack_spec,
+    profile_to_stacks, write_projection,
 };
 use session::{
     SessionRecord, default_claude_root, discover_agent_sessions, load_agent_trace_files,
@@ -53,7 +53,8 @@ TAGGING WORKFLOW:
 OPERATION STACK WORKFLOW:
   --view chooses which operation samples are measured. --stack chooses how those
   operations fold into a stack. Use --op-map to derive reusable operation
-  fields, then --stack chooses how those fields recursively fold. Use
+  fields, --where to select an operation subset, then --stack chooses how those
+  fields recursively fold. Use
   --op-map-file to load reusable mappings, and --stack-rule for one-off
   stack-frame overrides.
 
@@ -61,7 +62,8 @@ OPERATION STACK WORKFLOW:
        --stack 'project,agent,task,phase,op,tool,path,status' \
        --op-map-file operation-map.txt \
        --op-map 'task:verify=(effect=test|cmd=cargo)' \
-       --op-map 'phase:inspect=(effect=read)'
+       --op-map 'phase:inspect=(effect=read)' \
+       --where 'task=verify'
 
   For repeatable external-trace experiments, put output, view, operation files,
   op-map files, and stack in a JSON file and run:
@@ -102,6 +104,10 @@ struct Cli {
     /// Rules are evaluated in order against updated fields; first match wins for each field.
     #[arg(long = "op-map", value_name = "FIELD:LABEL=REGEX")]
     op_maps: Vec<String>,
+    /// Select operations after --op-map field derivation and before stacking, e.g. task=verify.
+    /// Multiple predicates are ANDed. Use FIELD!=REGEX to exclude matching operations.
+    #[arg(long = "where", value_name = "FIELD=REGEX")]
+    where_rules: Vec<String>,
     /// Read operation-field mapping rules from a file. Blank lines and lines starting with '#' are ignored.
     /// Inline --op-map rules run before file rules, so command-line rules can override defaults.
     #[arg(long = "op-map-file", value_name = "PATH")]
@@ -230,6 +236,7 @@ struct ProfileSpec {
     stack: Option<String>,
     stack_rules: Vec<String>,
     op_maps: Vec<String>,
+    where_rules: Vec<String>,
     op_map_files: Vec<PathBuf>,
     operation_files: Vec<PathBuf>,
 }
@@ -245,6 +252,8 @@ struct RawProfileSpec {
     stack_rules: Vec<String>,
     #[serde(default)]
     op_maps: Vec<String>,
+    #[serde(default)]
+    where_rules: Vec<String>,
     #[serde(default)]
     op_map_files: Vec<PathBuf>,
     #[serde(default)]
@@ -298,8 +307,10 @@ fn command_export(args: Cli) -> Result<()> {
         &spec.op_map_files,
     )?;
     let stack_rules = merge_cli_first(&args.stack_rules, &spec.stack_rules);
+    let where_rules = effective_where_rules(&args.where_rules, &spec.where_rules);
     profile_options = profile_options
         .with_field_rules(parse_stack_rules_with_flag(&op_maps, "--op-map")?)
+        .with_filters(parse_operation_filters(&where_rules)?)
         .with_rules(parse_stack_rules(&stack_rules)?);
     let operation_files = merge_spec_first(&spec.operation_files, &args.operation_files);
     validate_input_modes(&args, &operation_files)?;
@@ -338,6 +349,7 @@ fn command_export(args: Cli) -> Result<()> {
             "stack": stack.unwrap_or("default"),
             "op_maps": op_maps,
             "op_map_files": op_map_files,
+            "where_rules": where_rules,
             "stack_rules": stack_rules,
             "standard_trace_files": args.standard_trace_files,
             "standard_trace_format": standard_trace::CHROME_TRACE_FORMAT,
@@ -378,6 +390,7 @@ fn command_export(args: Cli) -> Result<()> {
             "stack": stack.unwrap_or("default"),
             "op_maps": op_maps,
             "op_map_files": op_map_files,
+            "where_rules": where_rules,
             "stack_rules": stack_rules,
             "operation_files": operation_files,
             "samples": stacks.values().sum::<u64>(),
@@ -504,6 +517,7 @@ fn command_export(args: Cli) -> Result<()> {
         "stack": stack.unwrap_or("default"),
         "op_maps": op_maps,
         "op_map_files": op_map_files,
+        "where_rules": where_rules,
         "stack_rules": stack_rules,
         "sessions": sessions.len(),
         "samples": stacks.values().sum::<u64>(),
@@ -574,6 +588,14 @@ fn merge_spec_first<T: Clone>(spec_values: &[T], cli_values: &[T]) -> Vec<T> {
         .collect()
 }
 
+fn effective_where_rules(cli_values: &[String], spec_values: &[String]) -> Vec<String> {
+    if cli_values.is_empty() {
+        spec_values.to_vec()
+    } else {
+        cli_values.to_vec()
+    }
+}
+
 fn load_effective_op_map_rules(
     cli_inline_rules: &[String],
     cli_rule_files: &[PathBuf],
@@ -641,6 +663,7 @@ fn normalize_profile_spec(raw: RawProfileSpec, base: &Path) -> Result<ProfileSpe
         stack: raw.stack,
         stack_rules: raw.stack_rules,
         op_maps: raw.op_maps,
+        where_rules: raw.where_rules,
         op_map_files: raw
             .op_map_files
             .into_iter()
@@ -702,6 +725,7 @@ impl ProfileSpec {
         }
         self.stack_rules.extend(next.stack_rules);
         self.op_maps.extend(next.op_maps);
+        self.where_rules.extend(next.where_rules);
         self.op_map_files.extend(next.op_map_files);
         self.operation_files.extend(next.operation_files);
     }
@@ -885,6 +909,7 @@ mod tests {
   "operation_files": ["inputs/agentnet.jsonl"],
   "stack": "project,dataset,task,phase,op,tool,action,status",
   "op_maps": ["phase:inspect=(action=screenshot)"],
+  "where_rules": ["phase!=noise"],
   "op_map_files": ["maps/operation-map.txt"],
   "stack_rules": ["task:desktop=(tool=computer)"]
 }"#,
@@ -918,6 +943,13 @@ mod tests {
                 "phase:inspect=(action=screenshot)",
                 "phase:execute=(action=click)"
             ]
+        );
+
+        let where_rules = effective_where_rules(&["task=desktop".to_string()], &spec.where_rules);
+        assert_eq!(where_rules, vec!["task=desktop".to_string()]);
+        assert_eq!(
+            effective_where_rules(&[], &spec.where_rules),
+            vec!["phase!=noise".to_string()]
         );
     }
 

@@ -108,6 +108,7 @@ impl std::fmt::Debug for OperationStackRule {
 pub struct OperationStackConfig {
     stack: OperationStackSpec,
     field_rules: Vec<OperationStackRule>,
+    filters: Vec<OperationFilterRule>,
     rules: Vec<OperationStackRule>,
 }
 
@@ -116,6 +117,7 @@ impl OperationStackConfig {
         Self {
             stack: OperationStackSpec::default_for_view(view),
             field_rules: Vec::new(),
+            filters: Vec::new(),
             rules: Vec::new(),
         }
     }
@@ -133,6 +135,29 @@ impl OperationStackConfig {
     pub fn with_field_rules(mut self, rules: Vec<OperationStackRule>) -> Self {
         self.field_rules = rules;
         self
+    }
+
+    pub fn with_filters(mut self, filters: Vec<OperationFilterRule>) -> Self {
+        self.filters = filters;
+        self
+    }
+}
+
+#[derive(Clone)]
+pub struct OperationFilterRule {
+    field: String,
+    pattern: String,
+    negated: bool,
+    regex: Regex,
+}
+
+impl std::fmt::Debug for OperationFilterRule {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("OperationFilterRule")
+            .field("field", &self.field)
+            .field("pattern", &self.pattern)
+            .field("negated", &self.negated)
+            .finish()
     }
 }
 
@@ -234,6 +259,43 @@ fn parse_stack_rule(raw: &str, flag_name: &str) -> Result<OperationStackRule> {
         frame: frame.to_string(),
         label: label.to_string(),
         pattern: pattern.to_string(),
+        regex,
+    })
+}
+
+pub fn parse_operation_filters(raw_filters: &[String]) -> Result<Vec<OperationFilterRule>> {
+    parse_operation_filters_with_flag(raw_filters, "--where")
+}
+
+pub fn parse_operation_filters_with_flag(
+    raw_filters: &[String],
+    flag_name: &str,
+) -> Result<Vec<OperationFilterRule>> {
+    raw_filters
+        .iter()
+        .map(|rule| parse_operation_filter(rule, flag_name))
+        .collect()
+}
+
+fn parse_operation_filter(raw: &str, flag_name: &str) -> Result<OperationFilterRule> {
+    let (field, pattern, negated) = if let Some((field, pattern)) = raw.split_once("!=") {
+        (field, pattern, true)
+    } else if let Some((field, pattern)) = raw.split_once('=') {
+        (field, pattern, false)
+    } else {
+        bail!("invalid {flag_name} {raw:?}; expected FIELD=REGEX or FIELD!=REGEX");
+    };
+    let field = field.trim();
+    validate_frame_name(field, "operation filter field")?;
+    if pattern.is_empty() {
+        bail!("invalid {flag_name} {raw:?}; regex pattern cannot be empty");
+    }
+    let regex = Regex::new(pattern)
+        .map_err(|error| anyhow::anyhow!("invalid {flag_name} regex {pattern:?}: {error}"))?;
+    Ok(OperationFilterRule {
+        field: field.to_string(),
+        pattern: pattern.to_string(),
+        negated,
         regex,
     })
 }
@@ -404,6 +466,9 @@ pub fn build_profile_with_options(
     for session in sessions {
         for sample in session_samples(session, project_name, view) {
             let sample = apply_operation_field_rules(&sample, &options.field_rules);
+            if !operation_matches_filters(&sample, &options.filters) {
+                continue;
+            }
             let frames = stack_frames(&sample, options);
             profile.sample(frames, sample.value);
         }
@@ -455,6 +520,9 @@ fn build_profile_from_operations(
     let mut profile = Profile::new(name, sample_type, unit);
     for sample in operations {
         let sample = apply_operation_field_rules(sample, &options.field_rules);
+        if !operation_matches_filters(&sample, &options.filters) {
+            continue;
+        }
         let frames = stack_frames(&sample, options);
         profile.sample(frames, sample.value);
     }
@@ -557,6 +625,19 @@ fn apply_operation_field_rules(sample: &Operation, rules: &[OperationStackRule])
         }
     }
     mapped
+}
+
+fn operation_matches_filters(sample: &Operation, filters: &[OperationFilterRule]) -> bool {
+    filters.iter().all(|filter| filter.matches(sample))
+}
+
+impl OperationFilterRule {
+    fn matches(&self, sample: &Operation) -> bool {
+        let matched = sample.values(&self.field).iter().any(|value| {
+            self.regex.is_match(value) || self.regex.is_match(&format!("{}={value}", self.field))
+        });
+        if self.negated { !matched } else { matched }
+    }
 }
 
 fn stack_frame_values(name: &str, sample: &Operation, rules: &[OperationStackRule]) -> Vec<String> {
@@ -1704,6 +1785,42 @@ mod tests {
             stacks.get("project:external;agent:gold;task:authenticate;phase:select;op:action;action:click;status:gold"),
             Some(&1)
         );
+        assert_eq!(
+            stacks.get("project:external;agent:gold;task:authenticate;phase:input;op:action;action:type;status:gold"),
+            Some(&1)
+        );
+    }
+
+    #[test]
+    fn operation_filters_select_after_field_mapping() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("ops.jsonl");
+        fs::write(
+            &path,
+            r#"{"value":1,"fields":{"project":"external","agent":"gold","dataset":"demo","op":"action","action":"click","target":"login","status":"gold"}}"#
+                .to_string()
+                + "\n"
+                + r#"{"value":1,"fields":{"project":"external","agent":"gold","dataset":"demo","op":"action","action":"type","target":"email","status":"gold"}}"#
+                + "\n",
+        )
+        .unwrap();
+        let stack = parse_stack_spec("project,agent,task,phase,op,action,status").unwrap();
+        let field_rules = parse_stack_rules(&[
+            "task:authenticate=(target=login|target=email)".to_string(),
+            "phase:select=(action=click.*task=authenticate)".to_string(),
+            "phase:input=(action=type.*task=authenticate)".to_string(),
+        ])
+        .unwrap();
+        let filters = parse_operation_filters(&["phase=input".to_string()]).unwrap();
+        let options = OperationStackConfig::for_view(ProfileView::Operations)
+            .with_stack(stack)
+            .with_field_rules(field_rules)
+            .with_filters(filters);
+        let profile =
+            build_profile_from_operation_files(&[path], ProfileView::Operations, &options).unwrap();
+        let stacks = profile_to_stacks(&profile);
+
+        assert_eq!(stacks.len(), 1);
         assert_eq!(
             stacks.get("project:external;agent:gold;task:authenticate;phase:input;op:action;action:type;status:gold"),
             Some(&1)

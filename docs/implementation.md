@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-04
 Stage at update: stage 4 execute / stage 8 audit / stage 11 reproducibility prep
-Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agentpprof/src/standard_trace.rs`, `agentpprof/tests/standard_trace_cli.rs`, `script/operation_*.py`, `script/agent_trace_datasets.py sample tau-bench-trajectories`, `script/agent_trace_datasets.py sample agent-reward-bench`, `script/agent_trace_datasets.py sample satraj-os-safety`, `script/agent_trace_datasets.py sample osworld-human`, `script/agent_trace_datasets.py sample agentnet`, `script/agent_trace_datasets.py sample scalecua-navigation`, `script/agent_trace_exchange_eval.py`, `script/agent_trace_chrome_exchange_eval.py`, `script/implementation_consistency_audit.py`, `cargo test --manifest-path agentpprof/Cargo.toml`
+Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agentpprof/src/standard_trace.rs`, `agentpprof/tests/standard_trace_cli.rs`, `script/operation_*.py`, `script/agent_trace_datasets.py sample tau-bench-trajectories`, `script/agent_trace_datasets.py sample agent-reward-bench`, `script/agent_trace_datasets.py sample satraj-os-safety`, `script/agent_trace_datasets.py sample osworld-human`, `script/agent_trace_datasets.py sample agentnet`, `script/agent_trace_datasets.py sample scalecua-navigation`, `script/agent_trace_exchange_eval.py`, `script/agent_trace_chrome_exchange_eval.py`, `script/operation_where_filter_eval.py`, `script/implementation_consistency_audit.py`, `cargo test --manifest-path agentpprof/Cargo.toml`
 Completeness: partial
 
 ## Repository Layout Relevant To Semantic Profiling
@@ -24,6 +24,7 @@ Purpose: identify the maintained implementation boundary.
 | `script/operation_stack_quality.py` | Scores operation stacks against dataset-provided labels. | research harness |
 | `script/operation_leaveout_eval.py` | Leave-dataset-out mapping validation over external traces. | research harness |
 | `script/operation_stack_depth_eval.py` | R286 recursive depth sweep over the Rust `agentpprof` path. | research harness |
+| `script/operation_where_filter_eval.py` | R321 profile-spec predicate probe over tracked R300 operation JSONL. | research harness |
 | `script/implementation_consistency_audit.py` | R319 implementation/docs consistency audit over Rust CLI, docs, and paper wording. | paper hygiene harness |
 | `docs/visexp/` | Historical AgentFlame/visual-experiment notes and older prototypes. | archive/reference; not authoritative |
 
@@ -37,6 +38,8 @@ The current Rust implementation supports:
 - arbitrary stack shape via `--stack`;
 - inline operation-field mappings via `--op-map`;
 - reusable mapping files via `--op-map-file`;
+- query-time operation predicates via `--where` and profile-spec
+  `where_rules`;
 - frame-local stack overrides via `--stack-rule`;
 - reusable profile specs via `--profile-spec`;
 - portable local agent-session trace import/export via `--trace-file` and
@@ -51,8 +54,11 @@ Profile specs are implemented in the maintained Rust CLI rather than a separate
 experiment runner. R293 tracks an AgentNet spec replay that reproduces the
 16,741-operation / 608-stack diagnostic view and a CLI override that folds the
 same operations into 83 stacks. A profile spec is a reproducibility wrapper over
-operation files, mappings, views, stacks, and outputs; it is not a third
-profiler abstraction.
+operation files, mappings, predicates, views, stacks, and outputs; it is not a
+third profiler abstraction. R321 verifies that `where_rules` run after
+mapping/tagging and before stack folding by selecting 729, 714, and 4,285
+operations from the tracked R300 real labeled operation JSONL with exact folded
+sample-count matches.
 
 Local trace exchange is also implemented through the maintained Rust path.
 R294/R303 show `agentsight.agent-session.trace.v1` export/import and operation
@@ -145,6 +151,7 @@ python3 -m py_compile script/agent_trace_datasets.py script/operation_split.py \
   script/operation_map_infer.py \
   script/operation_stack_quality.py script/operation_leaveout_eval.py \
   script/operation_stack_depth_eval.py script/agent_trace_convert.py \
+  script/operation_where_filter_eval.py \
   script/agent_trace_exchange_eval.py script/agent_trace_chrome_exchange_eval.py \
   script/implementation_consistency_audit.py
 ```

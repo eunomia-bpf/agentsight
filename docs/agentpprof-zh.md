@@ -169,9 +169,9 @@ agentpprof --project-root . --tag-cache tags.json -o flamegraph.svg
 
 **定义 2（operation stack，操作栈）。** 栈化函数 σ 把操作映射为有序帧序列 σ(o) = [f₁; f₂; …; f_k]。每一帧都是某种 operation 属性或 operation stack frame：project、agent、session、prompt、tool call、process、path、domain 都不是独立抽象，只是 operation 在不同粒度上的形态。与 CPU 调用栈不同，操作栈表达的是**归因链**而非控制流：每一帧回答「这个活动发生在什么上下文里」。
 
-层级从哪里来？agent 历史本身是一条线性事件序列，没有现成的树。当前实现把 operation field mapping 和 operation stack rule 作为栈构造规则：`--op-map FIELD:LABEL=REGEX` 先把 task、subtask、phase 等派生成普通 operation 字段，`--stack` 再选择栈中要出现的 frame，`--stack-rule FRAME:LABEL=REGEX` 只在构造某个 frame 时做局部覆盖。默认 `phase` 只是一个内置 frame，它根据 LLM 标签和 tool effect/category 给单个 prompt 内的事件生成阶段；用户也可以去掉 prompt、增加 `task,subtask,phase`，让几个 prompt 合并到同一个 intent/task 下。折叠出结构在前，标签聚合在后。
+层级从哪里来？agent 历史本身是一条线性事件序列，没有现成的树。当前实现把 operation field mapping、operation predicate 和 operation stack rule 作为栈构造规则：`--op-map FIELD:LABEL=REGEX` 先把 task、subtask、phase 等派生成普通 operation 字段，`--where FIELD=REGEX` 或 `--where FIELD!=REGEX` 再选择参与本次查询的 operation 子集，`--stack` 最后选择栈中要出现的 frame，`--stack-rule FRAME:LABEL=REGEX` 只在构造某个 frame 时做局部覆盖。默认 `phase` 只是一个内置 frame，它根据 LLM 标签和 tool effect/category 给单个 prompt 内的事件生成阶段；用户也可以去掉 prompt、增加 `task,subtask,phase`，让几个 prompt 合并到同一个 intent/task 下。折叠出结构在前，标签聚合在后。
 
-`--op-map` 和 `--stack-rule` 匹配的是由 operation 字段组成的 `key=value` 字符串，可用字段包括 `prompt`、`prompt_preview`、`op`、`tool`、`category`、`command`、`cmd`、`process`、`effect`、`status`、`path`、`domain`、`llm`、`llm_preview`、`model` 和 `token`。`--op-map` 先执行，并按顺序匹配已经派生出来的字段；同一个字段第一条匹配规则生效。默认栈使用 `phase`，但用户可以增删任意 frame。
+`--op-map` 和 `--stack-rule` 匹配的是由 operation 字段组成的 `key=value` 字符串，可用字段包括 `prompt`、`prompt_preview`、`op`、`tool`、`category`、`command`、`cmd`、`process`、`effect`、`status`、`path`、`domain`、`llm`、`llm_preview`、`model` 和 `token`。`--op-map` 先执行，并按顺序匹配已经派生出来的字段；同一个字段第一条匹配规则生效。`--where` 在 mapping 之后、stack 构造之前执行，多条 predicate 取 AND。默认栈使用 `phase`，但用户可以增删任意 frame。
 
 在这两个抽象之上，视图只是一次查询求值，不是新的核心抽象。一次查询由三部分组成：谓词 φ 选择参与统计的 operation 子集，σ 决定 operation stack，权重函数 w 把每个 operation 映射为非负数。求值结果是 folded stacks，即按栈分组、权重求和的多重集：
 
@@ -320,10 +320,11 @@ agentpprof -o files.folded --view files \
   --op-map 'task:explore=(effect=read|tool=read)' \
   --op-map 'phase:inspect=(effect=read)' \
   --op-map 'phase:execute=(effect=test)' \
+  --where 'task=verify' \
   --stack-rule 'path:tests=(path=tests)'
 ```
 
-`--op-map-file` 读取同样的 `FIELD:LABEL=REGEX` 规则文件，每行一条，空行和 `#` 注释会被忽略。命令行上的 `--op-map` 会排在文件规则前面，因此可以覆盖共享规则文件里的默认映射。对于已有标注的外部轨迹，可以先用 `script/operation_map_infer.py` 从 `dataset`、`tool`、`task` 和 `action` 等字段生成规则文件：
+`--op-map-file` 读取同样的 `FIELD:LABEL=REGEX` 规则文件，每行一条，空行和 `#` 注释会被忽略。命令行上的 `--op-map` 会排在文件规则前面，因此可以覆盖共享规则文件里的默认映射。`--where` 可用来把同一份 operation JSONL 切成不同查询视图，例如先派生 `task_family:looping`，再只折叠 `task_family=looping` 的操作。对于已有标注的外部轨迹，可以先用 `script/operation_map_infer.py` 从 `dataset`、`tool`、`task` 和 `action` 等字段生成规则文件：
 
 ```bash
 python3 script/operation_map_infer.py \
@@ -347,6 +348,7 @@ agentpprof -o external.folded --view operations \
   "project_name": "external-agent-traces",
   "operation_files": ["../external-agent-trace-agentnet-r291/agentnet-operations.jsonl"],
   "op_map_files": ["../external-agent-trace-agentnet-r291/agentnet-op-map.txt"],
+  "where_rules": ["dataset=agentnet"],
   "stack": "project,dataset,benchmark,environment,task,phase,op,tool,action,status,step_correct,step_redundant,repeat_signal"
 }
 ```
@@ -358,9 +360,8 @@ agentpprof --profile-spec docs/visexp/out/profile-spec-r293/agentnet-diagnostic-
 ```
 
 Spec 内的路径相对 spec 文件所在目录解析。`-o`、`--view`、`--format`、`--stack`
-这类命令行标量参数会覆盖 spec 默认值；命令行 `--op-map` 和 `--op-map-file` 会排在
-spec 规则之前求值。因此 profile spec 只是 operation、mapping 和 operation stack
-的复现实验配置，不是第三个 profiler 抽象。
+这类命令行标量参数会覆盖 spec 默认值；命令行 `--op-map`、`--op-map-file` 会排在
+spec 规则之前求值；命令行 `--where` 存在时会替换 spec 里的 `where_rules`，否则使用 spec predicate。因此 profile spec 只是 operation、mapping、predicate 和 operation stack 的复现实验配置，不是第三个 profiler 抽象。
 
 `tokens` 视图以模型预算作为宽度：
 

@@ -437,8 +437,21 @@ and rewrites operation fields in order, so later mappings can match fields
 derived by earlier mappings; `--op-map-file` reads the same rules from a text
 file, one per line, ignoring blank lines and `#` comments. Inline `--op-map`
 rules run before file rules, so the CLI can override shared defaults.
-`--stack-rule` is a frame-local override during stack construction. Default
-stacks use `phase`, but users can add or remove any field or stack frame.
+`--where FIELD=REGEX` and `--where FIELD!=REGEX` run after `--op-map` and
+before stack construction; multiple predicates are ANDed. `--stack-rule` is a
+frame-local override during stack construction. Default stacks use `phase`, but
+users can add or remove any field or stack frame.
+
+For example, this derives a reusable task field, selects only that query subset,
+then folds it at an arbitrary depth:
+
+```bash
+agentpprof -o looping.folded --view operations \
+  --operation-file docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl \
+  --op-map 'task_family:looping=(analysis_task=agentreward_looping)' \
+  --where 'task_family=looping' \
+  --stack 'task_family,dataset,query_family,environment,phase,action,repeat_signal,status'
+```
 
 For labeled external traces, `script/operation_map_infer.py` can derive a
 reusable mapping file from observed `dataset`, `tool`, `task`, and `action`
@@ -467,6 +480,7 @@ profile spec:
   "project_name": "external-agent-traces",
   "operation_files": ["../external-agent-trace-agentnet-r291/agentnet-operations.jsonl"],
   "op_map_files": ["../external-agent-trace-agentnet-r291/agentnet-op-map.txt"],
+  "where_rules": ["dataset=agentnet"],
   "stack": "project,dataset,benchmark,environment,task,phase,op,tool,action,status,step_correct,step_redundant,repeat_signal"
 }
 ```
@@ -479,9 +493,11 @@ agentpprof --profile-spec docs/visexp/out/profile-spec-r293/agentnet-diagnostic-
 
 Paths inside a spec are resolved relative to the spec file. Scalar CLI flags
 such as `-o`, `--view`, `--format`, and `--stack` override spec values; CLI
-`--op-map` and `--op-map-file` entries are evaluated before spec defaults. A
-profile spec is only a reproducibility wrapper around operations, mappings, and
-operation stacks. It is not a third profiler abstraction.
+`--op-map` and `--op-map-file` entries are evaluated before spec defaults.
+When CLI `--where` is present, it replaces spec `where_rules`; otherwise the
+spec predicates are used. A profile spec is only a reproducibility wrapper
+around operations, mappings, predicates, and operation stacks. It is not a third
+profiler abstraction.
 
 The `tokens` view uses model budget as the width:
 
