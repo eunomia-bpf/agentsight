@@ -1,0 +1,1637 @@
+{
+  "compression_ratio": 15.297,
+  "depth_weight": {
+    "0": 1132,
+    "1": 1132,
+    "2": 1132,
+    "3": 1132,
+    "4": 1132,
+    "5": 1132,
+    "6": 1132,
+    "7": 1132
+  },
+  "top_by_kind": {
+    "action": [
+      {
+        "name": "click",
+        "weight": 394
+      },
+      {
+        "name": "type",
+        "weight": 214
+      },
+      {
+        "name": "hotkey",
+        "weight": 211
+      },
+      {
+        "name": "press",
+        "weight": 194
+      },
+      {
+        "name": "double_click",
+        "weight": 42
+      },
+      {
+        "name": "drag",
+        "weight": 30
+      },
+      {
+        "name": "move_to",
+        "weight": 21
+      },
+      {
+        "name": "right_click",
+        "weight": 7
+      },
+      {
+        "name": "scroll",
+        "weight": 7
+      },
+      {
+        "name": "triple_click",
+        "weight": 7
+      },
+      {
+        "name": "shell",
+        "weight": 2
+      },
+      {
+        "name": "fail",
+        "weight": 1
+      },
+      {
+        "name": "key_down",
+        "weight": 1
+      },
+      {
+        "name": "key_up",
+        "weight": 1
+      }
+    ],
+    "dataset": [
+      {
+        "name": "osworld-human",
+        "weight": 1132
+      }
+    ],
+    "learned_group_pattern": [
+      {
+        "name": "input",
+        "weight": 555
+      },
+      {
+        "name": "select",
+        "weight": 385
+      },
+      {
+        "name": "select-and-input",
+        "weight": 72
+      },
+      {
+        "name": "drag",
+        "weight": 27
+      },
+      {
+        "name": "select-and-input-and-select",
+        "weight": 25
+      },
+      {
+        "name": "select-and-drag-and-select-and-input-and-select-and-input-and-drag-and-select",
+        "weight": 11
+      },
+      {
+        "name": "drag-and-input",
+        "weight": 9
+      },
+      {
+        "name": "select-and-drag",
+        "weight": 8
+      },
+      {
+        "name": "select-and-input-and-drag-and-select",
+        "weight": 7
+      },
+      {
+        "name": "scroll",
+        "weight": 7
+      },
+      {
+        "name": "input-and-shell-and-input-and-fail",
+        "weight": 6
+      },
+      {
+        "name": "drag-and-select",
+        "weight": 6
+      },
+      {
+        "name": "right-click",
+        "weight": 6
+      },
+      {
+        "name": "drag-and-input-and-right-click",
+        "weight": 4
+      },
+      {
+        "name": "select-and-drag-and-select",
+        "weight": 3
+      },
+      {
+        "name": "shell",
+        "weight": 1
+      }
+    ],
+    "learned_group_position": [
+      {
+        "name": "single",
+        "weight": 582
+      },
+      {
+        "name": "middle",
+        "weight": 276
+      },
+      {
+        "name": "end",
+        "weight": 137
+      },
+      {
+        "name": "start",
+        "weight": 137
+      }
+    ],
+    "phase": [
+      {
+        "name": "input",
+        "weight": 621
+      },
+      {
+        "name": "navigate",
+        "weight": 508
+      },
+      {
+        "name": "system",
+        "weight": 2
+      },
+      {
+        "name": "fail",
+        "weight": 1
+      }
+    ],
+    "project": [
+      {
+        "name": "external-agent-traces",
+        "weight": 1132
+      }
+    ],
+    "status": [
+      {
+        "name": "gold",
+        "weight": 1126
+      },
+      {
+        "name": "infeasible",
+        "weight": 6
+      }
+    ],
+    "task": [
+      {
+        "name": "desktop-computer-use",
+        "weight": 1132
+      }
+    ]
+  },
+  "top_leaves": [
+    {
+      "name": "status:gold",
+      "weight": 1126
+    },
+    {
+      "name": "status:infeasible",
+      "weight": 6
+    }
+  ],
+  "top_transitions": [
+    {
+      "from": "project:external-agent-traces",
+      "to": "dataset:osworld-human",
+      "weight": 1132
+    },
+    {
+      "from": "dataset:osworld-human",
+      "to": "task:desktop-computer-use",
+      "weight": 1132
+    },
+    {
+      "from": "task:desktop-computer-use",
+      "to": "phase:input",
+      "weight": 621
+    },
+    {
+      "from": "phase:input",
+      "to": "learned_group_pattern:input",
+      "weight": 555
+    },
+    {
+      "from": "task:desktop-computer-use",
+      "to": "phase:navigate",
+      "weight": 508
+    },
+    {
+      "from": "action:click",
+      "to": "status:gold",
+      "weight": 394
+    },
+    {
+      "from": "phase:navigate",
+      "to": "learned_group_pattern:select",
+      "weight": 385
+    },
+    {
+      "from": "learned_group_pattern:select",
+      "to": "learned_group_position:single",
+      "weight": 385
+    },
+    {
+      "from": "learned_group_position:single",
+      "to": "action:click",
+      "weight": 349
+    },
+    {
+      "from": "learned_group_pattern:input",
+      "to": "learned_group_position:middle",
+      "weight": 225
+    },
+    {
+      "from": "action:type",
+      "to": "status:gold",
+      "weight": 213
+    },
+    {
+      "from": "action:hotkey",
+      "to": "status:gold",
+      "weight": 210
+    },
+    {
+      "from": "action:press",
+      "to": "status:gold",
+      "weight": 192
+    },
+    {
+      "from": "learned_group_pattern:input",
+      "to": "learned_group_position:single",
+      "weight": 166
+    },
+    {
+      "from": "learned_group_position:middle",
+      "to": "action:type",
+      "weight": 153
+    },
+    {
+      "from": "learned_group_position:single",
+      "to": "action:hotkey",
+      "weight": 103
+    },
+    {
+      "from": "learned_group_position:middle",
+      "to": "action:press",
+      "weight": 100
+    },
+    {
+      "from": "learned_group_pattern:input",
+      "to": "learned_group_position:end",
+      "weight": 82
+    },
+    {
+      "from": "learned_group_pattern:input",
+      "to": "learned_group_position:start",
+      "weight": 82
+    },
+    {
+      "from": "learned_group_position:end",
+      "to": "action:press",
+      "weight": 54
+    },
+    {
+      "from": "learned_group_position:start",
+      "to": "action:hotkey",
+      "weight": 54
+    },
+    {
+      "from": "learned_group_position:end",
+      "to": "action:hotkey",
+      "weight": 51
+    },
+    {
+      "from": "phase:input",
+      "to": "learned_group_pattern:select-and-input",
+      "weight": 43
+    },
+    {
+      "from": "action:double_click",
+      "to": "status:gold",
+      "weight": 42
+    },
+    {
+      "from": "learned_group_position:single",
+      "to": "action:press",
+      "weight": 40
+    },
+    {
+      "from": "learned_group_position:single",
+      "to": "action:double_click",
+      "weight": 34
+    },
+    {
+      "from": "learned_group_position:start",
+      "to": "action:click",
+      "weight": 32
+    },
+    {
+      "from": "action:drag",
+      "to": "status:gold",
+      "weight": 30
+    },
+    {
+      "from": "learned_group_position:start",
+      "to": "action:type",
+      "weight": 29
+    },
+    {
+      "from": "learned_group_pattern:select-and-input",
+      "to": "learned_group_position:end",
+      "weight": 29
+    }
+  ],
+  "total_weight": 1132,
+  "tree": {
+    "children": [
+      {
+        "children": [
+          {
+            "children": [
+              {
+                "children": [
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 133
+                                  }
+                                ],
+                                "name": "action:type",
+                                "value": 266
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 91
+                                  }
+                                ],
+                                "name": "action:press",
+                                "value": 182
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:hotkey",
+                                "value": 2
+                              }
+                            ],
+                            "name": "learned_group_position:middle",
+                            "value": 675
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 103
+                                  }
+                                ],
+                                "name": "action:hotkey",
+                                "value": 206
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 40
+                                  }
+                                ],
+                                "name": "action:press",
+                                "value": 80
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 23
+                                  }
+                                ],
+                                "name": "action:type",
+                                "value": 46
+                              }
+                            ],
+                            "name": "learned_group_position:single",
+                            "value": 498
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 39
+                                  }
+                                ],
+                                "name": "action:hotkey",
+                                "value": 78
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 37
+                                  }
+                                ],
+                                "name": "action:press",
+                                "value": 74
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 6
+                                  }
+                                ],
+                                "name": "action:type",
+                                "value": 12
+                              }
+                            ],
+                            "name": "learned_group_position:end",
+                            "value": 246
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 53
+                                  }
+                                ],
+                                "name": "action:hotkey",
+                                "value": 106
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 29
+                                  }
+                                ],
+                                "name": "action:type",
+                                "value": 58
+                              }
+                            ],
+                            "name": "learned_group_position:start",
+                            "value": 246
+                          }
+                        ],
+                        "name": "learned_group_pattern:input",
+                        "value": 2220
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 16
+                                  }
+                                ],
+                                "name": "action:press",
+                                "value": 32
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 9
+                                  }
+                                ],
+                                "name": "action:hotkey",
+                                "value": 18
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 3
+                                  }
+                                ],
+                                "name": "action:type",
+                                "value": 6
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:key_down",
+                                "value": 2
+                              }
+                            ],
+                            "name": "learned_group_position:end",
+                            "value": 87
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 12
+                                  }
+                                ],
+                                "name": "action:type",
+                                "value": 24
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:key_up",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:press",
+                                "value": 2
+                              }
+                            ],
+                            "name": "learned_group_position:middle",
+                            "value": 42
+                          }
+                        ],
+                        "name": "learned_group_pattern:select-and-input",
+                        "value": 172
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 7
+                                  }
+                                ],
+                                "name": "action:type",
+                                "value": 14
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 4
+                                  }
+                                ],
+                                "name": "action:press",
+                                "value": 8
+                              }
+                            ],
+                            "name": "learned_group_position:middle",
+                            "value": 33
+                          }
+                        ],
+                        "name": "learned_group_pattern:select-and-input-and-select",
+                        "value": 44
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 3
+                                  }
+                                ],
+                                "name": "action:hotkey",
+                                "value": 6
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:press",
+                                "value": 2
+                              }
+                            ],
+                            "name": "learned_group_position:end",
+                            "value": 12
+                          }
+                        ],
+                        "name": "learned_group_pattern:drag-and-input",
+                        "value": 16
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:infeasible",
+                                    "value": 2
+                                  }
+                                ],
+                                "name": "action:press",
+                                "value": 4
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:infeasible",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:type",
+                                "value": 2
+                              }
+                            ],
+                            "name": "learned_group_position:middle",
+                            "value": 9
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:infeasible",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:hotkey",
+                                "value": 2
+                              }
+                            ],
+                            "name": "learned_group_position:start",
+                            "value": 3
+                          }
+                        ],
+                        "name": "learned_group_pattern:input-and-shell-and-input-and-fail",
+                        "value": 16
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:hotkey",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:press",
+                                "value": 2
+                              }
+                            ],
+                            "name": "learned_group_position:middle",
+                            "value": 6
+                          }
+                        ],
+                        "name": "learned_group_pattern:select-and-drag-and-select-and-input-and-select-and-input-and-drag-and-select",
+                        "value": 8
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:hotkey",
+                                "value": 2
+                              }
+                            ],
+                            "name": "learned_group_position:middle",
+                            "value": 3
+                          }
+                        ],
+                        "name": "learned_group_pattern:drag-and-input-and-right-click",
+                        "value": 4
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:press",
+                                "value": 2
+                              }
+                            ],
+                            "name": "learned_group_position:middle",
+                            "value": 3
+                          }
+                        ],
+                        "name": "learned_group_pattern:select-and-input-and-drag-and-select",
+                        "value": 4
+                      }
+                    ],
+                    "name": "phase:input",
+                    "value": 3105
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 349
+                                  }
+                                ],
+                                "name": "action:click",
+                                "value": 698
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 34
+                                  }
+                                ],
+                                "name": "action:double_click",
+                                "value": 68
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 2
+                                  }
+                                ],
+                                "name": "action:triple_click",
+                                "value": 4
+                              }
+                            ],
+                            "name": "learned_group_position:single",
+                            "value": 1155
+                          }
+                        ],
+                        "name": "learned_group_pattern:select",
+                        "value": 1540
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 19
+                                  }
+                                ],
+                                "name": "action:click",
+                                "value": 38
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 5
+                                  }
+                                ],
+                                "name": "action:double_click",
+                                "value": 10
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 5
+                                  }
+                                ],
+                                "name": "action:triple_click",
+                                "value": 10
+                              }
+                            ],
+                            "name": "learned_group_position:start",
+                            "value": 87
+                          }
+                        ],
+                        "name": "learned_group_pattern:select-and-input",
+                        "value": 116
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 11
+                                  }
+                                ],
+                                "name": "action:drag",
+                                "value": 22
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 6
+                                  }
+                                ],
+                                "name": "action:move_to",
+                                "value": 12
+                              }
+                            ],
+                            "name": "learned_group_position:single",
+                            "value": 51
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 2
+                                  }
+                                ],
+                                "name": "action:drag",
+                                "value": 4
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 2
+                                  }
+                                ],
+                                "name": "action:move_to",
+                                "value": 4
+                              }
+                            ],
+                            "name": "learned_group_position:middle",
+                            "value": 12
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 3
+                                  }
+                                ],
+                                "name": "action:drag",
+                                "value": 6
+                              }
+                            ],
+                            "name": "learned_group_position:end",
+                            "value": 9
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 3
+                                  }
+                                ],
+                                "name": "action:move_to",
+                                "value": 6
+                              }
+                            ],
+                            "name": "learned_group_position:start",
+                            "value": 9
+                          }
+                        ],
+                        "name": "learned_group_pattern:drag",
+                        "value": 108
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 7
+                                  }
+                                ],
+                                "name": "action:click",
+                                "value": 14
+                              }
+                            ],
+                            "name": "learned_group_position:end",
+                            "value": 21
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 6
+                                  }
+                                ],
+                                "name": "action:click",
+                                "value": 12
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:double_click",
+                                "value": 2
+                              }
+                            ],
+                            "name": "learned_group_position:start",
+                            "value": 21
+                          }
+                        ],
+                        "name": "learned_group_pattern:select-and-input-and-select",
+                        "value": 56
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 3
+                                  }
+                                ],
+                                "name": "action:move_to",
+                                "value": 6
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 2
+                                  }
+                                ],
+                                "name": "action:drag",
+                                "value": 4
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:click",
+                                "value": 2
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:double_click",
+                                "value": 2
+                              }
+                            ],
+                            "name": "learned_group_position:middle",
+                            "value": 21
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:click",
+                                "value": 2
+                              }
+                            ],
+                            "name": "learned_group_position:end",
+                            "value": 3
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:click",
+                                "value": 2
+                              }
+                            ],
+                            "name": "learned_group_position:start",
+                            "value": 3
+                          }
+                        ],
+                        "name": "learned_group_pattern:select-and-drag-and-select-and-input-and-select-and-input-and-drag-and-select",
+                        "value": 36
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 3
+                                  }
+                                ],
+                                "name": "action:drag",
+                                "value": 6
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:move_to",
+                                "value": 2
+                              }
+                            ],
+                            "name": "learned_group_position:end",
+                            "value": 12
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 4
+                                  }
+                                ],
+                                "name": "action:click",
+                                "value": 8
+                              }
+                            ],
+                            "name": "learned_group_position:start",
+                            "value": 12
+                          }
+                        ],
+                        "name": "learned_group_pattern:select-and-drag",
+                        "value": 32
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 7
+                                  }
+                                ],
+                                "name": "action:scroll",
+                                "value": 14
+                              }
+                            ],
+                            "name": "learned_group_position:single",
+                            "value": 21
+                          }
+                        ],
+                        "name": "learned_group_pattern:scroll",
+                        "value": 28
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 3
+                                  }
+                                ],
+                                "name": "action:click",
+                                "value": 6
+                              }
+                            ],
+                            "name": "learned_group_position:end",
+                            "value": 9
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 2
+                                  }
+                                ],
+                                "name": "action:move_to",
+                                "value": 4
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:drag",
+                                "value": 2
+                              }
+                            ],
+                            "name": "learned_group_position:start",
+                            "value": 9
+                          }
+                        ],
+                        "name": "learned_group_pattern:drag-and-select",
+                        "value": 24
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 6
+                                  }
+                                ],
+                                "name": "action:right_click",
+                                "value": 12
+                              }
+                            ],
+                            "name": "learned_group_position:single",
+                            "value": 18
+                          }
+                        ],
+                        "name": "learned_group_pattern:right-click",
+                        "value": 24
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 2
+                                  }
+                                ],
+                                "name": "action:drag",
+                                "value": 4
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 2
+                                  }
+                                ],
+                                "name": "action:move_to",
+                                "value": 4
+                              }
+                            ],
+                            "name": "learned_group_position:middle",
+                            "value": 12
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:double_click",
+                                "value": 2
+                              }
+                            ],
+                            "name": "learned_group_position:end",
+                            "value": 3
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:click",
+                                "value": 2
+                              }
+                            ],
+                            "name": "learned_group_position:start",
+                            "value": 3
+                          }
+                        ],
+                        "name": "learned_group_pattern:select-and-input-and-drag-and-select",
+                        "value": 24
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 3
+                                  }
+                                ],
+                                "name": "action:drag",
+                                "value": 6
+                              },
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:move_to",
+                                "value": 2
+                              }
+                            ],
+                            "name": "learned_group_position:start",
+                            "value": 12
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:drag",
+                                "value": 2
+                              }
+                            ],
+                            "name": "learned_group_position:middle",
+                            "value": 3
+                          }
+                        ],
+                        "name": "learned_group_pattern:drag-and-input",
+                        "value": 20
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:right_click",
+                                "value": 2
+                              }
+                            ],
+                            "name": "learned_group_position:end",
+                            "value": 3
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:drag",
+                                "value": 2
+                              }
+                            ],
+                            "name": "learned_group_position:middle",
+                            "value": 3
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:move_to",
+                                "value": 2
+                              }
+                            ],
+                            "name": "learned_group_position:start",
+                            "value": 3
+                          }
+                        ],
+                        "name": "learned_group_pattern:drag-and-input-and-right-click",
+                        "value": 12
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:click",
+                                "value": 2
+                              }
+                            ],
+                            "name": "learned_group_position:end",
+                            "value": 3
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:drag",
+                                "value": 2
+                              }
+                            ],
+                            "name": "learned_group_position:middle",
+                            "value": 3
+                          },
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:click",
+                                "value": 2
+                              }
+                            ],
+                            "name": "learned_group_position:start",
+                            "value": 3
+                          }
+                        ],
+                        "name": "learned_group_pattern:select-and-drag-and-select",
+                        "value": 12
+                      }
+                    ],
+                    "name": "phase:navigate",
+                    "value": 2540
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:infeasible",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:shell",
+                                "value": 2
+                              }
+                            ],
+                            "name": "learned_group_position:middle",
+                            "value": 3
+                          }
+                        ],
+                        "name": "learned_group_pattern:input-and-shell-and-input-and-fail",
+                        "value": 4
+                      },
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:gold",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:shell",
+                                "value": 2
+                              }
+                            ],
+                            "name": "learned_group_position:single",
+                            "value": 3
+                          }
+                        ],
+                        "name": "learned_group_pattern:shell",
+                        "value": 4
+                      }
+                    ],
+                    "name": "phase:system",
+                    "value": 10
+                  },
+                  {
+                    "children": [
+                      {
+                        "children": [
+                          {
+                            "children": [
+                              {
+                                "children": [
+                                  {
+                                    "children": [],
+                                    "name": "status:infeasible",
+                                    "value": 1
+                                  }
+                                ],
+                                "name": "action:fail",
+                                "value": 2
+                              }
+                            ],
+                            "name": "learned_group_position:end",
+                            "value": 3
+                          }
+                        ],
+                        "name": "learned_group_pattern:input-and-shell-and-input-and-fail",
+                        "value": 4
+                      }
+                    ],
+                    "name": "phase:fail",
+                    "value": 5
+                  }
+                ],
+                "name": "task:desktop-computer-use",
+                "value": 6792
+              }
+            ],
+            "name": "dataset:osworld-human",
+            "value": 7924
+          }
+        ],
+        "name": "project:external-agent-traces",
+        "value": 9056
+      }
+    ],
+    "name": "root",
+    "value": 1132
+  },
+  "unique_stacks": 74
+}

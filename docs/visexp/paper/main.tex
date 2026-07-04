@@ -52,6 +52,7 @@ R293 进一步把 AgentNet 的同一 operation-stack 查询写成 profile spec�
 R294 显示本地 Codex session 可以导出为 \texttt{agentsight.agent-session.trace.v1}，再导入或转成 operation JSONL；两条路径在同一 stack 下产生字节一致的 folded 输出。
 R295 从 tracked R282--R294 JSON/folded artifacts 机械生成 claim verdict：C1 支持，C2 在限定范围内支持，C3 只支持 deterministic label-derived mappings，不支持无监督边界发现。
 R296 进一步把这些证据组织成 reviewer evidence packet：11 个非 flamegraph 与证据导航条目、4 个 reviewer questions 和从 tracked artifacts 派生的 mapping、human-group、diagnostic 与 reproducibility 指标。
+R297 在 OSWorld-Human 上加入第一个 supervised boundary-backend probe：它在 held-out sessions 上预测人工 human-group 边界，F1 为 0.7735，并把预测结果写回 \texttt{learned\_group\_pattern} 字段后交给 Rust profiler 折叠。
 这些结果支持一个机制性 claim：agent 轨迹可以被统一为 operations，并通过可配置 mappings 和 stack specs 递归折叠为多个有用的 analysis views。
 当前结果仍不支持完整无监督边界发现或人类用户效用 claim。
 \end{abstract}
@@ -152,6 +153,9 @@ R295 的 \texttt{script/paper\_claim\_synthesis.py} 读取 tracked R282--R294 re
 第五，论文证据必须能被 reviewer 导航。
 R296 的 \texttt{script/reviewer\_evidence\_packet.py} 读取 tracked/clean R282--R295 artifacts，生成 JSON、Markdown 和 HTML packet，把 claim verdict、非 flamegraph visualizations、evidence-navigation entries、reviewer questions、负结果和 expansion gates 放到同一处。
 这个 packet 不是新实验，而是防止结果分散在多个目录后无法审计。
+第六，boundary backend 必须仍然服从两个抽象。
+R297 的 \texttt{script/operation\_boundary\_backend\_eval.py} 在 OSWorld-Human 上训练 supervised adjacent-boundary model，但它只写回 operation fields，例如 \texttt{learned\_group\_pattern} 和 \texttt{learned\_group\_position}。
+递归折叠仍由 \toolname{} 使用普通 \texttt{--profile-spec} 和 \texttt{--stack} 完成。
 
 \begin{table*}[t]
   \centering
@@ -231,7 +235,12 @@ R283--R285 进一步做 leave-dataset-out。
 在修正 API/tool phase precedence 后，R285 对 9 个 held-out datasets 中的 6 个减少 unique stacks，0 个出现 negative stack reduction，weighted stack reduction 为每 1,000 operations 1162.005。
 这说明 mapping 不是单个数据集的 ad hoc pretty printer。
 它仍然是 deterministic taxonomy-seeded mapping，不是无监督边界发现。
-当前可支持的 claim 是 configurable mapping 能在 held-out 和 leave-dataset-out 设置下改善语义聚合；完整 model-backed 或 unsupervised boundary detector 仍是后续工作。
+R297 开始测试更强的 boundary backend。
+它在 OSWorld-Human exact-aligned sessions 上按 session 做 deterministic split：191 个 train sessions 产生 2,655 个 train adjacent pairs，96 个 test sessions 产生 1,036 个 test adjacent pairs。
+模型使用非 oracle operation fields 训练 Bernoulli adjacent-boundary predictor，明确排除 \texttt{human\_group}、\texttt{group\_index}、\texttt{group\_position}、\texttt{group\_size}、\texttt{group\_pattern} 和 \texttt{group\_alignment}。
+在 held-out pairs 上，learned backend 的 precision 为 0.7400，recall 为 0.8102，F1 为 0.7735；phase-change baseline 为 0.2919，action-change 为 0.5142，conservative \texttt{group\_pattern} reference 为 0.5810。
+随后脚本把预测边界写成 \texttt{learned\_group\_pattern} 和 \texttt{learned\_group\_position} 字段，Rust \toolname{} 在 1,132 个 held-out operations 上折叠得到 74 个 stacks。
+当前可支持的 claim 是 configurable deterministic/supervised field derivation 能在 held-out 设置下改善语义聚合；完整 model-backed 或 unsupervised boundary detector 仍是后续工作。
 
 \subsection{RQ4：能否恢复真实人工边界？}
 
@@ -283,6 +292,7 @@ Task status 对 step correctness 的 V-measure 只有 0.015，repeat signal 对 
     R294 trace exchange & public Codex fixture & 1 trace session、6 operations；trace import 与 operation import 均为 6 samples / 5 stacks 且 folded 字节一致 & 本地 session 可导出、导入并桥接到 operation JSONL。 \\
     R295 claim synthesis & R282--R294 tracked artifacts & C1 supported；C2 supported with scoped limits；C3 partial & 论文 claim gate 明确支持范围和不能 claim 的内容。 \\
     R296 reviewer packet & R282--R295 tracked artifacts & 11 个非 flamegraph/evidence-navigation entries；4 个 reviewer questions；39 个 clean input artifacts & 结果可通过 claim-indexed 多视图证据包审计。 \\
+    R297 boundary backend & OSWorld-Human held-out sessions & 1,036 test adjacent pairs；learned F1 0.7735；Rust fold 1,132 ops / 74 stacks & Boundary backend 只是派生 operation fields，递归折叠仍由 operation stack 完成。 \\
     R288/R289 diagnostics & 729 AgentRewardBench ops；4,285 SATraj ops & repeat-signal/looping V-measure 0.378 vs step-error 0.011；622 unsafe SATraj ops & Profiler 支持 failure/safety views，且负结果能揭示粗标签不足。 \\
     \bottomrule
   \end{tabular}
@@ -331,6 +341,7 @@ R282/R285 证明它们有 held-out 和 leave-dataset-out 泛化，但不证明�
 第五，paper 当前证据支持“operation/operation-stack 是一致且有价值的 profiling abstraction”，不支持“所有 agent 行为都能自动恢复真实意图边界”。
 第六，R295 是 claim synthesis，不是新的经验结果；如果底层 R282--R294 artifact 有采样偏差，R295 只能暴露和约束 claim，不能消除这些偏差。
 第七，R296 是 evidence navigation，不是新的实证结果；它提高 reviewer 可审计性，但不能替代更强 boundary backend 或用户效用实验。
+第八，R297 是 supervised OSWorld-Human expansion probe；它不证明无监督 intent discovery，也没有验证到 AgentNet、tau-bench 或其它轨迹家族。
 
 \section{结论}
 
@@ -341,6 +352,7 @@ Mapping 和 tagging 负责派生 fields，\texttt{--view} 和 \texttt{--stack} �
 最强证据来自 OSWorld-Human 的人工 grouped-action 边界、AgentNet 的大规模 human desktop step-quality 标签、AgentRewardBench/SATraj 的 failure/safety diagnostics，以及 R286 的递归深度消融。
 R295 把这些证据合并为可复现 claim gate：当前可以 claim 统一 operation abstraction 和 scoped recursive operation-stack value，但不能 claim 无监督 intent discovery 或开发者生产力提升。
 R296 把 claim gate、非 flamegraph 视图和负结果整理成 reviewer evidence packet，使论文主张能从 artifact 直接追溯，而不是依赖手写叙述。
+R297 进一步验证 boundary backend 的正确接入方式：模型只派生 operation fields，Rust profiler 仍按用户指定 operation stack 折叠。
 下一步不是继续无差别增加数据集，而是把 mapping backend、boundary detector 和用户任务实验推进到能支持更强 claim 的程度。
 
 \vspace{-0.8em}

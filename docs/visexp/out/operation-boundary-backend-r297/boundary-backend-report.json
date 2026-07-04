@@ -1,0 +1,350 @@
+{
+  "claim_scope": {
+    "not_supported": "Unsupervised intent discovery or a general boundary detector across all agent traces.",
+    "supported": "A supervised adjacent-boundary backend can derive stackable learned_group_pattern fields on held-out OSWorld-Human sessions."
+  },
+  "feature_fields": [
+    "action",
+    "phase",
+    "target",
+    "repeat_state",
+    "repeat_signal",
+    "app",
+    "environment",
+    "status",
+    "tool"
+  ],
+  "leakage_policy": {
+    "excluded_fields": [
+      "group_alignment",
+      "group_index",
+      "group_pattern",
+      "group_position",
+      "group_size",
+      "human_group",
+      "learned_boundary_model",
+      "learned_boundary_prev",
+      "learned_boundary_split",
+      "learned_group",
+      "learned_group_pattern",
+      "learned_group_position",
+      "learned_group_size",
+      "oracle_boundary_field"
+    ],
+    "excluded_prefixes": [
+      "learned_"
+    ],
+    "note": "Oracle/group fields are excluded from model features; group_pattern is only a reference baseline."
+  },
+  "model": {
+    "features": 344,
+    "kind": "bernoulli-naive-bayes-adjacent-boundary",
+    "threshold": -3.362299,
+    "top_features": [
+      {
+        "boundary_count": 0,
+        "feature": "pair:action=move_to->drag",
+        "log_odds_boundary": -3.9452,
+        "non_boundary_count": 63
+      },
+      {
+        "boundary_count": 37,
+        "feature": "pair:target=scroll->ui",
+        "log_odds_boundary": 3.8513,
+        "non_boundary_count": 0
+      },
+      {
+        "boundary_count": 36,
+        "feature": "pair:action=scroll->click",
+        "log_odds_boundary": 3.8246,
+        "non_boundary_count": 0
+      },
+      {
+        "boundary_count": 0,
+        "feature": "pair:action=drag->hotkey",
+        "log_odds_boundary": -3.7182,
+        "non_boundary_count": 50
+      },
+      {
+        "boundary_count": 1,
+        "feature": "curr:action=drag",
+        "log_odds_boundary": -3.5818,
+        "non_boundary_count": 88
+      },
+      {
+        "boundary_count": 50,
+        "feature": "prev:action=scroll",
+        "log_odds_boundary": 3.0469,
+        "non_boundary_count": 2
+      },
+      {
+        "boundary_count": 50,
+        "feature": "prev:target=scroll",
+        "log_odds_boundary": 3.0469,
+        "non_boundary_count": 2
+      },
+      {
+        "boundary_count": 31,
+        "feature": "pair:target=ui->scroll",
+        "log_odds_boundary": 2.9863,
+        "non_boundary_count": 1
+      },
+      {
+        "boundary_count": 14,
+        "feature": "pair:action=double_click->scroll",
+        "log_odds_boundary": 2.9217,
+        "non_boundary_count": 0
+      },
+      {
+        "boundary_count": 16,
+        "feature": "pair:action=type->press",
+        "log_odds_boundary": -2.8747,
+        "non_boundary_count": 372
+      },
+      {
+        "boundary_count": 3,
+        "feature": "pair:target=pointer->key",
+        "log_odds_boundary": -2.7438,
+        "non_boundary_count": 76
+      },
+      {
+        "boundary_count": 10,
+        "feature": "pair:action=scroll->hotkey",
+        "log_odds_boundary": 2.6116,
+        "non_boundary_count": 0
+      },
+      {
+        "boundary_count": 10,
+        "feature": "pair:target=scroll->key",
+        "log_odds_boundary": 2.6116,
+        "non_boundary_count": 0
+      },
+      {
+        "boundary_count": 5,
+        "feature": "pair:target=pointer->pointer",
+        "log_odds_boundary": -2.5693,
+        "non_boundary_count": 96
+      },
+      {
+        "boundary_count": 0,
+        "feature": "prev:action=key_down",
+        "log_odds_boundary": -2.5589,
+        "non_boundary_count": 15
+      },
+      {
+        "boundary_count": 4,
+        "feature": "prev:action=drag",
+        "log_odds_boundary": -2.5463,
+        "non_boundary_count": 78
+      },
+      {
+        "boundary_count": 24,
+        "feature": "pair:target=text->key",
+        "log_odds_boundary": -2.497,
+        "non_boundary_count": 375
+      },
+      {
+        "boundary_count": 0,
+        "feature": "pair:action=key_down->click",
+        "log_odds_boundary": -2.4944,
+        "non_boundary_count": 14
+      },
+      {
+        "boundary_count": 0,
+        "feature": "curr:action=key_up",
+        "log_odds_boundary": -2.4254,
+        "non_boundary_count": 13
+      },
+      {
+        "boundary_count": 0,
+        "feature": "pair:action=click->key_up",
+        "log_odds_boundary": -2.4254,
+        "non_boundary_count": 13
+      }
+    ]
+  },
+  "oracle_field": "human_group",
+  "outputs": {
+    "augmented_operations": "docs/visexp/out/operation-boundary-backend-r297/osworld-learned-boundary-test-operations.jsonl",
+    "html": "docs/visexp/out/operation-boundary-backend-r297/boundary-backend-report.html",
+    "json": "docs/visexp/out/operation-boundary-backend-r297/boundary-backend-report.json",
+    "markdown": "docs/visexp/out/operation-boundary-backend-r297/boundary-backend-report.md",
+    "profile_spec": "docs/visexp/out/operation-boundary-backend-r297/learned-boundary-profile-spec.json"
+  },
+  "require_field": "group_alignment=exact",
+  "run_id": "R297",
+  "schema": "agentsight.operation-boundary-backend.v1",
+  "sequence_field": "session",
+  "source": "docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-operations.jsonl",
+  "split": {
+    "seed": "r297",
+    "test_operations": 1132,
+    "test_sequences": 96,
+    "train_operations": 2846,
+    "train_percent": 70,
+    "train_sequences": 191
+  },
+  "test_metrics": {
+    "baselines": [
+      {
+        "accuracy": 0.5492,
+        "f1": 0.709,
+        "false_negative": 0,
+        "false_positive": 467,
+        "name": "always_boundary",
+        "precision": 0.5492,
+        "recall": 1.0,
+        "true_negative": 0,
+        "true_positive": 569
+      },
+      {
+        "accuracy": 0.4508,
+        "f1": 0.0,
+        "false_negative": 569,
+        "false_positive": 0,
+        "name": "never_boundary",
+        "precision": 0.0,
+        "recall": 0.0,
+        "true_negative": 467,
+        "true_positive": 0
+      },
+      {
+        "accuracy": 0.4286,
+        "f1": 0.2919,
+        "false_negative": 447,
+        "false_positive": 145,
+        "name": "phase_change",
+        "precision": 0.4569,
+        "recall": 0.2144,
+        "true_negative": 322,
+        "true_positive": 122
+      },
+      {
+        "accuracy": 0.3726,
+        "f1": 0.5142,
+        "false_negative": 225,
+        "false_positive": 425,
+        "name": "action_change",
+        "precision": 0.4473,
+        "recall": 0.6046,
+        "true_negative": 42,
+        "true_positive": 344
+      },
+      {
+        "accuracy": 0.3069,
+        "f1": 0.4086,
+        "false_negative": 321,
+        "false_positive": 397,
+        "name": "target_change",
+        "precision": 0.3845,
+        "recall": 0.4359,
+        "true_negative": 70,
+        "true_positive": 248
+      },
+      {
+        "accuracy": 0.6757,
+        "f1": 0.581,
+        "false_negative": 336,
+        "false_positive": 0,
+        "name": "group_pattern_reference",
+        "precision": 1.0,
+        "recall": 0.4095,
+        "true_negative": 467,
+        "true_positive": 233
+      }
+    ],
+    "learned_boundary_backend": {
+      "accuracy": 0.7394,
+      "f1": 0.7735,
+      "false_negative": 108,
+      "false_positive": 162,
+      "precision": 0.74,
+      "recall": 0.8102,
+      "true_negative": 305,
+      "true_positive": 461
+    }
+  },
+  "test_pairs": 1036,
+  "train_metrics": {
+    "baselines": [
+      {
+        "accuracy": 0.4467,
+        "f1": 0.6175,
+        "false_negative": 0,
+        "false_positive": 1469,
+        "name": "always_boundary",
+        "precision": 0.4467,
+        "recall": 1.0,
+        "true_negative": 0,
+        "true_positive": 1186
+      },
+      {
+        "accuracy": 0.5533,
+        "f1": 0.0,
+        "false_negative": 1186,
+        "false_positive": 0,
+        "name": "never_boundary",
+        "precision": 0.0,
+        "recall": 0.0,
+        "true_negative": 1469,
+        "true_positive": 0
+      },
+      {
+        "accuracy": 0.5145,
+        "f1": 0.3513,
+        "false_negative": 837,
+        "false_positive": 452,
+        "name": "phase_change",
+        "precision": 0.4357,
+        "recall": 0.2943,
+        "true_negative": 1017,
+        "true_positive": 349
+      },
+      {
+        "accuracy": 0.3382,
+        "f1": 0.4619,
+        "false_negative": 432,
+        "false_positive": 1325,
+        "name": "action_change",
+        "precision": 0.3627,
+        "recall": 0.6358,
+        "true_negative": 144,
+        "true_positive": 754
+      },
+      {
+        "accuracy": 0.3638,
+        "f1": 0.4162,
+        "false_negative": 584,
+        "false_positive": 1105,
+        "name": "target_change",
+        "precision": 0.3527,
+        "recall": 0.5076,
+        "true_negative": 364,
+        "true_positive": 602
+      },
+      {
+        "accuracy": 0.7672,
+        "f1": 0.6477,
+        "false_negative": 618,
+        "false_positive": 0,
+        "name": "group_pattern_reference",
+        "precision": 1.0,
+        "recall": 0.4789,
+        "true_negative": 1469,
+        "true_positive": 568
+      }
+    ],
+    "learned_boundary_backend": {
+      "accuracy": 0.7699,
+      "f1": 0.769,
+      "false_negative": 169,
+      "false_positive": 442,
+      "precision": 0.6971,
+      "recall": 0.8575,
+      "true_negative": 1027,
+      "true_positive": 1017
+    }
+  },
+  "train_pairs": 2655,
+  "turn_field": "turn"
+}

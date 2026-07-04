@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-04
 Stage at update: stage 5 analyze / stage 6 claim gate / stage 9 paper integration
-Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agent-session`, `script/agent_trace_to_operations.py`, `script/paper_claim_synthesis.py`, `script/reviewer_evidence_packet.py`, `docs/evaluation.md`, `agentpprof --profile-spec`
+Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agent-session`, `script/agent_trace_to_operations.py`, `script/operation_boundary_backend_eval.py`, `script/paper_claim_synthesis.py`, `script/reviewer_evidence_packet.py`, `docs/evaluation.md`, `agentpprof --profile-spec`
 Completeness: partial
 
 ## Current State And Blocking Gate
@@ -24,7 +24,11 @@ deterministic mapping/tagging rather than unsupervised discovery. The remaining
 paper-grade gaps are stronger boundary detection beyond deterministic rules and
 user-facing utility evidence. R296 adds a reviewer evidence packet over
 tracked/clean R282-R295 artifacts; it is a navigation layer over operation and
-operation-stack outputs, not a new profiler abstraction.
+operation-stack outputs, not a new profiler abstraction. R297 adds the first
+supervised boundary-backend expansion probe: the backend predicts
+OSWorld-Human human-group boundaries on held-out sessions, writes
+`learned_group_pattern` fields onto operations, and the existing Rust
+operation-stack path folds those fields.
 
 ## System-Under-Test Model
 
@@ -135,6 +139,18 @@ On the public Codex fixture, trace import and operation-file import both produce
 spec. This is an interoperability layer before operations, not a profiler
 abstraction.
 
+R297 adds a supervised adjacent-boundary backend over OSWorld-Human. The model
+is deliberately outside the core profiler abstraction: it reads adjacent
+operation fields, excludes oracle/group labels from features, predicts held-out
+human-group boundaries, and writes derived fields such as
+`learned_group_pattern`, `learned_group_position`, and `learned_boundary_prev`
+back onto operations. `agentpprof` then folds the augmented operation file with
+the ordinary stack
+`project,dataset,task,phase,learned_group_pattern,learned_group_position,action,status`.
+This validates the intended extension point for boundary detection: backends
+derive operation fields, while recursive folding remains an operation-stack
+query.
+
 ## Mapping And Tagging
 
 Purpose: align mapping/tagging with the two-abstraction model.
@@ -153,6 +169,9 @@ The intended contract is:
 - stack specs remain independent of the mapping backend;
 - learned mappings can be generated from labeled traces and reused through the
   same `--op-map-file` path.
+- learned boundary backends can write derived fields such as
+  `learned_group_pattern` before stack construction, but they do not create a
+  boundary object in the profiler.
 - `--profile-spec` may bundle `--view`, `--stack`, `--op-map-file`,
   `--operation-file`, output, and project metadata for reproducibility, but
   command-line rules still override spec defaults and no new profiler
@@ -168,8 +187,10 @@ grouped-action patterns should be derivable from validated action sequences and
 group metadata without binding stacks to prompt/session boundaries; ScaleCUA
 history state and depth should remain selectable fields rather than a new
 trajectory-history object; profile specs should make those choices repeatable
-without freezing the stack shape. This is ordering over operation fields and
-query configuration, not a separate abstraction.
+without freezing the stack shape; learned boundary fields such as R297's
+`learned_group_pattern` should be stackable fields, not a separate boundary
+abstraction. This is ordering over operation fields and query configuration,
+not a separate abstraction.
 
 ## Assumptions And Invariants
 
@@ -197,6 +218,7 @@ Purpose: keep open risks tied to experiments.
 | Prompt/session boundaries leak back into the abstraction. | Run fixed-boundary ablations against recursive stacks. | R277 and R286 show fixed session greatly fragments stacks. |
 | Hand-written mappings overfit one dataset family. | Held-out and leave-dataset-out mapping evaluation plus operation-family precedence checks. | R282-R285 cover held-out sessions and 9 leave-out datasets; R289/R290/R291 add desktop computer-use precedence checks; R292 adds a supplemental GUI history-depth field check. |
 | Action labels are too shallow as boundary oracles. | Add step-instruction, solution-path, outcome, side-effect, looping, repetition, safety/attack, grouped-action, step-quality, and failure-label scorers. | R287 adds tau-bench outcomes and expected task actions; R288 adds AgentRewardBench expert success, side-effect, looping, optimality, and action-derived `repeat_signal` fields; R289 adds SATraj safety and attack labels; R290 adds OSWorld-Human grouped-action boundary labels; R291 adds AgentNet step correctness and redundancy labels. AndroidControl and TRAIL remain deeper oracle candidates. |
+| Boundary detection remains only deterministic mapping. | Evaluate learned boundary backends that derive operation fields before stack construction and compare against held-out human or dataset boundaries. | R297 trains a supervised adjacent-boundary backend on OSWorld-Human, excludes oracle/group fields from features, reaches held-out human-group F1 0.7735, and folds predicted `learned_group_pattern` fields through Rust `agentpprof`. This is still supervised and OSWorld-only, not unsupervised discovery. |
 | Profile experiments remain ad hoc shell commands. | Bundle reproducible operation-file, op-map, view, stack, and output choices in profile specs while preserving CLI overrides. | R293 adds an AgentNet profile spec that reproduces the R291 608-stack diagnostic profile and folds the same operations into an 83-stack override view. |
 | Local agent sessions are hard to exchange or replay outside native logs. | Export parsed sessions as `agentsight.agent-session.trace.v1`, import them through `--trace-file`, and convert them to operation JSONL. | R294 public Codex fixture smoke shows direct trace import and converted operation-file import produce identical folded stacks. |
 | Paper claims drift away from tracked artifact evidence. | Mechanically synthesize claim verdicts from tracked result JSON/folded artifacts and keep unsupported claims explicit. | R295 reads R282-R294 artifacts and emits supported/partial verdicts plus unsupported final claims under `docs/visexp/out/paper-claim-synthesis-r295/`; R296 indexes those verdicts with reviewer questions, derived ratios, and source paths. |
