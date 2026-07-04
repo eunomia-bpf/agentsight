@@ -301,6 +301,31 @@ agentpprof -o external.folded --view operations \
   --stack 'project,dataset,task,phase,op,tool,action,status'
 ```
 
+为了让外部标注轨迹实验可重复，可以把同一组参数写进 JSON profile spec：
+
+```json
+{
+  "output": "agentnet-diagnostic.folded",
+  "format": "folded",
+  "view": "operations",
+  "project_name": "external-agent-traces",
+  "operation_files": ["../external-agent-trace-agentnet-r291/agentnet-operations.jsonl"],
+  "op_map_files": ["../external-agent-trace-agentnet-r291/agentnet-op-map.txt"],
+  "stack": "project,dataset,benchmark,environment,task,phase,op,tool,action,status,step_correct,step_redundant,repeat_signal"
+}
+```
+
+运行：
+
+```bash
+agentpprof --profile-spec docs/visexp/out/profile-spec-r293/agentnet-diagnostic-spec.json
+```
+
+Spec 内的路径相对 spec 文件所在目录解析。`-o`、`--view`、`--format`、`--stack`
+这类命令行标量参数会覆盖 spec 默认值；命令行 `--op-map` 和 `--op-map-file` 会排在
+spec 规则之前求值。因此 profile spec 只是 operation、mapping 和 operation stack
+的复现实验配置，不是第三个 profiler 抽象。
+
 `tokens` 视图以模型预算作为宽度：
 
 ```text

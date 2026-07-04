@@ -4,10 +4,11 @@ mod tagger;
 
 use anyhow::{Context, Result, bail};
 use clap::{Parser, ValueEnum};
+use serde::Deserialize;
 use serde_json::json;
 use std::collections::HashMap;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use profile::{
@@ -56,6 +57,11 @@ OPERATION STACK WORKFLOW:
        --op-map-file operation-map.txt \
        --op-map 'task:verify=(effect=test|cmd=cargo)' \
        --op-map 'phase:inspect=(effect=read)'
+
+  For repeatable external-trace experiments, put output, view, operation files,
+  op-map files, and stack in a JSON file and run:
+
+     agentpprof --profile-spec agentnet-diagnostic-spec.json
 "#;
 
 #[derive(Parser)]
@@ -65,16 +71,21 @@ OPERATION STACK WORKFLOW:
 #[command(after_help = TAGGING_HELP)]
 struct Cli {
     /// Output file. Use .pb.gz for Go pprof, .folded for folded stacks, .svg for an SVG flamegraph, or .json.
+    /// Required unless --profile-spec provides output.
     #[arg(short, long)]
-    output: PathBuf,
+    output: Option<PathBuf>,
     #[arg(long, default_value = ".")]
     project_root: PathBuf,
     #[arg(long)]
     project_name: Option<String>,
-    #[arg(long, value_enum, default_value_t = CliOutputFormat::Pprof)]
-    format: CliOutputFormat,
-    #[arg(long, value_enum, default_value_t = CliProfileView::Tokens)]
-    view: CliProfileView,
+    #[arg(long, value_enum)]
+    format: Option<CliOutputFormat>,
+    #[arg(long, value_enum)]
+    view: Option<CliProfileView>,
+    /// Load a reusable JSON profile specification. Later specs override scalar
+    /// fields, while list fields are appended. CLI flags override spec defaults.
+    #[arg(long = "profile-spec", value_name = "PATH")]
+    profile_specs: Vec<PathBuf>,
     /// Override the operation stack, e.g. project,agent,task,phase,op,tool,path.
     #[arg(long, value_name = "FRAME[,FRAME...]")]
     stack: Option<String>,
@@ -188,38 +199,89 @@ enum TaggerKind {
     Llm,
 }
 
+#[derive(Default, Debug)]
+struct ProfileSpec {
+    output: Option<PathBuf>,
+    project_name: Option<String>,
+    format: Option<CliOutputFormat>,
+    view: Option<CliProfileView>,
+    stack: Option<String>,
+    stack_rules: Vec<String>,
+    op_maps: Vec<String>,
+    op_map_files: Vec<PathBuf>,
+    operation_files: Vec<PathBuf>,
+}
+
+#[derive(Default, Deserialize)]
+struct RawProfileSpec {
+    output: Option<PathBuf>,
+    project_name: Option<String>,
+    format: Option<String>,
+    view: Option<String>,
+    stack: Option<String>,
+    #[serde(default)]
+    stack_rules: Vec<String>,
+    #[serde(default)]
+    op_maps: Vec<String>,
+    #[serde(default)]
+    op_map_files: Vec<PathBuf>,
+    #[serde(default)]
+    operation_files: Vec<PathBuf>,
+}
+
 fn main() -> Result<()> {
     let cli = Cli::parse();
     command_export(cli)
 }
 
 fn command_export(args: Cli) -> Result<()> {
-    let output = args.output.clone();
-    let format = infer_output_format(args.format.into(), &output);
+    let spec = load_profile_specs(&args.profile_specs)?;
+    let output = args
+        .output
+        .clone()
+        .or_else(|| spec.output.clone())
+        .context("missing output path; pass -o/--output or set output in --profile-spec")?;
+    let requested_format = args
+        .format
+        .or(spec.format)
+        .unwrap_or(CliOutputFormat::Pprof);
+    let format = infer_output_format(requested_format.into(), &output);
     let project_root = args
         .project_root
         .canonicalize()
         .unwrap_or(args.project_root.clone());
-    let project_name = args.project_name.clone().unwrap_or_else(|| {
-        project_root
-            .file_name()
-            .and_then(|v| v.to_str())
-            .unwrap_or("project")
-            .to_string()
-    });
-    let view = args.view.into();
+    let project_name = args
+        .project_name
+        .clone()
+        .or_else(|| spec.project_name.clone())
+        .unwrap_or_else(|| {
+            project_root
+                .file_name()
+                .and_then(|v| v.to_str())
+                .unwrap_or("project")
+                .to_string()
+        });
+    let cli_view = args.view.or(spec.view).unwrap_or(CliProfileView::Tokens);
+    let view = cli_view.into();
     let mut profile_options = OperationStackConfig::for_view(view);
-    if let Some(stack) = args.stack.as_deref() {
+    let stack = args.stack.as_deref().or(spec.stack.as_deref());
+    if let Some(stack) = stack {
         profile_options = profile_options.with_stack(parse_stack_spec(stack)?);
     }
-    let op_maps = load_op_map_rules(&args.op_maps, &args.op_map_files)?;
-    let stack_rules = args.stack_rules.clone();
+    let op_map_files = merge_cli_first(&args.op_map_files, &spec.op_map_files);
+    let op_maps = load_effective_op_map_rules(
+        &args.op_maps,
+        &args.op_map_files,
+        &spec.op_maps,
+        &spec.op_map_files,
+    )?;
+    let stack_rules = merge_cli_first(&args.stack_rules, &spec.stack_rules);
     profile_options = profile_options
         .with_field_rules(parse_stack_rules_with_flag(&op_maps, "--op-map")?)
         .with_rules(parse_stack_rules(&stack_rules)?);
-    if !args.operation_files.is_empty() {
-        let profile =
-            build_profile_from_operation_files(&args.operation_files, view, &profile_options)?;
+    let operation_files = merge_spec_first(&spec.operation_files, &args.operation_files);
+    if !operation_files.is_empty() {
+        let profile = build_profile_from_operation_files(&operation_files, view, &profile_options)?;
         let stacks = profile_to_stacks(&profile);
         if stacks.is_empty() {
             bail!("operation input produced no folded stacks");
@@ -239,11 +301,12 @@ fn command_export(args: Cli) -> Result<()> {
             "view": profile.view,
             "sample_type": profile.sample_type,
             "unit": profile.unit,
-            "stack": args.stack.as_deref().unwrap_or("default"),
+            "profile_specs": args.profile_specs,
+            "stack": stack.unwrap_or("default"),
             "op_maps": op_maps,
-            "op_map_files": args.op_map_files,
+            "op_map_files": op_map_files,
             "stack_rules": stack_rules,
-            "operation_files": args.operation_files,
+            "operation_files": operation_files,
             "samples": stacks.values().sum::<u64>(),
             "unique_stacks": stacks.len(),
             "warnings": [],
@@ -285,7 +348,7 @@ fn command_export(args: Cli) -> Result<()> {
     let profile = build_profile_with_options(&sessions, &project_name, view, &profile_options);
     let stacks = profile_to_stacks(&profile);
     if stacks.is_empty() {
-        bail!("selected view {:?} produced no samples", args.view);
+        bail!("selected view {:?} produced no samples", cli_view);
     }
     write_projection(
         &profile,
@@ -303,9 +366,10 @@ fn command_export(args: Cli) -> Result<()> {
         "view": profile.view,
         "sample_type": profile.sample_type,
         "unit": profile.unit,
-        "stack": args.stack.as_deref().unwrap_or("default"),
+        "profile_specs": args.profile_specs,
+        "stack": stack.unwrap_or("default"),
         "op_maps": op_maps,
-        "op_map_files": args.op_map_files,
+        "op_map_files": op_map_files,
         "stack_rules": stack_rules,
         "sessions": sessions.len(),
         "samples": stacks.values().sum::<u64>(),
@@ -358,6 +422,127 @@ fn command_export(args: Cli) -> Result<()> {
 
     println!("{}", serde_json::to_string_pretty(&result)?);
     Ok(())
+}
+
+fn merge_cli_first<T: Clone>(cli_values: &[T], spec_values: &[T]) -> Vec<T> {
+    cli_values
+        .iter()
+        .chain(spec_values.iter())
+        .cloned()
+        .collect()
+}
+
+fn merge_spec_first<T: Clone>(spec_values: &[T], cli_values: &[T]) -> Vec<T> {
+    spec_values
+        .iter()
+        .chain(cli_values.iter())
+        .cloned()
+        .collect()
+}
+
+fn load_effective_op_map_rules(
+    cli_inline_rules: &[String],
+    cli_rule_files: &[PathBuf],
+    spec_inline_rules: &[String],
+    spec_rule_files: &[PathBuf],
+) -> Result<Vec<String>> {
+    let mut rules = load_op_map_rules(cli_inline_rules, cli_rule_files)?;
+    rules.extend(load_op_map_rules(spec_inline_rules, spec_rule_files)?);
+    Ok(rules)
+}
+
+fn load_profile_specs(paths: &[PathBuf]) -> Result<ProfileSpec> {
+    let mut merged = ProfileSpec::default();
+    for path in paths {
+        let contents = fs::read_to_string(path)
+            .with_context(|| format!("failed to read --profile-spec {}", path.display()))?;
+        let raw: RawProfileSpec = serde_json::from_str(&contents)
+            .with_context(|| format!("invalid --profile-spec {}", path.display()))?;
+        let base = path.parent().unwrap_or_else(|| Path::new("."));
+        let next = normalize_profile_spec(raw, base)
+            .with_context(|| format!("invalid --profile-spec {}", path.display()))?;
+        merged.merge(next);
+    }
+    Ok(merged)
+}
+
+fn normalize_profile_spec(raw: RawProfileSpec, base: &Path) -> Result<ProfileSpec> {
+    Ok(ProfileSpec {
+        output: raw.output.map(|path| resolve_spec_path(base, path)),
+        project_name: raw.project_name,
+        format: raw
+            .format
+            .as_deref()
+            .map(parse_spec_output_format)
+            .transpose()?,
+        view: raw.view.as_deref().map(parse_spec_view).transpose()?,
+        stack: raw.stack,
+        stack_rules: raw.stack_rules,
+        op_maps: raw.op_maps,
+        op_map_files: raw
+            .op_map_files
+            .into_iter()
+            .map(|path| resolve_spec_path(base, path))
+            .collect(),
+        operation_files: raw
+            .operation_files
+            .into_iter()
+            .map(|path| resolve_spec_path(base, path))
+            .collect(),
+    })
+}
+
+fn resolve_spec_path(base: &Path, path: PathBuf) -> PathBuf {
+    if path.is_absolute() {
+        path
+    } else {
+        base.join(path)
+    }
+}
+
+fn parse_spec_output_format(raw: &str) -> Result<CliOutputFormat> {
+    match raw.trim().to_ascii_lowercase().replace('_', "-").as_str() {
+        "pprof" | "pb" | "pb-gz" | "pb.gz" => Ok(CliOutputFormat::Pprof),
+        "folded" | "foldedtxt" | "folded-txt" => Ok(CliOutputFormat::Folded),
+        "svg" => Ok(CliOutputFormat::Svg),
+        "json" => Ok(CliOutputFormat::Json),
+        other => bail!("unsupported profile spec format '{other}'"),
+    }
+}
+
+fn parse_spec_view(raw: &str) -> Result<CliProfileView> {
+    match raw.trim().to_ascii_lowercase().replace('_', "-").as_str() {
+        "operations" | "operation" | "ops" => Ok(CliProfileView::Operations),
+        "tokens" | "token" => Ok(CliProfileView::Tokens),
+        "files" | "file" => Ok(CliProfileView::Files),
+        "network" => Ok(CliProfileView::Network),
+        "time" => Ok(CliProfileView::Time),
+        other => bail!("unsupported profile spec view '{other}'"),
+    }
+}
+
+impl ProfileSpec {
+    fn merge(&mut self, next: ProfileSpec) {
+        if next.output.is_some() {
+            self.output = next.output;
+        }
+        if next.project_name.is_some() {
+            self.project_name = next.project_name;
+        }
+        if next.format.is_some() {
+            self.format = next.format;
+        }
+        if next.view.is_some() {
+            self.view = next.view;
+        }
+        if next.stack.is_some() {
+            self.stack = next.stack;
+        }
+        self.stack_rules.extend(next.stack_rules);
+        self.op_maps.extend(next.op_maps);
+        self.op_map_files.extend(next.op_map_files);
+        self.operation_files.extend(next.operation_files);
+    }
 }
 
 fn load_op_map_rules(inline_rules: &[String], rule_files: &[PathBuf]) -> Result<Vec<String>> {
@@ -503,6 +688,61 @@ mod tests {
                 "phase:verify=(cmd=cargo)",
                 "phase:inspect=(effect=read)",
                 "phase:execute=(effect=test)"
+            ]
+        );
+    }
+
+    #[test]
+    fn profile_spec_resolves_paths_and_keeps_cli_rules_first() {
+        let dir = tempfile::tempdir().unwrap();
+        let spec_path = dir.path().join("agentnet-spec.json");
+        let op_map_path = dir.path().join("maps").join("operation-map.txt");
+        let cli_op_map_path = dir.path().join("cli-operation-map.txt");
+        std::fs::create_dir_all(op_map_path.parent().unwrap()).unwrap();
+        std::fs::write(&op_map_path, "phase:execute=(action=click)\n").unwrap();
+        std::fs::write(&cli_op_map_path, "phase:cli=(action=click)\n").unwrap();
+        std::fs::write(
+            &spec_path,
+            r#"{
+  "output": "out/agent.folded",
+  "format": "folded",
+  "view": "operations",
+  "project_name": "external-agent-traces",
+  "operation_files": ["inputs/agentnet.jsonl"],
+  "stack": "project,dataset,task,phase,op,tool,action,status",
+  "op_maps": ["phase:inspect=(action=screenshot)"],
+  "op_map_files": ["maps/operation-map.txt"],
+  "stack_rules": ["task:desktop=(tool=computer)"]
+}"#,
+        )
+        .unwrap();
+
+        let spec = load_profile_specs(&[spec_path]).unwrap();
+        assert_eq!(spec.format, Some(CliOutputFormat::Folded));
+        assert_eq!(spec.view, Some(CliProfileView::Operations));
+        assert_eq!(
+            spec.output,
+            Some(dir.path().join("out").join("agent.folded"))
+        );
+        assert_eq!(
+            spec.operation_files,
+            vec![dir.path().join("inputs").join("agentnet.jsonl")]
+        );
+
+        let op_maps = load_effective_op_map_rules(
+            &["phase:verify=(cmd=cargo)".to_string()],
+            &[cli_op_map_path],
+            &spec.op_maps,
+            &spec.op_map_files,
+        )
+        .unwrap();
+        assert_eq!(
+            op_maps,
+            vec![
+                "phase:verify=(cmd=cargo)",
+                "phase:cli=(action=click)",
+                "phase:inspect=(action=screenshot)",
+                "phase:execute=(action=click)"
             ]
         );
     }

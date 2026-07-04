@@ -19,8 +19,8 @@ tool、action、human group、safety、looping 或 step quality 等不同深度�
 
 | Claim | 当前结论 | 证据 | 不能声称的内容 |
 |---|---|---|---|
-| C1：异构标注 agent 轨迹可以统一为 operation JSONL。 | supported for current sampled public datasets | R279-R292 覆盖 15 个公开标注轨迹数据源。核心 R291 14 数据集有 42,590 operations；R292 补充 ScaleCUA 后有 47,590 operations。 | 不能声称任意 agent 数据都可零成本转换，尤其是只有图片、无顺序、gated 或缺少 action label 的数据。 |
-| C2：operation stack 是可递归配置的，不应固定绑定 session/prompt。 | supported | R286 在同一 13,265 operations 上从 9 个 dataset stacks 展开到 57 个 phase stacks、226 个 tool/semantic stacks、455 个 action stacks 和 3,757 个 fixed-session stacks。R277 显示固定 demo/session 比 mapped stack 多 10.5x unique stacks。 | 不能声称某一个默认 stack 对所有问题最优。 |
+| C1：异构标注 agent 轨迹可以统一为 operation JSONL。 | supported for current sampled public datasets | R279-R292 覆盖 15 个公开标注轨迹数据源。核心 R291 14 数据集有 42,590 operations；R292 补充 ScaleCUA 后有 47,590 operations。R293 用 profile spec 复现 R291 AgentNet 查询，不改 operation 输入。 | 不能声称任意 agent 数据都可零成本转换，尤其是只有图片、无顺序、gated 或缺少 action label 的数据。 |
+| C2：operation stack 是可递归配置的，不应固定绑定 session/prompt。 | supported | R286 在同一 13,265 operations 上从 9 个 dataset stacks 展开到 57 个 phase stacks、226 个 tool/semantic stacks、455 个 action stacks 和 3,757 个 fixed-session stacks。R277 显示固定 demo/session 比 mapped stack 多 10.5x unique stacks。R293 在同一 16,741 个 AgentNet operations 上复现 608-stack 诊断视图，并用 CLI 覆盖 stack 得到 83-stack 粗粒度视图。 | 不能声称某一个默认 stack 对所有问题最优。 |
 | C3：mapping/tagging 可以作为一等字段派生机制。 | partially supported | R281 生成 rules 复现手写 mapping；R282 held-out compression 为 19.091，no-map baseline 为 14.049；R285 leave-dataset-out 在 9 个 datasets 中 6 个减少 stacks，0 个负向回归。 | 不能声称无监督或 LLM-backed boundary detector 已完成。 |
 | C4：operation stacks 能恢复有意义的人工或标注边界。 | partially supported with strong OSWorld-Human evidence | R290 OSWorld-Human 覆盖 369 tasks 和 6,010 operations。Exact grouped oracle 覆盖 320 tasks、4,011 operations、2,075 groups。`group_pattern:human_group` boundary F1 为 0.627，precision 为 1.0。 | Recall 只有 0.456，不能声称完整恢复人工 subtask 边界。 |
 | C5：profiler 能做 failure、safety 和 step-quality 诊断，而不只画 flamegraph。 | supported as mechanism, not user utility | R288 AgentRewardBench 显示 repeat signal 对 looping 的 V-measure 为 0.378，而 step-error baseline 为 0.011。R289 SATraj-OS 带 622 unsafe operations 和 5 类 attack type。R291 AgentNet 带 16,741 operations 的 step correctness/redundancy 字段。 | 不能声称这些 views 已经提升开发者任务准确率或耗时。 |
@@ -52,6 +52,7 @@ tool、action、human group、safety、looping 或 step quality 等不同深度�
 | R290 | OSWorld-Human grouped boundary | group boundary F1=0.627，precision=1.0 | 最强人工边界 oracle。 |
 | R291 | AgentNet desktop step quality | 16,741 ops；step correctness/redundancy 100% field coverage | 最大 human desktop step-quality oracle。 |
 | R292 | ScaleCUA supplement | 5,000 ops；131 sessions；max step 48 | 补充 GUI history-depth，不作为主 claim。 |
+| R293 | Profile-spec reproducibility | 同一 16,741 AgentNet ops；spec 复现 608 stacks；CLI override 得到 83 stacks | 证明 operation-stack query 可配置、可提交、可覆盖，不是固定 prompt/session hierarchy。 |
 
 ## Paper-Ready Wording
 
@@ -63,12 +64,17 @@ tool、action、human group、safety、looping 或 step quality 等不同深度�
 > task, phase, tool, action, human-group, safety, looping, and step-quality
 > depths by changing mapping and stack specifications, not by adding
 > prompt-, GUI-, or safety-specific profiler objects.
+> Profile specs make these experiments replayable without changing the
+> two-object model: they package operation files, mappings, view, stack, and
+> output choices, while CLI flags can still override the stack query.
 
 中文论文中应写成：
 
 > 本文的贡献不是又画一种 agent flamegraph，而是把 agent 轨迹 profiling 的边界选择
 > 从固定 prompt/session/span 层级中释放出来。所有对象都先成为 operations，mapping
 > 和 tagging 只派生字段，operation stack 再根据用户问题递归折叠。
+> Profile spec 只是把 operation 文件、mapping、view、stack 和输出路径记录成可复现
+> 配置；它不增加第三个抽象，命令行仍可覆盖 stack 以回答不同问题。
 
 不能写：
 

@@ -364,6 +364,33 @@ agentpprof -o external.folded --view operations \
   --stack 'project,dataset,task,phase,op,tool,action,status'
 ```
 
+For repeatable external-trajectory experiments, bundle the same knobs in a JSON
+profile spec:
+
+```json
+{
+  "output": "agentnet-diagnostic.folded",
+  "format": "folded",
+  "view": "operations",
+  "project_name": "external-agent-traces",
+  "operation_files": ["../external-agent-trace-agentnet-r291/agentnet-operations.jsonl"],
+  "op_map_files": ["../external-agent-trace-agentnet-r291/agentnet-op-map.txt"],
+  "stack": "project,dataset,benchmark,environment,task,phase,op,tool,action,status,step_correct,step_redundant,repeat_signal"
+}
+```
+
+Run it with:
+
+```bash
+agentpprof --profile-spec docs/visexp/out/profile-spec-r293/agentnet-diagnostic-spec.json
+```
+
+Paths inside a spec are resolved relative to the spec file. Scalar CLI flags
+such as `-o`, `--view`, `--format`, and `--stack` override spec values; CLI
+`--op-map` and `--op-map-file` entries are evaluated before spec defaults. A
+profile spec is only a reproducibility wrapper around operations, mappings, and
+operation stacks. It is not a third profiler abstraction.
+
 The `tokens` view uses model budget as the width:
 
 ```text
