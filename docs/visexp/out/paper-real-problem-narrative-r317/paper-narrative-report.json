@@ -1,0 +1,448 @@
+{
+  "claim_scope": {
+    "does_not_support": [
+      "human analyst accuracy",
+      "agent analyst accuracy",
+      "time-to-answer improvement",
+      "developer productivity improvement",
+      "automatic detection or detector claims",
+      "single-view dominance",
+      "full trace-platform compatibility"
+    ],
+    "supports": [
+      "mechanism and novelty narrative",
+      "automated inspectability tradeoff over existing labeled tasks",
+      "real-problem disaggregation and reviewer-facing counterpoints"
+    ]
+  },
+  "input_policy": "tracked-clean R309/R313/R316 artifacts only; no dataset sync, no profiler rerun, no human/agent study",
+  "not_a_human_study_result": true,
+  "not_an_agent_study_result": true,
+  "not_new_empirical_result": true,
+  "outputs": {
+    "html": "docs/visexp/out/paper-real-problem-narrative-r317/index.html",
+    "markdown": "docs/visexp/out/paper-real-problem-narrative-r317/paper-narrative-report.md",
+    "report_json": "docs/visexp/out/paper-real-problem-narrative-r317/paper-narrative-report.json",
+    "run_result": "docs/visexp/out/paper-real-problem-narrative-r317/run-result.json",
+    "task_csv": "docs/visexp/out/paper-real-problem-narrative-r317/task-narrative.csv"
+  },
+  "paper_takeaways": [
+    "Across 6 oracle-backed tasks from 4 datasets, operation stacks are a paper-ready inspectability surface rather than a single winning hierarchy: they are on the non-oracle Pareto frontier for 6/6 tasks, while flat and fixed-session also remain frontier counterpoints.",
+    "The real-problem value is strongest for safety and step-quality triage: 5/6 tasks show higher selected recall than fixed-session, and 5/6 contain a high-lift operation-stack group under the hidden-key packet policy.",
+    "The main counterpoint is also stable: operation stacks are lower-work than fixed-session on only 2/6 tasks, so the paper must claim a configurable tradeoff surface, not baseline dominance.",
+    "The R316 assignment readout checks that the controlled-study instrument can recover the same tradeoff before running analysts: top-3 operation-stack positive/high-lift hit rates are 1.0/0.8333, versus 0.8333/0.6667 for fixed-session and 1.0/0.0 for flat."
+  ],
+  "profiler_abstractions": [
+    "operation",
+    "operation_stack"
+  ],
+  "purpose": "claim-first paper narrative over existing real-problem labeled trajectory artifacts",
+  "readiness_rubric": {
+    "field_derivation_claims": {
+      "level": "level_3_partial",
+      "reason": "C3 has deterministic and supervised probes plus calibration failures, but not a general boundary detector."
+    },
+    "inspectability_claims": {
+      "level": "level_3_plus_automated_proxy",
+      "reason": "C4 has named baselines, real labeled tasks, problem disaggregation, frontier counterpoints, and a controlled-study protocol, but no completed human/agent analyst outcomes."
+    },
+    "mechanism_claims": {
+      "level": "level_4_scoped_systems_narrative",
+      "reason": "C1/C2 have heterogeneous-trace, recursive-depth, profile-spec, and exchange-trace evidence with explicit two-abstraction guardrails."
+    },
+    "submission_blockers": [
+      "complete controlled human/agent analyst study before claiming accuracy, time-to-answer, or productivity",
+      "replicate boundary backend on another suitable boundary oracle before stronger C3 wording",
+      "keep trace ecosystem wording scoped to exchange containers and operation conversion, not full platform compatibility"
+    ]
+  },
+  "run_id": "R317",
+  "schema": "agentsight.paper-real-problem-narrative.v1",
+  "source": {
+    "analyst_readout": "docs/visexp/out/analyst-study-readout-r316/readout-report.json",
+    "problem_value": "docs/visexp/out/operation-problem-value-r309/problem-value-report.json",
+    "view_frontier": "docs/visexp/out/operation-view-frontier-r313/view-frontier-report.json"
+  },
+  "status": "ok",
+  "summary": {
+    "datasets": 4,
+    "fixed_session_frontier_counterpoint": "6/6",
+    "flat_frontier_counterpoint": "6/6",
+    "median_operation_stack_case_lift": 1.6509,
+    "median_operation_stack_case_recall": 0.188,
+    "median_operation_stack_case_work": 0.0937,
+    "operation_stack_best_lift_tasks": "4/6",
+    "operation_stack_best_recall_under_30pct_work_tasks": "4/6",
+    "operation_stack_frontier_coverage": "6/6",
+    "operation_stack_high_lift_coverage": "5/6",
+    "operation_stack_higher_recall_than_fixed_session": 5,
+    "operation_stack_lower_work_than_fixed_session": 2,
+    "operation_stack_more_selective_than_flat": 6,
+    "operations": 34539,
+    "positive_operations": 3699,
+    "r316_top3_fixed_session_positive_high_lift": {
+      "high_lift_hit_rate": 0.6667,
+      "positive_hit_rate": 0.8333
+    },
+    "r316_top3_flat_positive_high_lift": {
+      "high_lift_hit_rate": 0.0,
+      "positive_hit_rate": 1.0
+    },
+    "r316_top3_operation_stack_positive_high_lift": {
+      "high_lift_hit_rate": 0.8333,
+      "positive_hit_rate": 1.0
+    },
+    "tasks": 6
+  },
+  "task_cards": [
+    {
+      "counterpoint": "Use this as selective evidence, not as a complete incorrect-step detector.",
+      "dataset": "agentnet",
+      "evidence_pattern": "high_lift_low_recall",
+      "fixed_session_counterpoint": {
+        "fixed_session_first_positive_work": 0.0017,
+        "lift": 2.259,
+        "operation_vs_fixed_recall_ratio": 0.2698,
+        "operation_vs_fixed_work_ratio": 0.25,
+        "recall": 0.0126,
+        "work": 0.0056
+      },
+      "flat_counterpoint": {
+        "lift": 1.0,
+        "operation_vs_flat_lift_ratio": 2.4057,
+        "operation_vs_flat_work_ratio": 0.0014,
+        "recall": 1.0,
+        "work": 1.0
+      },
+      "frontier": {
+        "best_lift": 2.4057,
+        "best_lift_ranker": "case_query_aware",
+        "best_lift_view": "operation_stack",
+        "best_recall_under_30pct": 0.4382,
+        "best_recall_under_30pct_lift": 1.4608,
+        "best_recall_under_30pct_view": "operation_stack",
+        "operation_stack_on_frontier": true,
+        "views_on_frontier": [
+          "fixed_session",
+          "flat",
+          "operation_stack"
+        ]
+      },
+      "operation_stack_packet": {
+        "first_high_lift_work": 0.0007,
+        "first_positive_work": 0.0007,
+        "has_high_lift_group": true,
+        "lift": 2.4057,
+        "precision": 0.1429,
+        "recall": 0.0034,
+        "work": 0.0014
+      },
+      "oracle": {
+        "operations": 14718,
+        "positive_field": "step_correct",
+        "positive_operations": 874,
+        "prevalence": 0.0594
+      },
+      "paper_value": "needle-in-haystack step-quality debugging",
+      "problem": "Find incorrect human desktop steps.",
+      "query_family": "step-quality",
+      "safe_paper_claim": "operation stacks can surface very high-lift incorrect-step packets at tiny work fractions, but selected recall is low and fixed-session can recover more positives under the same top-k packet count.",
+      "source_counterpoints": [
+        "low_selected_positive_recall"
+      ],
+      "task": "agentnet_incorrect_step"
+    },
+    {
+      "counterpoint": "Fixed-session reaches the first positive earlier on this task, so the result is a recall/aggregation tradeoff.",
+      "dataset": "agentnet",
+      "evidence_pattern": "high_lift_low_recall",
+      "fixed_session_counterpoint": {
+        "fixed_session_first_positive_work": 0.0013,
+        "lift": 1.4208,
+        "operation_vs_fixed_recall_ratio": 1.439,
+        "operation_vs_fixed_work_ratio": 1.0349,
+        "recall": 0.0123,
+        "work": 0.0086
+      },
+      "flat_counterpoint": {
+        "lift": 1.0,
+        "operation_vs_flat_lift_ratio": 1.9838,
+        "operation_vs_flat_work_ratio": 0.0089,
+        "recall": 1.0,
+        "work": 1.0
+      },
+      "frontier": {
+        "best_lift": 1.9838,
+        "best_lift_ranker": "case_query_aware",
+        "best_lift_view": "operation_stack",
+        "best_recall_under_30pct": 0.3533,
+        "best_recall_under_30pct_lift": 1.1778,
+        "best_recall_under_30pct_view": "operation_stack",
+        "operation_stack_on_frontier": true,
+        "views_on_frontier": [
+          "fixed_session",
+          "flat",
+          "operation_stack"
+        ]
+      },
+      "operation_stack_packet": {
+        "first_high_lift_work": 0.0051,
+        "first_positive_work": 0.0051,
+        "has_high_lift_group": true,
+        "lift": 1.9838,
+        "precision": 0.1444,
+        "recall": 0.0177,
+        "work": 0.0089
+      },
+      "oracle": {
+        "operations": 10067,
+        "positive_field": "step_redundant",
+        "positive_operations": 733,
+        "prevalence": 0.0728
+      },
+      "paper_value": "human desktop redundancy diagnosis",
+      "problem": "Find redundant human desktop steps.",
+      "query_family": "step-quality",
+      "safe_paper_claim": "operation stacks increase recall and lift over fixed-session for redundant-step packets while staying far smaller than flat summaries.",
+      "source_counterpoints": [
+        "fixed_session_uses_less_selected_work",
+        "fixed_session_reaches_first_positive_earlier",
+        "low_selected_positive_recall"
+      ],
+      "task": "agentnet_redundant_step"
+    },
+    {
+      "counterpoint": "This is a prevalence and aggregation result, not enriched anomaly detection.",
+      "dataset": "agent-reward-bench",
+      "evidence_pattern": "prevalent_positive_recall",
+      "fixed_session_counterpoint": {
+        "fixed_session_first_positive_work": 0.0412,
+        "lift": 1.1571,
+        "operation_vs_fixed_recall_ratio": 2.7333,
+        "operation_vs_fixed_work_ratio": 2.3994,
+        "recall": 0.2381,
+        "work": 0.2058
+      },
+      "flat_counterpoint": {
+        "lift": 1.0,
+        "operation_vs_flat_lift_ratio": 1.3179,
+        "operation_vs_flat_work_ratio": 0.4938,
+        "recall": 1.0,
+        "work": 1.0
+      },
+      "frontier": {
+        "best_lift": 1.4464,
+        "best_lift_ranker": "query_aware",
+        "best_lift_view": "operation_stack",
+        "best_recall_under_30pct": 0.3988,
+        "best_recall_under_30pct_lift": 1.3336,
+        "best_recall_under_30pct_view": "operation_stack",
+        "operation_stack_on_frontier": true,
+        "views_on_frontier": [
+          "fixed_session",
+          "flat",
+          "operation_stack"
+        ]
+      },
+      "operation_stack_packet": {
+        "first_high_lift_work": null,
+        "first_positive_work": 0.2058,
+        "has_high_lift_group": false,
+        "lift": 1.3179,
+        "precision": 0.9111,
+        "recall": 0.6508,
+        "work": 0.4938
+      },
+      "oracle": {
+        "operations": 729,
+        "positive_field": "looping",
+        "positive_operations": 504,
+        "prevalence": 0.6914
+      },
+      "paper_value": "prevalent web-agent looping diagnosis",
+      "problem": "Find repetitive web-agent behavior in expert-reviewed trajectories.",
+      "query_family": "failure-looping",
+      "safe_paper_claim": "operation stacks recover many looping positives and improve recall over fixed-session, but looping is too prevalent in this sample to create a high-lift top packet.",
+      "source_counterpoints": [
+        "fixed_session_uses_less_selected_work",
+        "fixed_session_reaches_first_positive_earlier",
+        "no_operation_stack_high_lift_group"
+      ],
+      "task": "agentreward_looping"
+    },
+    {
+      "counterpoint": "The top-5 packet lift falls below prevalence, so the paper should highlight query/ranker choice instead of a universal default.",
+      "dataset": "agent-reward-bench",
+      "evidence_pattern": "higher_recall_lower_work",
+      "fixed_session_counterpoint": {
+        "fixed_session_first_positive_work": null,
+        "lift": 0.0,
+        "operation_vs_fixed_recall_ratio": "inf",
+        "operation_vs_fixed_work_ratio": 0.7464,
+        "recall": 0.0,
+        "work": 0.1948
+      },
+      "flat_counterpoint": {
+        "lift": 1.0,
+        "operation_vs_flat_lift_ratio": 0.7831,
+        "operation_vs_flat_work_ratio": 0.1454,
+        "recall": 1.0,
+        "work": 1.0
+      },
+      "frontier": {
+        "best_lift": 3.344,
+        "best_lift_ranker": "width",
+        "best_lift_view": "fixed_session",
+        "best_recall_under_30pct": 1.0,
+        "best_recall_under_30pct_lift": 3.344,
+        "best_recall_under_30pct_view": "fixed_session",
+        "operation_stack_on_frontier": true,
+        "views_on_frontier": [
+          "fixed_session",
+          "flat",
+          "operation_stack"
+        ]
+      },
+      "operation_stack_packet": {
+        "first_high_lift_work": 0.1317,
+        "first_positive_work": 0.0645,
+        "has_high_lift_group": true,
+        "lift": 0.7831,
+        "precision": 0.217,
+        "recall": 0.1139,
+        "work": 0.1454
+      },
+      "oracle": {
+        "operations": 729,
+        "positive_field": "side_effect",
+        "positive_operations": 202,
+        "prevalence": 0.2771
+      },
+      "paper_value": "side-effectful web-agent behavior triage",
+      "problem": "Find side-effectful web-agent trajectories.",
+      "query_family": "failure-side-effect",
+      "safe_paper_claim": "operation stacks expose positives that fixed-session misses under the same packet policy and can find an early high-lift group, but top-5 packet quality is ranking-depth sensitive.",
+      "source_counterpoints": [
+        "top5_packet_lift_below_prevalence"
+      ],
+      "task": "agentreward_side_effect"
+    },
+    {
+      "counterpoint": "The work cost is much larger than fixed-session, so this is a boundary-coverage tradeoff, not cheaper inspection.",
+      "dataset": "osworld-human",
+      "evidence_pattern": "higher_recall_higher_work",
+      "fixed_session_counterpoint": {
+        "fixed_session_first_positive_work": 0.005,
+        "lift": 1.9022,
+        "operation_vs_fixed_recall_ratio": 11.8471,
+        "operation_vs_fixed_work_ratio": 23.686,
+        "recall": 0.0327,
+        "work": 0.0172
+      },
+      "flat_counterpoint": {
+        "lift": 1.0,
+        "operation_vs_flat_lift_ratio": 0.951,
+        "operation_vs_flat_work_ratio": 0.4074,
+        "recall": 1.0,
+        "work": 1.0
+      },
+      "frontier": {
+        "best_lift": 2.0045,
+        "best_lift_ranker": "visible_risk",
+        "best_lift_view": "fixed_session",
+        "best_recall_under_30pct": 0.4241,
+        "best_recall_under_30pct_lift": 1.414,
+        "best_recall_under_30pct_view": "operation_stack",
+        "operation_stack_on_frontier": true,
+        "views_on_frontier": [
+          "fixed_session",
+          "flat",
+          "operation_stack"
+        ]
+      },
+      "operation_stack_packet": {
+        "first_high_lift_work": 0.1311,
+        "first_positive_work": 0.1311,
+        "has_high_lift_group": true,
+        "lift": 0.951,
+        "precision": 0.1812,
+        "recall": 0.3874,
+        "work": 0.4074
+      },
+      "oracle": {
+        "operations": 4011,
+        "positive_field": "group_position",
+        "positive_operations": 764,
+        "prevalence": 0.1905
+      },
+      "paper_value": "human grouped-action boundary inspection",
+      "problem": "Find human grouped-action segment starts in desktop traces.",
+      "query_family": "human-boundary",
+      "safe_paper_claim": "operation stacks recover much more selected recall than fixed-session for human grouped-action starts, showing why recursive depth matters for a single action sequence.",
+      "source_counterpoints": [
+        "fixed_session_uses_less_selected_work",
+        "fixed_session_reaches_first_positive_earlier",
+        "top5_packet_lift_below_prevalence"
+      ],
+      "task": "osworld_group_start"
+    },
+    {
+      "counterpoint": "Fixed-session still reaches the first positive at lower work, preserving it as a drilldown counterpoint.",
+      "dataset": "satraj-os-safety",
+      "evidence_pattern": "higher_recall_higher_work",
+      "fixed_session_counterpoint": {
+        "fixed_session_first_positive_work": 0.0037,
+        "lift": 3.7577,
+        "operation_vs_fixed_recall_ratio": 4.5268,
+        "operation_vs_fixed_work_ratio": 2.7273,
+        "recall": 0.0579,
+        "work": 0.0154
+      },
+      "flat_counterpoint": {
+        "lift": 1.0,
+        "operation_vs_flat_lift_ratio": 6.2384,
+        "operation_vs_flat_work_ratio": 0.042,
+        "recall": 1.0,
+        "work": 1.0
+      },
+      "frontier": {
+        "best_lift": 6.2384,
+        "best_lift_ranker": "case_query_aware",
+        "best_lift_view": "operation_stack",
+        "best_recall_under_30pct": 0.865,
+        "best_recall_under_30pct_lift": 2.8843,
+        "best_recall_under_30pct_view": "fixed_session",
+        "operation_stack_on_frontier": true,
+        "views_on_frontier": [
+          "fixed_session",
+          "flat",
+          "operation_stack"
+        ]
+      },
+      "operation_stack_packet": {
+        "first_high_lift_work": 0.0112,
+        "first_positive_work": 0.0112,
+        "has_high_lift_group": true,
+        "lift": 6.2384,
+        "precision": 0.9056,
+        "recall": 0.2621,
+        "work": 0.042
+      },
+      "oracle": {
+        "operations": 4285,
+        "positive_field": "safety",
+        "positive_operations": 622,
+        "prevalence": 0.1452
+      },
+      "paper_value": "desktop safety auditing",
+      "problem": "Find unsafe desktop computer-use operations.",
+      "query_family": "safety",
+      "safe_paper_claim": "operation stacks produce the clearest selective win: high lift, higher recall than fixed-session, and far less work than flat summaries for unsafe desktop operations.",
+      "source_counterpoints": [
+        "fixed_session_uses_less_selected_work",
+        "fixed_session_reaches_first_positive_earlier"
+      ],
+      "task": "satraj_unsafe"
+    }
+  ]
+}

@@ -55,11 +55,12 @@ AI agent 的执行历史已经不再只是一次 prompt 或一棵 trace tree。
 	Mapping/backend 的可支持范围是 deterministic 或 supervised field derivation：4 个标签家族可训练，但 AgentRewardBench looping 被更简单的 \texttt{repeat\_signal\_change} baseline 完全解释，所以当前证据不支持通用无监督 intent detector。
 
 	第三组结果把 value claim 限定为自动化 inspectability proxy。
-	在 AgentRewardBench、SATraj-OS、AgentNet 和 OSWorld-Human 的 4 个数据集、6 个 oracle-backed tasks、34,539 个 operations 和 3,699 个 positives 上，operation-stack packet 比 flat summary 更 selective 的任务为 6/6，含 positive group 的任务为 6/6，含 high-lift evidence 的任务为 5/6。
-	相对 fixed-session，operation-stack selected recall 更高的任务为 5/6，但 selected work 更低的任务只有 2/6，fixed-session 在 4/6 tasks 上 selected work 更低。
-	把 162 个非 oracle view/ranker/budget points 放入 Pareto frontier 后，operation-stack 在 6/6 tasks 上 nondominated，在 4/6 tasks 上取得 best lift，并在 4/6 tasks 上取得 30\% work 内 best recall；flat 和 fixed-session 也在 6/6 tasks 上保留 frontier counterpoints。
-	因此本文支持的 claim 是可配置 operation stacks 能在真实标注问题上提供可审计的 inspectability tradeoff，而不是人类用户效用、自动异常检测或相对 fixed-session 的无条件支配。
-\end{abstract}
+		在 AgentRewardBench、SATraj-OS、AgentNet 和 OSWorld-Human 的 4 个数据集、6 个 oracle-backed tasks、34,539 个 operations 和 3,699 个 positives 上，operation-stack packet 比 flat summary 更 selective 的任务为 6/6，含 positive group 的任务为 6/6，含 high-lift evidence 的任务为 5/6。
+		相对 fixed-session，operation-stack selected recall 更高的任务为 5/6，但 selected work 更低的任务只有 2/6，fixed-session 在 4/6 tasks 上 selected work 更低。
+		把 162 个非 oracle view/ranker/budget points 放入 Pareto frontier 后，operation-stack 在 6/6 tasks 上 nondominated，在 4/6 tasks 上取得 best lift，并在 4/6 tasks 上取得 30\% work 内 best recall；flat 和 fixed-session 也在 6/6 tasks 上保留 frontier counterpoints。
+		Task-level narrative 进一步显示，SATraj safety 是最强 selective win，AgentNet quality 是 high-lift/low-recall，AgentRewardBench looping 是 prevalence aggregation，side-effect 和 OSWorld-Human boundary 对 ranker 与 depth 敏感。
+		因此本文支持的 claim 是可配置 operation stacks 能在真实标注问题上提供可审计的 inspectability tradeoff，而不是人类用户效用、自动异常检测或相对 fixed-session 的无条件支配。
+	\end{abstract}
 
 \section{问题}
 
@@ -401,11 +402,11 @@ Operation-stack view 的 median work fraction 为 0.0937、recall 为 0.188、li
     R308 analyst outcome & R305 visible packets 与 hidden answer key；6 tasks / 18 task-view packets & operation-stack positive/high-lift coverage 为 6/6 和 5/6；fixed-session 为 5/6 和 4/6；flat 为 6/6 和 0/6；operation-stack top-group lift median 1.5739 & First-evidence proxy 支持 operation-stack inspectability，但仍不是 human utility。 \\
     R309 problem value & R298/R300/R302/R305/R308 tracked artifacts；4 datasets；6 tasks & 34,539 task-operations；3,699 positives；operation-stack 比 flat selective 的任务为 6/6；high-lift coverage 为 5/6；比 fixed-session selected recall 更高的任务为 5/6 & 真实问题卡片增强 value/novelty 叙事，同时保留 fixed-session 在 4/6 tasks 上 selected work 更低。 \\
     R310/R311 paper audits & R307/R309 evidence matrix 与 R302/R305/R308/R309/R310 reviewer-stress artifacts & C1/C2/C4 scoped paper-ready；C3 partial；6/6 比 flat selective；5/6 high-lift；5/6 selected recall 高于 fixed-session；仅 2/6 selected work 低于 fixed-session & Claim、证据数字、反例和 must-not-claim 边界对齐成 paper audit surface，明确排除 human utility、automatic detection 和 universal fixed-session dominance。 \\
-    R313 view frontier & R300/R302/R305/R311 tracked artifacts；162 non-oracle candidate points & operation-stack frontier 6/6；best lift 4/6；best recall under 30\% work 4/6；flat/fixed frontier counterpoints 均为 6/6 & C4 是 configurable analysis-surface claim，而不是 single-view dominance。 \\
-    R314 related-work audit & related-work ledger、paper、claim ledger、evaluation ledger 与 R313 frontier & classic flamegraph/pprof、OpenTelemetry GenAI、OpenInference、LangSmith、Langfuse、Phoenix、AgentOps、公开标注轨迹和 fixed trace/span tree baseline 均进入检查 & Novelty/baseline grounding 是可失败的 audit surface，已有 trace systems 是同问题 baseline 而不是被忽略的相关工作。 \\
-    R288/R289 diagnostics & 729 AgentRewardBench ops；4,285 SATraj ops & repeat-signal/looping V-measure 0.378 vs step-error 0.011；622 unsafe SATraj ops & Profiler 支持 failure/safety views，且负结果能揭示粗标签不足。 \\
-    \bottomrule
-  \end{tabular}
+	    R313 view frontier & R300/R302/R305/R311 tracked artifacts；162 non-oracle candidate points & operation-stack frontier 6/6；best lift 4/6；best recall under 30\% work 4/6；flat/fixed frontier counterpoints 均为 6/6 & C4 是 configurable analysis-surface claim，而不是 single-view dominance。 \\
+	    R314 related-work audit & related-work ledger、paper、claim ledger、evaluation ledger 与 R313 frontier & classic flamegraph/pprof、OpenTelemetry GenAI、OpenInference、LangSmith、Langfuse、Phoenix、AgentOps、公开标注轨迹和 fixed trace/span tree baseline 均进入检查 & Novelty/baseline grounding 是可失败的 audit surface，已有 trace systems 是同问题 baseline 而不是被忽略的相关工作。 \\
+	    R315--R317 study/narrative package & R305/R309/R313/R316 tracked artifacts；4 datasets；6 tasks；34,539 operations；3,699 positives & 6 tasks、3 views、24 participant slots、144 trials；top-3 operation-stack positive/high-lift hit 1.0/0.8333；frontier 6/6；high-lift 5/6；higher recall vs fixed-session 5/6；lower work vs fixed-session 2/6 & Protocol、scripted readout 和 task narrative 把 user-utility gap 收敛为可执行 study 与 claim-first problem matrix，但仍不是 human/agent result 或 detector。 \\
+	    \bottomrule
+	  \end{tabular}
 \end{table*}
 
 \section{哪些数据集最适合}
@@ -453,11 +454,13 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld-Human、AgentNet、SATraj-OS、AgentR
 
 	第二，用户效用仍是缺口。
 	这些 automated proxies 把 failure、safety、quality 和 human-boundary 问题转成 label-hidden 或 hidden-answer-key tasks，并证明 operation stacks 对 flat summary 和 fixed-session drilldown 有有用 tradeoff。
-	Related-work/baseline audit 只把 grounding 转成可失败检查，不增加新的实证结果。
-	Protocol artifact 把现有 visible packets 和 hidden answer key 固化为 6 个 tasks、3 个 views、24 个 participant slots 和 144 个 trials 的 balanced analyst-study protocol，并通过 visible-packet leakage check。
-	Scripted readout 在该 assignment 上运行 fixed visible-order policy：top-3 operation-stack packets 的 positive-hit/high-lift hit 为 1.0/0.8333，fixed-session 为 0.8333/0.6667，flat 为 1.0/0.0；operation-stack 相对 fixed-session 的 task-paired median recall/work delta 为 0.1333/0.0207。
-	这些结果仍不能推出开发者准确率、time-to-answer 或 productivity 改善。
-	受控 human/agent analyst study 必须真正执行该 protocol，使用相同 visible packet、hidden answer key 和 flat/fixed/operation-stack/query-aware interfaces，才能支持更强 claim。
+		Related-work/baseline audit 只把 grounding 转成可失败检查，不增加新的实证结果。
+		Protocol artifact 把现有 visible packets 和 hidden answer key 固化为 6 个 tasks、3 个 views、24 个 participant slots 和 144 个 trials 的 balanced analyst-study protocol，并通过 visible-packet leakage check。
+		Scripted readout 在该 assignment 上运行 fixed visible-order policy：top-3 operation-stack packets 的 positive-hit/high-lift hit 为 1.0/0.8333，fixed-session 为 0.8333/0.6667，flat 为 1.0/0.0；operation-stack 相对 fixed-session 的 task-paired median recall/work delta 为 0.1333/0.0207。
+		Real-problem narrative 只把 R309、R313 和 R316 的 tracked 结果重新组织成 task-level claim matrix：safety 是最强 selective win，AgentNet quality 是 high-lift 但 low-recall，looping 是 prevalent-positive aggregation，side-effect 和 human-boundary 则暴露 ranker/depth sensitivity。
+		这个 narrative 帮助论文说明 profiler 解决哪些真实问题，也同时保存反例；它仍不是新实证、人类实验、agent 实验或 detector。
+		这些结果仍不能推出开发者准确率、time-to-answer 或 productivity 改善。
+		受控 human/agent analyst study 必须真正执行该 protocol，使用相同 visible packet、hidden answer key 和 flat/fixed/operation-stack/query-aware interfaces，才能支持更强 claim。
 
 	第三，数据和互操作范围是轻量采样。
 	本文避免同步完整测试集、图片归档和 gated 数据，因此有些来源只覆盖前缀、子配置或 redacted rows。
@@ -481,10 +484,11 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld-Human、AgentNet、SATraj-OS、AgentR
 	AgentNet 证明大规模 human desktop step-quality 标签可以作为普通 operation fields 进入 profiling。
 	AgentRewardBench 和 SATraj-OS 证明 failure、looping、side-effect、安全和 attack-type diagnostics 可以用同一机制表达。
 	6 个 label-hidden 任务进一步表明，operation stacks 相比 flat summary 更 selective，并在多数任务上比 fixed-session 取得更高 selected recall。
-	Related-work audit 则确认 classic folded-stack profilers、trace/span observability systems 和 public benchmark native views 都应保留为 baseline threats。
-	Protocol artifact 和 scripted readout 把这个 gap 收敛成可执行 protocol，显示该 protocol 能读出 positive/high-lift tradeoff，但仍不构成人类或 agent analyst 结果。
-	Pareto frontier 又显示 operation-stack 在所有任务上 nondominated，但 flat 和 fixed-session 仍是真实 counterpoints。
-	因此本文的 value claim 是 automated inspectability surface/tradeoff，而不是 detector、human utility 或 baseline dominance。
+		Related-work audit 则确认 classic folded-stack profilers、trace/span observability systems 和 public benchmark native views 都应保留为 baseline threats。
+		Protocol artifact 和 scripted readout 把这个 gap 收敛成可执行 protocol，显示该 protocol 能读出 positive/high-lift tradeoff，但仍不构成人类或 agent analyst 结果。
+		Pareto frontier 又显示 operation-stack 在所有任务上 nondominated，但 flat 和 fixed-session 仍是真实 counterpoints。
+		Real-problem narrative 最终把这些 proxy 结果压成六个任务的强项与反例：safety 和部分 step-quality 支持 selective triage，looping 更像 prevalence aggregation，side-effect 与 human-boundary 需要明确 ranker 和 stack depth。
+		因此本文的 value claim 是 automated inspectability surface/tradeoff，而不是 detector、human utility 或 baseline dominance。
 
 	论文的新意不在单个 flamegraph，而在两个抽象形成的统一接口。
 	Mapping、tagging、profile specs、agent-session trace、Chrome/Perfetto-style trace exchange、boundary backends 和 reviewer evidence packets 都只围绕 operation fields 与 operation-stack queries 工作。

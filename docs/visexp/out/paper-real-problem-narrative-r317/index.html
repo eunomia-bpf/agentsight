@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Paper Real-Problem Narrative R317</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; color: #1f2933; }
+    h1 { font-size: 1.6rem; }
+    p, li { max-width: 900px; line-height: 1.5; }
+    table { border-collapse: collapse; margin-top: 1.5rem; min-width: 920px; }
+    th, td { border: 1px solid #d8dee9; padding: 0.5rem 0.65rem; text-align: left; vertical-align: top; }
+    th { background: #f6f8fa; }
+  </style>
+</head>
+<body>
+  <h1>Paper Real-Problem Narrative R317</h1>
+  <p>
+    This synthesis reads existing tracked artifacts over labeled public agent
+    trajectories and turns them into claim-first paper conclusions.
+  </p>
+  <ul>
+<li>Across 6 oracle-backed tasks from 4 datasets, operation stacks are a paper-ready inspectability surface rather than a single winning hierarchy: they are on the non-oracle Pareto frontier for 6/6 tasks, while flat and fixed-session also remain frontier counterpoints.</li><li>The real-problem value is strongest for safety and step-quality triage: 5/6 tasks show higher selected recall than fixed-session, and 5/6 contain a high-lift operation-stack group under the hidden-key packet policy.</li><li>The main counterpoint is also stable: operation stacks are lower-work than fixed-session on only 2/6 tasks, so the paper must claim a configurable tradeoff surface, not baseline dominance.</li><li>The R316 assignment readout checks that the controlled-study instrument can recover the same tradeoff before running analysts: top-3 operation-stack positive/high-lift hit rates are 1.0/0.8333, versus 0.8333/0.6667 for fixed-session and 1.0/0.0 for flat.</li>
+  </ul>
+  <table>
+    <tr><th>Task</th><th>Dataset</th><th>Value</th><th>Pattern</th><th>OS work</th><th>OS recall</th><th>OS lift</th><th>Counterpoint</th></tr>
+<tr><th>agentnet_incorrect_step</th><td>agentnet</td><td>needle-in-haystack step-quality debugging</td><td>high_lift_low_recall</td><td>0.0014</td><td>0.0034</td><td>2.4057</td><td>Use this as selective evidence, not as a complete incorrect-step detector.</td></tr>
+<tr><th>agentnet_redundant_step</th><td>agentnet</td><td>human desktop redundancy diagnosis</td><td>high_lift_low_recall</td><td>0.0089</td><td>0.0177</td><td>1.9838</td><td>Fixed-session reaches the first positive earlier on this task, so the result is a recall/aggregation tradeoff.</td></tr>
+<tr><th>agentreward_looping</th><td>agent-reward-bench</td><td>prevalent web-agent looping diagnosis</td><td>prevalent_positive_recall</td><td>0.4938</td><td>0.6508</td><td>1.3179</td><td>This is a prevalence and aggregation result, not enriched anomaly detection.</td></tr>
+<tr><th>agentreward_side_effect</th><td>agent-reward-bench</td><td>side-effectful web-agent behavior triage</td><td>higher_recall_lower_work</td><td>0.1454</td><td>0.1139</td><td>0.7831</td><td>The top-5 packet lift falls below prevalence, so the paper should highlight query/ranker choice instead of a universal default.</td></tr>
+<tr><th>osworld_group_start</th><td>osworld-human</td><td>human grouped-action boundary inspection</td><td>higher_recall_higher_work</td><td>0.4074</td><td>0.3874</td><td>0.951</td><td>The work cost is much larger than fixed-session, so this is a boundary-coverage tradeoff, not cheaper inspection.</td></tr>
+<tr><th>satraj_unsafe</th><td>satraj-os-safety</td><td>desktop safety auditing</td><td>higher_recall_higher_work</td><td>0.042</td><td>0.2621</td><td>6.2384</td><td>Fixed-session still reaches the first positive at lower work, preserving it as a drilldown counterpoint.</td></tr>
+  </table>
+</body>
+</html>
