@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-03
 Stage at update: stage 3 design / stage 4 execute
-Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `docs/evaluation.md`, `agentpprof --profile-spec`
+Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agent-session`, `script/agent_trace_to_operations.py`, `docs/evaluation.md`, `agentpprof --profile-spec`
 Completeness: partial
 
 ## Current State And Blocking Gate
@@ -33,7 +33,9 @@ pprof, folded-stack, SVG, or JSON projections.
 The data model is:
 
 ```text
-operation fields + weight
+agent-native transcript
+  -> agent-session trace exchange format
+  -> operation fields + weight
   -> optional operation-field mappings
   -> user-selected operation stack frames
   -> weighted profile projection
@@ -120,6 +122,15 @@ stacks. This validates reproducible configuration without adding a profile-spec
 object to the paper model: the evaluated objects remain operations and
 operation stacks.
 
+R294 adds a portable trace exchange step for local agent sessions. `agentpprof
+--export-trace` writes the parsed `agent-session` IR as
+`agentsight.agent-session.trace.v1`; `agentpprof --trace-file` imports the same
+trace; and `script/agent_trace_to_operations.py` converts it to operation JSONL.
+On the public Codex fixture, trace import and operation-file import both produce
+6 samples / 5 stacks with byte-identical folded output under the same stack
+spec. This is an interoperability layer before operations, not a profiler
+abstraction.
+
 ## Mapping And Tagging
 
 Purpose: align mapping/tagging with the two-abstraction model.
@@ -163,6 +174,9 @@ Purpose: name the design constraints that tests should protect.
 - All profile outputs must be derivable from operations and operation stacks.
 - Local-session projections and external operation JSONL must share the same
   stack construction path.
+- Agent-session trace import/export must be a loss-bounded exchange format that
+  can be converted to operation JSONL and then profiled through the same stack
+  path.
 - Adding `session`, `prompt`, `tool`, `process`, or `path` to a stack is a user
   projection choice, not a hard boundary in the profiler.
 - Mapping rules must be visible and reproducible, either inline or in tracked
@@ -180,4 +194,5 @@ Purpose: keep open risks tied to experiments.
 | Hand-written mappings overfit one dataset family. | Held-out and leave-dataset-out mapping evaluation plus operation-family precedence checks. | R282-R285 cover held-out sessions and 9 leave-out datasets; R289/R290/R291 add desktop computer-use precedence checks; R292 adds a supplemental GUI history-depth field check. |
 | Action labels are too shallow as boundary oracles. | Add step-instruction, solution-path, outcome, side-effect, looping, repetition, safety/attack, grouped-action, step-quality, and failure-label scorers. | R287 adds tau-bench outcomes and expected task actions; R288 adds AgentRewardBench expert success, side-effect, looping, optimality, and action-derived `repeat_signal` fields; R289 adds SATraj safety and attack labels; R290 adds OSWorld-Human grouped-action boundary labels; R291 adds AgentNet step correctness and redundancy labels. AndroidControl and TRAIL remain deeper oracle candidates. |
 | Profile experiments remain ad hoc shell commands. | Bundle reproducible operation-file, op-map, view, stack, and output choices in profile specs while preserving CLI overrides. | R293 adds an AgentNet profile spec that reproduces the R291 608-stack diagnostic profile and folds the same operations into an 83-stack override view. |
-| Visualizations collapse back to flamegraphs only. | Generate tree, transition, top-field, quality, grouped-stack, history-depth, and depth-sweep HTML/JSON reports. | R273-R293 include non-flamegraph analyses and reproducible profile specs. |
+| Local agent sessions are hard to exchange or replay outside native logs. | Export parsed sessions as `agentsight.agent-session.trace.v1`, import them through `--trace-file`, and convert them to operation JSONL. | R294 public Codex fixture smoke shows direct trace import and converted operation-file import produce identical folded stacks. |
+| Visualizations collapse back to flamegraphs only. | Generate tree, transition, top-field, quality, grouped-stack, history-depth, and depth-sweep HTML/JSON reports. | R273-R294 include non-flamegraph analyses, reproducible profile specs, and trace-exchange smoke tests. |

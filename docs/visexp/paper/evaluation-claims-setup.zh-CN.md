@@ -19,7 +19,7 @@ tool、action、human group、safety、looping 或 step quality 等不同深度�
 
 | Claim | 当前结论 | 证据 | 不能声称的内容 |
 |---|---|---|---|
-| C1：异构标注 agent 轨迹可以统一为 operation JSONL。 | supported for current sampled public datasets | R279-R292 覆盖 15 个公开标注轨迹数据源。核心 R291 14 数据集有 42,590 operations；R292 补充 ScaleCUA 后有 47,590 operations。R293 用 profile spec 复现 R291 AgentNet 查询，不改 operation 输入。 | 不能声称任意 agent 数据都可零成本转换，尤其是只有图片、无顺序、gated 或缺少 action label 的数据。 |
+| C1：异构标注 agent 轨迹可以统一为 operation JSONL。 | supported for current sampled public datasets | R279-R292 覆盖 15 个公开标注轨迹数据源。核心 R291 14 数据集有 42,590 operations；R292 补充 ScaleCUA 后有 47,590 operations。R293 用 profile spec 复现 R291 AgentNet 查询，不改 operation 输入。R294 证明本地 Codex session 可导出为标准 trace，再导入或转成 operation JSONL，并得到相同 folded stack。 | 不能声称任意 agent 数据都可零成本转换，尤其是只有图片、无顺序、gated 或缺少 action label 的数据。 |
 | C2：operation stack 是可递归配置的，不应固定绑定 session/prompt。 | supported | R286 在同一 13,265 operations 上从 9 个 dataset stacks 展开到 57 个 phase stacks、226 个 tool/semantic stacks、455 个 action stacks 和 3,757 个 fixed-session stacks。R277 显示固定 demo/session 比 mapped stack 多 10.5x unique stacks。R293 在同一 16,741 个 AgentNet operations 上复现 608-stack 诊断视图，并用 CLI 覆盖 stack 得到 83-stack 粗粒度视图。 | 不能声称某一个默认 stack 对所有问题最优。 |
 | C3：mapping/tagging 可以作为一等字段派生机制。 | partially supported | R281 生成 rules 复现手写 mapping；R282 held-out compression 为 19.091，no-map baseline 为 14.049；R285 leave-dataset-out 在 9 个 datasets 中 6 个减少 stacks，0 个负向回归。 | 不能声称无监督或 LLM-backed boundary detector 已完成。 |
 | C4：operation stacks 能恢复有意义的人工或标注边界。 | partially supported with strong OSWorld-Human evidence | R290 OSWorld-Human 覆盖 369 tasks 和 6,010 operations。Exact grouped oracle 覆盖 320 tasks、4,011 operations、2,075 groups。`group_pattern:human_group` boundary F1 为 0.627，precision 为 1.0。 | Recall 只有 0.456，不能声称完整恢复人工 subtask 边界。 |
@@ -53,6 +53,7 @@ tool、action、human group、safety、looping 或 step quality 等不同深度�
 | R291 | AgentNet desktop step quality | 16,741 ops；step correctness/redundancy 100% field coverage | 最大 human desktop step-quality oracle。 |
 | R292 | ScaleCUA supplement | 5,000 ops；131 sessions；max step 48 | 补充 GUI history-depth，不作为主 claim。 |
 | R293 | Profile-spec reproducibility | 同一 16,741 AgentNet ops；spec 复现 608 stacks；CLI override 得到 83 stacks | 证明 operation-stack query 可配置、可提交、可覆盖，不是固定 prompt/session hierarchy。 |
+| R294 | Agent-session trace exchange | public Codex fixture；1 trace session；6 operations；trace import 和 operation import 都是 6 samples / 5 stacks | 证明本地原生 session 可以导出、导入并桥接到 operation JSONL。 |
 
 ## Paper-Ready Wording
 
@@ -67,6 +68,9 @@ tool、action、human group、safety、looping 或 step quality 等不同深度�
 > Profile specs make these experiments replayable without changing the
 > two-object model: they package operation files, mappings, view, stack, and
 > output choices, while CLI flags can still override the stack query.
+> Agent-session traces provide a replayable import/export format before the
+> operation layer; converting them to operation JSONL preserves the same stack
+> projection path.
 
 中文论文中应写成：
 
@@ -75,6 +79,8 @@ tool、action、human group、safety、looping 或 step quality 等不同深度�
 > 和 tagging 只派生字段，operation stack 再根据用户问题递归折叠。
 > Profile spec 只是把 operation 文件、mapping、view、stack 和输出路径记录成可复现
 > 配置；它不增加第三个抽象，命令行仍可覆盖 stack 以回答不同问题。
+> Agent-session trace 是 session 交换格式，不是 profiler 抽象；导入后仍然要转成
+> operations，再由 operation stack 折叠。
 
 不能写：
 

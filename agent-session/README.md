@@ -10,6 +10,23 @@ let sessions = agent_session::SessionCache::new()
     .discover_cached(25, std::time::Duration::from_secs(2));
 ```
 
+The same IR can be serialized as an exchange trace:
+
+```json
+{
+  "schema": "agentsight.agent-session.trace.v1",
+  "sessions": []
+}
+```
+
+`agent-session` owns this parsed-session trace schema. Downstream applications
+can import it directly, or convert it to their own storage/profiling formats.
+For AgentSight's semantic profiler, `script/agent_trace_to_operations.py`
+converts the trace into normalized operation JSONL consumed by
+`agentpprof --operation-file`. The converter uses event-level prompt/tool/LLM
+rows when present and falls back to session-level summaries; prompt and LLM
+previews are omitted unless `--include-previews` is passed.
+
 ## Scope
 
 - Transcript/session discovery and parsing for local coding-agent logs.

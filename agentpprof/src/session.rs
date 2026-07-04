@@ -1,6 +1,8 @@
-use agent_session::{AgentSession, SessionCandidate};
-use anyhow::{Result, anyhow};
+use agent_session::{AgentSession, AgentTrace, SessionCandidate};
+use anyhow::{Context, Result, anyhow, bail};
 use rayon::prelude::*;
+use serde_json::Value;
+use std::fs;
 use std::path::{Path, PathBuf};
 
 pub type UserRequest = agent_session::UserPrompt;
@@ -49,19 +51,14 @@ impl SessionRecord {
     }
 }
 
-pub struct DiscoveryResult {
-    pub sessions: Vec<SessionRecord>,
-    pub warnings: Vec<String>,
-}
-
-pub fn discover_sessions(
+pub fn discover_agent_sessions(
     project_root: &Path,
     codex_root: &Path,
     claude_root: &Path,
     session_files: &[PathBuf],
     scan_files: usize,
     max_sessions: usize,
-) -> Result<DiscoveryResult> {
+) -> Result<Vec<AgentSession>> {
     let explicit_files = !session_files.is_empty();
     let mut candidates = if explicit_files {
         session_files
@@ -85,8 +82,23 @@ pub fn discover_sessions(
             if !explicit_files && !session_matches_project(&summary, &project_root_owned) {
                 return None;
             }
-            let mut session = record_from_agent_session(&summary);
-            apply_agent_session_fallbacks(&mut session, &summary);
+            Some(summary)
+        })
+        .collect();
+
+    Ok(if max_sessions > 0 {
+        parsed.into_iter().take(max_sessions).collect()
+    } else {
+        parsed
+    })
+}
+
+pub fn session_records_from_agent_sessions(sessions: &[AgentSession]) -> Vec<SessionRecord> {
+    sessions
+        .iter()
+        .filter_map(|summary| {
+            let mut session = record_from_agent_session(summary);
+            apply_agent_session_fallbacks(&mut session, summary);
             session.ensure_prompt();
             if session.user_requests.is_empty()
                 && session.tools.is_empty()
@@ -96,18 +108,53 @@ pub fn discover_sessions(
             }
             Some(session)
         })
-        .collect();
+        .collect()
+}
 
-    let sessions = if max_sessions > 0 {
-        parsed.into_iter().take(max_sessions).collect()
-    } else {
-        parsed
-    };
+pub fn load_agent_trace_files(paths: &[PathBuf]) -> Result<Vec<AgentSession>> {
+    let mut sessions = Vec::new();
+    for path in paths {
+        let contents = fs::read_to_string(path)
+            .with_context(|| format!("failed to read --trace-file {}", path.display()))?;
+        sessions.extend(parse_agent_trace(&contents, path)?);
+    }
+    Ok(sessions)
+}
 
-    Ok(DiscoveryResult {
-        sessions,
-        warnings: Vec::new(),
-    })
+pub fn write_agent_trace(path: &Path, sessions: &[AgentSession]) -> Result<()> {
+    if let Some(parent) = path.parent()
+        && !parent.as_os_str().is_empty()
+    {
+        fs::create_dir_all(parent)
+            .with_context(|| format!("failed to create trace dir {}", parent.display()))?;
+    }
+    let trace = AgentTrace::new(sessions.to_vec());
+    let payload = serde_json::to_string_pretty(&trace)?;
+    fs::write(path, payload).with_context(|| format!("failed to write trace {}", path.display()))
+}
+
+fn parse_agent_trace(contents: &str, path: &Path) -> Result<Vec<AgentSession>> {
+    let value: Value = serde_json::from_str(contents)
+        .with_context(|| format!("invalid trace JSON {}", path.display()))?;
+    if value.get("sessions").is_some() {
+        let trace: AgentTrace = serde_json::from_value(value)
+            .with_context(|| format!("invalid agent trace {}", path.display()))?;
+        if trace.schema != agent_session::AGENT_TRACE_SCHEMA {
+            bail!(
+                "unsupported trace schema {} in {}",
+                trace.schema,
+                path.display()
+            );
+        }
+        return Ok(trace.sessions);
+    }
+    if value.is_array() {
+        return serde_json::from_value(value)
+            .with_context(|| format!("invalid session array trace {}", path.display()));
+    }
+    let session = serde_json::from_value(value)
+        .with_context(|| format!("invalid single-session trace {}", path.display()))?;
+    Ok(vec![session])
 }
 
 fn discover_configured_roots(codex_root: &Path, claude_root: &Path) -> Vec<SessionCandidate> {
@@ -244,4 +291,45 @@ pub fn default_claude_root(project_root: &Path) -> Result<PathBuf> {
     dirs::home_dir()
         .map(|home| home.join(".claude/projects"))
         .ok_or_else(|| anyhow!("cannot determine home directory"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use agent_session::{SessionEvents, TokenUsage};
+    use std::collections::BTreeMap;
+    use std::time::UNIX_EPOCH;
+
+    #[test]
+    fn agent_trace_round_trip_uses_schema_wrapper() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("trace.json");
+        let session = AgentSession {
+            agent_type: "codex".to_string(),
+            session_id: "s1".to_string(),
+            conversation_id: None,
+            display_id: "s1".to_string(),
+            path: PathBuf::from("session.jsonl"),
+            updated: UNIX_EPOCH,
+            start_timestamp_ms: Some(1),
+            end_timestamp_ms: Some(2),
+            model: Some("model".to_string()),
+            usage: TokenUsage::default(),
+            model_usage: BTreeMap::new(),
+            tools: BTreeMap::new(),
+            files: BTreeMap::new(),
+            prompt_preview: Some("hello".to_string()),
+            duration_ms: 1,
+            cwd: Some("/repo".to_string()),
+            last_message_at: None,
+            events: SessionEvents::default(),
+        };
+
+        write_agent_trace(&path, std::slice::from_ref(&session)).unwrap();
+        let loaded = load_agent_trace_files(&[path]).unwrap();
+
+        assert_eq!(loaded.len(), 1);
+        assert_eq!(loaded[0].session_id, "s1");
+        assert_eq!(loaded[0].agent_type, "codex");
+    }
 }

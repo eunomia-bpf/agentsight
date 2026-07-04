@@ -10,6 +10,8 @@ use std::time::{Duration, Instant, SystemTime};
 
 use crate::{discover_session_files, parse_session_file};
 
+pub const AGENT_TRACE_SCHEMA: &str = "agentsight.agent-session.trace.v1";
+
 /// Token usage statistics for a model or session.
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
 pub struct TokenUsage {
@@ -143,6 +145,22 @@ pub struct AgentSession {
     /// Vendor-neutral interaction events extracted from agent-native transcripts.
     #[serde(default)]
     pub events: SessionEvents,
+}
+
+/// Portable JSON trace wrapper for exchanging parsed agent sessions.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentTrace {
+    pub schema: String,
+    pub sessions: Vec<AgentSession>,
+}
+
+impl AgentTrace {
+    pub fn new(sessions: Vec<AgentSession>) -> Self {
+        Self {
+            schema: AGENT_TRACE_SCHEMA.to_string(),
+            sessions,
+        }
+    }
 }
 
 /// A candidate session file discovered on disk.

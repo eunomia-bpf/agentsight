@@ -253,6 +253,39 @@ agentpprof \
   -o tokens.folded
 ```
 
+也可以先把本地原生 session 导出成可移植的 agent-session trace，再在没有原始
+Codex/Claude 文件的环境里导入：
+
+```bash
+agentpprof \
+  --session-file ~/.codex/sessions/.../session.jsonl \
+  --export-trace agent-session-trace.json
+
+agentpprof \
+  --trace-file agent-session-trace.json \
+  --view operations \
+  --stack 'project,agent,op,phase,tool,status' \
+  -o trace.folded
+```
+
+Trace schema 是 `agentsight.agent-session.trace.v1`。它只是解析后 session 的交换格式，
+不是 profiler 的第三个抽象。`--export-trace` 支持 `--agent`、`--session-id`
+这类原始来源筛选；`--session-tag` 和 `--prompt-tag` 是 profiler 后处理注解，
+不能混在 trace export 中。若要让同一批数据走外部数据集路径，可以转成
+operation JSONL：
+
+```bash
+python3 script/agent_trace_to_operations.py \
+  --trace-file agent-session-trace.json \
+  --project-name my-project \
+  --out operations.jsonl
+
+agentpprof --operation-file operations.jsonl --view operations -o operations.folded
+```
+
+转换脚本若没有产生任何 operation 会非零退出；有事件级 prompt/tool/LLM 行时优先使用
+事件级数据，否则回退到 session 级 tool/token 摘要。
+
 有用的筛选器：
 
 ```bash

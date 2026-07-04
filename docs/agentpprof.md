@@ -290,6 +290,41 @@ agentpprof \
   -o tokens.folded
 ```
 
+You can also export parsed local sessions into a portable agent-session trace,
+then import that trace later without the native Codex/Claude files:
+
+```bash
+agentpprof \
+  --session-file ~/.codex/sessions/.../session.jsonl \
+  --export-trace agent-session-trace.json
+
+agentpprof \
+  --trace-file agent-session-trace.json \
+  --view operations \
+  --stack 'project,agent,op,phase,tool,status' \
+  -o trace.folded
+```
+
+The trace schema is `agentsight.agent-session.trace.v1`. It is an exchange
+format for parsed sessions, not a profiler abstraction. `--export-trace`
+accepts source selectors such as `--agent` and `--session-id`, but rejects
+`--session-tag` and `--prompt-tag` because those tags are profiler annotations.
+To feed the same data through the external-dataset path, convert it to
+operation JSONL:
+
+```bash
+python3 script/agent_trace_to_operations.py \
+  --trace-file agent-session-trace.json \
+  --project-name my-project \
+  --out operations.jsonl
+
+agentpprof --operation-file operations.jsonl --view operations -o operations.folded
+```
+
+The converter exits nonzero if a trace produces no operations. It uses
+event-level prompt/tool/LLM rows when present and falls back to session-level
+tool and token summaries.
+
 Useful selectors:
 
 ```bash

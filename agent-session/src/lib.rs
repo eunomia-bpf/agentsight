@@ -26,8 +26,8 @@ pub const SOURCE_SESSION_PROCESS_MATCH: &str = "agent_session.process_match";
 
 // Re-export types
 pub use types::{
-    AgentSession, LlmResponse, SessionCache, SessionCandidate, SessionDirStat, SessionEvents,
-    TokenUsage, ToolEvent, UserPrompt,
+    AGENT_TRACE_SCHEMA, AgentSession, AgentTrace, LlmResponse, SessionCache, SessionCandidate,
+    SessionDirStat, SessionEvents, TokenUsage, ToolEvent, UserPrompt,
 };
 
 // Re-export parser functions
