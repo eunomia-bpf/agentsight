@@ -16,22 +16,24 @@
   <p>Overall: scoped_related_work_ready. The paper is grounded against current trace-tree observability systems, classic folded-stack profilers, and public labeled agent-trajectory benchmarks, while preserving the scoped R313 inspectability-tradeoff claim.</p>
   <h2>Closest Work</h2>
   <table><tr><th>Key</th><th>Status</th><th>Lines</th><th>Reason</th></tr>
-<tr><th>classic_flamegraph_pprof</th><td>pass</td><td>41, 63, 66, 72, 95, 184, 239, 240, 275, 282, 287, 290, ... (112 total)</td><td>Classic profilers are the fixed-call-stack baseline for folded stacks.</td></tr>
-<tr><th>opentelemetry_genai</th><td>pass</td><td>35, 38, 40, 65, 73, 74, 77, 117, 210, 576, 608, 645, ... (19 total)</td><td>OpenTelemetry-style GenAI semantic conventions are the trace-schema threat.</td></tr>
-<tr><th>openinference</th><td>pass</td><td>38, 40, 65, 74, 77, 117, 576, 654, 737, 796, 1082, 1148</td><td>OpenInference is a current AI-observability semantic convention for spans.</td></tr>
-<tr><th>langsmith</th><td>pass</td><td>36, 65, 66, 75, 104, 577, 655, 737, 797, 1082</td><td>LangSmith is a production LLM observability and evaluation platform.</td></tr>
-<tr><th>langfuse</th><td>pass</td><td>37, 65, 66, 76, 104, 577, 656, 737, 797, 1082</td><td>Langfuse is an open LLM tracing, eval, and prompt-management platform.</td></tr>
-<tr><th>phoenix</th><td>pass</td><td>38, 65, 66, 74, 77, 104, 577, 654, 657, 737, 797, 1082</td><td>Phoenix is an OpenTelemetry/OpenInference-based tracing/eval platform.</td></tr>
-<tr><th>agentops</th><td>pass</td><td>39, 65, 78, 577, 658, 737, 797, 1082</td><td>AgentOps is the closest agent-specific observability taxonomy/tooling threat.</td></tr>
-<tr><th>public_labeled_trajectories</th><td>pass</td><td>13, 16, 27, 28, 29, 31, 32, 33, 34, 48, 51, 63, ... (188 total)</td><td>The paper must distinguish itself from benchmarks that provide labeled trajectories.</td></tr>
+<tr><th>classic_flamegraph_pprof</th><td>pass</td><td>41, 42, 77, 83, 86, 93, 117, 175, 206, 265, 266, 301, ... (119 total)</td><td>Classic profilers are the folded-stack/profile lineage and include labels/tag pseudo-frame threats.</td></tr>
+<tr><th>pprof_tags</th><td>pass</td><td>42, 77, 86, 175, 643, 711, 826, 897, 954, 1210</td><td>pprof tags and pseudo stack frames narrow the novelty away from query-time aggregation alone.</td></tr>
+<tr><th>perfetto_sql</th><td>pass</td><td>42, 76, 86, 94, 175, 641, 644, 711, 826, 898, 954, 1210</td><td>Perfetto SQL and derived events narrow the novelty away from generic trace analysis.</td></tr>
+<tr><th>opentelemetry_genai</th><td>pass</td><td>35, 38, 40, 71, 72, 75, 85, 95, 96, 99, 139, 178, ... (29 total)</td><td>OpenTelemetry-style GenAI semantic conventions are the trace-schema threat.</td></tr>
+<tr><th>openinference</th><td>pass</td><td>38, 40, 72, 75, 85, 96, 99, 139, 179, 181, 652, 656, ... (20 total)</td><td>OpenInference is a current AI-observability semantic convention for spans.</td></tr>
+<tr><th>langsmith</th><td>pass</td><td>36, 73, 85, 86, 97, 126, 178, 653, 738, 826, 898, 1210</td><td>LangSmith is a production LLM observability and evaluation platform.</td></tr>
+<tr><th>langfuse</th><td>pass</td><td>37, 74, 85, 86, 98, 126, 178, 653, 739, 826, 899, 1210</td><td>Langfuse is an open LLM tracing, eval, and prompt-management platform.</td></tr>
+<tr><th>phoenix</th><td>pass</td><td>38, 72, 75, 85, 86, 96, 99, 126, 178, 179, 653, 656, ... (20 total)</td><td>Phoenix is an OpenTelemetry/OpenInference-based tracing/eval platform.</td></tr>
+<tr><th>agentops</th><td>pass</td><td>39, 43, 60, 85, 100, 178, 653, 741, 826, 899, 1210</td><td>AgentOps is the closest agent-specific observability taxonomy/tooling threat.</td></tr>
+<tr><th>public_labeled_trajectories</th><td>pass</td><td>13, 16, 27, 28, 29, 31, 32, 33, 34, 43, 50, 53, ... (197 total)</td><td>The paper must distinguish itself from benchmarks that provide labeled trajectories.</td></tr>
   </table>
   <h2>Baselines</h2>
   <table><tr><th>Key</th><th>Status</th><th>Lines</th><th>Reason</th></tr>
-<tr><th>dataset_native_sequence</th><td>pass</td><td>63, 102, 157, 833, 1116</td><td>Reviewers will expect a comparison against the benchmark&#x27;s native sequence view.</td></tr>
-<tr><th>flat_action_summary</th><td>pass</td><td>63, 66, 105, 157, 218, 220, 324, 335, 389, 406, 408, 409, ... (73 total)</td><td>Flat counting is the simplest aggregation baseline.</td></tr>
-<tr><th>fixed_session_stack</th><td>pass</td><td>63, 64, 66, 103, 157, 209, 219, 220, 222, 324, 336, 383, ... (99 total)</td><td>Fixed session or demo stacks test whether operation stacks add value.</td></tr>
-<tr><th>fixed_trace_span_tree</th><td>pass</td><td>65, 66, 74, 75, 104, 117, 157, 197, 253, 337, 399, 577, ... (18 total)</td><td>LLM observability systems motivate a trace-tree baseline.</td></tr>
-<tr><th>frontier_counterpoints</th><td>pass</td><td>66, 220, 324, 406, 408, 409, 412, 415, 502, 524, 529, 546, ... (53 total)</td><td>R313 should preserve counterpoints instead of claiming dominance.</td></tr>
+<tr><th>dataset_native_sequence</th><td>pass</td><td>83, 86, 87, 124, 179, 358, 564, 571, 594, 621, 832, 860, ... (18 total)</td><td>Reviewers will expect a comparison against the benchmark&#x27;s native sequence view.</td></tr>
+<tr><th>flat_action_summary</th><td>pass</td><td>83, 86, 87, 127, 179, 241, 243, 245, 350, 358, 366, 420, ... (82 total)</td><td>Flat counting is the simplest aggregation baseline.</td></tr>
+<tr><th>fixed_session_stack</th><td>pass</td><td>83, 84, 85, 86, 87, 125, 177, 179, 232, 242, 243, 245, ... (117 total)</td><td>Fixed session or demo stacks test whether operation stacks add value.</td></tr>
+<tr><th>fixed_session_span_tree_proxy</th><td>pass</td><td>85, 86, 177, 179, 656, 814, 820, 826, 858, 940, 1067, 1140, ... (18 total)</td><td>LLM observability systems motivate a span-tree baseline, but current R320 evidence uses fixed-session as the proxy.</td></tr>
+<tr><th>frontier_counterpoints</th><td>pass</td><td>86, 87, 179, 243, 245, 350, 358, 437, 439, 440, 443, 446, ... (63 total)</td><td>R313 should preserve counterpoints instead of claiming dominance.</td></tr>
   </table>
 </body>
 </html>

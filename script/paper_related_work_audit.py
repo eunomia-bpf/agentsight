@@ -145,7 +145,17 @@ def closest_work_checks(text: str) -> list[dict[str, Any]]:
             (
                 "classic_flamegraph_pprof",
                 r"Flame Graph|flamegraph|pprof|folded",
-                "Classic profilers are the fixed-call-stack baseline for folded stacks.",
+                "Classic profilers are the folded-stack/profile lineage and include labels/tag pseudo-frame threats.",
+            ),
+            (
+                "pprof_tags",
+                r"tagroot|tagleaf|sample tags|tag pseudo|pseudo stack frame|pseudo frames",
+                "pprof tags and pseudo stack frames narrow the novelty away from query-time aggregation alone.",
+            ),
+            (
+                "perfetto_sql",
+                r"Perfetto.*SQL|SQL.*Perfetto|derived events|derived-event|trace analysis",
+                "Perfetto SQL and derived events narrow the novelty away from generic trace analysis.",
             ),
             (
                 "opentelemetry_genai",
@@ -196,14 +206,14 @@ def novelty_delta_checks(text: str) -> list[dict[str, Any]]:
                 "Novelty must stay on the two-abstraction model.",
             ),
             (
-                "query_time_projection",
-                r"query-time|用户选择|递归折叠|stack 深度|stack depth|view/ranker",
-                "The paper must say stacks are selected at query time, not fixed at capture time.",
+                "agent_operation_stack_projection",
+                r"agent-operation record|recursive multi-field|multi-field operation-stack|operation-stack projection|递归.*operation-stack|agent-operation",
+                "The paper must scope novelty to the agent-operation record model plus recursive multi-field operation-stack projection.",
             ),
             (
-                "trace_tree_is_baseline",
-                r"trace tree|span tree|fixed trace|固定.*trace|固定.*span",
-                "LLM tracing systems should map to a fixed trace/span-tree baseline.",
+                "trace_tree_proxy_is_guarded",
+                r"span-tree proxy|fixed-session/span-tree proxy|fixed-session.*proxy|真实.*span-tree|real.*span-tree",
+                "R320 should name fixed-session as a span-tree proxy, not as a real imported trace/span-tree result.",
             ),
             (
                 "public_dataset_use_not_benchmark",
@@ -239,9 +249,9 @@ def baseline_checks(text: str) -> list[dict[str, Any]]:
                 "Fixed session or demo stacks test whether operation stacks add value.",
             ),
             (
-                "fixed_trace_span_tree",
-                r"span/trace|trace/span|trace tree|span tree",
-                "LLM observability systems motivate a trace-tree baseline.",
+                "fixed_session_span_tree_proxy",
+                r"span-tree proxy|fixed-session/span-tree proxy|fixed-session.*proxy",
+                "LLM observability systems motivate a span-tree baseline, but current R320 evidence uses fixed-session as the proxy.",
             ),
             (
                 "frontier_counterpoints",

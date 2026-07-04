@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""R312: audit paper submission claims against R310/R311 evidence.
+"""R312: audit paper submission claims against R310/R311/R320 evidence.
 
 R312 does not fetch datasets or rerun profiling experiments. It reads the
-tracked R310/R311 audit artifacts plus the current Chinese draft, then checks
-whether the paper carries the scoped evidence, guardrails, and two-abstraction
-boundary needed for a submission-quality argument.
+R310/R311 audit artifacts, the R320 profiler-accuracy report, and the current
+Chinese draft, then checks whether the paper carries the scoped evidence,
+guardrails, and two-abstraction boundary needed for the current profiling claim.
 """
 
 from __future__ import annotations
@@ -30,6 +30,9 @@ SOURCE_PATHS = {
     "r311_robustness_audit": OUT_ROOT
     / "paper-robustness-audit-r311"
     / "robustness-audit.json",
+    "r320_profile_accuracy": OUT_ROOT
+    / "operation-profile-accuracy-r320"
+    / "profile-accuracy-report.json",
     "paper_main_tex": ROOT / "docs" / "visexp" / "paper" / "main.tex",
 }
 
@@ -283,8 +286,12 @@ def paper_style_checks(text: str) -> list[dict[str, Any]]:
     ]
 
 
-def claim_alignment(r310: dict[str, Any], r311: dict[str, Any]) -> list[dict[str, Any]]:
+def claim_alignment(
+    r310: dict[str, Any], r311: dict[str, Any], r320: dict[str, Any]
+) -> list[dict[str, Any]]:
     r311_summary = r311["summary"]
+    r320_totals = r320["totals"]
+    r320_findings = r320["primary_findings"]
     return [
         {
             "claim": "C1",
@@ -309,15 +316,21 @@ def claim_alignment(r310: dict[str, Any], r311: dict[str, Any]) -> list[dict[str
         },
         {
             "claim": "C4",
-            "status": "automated_proxy_ready",
-            "paper_use": "inspectability-tradeoff claim",
+            "status": "hidden_label_profiler_accuracy_ready",
+            "paper_use": "profiler localization/ranking and actionability claim",
             "evidence": (
-                f"R311 reports flat selectivity {r311_summary['operation_stack_more_selective_than_flat']}, "
+                f"R320 scores {r320_totals['policy_scores']} policies over "
+                f"{r320_totals['datasets']} datasets / {r320_totals['tasks']} tasks / "
+                f"{r320_totals['task_operations']:,} operations / "
+                f"{r320_totals['positive_operations']:,} positives. "
+                + " ".join(r320_findings[:2])
+                + " R311 remains as the earlier robustness check: "
+                f"flat selectivity {r311_summary['operation_stack_more_selective_than_flat']}, "
                 f"high-lift {r311_summary['operation_stack_high_lift_coverage']}, "
                 f"higher recall than fixed {r311_summary['operation_stack_higher_recall_than_fixed']}, "
                 f"and lower work than fixed only {r311_summary['operation_stack_lower_work_than_fixed']}."
             ),
-            "remaining_gap": "Controlled human/agent analyst study before user-utility wording.",
+            "remaining_gap": "Expand R320 to more oracle-rich tool/API and mobile GUI families; run a controlled human/agent analyst study only before user-productivity wording.",
         },
     ]
 
@@ -357,10 +370,11 @@ def readiness_summary(
         "blocking": blocking,
         "warnings": warnings,
         "submission_position": (
-            "The scoped mechanism and automated inspectability claims are aligned "
-            "with R310/R311 evidence, but the draft should not be treated as a "
-            "full OSDI/NeurIPS submission until paper-structure polish and the "
-            "controlled analyst-study gap are addressed."
+            "The draft is scoped-claim ready for a profiling-paper argument: "
+            "mechanism, two-abstraction boundary, guardrails, and the R320 "
+            "hidden-label localization/ranking benchmark are aligned. It still "
+            "must not claim human productivity, time-to-answer, or complete "
+            "trace-ecosystem compatibility without separate evidence."
         ),
     }
 
@@ -372,9 +386,12 @@ def build_payload() -> dict[str, Any]:
             SOURCE_PATHS["r311_robustness_audit"],
         ]
     )
+    if not SOURCE_PATHS["r320_profile_accuracy"].exists():
+        raise SystemExit(f"missing source artifact {rel(SOURCE_PATHS['r320_profile_accuracy'])}")
     ensure_tracked(SOURCE_PATHS["paper_main_tex"])
     r310 = load_json(SOURCE_PATHS["r310_evidence_matrix"])
     r311 = load_json(SOURCE_PATHS["r311_robustness_audit"])
+    r320 = load_json(SOURCE_PATHS["r320_profile_accuracy"])
     paper_text = SOURCE_PATHS["paper_main_tex"].read_text(encoding="utf-8")
 
     number_rows = required_number_checks(paper_text, r310, r311)
@@ -389,12 +406,12 @@ def build_payload() -> dict[str, Any]:
         "input_policy": {
             "dataset_sync": "none",
             "source_artifacts": {key: rel(path) for key, path in SOURCE_PATHS.items()},
-            "clean_requirement": "R310/R311 audit artifacts must be git-tracked and clean; the paper draft is read from the current worktree and hashed.",
+            "clean_requirement": "R310/R311 audit artifacts must be git-tracked and clean; R320 is read from the current worktree because it is the new profiler-accuracy gate emitted with this paper update; the paper draft is read from the current worktree and hashed.",
             "purpose": "paper claim/evidence/guardrail audit only; no new empirical result",
         },
         "profiler_abstractions": ["operation", "operation stack"],
         "paper_hash": text_hash(paper_text),
-        "claim_alignment": claim_alignment(r310, r311),
+        "claim_alignment": claim_alignment(r310, r311, r320),
         "number_alignment_checks": number_rows,
         "two_abstraction_checks": abstraction_rows,
         "guardrail_checks": guardrail_rows,
@@ -417,7 +434,7 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
     lines = [
         "# Paper Submission Audit R312",
         "",
-        "R312 audits the current Chinese draft against the R310/R311 evidence. It does not sync datasets or rerun profilers.",
+        "R312 audits the current Chinese draft against the R310/R311/R320 evidence. It does not sync datasets or rerun profilers.",
         "",
         "## Readiness",
         "",
@@ -596,7 +613,7 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
 </head>
 <body>
   <h1>Paper Submission Audit R312</h1>
-  <p>R312 checks the current Chinese draft against R310/R311 evidence without syncing datasets.</p>
+  <p>R312 checks the current Chinese draft against R310/R311/R320 evidence without syncing datasets.</p>
   <h2>Readiness</h2>
   <table>
     <tr><th>Check</th><th>Status</th></tr>
