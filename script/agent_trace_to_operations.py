@@ -332,6 +332,15 @@ def operations_for_session(
     project_name: str,
     include_previews: bool,
 ) -> Iterable[dict[str, Any]]:
+    for event in operation_events_for_session(session, project_name, include_previews):
+        yield event["operation"]
+
+
+def operation_events_for_session(
+    session: dict[str, Any],
+    project_name: str,
+    include_previews: bool,
+) -> Iterable[dict[str, Any]]:
     prompts = prompt_rows_for_session(session)
     tools = event_tool_rows(session)
     llm_responses = llm_rows_for_session(session)
@@ -346,7 +355,11 @@ def operations_for_session(
                 "prompt_hash": prompt.get("text_hash", fields.get("prompt_hash", "")),
             }
         )
-        yield {"value": 1, "fields": clean_fields(fields)}
+        yield {
+            "operation": {"value": 1, "fields": clean_fields(fields)},
+            "ts_ms": prompt.get("ts_ms"),
+            "event": "prompt",
+        }
 
     for event in tools:
         prompt_index = nonnegative_int(event.get("prompt_index"))
@@ -366,7 +379,11 @@ def operations_for_session(
                 "process": event.get("process_chain", []),
             }
         )
-        yield {"value": 1, "fields": clean_fields(fields)}
+        yield {
+            "operation": {"value": 1, "fields": clean_fields(fields)},
+            "ts_ms": event.get("ts_ms"),
+            "event": "tool",
+        }
 
     for call in llm_responses:
         prompt_index = nonnegative_int(call.get("prompt_index"))
@@ -388,7 +405,11 @@ def operations_for_session(
         )
         if include_previews:
             fields["llm_preview"] = call.get("preview", "")
-        yield {"value": 1, "fields": clean_fields(fields)}
+        yield {
+            "operation": {"value": 1, "fields": clean_fields(fields)},
+            "ts_ms": call.get("ts_ms"),
+            "event": "llm",
+        }
 
 
 def main() -> None:

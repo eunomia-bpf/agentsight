@@ -50,6 +50,7 @@ AI agent 的执行历史已经不再只是一次 prompt 或一棵 trace tree。
 在 OSWorld-Human 中，单动作轨迹与人工 grouped-action 边界的保守匹配达到 0.627 F1 且 precision 为 1.0；在 AgentNet 中，1,000 个 Ubuntu 人工桌面任务的 16,741 个 PyAutoGUI operations 全部携带 step correctness 和 redundancy 字段；在 AgentRewardBench 中，action-derived repetition signal 对 expert looping label 的 V-measure 从单步错误标签的 0.011 提升到 0.378。
 R293 进一步把 AgentNet 的同一 operation-stack 查询写成 profile spec：默认 spec 复现 608 个 stacks，命令行只覆盖 \texttt{--stack} 后在同一 16,741 个 operations 上得到 83 个更粗粒度 stacks。
 R294 显示本地 Codex session 可以导出为 \texttt{agentsight.agent-session.trace.v1}，再导入或转成 operation JSONL；两条路径在同一 stack 下产生字节一致的 folded 输出，R303 进一步把该流程脚本化为一个可复现的 trace exchange reproducer，并验证导出 trace 在 filesystem 字段和 tool command text 上使用 trace-local path、\texttt{cwd=repo} 和 command-name-only tool command。
+R306 又把同一 fixture 导出为 Chrome Trace Event JSON：6 个 \texttt{traceEvents} 可再导入为 6 个 operations，direct trace、direct operation 和 Chrome-import operation 三条路径在同一 stack 下都是 6 samples / 5 stacks 且 folded 输出字节一致。
 R295 从 tracked R282--R294 JSON/folded artifacts 机械生成 claim verdict：C1 支持，C2 在限定范围内支持，C3 只支持 deterministic label-derived mappings，不支持无监督边界发现。
 R296 进一步把这些证据组织成 reviewer evidence packet：11 个非 flamegraph 与证据导航条目、4 个 reviewer questions 和从 tracked artifacts 派生的 mapping、human-group、diagnostic 与 reproducibility 指标。
 R297 在 OSWorld-Human 上加入第一个 supervised boundary-backend probe：它在 held-out sessions 上预测人工 human-group 边界，F1 为 0.7735，并把预测结果写回 \texttt{learned\_group\_pattern} 字段后交给 Rust profiler 折叠。
@@ -59,6 +60,7 @@ R300 进一步把 failure、safety、quality 和 human-boundary 标签转成 6 �
 R301 将同一任务转成 label-hidden visible packets 和 hidden answer key，只按 stack 宽度排序：在 30\% operation budget 下，operation-stack 找回 median 33.6\% positives、检查 4.5 groups，而 fixed-session 找回 28.4\%、检查 25.5 groups；top-10 width-ranked groups 下 operation-stack 找回 64.1\%，fixed-session 为 19.5\%，但 operation-stack 消耗更多 operation fraction。
 R302 再比较 label-hidden ranking policies：top-10 query-aware operation-stack groups 只检查 11.6\% operations、lift 为 1.587，而 width ranking 检查 67.1\%、lift 为 1.079；在 30\% operation budget 下 query-aware recall 从 34.0\% 提升到 39.0\%，但检查 groups 从 4.5 增至 39.5。
 R304 把同一任务进一步写成 reviewer-facing case packet：top-5 query-aware operation-stack cases 检查 median 9.37\% operations、找回 18.8\% positives、lift 为 1.6509，且 visible packet 与 hidden answer key 分离。
+R305 将同一 case-packet policy 与 flat、fixed-session baseline 对齐：flat 需要检查 100\% operations 才有 100\% recall，fixed-session 只检查 median 1.63\% operations 但 recall 为 2.26\%，operation-stack 检查 9.37\% operations、recall 为 18.8\%，相对 fixed-session 的 median recall ratio 为 3.63、lift ratio 为 1.268，但 work ratio 为 1.717。
 这些结果支持一个机制性 claim：agent 轨迹可以被统一为 operations，并通过可配置 mappings 和 stack specs 递归折叠为多个有用的 analysis views。
 当前结果仍不支持完整无监督边界发现或人类用户效用 claim。
 \end{abstract}
@@ -135,7 +137,7 @@ agentpprof --operation-file ops.jsonl --view operations \\
 外部数据集转换器位于 \texttt{script/agent\_trace\_datasets.py}。
 转换器只下载或流式读取所需公开文件的采样前缀。
 对于包含截图、长 prompt 或完整对话的数据集，默认保存 redacted rows 和 operation JSONL，不提交原始数据。
-本地 agent session 通过 \texttt{agent-session} 解析为 \texttt{agentsight.agent-session.trace.v1} trace；\toolname{} 可以用 \texttt{--export-trace} 写出 filesystem-normalized trace，用 \texttt{--trace-file} 读回，也可以通过 \texttt{script/agent\_trace\_to\_operations.py} 转成 operation JSONL。\texttt{script/agent\_trace\_exchange\_eval.py} 将这三步、filesystem/tool-command portability check 和 folded-output equality check 固化为一个可复现实验；该检查不声称 prompt/LLM preview 已完整脱敏。
+本地 agent session 通过 \texttt{agent-session} 解析为 \texttt{agentsight.agent-session.trace.v1} trace；\toolname{} 可以用 \texttt{--export-trace} 写出 filesystem-normalized trace，用 \texttt{--trace-file} 读回，也可以通过 \texttt{script/agent\_trace\_to\_operations.py} 转成 operation JSONL。\texttt{script/agent\_trace\_exchange\_eval.py} 将这三步、filesystem/tool-command portability check 和 folded-output equality check 固化为一个可复现实验；该检查不声称 prompt/LLM preview 已完整脱敏。\texttt{script/agent\_trace\_chrome\_trace.py} 进一步把该 trace 导出为 Chrome/Perfetto-style \texttt{traceEvents}，也能把标准 trace 再导入为 operation JSONL；\texttt{script/agent\_trace\_chrome\_exchange\_eval.py} 验证该路径不改变 folded operation-stack 输出。
 质量评估脚本位于 \texttt{script/operation\_stack\_quality.py}，它复用 \toolname{} 的 operation mapping contract，并计算字段覆盖率、oracle V-measure 和序列相邻边界 F1。
 Stack 结构分析脚本位于 \texttt{script/operation\_stack\_analysis.py}，用于生成 flamegraph 之外的 tree、top-kind 和 transition 报告。
 
@@ -180,6 +182,7 @@ R301 的 \texttt{script/operation\_analyst\_task\_eval.py} 复用 R300 的已有
 R302 的 \texttt{script/operation\_analyst\_ranking\_eval.py} 在同一任务上比较 width、visible-risk、query-aware 和 oracle upper bound rankers。
 非 oracle rankers 只读 \texttt{status}、\texttt{repeat\_signal}、\texttt{phase}、\texttt{action} 和 \texttt{environment} 等可见字段，不读 \texttt{looping}、\texttt{safety}、\texttt{step\_correct} 或 \texttt{target\_positive}。
 R304 的 \texttt{script/operation\_case\_study\_eval.py} 复用 R300/R302 任务，把每个任务的 top-5 query-aware operation-stack groups 写成 visible case packet，并把 oracle positives 只写入单独的 answer key。
+R305 的 \texttt{script/operation\_case\_baseline\_eval.py} 使用同一任务、同一 top-5 query-aware policy 和同一 hidden answer key，把 flat、fixed-session 和 operation-stack 三种 view 写成可比较的 visible case packets。
 
 \begin{table*}[t]
   \centering
@@ -255,6 +258,7 @@ R300 部分填补用户效用缺口的前半步：它不是 human study，但把
 R301 进一步把这些任务变成 label-hidden visible packets 与 hidden answer key，证明默认宽度排序下 operation stack 仍比 fixed-session 更少碎片化，但也显示宽度排序本身不是异常检测器。
 R302 则把可见字段上的排序策略纳入同一任务框架，说明 operation stack 可以承载 query-aware 分析，而不仅是 flamegraph 宽度视图。
 R304 再把这种分析策略转成可审计 case evidence：visible packet 只包含 stack frames、可见特征比例、hashed session examples 和普通 operation examples，answer key 才包含 positives。
+R305 将该 case evidence 与 flat 和 fixed-session 直接对齐，显示 operation stack 是一个中间视图：它远比 flat selective，相比 fixed-session 有更高 recall 和 lift，但并不在每个任务上消耗更少 inspected operations。
 
 \subsection{RQ3：mapping 是否能泛化？}
 
@@ -339,6 +343,13 @@ R304 将 R302 的 ranking policy 变成 reviewer-facing case packet。
 SATraj unsafe cases 最集中，work fraction 为 0.042、recall 为 0.262、lift 为 6.238；AgentNet quality cases 的 recall 很低，但在很小 work fraction 上仍有 1.98 以上 lift。
 这个结果适合作为 case-study evidence，而不是 detector evidence。
 
+R305 对同一 case-packet policy 加入 flat 和 fixed-session baseline。
+Flat view 只有每个任务一个 packet，因此 median recall 为 1.0，但必须检查 1.0 operation fraction。
+Fixed-session view 的 median work fraction 为 0.0163、recall 为 0.0226、lift 为 1.6615。
+Operation-stack view 的 median work fraction 为 0.0937、recall 为 0.188、lift 为 1.6509。
+相对 fixed-session，operation-stack 的 median recall ratio 为 3.63、lift ratio 为 1.268，但 inspected-work ratio 为 1.717。
+这支持“operation stack 是 flat 与 fixed-session 之间的可配置分析折中”，而不是“operation stack 在每个任务上都更省 work”。
+
 \begin{table*}[t]
   \centering
   \scriptsize
@@ -355,6 +366,7 @@ SATraj unsafe cases 最集中，work fraction 为 0.042、recall 为 0.262、lif
     R291 AgentNet & 1,000 tasks、16,741 operations & step correctness/redundancy 100\% field coverage；phase/action F1 0.715、precision 1.0 & 质量标签是 ordinary operation fields，可被折叠、评分和诊断。 \\
     R293 profile spec & 同一 16,741 AgentNet operations & spec 复现 608 stacks；CLI stack override 产生 83 stacks & 实验配置可复现且可覆盖，stack 不是固定层级。 \\
     R294/R303 trace exchange & public Codex fixture & 1 trace session、6 operations；\texttt{trace\_filesystem\_portable=true}；trace import 与 operation import 均为 6 samples / 5 stacks 且 folded 字节一致；R303 一条脚本复现该流程 & 本地 session 可导出、导入并桥接到 operation JSONL，而不会成为第三个 profiler 抽象。 \\
+    R306 Chrome trace exchange & public Codex fixture & 6 Chrome complete events；6 direct operations；6 Chrome-import operations；direct trace、direct operation 和 Chrome-import operation 均为 6 samples / 5 stacks 且 folded 字节一致 & 标准 trace 只是 exchange container；导入后仍进入 operation JSONL 和 operation-stack folding。 \\
     R295 claim synthesis & R282--R294 tracked artifacts & C1 supported；C2 supported with scoped limits；C3 partial & 论文 claim gate 明确支持范围和不能 claim 的内容。 \\
     R296 reviewer packet & R282--R295 tracked artifacts & 11 个非 flamegraph/evidence-navigation entries；4 个 reviewer questions；39 个 clean input artifacts & 结果可通过 claim-indexed 多视图证据包审计。 \\
     R297 boundary backend & OSWorld-Human held-out sessions & 1,036 test adjacent pairs；learned F1 0.7735；Rust fold 1,132 ops / 74 stacks & Boundary backend 只是派生 operation fields，递归折叠仍由 operation stack 完成。 \\
@@ -364,6 +376,7 @@ SATraj unsafe cases 最集中，work fraction 为 0.042、recall 为 0.262、lif
     R301 width-ranked task proxy & 同一 6 个 tasks；168 个 task/view/budget scores & 30\% operation budget 下 operation-stack recall 0.336 / 4.5 groups，fixed-session 0.284 / 25.5 groups；top-10 groups 下 0.641 vs 0.195 & Label-hidden 默认浏览仍支持跨 session 聚合，但 width ranking 不是 detector。 \\
     R302 label-hidden ranking & 同一 6 个 tasks；192 个 task/view/ranker/budget scores & top-10 query-aware stack 检查 0.116 operation fraction、lift 1.587，width 为 0.671 和 1.079；30\% budget recall 0.390 vs 0.340 & Operation stack 支持 query-aware 分析 policy，但 ranker 仍是 heuristic。 \\
     R304 case packet & 同一 6 个 tasks；30 个 top-5 query-aware case groups & median work fraction 0.0937；recall 0.188；lift 1.6509；visible packet 与 answer key 分离 & Case evidence 可审计，但仍不是 detector 或 human study。 \\
+    R305 case baseline & 同一 6 个 tasks；18 个 task-view case packets & flat work/recall 1.0/1.0；fixed work 0.0163、recall 0.0226、lift 1.6615；operation work 0.0937、recall 0.188、lift 1.6509 & Operation stack 是 selective middle view，但不是每个任务都比 fixed-session 更省 work。 \\
     R288/R289 diagnostics & 729 AgentRewardBench ops；4,285 SATraj ops & repeat-signal/looping V-measure 0.378 vs step-error 0.011；622 unsafe SATraj ops & Profiler 支持 failure/safety views，且负结果能揭示粗标签不足。 \\
     \bottomrule
   \end{tabular}
@@ -419,6 +432,8 @@ R282/R285 证明它们有 held-out 和 leave-dataset-out 泛化，但不证明�
 第十二，R301 是 label-hidden 自动化 proxy，不是人类实验；它消除了 R300 的 oracle 排序乐观假设，但仍只模拟 width-ranked browsing，不能证明默认界面对真实用户最优。
 第十三，R302 是 label-hidden ranking proxy，不是 detector；它说明 query-aware policy 可以改变 precision/recall tradeoff，但没有证明自动报警或人类效率。
 第十四，R304 是 case-packet artifact，不是人工 case study；它让 reviewer 可以审计可见例子和隐藏评分的分离，但不能替代受控 analyst study。
+第十五，R305 是 cross-view case-packet baseline，不是最终 user utility 结果；它证明 operation stack 的相对位置和 tradeoff，但也保留 fixed-session 在低 work fraction 上更便宜的反例。
+第十六，R306 是标准 trace 互操作 smoke，不是完整 OpenTelemetry/Chrome trace 生态兼容性评估；它证明 Chrome Trace Event JSON 可以作为 exchange container，但不改变 profiler 只接受 operation 和 operation stack 的设计。
 
 \section{结论}
 
@@ -436,7 +451,9 @@ R300 把真实问题价值从叙述推进到自动化 task proxy：operation sta
 R301 把这个 proxy 推进为 label-hidden task packet，说明默认宽度排序下 operation stack 能减少 fixed-session 碎片化，同时保留 width ranking 不是 detector 的限制。
 R302 进一步说明同一 operation stack 可以按 query-aware policy 排序，而不局限于 flamegraph width。
 R304 把这些排序结果转成 visible case packet 和 hidden answer key，为 reviewer 提供具体 case evidence。
-下一步不是继续无差别增加数据集，而是把 mapping backend、calibrated boundary detector 和基于 R301/R302/R304 packets 的受控用户/agent analyst 任务实验推进到能支持更强 claim 的程度。
+R305 把这些 case evidence 与 flat 和 fixed-session baseline 对齐，说明 operation stack 的价值是可配置 inspectability tradeoff，而不是无条件支配每个 baseline。
+R306 则把本地 session 互操作路径扩展到 Chrome/Perfetto-style 标准 trace：标准 trace 负责导出和导入，真正的分析仍落回 operation JSONL 与用户指定的 operation stack。
+下一步不是继续无差别增加数据集，而是把 mapping backend、calibrated boundary detector 和基于 R301/R302/R304/R305 packets 的受控用户/agent analyst 任务实验推进到能支持更强 claim 的程度。
 
 \vspace{-0.8em}
 \section*{参考文献}

@@ -206,6 +206,35 @@ python3 script/operation_map_infer.py \
   --json-out op-map.json
 ```
 
+## Standard Trace Exchange
+
+Local Codex/Claude sessions can be exported as an `agent-session` trace and
+then bridged through Chrome Trace Event JSON when another tool wants a standard
+trace container:
+
+```bash
+agentpprof --session-file agentpprof/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl \
+  --export-trace fixture-agent-trace.json
+
+python3 script/agent_trace_chrome_trace.py export \
+  --trace-file fixture-agent-trace.json \
+  --out fixture-chrome-trace.json
+
+python3 script/agent_trace_chrome_trace.py import \
+  --trace-file fixture-chrome-trace.json \
+  --out fixture-operations.jsonl
+
+agentpprof --operation-file fixture-operations.jsonl --view operations \
+  --stack 'project,agent,op,phase,tool,status' \
+  -o fixture.folded --format folded
+```
+
+The Chrome/Perfetto trace is an exchange format, not a third profiling object.
+After import, `agentpprof` still folds ordinary operation JSONL with the chosen
+operation stack. `python3 script/agent_trace_chrome_exchange_eval.py` reproduces
+the fixture round trip and checks that direct trace import, direct operation
+import, and Chrome-trace import produce the same folded output.
+
 ## Python Prototype
 
 The earlier experimental Python exporter now lives under

@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>R305 Cross-View Case-Packet Baseline</title>
+<style>
+body { font-family: system-ui, sans-serif; margin: 32px; color: #202124; }
+p { max-width: 980px; line-height: 1.5; }
+table { border-collapse: collapse; width: 100%; margin-top: 20px; font-size: 13px; }
+th, td { border-bottom: 1px solid #d7dce2; padding: 7px 8px; text-align: left; }
+th { background: #edf1f5; }
+</style>
+<h1>R305 Cross-View Case-Packet Baseline</h1>
+<p>R305 compares the same label-hidden case-packet task across flat, fixed-session, and operation-stack views. Top-5 query-aware operation-stack packets inspect a median 9.4% of operations with lift 1.651. Flat packets recover 100.0% recall by inspecting 100.0% of operations, while fixed-session packets inspect 1.6% with lift 1.661. Operation stacks reduce work versus flat by a median ratio of 0.094 and improve lift versus fixed-session by a median ratio of 1.268.</p>
+<h2>View Summary</h2>
+<table>
+<thead><tr><th>View</th><th>Available groups</th><th>Work fraction</th><th>Recall</th><th>Lift</th><th>Lift>=1 tasks</th></tr></thead>
+<tbody><tr><td>flat</td><td>1.0</td><td>1.0</td><td>1.0</td><td>1.0</td><td>6</td></tr><tr><td>fixed_session</td><td>285.0</td><td>0.0163</td><td>0.0226</td><td>1.6615</td><td>5</td></tr><tr><td>operation_stack</td><td>157.5</td><td>0.0937</td><td>0.188</td><td>1.6509</td><td>4</td></tr></tbody>
+</table>
+<h2>Task-View Scores</h2>
+<table>
+<thead><tr><th>Task</th><th>View</th><th>Available groups</th><th>Work fraction</th><th>Recall</th><th>Precision</th><th>Lift</th></tr></thead>
+<tbody><tr><td>agentreward_looping</td><td>flat</td><td>1</td><td>1.0</td><td>1.0</td><td>0.6914</td><td>1.0</td></tr><tr><td>agentreward_looping</td><td>fixed_session</td><td>29</td><td>0.2058</td><td>0.2381</td><td>0.8</td><td>1.1571</td></tr><tr><td>agentreward_looping</td><td>operation_stack</td><td>40</td><td>0.4938</td><td>0.6508</td><td>0.9111</td><td>1.3179</td></tr><tr><td>agentreward_side_effect</td><td>flat</td><td>1</td><td>1.0</td><td>1.0</td><td>0.2771</td><td>1.0</td></tr><tr><td>agentreward_side_effect</td><td>fixed_session</td><td>29</td><td>0.1948</td><td>0.0</td><td>0.0</td><td>0.0</td></tr><tr><td>agentreward_side_effect</td><td>operation_stack</td><td>40</td><td>0.1454</td><td>0.1139</td><td>0.217</td><td>0.7831</td></tr><tr><td>satraj_unsafe</td><td>flat</td><td>1</td><td>1.0</td><td>1.0</td><td>0.1452</td><td>1.0</td></tr><tr><td>satraj_unsafe</td><td>fixed_session</td><td>250</td><td>0.0154</td><td>0.0579</td><td>0.5455</td><td>3.7577</td></tr><tr><td>satraj_unsafe</td><td>operation_stack</td><td>142</td><td>0.042</td><td>0.2621</td><td>0.9056</td><td>6.2384</td></tr><tr><td>agentnet_incorrect_step</td><td>flat</td><td>1</td><td>1.0</td><td>1.0</td><td>0.0594</td><td>1.0</td></tr><tr><td>agentnet_incorrect_step</td><td>fixed_session</td><td>835</td><td>0.0056</td><td>0.0126</td><td>0.1341</td><td>2.259</td></tr><tr><td>agentnet_incorrect_step</td><td>operation_stack</td><td>289</td><td>0.0014</td><td>0.0034</td><td>0.1429</td><td>2.4057</td></tr><tr><td>agentnet_redundant_step</td><td>flat</td><td>1</td><td>1.0</td><td>1.0</td><td>0.0728</td><td>1.0</td></tr><tr><td>agentnet_redundant_step</td><td>fixed_session</td><td>549</td><td>0.0086</td><td>0.0123</td><td>0.1034</td><td>1.4208</td></tr><tr><td>agentnet_redundant_step</td><td>operation_stack</td><td>260</td><td>0.0089</td><td>0.0177</td><td>0.1444</td><td>1.9838</td></tr><tr><td>osworld_group_start</td><td>flat</td><td>1</td><td>1.0</td><td>1.0</td><td>0.1905</td><td>1.0</td></tr><tr><td>osworld_group_start</td><td>fixed_session</td><td>320</td><td>0.0172</td><td>0.0327</td><td>0.3623</td><td>1.9022</td></tr><tr><td>osworld_group_start</td><td>operation_stack</td><td>173</td><td>0.4074</td><td>0.3874</td><td>0.1812</td><td>0.951</td></tr></tbody>
+</table>

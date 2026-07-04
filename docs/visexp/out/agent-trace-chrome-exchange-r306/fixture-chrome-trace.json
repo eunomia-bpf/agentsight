@@ -1,0 +1,195 @@
+{
+  "displayTimeUnit": "ms",
+  "metadata": {
+    "format": "chrome-trace-event-json",
+    "operation_schema": "agentsight.operation.v1",
+    "project": "agentsight",
+    "source_schema": "agentsight.agent-session.trace.v1"
+  },
+  "traceEvents": [
+    {
+      "args": {
+        "agentsight.operation": {
+          "agent": "codex",
+          "op": "prompt",
+          "phase": "prompt",
+          "project": "agentsight",
+          "prompt_hash": "8f1ec64227a9",
+          "prompt_index": 0,
+          "session": "agentpprof-public-fixture-session",
+          "session_id": "agentpprof-public-fixture-session",
+          "status": "observed"
+        },
+        "agentsight.schema": "agentsight.operation.v1",
+        "agentsight.value": 1
+      },
+      "cat": "prompt",
+      "dur": 1,
+      "name": "prompt:prompt",
+      "ph": "X",
+      "pid": 792128925,
+      "tid": 0,
+      "ts": 0
+    },
+    {
+      "args": {
+        "agentsight.operation": {
+          "agent": "codex",
+          "op": "prompt",
+          "phase": "prompt",
+          "project": "agentsight",
+          "prompt_hash": "701c3c70ccc3",
+          "prompt_index": 1,
+          "session": "agentpprof-public-fixture-session",
+          "session_id": "agentpprof-public-fixture-session",
+          "status": "observed"
+        },
+        "agentsight.schema": "agentsight.operation.v1",
+        "agentsight.value": 1
+      },
+      "cat": "prompt",
+      "dur": 1,
+      "name": "prompt:prompt",
+      "ph": "X",
+      "pid": 792128925,
+      "tid": 1,
+      "ts": 4000001
+    },
+    {
+      "args": {
+        "agentsight.operation": {
+          "agent": "codex",
+          "category": "shell",
+          "cmd": "rg",
+          "command": "rg",
+          "effect": "read",
+          "op": "tool",
+          "path": [
+            "README.md",
+            "agentpprof/src/main.rs"
+          ],
+          "phase": "read",
+          "process": [
+            "rg"
+          ],
+          "project": "agentsight",
+          "prompt_hash": "8f1ec64227a9",
+          "prompt_index": 0,
+          "session": "agentpprof-public-fixture-session",
+          "session_id": "agentpprof-public-fixture-session",
+          "status": "ok",
+          "tool": "exec_command"
+        },
+        "agentsight.schema": "agentsight.operation.v1",
+        "agentsight.value": 1
+      },
+      "cat": "tool",
+      "dur": 1,
+      "name": "tool:read",
+      "ph": "X",
+      "pid": 792128925,
+      "tid": 0,
+      "ts": 1000002
+    },
+    {
+      "args": {
+        "agentsight.operation": {
+          "agent": "codex",
+          "category": "shell",
+          "cmd": "cargo",
+          "command": "cargo",
+          "effect": "test",
+          "op": "tool",
+          "path": [
+            "agentpprof/Cargo.toml"
+          ],
+          "phase": "test",
+          "process": [
+            "cargo"
+          ],
+          "project": "agentsight",
+          "prompt_hash": "701c3c70ccc3",
+          "prompt_index": 1,
+          "session": "agentpprof-public-fixture-session",
+          "session_id": "agentpprof-public-fixture-session",
+          "status": "ok",
+          "tool": "exec_command"
+        },
+        "agentsight.schema": "agentsight.operation.v1",
+        "agentsight.value": 1
+      },
+      "cat": "tool",
+      "dur": 1,
+      "name": "tool:test",
+      "ph": "X",
+      "pid": 792128925,
+      "tid": 1,
+      "ts": 5000003
+    },
+    {
+      "args": {
+        "agentsight.operation": {
+          "agent": "codex",
+          "category": "shell",
+          "cmd": "curl",
+          "command": "curl",
+          "domain": [
+            "github.com"
+          ],
+          "effect": "network",
+          "op": "tool",
+          "phase": "network",
+          "process": [
+            "curl"
+          ],
+          "project": "agentsight",
+          "prompt_hash": "701c3c70ccc3",
+          "prompt_index": 1,
+          "session": "agentpprof-public-fixture-session",
+          "session_id": "agentpprof-public-fixture-session",
+          "status": "ok",
+          "tool": "exec_command"
+        },
+        "agentsight.schema": "agentsight.operation.v1",
+        "agentsight.value": 1
+      },
+      "cat": "tool",
+      "dur": 1,
+      "name": "tool:network",
+      "ph": "X",
+      "pid": 792128925,
+      "tid": 1,
+      "ts": 7000004
+    },
+    {
+      "args": {
+        "agentsight.operation": {
+          "agent": "codex",
+          "cache_tokens": 0,
+          "call": "llm/",
+          "input_tokens": 120,
+          "model": "gpt-5-codex-fixture",
+          "op": "llm",
+          "output_tokens": 45,
+          "phase": "llm",
+          "project": "agentsight",
+          "prompt_hash": "701c3c70ccc3",
+          "prompt_index": 1,
+          "session": "agentpprof-public-fixture-session",
+          "session_id": "agentpprof-public-fixture-session",
+          "status": "observed",
+          "total_tokens": 165
+        },
+        "agentsight.schema": "agentsight.operation.v1",
+        "agentsight.value": 1
+      },
+      "cat": "llm",
+      "dur": 1,
+      "name": "llm:llm",
+      "ph": "X",
+      "pid": 792128925,
+      "tid": 1,
+      "ts": 10000005
+    }
+  ]
+}

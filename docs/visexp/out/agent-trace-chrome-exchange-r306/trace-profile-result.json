@@ -1,0 +1,88 @@
+{
+  "_command": [
+    "cargo",
+    "run",
+    "--quiet",
+    "--manifest-path",
+    "agentpprof/Cargo.toml",
+    "--",
+    "--project-root",
+    ".",
+    "--project-name",
+    "agentsight",
+    "--view",
+    "operations",
+    "--stack",
+    "project,agent,op,phase,tool,status",
+    "--format",
+    "folded",
+    "--trace-file",
+    "docs/visexp/out/agent-trace-chrome-exchange-r306/fixture-agent-trace.json",
+    "-o",
+    "docs/visexp/out/agent-trace-chrome-exchange-r306/trace-import.folded"
+  ],
+  "_stderr": "Warning: 1/1 sessions unmatched (100.0%). Add session tag rules. Target: <5%.\nWarning: 2/2 prompts unmatched (100.0%). Add prompt tag rules. Target: <5%.\nWarning: 1/1 LLM calls unmatched (100.0%). Add llm tag rules. Target: <5%.",
+  "format": "folded",
+  "op_map_files": [],
+  "op_maps": [],
+  "output": "docs/visexp/out/agent-trace-chrome-exchange-r306/trace-import.folded",
+  "profile_specs": [],
+  "sample_type": "operations",
+  "samples": 6,
+  "sessions": 1,
+  "stack": "project,agent,op,phase,tool,status",
+  "stack_rules": [],
+  "status": "ok",
+  "tagging": {
+    "coverage_pct": 0.0,
+    "hint": "Add --tag-rule arguments to match unmatched items. Example: --tag-rule session:research='(?i)research|paper' or --tag-rule prompt:debug='(?i)fix|bug|error'",
+    "llm_calls": {
+      "matched": 0,
+      "total": 1,
+      "unmatched": 1
+    },
+    "prompts": {
+      "matched": 0,
+      "total": 2,
+      "unmatched": 2
+    },
+    "sessions": {
+      "matched": 0,
+      "total": 1,
+      "unmatched": 1
+    },
+    "tag_counts": {
+      "prompt:unmatched": 2
+    },
+    "unmatched_samples": [
+      {
+        "kind": "session",
+        "preview": "repo",
+        "session_id": "agentpprof-public-fixture-session"
+      },
+      {
+        "kind": "prompt",
+        "preview": "Profile the repository and find repeated test and network effects.",
+        "session_id": "agentpprof-public-fixture-session"
+      },
+      {
+        "kind": "prompt",
+        "preview": "Compare the test command with the network command and produce pprof outputs.",
+        "session_id": "agentpprof-public-fixture-session"
+      },
+      {
+        "kind": "llm",
+        "preview": "token report",
+        "session_id": "agentpprof-public-fixture-session"
+      }
+    ]
+  },
+  "trace_files": [
+    "docs/visexp/out/agent-trace-chrome-exchange-r306/fixture-agent-trace.json"
+  ],
+  "trace_output": null,
+  "unique_stacks": 5,
+  "unit": "count",
+  "view": "operations",
+  "warnings": []
+}
