@@ -70,6 +70,7 @@ tool、action、human group、safety、looping 或 step quality 等不同深度�
 | R309 | Problem-value synthesis | 读取 R298/R300/R302/R305/R308 tracked artifacts；6 个 problem cards；4 个 datasets；34,539 task-operations；operation-stack high-lift coverage 为 5/6；selected work/recall/top lift 为 0.0937/0.188/1.5739；top-10 query-aware work/lift 为 0.1163/1.5867，而 width ranking 为 0.6713/1.0795 | 把已有 proxy 结果按真实问题拆解：safety 是强 selective win，AgentNet quality 是低 recall 高 lift，looping 过于普遍而缺少 high-lift，side-effect 和 human-boundary 暴露 ranking-depth sensitivity。 |
 | R310 | Paper evidence matrix | 读取 tracked/clean R307/R309 artifacts；输出 evidence-matrix JSON、Markdown、CSV、TeX 和 HTML；4 个 claim rows 中 C1、C2、C4 是 scoped paper-ready，C3 保持 partial；R309 的 4 datasets / 6 tasks / 34,539 operations / 3,699 positives、5/6 high-lift、6/6 比 flat 更 selective、5/6 selected recall 高于 fixed-session、4/6 fixed-session work 更低都进入 claim matrix。 | 把当前论文 claim、关键数字和 must-not-claim 边界压成可直接引用的表格/audit artifact；它不是新实验，也不是第三个 profiler 抽象。 |
 | R311 | Paper robustness audit | 读取 tracked/clean R302/R305/R308/R309/R310 artifacts；输出 robustness-audit JSON、Markdown、CSV、TeX 和 HTML；operation-stack 比 flat selective 为 6/6，positive group 为 6/6，high-lift 为 5/6，selected recall 高于 fixed-session 为 5/6，但 selected work 低于 fixed-session 只有 2/6。 | 把 C4 的强证据和反例压成 reviewer-stress matrix：可以 claim inspectability tradeoff，不能 claim human utility、automatic detection 或 universal fixed-session dominance。 |
+| R312 | Paper submission audit | 读取 tracked/clean R310/R311 artifacts 和当前中文 `main.tex`；输出 submission-audit JSON、Markdown、CSV、TeX 和 HTML；number alignment、two-abstraction boundary、must-not-claim guardrails 和 paper structure 均 pass，overall 为 `scoped_claim_ready`。 | 把当前中文稿的 claim 安全性压成提交前 audit：证据、guardrail 和 run-id-density 结构检查已对齐，但仍不是完整 submission-ready，因为受控 analyst study 仍需后续工作。 |
 
 ## Paper-Ready Wording
 
@@ -147,6 +148,11 @@ tool、action、human group、safety、looping 或 step quality 等不同深度�
 > reviewer attacks 机械分成 pass、scoped pass、partial、fail-for-stronger-claim
 > 或 narrow；它把 C4 固定为 automated inspectability tradeoff，而不是 human
 > productivity 或 baseline-dominance claim。
+> Paper submission audit 再读取 R310/R311 和当前中文稿，检查关键数字、两个核心抽象、
+> 以及 human utility、automatic detection、unsupervised boundary discovery、
+> fixed-session dominance 和 trace-ecosystem compatibility 等 must-not-claim guardrails；
+> 当前 number alignment、two-abstraction boundary、must-not-claim guardrails 和
+> paper-structure 检查均通过，overall 为 `scoped_claim_ready`。
 > Paper value/novelty synthesis 也不是新实证结果；它把 heterogeneous trace objects、
 > recursive depth choice、field derivation、human/subtask boundaries、
 > failure/safety diagnostics 和 artifact auditability 映射到 tracked artifacts，
@@ -164,7 +170,7 @@ tool、action、human group、safety、looping 或 step quality 等不同深度�
 
 1. Boundary detector gate：在 R299 的 suitability/calibration 结果上继续加入更强
    sequence 或 model-backed backend，并只在胜过简单 derived-field baseline 后提升 claim。
-2. User-utility gate：在 R308/R309/R311 first-evidence、problem-card 和 reviewer-stress protocol 之上做受控 human/agent analyst
+2. User-utility gate：在 R308/R309/R311/R312 first-evidence、problem-card、reviewer-stress 和 submission-audit protocol 之上做受控 human/agent analyst
    study，比较 flat trace、fixed session stack、operation-stack、query-aware ranked
    operation-stack 和 label-drilldown views 的正确率与耗时。
 3. Scale gate：对 AgentNet full Ubuntu/Windows/macOS 或 OSWorld-Verified 做更大流式
