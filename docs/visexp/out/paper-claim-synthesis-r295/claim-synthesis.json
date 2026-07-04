@@ -1,0 +1,242 @@
+{
+  "claims": [
+    {
+      "claim": "C1",
+      "evidence": [
+        "heterogeneous_coverage",
+        "recursive_depth",
+        "reproducibility_and_exchange"
+      ],
+      "not_supported": [
+        "complete conversion of every public agent benchmark",
+        "raw image/video archive profiling"
+      ],
+      "paper_ready_wording": "The semantic profiler can represent heterogeneous public agent trajectories and local agent sessions as operations, then profile them through user-selected operation stacks without hard-coding prompt/session boundaries.",
+      "verdict": "supported"
+    },
+    {
+      "claim": "C2",
+      "evidence": [
+        "recursive_depth",
+        "human_boundaries",
+        "quality_and_failure_diagnostics"
+      ],
+      "not_supported": [
+        "perfect intent recovery",
+        "single universal stack depth",
+        "quality prediction from task outcome alone"
+      ],
+      "paper_ready_wording": "Recursive operation stacks recover useful task, phase, action, human-group, safety, and quality-label views, and expose when a coarse field is not a valid proxy for a finer oracle.",
+      "verdict": "supported with scoped limits"
+    },
+    {
+      "claim": "C3",
+      "evidence": [
+        "mapping_generalization"
+      ],
+      "not_supported": [
+        "fully unsupervised boundary detection",
+        "LLM-backed or model-backed boundary inference"
+      ],
+      "paper_ready_wording": "Label-derived deterministic mappings improve semantic aggregation on held-out sessions and leave-dataset-out folds; they should be presented as reproducible mapping/tagging, not as unsupervised boundary discovery.",
+      "verdict": "partial"
+    }
+  ],
+  "evidence": {
+    "heterogeneous_coverage": {
+      "core_compression_ratio": 28.45,
+      "core_datasets": 14,
+      "core_operations": 42590,
+      "core_unique_stacks": 1497,
+      "source": [
+        "docs/visexp/out/external-agent-trace-agentnet-r291/combined-14datasets-quality.json",
+        "docs/visexp/out/external-agent-trace-scalecua-r292/combined-15datasets-quality.json"
+      ],
+      "supplemental_datasets": 15,
+      "supplemental_operations": 47590,
+      "supplemental_unique_stacks": 1611,
+      "top_dataset_weights": [
+        {
+          "value": "agentnet",
+          "weight": 16741
+        },
+        {
+          "value": "gui-odyssey",
+          "weight": 7868
+        },
+        {
+          "value": "osworld-human",
+          "weight": 6010
+        },
+        {
+          "value": "scalecua-navigation",
+          "weight": 5000
+        },
+        {
+          "value": "satraj-os-safety",
+          "weight": 4285
+        },
+        {
+          "value": "webshop-expert",
+          "weight": 2504
+        },
+        {
+          "value": "tau-bench-trajectories",
+          "weight": 1560
+        },
+        {
+          "value": "toolbench",
+          "weight": 866
+        },
+        {
+          "value": "mind2web",
+          "weight": 774
+        },
+        {
+          "value": "agent-reward-bench",
+          "weight": 729
+        },
+        {
+          "value": "weblinx-chat",
+          "weight": 500
+        },
+        {
+          "value": "swe-agent-trajectories",
+          "weight": 496
+        },
+        {
+          "value": "agenttrek",
+          "weight": 200
+        },
+        {
+          "value": "api-bank",
+          "weight": 48
+        },
+        {
+          "value": "android-control",
+          "weight": 9
+        }
+      ]
+    },
+    "human_boundaries": {
+      "action_unique_stacks": 482,
+      "group_pattern_human_group_f1": 0.6268,
+      "group_pattern_human_group_precision": 1.0,
+      "group_pattern_human_group_recall": 0.4564,
+      "grouped_unique_stacks": 106,
+      "human_group_present": 4011,
+      "human_group_total": 6010,
+      "operations": 6010,
+      "phase_action_boundary_f1": 0.6383,
+      "skipped_missing_fields": 1950,
+      "source": "docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-quality.json"
+    },
+    "mapping_generalization": {
+      "heldout_operations": 3990,
+      "leaveout_datasets": 9,
+      "leaveout_negative_stack_reduction": 0,
+      "leaveout_positive_stack_reduction": 6,
+      "mapped_compression": 19.091,
+      "mapped_task_dataset_v": 0.8531,
+      "mapped_unique_stacks": 209,
+      "nomap_compression": 14.049,
+      "nomap_task_dataset_v": 0.8374,
+      "nomap_unique_stacks": 284,
+      "phase_action_boundary_f1": 0.7774,
+      "phase_action_boundary_precision": 1.0,
+      "source": [
+        "docs/visexp/out/operation-map-heldout-r282/quality.json",
+        "docs/visexp/out/operation-map-leaveout-api-r285/leaveout-summary.json"
+      ],
+      "weighted_stack_reduction_per_1k_ops": 1162.005
+    },
+    "quality_and_failure_diagnostics": {
+      "agentnet_operations": 16741,
+      "agentnet_phase_action_boundary_f1": 0.7149,
+      "agentnet_phase_action_boundary_precision": 1.0,
+      "agentnet_repeat_step_redundant_v": 0.0103,
+      "agentnet_status_step_correct_v": 0.0153,
+      "agentnet_step_correct_present": 16741,
+      "agentnet_step_redundant_present": 16741,
+      "agentnet_unique_stacks": 608,
+      "agentreward_operations": 729,
+      "agentreward_repeat_looping_v": 0.3777,
+      "agentreward_step_error_looping_v": 0.0105,
+      "satraj_attack_action_v": 0.0932,
+      "satraj_operations": 4285,
+      "satraj_phase_action_boundary_f1": 0.6274,
+      "satraj_safety_present": 4285,
+      "source": [
+        "docs/visexp/out/external-agent-trace-agentnet-r291/agentnet-quality.json",
+        "docs/visexp/out/external-agent-trace-agentreward-r288/agentreward-quality.json",
+        "docs/visexp/out/external-agent-trace-satraj-r289/satraj-quality.json"
+      ]
+    },
+    "recursive_depth": {
+      "action_unique_stacks": 455,
+      "dataset_unique_stacks": 9,
+      "fixed_session_expansion_vs_dataset": 417.4444,
+      "fixed_session_unique_stacks": 3757,
+      "phase_unique_stacks": 57,
+      "samples": 13265,
+      "semantic_unique_stacks": 226,
+      "source": "docs/visexp/out/operation-stack-depth-r286/depth-summary.json",
+      "stack_depths": 8,
+      "tool_unique_stacks": 226
+    },
+    "reproducibility_and_exchange": {
+      "folded_outputs_identical": true,
+      "operation_folded_lines": 5,
+      "operation_import_samples": 6,
+      "operation_import_unique_stacks": 5,
+      "profile_spec_override_unique_stacks": 83,
+      "profile_spec_samples": 16741,
+      "profile_spec_unique_stacks": 608,
+      "source": [
+        "docs/visexp/out/profile-spec-r293/agentnet-diagnostic-result.json",
+        "docs/visexp/out/profile-spec-r293/agentnet-diagnostic-override-result.json",
+        "docs/visexp/out/agent-trace-exchange-r294/trace-to-operations-result.json",
+        "docs/visexp/out/agent-trace-exchange-r294/trace-import-result.json",
+        "docs/visexp/out/agent-trace-exchange-r294/operation-import-result.json"
+      ],
+      "trace_converted_operations": 6,
+      "trace_folded_lines": 5,
+      "trace_import_samples": 6,
+      "trace_import_unique_stacks": 5
+    }
+  },
+  "generated_from": {
+    "agentnet_quality": "docs/visexp/out/external-agent-trace-agentnet-r291/agentnet-quality.json",
+    "agentreward_quality": "docs/visexp/out/external-agent-trace-agentreward-r288/agentreward-quality.json",
+    "combined14_quality": "docs/visexp/out/external-agent-trace-agentnet-r291/combined-14datasets-quality.json",
+    "combined15_quality": "docs/visexp/out/external-agent-trace-scalecua-r292/combined-15datasets-quality.json",
+    "depth": "docs/visexp/out/operation-stack-depth-r286/depth-summary.json",
+    "heldout_nomap_profile": "docs/visexp/out/operation-map-heldout-r282/agentpprof-nomap-result.json",
+    "heldout_nomap_quality": "docs/visexp/out/operation-map-heldout-r282/quality-nomap.json",
+    "heldout_profile": "docs/visexp/out/operation-map-heldout-r282/agentpprof-result.json",
+    "heldout_quality": "docs/visexp/out/operation-map-heldout-r282/quality.json",
+    "leaveout": "docs/visexp/out/operation-map-leaveout-api-r285/leaveout-summary.json",
+    "operation_folded": "docs/visexp/out/agent-trace-exchange-r294/operation-import.folded",
+    "operation_import": "docs/visexp/out/agent-trace-exchange-r294/operation-import-result.json",
+    "osworld_grouped_stack": "docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-grouped-stack-analysis.json",
+    "osworld_quality": "docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-quality.json",
+    "osworld_stack": "docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-stack-analysis.json",
+    "profile_spec": "docs/visexp/out/profile-spec-r293/agentnet-diagnostic-result.json",
+    "profile_spec_override": "docs/visexp/out/profile-spec-r293/agentnet-diagnostic-override-result.json",
+    "satraj_quality": "docs/visexp/out/external-agent-trace-satraj-r289/satraj-quality.json",
+    "trace_convert": "docs/visexp/out/agent-trace-exchange-r294/trace-to-operations-result.json",
+    "trace_folded": "docs/visexp/out/agent-trace-exchange-r294/trace-import.folded",
+    "trace_import": "docs/visexp/out/agent-trace-exchange-r294/trace-import-result.json"
+  },
+  "provenance": {
+    "input_artifacts_git_tracked_and_clean": true
+  },
+  "run_id": "R295",
+  "schema": "agentsight.paper-claim-synthesis.v1",
+  "source_window": "R282-R294",
+  "unsupported_final_claims": [
+    "The profiler fully discovers latent intent boundaries without labels or rules.",
+    "The profiler improves human developer productivity.",
+    "Every public agent trajectory dataset can be profiled at full scale without additional engineering."
+  ]
+}
