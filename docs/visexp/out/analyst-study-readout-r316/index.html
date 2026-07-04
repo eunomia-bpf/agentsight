@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Analyst Study Readout R316</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; color: #1f2933; }
+    h1 { font-size: 1.6rem; }
+    p, li { max-width: 860px; line-height: 1.5; }
+    table { border-collapse: collapse; margin-top: 1.5rem; min-width: 760px; }
+    th, td { border: 1px solid #d8dee9; padding: 0.55rem 0.75rem; text-align: left; }
+    th { background: #f6f8fa; }
+    code { background: #f6f8fa; padding: 0.1rem 0.25rem; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Analyst Study Readout R316</h1>
+  <p>
+	    This is a scripted sensitivity readout over the R315 protocol. It scores a
+	    visible-order top-k policy against the hidden key and does not claim human
+	    or agent analyst performance, automatic detection, or single-view dominance.
+  </p>
+  <ul>
+<li>Top-3 operation-stack packets contain a positive group on 100.0% of assigned trials, versus 83.3% for fixed-session and 100.0% for flat.</li><li>Top-3 operation-stack packets contain a high-lift group on 83.3% of assigned trials, versus 66.7% for fixed-session and 0.0% for flat.</li><li>The task-paired median recall delta for operation-stack over fixed-session is 0.1333, while the median work delta is 0.0207.</li><li>The readout preserves the known tradeoff: operation-stack exposes more positives than fixed-session in most tasks, but it uses more work and does not dominate every metric.</li>
+  </ul>
+  <table>
+    <tr><th>View</th><th>Positive hit rate</th><th>High-lift hit rate</th><th>Median recall</th><th>Median work</th><th>Median lift</th></tr>
+<tr><th>flat</th><td>1.0</td><td>0.0</td><td>1.0</td><td>1.0</td><td>1.0</td></tr>
+<tr><th>fixed_session</th><td>0.8333</td><td>0.6667</td><td>0.0138</td><td>0.0098</td><td>1.6363</td></tr>
+<tr><th>operation_stack</th><td>1.0</td><td>0.8333</td><td>0.1606</td><td>0.0809</td><td>1.4125</td></tr>
+  </table>
+</body>
+</html>

@@ -453,8 +453,9 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld-Human、AgentNet、SATraj-OS、AgentR
 
 	第二，用户效用仍是缺口。
 	这些 automated proxies 把 failure、safety、quality 和 human-boundary 问题转成 label-hidden 或 hidden-answer-key tasks，并证明 operation stacks 对 flat summary 和 fixed-session drilldown 有有用 tradeoff。
-	R314 只把 related-work/baseline grounding 转成可失败 audit，不增加新的实证结果。
-	R315 把现有 visible packets 和 hidden answer key 固化为 6 个 tasks、3 个 views、24 个 participant slots 和 144 个 trials 的 balanced analyst-study protocol，并通过 visible-packet leakage check。
+	Related-work/baseline audit 只把 grounding 转成可失败检查，不增加新的实证结果。
+	Protocol artifact 把现有 visible packets 和 hidden answer key 固化为 6 个 tasks、3 个 views、24 个 participant slots 和 144 个 trials 的 balanced analyst-study protocol，并通过 visible-packet leakage check。
+	Scripted readout 在该 assignment 上运行 fixed visible-order policy：top-3 operation-stack packets 的 positive-hit/high-lift hit 为 1.0/0.8333，fixed-session 为 0.8333/0.6667，flat 为 1.0/0.0；operation-stack 相对 fixed-session 的 task-paired median recall/work delta 为 0.1333/0.0207。
 	这些结果仍不能推出开发者准确率、time-to-answer 或 productivity 改善。
 	受控 human/agent analyst study 必须真正执行该 protocol，使用相同 visible packet、hidden answer key 和 flat/fixed/operation-stack/query-aware interfaces，才能支持更强 claim。
 
@@ -463,7 +464,7 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld-Human、AgentNet、SATraj-OS、AgentR
 	Chrome Trace Event 和 agent-session exchange 当前是 fixture-level smoke，它证明 trace 可以作为 exchange container，但不证明完整 OpenTelemetry/Chrome trace-ecosystem、Perfetto producer 或图像密集 benchmark 兼容。
 
 	第四，audit artifacts 是 claim-control surface，不是额外实证结果。
-	R295--R314 提高了论文表述、source path、负结果、related-work grounding 和 must-not-claim 边界的一致性，但它们只能审计底层 R282--R313 artifacts。
+	这些 audit artifacts 提高了论文表述、source path、负结果、related-work grounding 和 must-not-claim 边界的一致性，但它们只能审计底层 empirical artifacts。
 	如果底层采样或 oracle 本身有偏差，audit 能暴露并收窄 claim，不能消除偏差。
 	因此本文最终主张仍应固定为 two-abstraction mechanism 和 automated inspectability tradeoff，而不是 universal fixed-session dominance、automatic anomaly detection 或完整 human utility。
 
@@ -479,15 +480,16 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld-Human、AgentNet、SATraj-OS、AgentR
 	OSWorld-Human 证明同一单动作序列可以折叠到人工 grouped-action 深度。
 	AgentNet 证明大规模 human desktop step-quality 标签可以作为普通 operation fields 进入 profiling。
 	AgentRewardBench 和 SATraj-OS 证明 failure、looping、side-effect、安全和 attack-type diagnostics 可以用同一机制表达。
-	R300--R313 的 6 个任务进一步表明，operation stacks 相比 flat summary 更 selective，并在多数任务上比 fixed-session 取得更高 selected recall。
-	R314 则确认 classic folded-stack profilers、trace/span observability systems 和 public benchmark native views 都应保留为 baseline threats。
+	6 个 label-hidden 任务进一步表明，operation stacks 相比 flat summary 更 selective，并在多数任务上比 fixed-session 取得更高 selected recall。
+	Related-work audit 则确认 classic folded-stack profilers、trace/span observability systems 和 public benchmark native views 都应保留为 baseline threats。
+	Protocol artifact 和 scripted readout 把这个 gap 收敛成可执行 protocol，显示该 protocol 能读出 positive/high-lift tradeoff，但仍不构成人类或 agent analyst 结果。
 	Pareto frontier 又显示 operation-stack 在所有任务上 nondominated，但 flat 和 fixed-session 仍是真实 counterpoints。
 	因此本文的 value claim 是 automated inspectability surface/tradeoff，而不是 detector、human utility 或 baseline dominance。
 
 	论文的新意不在单个 flamegraph，而在两个抽象形成的统一接口。
 	Mapping、tagging、profile specs、agent-session trace、Chrome/Perfetto-style trace exchange、boundary backends 和 reviewer evidence packets 都只围绕 operation fields 与 operation-stack queries 工作。
 	它们让用户和实验者能在同一批 operations 上选择不同 view、派生不同 fields、折叠不同深度，并审计每个 claim 的证据来源。
-	下一步不应无差别增加数据集，而应沿两个方向提高 claim 强度：一是把 field-derivation backend 做到跨家族 calibration 并稳定胜过简单 sequence-derived baselines，二是执行当前 balanced analyst-study protocol，验证这种 inspectability tradeoff 是否转化为真实准确率和耗时收益。
+	下一步不应无差别增加数据集，而应沿两个方向提高 claim 强度：一是把 field-derivation backend 做到跨家族 calibration 并稳定胜过简单 sequence-derived baselines，二是执行当前 balanced analyst-study protocol 和 hidden-key readout，验证这种 inspectability tradeoff 是否转化为真实准确率和耗时收益。
 
 \vspace{-0.8em}
 \section*{参考文献}
