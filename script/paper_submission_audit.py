@@ -478,7 +478,11 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
 
 def write_csv(path: Path, payload: dict[str, Any]) -> None:
     with path.open("w", newline="", encoding="utf-8") as file:
-        writer = csv.DictWriter(file, fieldnames=["category", "key", "status", "detail"])
+        writer = csv.DictWriter(
+            file,
+            fieldnames=["category", "key", "status", "detail"],
+            lineterminator="\n",
+        )
         writer.writeheader()
         for row in payload["number_alignment_checks"]:
             writer.writerow(

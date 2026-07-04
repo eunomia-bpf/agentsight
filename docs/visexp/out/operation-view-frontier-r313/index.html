@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Operation View Frontier R313</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.4; }
+    table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+    th, td { border: 1px solid #ddd; padding: 0.45rem; vertical-align: top; }
+    th { background: #f5f5f5; text-align: left; }
+    code { background: #f6f8fa; padding: 0.1rem 0.25rem; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <h1>Operation View Frontier R313</h1>
+  <p>R313 reads existing tracked artifacts only. It does not sync datasets or rerun profilers.</p>
+  <h2>Summary</h2>
+  <ul>
+    <li>Tasks: 6 across 4 datasets.</li>
+    <li>Operations: 34,539; positives: 3,699.</li>
+    <li>Operation-stack on frontier: 6/6.</li>
+    <li>Fixed-session on frontier: 6/6.</li>
+    <li>Flat on frontier: 6/6.</li>
+    <li>Operation-stack best lift: 4/6.</li>
+    <li>Operation-stack best recall under 30% work: 4/6.</li>
+  </ul>
+  <p>The supported claim is a configurable inspectability tradeoff, not single-view dominance.</p>
+  <h2>Task Frontier Rows</h2>
+  <table>
+    <thead>
+      <tr><th>Task</th><th>Frontier views</th><th>Best lift</th><th>Best recall under 30% work</th><th>Interpretation</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>agentnet_incorrect_step</td><td>fixed_session, flat, operation_stack</td><td>operation_stack:case_query_aware:top_5_groups (work 0.0014, recall 0.0034, lift 2.4057)</td><td>operation_stack:query_aware:budget_30pct_operations (work 0.3, recall 0.4382, lift 1.4608)</td><td>operation-stack, fixed-session, and flat views are all nondominated, so this task needs a configurable view surface rather than a single hierarchy</td></tr>
+<tr><td>agentnet_redundant_step</td><td>fixed_session, flat, operation_stack</td><td>operation_stack:case_query_aware:top_5_groups (work 0.0089, recall 0.0177, lift 1.9838)</td><td>operation_stack:query_aware:budget_30pct_operations (work 0.3, recall 0.3533, lift 1.1778)</td><td>operation-stack, fixed-session, and flat views are all nondominated, so this task needs a configurable view surface rather than a single hierarchy</td></tr>
+<tr><td>agentreward_looping</td><td>fixed_session, flat, operation_stack</td><td>operation_stack:query_aware:budget_10pct_operations (work 0.0988, recall 0.1429, lift 1.4464)</td><td>operation_stack:query_aware:budget_30pct_operations (work 0.299, recall 0.3988, lift 1.3336)</td><td>operation-stack, fixed-session, and flat views are all nondominated, so this task needs a configurable view surface rather than a single hierarchy</td></tr>
+<tr><td>agentreward_side_effect</td><td>fixed_session, flat, operation_stack</td><td>fixed_session:width:budget_30pct_operations (work 0.299, recall 1.0, lift 3.344)</td><td>fixed_session:width:budget_30pct_operations (work 0.299, recall 1.0, lift 3.344)</td><td>operation-stack, fixed-session, and flat views are all nondominated, so this task needs a configurable view surface rather than a single hierarchy</td></tr>
+<tr><td>osworld_group_start</td><td>fixed_session, flat, operation_stack</td><td>fixed_session:visible_risk:top_10_groups (work 0.0274, recall 0.055, lift 2.0045)</td><td>operation_stack:width:budget_30pct_operations (work 0.2999, recall 0.4241, lift 1.414)</td><td>operation-stack, fixed-session, and flat views are all nondominated, so this task needs a configurable view surface rather than a single hierarchy</td></tr>
+<tr><td>satraj_unsafe</td><td>fixed_session, flat, operation_stack</td><td>operation_stack:case_query_aware:top_5_groups (work 0.042, recall 0.2621, lift 6.2384)</td><td>fixed_session:query_aware:budget_30pct_operations (work 0.2999, recall 0.865, lift 2.8843)</td><td>operation-stack, fixed-session, and flat views are all nondominated, so this task needs a configurable view surface rather than a single hierarchy</td></tr>
+    </tbody>
+  </table>
+</body>
+</html>
