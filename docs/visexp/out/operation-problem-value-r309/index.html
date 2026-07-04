@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>R309 Operation Problem Value</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; color: #1f2933; }
+    p { max-width: 980px; line-height: 1.5; }
+    table { border-collapse: collapse; margin-top: 1.25rem; font-size: 13px; }
+    th, td { border: 1px solid #d8dee9; padding: 0.5rem 0.7rem; text-align: left; }
+    th { background: #f6f8fa; }
+    code { background: #f6f8fa; padding: 0.1rem 0.25rem; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>R309 Operation Problem Value</h1>
+  <p>R309 synthesizes existing labeled-task evidence into reviewer-facing problem cards across 4 datasets, 6 tasks, and 34539 task-operations. Operation stacks are more selective than flat packets on all 6 tasks, contain high-lift evidence in 5/6 tasks, and have higher selected recall than fixed-session packets on 5/6 tasks. Fixed sessions remain cheaper on selected work in 4/6 tasks, so the paper claim remains an inspectability tradeoff rather than universal dominance.</p>
+  <table>
+    <thead>
+      <tr><th>Task</th><th>Dataset</th><th>Family</th><th>Work</th><th>Recall</th><th>Lift</th><th>High-lift</th><th>Counterpoints</th></tr>
+    </thead>
+    <tbody>
+      <tr><th>agentnet_incorrect_step</th><td>agentnet</td><td>step-quality</td><td>0.0014</td><td>0.0034</td><td>2.4057</td><td>true</td><td>low_selected_positive_recall</td></tr><tr><th>agentnet_redundant_step</th><td>agentnet</td><td>step-quality</td><td>0.0089</td><td>0.0177</td><td>1.9838</td><td>true</td><td>fixed_session_uses_less_selected_work, fixed_session_reaches_first_positive_earlier, low_selected_positive_recall</td></tr><tr><th>agentreward_looping</th><td>agent-reward-bench</td><td>failure-looping</td><td>0.4938</td><td>0.6508</td><td>1.3179</td><td>false</td><td>fixed_session_uses_less_selected_work, fixed_session_reaches_first_positive_earlier, no_operation_stack_high_lift_group</td></tr><tr><th>agentreward_side_effect</th><td>agent-reward-bench</td><td>failure-side-effect</td><td>0.1454</td><td>0.1139</td><td>0.7831</td><td>true</td><td>top5_packet_lift_below_prevalence</td></tr><tr><th>osworld_group_start</th><td>osworld-human</td><td>human-boundary</td><td>0.4074</td><td>0.3874</td><td>0.951</td><td>true</td><td>fixed_session_uses_less_selected_work, fixed_session_reaches_first_positive_earlier, top5_packet_lift_below_prevalence</td></tr><tr><th>satraj_unsafe</th><td>satraj-os-safety</td><td>safety</td><td>0.042</td><td>0.2621</td><td>6.2384</td><td>true</td><td>fixed_session_uses_less_selected_work, fixed_session_reaches_first_positive_earlier</td></tr>
+    </tbody>
+  </table>
+</body>
+</html>
