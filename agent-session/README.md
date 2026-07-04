@@ -24,7 +24,10 @@ For AgentSight's semantic profiler, `script/agent_trace_to_operations.py`
 converts the trace into normalized operation JSONL consumed by
 `agentpprof --operation-file`. The converter uses event-level prompt/tool/LLM
 rows when present and falls back to session-level summaries; prompt and LLM
-previews are omitted unless `--include-previews` is passed.
+previews are omitted unless `--include-previews` is passed. The end-to-end
+bridge can be replayed with `python3 script/agent_trace_exchange_eval.py`,
+which exports a fixture trace, converts it, imports both paths, and checks that
+the folded outputs are byte-identical under the same operation stack.
 
 ## Scope
 

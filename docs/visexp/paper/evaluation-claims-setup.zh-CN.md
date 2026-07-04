@@ -23,7 +23,7 @@ tool、action、human group、safety、looping 或 step quality 等不同深度�
 | C2：operation stack 是可递归配置的，不应固定绑定 session/prompt。 | supported with scoped limits | R286 在同一 13,265 operations 上从 9 个 dataset stacks 展开到 57 个 phase stacks、226 个 tool/semantic stacks、455 个 action stacks 和 3,757 个 fixed-session stacks。R277 显示固定 demo/session 比 mapped stack 多 10.5x unique stacks。R293 在同一 16,741 个 AgentNet operations 上复现 608-stack 诊断视图，并用 CLI 覆盖 stack 得到 83-stack 粗粒度视图。R295 gate 结论是 recursive stacks 支持 task/phase/action/human-group/safety/quality views，但不支持完美 intent recovery。R296 索引 11 个非 flamegraph/evidence-navigation entries，使这些结果可以按 claim 审计。R298 把 recursive depth、human/subtask boundaries、failure/safety/quality diagnostics 组织成真实问题证据块。 | 不能声称某一个默认 stack 对所有问题最优，也不能声称完整恢复所有真实意图边界。 |
 | C3：mapping/tagging 可以作为一等字段派生机制。 | partially supported with supervised expansion probe | R281 生成 rules 复现手写 mapping；R282 held-out compression 为 19.091，no-map baseline 为 14.049；R285 leave-dataset-out 在 9 个 datasets 中 6 个减少 stacks，0 个负向回归。R295 将 paper wording 限定为 label-derived deterministic mappings improve semantic aggregation。R296 将 mapping reduction 和 negative controls 做成 reviewer-facing 指标。R297 在 OSWorld-Human held-out sessions 上训练 supervised adjacent-boundary backend，F1=0.7735，并把预测边界写成 `learned_group_pattern` 字段后由 Rust profiler 折叠。R298 把 unified field-derivation extension point 列为 novelty claim。R299 在现有 operation JSONL 上检查 7 个 boundary candidates，训练 4 个并做 calibration/simple-baseline comparison：OSWorld-Human F1=0.6916，AgentNet step-correct/redundant F1=0.3197/0.3361，AgentRewardBench looping learned F1=0.7833 但 `repeat_signal_change` baseline F1=1.0。 | 不能声称无监督或 LLM-backed boundary detector 已完成，也不能声称存在一个通用跨家族 boundary detector；每个标签家族都需要 suitability、calibration 和简单 baseline gate。 |
 | C4：operation stacks 能恢复有意义的人工或标注边界。 | partially supported with strong OSWorld-Human evidence | R290 OSWorld-Human 覆盖 369 tasks 和 6,010 operations。Exact grouped oracle 覆盖 320 tasks、4,011 operations、2,075 groups。`group_pattern:human_group` boundary F1 为 0.627，precision 为 1.0。 | Recall 只有 0.456，不能声称完整恢复人工 subtask 边界。 |
-| C5：profiler 能做 failure、safety 和 step-quality 诊断，而不只画 flamegraph。 | supported as mechanism and automated proxy, not human utility | R288 AgentRewardBench 显示 repeat signal 对 looping 的 V-measure 为 0.378，而 step-error baseline 为 0.011。R289 SATraj-OS 带 622 unsafe operations 和 5 类 attack type。R291 AgentNet 带 16,741 operations 的 step correctness/redundancy 字段。R300 在 6 个 oracle-backed analysis tasks / 34,539 operations 上比较 flat、fixed-session、operation-stack 和 label-drilldown views；operation-stack 相比 flat 的 median top-positive lift 为 5.726x，覆盖 50% positives 的 inspection fraction 为 0.2879。R301 把同一任务转成 visible packets 和 hidden answer key，在不暴露 oracle labels、只按宽度排序时，operation-stack 在 30% operation budget 下找回 median 33.6% positives、检查 4.5 groups，而 fixed-session 找回 28.4%、检查 25.5 groups；top-10 width-ranked groups 下 operation-stack 找回 64.1%，fixed-session 为 19.5%，但 operation-stack 消耗更多 operation fraction。 | 不能声称这些 views 已经提升开发者任务准确率或耗时；R300 是 oracle-sorted clustering proxy，R301 是 label-hidden automated analyst-task proxy，都不是 human study。 |
+| C5：profiler 能做 failure、safety 和 step-quality 诊断，而不只画 flamegraph。 | supported as mechanism and automated proxy, not human utility | R288 AgentRewardBench 显示 repeat signal 对 looping 的 V-measure 为 0.378，而 step-error baseline 为 0.011。R289 SATraj-OS 带 622 unsafe operations 和 5 类 attack type。R291 AgentNet 带 16,741 operations 的 step correctness/redundancy 字段。R300 在 6 个 oracle-backed analysis tasks / 34,539 operations 上比较 flat、fixed-session、operation-stack 和 label-drilldown views；operation-stack 相比 flat 的 median top-positive lift 为 5.726x，覆盖 50% positives 的 inspection fraction 为 0.2879。R301 把同一任务转成 visible packets 和 hidden answer key，在不暴露 oracle labels、只按宽度排序时，operation-stack 在 30% operation budget 下找回 median 33.6% positives、检查 4.5 groups，而 fixed-session 找回 28.4%、检查 25.5 groups；top-10 width-ranked groups 下 operation-stack 找回 64.1%，fixed-session 为 19.5%，但 operation-stack 消耗更多 operation fraction。R302 进一步比较 width、visible-risk、query-aware 和 oracle upper bound rankers；非 oracle rankers 只读 `status`、`repeat_signal`、`phase`、`action` 和 `environment`。Top-10 query-aware operation-stack groups 只检查 11.6% operations、lift 为 1.587，而 width ranking 检查 67.1%、lift 为 1.079；30% operation budget 下 query-aware recall 为 39.0%，width 为 34.0%，但 groups 从 4.5 增至 39.5。 | 不能声称这些 views 已经提升开发者任务准确率或耗时；R300 是 oracle-sorted clustering proxy，R301/R302 是 label-hidden automated analyst-task proxies，都不是 human study 或 detector。 |
 | C6：ScaleCUA 是有用补充。 | supplemental only | R292 流式采样 5,000 Ubuntu navigation rows，131 sessions，最大 step 48。它证明 history-state/history-depth 可作为 operation fields。 | 该子集主要是 click/terminate，不能作为复杂 action taxonomy 或 boundary detector 的核心证据。 |
 
 ## Best Dataset Families
@@ -53,7 +53,7 @@ tool、action、human group、safety、looping 或 step quality 等不同深度�
 | R291 | AgentNet desktop step quality | 16,741 ops；step correctness/redundancy 100% field coverage | 最大 human desktop step-quality oracle。 |
 | R292 | ScaleCUA supplement | 5,000 ops；131 sessions；max step 48 | 补充 GUI history-depth，不作为主 claim。 |
 | R293 | Profile-spec reproducibility | 同一 16,741 AgentNet ops；spec 复现 608 stacks；CLI override 得到 83 stacks | 证明 operation-stack query 可配置、可提交、可覆盖，不是固定 prompt/session hierarchy。 |
-| R294 | Agent-session trace exchange | public Codex fixture；1 trace session；6 operations；trace import 和 operation import 都是 6 samples / 5 stacks | 证明本地原生 session 可以导出、导入并桥接到 operation JSONL。 |
+| R294/R303 | Agent-session trace exchange | public Codex fixture；1 trace session；6 operations；trace import 和 operation import 都是 6 samples / 5 stacks；R303 用一条脚本复现 export/import/convert/equality check | 证明本地原生 session 可以导出、导入并桥接到 operation JSONL，且 trace 只是 exchange format，不是第三个 profiler 抽象。 |
 | R295 | Paper claim synthesis gate | 读取 R282-R294 tracked artifacts；输出 3 个 claim verdicts、6 个 evidence bundles 和 unsupported claims | 把论文 claim 从 artifact 机械回溯：C1 supported，C2 supported with scoped limits，C3 partial。 |
 | R296 | Reviewer evidence packet | 读取 39 个 tracked/clean R282-R295 artifacts；输出 11 个非 flamegraph/evidence-navigation entries、4 个 reviewer questions 和 3 个 expansion gates | 把 claim、负结果、可视化和源路径组织成一个可审计 evidence packet。 |
 | R297 | Supervised boundary backend | OSWorld-Human held-out：191 train sessions、96 test sessions、1,036 test adjacent pairs；learned F1=0.7735；Rust fold 1,132 ops / 74 stacks | 说明 boundary backend 的正确接口是写 operation fields，operation stack 仍由 profiler 按用户 stack 折叠。 |
@@ -61,6 +61,7 @@ tool、action、human group、safety、looping 或 step quality 等不同深度�
 | R299 | Boundary-family calibration | 不同步新数据；检查 7 个 existing candidates；4 个通过 suitability/positive split；Rust fold 8,961 ops / 1,548 stacks | 证明 boundary backend 可以作为统一 field-derivation 接口复制到多个标签家族，但结果必须按家族校准；AgentNet 边界可学但低 precision，AgentReward looping 应优先用简单 `repeat_signal_change` 字段。 |
 | R300 | Operation-query utility proxy | 6 个 oracle-backed tasks；34,539 ops；flat/fixed/operation/label stacks 为 6/2,012/944/318；operation-stack vs flat lift 5.726x，inspection fraction 0.2879；vs fixed-session group ratio 0.554、session-support ratio 5.5 | 把“真实问题价值”推进到自动化 task proxy：operation stack 比 flat 更能集中 positives，比 fixed-session 更能跨 session 聚合，但还不能 claim 人类效率。 |
 | R301 | Width-ranked analyst task proxy | 复用 R300 的 6 个 tasks；输出 visible-task-packets 和 hidden answer-key；168 个 task/view/budget scores；30% operation budget 下 operation-stack recall 0.336 / 4.5 groups，fixed-session recall 0.284 / 25.5 groups；top-10 width-ranked groups 下 operation-stack recall 0.641，fixed-session 0.195 | 把 R300 的 oracle-sorted 上界推进到 label-hidden task packet：默认宽度排序下 operation stack 仍能跨 session 暴露更多 positives，但宽度排序不是 detector，仍不能 claim 人类效率。 |
+| R302 | Label-hidden analyst ranking proxy | 复用 R300/R301 的 6 个 tasks；192 个 task/view/ranker/budget scores；top-10 query-aware operation-stack groups 检查 0.116 operation fraction、lift 1.587，width 检查 0.671、lift 1.079；30% budget 下 query-aware recall 0.390，width recall 0.340，但 groups 39.5 vs 4.5 | 证明 operation stack 不限于 flamegraph 宽度视图，也可以承载 query-aware/risk ranking policy；但 ranker 是可见字段 heuristic，不是 learned detector 或 human utility。 |
 
 ## Paper-Ready Wording
 
@@ -108,6 +109,9 @@ tool、action、human group、safety、looping 或 step quality 等不同深度�
 > Width-ranked analyst task proxy 进一步把 oracle label 从可见任务包中移除，只用
 > stack 宽度排序，让 hidden answer key 评分；它支持 operation-stack 的默认浏览价值，
 > 也暴露了 width ranking 不是异常检测器的限制。
+> Label-hidden analyst ranking proxy 再进一步比较 width、visible-risk 和 query-aware
+> rankers，证明 operation stack 可以承载多种非 flamegraph 分析策略；它提高了
+> precision/recall tradeoff 的可调性，但仍不是 detector 或 human study。
 > Paper value/novelty synthesis 也不是新实证结果；它把 heterogeneous trace objects、
 > recursive depth choice、field derivation、human/subtask boundaries、
 > failure/safety diagnostics 和 artifact auditability 映射到 tracked artifacts，
@@ -125,9 +129,9 @@ tool、action、human group、safety、looping 或 step quality 等不同深度�
 
 1. Boundary detector gate：在 R299 的 suitability/calibration 结果上继续加入更强
    sequence 或 model-backed backend，并只在胜过简单 derived-field baseline 后提升 claim。
-2. User-utility gate：在 R301 的 visible packets 和 hidden answer key 之上做受控
-   human/agent analyst study，比较 flat trace、fixed session stack、operation-stack
-   和 label-drilldown views 的正确率与耗时。
+2. User-utility gate：在 R301/R302 的 visible packets、ranking policies 和 hidden answer
+   key 之上做受控 human/agent analyst study，比较 flat trace、fixed session stack、
+   operation-stack、query-aware ranked operation-stack 和 label-drilldown views 的正确率与耗时。
 3. Scale gate：对 AgentNet full Ubuntu/Windows/macOS 或 OSWorld-Verified 做更大流式
    sampling，但仍不保存完整源数据或图片归档。
 4. Paper hygiene gate：所有数字必须能追到 `docs/visexp/out/*/*.json`，所有外部数据只

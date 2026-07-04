@@ -328,6 +328,16 @@ The converter exits nonzero if a trace produces no operations. It uses
 event-level prompt/tool/LLM rows when present and falls back to session-level
 tool and token summaries.
 
+To reproduce the complete exchange bridge from a public Codex fixture, run:
+
+```bash
+python3 script/agent_trace_exchange_eval.py
+```
+
+The script exports `agentsight.agent-session.trace.v1`, converts it to
+operation JSONL, profiles direct trace import and converted operation import,
+and fails if the folded outputs differ.
+
 Useful selectors:
 
 ```bash
