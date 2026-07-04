@@ -62,6 +62,7 @@ R302 再比较 label-hidden ranking policies：top-10 query-aware operation-stac
 R304 把同一任务进一步写成 reviewer-facing case packet：top-5 query-aware operation-stack cases 检查 median 9.37\% operations、找回 18.8\% positives、lift 为 1.6509，且 visible packet 与 hidden answer key 分离。
 R305 将同一 case-packet policy 与 flat、fixed-session baseline 对齐：flat 需要检查 100\% operations 才有 100\% recall，fixed-session 只检查 median 1.63\% operations 但 recall 为 2.26\%，operation-stack 检查 9.37\% operations、recall 为 18.8\%，相对 fixed-session 的 median recall ratio 为 3.63、lift ratio 为 1.268，但 work ratio 为 1.717。
 R307 读取 R295/R298、R303 和 R300--R306 的 tracked artifacts，刷新当前 paper-readiness gate：C1 supported，C2 supported with scoped limits，C3 partial，C4 只 supported as automated proxy；下一 gate 是基于 R301/R302/R304/R305 visible packets 和 hidden answer keys 的 controlled analyst study。
+R308 进一步把 R305 packets 评分为 first-evidence proxy：operation-stack packets 在 6/6 tasks 中含 positive group，在 5/6 tasks 中含 $\geq$1.5x high-lift group。Fixed-session 为 5/6 和 4/6，flat 为 6/6 和 0/6，同时 fixed-session 仍保留 first-positive work 更低的反例。
 这些结果支持一个机制性 claim：agent 轨迹可以被统一为 operations，并通过可配置 mappings 和 stack specs 递归折叠为多个有用的 analysis views。
 当前结果仍不支持完整无监督边界发现或人类用户效用 claim。
 \end{abstract}
@@ -186,6 +187,8 @@ R302 的 \texttt{script/operation\_analyst\_ranking\_eval.py} 在同一任务上
 非 oracle rankers 只读 \texttt{status}、\texttt{repeat\_signal}、\texttt{phase}、\texttt{action} 和 \texttt{environment} 等可见字段，不读 \texttt{looping}、\texttt{safety}、\texttt{step\_correct} 或 \texttt{target\_positive}。
 R304 的 \texttt{script/operation\_case\_study\_eval.py} 复用 R300/R302 任务，把每个任务的 top-5 query-aware operation-stack groups 写成 visible case packet，并把 oracle positives 只写入单独的 answer key。
 R305 的 \texttt{script/operation\_case\_baseline\_eval.py} 使用同一任务、同一 top-5 query-aware policy 和同一 hidden answer key，把 flat、fixed-session 和 operation-stack 三种 view 写成可比较的 visible case packets。
+R308 的 \texttt{script/operation\_analyst\_outcome\_eval.py} 再读取 R305 的 visible packets 和 hidden answer key，检查输入 artifact 已 tracked 且 clean，并评分 first-positive、first-enriched 和 high-lift evidence。
+R308 不读取新的数据集，也不新增 profiler object。它只是对同一 operation/operation-stack packet 的隐藏标签回放评分。
 
 \begin{table*}[t]
   \centering
@@ -263,6 +266,7 @@ R302 则把可见字段上的排序策略纳入同一任务框架，说明 opera
 R304 再把这种分析策略转成可审计 case evidence：visible packet 只包含 stack frames、可见特征比例、hashed session examples 和普通 operation examples，answer key 才包含 positives。
 R305 将该 case evidence 与 flat 和 fixed-session 直接对齐，显示 operation stack 是一个中间视图：它远比 flat selective，相比 fixed-session 有更高 recall 和 lift，但并不在每个任务上消耗更少 inspected operations。
 R307 在这些结果之后刷新 paper readiness：机制 claim 在 sampled public trajectories 和 fixture-level exchange 范围内已经可写强，user-utility wording 仍必须等待 controlled analyst study。
+R308 则把该 controlled-study gate 具体化为 first-evidence proxy：operation-stack packets 覆盖所有 6 个 tasks 的 positive group，并在 5 个 tasks 中给出 $\geq$1.5x high-lift group。Fixed-session 的 median first-positive work 更低，所以论文仍只能 claim inspectability tradeoff。
 
 \subsection{RQ3：mapping 是否能泛化？}
 
@@ -382,6 +386,7 @@ Operation-stack view 的 median work fraction 为 0.0937、recall 为 0.188、li
     R304 case packet & 同一 6 个 tasks；30 个 top-5 query-aware case groups & median work fraction 0.0937；recall 0.188；lift 1.6509；visible packet 与 answer key 分离 & Case evidence 可审计，但仍不是 detector 或 human study。 \\
     R305 case baseline & 同一 6 个 tasks；18 个 task-view case packets & flat work/recall 1.0/1.0；fixed work 0.0163、recall 0.0226、lift 1.6615；operation work 0.0937、recall 0.188、lift 1.6509 & Operation stack 是 selective middle view，但不是每个任务都比 fixed-session 更省 work。 \\
     R307 claim readiness & R295/R298、R303 与 R300--R306 tracked artifacts & C1 supported；C2 supported with scoped limits；C3 partial；C4 automated proxy only；analysis suite 6 tasks / 34,539 operations & 当前 paper wording 可以强化机制 claim，但 user utility 仍需 controlled analyst study。 \\
+    R308 analyst outcome & R305 visible packets 与 hidden answer key；6 tasks / 18 task-view packets & operation-stack positive/high-lift coverage 为 6/6 和 5/6；fixed-session 为 5/6 和 4/6；flat 为 6/6 和 0/6；operation-stack top-group lift median 1.5739 & First-evidence proxy 支持 operation-stack inspectability，但仍不是 human utility。 \\
     R288/R289 diagnostics & 729 AgentRewardBench ops；4,285 SATraj ops & repeat-signal/looping V-measure 0.378 vs step-error 0.011；622 unsafe SATraj ops & Profiler 支持 failure/safety views，且负结果能揭示粗标签不足。 \\
     \bottomrule
   \end{tabular}
@@ -440,6 +445,7 @@ R282/R285 证明它们有 held-out 和 leave-dataset-out 泛化，但不证明�
 第十五，R305 是 cross-view case-packet baseline，不是最终 user utility 结果；它证明 operation stack 的相对位置和 tradeoff，但也保留 fixed-session 在低 work fraction 上更便宜的反例。
 第十六，R306 是标准 trace 互操作 smoke，不是完整 OpenTelemetry/Chrome trace 生态兼容性评估；它证明 Chrome Trace Event JSON 可以作为 exchange container，但不改变 profiler 只接受 operation 和 operation stack 的设计。
 第十七，R307 是 paper-readiness synthesis，不是新 empirical run；它能约束当前投稿 wording，但不能替代它自己指出的 controlled analyst study。
+第十八，R308 是 hidden-answer-key replay，不是 human/agent analyst study；它支持 first-evidence proxy，但不能证明 accuracy、time-to-answer 或 developer productivity。
 
 \section{结论}
 
@@ -460,7 +466,8 @@ R304 把这些排序结果转成 visible case packet 和 hidden answer key，为
 R305 把这些 case evidence 与 flat 和 fixed-session baseline 对齐，说明 operation stack 的价值是可配置 inspectability tradeoff，而不是无条件支配每个 baseline。
 R306 则把本地 session 互操作路径扩展到 Chrome/Perfetto-style 标准 trace：标准 trace 负责导出和导入，真正的分析仍落回 operation JSONL 与用户指定的 operation stack。
 R307 把 R300--R306 后的证据收敛成当前投稿 gate：机制性语义剖析和自动化 inspectability proxy 已经有可审计证据，用户效用和更强边界发现仍需要下一轮实验。
-下一步不是继续无差别增加数据集，而是把 mapping backend、calibrated boundary detector 和基于 R301/R302/R304/R305 packets 的受控用户/agent analyst 任务实验推进到能支持更强 claim 的程度。
+R308 把受控 analyst study 的评分协议向前推进一步：first-positive、first-enriched 和 high-lift evidence 可以从现有 visible packets 与 hidden answer key 机械计算，但人类或 agent analyst 的正确率和耗时仍未验证。
+下一步不是继续无差别增加数据集，而是把 mapping backend、calibrated boundary detector 和基于 R308 protocol 的受控用户/agent analyst 任务实验推进到能支持更强 claim 的程度。
 
 \vspace{-0.8em}
 \section*{参考文献}
