@@ -1,0 +1,424 @@
+{
+  "claim_posture": {
+    "must_not_claim": [
+      "Every public agent trajectory dataset can be profiled at full scale without additional engineering.",
+      "R296 reviewer packet is itself empirical evidence",
+      "R297 generalizes beyond OSWorld-Human",
+      "R300-R305 prove human productivity",
+      "R306 proves full OpenTelemetry/Chrome ecosystem compatibility",
+      "The profiler fully discovers latent intent boundaries without labels or rules.",
+      "The profiler improves human developer productivity.",
+      "automatic anomaly detection",
+      "case packets are a new profiler abstraction",
+      "complete trace ecosystem compatibility",
+      "human accuracy or time improvement",
+      "universal dominance over fixed-session baselines",
+      "unsupervised intent discovery"
+    ],
+    "paper_ready_mechanism_claims": [
+      "C1",
+      "C2"
+    ],
+    "paper_ready_proxy_value_claims": [
+      "C4"
+    ],
+    "partial_claims": [
+      "C3"
+    ],
+    "recommended_posture": "Submit as a systems/ML-observability paper about a two-abstraction semantic profiler and automated inspectability proxy evidence, not as a human-productivity or unsupervised-boundary paper."
+  },
+  "commit": "feb140de0987ebfcc307bcf402ae2bdf1429287e",
+  "input_policy": {
+    "dataset_sync": "none",
+    "purpose": "reviewer stress-test synthesis only; no new dataset or profiler run",
+    "source_artifacts": {
+      "r302_ranking": "docs/visexp/out/operation-analyst-ranking-r302/ranking-report.json",
+      "r305_case_baseline": "docs/visexp/out/operation-case-baseline-r305/case-baseline-report.json",
+      "r308_analyst_outcome": "docs/visexp/out/operation-analyst-outcome-r308/analyst-outcome-report.json",
+      "r309_problem_value": "docs/visexp/out/operation-problem-value-r309/problem-value-report.json",
+      "r310_evidence_matrix": "docs/visexp/out/paper-evidence-matrix-r310/evidence-matrix.json"
+    },
+    "source_requirement": "git-tracked and clean before synthesis"
+  },
+  "outputs": {
+    "csv": "docs/visexp/out/paper-robustness-audit-r311/robustness-audit.csv",
+    "html": "docs/visexp/out/paper-robustness-audit-r311/index.html",
+    "json": "docs/visexp/out/paper-robustness-audit-r311/robustness-audit.json",
+    "markdown": "docs/visexp/out/paper-robustness-audit-r311/robustness-audit.md",
+    "run_result": "docs/visexp/out/paper-robustness-audit-r311/run-result.json",
+    "tex": "docs/visexp/out/paper-robustness-audit-r311/evidence-table.tex"
+  },
+  "paper_claim_delta": [
+    {
+      "claim": "C1",
+      "delta": "Trace exchange and heterogeneous operations are paper-ready, but standard trace support remains fixture-level.",
+      "status": "keep_scoped"
+    },
+    {
+      "claim": "C2",
+      "delta": "Recursive stack-depth and arbitrary fields are paper-ready, but not perfect intent recovery.",
+      "status": "keep_scoped"
+    },
+    {
+      "claim": "C3",
+      "delta": "Boundary backends should be described as deterministic/supervised field derivation extension points.",
+      "status": "partial"
+    },
+    {
+      "claim": "C4",
+      "delta": "Problem-value evidence supports inspectability and novelty, while human utility remains the next controlled study.",
+      "status": "automated_proxy_ready"
+    }
+  ],
+  "profiler_abstractions": [
+    "operation",
+    "operation stack"
+  ],
+  "reviewer_stress_tests": [
+    {
+      "evidence": [
+        "R310 keeps exactly two profiler abstractions: operation and operation stack",
+        "C1/C2 support arbitrary stack fields and recursive depth under scoped wording",
+        "R306 standard-trace exchange preserves folded operation-stack output on the fixture"
+      ],
+      "paper_wording": "Claim a two-abstraction profiler model with stack specs, not a prompt/session/span hierarchy.",
+      "question": "Is this only a flat trace or prompt/session flamegraph?",
+      "verdict": "pass"
+    },
+    {
+      "evidence": [
+        "operation-stack packets are more selective than flat on 6/6 tasks",
+        "positive groups appear in 6/6 tasks",
+        "high-lift evidence appears in 5/6 tasks"
+      ],
+      "paper_wording": "Claim inspectability over flat summaries under oracle-backed proxy tasks.",
+      "question": "Does the operation-stack view add value over flat packets?",
+      "verdict": "pass"
+    },
+    {
+      "evidence": [
+        "selected recall is higher than fixed-session on 5/6 tasks",
+        "selected work is lower than fixed-session on only 2/6 tasks",
+        "4/6 tasks have lower selected work under fixed-session"
+      ],
+      "paper_wording": "Claim a recall/selectivity tradeoff, not universal dominance.",
+      "question": "Does the operation-stack view universally dominate fixed-session drilldown?",
+      "verdict": "narrow"
+    },
+    {
+      "evidence": [
+        "R302 rankers exclude hidden oracle fields",
+        "top-10 query-aware operation-stack work/lift 0.1163/1.5867 vs width 0.6713/1.0795",
+        "rankers are hand-written visible-field heuristics, not learned detectors"
+      ],
+      "paper_wording": "Use as configurable analysis-policy evidence, not automatic anomaly detection.",
+      "question": "Is query-aware analysis just oracle leakage?",
+      "verdict": "pass_with_scope"
+    },
+    {
+      "evidence": [
+        "R308/R309 are automated replays over hidden labels",
+        "no analyst timing, accuracy, or workload study has been run",
+        "the existing visible packets are suitable inputs for that next controlled study"
+      ],
+      "paper_wording": "Claim automated inspectability proxy value only.",
+      "question": "Does the evidence prove human/agent analyst utility?",
+      "verdict": "fail_for_stronger_claim"
+    },
+    {
+      "evidence": [
+        "R310 keeps C3 partial",
+        "R299 shows family-specific calibration and simple-baseline counterexamples",
+        "deterministic and supervised field derivation are supported; unsupervised intent discovery is not"
+      ],
+      "paper_wording": "Frame boundary backends as extension points that derive stackable fields.",
+      "question": "Is boundary discovery solved?",
+      "verdict": "partial"
+    },
+    {
+      "evidence": [
+        "R302 ranking policies, R305 cross-view case packets, R308 first-evidence outcomes, and R309 problem cards are non-flamegraph analyses over the same stacks",
+        "R310 evidence matrix and this R311 stress audit are paper-facing analyses, not profiler abstractions"
+      ],
+      "paper_wording": "State novelty as query-time recursive operation stacks plus auditable non-flamegraph analyses.",
+      "question": "Is the novelty only the flamegraph visualization?",
+      "verdict": "pass"
+    }
+  ],
+  "run_id": "R311",
+  "schema": "agentsight.paper-robustness-audit.v1",
+  "source_sanity": {
+    "r305_task_view_scores": 18,
+    "r308_task_view_outcomes": 18,
+    "r309_problem_cards": 6,
+    "r310_claims": 4
+  },
+  "summary": {
+    "datasets": 4,
+    "fixed_session_lower_work_counterpoint": "4/6",
+    "operation_stack_high_lift_coverage": "5/6",
+    "operation_stack_higher_recall_than_fixed": "5/6",
+    "operation_stack_lower_work_than_fixed": "2/6",
+    "operation_stack_more_selective_than_flat": "6/6",
+    "operation_stack_positive_group_coverage": "6/6",
+    "operations": 34539,
+    "positive_operations": 3699,
+    "sign_test_caution": "Counts are task-level robustness checks over six oracle-backed tasks, not a statistical generalization claim.",
+    "tasks": 6
+  },
+  "task_robustness": [
+    {
+      "checks": {
+        "high_lift_evidence": true,
+        "higher_recall_than_fixed": false,
+        "lower_work_than_fixed": true,
+        "positive_group": true,
+        "selected_lift_ge_one": true,
+        "selective_vs_flat": true
+      },
+      "counterpoints": [
+        "low_selected_positive_recall"
+      ],
+      "dataset": "agentnet",
+      "fixed_session": {
+        "lift": 2.259,
+        "recall": 0.0126,
+        "work": 0.0056
+      },
+      "flat": {
+        "lift": 1.0,
+        "recall": 1.0,
+        "work": 1.0
+      },
+      "operation_stack": {
+        "lift": 2.4057,
+        "precision": 0.1429,
+        "recall": 0.0034,
+        "work": 0.0014
+      },
+      "oracle": {
+        "operations": 14718,
+        "positive_field": "step_correct",
+        "positive_operations": 874,
+        "prevalence": 0.0594
+      },
+      "problem": "Find incorrect human desktop steps.",
+      "query_family": "step-quality",
+      "support_label": "scoped_proxy_support",
+      "supported_interpretation": "operation stacks expose selective, high-lift evidence for this problem family while keeping the packet smaller than the flat trace",
+      "task": "agentnet_incorrect_step"
+    },
+    {
+      "checks": {
+        "high_lift_evidence": true,
+        "higher_recall_than_fixed": true,
+        "lower_work_than_fixed": false,
+        "positive_group": true,
+        "selected_lift_ge_one": true,
+        "selective_vs_flat": true
+      },
+      "counterpoints": [
+        "fixed_session_uses_less_selected_work",
+        "fixed_session_reaches_first_positive_earlier",
+        "low_selected_positive_recall"
+      ],
+      "dataset": "agentnet",
+      "fixed_session": {
+        "lift": 1.4208,
+        "recall": 0.0123,
+        "work": 0.0086
+      },
+      "flat": {
+        "lift": 1.0,
+        "recall": 1.0,
+        "work": 1.0
+      },
+      "operation_stack": {
+        "lift": 1.9838,
+        "precision": 0.1444,
+        "recall": 0.0177,
+        "work": 0.0089
+      },
+      "oracle": {
+        "operations": 10067,
+        "positive_field": "step_redundant",
+        "positive_operations": 733,
+        "prevalence": 0.0728
+      },
+      "problem": "Find redundant human desktop steps.",
+      "query_family": "step-quality",
+      "support_label": "strong_proxy_support",
+      "supported_interpretation": "operation stacks expose selective, high-lift evidence for this problem family while keeping the packet smaller than the flat trace",
+      "task": "agentnet_redundant_step"
+    },
+    {
+      "checks": {
+        "high_lift_evidence": false,
+        "higher_recall_than_fixed": true,
+        "lower_work_than_fixed": false,
+        "positive_group": true,
+        "selected_lift_ge_one": true,
+        "selective_vs_flat": true
+      },
+      "counterpoints": [
+        "fixed_session_uses_less_selected_work",
+        "fixed_session_reaches_first_positive_earlier",
+        "no_operation_stack_high_lift_group"
+      ],
+      "dataset": "agent-reward-bench",
+      "fixed_session": {
+        "lift": 1.1571,
+        "recall": 0.2381,
+        "work": 0.2058
+      },
+      "flat": {
+        "lift": 1.0,
+        "recall": 1.0,
+        "work": 1.0
+      },
+      "operation_stack": {
+        "lift": 1.3179,
+        "precision": 0.9111,
+        "recall": 0.6508,
+        "work": 0.4938
+      },
+      "oracle": {
+        "operations": 729,
+        "positive_field": "looping",
+        "positive_operations": 504,
+        "prevalence": 0.6914
+      },
+      "problem": "Find repetitive web-agent behavior in expert-reviewed trajectories.",
+      "query_family": "failure-looping",
+      "support_label": "scoped_proxy_support",
+      "supported_interpretation": "operation stacks recover substantial positives, but the problem is too prevalent for a high-lift top group under this packet policy",
+      "task": "agentreward_looping"
+    },
+    {
+      "checks": {
+        "high_lift_evidence": true,
+        "higher_recall_than_fixed": true,
+        "lower_work_than_fixed": true,
+        "positive_group": true,
+        "selected_lift_ge_one": false,
+        "selective_vs_flat": true
+      },
+      "counterpoints": [
+        "top5_packet_lift_below_prevalence"
+      ],
+      "dataset": "agent-reward-bench",
+      "fixed_session": {
+        "lift": 0.0,
+        "recall": 0.0,
+        "work": 0.1948
+      },
+      "flat": {
+        "lift": 1.0,
+        "recall": 1.0,
+        "work": 1.0
+      },
+      "operation_stack": {
+        "lift": 0.7831,
+        "precision": 0.217,
+        "recall": 0.1139,
+        "work": 0.1454
+      },
+      "oracle": {
+        "operations": 729,
+        "positive_field": "side_effect",
+        "positive_operations": 202,
+        "prevalence": 0.2771
+      },
+      "problem": "Find side-effectful web-agent trajectories.",
+      "query_family": "failure-side-effect",
+      "support_label": "scoped_proxy_support",
+      "supported_interpretation": "operation stacks surface an early high-lift group, but the top-5 packet also includes lower-quality groups, so ranking depth matters",
+      "task": "agentreward_side_effect"
+    },
+    {
+      "checks": {
+        "high_lift_evidence": true,
+        "higher_recall_than_fixed": true,
+        "lower_work_than_fixed": false,
+        "positive_group": true,
+        "selected_lift_ge_one": false,
+        "selective_vs_flat": true
+      },
+      "counterpoints": [
+        "fixed_session_uses_less_selected_work",
+        "fixed_session_reaches_first_positive_earlier",
+        "top5_packet_lift_below_prevalence"
+      ],
+      "dataset": "osworld-human",
+      "fixed_session": {
+        "lift": 1.9022,
+        "recall": 0.0327,
+        "work": 0.0172
+      },
+      "flat": {
+        "lift": 1.0,
+        "recall": 1.0,
+        "work": 1.0
+      },
+      "operation_stack": {
+        "lift": 0.951,
+        "precision": 0.1812,
+        "recall": 0.3874,
+        "work": 0.4074
+      },
+      "oracle": {
+        "operations": 4011,
+        "positive_field": "group_position",
+        "positive_operations": 764,
+        "prevalence": 0.1905
+      },
+      "problem": "Find human grouped-action segment starts in desktop traces.",
+      "query_family": "human-boundary",
+      "support_label": "scoped_proxy_support",
+      "supported_interpretation": "operation stacks surface an early high-lift group, but the top-5 packet also includes lower-quality groups, so ranking depth matters",
+      "task": "osworld_group_start"
+    },
+    {
+      "checks": {
+        "high_lift_evidence": true,
+        "higher_recall_than_fixed": true,
+        "lower_work_than_fixed": false,
+        "positive_group": true,
+        "selected_lift_ge_one": true,
+        "selective_vs_flat": true
+      },
+      "counterpoints": [
+        "fixed_session_uses_less_selected_work",
+        "fixed_session_reaches_first_positive_earlier"
+      ],
+      "dataset": "satraj-os-safety",
+      "fixed_session": {
+        "lift": 3.7577,
+        "recall": 0.0579,
+        "work": 0.0154
+      },
+      "flat": {
+        "lift": 1.0,
+        "recall": 1.0,
+        "work": 1.0
+      },
+      "operation_stack": {
+        "lift": 6.2384,
+        "precision": 0.9056,
+        "recall": 0.2621,
+        "work": 0.042
+      },
+      "oracle": {
+        "operations": 4285,
+        "positive_field": "safety",
+        "positive_operations": 622,
+        "prevalence": 0.1452
+      },
+      "problem": "Find unsafe desktop computer-use operations.",
+      "query_family": "safety",
+      "support_label": "strong_proxy_support",
+      "supported_interpretation": "operation stacks expose selective, high-lift evidence for this problem family while keeping the packet smaller than the flat trace",
+      "task": "satraj_unsafe"
+    }
+  ]
+}

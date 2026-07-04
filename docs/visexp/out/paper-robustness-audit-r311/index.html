@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Paper Robustness Audit R311</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; color: #1f2933; }
+    h1 { font-size: 1.6rem; margin-bottom: 0.25rem; }
+    h2 { margin-top: 2rem; }
+    p { max-width: 980px; line-height: 1.5; }
+    table { border-collapse: collapse; margin-top: 1rem; max-width: 1240px; }
+    th, td { border: 1px solid #d8dee9; padding: 0.55rem 0.75rem; text-align: left; vertical-align: top; }
+    th { background: #f6f8fa; }
+    code { background: #f6f8fa; padding: 0.1rem 0.25rem; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Paper Robustness Audit R311</h1>
+  <p>
+    R311 stress-tests the current paper claims using existing tracked artifacts
+    only. The profiler model remains exactly two abstractions:
+    <code>operation</code> and <code>operation stack</code>.
+  </p>
+  <p>
+    Workload: 4 datasets / 6 tasks /
+    34539 operations / 3699 positives.
+    Operation-stack packets are more selective than flat on
+    6/6 tasks and have
+    high-lift evidence on 5/6 tasks.
+  </p>
+  <h2>Reviewer Stress Tests</h2>
+  <table>
+    <tr><th>Question</th><th>Verdict</th><th>Evidence</th><th>Paper Wording</th></tr>
+<tr><th>Is this only a flat trace or prompt/session flamegraph?</th><td>pass</td><td>R310 keeps exactly two profiler abstractions: operation and operation stack<br>C1/C2 support arbitrary stack fields and recursive depth under scoped wording<br>R306 standard-trace exchange preserves folded operation-stack output on the fixture</td><td>Claim a two-abstraction profiler model with stack specs, not a prompt/session/span hierarchy.</td></tr>
+<tr><th>Does the operation-stack view add value over flat packets?</th><td>pass</td><td>operation-stack packets are more selective than flat on 6/6 tasks<br>positive groups appear in 6/6 tasks<br>high-lift evidence appears in 5/6 tasks</td><td>Claim inspectability over flat summaries under oracle-backed proxy tasks.</td></tr>
+<tr><th>Does the operation-stack view universally dominate fixed-session drilldown?</th><td>narrow</td><td>selected recall is higher than fixed-session on 5/6 tasks<br>selected work is lower than fixed-session on only 2/6 tasks<br>4/6 tasks have lower selected work under fixed-session</td><td>Claim a recall/selectivity tradeoff, not universal dominance.</td></tr>
+<tr><th>Is query-aware analysis just oracle leakage?</th><td>pass_with_scope</td><td>R302 rankers exclude hidden oracle fields<br>top-10 query-aware operation-stack work/lift 0.1163/1.5867 vs width 0.6713/1.0795<br>rankers are hand-written visible-field heuristics, not learned detectors</td><td>Use as configurable analysis-policy evidence, not automatic anomaly detection.</td></tr>
+<tr><th>Does the evidence prove human/agent analyst utility?</th><td>fail_for_stronger_claim</td><td>R308/R309 are automated replays over hidden labels<br>no analyst timing, accuracy, or workload study has been run<br>the existing visible packets are suitable inputs for that next controlled study</td><td>Claim automated inspectability proxy value only.</td></tr>
+<tr><th>Is boundary discovery solved?</th><td>partial</td><td>R310 keeps C3 partial<br>R299 shows family-specific calibration and simple-baseline counterexamples<br>deterministic and supervised field derivation are supported; unsupervised intent discovery is not</td><td>Frame boundary backends as extension points that derive stackable fields.</td></tr>
+<tr><th>Is the novelty only the flamegraph visualization?</th><td>pass</td><td>R302 ranking policies, R305 cross-view case packets, R308 first-evidence outcomes, and R309 problem cards are non-flamegraph analyses over the same stacks<br>R310 evidence matrix and this R311 stress audit are paper-facing analyses, not profiler abstractions</td><td>State novelty as query-time recursive operation stacks plus auditable non-flamegraph analyses.</td></tr>
+  </table>
+  <h2>Task Robustness</h2>
+  <table>
+    <tr><th>Task</th><th>Dataset</th><th>Support</th><th>Stack work/recall/lift</th><th>Counterpoints</th></tr>
+<tr><th>agentnet_incorrect_step</th><td>agentnet</td><td>scoped_proxy_support</td><td>0.0014 / 0.0034 / 2.406</td><td>low_selected_positive_recall</td></tr>
+<tr><th>agentnet_redundant_step</th><td>agentnet</td><td>strong_proxy_support</td><td>0.0089 / 0.0177 / 1.984</td><td>fixed_session_uses_less_selected_work; fixed_session_reaches_first_positive_earlier; +1 more</td></tr>
+<tr><th>agentreward_looping</th><td>agent-reward-bench</td><td>scoped_proxy_support</td><td>0.4938 / 0.6508 / 1.318</td><td>fixed_session_uses_less_selected_work; fixed_session_reaches_first_positive_earlier; +1 more</td></tr>
+<tr><th>agentreward_side_effect</th><td>agent-reward-bench</td><td>scoped_proxy_support</td><td>0.1454 / 0.1139 / 0.7831</td><td>top5_packet_lift_below_prevalence</td></tr>
+<tr><th>osworld_group_start</th><td>osworld-human</td><td>scoped_proxy_support</td><td>0.4074 / 0.3874 / 0.951</td><td>fixed_session_uses_less_selected_work; fixed_session_reaches_first_positive_earlier; +1 more</td></tr>
+<tr><th>satraj_unsafe</th><td>satraj-os-safety</td><td>strong_proxy_support</td><td>0.042 / 0.2621 / 6.238</td><td>fixed_session_uses_less_selected_work; fixed_session_reaches_first_positive_earlier</td></tr>
+  </table>
+</body>
+</html>
