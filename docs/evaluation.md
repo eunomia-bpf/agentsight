@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-04
 Stage at update: stage 5 analyze / stage 6 claim gate / stage 9 paper integration
-Source/command: `script/agent_trace_datasets.py`, `script/operation_split.py`, `script/operation_leaveout_eval.py`, `script/operation_map_infer.py`, `script/operation_stack_depth_eval.py`, `script/agent_trace_to_operations.py`, `script/paper_claim_synthesis.py`, `agentpprof --operation-file`, `agentpprof --trace-file`, `agentpprof --profile-spec`, `script/operation_stack_quality.py`, `cargo test --manifest-path agentpprof/Cargo.toml`
+Source/command: `script/agent_trace_datasets.py`, `script/operation_split.py`, `script/operation_leaveout_eval.py`, `script/operation_map_infer.py`, `script/operation_stack_depth_eval.py`, `script/agent_trace_to_operations.py`, `script/paper_claim_synthesis.py`, `script/reviewer_evidence_packet.py`, `agentpprof --operation-file`, `agentpprof --trace-file`, `agentpprof --profile-spec`, `script/operation_stack_quality.py`, `cargo test --manifest-path agentpprof/Cargo.toml`
 Completeness: partial
 
 ## Claim-To-Experiment Map
@@ -29,10 +29,15 @@ native Codex/Claude logs as a portable `agent-session` trace before becoming
 operation JSONL. R295 turns those scattered results into a mechanical claim
 gate: it reads tracked R282-R294 JSON artifacts and emits supported/partial
 verdicts plus paper-ready wording under
-`docs/visexp/out/paper-claim-synthesis-r295/`. R292 ScaleCUA is a useful
-supplemental stream sample for GUI history-depth fields, but not a main
-boundary oracle because the sampled Ubuntu navigation subset is mostly
-click/terminate.
+`docs/visexp/out/paper-claim-synthesis-r295/`. R296 then turns the same
+evidence into a reviewer navigation packet under
+`docs/visexp/out/reviewer-evidence-packet-r296/`: 11 non-flamegraph or
+evidence-navigation entries, 4 reviewer questions, derived ratios for mapping,
+recursive folding, human-group reduction, diagnostic negative controls, and
+explicit expansion gates. R292
+ScaleCUA is a useful supplemental stream sample for GUI history-depth fields,
+but not a main boundary oracle because the sampled Ubuntu navigation subset is
+mostly click/terminate.
 
 The paper must not claim fully unsupervised boundary discovery, complete
 intent recovery, or improved developer task performance. Those remain future
@@ -96,6 +101,7 @@ gates.
 | R293 | C1, C2 | Profile-spec reproducibility over AgentNet | `agentpprof --profile-spec docs/visexp/out/profile-spec-r293/agentnet-diagnostic-spec.json`; second run overrides `--stack` and `-o` from CLI | worktree after this commit | local | Same 1,000 AgentNet tasks / 16,741 operations as R291; spec projection has 608 stacks, override projection has 83 stacks | `docs/visexp/out/profile-spec-r293/` | done |
 | R294 | C1 | Agent-session trace exchange and operation JSONL bridge | `agentpprof --session-file ... --export-trace`; `agentpprof --trace-file`; `script/agent_trace_to_operations.py`; `agentpprof --operation-file` over the converted operations | worktree after this commit | local | Public Codex fixture: 1 exported trace session, 6 converted operations, trace import and operation import both produce 6 samples / 5 stacks and byte-identical folded output | `docs/visexp/out/agent-trace-exchange-r294/` | done |
 | R295 | C1, C2, C3 | Mechanical paper claim synthesis and claim gate | `python3 script/paper_claim_synthesis.py > docs/visexp/out/paper-claim-synthesis-r295/run-result.json` | worktree after R294 | local | Reads tracked R282-R294 JSON/folded artifacts; emits 3 claim verdicts, 6 evidence bundles, unsupported-claim list, and source paths | `docs/visexp/out/paper-claim-synthesis-r295/` | done |
+| R296 | C1, C2, C3 | Reviewer evidence packet and non-flamegraph navigation layer | `python3 script/reviewer_evidence_packet.py > docs/visexp/out/reviewer-evidence-packet-r296/run-result.json` | worktree after R295 | local | Reads 39 tracked/clean R282-R295 artifacts; emits 11 non-flamegraph/evidence-navigation entries, 4 reviewer questions, derived metrics, and 3 expansion gates | `docs/visexp/out/reviewer-evidence-packet-r296/` | done |
 
 R272 command:
 
@@ -144,6 +150,7 @@ cargo run --manifest-path agentpprof/Cargo.toml -- \
 | R293 | A tracked profile spec over the existing R291 AgentNet operations reproduces the original 608-stack diagnostic folded output byte-for-byte and reports 16,741 samples. A CLI override on the same spec changes only the stack to `project,dataset,task,phase,action,status,step_correct,repeat_signal`, yielding 83 unique stacks over the same 16,741 operations. | Confirms reproducibility and customizability are now first-class in the Rust CLI: reviewers can replay operation files, op-map files, views, stack specs, and outputs from a single config while still overriding the query at the command line. This supports the paper's "like jq flags/config, not fixed prompt/session hierarchy" design point without adding a third abstraction. | This is a reproducibility and interface result, not new dataset evidence or a boundary-detector result. It does not strengthen unsupervised C3 beyond the existing deterministic mapping evidence. |
 | R294 | A public Codex fixture exports to `agentsight.agent-session.trace.v1` with 1 session. `script/agent_trace_to_operations.py` converts the trace to 6 operation JSONL rows. Direct `agentpprof --trace-file` import and converted `agentpprof --operation-file` import both produce 6 samples, 5 unique stacks, and byte-identical folded output under `project,agent,op,phase,tool,status`. | Confirms local agent-native sessions can be exchanged, replayed, and bridged into the same operation JSONL path used by public benchmark traces. This answers the implementation concern that native sessions and external operations were separate paths. | This is a fixture-level interoperability smoke, not a large-scale dataset result. It does not evaluate boundary quality or failure diagnosis. |
 | R295 | `script/paper_claim_synthesis.py` reads tracked R282-R294 JSON/folded artifacts and emits `claim-synthesis.json` plus `claim-synthesis.md`. Verdicts: C1 supported for heterogeneous public trajectories and local session exchange; C2 supported with scoped limits for recursive task/phase/action/human-group/safety/quality views; C3 partial for deterministic label-derived mapping only. It also records unsupported final claims: unsupervised latent intent discovery, human productivity improvement, and complete full-scale conversion of every public dataset. | Converts scattered results into a paper-claim gate with explicit source paths and negative evidence. This is the strongest current bridge from experiment artifacts to OSDI/NeurIPS-style claim wording. | It is a synthesis artifact, not new empirical evidence. The underlying limitations remain: no unsupervised boundary backend, no user study, and no full-scale conversion of every candidate corpus. |
+| R296 | `script/reviewer_evidence_packet.py` reads 39 tracked/clean artifacts from R282-R295 and emits `reviewer-evidence.json`, `reviewer-evidence.md`, and `index.html`. The packet records 11 visualization/catalog entries, 4 reviewer questions, and derived metrics: held-out mapping reduces unique stacks by 26.408%, OSWorld grouped stacks reduce action-depth unique stacks by 78.008%, AgentRewardBench repeat-signal/looping V-measure is 0.3777 vs 0.0105 for the step-error baseline (35.971x), and profile-spec override reduces AgentNet stacks by 86.349% without changing operations. | Gives reviewers one auditable path from claim to artifact and indexes evidence beyond flamegraphs: depth sweeps, stack trees, transition/top-field reports, quality reports, grouped-boundary reports, history-depth reports, and claim gates. | It is a navigation and synthesis layer, not new empirical evidence. It improves paper auditability but does not remove the need for a non-rule boundary backend or user-utility study. |
 
 ## Candidate Selection
 
@@ -191,6 +198,7 @@ cargo run --manifest-path agentpprof/Cargo.toml -- \
 | Profile-spec reproducibility | Whether a tracked profile spec can replay operation-file, op-map, view, stack, output, and CLI override choices. | R293 `agentnet-diagnostic-spec.json`, result JSON, folded output comparison, and override folded output. | C1, C2 |
 | Agent-session trace exchange equivalence | Whether exported native session traces can be imported directly and converted to operation JSONL without changing stack output. | R294 `fixture-trace.json`, `fixture-operations.jsonl`, `trace-import.folded`, `operation-import.folded`, and `cmp` equality. | C1 |
 | Paper claim synthesis gate | Whether paper-ready claim wording is mechanically grounded in tracked artifacts and unsupported claims are explicitly excluded. | R295 `claim-synthesis.json`, `claim-synthesis.md`, and `run-result.json` generated from R282-R294 result JSON/folded artifacts. | C1, C2, C3 |
+| Reviewer evidence packet | Whether the paper's main evidence can be audited through a single claim-to-artifact navigation layer that includes non-flamegraph views and negative evidence. | R296 `reviewer-evidence.json`, `reviewer-evidence.md`, and `index.html` generated from tracked/clean R282-R295 artifacts. | C1, C2, C3 |
 
 ## Reproducibility Checklist
 
@@ -215,6 +223,7 @@ cargo run --manifest-path agentpprof/Cargo.toml -- \
 | Profile-spec reproducibility for operation-stack experiments is implemented and tracked under R293. | done |
 | Portable agent-session trace export/import and trace-to-operation JSONL conversion are implemented and tracked under R294. | done |
 | Mechanical paper-claim synthesis from tracked artifacts is implemented and tracked under R295. | done |
+| Reviewer evidence packet with non-flamegraph navigation is implemented and tracked under R296. | done |
 | Flat/fixed/mapped stack ablation is tracked under R277. | done |
 | Operation-stack quality scorer is implemented and tracked under R280. | done |
 | Learned-from-labeled-fields op-map generation is implemented and tracked under R281. | done |

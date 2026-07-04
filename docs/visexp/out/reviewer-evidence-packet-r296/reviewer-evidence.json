@@ -1,0 +1,554 @@
+{
+  "claim_verdicts": [
+    {
+      "claim": "C1",
+      "evidence": [
+        "heterogeneous_coverage",
+        "recursive_depth",
+        "reproducibility_and_exchange"
+      ],
+      "not_supported": [
+        "complete conversion of every public agent benchmark",
+        "raw image/video archive profiling"
+      ],
+      "paper_ready_wording": "The semantic profiler can represent heterogeneous public agent trajectories and local agent sessions as operations, then profile them through user-selected operation stacks without hard-coding prompt/session boundaries.",
+      "verdict": "supported"
+    },
+    {
+      "claim": "C2",
+      "evidence": [
+        "recursive_depth",
+        "human_boundaries",
+        "quality_and_failure_diagnostics"
+      ],
+      "not_supported": [
+        "perfect intent recovery",
+        "single universal stack depth",
+        "quality prediction from task outcome alone"
+      ],
+      "paper_ready_wording": "Recursive operation stacks recover useful task, phase, action, human-group, safety, and quality-label views, and expose when a coarse field is not a valid proxy for a finer oracle.",
+      "verdict": "supported with scoped limits"
+    },
+    {
+      "claim": "C3",
+      "evidence": [
+        "mapping_generalization"
+      ],
+      "not_supported": [
+        "fully unsupervised boundary detection",
+        "LLM-backed or model-backed boundary inference"
+      ],
+      "paper_ready_wording": "Label-derived deterministic mappings improve semantic aggregation on held-out sessions and leave-dataset-out folds; they should be presented as reproducible mapping/tagging, not as unsupervised boundary discovery.",
+      "verdict": "partial"
+    }
+  ],
+  "dataset_weights": [
+    {
+      "value": "agentnet",
+      "weight": 16741
+    },
+    {
+      "value": "gui-odyssey",
+      "weight": 7868
+    },
+    {
+      "value": "osworld-human",
+      "weight": 6010
+    },
+    {
+      "value": "scalecua-navigation",
+      "weight": 5000
+    },
+    {
+      "value": "satraj-os-safety",
+      "weight": 4285
+    },
+    {
+      "value": "webshop-expert",
+      "weight": 2504
+    },
+    {
+      "value": "tau-bench-trajectories",
+      "weight": 1560
+    },
+    {
+      "value": "toolbench",
+      "weight": 866
+    },
+    {
+      "value": "mind2web",
+      "weight": 774
+    },
+    {
+      "value": "agent-reward-bench",
+      "weight": 729
+    },
+    {
+      "value": "weblinx-chat",
+      "weight": 500
+    },
+    {
+      "value": "swe-agent-trajectories",
+      "weight": 496
+    },
+    {
+      "value": "agenttrek",
+      "weight": 200
+    },
+    {
+      "value": "api-bank",
+      "weight": 48
+    },
+    {
+      "value": "android-control",
+      "weight": 9
+    }
+  ],
+  "depth_rows": [
+    {
+      "added_frame": "dataset",
+      "compression_ratio": 1473.889,
+      "depth": 2,
+      "name": "dataset",
+      "phase_action_boundary_f1": 0.8095,
+      "phase_action_v": 0.7638,
+      "result_dir": "docs/visexp/out/operation-stack-depth-r286/dataset",
+      "samples": 13265,
+      "stack": "project,dataset",
+      "task_dataset_v": 0.862,
+      "top_leaf": "dataset:gui-odyssey",
+      "top_leaf_weight": 7868,
+      "unique_delta_from_previous": null,
+      "unique_stacks": 9,
+      "unique_vs_dataset_depth": 1.0
+    },
+    {
+      "added_frame": "task",
+      "compression_ratio": 1205.909,
+      "depth": 3,
+      "name": "task",
+      "phase_action_boundary_f1": 0.8095,
+      "phase_action_v": 0.7638,
+      "result_dir": "docs/visexp/out/operation-stack-depth-r286/task",
+      "samples": 13265,
+      "stack": "project,dataset,task",
+      "task_dataset_v": 0.862,
+      "top_leaf": "task:mobile",
+      "top_leaf_weight": 7877,
+      "unique_delta_from_previous": 2,
+      "unique_stacks": 11,
+      "unique_vs_dataset_depth": 1.2222
+    },
+    {
+      "added_frame": "phase",
+      "compression_ratio": 232.719,
+      "depth": 4,
+      "name": "phase",
+      "phase_action_boundary_f1": 0.8095,
+      "phase_action_v": 0.7638,
+      "result_dir": "docs/visexp/out/operation-stack-depth-r286/phase",
+      "samples": 13265,
+      "stack": "project,dataset,task,phase",
+      "task_dataset_v": 0.862,
+      "top_leaf": "phase:navigate",
+      "top_leaf_weight": 8628,
+      "unique_delta_from_previous": 46,
+      "unique_stacks": 57,
+      "unique_vs_dataset_depth": 6.3333
+    },
+    {
+      "added_frame": "op",
+      "compression_ratio": 232.719,
+      "depth": 5,
+      "name": "op",
+      "phase_action_boundary_f1": 0.8095,
+      "phase_action_v": 0.7638,
+      "result_dir": "docs/visexp/out/operation-stack-depth-r286/op",
+      "samples": 13265,
+      "stack": "project,dataset,task,phase,op",
+      "task_dataset_v": 0.862,
+      "top_leaf": "op:action",
+      "top_leaf_weight": 11855,
+      "unique_delta_from_previous": 0,
+      "unique_stacks": 57,
+      "unique_vs_dataset_depth": 6.3333
+    },
+    {
+      "added_frame": "tool",
+      "compression_ratio": 58.695,
+      "depth": 6,
+      "name": "tool",
+      "phase_action_boundary_f1": 0.8095,
+      "phase_action_v": 0.7638,
+      "result_dir": "docs/visexp/out/operation-stack-depth-r286/tool",
+      "samples": 13265,
+      "stack": "project,dataset,task,phase,op,tool",
+      "task_dataset_v": 0.862,
+      "top_leaf": "tool:mobile-gui",
+      "top_leaf_weight": 7868,
+      "unique_delta_from_previous": 169,
+      "unique_stacks": 226,
+      "unique_vs_dataset_depth": 25.1111
+    },
+    {
+      "added_frame": "status",
+      "compression_ratio": 58.695,
+      "depth": 7,
+      "name": "semantic",
+      "phase_action_boundary_f1": 0.8095,
+      "phase_action_v": 0.7638,
+      "result_dir": "docs/visexp/out/operation-stack-depth-r286/semantic",
+      "samples": 13265,
+      "stack": "project,dataset,task,phase,op,tool,status",
+      "task_dataset_v": 0.862,
+      "top_leaf": "status:gold",
+      "top_leaf_weight": 10065,
+      "unique_delta_from_previous": 0,
+      "unique_stacks": 226,
+      "unique_vs_dataset_depth": 25.1111
+    },
+    {
+      "added_frame": "status",
+      "compression_ratio": 29.154,
+      "depth": 8,
+      "name": "action",
+      "phase_action_boundary_f1": 0.8095,
+      "phase_action_v": 0.7638,
+      "result_dir": "docs/visexp/out/operation-stack-depth-r286/action",
+      "samples": 13265,
+      "stack": "project,dataset,task,phase,op,tool,action,status",
+      "task_dataset_v": 0.862,
+      "top_leaf": "status:gold",
+      "top_leaf_weight": 10065,
+      "unique_delta_from_previous": 229,
+      "unique_stacks": 455,
+      "unique_vs_dataset_depth": 50.5556
+    },
+    {
+      "added_frame": "status",
+      "compression_ratio": 3.531,
+      "depth": 9,
+      "name": "fixed-session",
+      "phase_action_boundary_f1": 0.8095,
+      "phase_action_v": 0.7638,
+      "result_dir": "docs/visexp/out/operation-stack-depth-r286/fixed-session",
+      "samples": 13265,
+      "stack": "project,dataset,session,task,phase,op,tool,action,status",
+      "task_dataset_v": 0.862,
+      "top_leaf": "status:gold",
+      "top_leaf_weight": 10065,
+      "unique_delta_from_previous": 3302,
+      "unique_stacks": 3757,
+      "unique_vs_dataset_depth": 417.4444
+    }
+  ],
+  "derived_metrics": {
+    "dataset_coverage": {
+      "datasets": 15,
+      "operations": 47590,
+      "top10_operation_share_percent": 97.367,
+      "top5_operation_share_percent": 83.85,
+      "unique_stacks": 1611
+    },
+    "diagnostic_value": {
+      "agentnet_repeat_step_redundant_v": 0.0103,
+      "agentnet_status_step_correct_v": 0.0153,
+      "agentnet_step_label_coverage_percent": 100.0,
+      "agentreward_repeat_looping_v": 0.3777,
+      "agentreward_repeat_vs_step_error_looping_v_ratio": 35.971,
+      "agentreward_step_error_looping_v": 0.0105,
+      "satraj_attack_action_v": 0.0932
+    },
+    "human_group_value": {
+      "action_stack_compression": 12.469,
+      "action_unique_stacks": 482,
+      "exact_group_coverage_percent": 66.739,
+      "group_pattern_human_group_f1": 0.6268,
+      "group_pattern_human_group_precision": 1.0,
+      "group_pattern_human_group_recall": 0.4564,
+      "grouped_stack_compression": 56.698,
+      "grouped_stack_reduction_percent": 78.008,
+      "grouped_unique_stacks": 106,
+      "operations": 6010
+    },
+    "mapping_value": {
+      "boundary_precision": 1.0,
+      "compression_improvement_percent": 35.889,
+      "heldout_operations": 3990,
+      "leaveout_negative_folds": 0,
+      "leaveout_positive_rate_percent": 66.667,
+      "unique_stack_reduction_percent": 26.408
+    },
+    "recursive_foldability": {
+      "action_expansion_vs_dataset": 50.556,
+      "action_unique_stacks": 455,
+      "dataset_unique_stacks": 9,
+      "fixed_session_expansion_vs_dataset": 417.4444,
+      "fixed_session_unique_stacks": 3757,
+      "phase_expansion_vs_dataset": 6.333,
+      "phase_unique_stacks": 57,
+      "same_operations": 13265
+    },
+    "reproducibility_value": {
+      "folded_outputs_identical": true,
+      "operation_import_samples": 6,
+      "profile_spec_override_reduction_percent": 86.349,
+      "profile_spec_override_unique_stacks": 83,
+      "profile_spec_samples": 16741,
+      "profile_spec_unique_stacks": 608,
+      "trace_converted_operations": 6,
+      "trace_import_samples": 6
+    }
+  },
+  "expansion_gates": [
+    {
+      "datasets": [
+        "OSWorld-Human",
+        "AgentNet",
+        "tau-bench"
+      ],
+      "gate": "Non-rule boundary backend",
+      "oracle": "human_group, step_correct/step_redundant, task/action labels",
+      "success_condition": "Improve recall/calibration without losing the high precision seen in R282/R290/R291.",
+      "why": "Would convert C3 from deterministic mapping to a stronger boundary-detection claim."
+    },
+    {
+      "datasets": [
+        "OSWorld-Human",
+        "AgentRewardBench",
+        "SATraj-OS"
+      ],
+      "gate": "User utility task study",
+      "oracle": "debugging-task answer correctness and time",
+      "success_condition": "Operation-stack views outperform flat traces and fixed-session stacks.",
+      "why": "Would support a developer-productivity claim now explicitly excluded by R295/R296."
+    },
+    {
+      "datasets": [
+        "AgentNet full platform shards",
+        "ScaleCUA multi-platform",
+        "VisualWebArena/UI-Vision"
+      ],
+      "gate": "Larger streaming corpus",
+      "oracle": "streaming conversion success, redaction policy, stack-quality summaries",
+      "success_condition": "Keep raw archives out of git while preserving auditable operation summaries.",
+      "why": "Would expand C1 from sampled public trajectories to broader benchmark coverage."
+    }
+  ],
+  "generated_from": {
+    "agentnet_quality": "docs/visexp/out/external-agent-trace-agentnet-r291/agentnet-quality.json",
+    "agentnet_quality_html": "docs/visexp/out/external-agent-trace-agentnet-r291/agentnet-quality.html",
+    "agentnet_stack_html": "docs/visexp/out/external-agent-trace-agentnet-r291/agentnet-stack-analysis.html",
+    "agentreward_quality": "docs/visexp/out/external-agent-trace-agentreward-r288/agentreward-quality.json",
+    "agentreward_quality_html": "docs/visexp/out/external-agent-trace-agentreward-r288/agentreward-quality.html",
+    "agentreward_stack_html": "docs/visexp/out/external-agent-trace-agentreward-r288/agentreward-stack-analysis.html",
+    "claim_synthesis": "docs/visexp/out/paper-claim-synthesis-r295/claim-synthesis.json",
+    "claim_synthesis_md": "docs/visexp/out/paper-claim-synthesis-r295/claim-synthesis.md",
+    "combined14_quality": "docs/visexp/out/external-agent-trace-agentnet-r291/combined-14datasets-quality.json",
+    "combined14_stack_html": "docs/visexp/out/external-agent-trace-agentnet-r291/combined-14datasets-stack-analysis.html",
+    "combined15_quality": "docs/visexp/out/external-agent-trace-scalecua-r292/combined-15datasets-quality.json",
+    "combined15_stack": "docs/visexp/out/external-agent-trace-scalecua-r292/combined-15datasets-stack-analysis.json",
+    "combined15_stack_html": "docs/visexp/out/external-agent-trace-scalecua-r292/combined-15datasets-stack-analysis.html",
+    "depth_html": "docs/visexp/out/operation-stack-depth-r286/depth-summary.html",
+    "depth_json": "docs/visexp/out/operation-stack-depth-r286/depth-summary.json",
+    "heldout_nomap_quality": "docs/visexp/out/operation-map-heldout-r282/quality-nomap.json",
+    "heldout_nomap_stack_html": "docs/visexp/out/operation-map-heldout-r282/stack-analysis-nomap.html",
+    "heldout_quality": "docs/visexp/out/operation-map-heldout-r282/quality.json",
+    "heldout_quality_html": "docs/visexp/out/operation-map-heldout-r282/quality.html",
+    "heldout_stack_html": "docs/visexp/out/operation-map-heldout-r282/stack-analysis.html",
+    "leaveout_html": "docs/visexp/out/operation-map-leaveout-api-r285/leaveout-summary.html",
+    "leaveout_json": "docs/visexp/out/operation-map-leaveout-api-r285/leaveout-summary.json",
+    "operation_import": "docs/visexp/out/agent-trace-exchange-r294/operation-import-result.json",
+    "osworld_action_stack": "docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-stack-analysis.json",
+    "osworld_action_stack_html": "docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-stack-analysis.html",
+    "osworld_grouped_stack": "docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-grouped-stack-analysis.json",
+    "osworld_grouped_stack_html": "docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-grouped-stack-analysis.html",
+    "osworld_quality": "docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-quality.json",
+    "osworld_quality_html": "docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-quality.html",
+    "profile_spec": "docs/visexp/out/profile-spec-r293/agentnet-diagnostic-spec.json",
+    "profile_spec_override": "docs/visexp/out/profile-spec-r293/agentnet-diagnostic-override-result.json",
+    "profile_spec_result": "docs/visexp/out/profile-spec-r293/agentnet-diagnostic-result.json",
+    "satraj_quality": "docs/visexp/out/external-agent-trace-satraj-r289/satraj-quality.json",
+    "satraj_quality_html": "docs/visexp/out/external-agent-trace-satraj-r289/satraj-quality.html",
+    "satraj_stack_html": "docs/visexp/out/external-agent-trace-satraj-r289/satraj-stack-analysis.html",
+    "scalecua_history": "docs/visexp/out/external-agent-trace-scalecua-r292/scalecua-history-analysis.json",
+    "scalecua_history_html": "docs/visexp/out/external-agent-trace-scalecua-r292/scalecua-history-analysis.html",
+    "trace_convert": "docs/visexp/out/agent-trace-exchange-r294/trace-to-operations-result.json",
+    "trace_import": "docs/visexp/out/agent-trace-exchange-r294/trace-import-result.json"
+  },
+  "paper_ready_conclusions": [
+    "The two-object abstraction is sufficient for the tested public trajectories: operations carry all event and label shapes, while operation stacks encode query-time recursive folding.",
+    "The best current novelty claim is configurable semantic profiling over labeled agent trajectories, not a new benchmark and not another fixed flamegraph.",
+    "The strongest value evidence is diagnostic: human-group boundaries, step-quality labels, looping, safety, and attack labels remain ordinary stackable operation fields.",
+    "The current boundary mechanism is intentionally scoped: deterministic label-derived mapping improves aggregation, but unsupervised or LLM-backed boundary discovery remains future work."
+  ],
+  "provenance": {
+    "input_artifact_count": 39,
+    "input_artifacts_git_tracked_and_clean": true
+  },
+  "reviewer_questions": [
+    {
+      "answer": "Yes for the tested scope: heterogeneous public trajectories and a local session trace enter the same operation/operation-stack path.",
+      "auditable_outputs": [
+        "docs/visexp/out/external-agent-trace-scalecua-r292/combined-15datasets-quality.json",
+        "docs/visexp/out/profile-spec-r293/agentnet-diagnostic-result.json",
+        "docs/visexp/out/agent-trace-exchange-r294/trace-import-result.json",
+        "docs/visexp/out/agent-trace-exchange-r294/operation-import-result.json"
+      ],
+      "caveat": "This does not prove full-scale conversion of every public benchmark.",
+      "claim": "C1",
+      "primary_evidence": [
+        "R291/R292 combined quality",
+        "R293 profile-spec replay",
+        "R294 trace exchange",
+        "R295 claim synthesis"
+      ],
+      "question": "Does the profiler avoid prompt/session-specific abstraction?"
+    },
+    {
+      "answer": "Yes. R286 sweeps identical operations across eight stack depths, while R290 folds OSWorld-Human single actions at action or grouped depth.",
+      "auditable_outputs": [
+        "docs/visexp/out/operation-stack-depth-r286/depth-summary.json",
+        "docs/visexp/out/operation-stack-depth-r286/depth-summary.html",
+        "docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-stack-analysis.html",
+        "docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-grouped-stack-analysis.html"
+      ],
+      "caveat": "The current grouped-boundary detector is conservative and incomplete.",
+      "claim": "C2",
+      "primary_evidence": [
+        "R286 recursive depth",
+        "R290 grouped-action oracle"
+      ],
+      "question": "Can one operation sequence be folded at multiple useful depths?"
+    },
+    {
+      "answer": "Partially. R282 improves held-out compression and R285 has zero negative leave-dataset-out folds after operation-family precedence fixes.",
+      "auditable_outputs": [
+        "docs/visexp/out/operation-map-heldout-r282/quality.json",
+        "docs/visexp/out/operation-map-heldout-r282/quality-nomap.json",
+        "docs/visexp/out/operation-map-leaveout-api-r285/leaveout-summary.json"
+      ],
+      "caveat": "This remains label-derived deterministic mapping, not unsupervised discovery.",
+      "claim": "C3",
+      "primary_evidence": [
+        "R282 held-out mapping",
+        "R285 leave-dataset-out"
+      ],
+      "question": "Does mapping/tagging add value beyond pretty printing?"
+    },
+    {
+      "answer": "Yes as a mechanism: AgentRewardBench, SATraj, and AgentNet expose looping, safety, attack, correctness, and redundancy fields as stackable operation fields with negative controls.",
+      "auditable_outputs": [
+        "docs/visexp/out/external-agent-trace-agentreward-r288/agentreward-quality.html",
+        "docs/visexp/out/external-agent-trace-satraj-r289/satraj-quality.html",
+        "docs/visexp/out/external-agent-trace-agentnet-r291/agentnet-quality.html"
+      ],
+      "caveat": "No user study yet proves developer productivity gains.",
+      "claim": "C2",
+      "primary_evidence": [
+        "R288 failure diagnostics",
+        "R289 safety diagnostics",
+        "R291 step-quality diagnostics"
+      ],
+      "question": "Does the profiler solve real diagnostic tasks, not just flamegraphs?"
+    }
+  ],
+  "run_id": "R296",
+  "schema": "agentsight.reviewer-evidence-packet.v1",
+  "source_window": "R282-R295",
+  "unsupported_final_claims": [
+    "The profiler fully discovers latent intent boundaries without labels or rules.",
+    "The profiler improves human developer productivity.",
+    "Every public agent trajectory dataset can be profiled at full scale without additional engineering."
+  ],
+  "visualization_catalog": [
+    {
+      "claim": "C1/C2/C3",
+      "kind": "claim table",
+      "name": "Claim synthesis gate",
+      "output_path": "docs/visexp/out/paper-claim-synthesis-r295/claim-synthesis.md",
+      "primary_path": "docs/visexp/out/paper-claim-synthesis-r295/claim-synthesis.json",
+      "takeaway": "Paper wording is grounded in tracked artifacts and unsupported claims stay explicit."
+    },
+    {
+      "claim": "C1/C2",
+      "kind": "depth sweep",
+      "name": "Recursive stack-depth sweep",
+      "output_path": "docs/visexp/out/operation-stack-depth-r286/depth-summary.html",
+      "primary_path": "docs/visexp/out/operation-stack-depth-r286/depth-summary.json",
+      "takeaway": "The same operations fold from dataset to phase/action/fixed-session depths."
+    },
+    {
+      "claim": "C2/C3",
+      "kind": "quality report",
+      "name": "Held-out mapping quality",
+      "output_path": "docs/visexp/out/operation-map-heldout-r282/quality.html",
+      "primary_path": "docs/visexp/out/operation-map-heldout-r282/quality.json",
+      "takeaway": "Label-derived mappings improve held-out aggregation against no-map baseline."
+    },
+    {
+      "claim": "C3",
+      "kind": "cross-dataset ablation",
+      "name": "Leave-dataset-out mapping",
+      "output_path": "docs/visexp/out/operation-map-leaveout-api-r285/leaveout-summary.html",
+      "primary_path": "docs/visexp/out/operation-map-leaveout-api-r285/leaveout-summary.json",
+      "takeaway": "Operation-family precedence removes negative leave-out stack-reduction folds."
+    },
+    {
+      "claim": "C2",
+      "kind": "stack tree and transitions",
+      "name": "OSWorld-Human action-depth stack",
+      "output_path": "docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-stack-analysis.html",
+      "primary_path": "docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-stack-analysis.json",
+      "takeaway": "Desktop single-action trajectories profile through the same operation-stack path."
+    },
+    {
+      "claim": "C2",
+      "kind": "human-boundary stack tree",
+      "name": "OSWorld-Human grouped-depth stack",
+      "output_path": "docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-grouped-stack-analysis.html",
+      "primary_path": "docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-grouped-stack-analysis.json",
+      "takeaway": "Validated human grouped-action fields fold the same sequence at coarser depth."
+    },
+    {
+      "claim": "C1/C2",
+      "kind": "quality and coverage report",
+      "name": "AgentNet step-quality report",
+      "output_path": "docs/visexp/out/external-agent-trace-agentnet-r291/agentnet-quality.html",
+      "primary_path": "docs/visexp/out/external-agent-trace-agentnet-r291/agentnet-quality.json",
+      "takeaway": "Step correctness and redundancy are ordinary operation fields with full coverage."
+    },
+    {
+      "claim": "C2",
+      "kind": "failure-quality report",
+      "name": "AgentRewardBench failure diagnostics",
+      "output_path": "docs/visexp/out/external-agent-trace-agentreward-r288/agentreward-quality.html",
+      "primary_path": "docs/visexp/out/external-agent-trace-agentreward-r288/agentreward-quality.json",
+      "takeaway": "Looping labels expose sequence diagnostics beyond per-step error labels."
+    },
+    {
+      "claim": "C2",
+      "kind": "safety-quality report",
+      "name": "SATraj safety diagnostics",
+      "output_path": "docs/visexp/out/external-agent-trace-satraj-r289/satraj-quality.html",
+      "primary_path": "docs/visexp/out/external-agent-trace-satraj-r289/satraj-quality.json",
+      "takeaway": "Safety and attack labels are diagnostic operation fields, not phase proxies."
+    },
+    {
+      "claim": "C1/C2",
+      "kind": "history-depth report",
+      "name": "ScaleCUA history-depth analysis",
+      "output_path": "docs/visexp/out/external-agent-trace-scalecua-r292/scalecua-history-analysis.html",
+      "primary_path": "docs/visexp/out/external-agent-trace-scalecua-r292/scalecua-history-analysis.json",
+      "takeaway": "Previous-operation context can be represented as stackable operation fields."
+    },
+    {
+      "claim": "C1/C2",
+      "kind": "stack tree and transitions",
+      "name": "Fifteen-dataset combined stack analysis",
+      "output_path": "docs/visexp/out/external-agent-trace-scalecua-r292/combined-15datasets-stack-analysis.html",
+      "primary_path": "docs/visexp/out/external-agent-trace-scalecua-r292/combined-15datasets-stack-analysis.json",
+      "takeaway": "The same profiler path spans web, desktop, mobile, API, dialogue, safety, and quality traces."
+    }
+  ]
+}

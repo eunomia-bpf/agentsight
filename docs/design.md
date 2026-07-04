@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-04
 Stage at update: stage 5 analyze / stage 6 claim gate / stage 9 paper integration
-Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agent-session`, `script/agent_trace_to_operations.py`, `script/paper_claim_synthesis.py`, `docs/evaluation.md`, `agentpprof --profile-spec`
+Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agent-session`, `script/agent_trace_to_operations.py`, `script/paper_claim_synthesis.py`, `script/reviewer_evidence_packet.py`, `docs/evaluation.md`, `agentpprof --profile-spec`
 Completeness: partial
 
 ## Current State And Blocking Gate
@@ -22,7 +22,9 @@ tracked artifacts into claim verdicts: C1 is supported, C2 is supported with
 scoped limits, and C3 is partial because current boundary evidence is
 deterministic mapping/tagging rather than unsupervised discovery. The remaining
 paper-grade gaps are stronger boundary detection beyond deterministic rules and
-user-facing utility evidence.
+user-facing utility evidence. R296 adds a reviewer evidence packet over
+tracked/clean R282-R295 artifacts; it is a navigation layer over operation and
+operation-stack outputs, not a new profiler abstraction.
 
 ## System-Under-Test Model
 
@@ -197,5 +199,5 @@ Purpose: keep open risks tied to experiments.
 | Action labels are too shallow as boundary oracles. | Add step-instruction, solution-path, outcome, side-effect, looping, repetition, safety/attack, grouped-action, step-quality, and failure-label scorers. | R287 adds tau-bench outcomes and expected task actions; R288 adds AgentRewardBench expert success, side-effect, looping, optimality, and action-derived `repeat_signal` fields; R289 adds SATraj safety and attack labels; R290 adds OSWorld-Human grouped-action boundary labels; R291 adds AgentNet step correctness and redundancy labels. AndroidControl and TRAIL remain deeper oracle candidates. |
 | Profile experiments remain ad hoc shell commands. | Bundle reproducible operation-file, op-map, view, stack, and output choices in profile specs while preserving CLI overrides. | R293 adds an AgentNet profile spec that reproduces the R291 608-stack diagnostic profile and folds the same operations into an 83-stack override view. |
 | Local agent sessions are hard to exchange or replay outside native logs. | Export parsed sessions as `agentsight.agent-session.trace.v1`, import them through `--trace-file`, and convert them to operation JSONL. | R294 public Codex fixture smoke shows direct trace import and converted operation-file import produce identical folded stacks. |
-| Paper claims drift away from tracked artifact evidence. | Mechanically synthesize claim verdicts from tracked result JSON/folded artifacts and keep unsupported claims explicit. | R295 reads R282-R294 artifacts and emits supported/partial verdicts plus unsupported final claims under `docs/visexp/out/paper-claim-synthesis-r295/`. |
-| Visualizations collapse back to flamegraphs only. | Generate tree, transition, top-field, quality, grouped-stack, history-depth, and depth-sweep HTML/JSON reports. | R273-R294 include non-flamegraph analyses, reproducible profile specs, and trace-exchange smoke tests. |
+| Paper claims drift away from tracked artifact evidence. | Mechanically synthesize claim verdicts from tracked result JSON/folded artifacts and keep unsupported claims explicit. | R295 reads R282-R294 artifacts and emits supported/partial verdicts plus unsupported final claims under `docs/visexp/out/paper-claim-synthesis-r295/`; R296 indexes those verdicts with reviewer questions, derived ratios, and source paths. |
+| Visualizations collapse back to flamegraphs only. | Generate tree, transition, top-field, quality, grouped-stack, history-depth, depth-sweep, and reviewer-navigation HTML/JSON reports. | R273-R296 include non-flamegraph analyses, reproducible profile specs, trace-exchange smoke tests, and an 11-entry evidence packet under `docs/visexp/out/reviewer-evidence-packet-r296/`. |

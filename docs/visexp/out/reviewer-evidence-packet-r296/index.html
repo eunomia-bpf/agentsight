@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>R296 Reviewer Evidence Packet</title>
+<style>
+body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;margin:0;background:#f7f8fb;color:#171717}
+header{background:#ffffff;border-bottom:1px solid #d9dde7;padding:24px 32px}
+main{padding:24px 32px;max-width:1180px;margin:0 auto}
+h1{font-size:26px;margin:0 0 8px}
+h2{font-size:18px;margin:28px 0 12px}
+.meta{color:#555;font-size:14px}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:18px 0}
+.card{background:white;border:1px solid #d9dde7;border-radius:6px;padding:14px}
+.card .value{font-size:24px;font-weight:700;margin:4px 0}
+.card .label{font-size:12px;color:#555}
+table{border-collapse:collapse;width:100%;background:white;border:1px solid #d9dde7}
+th,td{padding:8px 10px;border-bottom:1px solid #edf0f5;text-align:left;vertical-align:top;font-size:13px}
+th{background:#eef2f7;font-weight:650}
+.claim{font-weight:700;white-space:nowrap}
+.pill{display:inline-block;border:1px solid #c6d4ea;border-radius:999px;padding:2px 8px;margin:2px;background:#eef5ff;font-size:12px}
+.risk{color:#8a3c00}
+a{color:#174ea6;text-decoration:none}
+a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<header>
+<h1>R296 Reviewer Evidence Packet</h1>
+<div class="meta">Generated from tracked R282-R295 artifacts. Navigation layer only; no new dataset run.</div>
+</header>
+<main>
+<div class="cards">
+<div class='card'><div class='label'>Datasets</div><div class='value'>15</div><div class='label'>47590 operations</div></div><div class='card'><div class='label'>Recursive Depth</div><div class='value'>9 -&gt; 3757</div><div class='label'>dataset to fixed-session stacks</div></div><div class='card'><div class='label'>Mapping Reduction</div><div class='value'>26.408%</div><div class='label'>held-out unique-stack reduction</div></div><div class='card'><div class='label'>Human Groups</div><div class='value'>0.6268</div><div class='label'>OSWorld boundary F1</div></div><div class='card'><div class='label'>Spec Override</div><div class='value'>86.349%</div><div class='label'>fewer AgentNet stacks</div></div>
+</div>
+<h2>Claim Verdicts</h2>
+<table><tr><th>Claim</th><th>Verdict</th><th>Wording</th><th>Not Supported</th></tr>
+<tr><td class='claim'>C1</td><td>supported</td><td>The semantic profiler can represent heterogeneous public agent trajectories and local agent sessions as operations, then profile them through user-selected operation stacks without hard-coding prompt/session boundaries.</td><td>complete conversion of every public agent benchmark, raw image/video archive profiling</td></tr>
+<tr><td class='claim'>C2</td><td>supported with scoped limits</td><td>Recursive operation stacks recover useful task, phase, action, human-group, safety, and quality-label views, and expose when a coarse field is not a valid proxy for a finer oracle.</td><td>perfect intent recovery, single universal stack depth, quality prediction from task outcome alone</td></tr>
+<tr><td class='claim'>C3</td><td>partial</td><td>Label-derived deterministic mappings improve semantic aggregation on held-out sessions and leave-dataset-out folds; they should be presented as reproducible mapping/tagging, not as unsupervised boundary discovery.</td><td>fully unsupervised boundary detection, LLM-backed or model-backed boundary inference</td></tr>
+</table>
+<h2>Reviewer Questions</h2>
+<table><tr><th>Question</th><th>Answer</th><th>Evidence</th><th>Caveat</th></tr>
+<tr><td>Does the profiler avoid prompt/session-specific abstraction?</td><td>Yes for the tested scope: heterogeneous public trajectories and a local session trace enter the same operation/operation-stack path.</td><td><span class='pill'>R291/R292 combined quality</span> <span class='pill'>R293 profile-spec replay</span> <span class='pill'>R294 trace exchange</span> <span class='pill'>R295 claim synthesis</span></td><td class='risk'>This does not prove full-scale conversion of every public benchmark.</td></tr>
+<tr><td>Can one operation sequence be folded at multiple useful depths?</td><td>Yes. R286 sweeps identical operations across eight stack depths, while R290 folds OSWorld-Human single actions at action or grouped depth.</td><td><span class='pill'>R286 recursive depth</span> <span class='pill'>R290 grouped-action oracle</span></td><td class='risk'>The current grouped-boundary detector is conservative and incomplete.</td></tr>
+<tr><td>Does mapping/tagging add value beyond pretty printing?</td><td>Partially. R282 improves held-out compression and R285 has zero negative leave-dataset-out folds after operation-family precedence fixes.</td><td><span class='pill'>R282 held-out mapping</span> <span class='pill'>R285 leave-dataset-out</span></td><td class='risk'>This remains label-derived deterministic mapping, not unsupervised discovery.</td></tr>
+<tr><td>Does the profiler solve real diagnostic tasks, not just flamegraphs?</td><td>Yes as a mechanism: AgentRewardBench, SATraj, and AgentNet expose looping, safety, attack, correctness, and redundancy fields as stackable operation fields with negative controls.</td><td><span class='pill'>R288 failure diagnostics</span> <span class='pill'>R289 safety diagnostics</span> <span class='pill'>R291 step-quality diagnostics</span></td><td class='risk'>No user study yet proves developer productivity gains.</td></tr>
+</table>
+<h2>Visualization Catalog</h2>
+<table><tr><th>View</th><th>Kind</th><th>Claim</th><th>Output</th><th>Takeaway</th></tr>
+<tr><td>Claim synthesis gate</td><td>claim table</td><td>C1/C2/C3</td><td><a href='../paper-claim-synthesis-r295/claim-synthesis.md'>docs/visexp/out/paper-claim-synthesis-r295/claim-synthesis.md</a></td><td>Paper wording is grounded in tracked artifacts and unsupported claims stay explicit.</td></tr>
+<tr><td>Recursive stack-depth sweep</td><td>depth sweep</td><td>C1/C2</td><td><a href='../operation-stack-depth-r286/depth-summary.html'>docs/visexp/out/operation-stack-depth-r286/depth-summary.html</a></td><td>The same operations fold from dataset to phase/action/fixed-session depths.</td></tr>
+<tr><td>Held-out mapping quality</td><td>quality report</td><td>C2/C3</td><td><a href='../operation-map-heldout-r282/quality.html'>docs/visexp/out/operation-map-heldout-r282/quality.html</a></td><td>Label-derived mappings improve held-out aggregation against no-map baseline.</td></tr>
+<tr><td>Leave-dataset-out mapping</td><td>cross-dataset ablation</td><td>C3</td><td><a href='../operation-map-leaveout-api-r285/leaveout-summary.html'>docs/visexp/out/operation-map-leaveout-api-r285/leaveout-summary.html</a></td><td>Operation-family precedence removes negative leave-out stack-reduction folds.</td></tr>
+<tr><td>OSWorld-Human action-depth stack</td><td>stack tree and transitions</td><td>C2</td><td><a href='../external-agent-trace-osworldhuman-r290/osworld-human-stack-analysis.html'>docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-stack-analysis.html</a></td><td>Desktop single-action trajectories profile through the same operation-stack path.</td></tr>
+<tr><td>OSWorld-Human grouped-depth stack</td><td>human-boundary stack tree</td><td>C2</td><td><a href='../external-agent-trace-osworldhuman-r290/osworld-human-grouped-stack-analysis.html'>docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-grouped-stack-analysis.html</a></td><td>Validated human grouped-action fields fold the same sequence at coarser depth.</td></tr>
+<tr><td>AgentNet step-quality report</td><td>quality and coverage report</td><td>C1/C2</td><td><a href='../external-agent-trace-agentnet-r291/agentnet-quality.html'>docs/visexp/out/external-agent-trace-agentnet-r291/agentnet-quality.html</a></td><td>Step correctness and redundancy are ordinary operation fields with full coverage.</td></tr>
+<tr><td>AgentRewardBench failure diagnostics</td><td>failure-quality report</td><td>C2</td><td><a href='../external-agent-trace-agentreward-r288/agentreward-quality.html'>docs/visexp/out/external-agent-trace-agentreward-r288/agentreward-quality.html</a></td><td>Looping labels expose sequence diagnostics beyond per-step error labels.</td></tr>
+<tr><td>SATraj safety diagnostics</td><td>safety-quality report</td><td>C2</td><td><a href='../external-agent-trace-satraj-r289/satraj-quality.html'>docs/visexp/out/external-agent-trace-satraj-r289/satraj-quality.html</a></td><td>Safety and attack labels are diagnostic operation fields, not phase proxies.</td></tr>
+<tr><td>ScaleCUA history-depth analysis</td><td>history-depth report</td><td>C1/C2</td><td><a href='../external-agent-trace-scalecua-r292/scalecua-history-analysis.html'>docs/visexp/out/external-agent-trace-scalecua-r292/scalecua-history-analysis.html</a></td><td>Previous-operation context can be represented as stackable operation fields.</td></tr>
+<tr><td>Fifteen-dataset combined stack analysis</td><td>stack tree and transitions</td><td>C1/C2</td><td><a href='../external-agent-trace-scalecua-r292/combined-15datasets-stack-analysis.html'>docs/visexp/out/external-agent-trace-scalecua-r292/combined-15datasets-stack-analysis.html</a></td><td>The same profiler path spans web, desktop, mobile, API, dialogue, safety, and quality traces.</td></tr>
+</table>
+<h2>Expansion Gates</h2>
+<table><tr><th>Gate</th><th>Why</th><th>Datasets</th><th>Success Condition</th></tr>
+<tr><td>Non-rule boundary backend</td><td>Would convert C3 from deterministic mapping to a stronger boundary-detection claim.</td><td>OSWorld-Human, AgentNet, tau-bench</td><td>Improve recall/calibration without losing the high precision seen in R282/R290/R291.</td></tr>
+<tr><td>User utility task study</td><td>Would support a developer-productivity claim now explicitly excluded by R295/R296.</td><td>OSWorld-Human, AgentRewardBench, SATraj-OS</td><td>Operation-stack views outperform flat traces and fixed-session stacks.</td></tr>
+<tr><td>Larger streaming corpus</td><td>Would expand C1 from sampled public trajectories to broader benchmark coverage.</td><td>AgentNet full platform shards, ScaleCUA multi-platform, VisualWebArena/UI-Vision</td><td>Keep raw archives out of git while preserving auditable operation summaries.</td></tr>
+</table>
+<h2>Unsupported Final Claims</h2>
+<ul><li class="risk">The profiler fully discovers latent intent boundaries without labels or rules.</li><li class="risk">The profiler improves human developer productivity.</li><li class="risk">Every public agent trajectory dataset can be profiled at full scale without additional engineering.</li></ul>
+</main>
+</body>
+</html>
