@@ -426,6 +426,26 @@ pub fn build_profile_from_operation_files(
     Ok(build_profile_from_operations(&operations, view, options))
 }
 
+pub fn build_profile_from_operation_records(
+    records: &[Value],
+    view: ProfileView,
+    options: &OperationStackConfig,
+) -> Result<Profile> {
+    let mut operations = Vec::new();
+    for (index, record) in records.iter().enumerate() {
+        let record: OperationRecord = serde_json::from_value(record.clone()).map_err(|error| {
+            anyhow::anyhow!("invalid imported operation record {}: {error}", index + 1)
+        })?;
+        operations.push(operation_from_record(record).map_err(|error| {
+            anyhow::anyhow!("invalid imported operation fields {}: {error}", index + 1)
+        })?);
+    }
+    if operations.is_empty() {
+        bail!("operation input produced no samples");
+    }
+    Ok(build_profile_from_operations(&operations, view, options))
+}
+
 fn build_profile_from_operations(
     operations: &[Operation],
     view: ProfileView,

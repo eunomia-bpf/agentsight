@@ -208,9 +208,20 @@ python3 script/operation_map_infer.py \
 
 ## Standard Trace Exchange
 
-Local Codex/Claude sessions can be exported as an `agent-session` trace and
-then bridged through Chrome Trace Event JSON when another tool wants a standard
-trace container:
+Local Codex/Claude sessions can be exported directly as Chrome Trace Event JSON
+when another tool wants a standard trace container:
+
+```bash
+agentpprof --session-file agentpprof/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl \
+  --export-standard-trace fixture-chrome-trace.json
+
+agentpprof --standard-trace-file fixture-chrome-trace.json --view operations \
+  --stack 'project,agent,op,phase,tool,status' \
+  -o fixture.folded --format folded
+```
+
+Use the scripts when a workflow needs explicit intermediate files in AgentSight
+operation JSONL:
 
 ```bash
 agentpprof --session-file agentpprof/examples/codex/sessions/2026/06/18/public-agentpprof-fixture.jsonl \

@@ -1,5 +1,6 @@
 mod profile;
 mod session;
+mod standard_trace;
 mod tagger;
 
 use anyhow::{Context, Result, bail};
@@ -13,8 +14,9 @@ use std::time::Duration;
 
 use profile::{
     OperationStackConfig, OutputFormat, ProfileView, build_profile_from_operation_files,
-    build_profile_with_options, infer_output_format, parse_stack_rules,
-    parse_stack_rules_with_flag, parse_stack_spec, profile_to_stacks, write_projection,
+    build_profile_from_operation_records, build_profile_with_options, infer_output_format,
+    parse_stack_rules, parse_stack_rules_with_flag, parse_stack_spec, profile_to_stacks,
+    write_projection,
 };
 use session::{
     SessionRecord, default_claude_root, discover_agent_sessions, load_agent_trace_files,
@@ -123,13 +125,23 @@ struct Cli {
     /// Read portable agent-session trace JSON instead of local Codex/Claude discovery.
     #[arg(long = "trace-file", value_name = "PATH")]
     trace_files: Vec<PathBuf>,
+    /// Read Chrome/Perfetto Trace Event JSON as imported operations.
+    #[arg(long = "standard-trace-file", value_name = "PATH")]
+    standard_trace_files: Vec<PathBuf>,
     /// Export matched local sessions as portable agent-session trace JSON.
     /// If no -o/--output is provided, export the trace and exit.
     #[arg(long = "export-trace", value_name = "PATH")]
     export_trace: Option<PathBuf>,
+    /// Export matched local sessions as Chrome/Perfetto Trace Event JSON.
+    /// If no -o/--output is provided, export the trace and exit.
+    #[arg(long = "export-standard-trace", value_name = "PATH")]
+    export_standard_trace: Option<PathBuf>,
     /// Read already-normalized operation JSONL instead of local Codex/Claude sessions.
     #[arg(long = "operation-file")]
     operation_files: Vec<PathBuf>,
+    /// Copy non-AgentSight Chrome trace args into imported operation fields.
+    #[arg(long = "include-standard-trace-args")]
+    include_standard_trace_args: bool,
     #[arg(long)]
     session_id: Option<String>,
     #[arg(long)]
@@ -247,9 +259,9 @@ fn main() -> Result<()> {
 fn command_export(args: Cli) -> Result<()> {
     let spec = load_profile_specs(&args.profile_specs)?;
     let output = args.output.clone().or_else(|| spec.output.clone());
-    if output.is_none() && args.export_trace.is_none() {
+    if output.is_none() && args.export_trace.is_none() && args.export_standard_trace.is_none() {
         bail!(
-            "missing output path; pass -o/--output, set output in --profile-spec, or use --export-trace"
+            "missing output path; pass -o/--output, set output in --profile-spec, --export-trace, or --export-standard-trace"
         );
     }
     let requested_format = args
@@ -291,6 +303,52 @@ fn command_export(args: Cli) -> Result<()> {
         .with_rules(parse_stack_rules(&stack_rules)?);
     let operation_files = merge_spec_first(&spec.operation_files, &args.operation_files);
     validate_input_modes(&args, &operation_files)?;
+    if !args.standard_trace_files.is_empty() {
+        let output = output
+            .as_ref()
+            .context("missing output path; pass -o/--output or set output in --profile-spec")?;
+        let format = infer_output_format(requested_format.into(), output);
+        let operation_records = standard_trace::operation_records_from_chrome_trace_files(
+            &args.standard_trace_files,
+            &project_name,
+            args.include_standard_trace_args,
+        )?;
+        let profile =
+            build_profile_from_operation_records(&operation_records, view, &profile_options)?;
+        let stacks = profile_to_stacks(&profile);
+        if stacks.is_empty() {
+            bail!("standard trace input produced no folded stacks");
+        }
+        write_projection(
+            &profile,
+            format,
+            output,
+            args.include_previews,
+            &[],
+            args.svg_width,
+        )?;
+        let result = json!({
+            "status": "ok",
+            "output": output,
+            "format": format!("{:?}", format).to_ascii_lowercase(),
+            "view": profile.view,
+            "sample_type": profile.sample_type,
+            "unit": profile.unit,
+            "profile_specs": args.profile_specs,
+            "stack": stack.unwrap_or("default"),
+            "op_maps": op_maps,
+            "op_map_files": op_map_files,
+            "stack_rules": stack_rules,
+            "standard_trace_files": args.standard_trace_files,
+            "standard_trace_format": standard_trace::CHROME_TRACE_FORMAT,
+            "operations": operation_records.len(),
+            "samples": stacks.values().sum::<u64>(),
+            "unique_stacks": stacks.len(),
+            "warnings": [],
+        });
+        println!("{}", serde_json::to_string_pretty(&result)?);
+        return Ok(());
+    }
     if !operation_files.is_empty() {
         let output = output
             .as_ref()
@@ -360,18 +418,40 @@ fn command_export(args: Cli) -> Result<()> {
     }
     if let Some(trace_path) = args.export_trace.as_ref() {
         write_agent_trace(trace_path, &agent_sessions)?;
-        if output.is_none() {
-            let result = json!({
-                "status": "ok",
-                "trace_output": trace_path,
-                "trace_schema": agent_session::AGENT_TRACE_SCHEMA,
-                "sessions": agent_sessions.len(),
-                "trace_files": args.trace_files,
-                "warnings": [],
-            });
-            println!("{}", serde_json::to_string_pretty(&result)?);
-            return Ok(());
-        }
+    }
+    let standard_trace_events = if let Some(trace_path) = args.export_standard_trace.as_ref() {
+        let export_sessions = session_records_from_agent_sessions(&agent_sessions);
+        Some(standard_trace::write_chrome_trace(
+            trace_path,
+            &export_sessions,
+            &project_name,
+            args.include_previews,
+        )?)
+    } else {
+        None
+    };
+    if output.is_none() {
+        let result = json!({
+            "status": "ok",
+            "trace_output": args.export_trace,
+            "trace_schema": if args.export_trace.is_some() {
+                Some(agent_session::AGENT_TRACE_SCHEMA)
+            } else {
+                None
+            },
+            "standard_trace_output": args.export_standard_trace,
+            "standard_trace_format": if args.export_standard_trace.is_some() {
+                Some(standard_trace::CHROME_TRACE_FORMAT)
+            } else {
+                None
+            },
+            "standard_trace_events": standard_trace_events,
+            "sessions": agent_sessions.len(),
+            "trace_files": args.trace_files,
+            "warnings": [],
+        });
+        println!("{}", serde_json::to_string_pretty(&result)?);
+        return Ok(());
     }
     let mut sessions = session_records_from_agent_sessions(&agent_sessions);
     filter_sessions_before_tagging(&mut sessions, &args);
@@ -414,6 +494,13 @@ fn command_export(args: Cli) -> Result<()> {
         "profile_specs": args.profile_specs,
         "trace_files": args.trace_files,
         "trace_output": args.export_trace,
+        "standard_trace_output": args.export_standard_trace,
+        "standard_trace_format": if args.export_standard_trace.is_some() {
+            Some(standard_trace::CHROME_TRACE_FORMAT)
+        } else {
+            None
+        },
+        "standard_trace_events": standard_trace_events,
         "stack": stack.unwrap_or("default"),
         "op_maps": op_maps,
         "op_map_files": op_map_files,
@@ -502,12 +589,25 @@ fn validate_input_modes(args: &Cli, operation_files: &[PathBuf]) -> Result<()> {
     if !operation_files.is_empty() && !args.trace_files.is_empty() {
         bail!("--trace-file cannot be used with --operation-file");
     }
-    if args.export_trace.is_some() {
+    if !args.standard_trace_files.is_empty() {
         if !operation_files.is_empty() {
-            bail!("--export-trace cannot be used with --operation-file");
+            bail!("--standard-trace-file cannot be used with --operation-file");
+        }
+        if !args.trace_files.is_empty() {
+            bail!("--standard-trace-file cannot be used with --trace-file");
+        }
+        if args.export_trace.is_some() || args.export_standard_trace.is_some() {
+            bail!(
+                "--standard-trace-file cannot be used with --export-trace or --export-standard-trace"
+            );
+        }
+    }
+    if args.export_trace.is_some() || args.export_standard_trace.is_some() {
+        if !operation_files.is_empty() {
+            bail!("trace export cannot be used with --operation-file");
         }
         if args.session_tag.is_some() || args.prompt_tag.is_some() {
-            bail!("--export-trace cannot be combined with --session-tag or --prompt-tag");
+            bail!("trace export cannot be combined with --session-tag or --prompt-tag");
         }
     }
     Ok(())
@@ -838,6 +938,38 @@ mod tests {
     }
 
     #[test]
+    fn standard_trace_file_and_operation_file_are_mutually_exclusive() {
+        let args = Cli::parse_from([
+            "agentpprof",
+            "--standard-trace-file",
+            "trace.json",
+            "--operation-file",
+            "operations.jsonl",
+            "-o",
+            "out.folded",
+        ]);
+        let err = command_export(args).unwrap_err().to_string();
+
+        assert!(err.contains("--standard-trace-file cannot be used with --operation-file"));
+    }
+
+    #[test]
+    fn standard_trace_file_and_trace_file_are_mutually_exclusive() {
+        let args = Cli::parse_from([
+            "agentpprof",
+            "--standard-trace-file",
+            "standard-trace.json",
+            "--trace-file",
+            "agent-trace.json",
+            "-o",
+            "out.folded",
+        ]);
+        let err = command_export(args).unwrap_err().to_string();
+
+        assert!(err.contains("--standard-trace-file cannot be used with --trace-file"));
+    }
+
+    #[test]
     fn export_trace_rejects_tag_filters() {
         let args = Cli::parse_from([
             "agentpprof",
@@ -850,7 +982,23 @@ mod tests {
         ]);
         let err = command_export(args).unwrap_err().to_string();
 
-        assert!(err.contains("--export-trace cannot be combined with --session-tag"));
+        assert!(err.contains("trace export cannot be combined with --session-tag"));
+    }
+
+    #[test]
+    fn export_standard_trace_rejects_tag_filters() {
+        let args = Cli::parse_from([
+            "agentpprof",
+            "--session-file",
+            "missing.jsonl",
+            "--export-standard-trace",
+            "trace.json",
+            "--prompt-tag",
+            "review",
+        ]);
+        let err = command_export(args).unwrap_err().to_string();
+
+        assert!(err.contains("trace export cannot be combined with --session-tag"));
     }
 
     #[test]
