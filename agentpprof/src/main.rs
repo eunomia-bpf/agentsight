@@ -13,10 +13,11 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use profile::{
-    OperationStackConfig, OutputFormat, ProfileView, build_profile_from_operation_files,
-    build_profile_from_operation_records, build_profile_with_options, infer_output_format,
-    parse_operation_filters, parse_stack_rank_rules, parse_stack_rules,
-    parse_stack_rules_with_flag, parse_stack_spec, profile_to_stacks, write_projection,
+    OperationStackConfig, OutputFormat, ProfileView, StackRankMode,
+    build_profile_from_operation_files, build_profile_from_operation_records,
+    build_profile_with_options, infer_output_format, parse_operation_filters,
+    parse_stack_rank_rules, parse_stack_rules, parse_stack_rules_with_flag, parse_stack_spec,
+    profile_to_stacks, write_projection,
 };
 use session::{
     SessionRecord, default_claude_root, discover_agent_sessions, load_agent_trace_files,
@@ -57,7 +58,7 @@ OPERATION STACK WORKFLOW:
   fields recursively fold. Use
   --op-map-file to load reusable mappings, and --stack-rule for one-off
   stack-frame overrides. JSON output can also include visible stack-ranking
-  rules with --rank-rule.
+  rules with --rank-rule and --rank-mode.
 
      agentpprof --view files -o files.json --format json \
        --stack 'project,agent,task,phase,op,tool,path,status' \
@@ -65,6 +66,7 @@ OPERATION STACK WORKFLOW:
        --op-map 'task:verify=(effect=test|cmd=cargo)' \
        --op-map 'phase:inspect=(effect=read)' \
        --where 'task=verify' \
+       --rank-mode rule-score \
        --rank-rule 'verify-risk:2=phase:execute|status:error'
 
   For repeatable external-trace experiments, put output, view, operation files,
@@ -114,6 +116,9 @@ struct Cli {
     /// Ranking runs after operation stacking and never reads hidden labels unless the stack includes them.
     #[arg(long = "rank-rule", value_name = "LABEL:WEIGHT=REGEX")]
     rank_rules: Vec<String>,
+    /// Choose how JSON rank rules order stack groups.
+    #[arg(long = "rank-mode", value_enum)]
+    rank_mode: Option<CliRankMode>,
     /// Read operation-field mapping rules from a file. Blank lines and lines starting with '#' are ignored.
     /// Inline --op-map rules run before file rules, so command-line rules can override defaults.
     #[arg(long = "op-map-file", value_name = "PATH")]
@@ -215,6 +220,21 @@ enum CliProfileView {
     Time,
 }
 
+#[derive(Clone, Copy, Debug, ValueEnum, PartialEq, Eq)]
+enum CliRankMode {
+    WidthBoost,
+    RuleScore,
+}
+
+impl From<CliRankMode> for StackRankMode {
+    fn from(val: CliRankMode) -> Self {
+        match val {
+            CliRankMode::WidthBoost => StackRankMode::WidthBoost,
+            CliRankMode::RuleScore => StackRankMode::RuleScore,
+        }
+    }
+}
+
 impl From<CliProfileView> for ProfileView {
     fn from(val: CliProfileView) -> Self {
         match val {
@@ -244,6 +264,7 @@ struct ProfileSpec {
     op_maps: Vec<String>,
     where_rules: Vec<String>,
     rank_rules: Vec<String>,
+    rank_mode: Option<CliRankMode>,
     op_map_files: Vec<PathBuf>,
     operation_files: Vec<PathBuf>,
 }
@@ -263,6 +284,7 @@ struct RawProfileSpec {
     where_rules: Vec<String>,
     #[serde(default)]
     rank_rules: Vec<String>,
+    rank_mode: Option<String>,
     #[serde(default)]
     op_map_files: Vec<PathBuf>,
     #[serde(default)]
@@ -318,11 +340,16 @@ fn command_export(args: Cli) -> Result<()> {
     let stack_rules = merge_cli_first(&args.stack_rules, &spec.stack_rules);
     let where_rules = effective_where_rules(&args.where_rules, &spec.where_rules);
     let rank_rules = merge_cli_first(&args.rank_rules, &spec.rank_rules);
+    let rank_mode = args
+        .rank_mode
+        .or(spec.rank_mode)
+        .unwrap_or(CliRankMode::WidthBoost);
     profile_options = profile_options
         .with_field_rules(parse_stack_rules_with_flag(&op_maps, "--op-map")?)
         .with_filters(parse_operation_filters(&where_rules)?)
         .with_rules(parse_stack_rules(&stack_rules)?)
-        .with_rank_rules(parse_stack_rank_rules(&rank_rules)?);
+        .with_rank_rules(parse_stack_rank_rules(&rank_rules)?)
+        .with_rank_mode(rank_mode.into());
     let operation_files = merge_spec_first(&spec.operation_files, &args.operation_files);
     validate_input_modes(&args, &operation_files)?;
     if !args.standard_trace_files.is_empty() {
@@ -362,6 +389,7 @@ fn command_export(args: Cli) -> Result<()> {
             "op_map_files": op_map_files,
             "where_rules": where_rules,
             "rank_rules": rank_rules,
+            "rank_mode": cli_rank_mode_name(rank_mode),
             "stack_rules": stack_rules,
             "standard_trace_files": args.standard_trace_files,
             "standard_trace_format": standard_trace::CHROME_TRACE_FORMAT,
@@ -404,6 +432,7 @@ fn command_export(args: Cli) -> Result<()> {
             "op_map_files": op_map_files,
             "where_rules": where_rules,
             "rank_rules": rank_rules,
+            "rank_mode": cli_rank_mode_name(rank_mode),
             "stack_rules": stack_rules,
             "operation_files": operation_files,
             "samples": stacks.values().sum::<u64>(),
@@ -532,6 +561,7 @@ fn command_export(args: Cli) -> Result<()> {
         "op_map_files": op_map_files,
         "where_rules": where_rules,
         "rank_rules": rank_rules,
+        "rank_mode": cli_rank_mode_name(rank_mode),
         "stack_rules": stack_rules,
         "sessions": sessions.len(),
         "samples": stacks.values().sum::<u64>(),
@@ -679,6 +709,11 @@ fn normalize_profile_spec(raw: RawProfileSpec, base: &Path) -> Result<ProfileSpe
         op_maps: raw.op_maps,
         where_rules: raw.where_rules,
         rank_rules: raw.rank_rules,
+        rank_mode: raw
+            .rank_mode
+            .as_deref()
+            .map(parse_spec_rank_mode)
+            .transpose()?,
         op_map_files: raw
             .op_map_files
             .into_iter()
@@ -721,6 +756,21 @@ fn parse_spec_view(raw: &str) -> Result<CliProfileView> {
     }
 }
 
+fn parse_spec_rank_mode(raw: &str) -> Result<CliRankMode> {
+    match raw.trim().to_ascii_lowercase().replace('_', "-").as_str() {
+        "width-boost" | "widthboost" => Ok(CliRankMode::WidthBoost),
+        "rule-score" | "rulescore" => Ok(CliRankMode::RuleScore),
+        other => bail!("unsupported profile spec rank_mode '{other}'"),
+    }
+}
+
+fn cli_rank_mode_name(mode: CliRankMode) -> &'static str {
+    match mode {
+        CliRankMode::WidthBoost => "width-boost",
+        CliRankMode::RuleScore => "rule-score",
+    }
+}
+
 impl ProfileSpec {
     fn merge(&mut self, next: ProfileSpec) {
         if next.output.is_some() {
@@ -737,6 +787,9 @@ impl ProfileSpec {
         }
         if next.stack.is_some() {
             self.stack = next.stack;
+        }
+        if next.rank_mode.is_some() {
+            self.rank_mode = next.rank_mode;
         }
         self.stack_rules.extend(next.stack_rules);
         self.op_maps.extend(next.op_maps);
@@ -927,6 +980,7 @@ mod tests {
   "op_maps": ["phase:inspect=(action=screenshot)"],
   "where_rules": ["phase!=noise"],
   "rank_rules": ["unsafe-risk:2=phase:execute|status:error"],
+  "rank_mode": "rule-score",
   "op_map_files": ["maps/operation-map.txt"],
   "stack_rules": ["task:desktop=(tool=computer)"]
 }"#,
@@ -972,6 +1026,7 @@ mod tests {
             spec.rank_rules,
             vec!["unsafe-risk:2=phase:execute|status:error".to_string()]
         );
+        assert_eq!(spec.rank_mode, Some(CliRankMode::RuleScore));
     }
 
     #[test]

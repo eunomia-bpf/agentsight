@@ -114,10 +114,11 @@ def build_checks(sources: dict[str, str]) -> list[dict[str, Any]]:
                     "op_map_files: Vec<PathBuf>",
                     "where_rules: Vec<String>",
                     "rank_rules: Vec<String>",
+                    "rank_mode: Option<CliRankMode>",
                 ],
             ),
             "rust_profile_spec_cli_present",
-            "agentpprof/src/main.rs defines --profile-spec, RawProfileSpec, operation_files, op_map_files, where_rules, and rank_rules.",
+            "agentpprof/src/main.rs defines --profile-spec, RawProfileSpec, operation_files, op_map_files, where_rules, rank_rules, and rank_mode.",
             "Rust CLI profile-spec support is missing or renamed.",
         ),
         check(
@@ -128,6 +129,7 @@ def build_checks(sources: dict[str, str]) -> list[dict[str, Any]]:
                     "merge_cli_first(&args.stack_rules, &spec.stack_rules)",
                     "effective_where_rules(&args.where_rules, &spec.where_rules)",
                     "merge_cli_first(&args.rank_rules, &spec.rank_rules)",
+                    "rank_mode = args",
                     "load_effective_op_map_rules",
                 ],
             ),
@@ -172,6 +174,8 @@ def build_checks(sources: dict[str, str]) -> list[dict[str, Any]]:
                     "with_field_rules",
                     "with_filters",
                     "with_rank_rules",
+                    "with_rank_mode",
+                    "StackRankMode",
                     "parse_operation_filters",
                     "parse_stack_rank_rules",
                     "summarize_ranked_counter",
@@ -194,12 +198,15 @@ def build_checks(sources: dict[str, str]) -> list[dict[str, Any]]:
         ),
         check(
             "`--rank-rule`" in implementation
+            and "`--rank-mode`" in evaluation
             and "`rank_rules`" in design
+            and "`rank_mode`" in docs_joined
             and "operation-rust-rank-rule-r322" in evaluation
+            and "operation-rank-mode-r323" in evaluation
             and "R322" in paper,
             "operation_rank_policy_documented_as_projection_not_object",
-            "Docs record --rank-rule/rank_rules as a visible operation-stack group ranking projection, with R322 as the implementation probe.",
-            "Operation rank policies are missing from docs/evaluation/paper or are not tied to R322.",
+            "Docs record --rank-rule/rank_rules and --rank-mode/rank_mode as visible operation-stack group ranking projections, with R322/R323 as implementation probes.",
+            "Operation rank policies are missing from docs/evaluation/paper or are not tied to R322/R323.",
         ),
         check(
             "`agentpprof/src/standard_trace.rs`" in implementation

@@ -350,6 +350,7 @@ agentpprof -o external.folded --view operations \
   "op_map_files": ["../external-agent-trace-agentnet-r291/agentnet-op-map.txt"],
   "where_rules": ["dataset=agentnet"],
   "rank_rules": ["step-risk:2=status:failure|repeat_signal:loop-like"],
+  "rank_mode": "rule-score",
   "stack": "project,dataset,benchmark,environment,task,phase,op,tool,action,status,step_correct,step_redundant,repeat_signal"
 }
 ```
@@ -366,8 +367,10 @@ spec 规则之前求值；命令行 `--where` 存在时会替换 spec 里的
 `where_rules`，否则使用 spec predicate。命令行 `--rank-rule` 会排在
 spec `rank_rules` 之前求值。Rank rule 使用 `LABEL:WEIGHT=REGEX`，只按可见
 folded stack 文本给 JSON 里的 operation-stack groups 排序，不影响 pprof、
-folded 或 SVG 输出。因此 profile spec 只是 operation、mapping、predicate、
-rank policy 和 operation stack 的复现实验配置，不是第三个 profiler 抽象。
+folded 或 SVG 输出。默认 `rank_mode` 是 `width-boost`，即宽度仍是主要信号；
+`rule-score` 会先按 visible rule 命中分数排序，再用宽度打破并列。因此
+profile spec 只是 operation、mapping、predicate、rank policy 和 operation
+stack 的复现实验配置，不是第三个 profiler 抽象。
 
 `tokens` 视图以模型预算作为宽度：
 

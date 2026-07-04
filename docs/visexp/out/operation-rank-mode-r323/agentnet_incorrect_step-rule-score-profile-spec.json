@@ -1,0 +1,19 @@
+{
+  "format": "json",
+  "operation_files": [
+    "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl"
+  ],
+  "output": "agentnet_incorrect_step-rule-score.json",
+  "rank_mode": "rule-score",
+  "rank_rules": [
+    "failure:4=status:failure|status:unknown",
+    "loop-like:1.5=repeat_signal:loop-like",
+    "error-env:1=environment:error_correction|environment:infeasible",
+    "input-phase:0.5=phase:input"
+  ],
+  "stack": "analysis_task,dataset,environment,phase,action,repeat_signal,status",
+  "view": "operations",
+  "where_rules": [
+    "analysis_task=agentnet_incorrect_step"
+  ]
+}

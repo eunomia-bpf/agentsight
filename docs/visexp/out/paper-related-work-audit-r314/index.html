@@ -16,24 +16,24 @@
   <p>Overall: scoped_related_work_ready. The paper is grounded against current trace-tree observability systems, classic folded-stack profilers, and public labeled agent-trajectory benchmarks, while preserving the scoped R313 inspectability-tradeoff claim.</p>
   <h2>Closest Work</h2>
   <table><tr><th>Key</th><th>Status</th><th>Lines</th><th>Reason</th></tr>
-<tr><th>classic_flamegraph_pprof</th><td>pass</td><td>41, 42, 77, 83, 86, 93, 117, 175, 206, 265, 266, 302, ... (126 total)</td><td>Classic profilers are the folded-stack/profile lineage and include labels/tag pseudo-frame threats.</td></tr>
-<tr><th>pprof_tags</th><td>pass</td><td>42, 77, 86, 175, 648, 716, 831, 904, 961, 1227</td><td>pprof tags and pseudo stack frames narrow the novelty away from query-time aggregation alone.</td></tr>
-<tr><th>perfetto_sql</th><td>pass</td><td>42, 76, 86, 94, 175, 646, 649, 716, 831, 905, 961, 1227</td><td>Perfetto SQL and derived events narrow the novelty away from generic trace analysis.</td></tr>
+<tr><th>classic_flamegraph_pprof</th><td>pass</td><td>41, 42, 77, 83, 86, 93, 117, 175, 206, 265, 266, 302, ... (129 total)</td><td>Classic profilers are the folded-stack/profile lineage and include labels/tag pseudo-frame threats.</td></tr>
+<tr><th>pprof_tags</th><td>pass</td><td>42, 77, 86, 175, 650, 718, 833, 907, 964, 1234</td><td>pprof tags and pseudo stack frames narrow the novelty away from query-time aggregation alone.</td></tr>
+<tr><th>perfetto_sql</th><td>pass</td><td>42, 76, 86, 94, 175, 648, 651, 718, 833, 908, 964, 1234</td><td>Perfetto SQL and derived events narrow the novelty away from generic trace analysis.</td></tr>
 <tr><th>opentelemetry_genai</th><td>pass</td><td>35, 38, 40, 71, 72, 75, 85, 95, 96, 99, 139, 178, ... (29 total)</td><td>OpenTelemetry-style GenAI semantic conventions are the trace-schema threat.</td></tr>
-<tr><th>openinference</th><td>pass</td><td>38, 40, 72, 75, 85, 96, 99, 139, 179, 181, 657, 661, ... (20 total)</td><td>OpenInference is a current AI-observability semantic convention for spans.</td></tr>
-<tr><th>langsmith</th><td>pass</td><td>36, 73, 85, 86, 97, 126, 178, 658, 743, 831, 905, 1227</td><td>LangSmith is a production LLM observability and evaluation platform.</td></tr>
-<tr><th>langfuse</th><td>pass</td><td>37, 74, 85, 86, 98, 126, 178, 658, 744, 831, 906, 1227</td><td>Langfuse is an open LLM tracing, eval, and prompt-management platform.</td></tr>
-<tr><th>phoenix</th><td>pass</td><td>38, 72, 75, 85, 86, 96, 99, 126, 178, 179, 658, 661, ... (20 total)</td><td>Phoenix is an OpenTelemetry/OpenInference-based tracing/eval platform.</td></tr>
-<tr><th>agentops</th><td>pass</td><td>39, 43, 60, 85, 100, 178, 658, 746, 831, 906, 1227</td><td>AgentOps is the closest agent-specific observability taxonomy/tooling threat.</td></tr>
-<tr><th>public_labeled_trajectories</th><td>pass</td><td>13, 16, 27, 28, 29, 31, 32, 33, 34, 43, 50, 53, ... (199 total)</td><td>The paper must distinguish itself from benchmarks that provide labeled trajectories.</td></tr>
+<tr><th>openinference</th><td>pass</td><td>38, 40, 72, 75, 85, 96, 99, 139, 179, 181, 659, 663, ... (20 total)</td><td>OpenInference is a current AI-observability semantic convention for spans.</td></tr>
+<tr><th>langsmith</th><td>pass</td><td>36, 73, 85, 86, 97, 126, 178, 660, 745, 833, 908, 1234</td><td>LangSmith is a production LLM observability and evaluation platform.</td></tr>
+<tr><th>langfuse</th><td>pass</td><td>37, 74, 85, 86, 98, 126, 178, 660, 746, 833, 909, 1234</td><td>Langfuse is an open LLM tracing, eval, and prompt-management platform.</td></tr>
+<tr><th>phoenix</th><td>pass</td><td>38, 72, 75, 85, 86, 96, 99, 126, 178, 179, 660, 663, ... (20 total)</td><td>Phoenix is an OpenTelemetry/OpenInference-based tracing/eval platform.</td></tr>
+<tr><th>agentops</th><td>pass</td><td>39, 43, 60, 85, 100, 178, 660, 748, 833, 909, 1234</td><td>AgentOps is the closest agent-specific observability taxonomy/tooling threat.</td></tr>
+<tr><th>public_labeled_trajectories</th><td>pass</td><td>13, 16, 27, 28, 29, 31, 32, 33, 34, 43, 50, 53, ... (207 total)</td><td>The paper must distinguish itself from benchmarks that provide labeled trajectories.</td></tr>
   </table>
   <h2>Baselines</h2>
   <table><tr><th>Key</th><th>Status</th><th>Lines</th><th>Reason</th></tr>
-<tr><th>dataset_native_sequence</th><td>pass</td><td>83, 86, 87, 124, 179, 362, 568, 575, 599, 626, 837, 867, ... (18 total)</td><td>Reviewers will expect a comparison against the benchmark&#x27;s native sequence view.</td></tr>
-<tr><th>flat_action_summary</th><td>pass</td><td>83, 86, 87, 127, 179, 241, 243, 245, 354, 362, 370, 424, ... (82 total)</td><td>Flat counting is the simplest aggregation baseline.</td></tr>
+<tr><th>dataset_native_sequence</th><td>pass</td><td>83, 86, 87, 124, 179, 363, 569, 576, 601, 628, 839, 870, ... (18 total)</td><td>Reviewers will expect a comparison against the benchmark&#x27;s native sequence view.</td></tr>
+<tr><th>flat_action_summary</th><td>pass</td><td>83, 86, 87, 127, 179, 241, 243, 245, 355, 363, 371, 425, ... (82 total)</td><td>Flat counting is the simplest aggregation baseline.</td></tr>
 <tr><th>fixed_session_stack</th><td>pass</td><td>83, 84, 85, 86, 87, 125, 177, 179, 232, 242, 243, 245, ... (117 total)</td><td>Fixed session or demo stacks test whether operation stacks add value.</td></tr>
-<tr><th>fixed_session_span_tree_proxy</th><td>pass</td><td>85, 86, 177, 179, 661, 819, 825, 831, 865, 947, 1082, 1155, ... (18 total)</td><td>LLM observability systems motivate a span-tree baseline, but current R320 evidence uses fixed-session as the proxy.</td></tr>
-<tr><th>frontier_counterpoints</th><td>pass</td><td>86, 87, 179, 243, 245, 354, 362, 441, 443, 444, 447, 450, ... (63 total)</td><td>R313 should preserve counterpoints instead of claiming dominance.</td></tr>
+<tr><th>fixed_session_span_tree_proxy</th><td>pass</td><td>85, 86, 177, 179, 663, 821, 827, 833, 868, 950, 1088, 1161, ... (18 total)</td><td>LLM observability systems motivate a span-tree baseline, but current R320 evidence uses fixed-session as the proxy.</td></tr>
+<tr><th>frontier_counterpoints</th><td>pass</td><td>86, 87, 179, 243, 245, 355, 363, 442, 444, 445, 448, 451, ... (63 total)</td><td>R313 should preserve counterpoints instead of claiming dominance.</td></tr>
   </table>
 </body>
 </html>

@@ -452,6 +452,7 @@ agentpprof -o looping.json --format json --view operations \
   --op-map 'task_family:looping=(analysis_task=agentreward_looping)' \
   --where 'task_family=looping' \
   --stack 'task_family,dataset,query_family,environment,phase,action,repeat_signal,status' \
+  --rank-mode rule-score \
   --rank-rule 'loop-risk:4=repeat_signal:loop-like|status:failure'
 ```
 
@@ -484,6 +485,7 @@ profile spec:
   "op_map_files": ["../external-agent-trace-agentnet-r291/agentnet-op-map.txt"],
   "where_rules": ["dataset=agentnet"],
   "rank_rules": ["step-risk:2=status:failure|repeat_signal:loop-like"],
+  "rank_mode": "rule-score",
   "stack": "project,dataset,benchmark,environment,task,phase,op,tool,action,status,step_correct,step_redundant,repeat_signal"
 }
 ```
@@ -501,9 +503,11 @@ When CLI `--where` is present, it replaces spec `where_rules`; otherwise the
 spec predicates are used. CLI `--rank-rule` entries are evaluated before spec
 `rank_rules`. Rank rules use `LABEL:WEIGHT=REGEX` and order JSON
 operation-stack groups by visible folded-stack text; they do not affect pprof,
-folded, or SVG output. A profile spec is only a reproducibility wrapper around
-operations, mappings, predicates, rank policies, and operation stacks. It is
-not a third profiler abstraction.
+folded, or SVG output. The default `rank_mode` is `width-boost`, which keeps
+width as the main signal. `rule-score` ranks by matched visible rules first and
+uses width as a tie-breaker. A profile spec is only a reproducibility wrapper
+around operations, mappings, predicates, rank policies, and operation stacks.
+It is not a third profiler abstraction.
 
 The `tokens` view uses model budget as the width:
 
