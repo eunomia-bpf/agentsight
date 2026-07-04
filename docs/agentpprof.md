@@ -337,6 +337,22 @@ When another viewer or tool expects a standard trace container, export Chrome /
 Perfetto Trace Event JSON and import it back to operations before profiling:
 
 ```bash
+agentpprof \
+  --session-file ~/.codex/sessions/.../session.jsonl \
+  --export-standard-trace standard-trace.json
+
+agentpprof \
+  --standard-trace-file standard-trace.json \
+  --view operations \
+  --stack 'project,agent,op,phase,tool,status' \
+  -o standard.folded
+```
+
+The Python converter exposes the same bridge when the starting point is an
+already-exported `agentsight.agent-session.trace.v1` file and the desired
+project format is operation JSONL:
+
+```bash
 python3 script/agent_trace_convert.py export-standard \
   --format chrome \
   --trace-file agent-session-trace.json \

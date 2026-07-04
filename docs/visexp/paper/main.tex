@@ -452,10 +452,11 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld-Human、AgentNet、SATraj-OS、AgentR
 	AgentRewardBench looping 被简单 \texttt{repeat\_signal\_change} baseline 完全解释，这说明每个 family 都需要 suitability、calibration 和 simple-baseline gate。
 
 	第二，用户效用仍是缺口。
-	R300--R313 把 failure、safety、quality 和 human-boundary 问题转成 label-hidden 或 hidden-answer-key proxy，并证明 operation stacks 对 flat summary 和 fixed-session drilldown 有有用 tradeoff。
+	这些 automated proxies 把 failure、safety、quality 和 human-boundary 问题转成 label-hidden 或 hidden-answer-key tasks，并证明 operation stacks 对 flat summary 和 fixed-session drilldown 有有用 tradeoff。
 	R314 只把 related-work/baseline grounding 转成可失败 audit，不增加新的实证结果。
+	R315 把现有 visible packets 和 hidden answer key 固化为 6 个 tasks、3 个 views、24 个 participant slots 和 144 个 trials 的 balanced analyst-study protocol，并通过 visible-packet leakage check。
 	这些结果仍不能推出开发者准确率、time-to-answer 或 productivity 改善。
-	受控 human/agent analyst study 必须使用相同 visible packet、hidden answer key 和 flat/fixed/operation-stack/query-aware interfaces 才能支持更强 claim。
+	受控 human/agent analyst study 必须真正执行该 protocol，使用相同 visible packet、hidden answer key 和 flat/fixed/operation-stack/query-aware interfaces，才能支持更强 claim。
 
 	第三，数据和互操作范围是轻量采样。
 	本文避免同步完整测试集、图片归档和 gated 数据，因此有些来源只覆盖前缀、子配置或 redacted rows。
@@ -486,7 +487,7 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld-Human、AgentNet、SATraj-OS、AgentR
 	论文的新意不在单个 flamegraph，而在两个抽象形成的统一接口。
 	Mapping、tagging、profile specs、agent-session trace、Chrome/Perfetto-style trace exchange、boundary backends 和 reviewer evidence packets 都只围绕 operation fields 与 operation-stack queries 工作。
 	它们让用户和实验者能在同一批 operations 上选择不同 view、派生不同 fields、折叠不同深度，并审计每个 claim 的证据来源。
-	下一步不应无差别增加数据集，而应沿两个方向提高 claim 强度：一是把 field-derivation backend 做到跨家族 calibration 并稳定胜过简单 sequence-derived baselines，二是用当前 visible packets 和 hidden answer keys 做受控 human/agent analyst study，验证这种 inspectability tradeoff 是否转化为真实准确率和耗时收益。
+	下一步不应无差别增加数据集，而应沿两个方向提高 claim 强度：一是把 field-derivation backend 做到跨家族 calibration 并稳定胜过简单 sequence-derived baselines，二是执行当前 balanced analyst-study protocol，验证这种 inspectability tradeoff 是否转化为真实准确率和耗时收益。
 
 \vspace{-0.8em}
 \section*{参考文献}
