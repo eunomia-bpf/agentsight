@@ -1,0 +1,114 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>R298 Paper Value And Novelty Synthesis</title>
+<style>
+body{font-family:system-ui,-apple-system,Segoe UI,sans-serif;margin:28px;background:#fafafa;color:#171717}
+h1{font-size:24px;margin-bottom:6px}
+h2{font-size:17px;margin-top:24px}
+.takeaway{max-width:980px;color:#333}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:16px 0}
+.card{background:#fff;border:1px solid #ddd;border-radius:6px;padding:12px}
+.value{font-size:24px;font-weight:700}
+table{border-collapse:collapse;width:100%;background:#fff;border:1px solid #ddd}
+th,td{padding:7px 9px;border-bottom:1px solid #eee;text-align:left;vertical-align:top;font-size:13px}
+th{background:#f0f3f8}
+</style>
+</head>
+<body>
+<h1>R298 Paper Value And Novelty Synthesis</h1>
+<p class="takeaway">AgentSight should claim configurable semantic profiling over real labeled agent trajectories: operations provide the common record, operation stacks provide recursive query-time folding, and mappings/boundary backends only derive fields before folding. The evidence supports mechanism and diagnostic value, not unsupervised intent discovery or developer productivity.</p>
+<div class="cards">
+<div class="card"><div>Datasets</div><div class="value">15</div></div>
+<div class="card"><div>Operations</div><div class="value">47590</div></div>
+<div class="card"><div>R297 F1</div><div class="value">0.7735</div></div>
+<div class="card"><div>Evidence Problems</div><div class="value">6</div></div>
+</div>
+<h2>Real Problems And Evidence</h2>
+<table><tr>
+<th>id</th>
+<th>claim</th>
+<th>real_problem</th>
+<th>headline_evidence</th>
+<th>status</th>
+<th>limitations</th>
+</tr>
+<tr>
+<td>P1</td>
+<td>C1</td>
+<td>Agent traces mix prompts, tools, GUI actions, API calls, safety labels, and quality labels; prompt/session/span object models split these into incompatible pipelines.</td>
+<td>15 datasets, 47590 operations, 1611 stacks in the supplemental smoke set.</td>
+<td>supported for sampled public trajectories</td>
+<td>Does not prove full-scale conversion of every public benchmark or image/video archive.</td>
+</tr>
+<tr>
+<td>P2</td>
+<td>C2</td>
+<td>The useful boundary depends on the debugging question; a fixed session/prompt stack either hides phase structure or fragments aggregation.</td>
+<td>R286 folds the same 13265 operations from 9 dataset stacks to 57 phase, 455 action, and 3757 fixed-session stacks; R293 stack override reduces AgentNet stacks by 86.349%.</td>
+<td>supported with scoped limits</td>
+<td>Does not identify one universal best stack for every task.</td>
+</tr>
+<tr>
+<td>P3</td>
+<td>C3</td>
+<td>Raw dataset labels and action names are inconsistent; without field derivation, stacks are either too shallow or too fragmented.</td>
+<td>R282 mapping reduces held-out unique stacks by 26.408% and improves compression by 35.889%; R285 has 0 negative folds; R297 supervised boundary F1 is 0.7735.</td>
+<td>partial, with supervised expansion evidence</td>
+<td>Does not support unsupervised or cross-family general boundary detection.</td>
+</tr>
+<tr>
+<td>P4</td>
+<td>C2</td>
+<td>Desktop agents often need subtask-level inspection below a task but above a raw click/key action.</td>
+<td>Conservative human-group projection reaches boundary F1 0.6268 at precision 1.0; R297 learned backend improves over phase/action/target baselines and folds 1132 held-out operations into 74 stacks.</td>
+<td>supported as scoped boundary evidence</td>
+<td>R290 conservative recall is limited; R297 is supervised and OSWorld-only.</td>
+</tr>
+<tr>
+<td>P5</td>
+<td>C2</td>
+<td>Agent debugging requires failure, safety, looping, and step-quality diagnostics, not only hot paths.</td>
+<td>AgentRewardBench repeat-signal/looping V-measure is 0.3777 versus 0.0105 for step-error; SATraj has 622 unsafe operations; AgentNet step_correct and step_redundant fields have 16741 and 16741 covered operations.</td>
+<td>supported as diagnostic mechanism</td>
+<td>Does not prove developer productivity or automatic quality prediction.</td>
+</tr>
+<tr>
+<td>P6</td>
+<td>C1</td>
+<td>Paper claims drift when results are scattered across shell commands, folded files, and one-off visualizations.</td>
+<td>R294 trace import and operation import folded outputs are identical; R296 indexes 11 visualization/evidence entries and 4 reviewer questions.</td>
+<td>supported for artifact auditability</td>
+<td>Reviewer packets are synthesis artifacts, not new empirical evidence.</td>
+</tr>
+</table>
+<h2>Novelty Claims</h2>
+<table><tr>
+<th>claim</th>
+<th>why_new</th>
+<th>evidence</th>
+</tr>
+<tr>
+<td>Two-object agent profiling model</td>
+<td>The profiler does not privilege prompt, session, span, GUI, safety, or quality objects; they are operation shapes or fields.</td>
+<td>C1 supported by 15 public labeled sources plus local trace exchange.</td>
+</tr>
+<tr>
+<td>Query-time recursive operation stacks</td>
+<td>Folded-stack output is reused, but frames come from semantic operation fields and can be changed after capture.</td>
+<td>R286 depth sweep and R293 profile-spec override on identical operations.</td>
+</tr>
+<tr>
+<td>Unified field-derivation extension point</td>
+<td>Regex mappings, learned label-derived mappings, and supervised boundary backends all write operation fields before folding.</td>
+<td>R282/R285 mapping generalization and R297 learned boundary backend.</td>
+</tr>
+<tr>
+<td>Non-flamegraph diagnostic views over real labels</td>
+<td>Quality, looping, safety, attack, redundancy, and human-group labels become stackable and scoreable fields.</td>
+<td>R288/R289/R290/R291 diagnostics and R296 evidence packet.</td>
+</tr>
+</table>
+</body>
+</html>

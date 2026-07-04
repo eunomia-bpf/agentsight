@@ -1,0 +1,328 @@
+{
+  "claim_verdicts_from_r295": [
+    {
+      "claim": "C1",
+      "evidence": [
+        "heterogeneous_coverage",
+        "recursive_depth",
+        "reproducibility_and_exchange"
+      ],
+      "not_supported": [
+        "complete conversion of every public agent benchmark",
+        "raw image/video archive profiling"
+      ],
+      "paper_ready_wording": "The semantic profiler can represent heterogeneous public agent trajectories and local agent sessions as operations, then profile them through user-selected operation stacks without hard-coding prompt/session boundaries.",
+      "verdict": "supported"
+    },
+    {
+      "claim": "C2",
+      "evidence": [
+        "recursive_depth",
+        "human_boundaries",
+        "quality_and_failure_diagnostics"
+      ],
+      "not_supported": [
+        "perfect intent recovery",
+        "single universal stack depth",
+        "quality prediction from task outcome alone"
+      ],
+      "paper_ready_wording": "Recursive operation stacks recover useful task, phase, action, human-group, safety, and quality-label views, and expose when a coarse field is not a valid proxy for a finer oracle.",
+      "verdict": "supported with scoped limits"
+    },
+    {
+      "claim": "C3",
+      "evidence": [
+        "mapping_generalization"
+      ],
+      "not_supported": [
+        "fully unsupervised boundary detection",
+        "LLM-backed or model-backed boundary inference"
+      ],
+      "paper_ready_wording": "Label-derived deterministic mappings improve semantic aggregation on held-out sessions and leave-dataset-out folds; they should be presented as reproducible mapping/tagging, not as unsupervised boundary discovery.",
+      "verdict": "partial"
+    }
+  ],
+  "derived_decision_metrics": {
+    "boundary_backend": {
+      "agentpprof_samples": 1132,
+      "agentpprof_unique_stacks": 74,
+      "baseline_delta_f1": {
+        "learned_vs_action_change_f1": 0.2593,
+        "learned_vs_group_pattern_reference_f1": 0.1925,
+        "learned_vs_phase_change_f1": 0.4816,
+        "learned_vs_target_change_f1": 0.3649
+      },
+      "folded_operations": 1132,
+      "folded_unique_stacks": 74,
+      "split": {
+        "seed": "r297",
+        "test_operations": 1132,
+        "test_sequences": 96,
+        "train_operations": 2846,
+        "train_percent": 70,
+        "train_sequences": 191
+      },
+      "test_metrics": {
+        "accuracy": 0.7394,
+        "f1": 0.7735,
+        "false_negative": 108,
+        "false_positive": 162,
+        "precision": 0.74,
+        "recall": 0.8102,
+        "true_negative": 305,
+        "true_positive": 461
+      },
+      "test_pairs": 1036
+    },
+    "dataset_coverage": {
+      "datasets": 15,
+      "operations": 47590,
+      "top10_operation_share_percent": 97.367,
+      "top5_operation_share_percent": 83.85,
+      "unique_stacks": 1611
+    },
+    "diagnostic_oracle_counts": {
+      "agentnet_step_correct_present": 16741,
+      "agentnet_step_redundant_present": 16741,
+      "satraj_unsafe_operations": 622
+    },
+    "diagnostic_value": {
+      "agentnet_repeat_step_redundant_v": 0.0103,
+      "agentnet_status_step_correct_v": 0.0153,
+      "agentnet_step_label_coverage_percent": 100.0,
+      "agentreward_repeat_looping_v": 0.3777,
+      "agentreward_repeat_vs_step_error_looping_v_ratio": 35.971,
+      "agentreward_step_error_looping_v": 0.0105,
+      "satraj_attack_action_v": 0.0932
+    },
+    "human_group_value": {
+      "action_stack_compression": 12.469,
+      "action_unique_stacks": 482,
+      "exact_group_coverage_percent": 66.739,
+      "group_pattern_human_group_f1": 0.6268,
+      "group_pattern_human_group_precision": 1.0,
+      "group_pattern_human_group_recall": 0.4564,
+      "grouped_stack_compression": 56.698,
+      "grouped_stack_reduction_percent": 78.008,
+      "grouped_unique_stacks": 106,
+      "operations": 6010
+    },
+    "mapping_value": {
+      "boundary_precision": 1.0,
+      "compression_improvement_percent": 35.889,
+      "heldout_operations": 3990,
+      "leaveout_negative_folds": 0,
+      "leaveout_positive_rate_percent": 66.667,
+      "unique_stack_reduction_percent": 26.408
+    },
+    "recursive_foldability": {
+      "action_expansion_vs_dataset": 50.556,
+      "action_unique_stacks": 455,
+      "dataset_unique_stacks": 9,
+      "fixed_session_expansion_vs_dataset": 417.4444,
+      "fixed_session_unique_stacks": 3757,
+      "phase_expansion_vs_dataset": 6.333,
+      "phase_unique_stacks": 57,
+      "same_operations": 13265
+    },
+    "reproducibility_value": {
+      "folded_outputs_identical": true,
+      "operation_import_samples": 6,
+      "profile_spec_override_reduction_percent": 86.349,
+      "profile_spec_override_unique_stacks": 83,
+      "profile_spec_samples": 16741,
+      "profile_spec_unique_stacks": 608,
+      "trace_converted_operations": 6,
+      "trace_import_samples": 6
+    }
+  },
+  "generated_from": {
+    "agentnet_quality": "docs/visexp/out/external-agent-trace-agentnet-r291/agentnet-quality.json",
+    "agentreward_quality": "docs/visexp/out/external-agent-trace-agentreward-r288/agentreward-quality.json",
+    "boundary_profile": "docs/visexp/out/operation-boundary-backend-r297/learned-boundary-agentpprof-result.json",
+    "boundary_report": "docs/visexp/out/operation-boundary-backend-r297/boundary-backend-report.json",
+    "boundary_stack": "docs/visexp/out/operation-boundary-backend-r297/learned-boundary-stack-analysis.json",
+    "claim_synthesis": "docs/visexp/out/paper-claim-synthesis-r295/claim-synthesis.json",
+    "reviewer_packet": "docs/visexp/out/reviewer-evidence-packet-r296/reviewer-evidence.json",
+    "satraj_quality": "docs/visexp/out/external-agent-trace-satraj-r289/satraj-quality.json"
+  },
+  "novelty_claims": [
+    {
+      "claim": "Two-object agent profiling model",
+      "evidence": "C1 supported by 15 public labeled sources plus local trace exchange.",
+      "why_new": "The profiler does not privilege prompt, session, span, GUI, safety, or quality objects; they are operation shapes or fields."
+    },
+    {
+      "claim": "Query-time recursive operation stacks",
+      "evidence": "R286 depth sweep and R293 profile-spec override on identical operations.",
+      "why_new": "Folded-stack output is reused, but frames come from semantic operation fields and can be changed after capture."
+    },
+    {
+      "claim": "Unified field-derivation extension point",
+      "evidence": "R282/R285 mapping generalization and R297 learned boundary backend.",
+      "why_new": "Regex mappings, learned label-derived mappings, and supervised boundary backends all write operation fields before folding."
+    },
+    {
+      "claim": "Non-flamegraph diagnostic views over real labels",
+      "evidence": "R288/R289/R290/R291 diagnostics and R296 evidence packet.",
+      "why_new": "Quality, looping, safety, attack, redundancy, and human-group labels become stackable and scoreable fields."
+    }
+  ],
+  "paper_readiness": {
+    "must_not_claim": [
+      "The profiler fully discovers latent intent boundaries without labels or rules.",
+      "The profiler improves human developer productivity.",
+      "Every public agent trajectory dataset can be profiled at full scale without additional engineering.",
+      "R297 generalizes beyond OSWorld-Human",
+      "R296 reviewer packet is itself empirical evidence"
+    ],
+    "osdi_neurips_maturity": "level-3 conference-paper evidence, approaching level 4 for mechanism claims",
+    "partial_claims": [
+      {
+        "claim": "C3",
+        "evidence": [
+          "mapping_generalization"
+        ],
+        "not_supported": [
+          "fully unsupervised boundary detection",
+          "LLM-backed or model-backed boundary inference"
+        ],
+        "paper_ready_wording": "Label-derived deterministic mappings improve semantic aggregation on held-out sessions and leave-dataset-out folds; they should be presented as reproducible mapping/tagging, not as unsupervised boundary discovery.",
+        "verdict": "partial"
+      }
+    ],
+    "ready_claims": [
+      {
+        "claim": "C1",
+        "evidence": [
+          "heterogeneous_coverage",
+          "recursive_depth",
+          "reproducibility_and_exchange"
+        ],
+        "not_supported": [
+          "complete conversion of every public agent benchmark",
+          "raw image/video archive profiling"
+        ],
+        "paper_ready_wording": "The semantic profiler can represent heterogeneous public agent trajectories and local agent sessions as operations, then profile them through user-selected operation stacks without hard-coding prompt/session boundaries.",
+        "verdict": "supported"
+      },
+      {
+        "claim": "C2",
+        "evidence": [
+          "recursive_depth",
+          "human_boundaries",
+          "quality_and_failure_diagnostics"
+        ],
+        "not_supported": [
+          "perfect intent recovery",
+          "single universal stack depth",
+          "quality prediction from task outcome alone"
+        ],
+        "paper_ready_wording": "Recursive operation stacks recover useful task, phase, action, human-group, safety, and quality-label views, and expose when a coarse field is not a valid proxy for a finer oracle.",
+        "verdict": "supported with scoped limits"
+      }
+    ],
+    "remaining_level4_gaps": [
+      "replicate the learned boundary backend on another family such as AgentNet or tau-bench",
+      "add a user-utility or task-answering study comparing flat trace, fixed session stack, and operation-stack views",
+      "add calibration/error analysis for boundary backends"
+    ]
+  },
+  "paper_ready_takeaway": "AgentSight should claim configurable semantic profiling over real labeled agent trajectories: operations provide the common record, operation stacks provide recursive query-time folding, and mappings/boundary backends only derive fields before folding. The evidence supports mechanism and diagnostic value, not unsupervised intent discovery or developer productivity.",
+  "real_problem_evidence": [
+    {
+      "claim": "C1",
+      "headline_evidence": "15 datasets, 47590 operations, 1611 stacks in the supplemental smoke set.",
+      "id": "P1",
+      "limitations": "Does not prove full-scale conversion of every public benchmark or image/video archive.",
+      "novelty_value": "The paper artifact under test is a two-object profiler model, not another fixed agent trace viewer.",
+      "profiler_mechanism": "Normalize every source row into operations, then use operation stacks as query-time projections.",
+      "public_oracle": "15 public labeled trajectory sources with dataset/session/task/action/quality fields.",
+      "real_problem": "Agent traces mix prompts, tools, GUI actions, API calls, safety labels, and quality labels; prompt/session/span object models split these into incompatible pipelines.",
+      "source_paths": [
+        "docs/visexp/out/paper-claim-synthesis-r295/claim-synthesis.json",
+        "docs/visexp/out/reviewer-evidence-packet-r296/reviewer-evidence.json"
+      ],
+      "status": "supported for sampled public trajectories"
+    },
+    {
+      "claim": "C2",
+      "headline_evidence": "R286 folds the same 13265 operations from 9 dataset stacks to 57 phase, 455 action, and 3757 fixed-session stacks; R293 stack override reduces AgentNet stacks by 86.349%.",
+      "id": "P2",
+      "limitations": "Does not identify one universal best stack for every task.",
+      "novelty_value": "Recursive folding is a query over operation fields rather than a hard-coded prompt/session hierarchy.",
+      "profiler_mechanism": "Fold the same operations at different stack depths by changing only the stack specification.",
+      "public_oracle": "R286 depth sweep and R293 AgentNet profile-spec override.",
+      "real_problem": "The useful boundary depends on the debugging question; a fixed session/prompt stack either hides phase structure or fragments aggregation.",
+      "source_paths": [
+        "docs/visexp/out/reviewer-evidence-packet-r296/reviewer-evidence.json"
+      ],
+      "status": "supported with scoped limits"
+    },
+    {
+      "claim": "C3",
+      "headline_evidence": "R282 mapping reduces held-out unique stacks by 26.408% and improves compression by 35.889%; R285 has 0 negative folds; R297 supervised boundary F1 is 0.7735.",
+      "id": "P3",
+      "limitations": "Does not support unsupervised or cross-family general boundary detection.",
+      "novelty_value": "Mapping/tagging and boundary backends are one extension point: derive fields, never introduce a third profiler object.",
+      "profiler_mechanism": "Run deterministic or learned field derivation before stack construction, then fold ordinary operation fields.",
+      "public_oracle": "R282 held-out mappings, R285 leave-dataset-out mappings, and R297 held-out OSWorld-Human boundary labels.",
+      "real_problem": "Raw dataset labels and action names are inconsistent; without field derivation, stacks are either too shallow or too fragmented.",
+      "source_paths": [
+        "docs/visexp/out/reviewer-evidence-packet-r296/reviewer-evidence.json",
+        "docs/visexp/out/operation-boundary-backend-r297/boundary-backend-report.json"
+      ],
+      "status": "partial, with supervised expansion evidence"
+    },
+    {
+      "claim": "C2",
+      "headline_evidence": "Conservative human-group projection reaches boundary F1 0.6268 at precision 1.0; R297 learned backend improves over phase/action/target baselines and folds 1132 held-out operations into 74 stacks.",
+      "id": "P4",
+      "limitations": "R290 conservative recall is limited; R297 is supervised and OSWorld-only.",
+      "novelty_value": "The same action sequence supports action-depth, human-group-depth, and learned-boundary-depth views.",
+      "profiler_mechanism": "Carry human-group labels and learned-group fields as stackable operation fields.",
+      "public_oracle": "OSWorld-Human single-action and grouped-action human trajectories.",
+      "real_problem": "Desktop agents often need subtask-level inspection below a task but above a raw click/key action.",
+      "source_paths": [
+        "docs/visexp/out/reviewer-evidence-packet-r296/reviewer-evidence.json",
+        "docs/visexp/out/operation-boundary-backend-r297/boundary-backend-report.json",
+        "docs/visexp/out/operation-boundary-backend-r297/learned-boundary-stack-analysis.json"
+      ],
+      "status": "supported as scoped boundary evidence"
+    },
+    {
+      "claim": "C2",
+      "headline_evidence": "AgentRewardBench repeat-signal/looping V-measure is 0.3777 versus 0.0105 for step-error; SATraj has 622 unsafe operations; AgentNet step_correct and step_redundant fields have 16741 and 16741 covered operations.",
+      "id": "P5",
+      "limitations": "Does not prove developer productivity or automatic quality prediction.",
+      "novelty_value": "The profiler exposes non-flamegraph quality and safety views without creating separate failure or safety profilers.",
+      "profiler_mechanism": "Represent expert labels, safety labels, and sequence-derived repetition signals as operation fields, then score and visualize them with stack reports.",
+      "public_oracle": "AgentRewardBench expert looping labels, SATraj-OS safety labels, and AgentNet step correctness/redundancy labels.",
+      "real_problem": "Agent debugging requires failure, safety, looping, and step-quality diagnostics, not only hot paths.",
+      "source_paths": [
+        "docs/visexp/out/reviewer-evidence-packet-r296/reviewer-evidence.json",
+        "docs/visexp/out/external-agent-trace-agentreward-r288/agentreward-quality.json",
+        "docs/visexp/out/external-agent-trace-satraj-r289/satraj-quality.json",
+        "docs/visexp/out/external-agent-trace-agentnet-r291/agentnet-quality.json"
+      ],
+      "status": "supported as diagnostic mechanism"
+    },
+    {
+      "claim": "C1",
+      "headline_evidence": "R294 trace import and operation import folded outputs are identical; R296 indexes 11 visualization/evidence entries and 4 reviewer questions.",
+      "id": "P6",
+      "limitations": "Reviewer packets are synthesis artifacts, not new empirical evidence.",
+      "novelty_value": "The contribution includes an auditable research workflow around configurable profiler queries, not just a rendered flamegraph.",
+      "profiler_mechanism": "Use tracked profile specs, trace exchange, claim synthesis, and reviewer evidence packets as reproducibility surfaces.",
+      "public_oracle": "R293 profile spec, R294 trace exchange, R295 claim synthesis, and R296 reviewer packet.",
+      "real_problem": "Paper claims drift when results are scattered across shell commands, folded files, and one-off visualizations.",
+      "source_paths": [
+        "docs/visexp/out/paper-claim-synthesis-r295/claim-synthesis.json",
+        "docs/visexp/out/reviewer-evidence-packet-r296/reviewer-evidence.json"
+      ],
+      "status": "supported for artifact auditability"
+    }
+  ],
+  "run_id": "R298",
+  "schema": "agentsight.paper-value-novelty-synthesis.v1"
+}
