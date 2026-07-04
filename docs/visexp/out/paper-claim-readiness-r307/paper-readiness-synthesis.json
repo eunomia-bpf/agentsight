@@ -1,0 +1,234 @@
+{
+  "claim_verdicts": [
+    {
+      "claim": "C1",
+      "current_supported_wording": "AgentSight represents heterogeneous public agent trajectories and local agent-session traces as operations, then profiles them with user-selected operation stacks. Chrome Trace Event JSON is supported as an exchange container that imports back to operation JSONL.",
+      "evidence": [
+        "15 sampled public datasets / 47590 operations",
+        "R293 profile-spec replay and stack override",
+        "R294 claim-gated exchange plus R303 scripted agent-session exchange with 1 session / 6 operations and folded equality",
+        "R306 Chrome Trace Event JSON round trip with 6 samples / 5 stacks on all paths"
+      ],
+      "expansion_experiments": [
+        "import one real OpenTelemetry GenAI span export or Perfetto trace from another agent tool and verify operation-stack parity",
+        "run the trace bridge on a multi-session public trace bundle rather than a fixture"
+      ],
+      "maximal_plausible_wording": "The operation/operation-stack model can serve as an interchange layer across common agent trace containers.",
+      "must_not_claim": [
+        "all public agent datasets are fully converted at full scale",
+        "Chrome/OpenTelemetry ecosystem compatibility is complete",
+        "trace exchange is a third profiler abstraction"
+      ],
+      "verdict": "supported"
+    },
+    {
+      "claim": "C2",
+      "current_supported_wording": "Recursive operation stacks recover useful task, phase, action, human-group, safety, and quality-label views on sampled labeled trajectories, and the same operations can be folded at different depths by changing stack fields.",
+      "evidence": [
+        "R286 recursive depth sweep",
+        "R290 OSWorld-Human grouped boundary evidence",
+        "R291 AgentNet step-quality fields",
+        "R299 boundary-family calibration"
+      ],
+      "expansion_experiments": [
+        "calibrate the learned boundary backend on AgentNet step-quality boundaries",
+        "compare learned operation-boundary fields against an LLM boundary-labeling baseline on one held-out family"
+      ],
+      "maximal_plausible_wording": "Operation stacks are a general query-time boundary language for agent trajectories when adequate operation fields or learned field derivation are available.",
+      "must_not_claim": [
+        "perfect intent recovery",
+        "one universal stack depth",
+        "unsupervised boundary discovery"
+      ],
+      "verdict": "supported with scoped limits"
+    },
+    {
+      "claim": "C3",
+      "current_supported_wording": "Deterministic mappings and supervised boundary backends improve semantic aggregation by deriving operation fields before folding.",
+      "evidence": [
+        "R282 held-out mapping",
+        "R285 leave-dataset-out mapping",
+        "R297 OSWorld-Human supervised boundary backend",
+        "R299 family calibration with negative controls"
+      ],
+      "expansion_experiments": [
+        "add a calibrated learned backend on AgentNet and report precision/recall/error cases",
+        "add one model-backed mapping baseline that writes ordinary operation fields and compare it with regex mappings"
+      ],
+      "maximal_plausible_wording": "Field derivation is a reusable extension point that can host regex, learned, and model-backed mapping backends under one operation-stack contract.",
+      "must_not_claim": [
+        "field derivation is unsupervised",
+        "one learned backend generalizes across all families",
+        "AgentRewardBench looping requires learned boundaries when repeat_signal_change is sufficient"
+      ],
+      "verdict": "partial"
+    },
+    {
+      "claim": "C4",
+      "current_supported_wording": "On six oracle-backed analysis tasks over existing labeled operations, operation-stack views provide a useful inspectability tradeoff: they are far more selective than flat summaries and higher-recall than fixed-session case packets at the same top-k packet count, but they are not uniformly cheaper than fixed-session drilldown.",
+      "evidence": [
+        "R300 operation-stack vs flat lift 5.726x with inspection ratio 0.288",
+        "R301 label-hidden 30% budget recall 0.3361 vs 0.2844",
+        "R302 top-10 query-aware work 0.1163 with lift 1.5867",
+        "R305 operation-stack vs fixed-session recall ratio 3.63 and work ratio 1.7172"
+      ],
+      "expansion_experiments": [
+        "run a controlled human/agent analyst study using R301/R302/R304/R305 visible packets and hidden answer keys",
+        "measure answer accuracy, time-to-first-positive, inspected operations, and confidence for flat, fixed-session, and operation-stack packets"
+      ],
+      "maximal_plausible_wording": "Current evidence supports automated inspectability proxy metrics; human analyst accuracy or time improvement remains a hypothesis for the next controlled study.",
+      "must_not_claim": [
+        "human productivity improvement",
+        "automatic anomaly detection",
+        "operation stacks dominate fixed-session views on every work metric"
+      ],
+      "verdict": "supported as automated proxy, not user utility"
+    }
+  ],
+  "commit": "4c03a1bf4ab3b9619fef45c036cb162878d8fdb4",
+  "decision_metrics": {
+    "analysis_task_suite": {
+      "datasets": [
+        "agent-reward-bench",
+        "agentnet",
+        "osworld-human",
+        "satraj-os-safety"
+      ],
+      "operations": 34539,
+      "problems": [
+        "Find repetitive web-agent behavior in expert-reviewed trajectories.",
+        "Find side-effectful web-agent trajectories.",
+        "Find unsafe desktop computer-use operations.",
+        "Find incorrect human desktop steps.",
+        "Find redundant human desktop steps.",
+        "Find human grouped-action segment starts in desktop traces."
+      ],
+      "tasks": 6
+    },
+    "heterogeneous_sources": {
+      "datasets": 15,
+      "operations": 47590,
+      "unique_stacks": 1611
+    },
+    "r300_oracle_sorted": {
+      "operation_stack_inspection_fraction_for_50pct_positives": 0.2879,
+      "operation_stack_vs_fixed_group_ratio": 0.554,
+      "operation_stack_vs_fixed_session_support": 5.5,
+      "operation_stack_vs_flat_inspection_fraction": 0.288,
+      "operation_stack_vs_flat_lift": 5.726
+    },
+    "r301_label_hidden_width": {
+      "fixed_session_30pct_groups": 25.5,
+      "fixed_session_30pct_recall": 0.2844,
+      "fixed_session_top10_recall": 0.1951,
+      "operation_stack_30pct_groups": 4.5,
+      "operation_stack_30pct_recall": 0.3361,
+      "operation_stack_top10_recall": 0.6415
+    },
+    "r302_label_hidden_ranking": {
+      "query_aware_budget30_recall": 0.39,
+      "query_aware_top10_lift": 1.5867,
+      "query_aware_top10_work": 0.1163,
+      "top10_lift_ratio_vs_width": 1.3877,
+      "top10_work_ratio_vs_width": 0.1503,
+      "width_budget30_recall": 0.3401,
+      "width_top10_lift": 1.0795,
+      "width_top10_work": 0.6713
+    },
+    "r304_case_packet": {
+      "case_groups": 30,
+      "median_lift": 1.6509,
+      "median_recall": 0.188,
+      "median_work": 0.0937,
+      "tasks_with_lift_ge_1": 4
+    },
+    "r305_cross_view_case_baseline": {
+      "fixed_lift": 1.6615,
+      "fixed_recall": 0.0226,
+      "fixed_work": 0.0163,
+      "flat_recall": 1.0,
+      "flat_work": 1.0,
+      "operation_stack_lift": 1.6509,
+      "operation_stack_recall": 0.188,
+      "operation_stack_work": 0.0937,
+      "operation_vs_fixed_lift_ratio": 1.2676,
+      "operation_vs_fixed_recall_ratio": 3.63,
+      "operation_vs_fixed_work_ratio": 1.7172,
+      "operation_vs_flat_work_ratio": 0.0937
+    },
+    "trace_exchange": {
+      "agent_session_filesystem_portable": true,
+      "agent_session_folded_outputs_identical": true,
+      "agent_session_operation_import_samples": 6,
+      "agent_session_operation_import_unique_stacks": 5,
+      "agent_session_operations": 6,
+      "agent_session_schema": "agentsight.agent-session.trace.v1",
+      "agent_session_sessions": 1,
+      "agent_session_trace_import_samples": 6,
+      "agent_session_trace_import_unique_stacks": 5,
+      "chrome_events": 6,
+      "chrome_operations": 6,
+      "chrome_operations_equal_direct_operations": true,
+      "direct_operations": 6,
+      "direct_operations_byte_identical": true,
+      "direct_trace_equals_direct_operations": true
+    }
+  },
+  "generated_from": {
+    "r295_claim": "docs/visexp/out/paper-claim-synthesis-r295/claim-synthesis.json",
+    "r298_value": "docs/visexp/out/paper-value-novelty-r298/value-novelty-synthesis.json",
+    "r300_query": "docs/visexp/out/operation-query-utility-r300/query-utility-report.json",
+    "r301_task": "docs/visexp/out/operation-analyst-task-r301/analyst-task-report.json",
+    "r302_ranking": "docs/visexp/out/operation-analyst-ranking-r302/ranking-report.json",
+    "r303_agent_session_exchange": "docs/visexp/out/agent-trace-exchange-r303/exchange-report.json",
+    "r304_case": "docs/visexp/out/operation-case-study-r304/case-study-report.json",
+    "r305_baseline": "docs/visexp/out/operation-case-baseline-r305/case-baseline-report.json",
+    "r306_chrome": "docs/visexp/out/agent-trace-chrome-exchange-r306/chrome-exchange-report.json"
+  },
+  "outputs": {
+    "html": "docs/visexp/out/paper-claim-readiness-r307/index.html",
+    "json": "docs/visexp/out/paper-claim-readiness-r307/paper-readiness-synthesis.json",
+    "markdown": "docs/visexp/out/paper-claim-readiness-r307/paper-readiness-synthesis.md",
+    "run_result": "docs/visexp/out/paper-claim-readiness-r307/run-result.json"
+  },
+  "paper_readiness": {
+    "mechanism_claim_level": "OSDI/NeurIPS-ready if scoped to sampled public trajectories and fixture-level exchange",
+    "must_not_claim": [
+      "Every public agent trajectory dataset can be profiled at full scale without additional engineering.",
+      "R296 reviewer packet is itself empirical evidence",
+      "R297 generalizes beyond OSWorld-Human",
+      "R300-R305 prove human productivity",
+      "R306 proves full OpenTelemetry/Chrome ecosystem compatibility",
+      "The profiler fully discovers latent intent boundaries without labels or rules.",
+      "The profiler improves human developer productivity.",
+      "case packets are a new profiler abstraction"
+    ],
+    "next_gate": "Use the existing R301/R302/R304/R305 visible packets and answer keys for a controlled analyst study before claiming user utility.",
+    "novelty_claims": [
+      {
+        "claim": "Two-object agent profiling model",
+        "evidence": "C1 supported by 15 public labeled sources plus local trace exchange.",
+        "why_new": "The profiler does not privilege prompt, session, span, GUI, safety, or quality objects; they are operation shapes or fields."
+      },
+      {
+        "claim": "Query-time recursive operation stacks",
+        "evidence": "R286 depth sweep and R293 profile-spec override on identical operations.",
+        "why_new": "Folded-stack output is reused, but frames come from semantic operation fields and can be changed after capture."
+      },
+      {
+        "claim": "Unified field-derivation extension point",
+        "evidence": "R282/R285 mapping generalization and R297 learned boundary backend.",
+        "why_new": "Regex mappings, learned label-derived mappings, and supervised boundary backends all write operation fields before folding."
+      },
+      {
+        "claim": "Non-flamegraph diagnostic views over real labels",
+        "evidence": "R288/R289/R290/R291 diagnostics and R296 evidence packet.",
+        "why_new": "Quality, looping, safety, attack, redundancy, and human-group labels become stackable and scoreable fields."
+      }
+    ],
+    "stage": "stage 6 claim gate / stage 9 paper integration",
+    "value_claim_level": "automated proxy only; needs analyst study for user-utility wording"
+  },
+  "run_id": "R307",
+  "schema": "agentsight.paper-claim-readiness.v1"
+}

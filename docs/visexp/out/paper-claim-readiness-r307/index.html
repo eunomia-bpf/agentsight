@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Paper Claim Readiness R307</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; color: #1f2933; }
+    h1 { font-size: 1.6rem; margin-bottom: 0.25rem; }
+    p { max-width: 860px; line-height: 1.5; }
+    table { border-collapse: collapse; margin-top: 1.5rem; max-width: 1100px; }
+    th, td { border: 1px solid #d8dee9; padding: 0.55rem 0.75rem; text-align: left; vertical-align: top; }
+    th { background: #f6f8fa; width: 90px; }
+    code { background: #f6f8fa; padding: 0.1rem 0.25rem; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Paper Claim Readiness R307</h1>
+  <p>
+    R307 refreshes the claim gate after R300-R306. It keeps the profiler model
+    to two abstractions: operations and operation stacks.
+  </p>
+  <table>
+    <tr><th>Claim</th><th>Verdict</th><th>Supported wording</th></tr>
+<tr><th>C1</th><td>supported</td><td>AgentSight represents heterogeneous public agent trajectories and local agent-session traces as operations, then profiles them with user-selected operation stacks. Chrome Trace Event JSON is supported as an exchange container that imports back to operation JSONL.</td></tr>
+<tr><th>C2</th><td>supported with scoped limits</td><td>Recursive operation stacks recover useful task, phase, action, human-group, safety, and quality-label views on sampled labeled trajectories, and the same operations can be folded at different depths by changing stack fields.</td></tr>
+<tr><th>C3</th><td>partial</td><td>Deterministic mappings and supervised boundary backends improve semantic aggregation by deriving operation fields before folding.</td></tr>
+<tr><th>C4</th><td>supported as automated proxy, not user utility</td><td>On six oracle-backed analysis tasks over existing labeled operations, operation-stack views provide a useful inspectability tradeoff: they are far more selective than flat summaries and higher-recall than fixed-session case packets at the same top-k packet count, but they are not uniformly cheaper than fixed-session drilldown.</td></tr>
+  </table>
+</body>
+</html>
