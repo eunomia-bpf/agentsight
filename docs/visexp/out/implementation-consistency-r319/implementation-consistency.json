@@ -1,0 +1,83 @@
+{
+  "checks": [
+    {
+      "check": "rust_profile_spec_cli_present",
+      "evidence": "agentpprof/src/main.rs defines --profile-spec, RawProfileSpec, operation_files, and op_map_files.",
+      "status": "pass"
+    },
+    {
+      "check": "rust_profile_spec_override_contract",
+      "evidence": "Profile specs provide operation inputs while CLI stack/rule overrides remain explicit.",
+      "status": "pass"
+    },
+    {
+      "check": "rust_standard_trace_cli_present",
+      "evidence": "Rust CLI exposes standard trace import/export and routes imports into operation records.",
+      "status": "pass"
+    },
+    {
+      "check": "standard_trace_cli_test_present",
+      "evidence": "agentpprof has a CLI test for standard trace export and import.",
+      "status": "pass"
+    },
+    {
+      "check": "rust_operation_stack_source_of_truth",
+      "evidence": "Operation mapping and stack folding live in the Rust profile path used by operation files and trace imports.",
+      "status": "pass"
+    },
+    {
+      "check": "implementation_doc_records_current_rust_surface",
+      "evidence": "docs/implementation.md records profile specs and standard trace support as current implementation.",
+      "status": "pass"
+    },
+    {
+      "check": "profile_spec_not_stale_pending_task",
+      "evidence": "Profile-spec support is no longer listed as a pending implementation task.",
+      "status": "pass"
+    },
+    {
+      "check": "two_abstraction_boundary_in_docs",
+      "evidence": "Design, paper, and claim setup preserve operation plus operation stack as the core model.",
+      "status": "pass"
+    },
+    {
+      "check": "third_abstraction_guarded",
+      "evidence": "Any third-abstraction language is guarded as a non-claim.",
+      "status": "pass"
+    },
+    {
+      "check": "remaining_gates_are_real_research_gaps",
+      "evidence": "Remaining implementation/evaluation gates are analyst utility, real trace producer import, and deeper boundary adequacy.",
+      "status": "pass"
+    }
+  ],
+  "commit": "cb0dd076e17300bf972a535f7ae536e5a079f614",
+  "not_a_human_study_result": true,
+  "not_an_agent_study_result": true,
+  "not_dataset_sync": true,
+  "not_new_empirical_result": true,
+  "overall": "implementation_consistent",
+  "run_id": "R319",
+  "source_paths": {
+    "claim_setup": "docs/visexp/paper/evaluation-claims-setup.zh-CN.md",
+    "design_doc": "docs/design.md",
+    "evaluation_doc": "docs/evaluation.md",
+    "implementation_doc": "docs/implementation.md",
+    "paper_main": "docs/visexp/paper/main.tex",
+    "rust_cli": "agentpprof/src/main.rs",
+    "rust_profile": "agentpprof/src/profile.rs",
+    "rust_standard_trace": "agentpprof/src/standard_trace.rs",
+    "standard_trace_cli_test": "agentpprof/tests/standard_trace_cli.rs"
+  },
+  "status": "ok",
+  "summary": {
+    "failed_checks": 0,
+    "passed_checks": 10,
+    "remaining_gates": [
+      "controlled human/agent analyst study",
+      "calibrated boundary backend beyond simple derived-field baselines",
+      "real OpenTelemetry GenAI, OpenInference, or Perfetto trace import"
+    ],
+    "total_checks": 10
+  }
+}

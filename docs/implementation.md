@@ -1,8 +1,8 @@
 # Implementation
 
-Last updated: 2026-07-03
-Stage at update: stage 4 execute
-Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `script/operation_*.py`, `script/agent_trace_datasets.py sample tau-bench-trajectories`, `script/agent_trace_datasets.py sample agent-reward-bench`, `script/agent_trace_datasets.py sample satraj-os-safety`, `script/agent_trace_datasets.py sample osworld-human`, `script/agent_trace_datasets.py sample agentnet`, `script/agent_trace_datasets.py sample scalecua-navigation`, `cargo test --manifest-path agentpprof/Cargo.toml`
+Last updated: 2026-07-04
+Stage at update: stage 4 execute / stage 8 audit / stage 11 reproducibility prep
+Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agentpprof/src/standard_trace.rs`, `agentpprof/tests/standard_trace_cli.rs`, `script/operation_*.py`, `script/agent_trace_datasets.py sample tau-bench-trajectories`, `script/agent_trace_datasets.py sample agent-reward-bench`, `script/agent_trace_datasets.py sample satraj-os-safety`, `script/agent_trace_datasets.py sample osworld-human`, `script/agent_trace_datasets.py sample agentnet`, `script/agent_trace_datasets.py sample scalecua-navigation`, `script/agent_trace_exchange_eval.py`, `script/agent_trace_chrome_exchange_eval.py`, `script/implementation_consistency_audit.py`, `cargo test --manifest-path agentpprof/Cargo.toml`
 Completeness: partial
 
 ## Repository Layout Relevant To Semantic Profiling
@@ -13,13 +13,18 @@ Purpose: identify the maintained implementation boundary.
 |---|---|---|
 | `agentpprof/src/main.rs` | Rust CLI, argument parsing, operation-file entrypoint, output dispatch. | source of truth |
 | `agentpprof/src/profile.rs` | Operation loading, mapping, stack construction, pprof/folded/SVG/JSON profile generation. | source of truth |
+| `agentpprof/src/standard_trace.rs` | Chrome Trace Event export/import bridge that normalizes trace events into operation records before folding. | exchange bridge |
 | `agentpprof/src/tagger.rs` | Regex/LLM prompt tagging for local-session operation fields. | maintained |
+| `agentpprof/tests/standard_trace_cli.rs` | CLI round-trip test for standard trace export/import. | regression test |
 | `agent-session/` | Shared local Codex/Claude session parser. | maintained |
 | `script/agent_trace_datasets.py` | External labeled trajectory samplers and operation JSONL normalization. | research harness |
+| `script/agent_trace_exchange_eval.py` | Reproducible agent-session trace export/import/conversion equality check. | research harness |
+| `script/agent_trace_chrome_exchange_eval.py` | Reproducible Chrome/Perfetto-style trace exchange equality check. | research harness |
 | `script/operation_map_infer.py` | Generates reproducible operation-field mapping rules from labeled operations. | research harness |
 | `script/operation_stack_quality.py` | Scores operation stacks against dataset-provided labels. | research harness |
 | `script/operation_leaveout_eval.py` | Leave-dataset-out mapping validation over external traces. | research harness |
 | `script/operation_stack_depth_eval.py` | R286 recursive depth sweep over the Rust `agentpprof` path. | research harness |
+| `script/implementation_consistency_audit.py` | R319 implementation/docs consistency audit over Rust CLI, docs, and paper wording. | paper hygiene harness |
 | `docs/visexp/` | Historical AgentFlame/visual-experiment notes and older prototypes. | archive/reference; not authoritative |
 
 ## Current Implementation Status
@@ -33,9 +38,32 @@ The current Rust implementation supports:
 - inline operation-field mappings via `--op-map`;
 - reusable mapping files via `--op-map-file`;
 - frame-local stack overrides via `--stack-rule`;
+- reusable profile specs via `--profile-spec`;
+- portable local agent-session trace import/export via `--trace-file` and
+  `--export-trace`;
+- Chrome Trace Event import/export via
+  `--standard-trace-file` and `--export-standard-trace`;
 - pprof, folded, SVG, and JSON outputs;
 - local Codex/Claude session projections and external dataset projections
   through the same stack construction code path.
+
+Profile specs are implemented in the maintained Rust CLI rather than a separate
+experiment runner. R293 tracks an AgentNet spec replay that reproduces the
+16,741-operation / 608-stack diagnostic view and a CLI override that folds the
+same operations into 83 stacks. A profile spec is a reproducibility wrapper over
+operation files, mappings, views, stacks, and outputs; it is not a third
+profiler abstraction.
+
+Local trace exchange is also implemented through the maintained Rust path.
+R294/R303 show `agentsight.agent-session.trace.v1` export/import and operation
+JSONL conversion preserve the same 6-sample / 5-stack folded output on the
+public Codex fixture. R306 adds a Chrome Trace Event JSON `traceEvents` bridge
+that is Perfetto-readable in the fixture path: `agentpprof` exports the same
+fixture with `--export-standard-trace`, imports it with
+`--standard-trace-file`, and folds the imported events as ordinary operations.
+The CLI test in `agentpprof/tests/standard_trace_cli.rs` covers this
+standard-trace round trip. Real OpenTelemetry, OpenInference, or Perfetto
+producer traces remain an open compatibility gate.
 
 The external sampler currently covers 15 labeled trajectory sources, including
 R287's tau-bench converter, R288's AgentRewardBench converter, and R289's
@@ -116,7 +144,9 @@ cargo fmt --manifest-path agentpprof/Cargo.toml -- --check
 python3 -m py_compile script/agent_trace_datasets.py script/operation_split.py \
   script/operation_map_infer.py \
   script/operation_stack_quality.py script/operation_leaveout_eval.py \
-  script/operation_stack_depth_eval.py
+  script/operation_stack_depth_eval.py script/agent_trace_convert.py \
+  script/agent_trace_exchange_eval.py script/agent_trace_chrome_exchange_eval.py \
+  script/implementation_consistency_audit.py
 ```
 
 R286 depth sweep can be reproduced with:
@@ -158,9 +188,10 @@ Purpose: name work still needed before a paper-ready artifact.
 |---|---|---|
 | Add deeper boundary scorers for step instructions, solution paths, and failure labels. | Action-label F1 is too shallow for final recursive-boundary claims. | pending |
 | Add a non-rule or model-backed boundary backend for OSWorld-Human and AgentNet. | The paper can currently claim configurable deterministic mapping, not automatic boundary discovery. | pending |
+| Execute the controlled human/agent analyst study from R315/R316/R317. | The current C4 evidence is an automated proxy; productivity, accuracy, time-to-answer, and user utility remain unsupported. | pending |
+| Import one real OpenTelemetry GenAI, OpenInference, or Perfetto trace from another agent tool. | R306 proves a standard trace container round trip on a fixture, not compatibility with real producer traces. | pending |
 | Add converters for the best next trajectory sources: UI-Vision, OSWorld-Verified/OSWorld 2.0 trajectories, and VisualWebArena trajectories. | Future expansion beyond the current 15 sources should be driven by stronger oracles, not dataset count alone. | pending |
 | Scale tau-bench beyond the R287 `gpt-4o-mini` 50-episode sample. | Multi-model tau-bench trajectories can support outcome/failure and model-comparison analysis. | pending |
 | Scale AgentRewardBench beyond the R288 38-trajectory lightweight sample. | Expert side-effect and looping labels are sparse; larger balanced sampling is needed for paper-grade failure diagnostics and better sequence-derived repetition rules. | pending |
 | Scale SATraj-OS beyond the R289 safety sample and revisit the capability config. | Desktop computer-use is now represented, but capability rows were not fully readable through Dataset Viewer and need a heavier access path. | pending |
-| Add a config-file profile spec that bundles mappings, stack depth, and output choices. | Makes the jq-like configurable workflow easier than long CLI command lines. | pending |
-| Add stronger non-flamegraph comparison reports across datasets and depths. | Paper needs visual/analysis alternatives beyond flamegraphs. | partial via R273-R292 |
+| Add stronger non-flamegraph comparison reports for any new datasets or stack-depth questions. | The current scoped paper already has tree, transition, quality, boundary, case-packet, frontier, reviewer-stress, and claim-audit reports, but future expansion should keep adding non-flamegraph views rather than only folded stacks. | current scoped set covered by R273-R318; future expansion pending |
