@@ -400,9 +400,9 @@ Operation-stack view 的 median work fraction 为 0.0937、recall 为 0.188、li
     R307 claim readiness & R295/R298、R303 与 R300--R306 tracked artifacts & C1 supported；C2 supported with scoped limits；C3 partial；C4 automated proxy only；analysis suite 6 tasks / 34,539 operations & 当前 paper wording 可以强化机制 claim，但 user utility 仍需 controlled analyst study。 \\
     R308 analyst outcome & R305 visible packets 与 hidden answer key；6 tasks / 18 task-view packets & operation-stack positive/high-lift coverage 为 6/6 和 5/6；fixed-session 为 5/6 和 4/6；flat 为 6/6 和 0/6；operation-stack top-group lift median 1.5739 & First-evidence proxy 支持 operation-stack inspectability，但仍不是 human utility。 \\
     R309 problem value & R298/R300/R302/R305/R308 tracked artifacts；4 datasets；6 tasks & 34,539 task-operations；3,699 positives；operation-stack 比 flat selective 的任务为 6/6；high-lift coverage 为 5/6；比 fixed-session selected recall 更高的任务为 5/6 & 真实问题卡片增强 value/novelty 叙事，同时保留 fixed-session 在 4/6 tasks 上 selected work 更低。 \\
-    R310 evidence matrix & R307/R309 tracked artifacts & C1/C2/C4 scoped paper-ready；C3 partial；5-format audit outputs & 把 claim、证据数字和 must-not-claim 边界对齐成 paper audit surface，而不是新实验。 \\
-    R311 robustness audit & R302/R305/R308/R309/R310 tracked artifacts & 6/6 比 flat selective；6/6 positive group；5/6 high-lift；5/6 selected recall 高于 fixed-session；仅 2/6 selected work 低于 fixed-session & Reviewer-stress 结果支持 inspectability tradeoff，明确排除 human utility、automatic detection 和 universal fixed-session dominance。 \\
+    R310/R311 paper audits & R307/R309 evidence matrix 与 R302/R305/R308/R309/R310 reviewer-stress artifacts & C1/C2/C4 scoped paper-ready；C3 partial；6/6 比 flat selective；5/6 high-lift；5/6 selected recall 高于 fixed-session；仅 2/6 selected work 低于 fixed-session & Claim、证据数字、反例和 must-not-claim 边界对齐成 paper audit surface，明确排除 human utility、automatic detection 和 universal fixed-session dominance。 \\
     R313 view frontier & R300/R302/R305/R311 tracked artifacts；162 non-oracle candidate points & operation-stack frontier 6/6；best lift 4/6；best recall under 30\% work 4/6；flat/fixed frontier counterpoints 均为 6/6 & C4 是 configurable analysis-surface claim，而不是 single-view dominance。 \\
+    R314 related-work audit & related-work ledger、paper、claim ledger、evaluation ledger 与 R313 frontier & classic flamegraph/pprof、OpenTelemetry GenAI、OpenInference、LangSmith、Langfuse、Phoenix、AgentOps、公开标注轨迹和 fixed trace/span tree baseline 均进入检查 & Novelty/baseline grounding 是可失败的 audit surface，已有 trace systems 是同问题 baseline 而不是被忽略的相关工作。 \\
     R288/R289 diagnostics & 729 AgentRewardBench ops；4,285 SATraj ops & repeat-signal/looping V-measure 0.378 vs step-error 0.011；622 unsafe SATraj ops & Profiler 支持 failure/safety views，且负结果能揭示粗标签不足。 \\
     \bottomrule
   \end{tabular}
@@ -424,20 +424,25 @@ R292 流式采样 5,000 个 Ubuntu navigation rows，覆盖 131 个 sessions，�
 \section{相关工作}
 
 \textbf{Profiling 和 flamegraphs.}
-传统 flamegraph 把函数调用栈折叠为热点视图。
+传统 flamegraph 和 pprof 路线把运行时调用栈折叠成热点视图~[1,16]。
 本文复用 folded-stack 表示，但 stack frame 来自 operation fields，而不是语言运行时函数调用。
-因此同一批 operations 可以被折叠为 task、phase、tool、action、quality 或 safety 视图。
-这与 CPU profiler 的固定调用栈不同，也与只画一次 agent span tree 的 tracing 工具不同。
+因此同一批 operations 可以被折叠为 task、phase、tool、action、quality 或 safety 视图，也可以改成 fixed-session 或 flat baseline。
+区别不在图形样式，而在 stack 不是采样时固定的调用链。
+它是用户在 query time 选择的 operation-stack projection。
 
 \textbf{Agent tracing 和 LLM observability.}
-LangSmith、Langfuse、Phoenix、AgentOps 和 OpenTelemetry GenAI 等系统记录 LLM call、tool call、latency、token 和 trace tree。
-这些工具适合单次 workflow inspection。
-本文关注的是跨轨迹的 semantic profiling：把异构标注轨迹或本地 agent 历史统一为 operations，并允许用户选择 stack 深度和 mappings。
+OpenTelemetry GenAI 和 OpenInference 标准化 GenAI spans、LLM calls、agent reasoning steps、tool invocations、retrieval operations、MCP 和 provider-specific telemetry~[2,11]。
+LangSmith、Langfuse、Phoenix 和 AgentOps 等系统进一步把 LLM call、tool call、latency、token、trace tree、session、observation、evaluation score、goal、plan 和 agent artifact 放进单次 workflow inspection 与生产监控~[12,13,14,15]。
+这些系统是本文最接近的同问题相关工作。
+因此本文把 fixed trace/span tree 明确当作 baseline 和 exchange container，而不是把 trace/span/session 加成第三个 profiler 抽象。
+本文关注跨轨迹 semantic profiling，把异构标注轨迹或本地 agent 历史统一为 operations，并允许用户选择 stack 深度、mappings、tagging 和 ranker。
+R314 专门检查这些 closest systems 是否进入 novelty map 和 baseline guard。
 
 \textbf{Computer-use 和 tool-use benchmarks.}
 WebLINX、Mind2Web、GUI-Odyssey、OSWorld-Human、AgentNet、SATraj-OS、AgentRewardBench、ToolBench 和 tau-bench 为本文提供真实标注轨迹。
 本文不提出新 benchmark。
 贡献是把这些 benchmark 的动作、质量、安全和人工 group 标签统一为 operation fields，并用同一个 profiler 机制比较它们适合回答哪些 profiling 问题。
+这些 benchmark 是 evidence source 和 native-sequence baseline，不是被本文替代的对象。
 
 	\section{局限}
 
@@ -448,6 +453,7 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld-Human、AgentNet、SATraj-OS、AgentR
 
 	第二，用户效用仍是缺口。
 	R300--R313 把 failure、safety、quality 和 human-boundary 问题转成 label-hidden 或 hidden-answer-key proxy，并证明 operation stacks 对 flat summary 和 fixed-session drilldown 有有用 tradeoff。
+	R314 只把 related-work/baseline grounding 转成可失败 audit，不增加新的实证结果。
 	这些结果仍不能推出开发者准确率、time-to-answer 或 productivity 改善。
 	受控 human/agent analyst study 必须使用相同 visible packet、hidden answer key 和 flat/fixed/operation-stack/query-aware interfaces 才能支持更强 claim。
 
@@ -456,7 +462,7 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld-Human、AgentNet、SATraj-OS、AgentR
 	Chrome Trace Event 和 agent-session exchange 当前是 fixture-level smoke，它证明 trace 可以作为 exchange container，但不证明完整 OpenTelemetry/Chrome trace-ecosystem、Perfetto producer 或图像密集 benchmark 兼容。
 
 	第四，audit artifacts 是 claim-control surface，不是额外实证结果。
-	R295--R312 提高了论文表述、source path、负结果和 must-not-claim 边界的一致性，但它们只能审计底层 R282--R311 artifacts。
+	R295--R314 提高了论文表述、source path、负结果、related-work grounding 和 must-not-claim 边界的一致性，但它们只能审计底层 R282--R313 artifacts。
 	如果底层采样或 oracle 本身有偏差，audit 能暴露并收窄 claim，不能消除偏差。
 	因此本文最终主张仍应固定为 two-abstraction mechanism 和 automated inspectability tradeoff，而不是 universal fixed-session dominance、automatic anomaly detection 或完整 human utility。
 
@@ -473,6 +479,7 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld-Human、AgentNet、SATraj-OS、AgentR
 	AgentNet 证明大规模 human desktop step-quality 标签可以作为普通 operation fields 进入 profiling。
 	AgentRewardBench 和 SATraj-OS 证明 failure、looping、side-effect、安全和 attack-type diagnostics 可以用同一机制表达。
 	R300--R313 的 6 个任务进一步表明，operation stacks 相比 flat summary 更 selective，并在多数任务上比 fixed-session 取得更高 selected recall。
+	R314 则确认 classic folded-stack profilers、trace/span observability systems 和 public benchmark native views 都应保留为 baseline threats。
 	Pareto frontier 又显示 operation-stack 在所有任务上 nondominated，但 flat 和 fixed-session 仍是真实 counterpoints。
 	因此本文的 value claim 是 automated inspectability surface/tradeoff，而不是 detector、human utility 或 baseline dominance。
 
@@ -487,7 +494,7 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld-Human、AgentNet、SATraj-OS、AgentR
 \setlength{\parskip}{0pt}
 \setlength{\baselineskip}{6.2pt}
 \noindent [1] Brendan Gregg. Flame Graphs. \url{https://www.brendangregg.com/flamegraphs.html}.\par
-\noindent [2] OpenTelemetry GenAI semantic conventions. \url{https://opentelemetry.io/docs/specs/semconv/gen-ai/}.\par
+\noindent [2] OpenTelemetry GenAI semantic conventions. \url{https://github.com/open-telemetry/semantic-conventions-genai}.\par
 \noindent [3] McGill-NLP WebLINX. \url{https://huggingface.co/datasets/McGill-NLP/WebLINX}.\par
 \noindent [4] OpenGVLab GUI-Odyssey. \url{https://huggingface.co/datasets/OpenGVLab/GUI-Odyssey}.\par
 \noindent [5] WukLab OSWorld-Human. \url{https://github.com/WukLab/osworld-human}.\par
@@ -495,6 +502,12 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld-Human、AgentNet、SATraj-OS、AgentR
 \noindent [7] McGill-NLP AgentRewardBench. \url{https://huggingface.co/datasets/McGill-NLP/agent-reward-bench}.\par
 \noindent [8] AI45Research SATraj-OS. \url{https://huggingface.co/datasets/AI45Research/SATraj-OS}.\par
 \noindent [9] AgentSuite tau-bench trajectories. \url{https://huggingface.co/datasets/AgentSuite/tau-bench-trajectories}.\par
-\noindent [10] OpenGVLab ScaleCUA-Data. \url{https://huggingface.co/datasets/OpenGVLab/ScaleCUA-Data}.
+\noindent [10] OpenGVLab ScaleCUA-Data. \url{https://huggingface.co/datasets/OpenGVLab/ScaleCUA-Data}.\par
+\noindent [11] OpenInference specification. \url{https://arize-ai.github.io/openinference/spec/}.\par
+\noindent [12] LangSmith Observability. \url{https://docs.langchain.com/langsmith/observability}.\par
+\noindent [13] Langfuse Observability. \url{https://langfuse.com/docs/observability/overview}.\par
+\noindent [14] Arize Phoenix. \url{https://arize.com/docs/phoenix}.\par
+\noindent [15] AgentOps: Enabling Observability of LLM Agents. \url{https://arxiv.org/html/2411.05285v2}.\par
+\noindent [16] Brendan Gregg. The Flame Graph. \url{https://queue.acm.org/detail.cfm?id=2927301}.
 
 \end{document}

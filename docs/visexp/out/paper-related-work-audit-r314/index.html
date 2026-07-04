@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Paper Related Work Audit R314</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; color: #1f2933; }
+    h1 { font-size: 1.6rem; margin-bottom: 0.25rem; }
+    table { border-collapse: collapse; margin-top: 1rem; max-width: 1180px; }
+    th, td { border: 1px solid #d8dee9; padding: 0.55rem 0.75rem; text-align: left; vertical-align: top; }
+    th { background: #f6f8fa; }
+  </style>
+</head>
+<body>
+  <h1>Paper Related Work Audit R314</h1>
+  <p>Overall: scoped_related_work_ready. The paper is grounded against current trace-tree observability systems, classic folded-stack profilers, and public labeled agent-trajectory benchmarks, while preserving the scoped R313 inspectability-tradeoff claim.</p>
+  <h2>Closest Work</h2>
+  <table><tr><th>Key</th><th>Status</th><th>Lines</th><th>Reason</th></tr>
+<tr><th>classic_flamegraph_pprof</th><td>pass</td><td>41, 63, 66, 72, 95, 184, 238, 239, 274, 281, 286, 289, ... (119 total)</td><td>Classic profilers are the fixed-call-stack baseline for folded stacks.</td></tr>
+<tr><th>opentelemetry_genai</th><td>pass</td><td>35, 38, 40, 65, 73, 74, 77, 117, 210, 565, 594, 622, ... (21 total)</td><td>OpenTelemetry-style GenAI semantic conventions are the trace-schema threat.</td></tr>
+<tr><th>openinference</th><td>pass</td><td>38, 40, 65, 74, 77, 117, 565, 594, 666, 700, 749, 839, ... (14 total)</td><td>OpenInference is a current AI-observability semantic convention for spans.</td></tr>
+<tr><th>langsmith</th><td>pass</td><td>36, 65, 66, 75, 104, 565, 595, 667, 700, 749, 839, 1124</td><td>LangSmith is a production LLM observability and evaluation platform.</td></tr>
+<tr><th>langfuse</th><td>pass</td><td>37, 65, 66, 76, 104, 565, 595, 668, 700, 749, 839, 1124</td><td>Langfuse is an open LLM tracing, eval, and prompt-management platform.</td></tr>
+<tr><th>phoenix</th><td>pass</td><td>38, 65, 66, 74, 77, 104, 565, 595, 666, 669, 700, 749, ... (14 total)</td><td>Phoenix is an OpenTelemetry/OpenInference-based tracing/eval platform.</td></tr>
+<tr><th>agentops</th><td>pass</td><td>39, 65, 78, 565, 595, 670, 700, 749, 839, 1124</td><td>AgentOps is the closest agent-specific observability taxonomy/tooling threat.</td></tr>
+<tr><th>public_labeled_trajectories</th><td>pass</td><td>13, 16, 27, 28, 29, 31, 32, 33, 34, 48, 51, 63, ... (188 total)</td><td>The paper must distinguish itself from benchmarks that provide labeled trajectories.</td></tr>
+  </table>
+  <h2>Baselines</h2>
+  <table><tr><th>Key</th><th>Status</th><th>Lines</th><th>Reason</th></tr>
+<tr><th>dataset_native_sequence</th><td>pass</td><td>63, 102, 157, 880, 1154</td><td>Reviewers will expect a comparison against the benchmark&#x27;s native sequence view.</td></tr>
+<tr><th>flat_action_summary</th><td>pass</td><td>63, 66, 105, 157, 218, 220, 323, 334, 388, 407, 409, 410, ... (72 total)</td><td>Flat counting is the simplest aggregation baseline.</td></tr>
+<tr><th>fixed_session_stack</th><td>pass</td><td>63, 64, 66, 103, 157, 209, 219, 220, 221, 323, 335, 382, ... (100 total)</td><td>Fixed session or demo stacks test whether operation stacks add value.</td></tr>
+<tr><th>fixed_trace_span_tree</th><td>pass</td><td>65, 66, 74, 75, 104, 117, 157, 197, 252, 336, 565, 595, ... (20 total)</td><td>LLM observability systems motivate a trace-tree baseline.</td></tr>
+<tr><th>frontier_counterpoints</th><td>pass</td><td>66, 220, 323, 407, 409, 410, 413, 416, 503, 525, 530, 555, ... (53 total)</td><td>R313 should preserve counterpoints instead of claiming dominance.</td></tr>
+  </table>
+</body>
+</html>
