@@ -1,0 +1,516 @@
+{
+  "input_policy": {
+    "dataset_creation": "none",
+    "dataset_sync": "none",
+    "hidden_label_use": "hidden labels are used only to score observed rankings and construct label-permutation nulls",
+    "profiler_rerun": "none",
+    "r320_policy_csv": "docs/visexp/out/operation-profile-accuracy-r320/policy-scores.csv",
+    "r320_report": "docs/visexp/out/operation-profile-accuracy-r320/profile-accuracy-report.json"
+  },
+  "metrics": [
+    "average_precision",
+    "top5_precision",
+    "top5_recall",
+    "top5_f1",
+    "top5_work",
+    "top5_lift",
+    "budget30_recall",
+    "work_to_first_positive"
+  ],
+  "non_claims": [
+    "This does not create, sync, download, or relabel a dataset.",
+    "This does not claim per-operation independence in the real trace.",
+    "This does not claim human utility or analyst productivity.",
+    "This does not prove a universal label-free ranker or single-view dominance."
+  ],
+  "null_model": {
+    "description": "keep group sizes and visible ranking order fixed; randomly allocate each task's positive operations across operation positions",
+    "reps": 2000,
+    "seed": 331,
+    "unit": "task/policy group ranking"
+  },
+  "policies": [
+    "operation_stack:query_aware",
+    "operation_stack:width",
+    "fixed_session:query_aware",
+    "dataset_native:query_aware",
+    "raw_action_stack:query_aware"
+  ],
+  "policy_summary": [
+    {
+      "beyond_95pct_null_tasks": 5,
+      "direction": "higher",
+      "mean_observed_minus_null_mean": 0.1652,
+      "median_empirical_p_value": 0.0005,
+      "median_observed_minus_null_mean": 0.0635,
+      "median_observed_over_null_mean": 1.2467,
+      "metric": "average_precision",
+      "policy": "dataset_native:query_aware",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 1,
+      "direction": "higher",
+      "mean_observed_minus_null_mean": -0.0044,
+      "median_empirical_p_value": 0.998,
+      "median_observed_minus_null_mean": 0.0,
+      "median_observed_over_null_mean": 1.0,
+      "metric": "top5_precision",
+      "policy": "dataset_native:query_aware",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 1,
+      "direction": "higher",
+      "mean_observed_minus_null_mean": 0.004,
+      "median_empirical_p_value": 0.998,
+      "median_observed_minus_null_mean": 0.0,
+      "median_observed_over_null_mean": 1.0,
+      "metric": "top5_recall",
+      "policy": "dataset_native:query_aware",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 1,
+      "direction": "higher",
+      "mean_observed_minus_null_mean": 0.0011,
+      "median_empirical_p_value": 0.998,
+      "median_observed_minus_null_mean": 0.0,
+      "median_observed_over_null_mean": 1.0,
+      "metric": "top5_f1",
+      "policy": "dataset_native:query_aware",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 0,
+      "direction": "lower",
+      "mean_observed_minus_null_mean": 0.0,
+      "median_empirical_p_value": 1.0,
+      "median_observed_minus_null_mean": 0.0,
+      "median_observed_over_null_mean": 1.0,
+      "metric": "top5_work",
+      "policy": "dataset_native:query_aware",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 1,
+      "direction": "higher",
+      "mean_observed_minus_null_mean": -0.0929,
+      "median_empirical_p_value": 0.998,
+      "median_observed_minus_null_mean": 0.0,
+      "median_observed_over_null_mean": 1.0,
+      "metric": "top5_lift",
+      "policy": "dataset_native:query_aware",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 4,
+      "direction": "higher",
+      "mean_observed_minus_null_mean": 0.1251,
+      "median_empirical_p_value": 0.018,
+      "median_observed_minus_null_mean": 0.0569,
+      "median_observed_over_null_mean": 1.2097,
+      "metric": "budget30_recall",
+      "policy": "dataset_native:query_aware",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 0,
+      "direction": "lower",
+      "mean_observed_minus_null_mean": -0.0003,
+      "median_empirical_p_value": 1.0,
+      "median_observed_minus_null_mean": 0.0,
+      "median_observed_over_null_mean": 1.0,
+      "metric": "work_to_first_positive",
+      "policy": "dataset_native:query_aware",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 6,
+      "direction": "higher",
+      "mean_observed_minus_null_mean": 0.1306,
+      "median_empirical_p_value": 0.0005,
+      "median_observed_minus_null_mean": 0.1089,
+      "median_observed_over_null_mean": 1.2945,
+      "metric": "average_precision",
+      "policy": "fixed_session:query_aware",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 4,
+      "direction": "higher",
+      "mean_observed_minus_null_mean": 0.0868,
+      "median_empirical_p_value": 0.0045,
+      "median_observed_minus_null_mean": 0.0921,
+      "median_observed_over_null_mean": 1.6918,
+      "metric": "top5_precision",
+      "policy": "fixed_session:query_aware",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 4,
+      "direction": "higher",
+      "mean_observed_minus_null_mean": -0.0154,
+      "median_empirical_p_value": 0.0045,
+      "median_observed_minus_null_mean": 0.0118,
+      "median_observed_over_null_mean": 1.6918,
+      "metric": "top5_recall",
+      "policy": "fixed_session:query_aware",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 4,
+      "direction": "higher",
+      "mean_observed_minus_null_mean": -0.0087,
+      "median_empirical_p_value": 0.0045,
+      "median_observed_minus_null_mean": 0.0216,
+      "median_observed_over_null_mean": 1.6918,
+      "metric": "top5_f1",
+      "policy": "fixed_session:query_aware",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 0,
+      "direction": "lower",
+      "mean_observed_minus_null_mean": 0.0,
+      "median_empirical_p_value": 1.0,
+      "median_observed_minus_null_mean": 0.0,
+      "median_observed_over_null_mean": 1.0,
+      "metric": "top5_work",
+      "policy": "fixed_session:query_aware",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 4,
+      "direction": "higher",
+      "mean_observed_minus_null_mean": 0.7616,
+      "median_empirical_p_value": 0.0045,
+      "median_observed_minus_null_mean": 0.6976,
+      "median_observed_over_null_mean": 1.6918,
+      "metric": "top5_lift",
+      "policy": "fixed_session:query_aware",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 5,
+      "direction": "higher",
+      "mean_observed_minus_null_mean": 0.0859,
+      "median_empirical_p_value": 0.0007,
+      "median_observed_minus_null_mean": 0.0566,
+      "median_observed_over_null_mean": 1.1889,
+      "metric": "budget30_recall",
+      "policy": "fixed_session:query_aware",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 1,
+      "direction": "lower",
+      "mean_observed_minus_null_mean": 0.0508,
+      "median_empirical_p_value": 0.9505,
+      "median_observed_minus_null_mean": -0.0,
+      "median_observed_over_null_mean": 0.9954,
+      "metric": "work_to_first_positive",
+      "policy": "fixed_session:query_aware",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 6,
+      "direction": "higher",
+      "mean_observed_minus_null_mean": 0.1207,
+      "median_empirical_p_value": 0.0005,
+      "median_observed_minus_null_mean": 0.0759,
+      "median_observed_over_null_mean": 1.3448,
+      "metric": "average_precision",
+      "policy": "operation_stack:query_aware",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 3,
+      "direction": "higher",
+      "mean_observed_minus_null_mean": 0.1775,
+      "median_empirical_p_value": 0.0695,
+      "median_observed_minus_null_mean": 0.078,
+      "median_observed_over_null_mean": 1.6588,
+      "metric": "top5_precision",
+      "policy": "operation_stack:query_aware",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 3,
+      "direction": "higher",
+      "mean_observed_minus_null_mean": 0.0559,
+      "median_empirical_p_value": 0.0695,
+      "median_observed_minus_null_mean": 0.0054,
+      "median_observed_over_null_mean": 1.6588,
+      "metric": "top5_recall",
+      "policy": "operation_stack:query_aware",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 3,
+      "direction": "higher",
+      "mean_observed_minus_null_mean": 0.0815,
+      "median_empirical_p_value": 0.0695,
+      "median_observed_minus_null_mean": 0.0099,
+      "median_observed_over_null_mean": 1.6588,
+      "metric": "top5_f1",
+      "policy": "operation_stack:query_aware",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 0,
+      "direction": "lower",
+      "mean_observed_minus_null_mean": 0.0,
+      "median_empirical_p_value": 1.0,
+      "median_observed_minus_null_mean": 0.0,
+      "median_observed_over_null_mean": 1.0,
+      "metric": "top5_work",
+      "policy": "operation_stack:query_aware",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 3,
+      "direction": "higher",
+      "mean_observed_minus_null_mean": 1.2814,
+      "median_empirical_p_value": 0.0695,
+      "median_observed_minus_null_mean": 0.6547,
+      "median_observed_over_null_mean": 1.6588,
+      "metric": "top5_lift",
+      "policy": "operation_stack:query_aware",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 5,
+      "direction": "higher",
+      "mean_observed_minus_null_mean": 0.1512,
+      "median_empirical_p_value": 0.0005,
+      "median_observed_minus_null_mean": 0.0904,
+      "median_observed_over_null_mean": 1.3018,
+      "metric": "budget30_recall",
+      "policy": "operation_stack:query_aware",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 0,
+      "direction": "lower",
+      "mean_observed_minus_null_mean": -0.0001,
+      "median_empirical_p_value": 0.9995,
+      "median_observed_minus_null_mean": -0.0,
+      "median_observed_over_null_mean": 0.9995,
+      "metric": "work_to_first_positive",
+      "policy": "operation_stack:query_aware",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 5,
+      "direction": "higher",
+      "mean_observed_minus_null_mean": 0.0282,
+      "median_empirical_p_value": 0.0005,
+      "median_observed_minus_null_mean": 0.0221,
+      "median_observed_over_null_mean": 1.1584,
+      "metric": "average_precision",
+      "policy": "operation_stack:width",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 3,
+      "direction": "higher",
+      "mean_observed_minus_null_mean": -0.0137,
+      "median_empirical_p_value": 0.0562,
+      "median_observed_minus_null_mean": 0.0082,
+      "median_observed_over_null_mean": 1.0496,
+      "metric": "top5_precision",
+      "policy": "operation_stack:width",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 3,
+      "direction": "higher",
+      "mean_observed_minus_null_mean": -0.0612,
+      "median_empirical_p_value": 0.0562,
+      "median_observed_minus_null_mean": 0.0279,
+      "median_observed_over_null_mean": 1.0496,
+      "metric": "top5_recall",
+      "policy": "operation_stack:width",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 3,
+      "direction": "higher",
+      "mean_observed_minus_null_mean": -0.0242,
+      "median_empirical_p_value": 0.0562,
+      "median_observed_minus_null_mean": 0.0129,
+      "median_observed_over_null_mean": 1.0496,
+      "metric": "top5_f1",
+      "policy": "operation_stack:width",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 0,
+      "direction": "lower",
+      "mean_observed_minus_null_mean": 0.0,
+      "median_empirical_p_value": 1.0,
+      "median_observed_minus_null_mean": 0.0,
+      "median_observed_over_null_mean": 1.0,
+      "metric": "top5_work",
+      "policy": "operation_stack:width",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 3,
+      "direction": "higher",
+      "mean_observed_minus_null_mean": -0.1071,
+      "median_empirical_p_value": 0.0562,
+      "median_observed_minus_null_mean": 0.0495,
+      "median_observed_over_null_mean": 1.0496,
+      "metric": "top5_lift",
+      "policy": "operation_stack:width",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 4,
+      "direction": "higher",
+      "mean_observed_minus_null_mean": 0.0123,
+      "median_empirical_p_value": 0.0142,
+      "median_observed_minus_null_mean": 0.0373,
+      "median_observed_over_null_mean": 1.1244,
+      "metric": "budget30_recall",
+      "policy": "operation_stack:width",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 0,
+      "direction": "lower",
+      "mean_observed_minus_null_mean": 0.0881,
+      "median_empirical_p_value": 1.0,
+      "median_observed_minus_null_mean": 0.0,
+      "median_observed_over_null_mean": 1.0,
+      "metric": "work_to_first_positive",
+      "policy": "operation_stack:width",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 6,
+      "direction": "higher",
+      "mean_observed_minus_null_mean": 0.1011,
+      "median_empirical_p_value": 0.0005,
+      "median_observed_minus_null_mean": 0.0398,
+      "median_observed_over_null_mean": 1.1388,
+      "metric": "average_precision",
+      "policy": "raw_action_stack:query_aware",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 2,
+      "direction": "higher",
+      "mean_observed_minus_null_mean": 0.0574,
+      "median_empirical_p_value": 0.3906,
+      "median_observed_minus_null_mean": 0.0113,
+      "median_observed_over_null_mean": 1.0371,
+      "metric": "top5_precision",
+      "policy": "raw_action_stack:query_aware",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 2,
+      "direction": "higher",
+      "mean_observed_minus_null_mean": 0.0579,
+      "median_empirical_p_value": 0.3906,
+      "median_observed_minus_null_mean": 0.0034,
+      "median_observed_over_null_mean": 1.0371,
+      "metric": "top5_recall",
+      "policy": "raw_action_stack:query_aware",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 2,
+      "direction": "higher",
+      "mean_observed_minus_null_mean": 0.0572,
+      "median_empirical_p_value": 0.3906,
+      "median_observed_minus_null_mean": 0.0043,
+      "median_observed_over_null_mean": 1.0371,
+      "metric": "top5_f1",
+      "policy": "raw_action_stack:query_aware",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 0,
+      "direction": "lower",
+      "mean_observed_minus_null_mean": 0.0,
+      "median_empirical_p_value": 1.0,
+      "median_observed_minus_null_mean": 0.0,
+      "median_observed_over_null_mean": 1.0,
+      "metric": "top5_work",
+      "policy": "raw_action_stack:query_aware",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 2,
+      "direction": "higher",
+      "mean_observed_minus_null_mean": 0.2857,
+      "median_empirical_p_value": 0.3906,
+      "median_observed_minus_null_mean": 0.037,
+      "median_observed_over_null_mean": 1.0371,
+      "metric": "top5_lift",
+      "policy": "raw_action_stack:query_aware",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 3,
+      "direction": "higher",
+      "mean_observed_minus_null_mean": 0.0579,
+      "median_empirical_p_value": 0.3531,
+      "median_observed_minus_null_mean": 0.0376,
+      "median_observed_over_null_mean": 1.1261,
+      "metric": "budget30_recall",
+      "policy": "raw_action_stack:query_aware",
+      "tasks": 6
+    },
+    {
+      "beyond_95pct_null_tasks": 0,
+      "direction": "lower",
+      "mean_observed_minus_null_mean": 0.0054,
+      "median_empirical_p_value": 1.0,
+      "median_observed_minus_null_mean": 0.0,
+      "median_observed_over_null_mean": 1.0,
+      "metric": "work_to_first_positive",
+      "policy": "raw_action_stack:query_aware",
+      "tasks": 6
+    }
+  ],
+  "primary_findings": [
+    "Operation-stack query-aware AP exceeds the label-permutation null on 6/6 tasks (median AP delta 0.0759).",
+    "The same policy's top-5 precision exceeds the null on 3/6 tasks and 30% budget recall exceeds the null on 5/6 tasks.",
+    "Width-only operation-stack AP exceeds the null on 5/6 tasks, so some signal comes from stack grouping itself; query-aware ranking remains needed for the stronger R320/R330 results.",
+    "Fixed-session query-aware AP exceeds the null on 6/6 tasks, preserving it as a real low-work counterpoint rather than a strawman baseline.",
+    "Raw action/status AP exceeds the null on 6/6 tasks, but R320/R330 show its mapped-depth comparison is task-sensitive; R331 therefore calibrates signal, not universal dominance."
+  ],
+  "purpose": "test whether R320 visible-policy localization signals exceed prevalence/group-size label-permutation nulls",
+  "r320_totals": {
+    "datasets": 4,
+    "group_views": 36,
+    "policy_scores": 144,
+    "positive_operations": 3699,
+    "task_operations": 34539,
+    "tasks": 6
+  },
+  "reproducibility": {
+    "commit": "9fc137c69eafea211350dfc8128f293871a3e26d",
+    "elapsed_seconds": 15.471,
+    "network_access_required": false
+  },
+  "run_id": "R331",
+  "schema": "agentsight.profile-negative-control.v1",
+  "source_check": {
+    "files": [
+      "docs/visexp/out/operation-profile-accuracy-r320/profile-accuracy-report.json",
+      "docs/visexp/out/operation-profile-accuracy-r320/policy-scores.csv",
+      "docs/visexp/out/external-agent-trace-agentnet-r291/agentnet-operations.jsonl",
+      "docs/visexp/out/external-agent-trace-agentreward-r288/agentreward-operations.jsonl",
+      "docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-operations.jsonl",
+      "docs/visexp/out/external-agent-trace-satraj-r289/satraj-operations.jsonl"
+    ],
+    "status": "pass",
+    "tracked_clean_files": 6
+  }
+}
