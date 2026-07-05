@@ -1,0 +1,19 @@
+{
+  "format": "json",
+  "operation_files": [
+    "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl"
+  ],
+  "output": "osworld_group_start-coarse-drop_navigate-phase.json",
+  "rank_mode": "rule-score",
+  "rank_op_rules": [
+    "input-phase:1.5=phase=(input|modify)",
+    "write-action:1=action=(fill|type|key|hotkey|press|select_option|send_msg_to_user|drag)",
+    "navigation:0.5=action=(click|left_click|double_click|tripleclick|move_to|drag|scroll|hover|goto|go_back)",
+    "finish-phase:0.5=phase=finish"
+  ],
+  "stack": "analysis_task,dataset,app,phase",
+  "view": "operations",
+  "where_rules": [
+    "analysis_task=osworld_group_start"
+  ]
+}

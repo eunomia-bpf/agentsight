@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>R325 Operation Rank-Feature Ablation</title>
+<style>
+body { font-family: system-ui, sans-serif; margin: 32px; color: #1f2937; }
+table { border-collapse: collapse; width: 100%; margin: 16px 0 28px; }
+th, td { border-bottom: 1px solid #d1d5db; padding: 8px; text-align: right; }
+th:first-child, td:first-child, th:nth-child(2), td:nth-child(2), th:nth-child(3), td:nth-child(3), th:nth-child(4), td:nth-child(4) { text-align: left; }
+code { background: #f3f4f6; padding: 1px 4px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<h1>R325 Operation Rank-Feature Ablation</h1>
+<p>Profiler input: <code>docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl</code>. Hidden labels are not passed to Rust and are used only for offline scoring.</p>
+<ul>
+<li>Semantic AP wins vs width: 5/6</li>
+<li>Coarse AP wins vs width: 4/6</li>
+<li>Critical feature instances: 7</li>
+<li>Misleading feature instances: 3</li>
+<li>Coarse preferred by AP: 2/6</li>
+</ul>
+<h2>Critical And Misleading Features</h2>
+<table><thead><tr><th>Task</th><th>Stack</th><th>Feature</th><th>Class</th><th>Drop AP Delta</th><th>Drop WTFP Delta</th></tr></thead><tbody><tr><td>satraj_unsafe</td><td>coarse</td><td>success</td><td>critical</td><td>-0.3948</td><td>0.0946</td></tr>
+<tr><td>satraj_unsafe</td><td>semantic</td><td>success</td><td>critical</td><td>-0.2682</td><td>0.0604</td></tr>
+<tr><td>agentreward_looping</td><td>coarse</td><td>loop-like</td><td>critical</td><td>-0.1363</td><td>0.2140</td></tr>
+<tr><td>agentreward_looping</td><td>semantic</td><td>loop-like</td><td>critical</td><td>-0.1183</td><td>0.0000</td></tr>
+<tr><td>agentreward_side_effect</td><td>semantic</td><td>write-action</td><td>critical</td><td>-0.0824</td><td>0.0000</td></tr>
+<tr><td>agentreward_side_effect</td><td>coarse</td><td>write-action</td><td>critical</td><td>-0.0754</td><td>0.0000</td></tr>
+<tr><td>agentnet_redundant_step</td><td>semantic</td><td>failure</td><td>critical</td><td>-0.0008</td><td>0.0554</td></tr>
+<tr><td>osworld_group_start</td><td>semantic</td><td>input-phase</td><td>misleading</td><td>-0.0136</td><td>-0.1017</td></tr>
+<tr><td>osworld_group_start</td><td>coarse</td><td>input-phase</td><td>misleading</td><td>0.0225</td><td>-0.3261</td></tr>
+<tr><td>satraj_unsafe</td><td>semantic</td><td>loop-like</td><td>misleading</td><td>0.1734</td><td>0.0000</td></tr></tbody></table>
+<h2>Stack Depth</h2>
+<table><thead><tr><th>Task</th><th>Preferred</th><th>Semantic AP</th><th>Coarse AP</th><th>Group Reduction</th></tr></thead><tbody><tr><td>agentreward_looping</td><td>semantic</td><td>0.8808</td><td>0.8174</td><td>24</td></tr>
+<tr><td>agentreward_side_effect</td><td>coarse</td><td>0.3947</td><td>0.4252</td><td>24</td></tr>
+<tr><td>satraj_unsafe</td><td>coarse</td><td>0.4772</td><td>0.6081</td><td>120</td></tr>
+<tr><td>agentnet_incorrect_step</td><td>semantic</td><td>0.0847</td><td>0.0770</td><td>246</td></tr>
+<tr><td>agentnet_redundant_step</td><td>semantic</td><td>0.0874</td><td>0.0772</td><td>218</td></tr>
+<tr><td>osworld_group_start</td><td>semantic</td><td>0.2214</td><td>0.1860</td><td>141</td></tr></tbody></table>
+</body>
+</html>

@@ -3,8 +3,8 @@
 R319 checks that the maintained Rust semantic-profiler path, canonical docs, and Chinese paper agree on the current implementation boundary. It is not a dataset sync, not a new profiling run, and not a human/agent analyst-task result.
 
 - Overall: `implementation_consistent`
-- Checks passed: 12 / 12
-- Commit at generation: `6ed97417a2faf497a5475e22b91a23062014f478`
+- Checks passed: 13 / 13
+- Commit at generation: `aee19634edd33ec6e40a3be25d9331427a799b8e`
 
 ## Checks
 
@@ -16,7 +16,8 @@ R319 checks that the maintained Rust semantic-profiler path, canonical docs, and
 | `standard_trace_cli_test_present` | pass | agentpprof has a CLI test for standard trace export and import. |
 | `rust_operation_stack_source_of_truth` | pass | Operation mapping, query predicates, stack folding, and visible rank summaries live in the Rust profile path used by operation files and trace imports. |
 | `operation_predicate_documented_as_query_not_object` | pass | Docs record --where/where_rules as a query predicate over operation fields, with R321 as the implementation probe. |
-| `operation_rank_policy_documented_as_projection_not_object` | pass | Docs record --rank-rule/rank_rules, --rank-op-rule/rank_op_rules, and --rank-mode/rank_mode as visible operation-stack group ranking projections, with R322/R323/R324 as implementation probes and R324 using a scrubbed visible profiler input. |
+| `operation_rank_policy_documented_as_projection_not_object` | pass | Docs record --rank-rule/rank_rules, --rank-op-rule/rank_op_rules, and --rank-mode/rank_mode as visible operation-stack group ranking projections, with R322/R323/R324/R325 as implementation probes and R324/R325 using the scrubbed visible profiler input. |
+| `rank_feature_ablation_actionability_documented` | pass | R325 reuses the scrubbed visible operation input for leave-one-feature profile-spec ablations, and docs record critical/misleading features plus stack-depth tradeoffs. |
 | `implementation_doc_records_current_rust_surface` | pass | docs/implementation.md records profile specs and standard trace support as current implementation. |
 | `profile_spec_not_stale_pending_task` | pass | Profile-spec support is no longer listed as a pending implementation task. |
 | `two_abstraction_boundary_in_docs` | pass | Design, paper, and claim setup preserve operation plus operation stack as the core model. |

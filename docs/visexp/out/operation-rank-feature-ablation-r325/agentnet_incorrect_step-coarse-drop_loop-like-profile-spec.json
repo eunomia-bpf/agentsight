@@ -1,0 +1,18 @@
+{
+  "format": "json",
+  "operation_files": [
+    "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl"
+  ],
+  "output": "agentnet_incorrect_step-coarse-drop_loop-like.json",
+  "rank_mode": "rule-score",
+  "rank_op_rules": [
+    "failure:2=status=.*(fail|error)",
+    "risky-env:1=environment=(error_correction|infeasible|unknown_file|popup|induced_text|account)",
+    "input-phase:0.5=phase=(input|modify)"
+  ],
+  "stack": "analysis_task,dataset,environment,phase",
+  "view": "operations",
+  "where_rules": [
+    "analysis_task=agentnet_incorrect_step"
+  ]
+}

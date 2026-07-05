@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-04
 Stage at update: stage 4 execute / stage 8 audit / stage 11 reproducibility prep
-Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agentpprof/src/standard_trace.rs`, `agentpprof/tests/standard_trace_cli.rs`, `script/operation_*.py`, `script/agent_trace_datasets.py sample tau-bench-trajectories`, `script/agent_trace_datasets.py sample agent-reward-bench`, `script/agent_trace_datasets.py sample satraj-os-safety`, `script/agent_trace_datasets.py sample osworld-human`, `script/agent_trace_datasets.py sample agentnet`, `script/agent_trace_datasets.py sample scalecua-navigation`, `script/agent_trace_exchange_eval.py`, `script/agent_trace_chrome_exchange_eval.py`, `script/operation_where_filter_eval.py`, `script/operation_rust_rank_rule_eval.py`, `script/operation_rank_mode_eval.py`, `script/operation_rank_feature_eval.py`, `script/implementation_consistency_audit.py`, `cargo test --manifest-path agentpprof/Cargo.toml`
+Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agentpprof/src/standard_trace.rs`, `agentpprof/tests/standard_trace_cli.rs`, `script/operation_*.py`, `script/agent_trace_datasets.py sample tau-bench-trajectories`, `script/agent_trace_datasets.py sample agent-reward-bench`, `script/agent_trace_datasets.py sample satraj-os-safety`, `script/agent_trace_datasets.py sample osworld-human`, `script/agent_trace_datasets.py sample agentnet`, `script/agent_trace_datasets.py sample scalecua-navigation`, `script/agent_trace_exchange_eval.py`, `script/agent_trace_chrome_exchange_eval.py`, `script/operation_where_filter_eval.py`, `script/operation_rust_rank_rule_eval.py`, `script/operation_rank_mode_eval.py`, `script/operation_rank_feature_eval.py`, `script/operation_rank_feature_ablation_eval.py`, `script/implementation_consistency_audit.py`, `cargo test --manifest-path agentpprof/Cargo.toml`
 Completeness: partial
 
 ## Repository Layout Relevant To Semantic Profiling
@@ -28,6 +28,7 @@ Purpose: identify the maintained implementation boundary.
 | `script/operation_rust_rank_rule_eval.py` | R322 Rust visible rank-rule probe over tracked R300 operation JSONL. | research harness |
 | `script/operation_rank_mode_eval.py` | R323 Rust rank-mode comparison over tracked R300 operation JSONL. | research harness |
 | `script/operation_rank_feature_eval.py` | R324 Rust operation-level rank-feature probe; derives a visible-only profiler input from tracked R300 operation JSONL before scoring with hidden labels. | research harness |
+| `script/operation_rank_feature_ablation_eval.py` | R325 leave-one-feature actionability probe over R324's scrubbed visible profiler input. | research harness |
 | `script/implementation_consistency_audit.py` | R319 implementation/docs consistency audit over Rust CLI, docs, and paper wording. | paper hygiene harness |
 | `docs/visexp/` | Historical AgentFlame/visual-experiment notes and older prototypes. | archive/reference; not authoritative |
 
@@ -82,7 +83,10 @@ mechanism into Rust with `rank_op_rules` and feeds Rust a scrubbed
 visible-operation JSONL derived from the R300 source: semantic-stack
 operation-feature ranking improves AP over width on 5/6 tasks, top-5 lift on
 4/6, and first-positive work on 5/6; a coarser stack depth improves AP on 4/6
-while reducing groups substantially on the same operation source.
+while reducing groups substantially on the same operation source. R325 replays
+the same Rust path under leave-one-feature ablations and records 7 critical
+feature instances, 3 misleading feature instances, and a stack-depth tradeoff
+where coarse depth is AP-preferred on 2/6 tasks while reducing groups on 6/6.
 
 Local trace exchange is also implemented through the maintained Rust path.
 R294/R303 show `agentsight.agent-session.trace.v1` export/import and operation

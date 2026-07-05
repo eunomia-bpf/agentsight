@@ -1,0 +1,19 @@
+{
+  "format": "json",
+  "operation_files": [
+    "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl"
+  ],
+  "output": "satraj_unsafe-semantic-drop_loop-like.json",
+  "rank_mode": "rule-score",
+  "rank_op_rules": [
+    "risky-env:2=environment=(os|unknown_file|popup|induced_text|account|error_correction|infeasible)",
+    "write-action:2=action=(fill|type|key|hotkey|press|select_option|send_msg_to_user|left_click_drag|system_command)",
+    "input-phase:1.5=phase=(input|modify)",
+    "success:0.5=status=success"
+  ],
+  "stack": "analysis_task,dataset,environment,phase,action,repeat_signal,status",
+  "view": "operations",
+  "where_rules": [
+    "analysis_task=satraj_unsafe"
+  ]
+}
