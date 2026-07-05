@@ -1,0 +1,24 @@
+{
+  "format": "json",
+  "operation_files": [
+    "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl"
+  ],
+  "output": "osworld_group_start-coarse-global_equal.json",
+  "rank_mode": "rule-score",
+  "rank_op_rules": [
+    "loop-like:1=repeat_signal=.*(loop|repeat|loop-like)",
+    "failure:1=status=.*(fail|failure|error|unknown)",
+    "navigation:1=action=(click|left_click|double_click|tripleclick|goto|go_back|scroll|hover|move_to|drag)",
+    "write-action:1=action=(fill|type|key|hotkey|press|select_option|send_msg_to_user|clear|left_click_drag|system_command|drag)",
+    "input-phase:1=phase=(input|modify)",
+    "navigate-phase:1=phase=navigate",
+    "risky-env:1=environment=(os|unknown_file|popup|induced_text|account|error_correction|infeasible)",
+    "success:1=status=success",
+    "finish-phase:-1=phase=finish"
+  ],
+  "stack": "analysis_task,dataset,app,phase",
+  "view": "operations",
+  "where_rules": [
+    "analysis_task=osworld_group_start"
+  ]
+}

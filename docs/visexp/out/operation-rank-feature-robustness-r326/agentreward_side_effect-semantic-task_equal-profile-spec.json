@@ -1,0 +1,20 @@
+{
+  "format": "json",
+  "operation_files": [
+    "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl"
+  ],
+  "output": "agentreward_side_effect-semantic-task_equal.json",
+  "rank_mode": "rule-score",
+  "rank_op_rules": [
+    "write-action:1=action=(fill|type|key|hotkey|press|select_option|send_msg_to_user|clear)",
+    "input-phase:1=phase=(input|modify)",
+    "failure:1=status=(failure|error)",
+    "navigation:1=action=(click|left_click|goto|go_back|scroll|hover|move_to|drag)",
+    "finish-phase:-1=phase=finish"
+  ],
+  "stack": "analysis_task,dataset,benchmark,phase,action,repeat_signal,status",
+  "view": "operations",
+  "where_rules": [
+    "analysis_task=agentreward_side_effect"
+  ]
+}

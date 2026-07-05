@@ -34,6 +34,7 @@ SOURCE_PATHS = {
     "paper_main": ROOT / "docs" / "visexp" / "paper" / "main.tex",
     "claim_setup": ROOT / "docs" / "visexp" / "paper" / "evaluation-claims-setup.zh-CN.md",
     "rank_feature_ablation_script": ROOT / "script" / "operation_rank_feature_ablation_eval.py",
+    "rank_feature_robustness_script": ROOT / "script" / "operation_rank_feature_robustness_eval.py",
 }
 
 
@@ -101,6 +102,7 @@ def build_checks(sources: dict[str, str]) -> list[dict[str, Any]]:
     paper = sources["paper_main"]
     claim_setup = sources["claim_setup"]
     rank_feature_ablation = sources["rank_feature_ablation_script"]
+    rank_feature_robustness = sources["rank_feature_robustness_script"]
 
     docs_joined = "\n".join([implementation, design, evaluation, paper, claim_setup])
     claim_setup_flat = normalize_ws(claim_setup)
@@ -215,12 +217,15 @@ def build_checks(sources: dict[str, str]) -> list[dict[str, Any]]:
             and "operation-rank-mode-r323" in evaluation
             and "operation-rank-feature-r324" in evaluation
             and "operation-rank-feature-ablation-r325" in evaluation
+            and "operation-rank-feature-robustness-r326" in evaluation
             and "R324" in paper
             and "R325" in paper
-            and "R325" in claim_setup,
+            and "R326" in paper
+            and "R325" in claim_setup
+            and "R326" in claim_setup,
             "operation_rank_policy_documented_as_projection_not_object",
-            "Docs record --rank-rule/rank_rules, --rank-op-rule/rank_op_rules, and --rank-mode/rank_mode as visible operation-stack group ranking projections, with R322/R323/R324/R325 as implementation probes and R324/R325 using the scrubbed visible profiler input.",
-            "Operation rank policies are missing from docs/evaluation/paper, are not tied to R322/R323/R324/R325, or do not document the R324/R325 scrubbed visible profiler input.",
+            "Docs record --rank-rule/rank_rules, --rank-op-rule/rank_op_rules, and --rank-mode/rank_mode as visible operation-stack group ranking projections, with R322/R323/R324/R325/R326 as implementation probes and R324-R326 using the scrubbed visible profiler input.",
+            "Operation rank policies are missing from docs/evaluation/paper, are not tied to R322/R323/R324/R325/R326, or do not document the R324-R326 scrubbed visible profiler input.",
         ),
         check(
             contains_all(
@@ -239,6 +244,25 @@ def build_checks(sources: dict[str, str]) -> list[dict[str, Any]]:
             "rank_feature_ablation_actionability_documented",
             "R325 reuses the scrubbed visible operation input for leave-one-feature profile-spec ablations, and docs record critical/misleading features plus stack-depth tradeoffs.",
             "R325 rank-feature ablation is missing from the script/docs or is not framed as actionability/mechanism-isolation evidence.",
+        ),
+        check(
+            contains_all(
+                rank_feature_robustness,
+                [
+                    "R326",
+                    "operation-rank-feature-robustness-r326",
+                    "GLOBAL_EQUAL_RULES",
+                    "uses_r325_feedback",
+                    "hidden labels are not passed to Rust",
+                ],
+            )
+            and "global equal" in docs_joined
+            and "8/12" in docs_joined
+            and "2/3" in docs_joined
+            and "label-free deployment" in docs_joined,
+            "rank_feature_robustness_actionability_documented",
+            "R326 records global/equal/repaired rank-policy robustness over the scrubbed visible operation input, while docs scope repaired policies as post-hoc actionability rather than deployment ranking.",
+            "R326 rank-feature robustness is missing from script/docs or lacks the global/equal/repaired actionability guardrail.",
         ),
         check(
             "`agentpprof/src/standard_trace.rs`" in implementation

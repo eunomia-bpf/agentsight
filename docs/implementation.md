@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-04
 Stage at update: stage 4 execute / stage 8 audit / stage 11 reproducibility prep
-Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agentpprof/src/standard_trace.rs`, `agentpprof/tests/standard_trace_cli.rs`, `script/operation_*.py`, `script/agent_trace_datasets.py sample tau-bench-trajectories`, `script/agent_trace_datasets.py sample agent-reward-bench`, `script/agent_trace_datasets.py sample satraj-os-safety`, `script/agent_trace_datasets.py sample osworld-human`, `script/agent_trace_datasets.py sample agentnet`, `script/agent_trace_datasets.py sample scalecua-navigation`, `script/agent_trace_exchange_eval.py`, `script/agent_trace_chrome_exchange_eval.py`, `script/operation_where_filter_eval.py`, `script/operation_rust_rank_rule_eval.py`, `script/operation_rank_mode_eval.py`, `script/operation_rank_feature_eval.py`, `script/operation_rank_feature_ablation_eval.py`, `script/implementation_consistency_audit.py`, `cargo test --manifest-path agentpprof/Cargo.toml`
+Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agentpprof/src/standard_trace.rs`, `agentpprof/tests/standard_trace_cli.rs`, `script/operation_*.py`, `script/agent_trace_datasets.py sample tau-bench-trajectories`, `script/agent_trace_datasets.py sample agent-reward-bench`, `script/agent_trace_datasets.py sample satraj-os-safety`, `script/agent_trace_datasets.py sample osworld-human`, `script/agent_trace_datasets.py sample agentnet`, `script/agent_trace_datasets.py sample scalecua-navigation`, `script/agent_trace_exchange_eval.py`, `script/agent_trace_chrome_exchange_eval.py`, `script/operation_where_filter_eval.py`, `script/operation_rust_rank_rule_eval.py`, `script/operation_rank_mode_eval.py`, `script/operation_rank_feature_eval.py`, `script/operation_rank_feature_ablation_eval.py`, `script/operation_rank_feature_robustness_eval.py`, `script/implementation_consistency_audit.py`, `cargo test --manifest-path agentpprof/Cargo.toml`
 Completeness: partial
 
 ## Repository Layout Relevant To Semantic Profiling
@@ -29,6 +29,7 @@ Purpose: identify the maintained implementation boundary.
 | `script/operation_rank_mode_eval.py` | R323 Rust rank-mode comparison over tracked R300 operation JSONL. | research harness |
 | `script/operation_rank_feature_eval.py` | R324 Rust operation-level rank-feature probe; derives a visible-only profiler input from tracked R300 operation JSONL before scoring with hidden labels. | research harness |
 | `script/operation_rank_feature_ablation_eval.py` | R325 leave-one-feature actionability probe over R324's scrubbed visible profiler input. | research harness |
+| `script/operation_rank_feature_robustness_eval.py` | R326 equal-weight, global-bank, and ablation-repaired rank-feature robustness probe over R324's scrubbed visible profiler input. | research harness |
 | `script/implementation_consistency_audit.py` | R319 implementation/docs consistency audit over Rust CLI, docs, and paper wording. | paper hygiene harness |
 | `docs/visexp/` | Historical AgentFlame/visual-experiment notes and older prototypes. | archive/reference; not authoritative |
 
@@ -87,6 +88,14 @@ while reducing groups substantially on the same operation source. R325 replays
 the same Rust path under leave-one-feature ablations and records 7 critical
 feature instances, 3 misleading feature instances, and a stack-depth tradeoff
 where coarse depth is AP-preferred on 2/6 tasks while reducing groups on 6/6.
+R326 replays the same scrubbed input under equal-weight, global-bank, and
+R325-guided repaired policies: the global equal visible feature bank improves
+AP over width on 4/6 semantic and 5/6 coarse tasks, task-equal stays within
+0.02 AP of weighted task policies on 8/12 variants, and repairs improve AP on
+2/3 misleading-feature cases and first-positive work on 2/3 cases; 1/3
+improves both metrics. The repaired policy
+uses offline R325 findings and is evidence for actionability, not a deployment
+ranker.
 
 Local trace exchange is also implemented through the maintained Rust path.
 R294/R303 show `agentsight.agent-session.trace.v1` export/import and operation
@@ -180,6 +189,10 @@ python3 -m py_compile script/agent_trace_datasets.py script/operation_split.py \
   script/operation_stack_quality.py script/operation_leaveout_eval.py \
   script/operation_stack_depth_eval.py script/agent_trace_convert.py \
   script/operation_where_filter_eval.py \
+  script/operation_rust_rank_rule_eval.py script/operation_rank_mode_eval.py \
+  script/operation_rank_feature_eval.py \
+  script/operation_rank_feature_ablation_eval.py \
+  script/operation_rank_feature_robustness_eval.py \
   script/agent_trace_exchange_eval.py script/agent_trace_chrome_exchange_eval.py \
   script/implementation_consistency_audit.py
 ```

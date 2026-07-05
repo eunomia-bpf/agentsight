@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>R326 Operation Rank-Feature Robustness</title>
+<style>
+body { font-family: system-ui, sans-serif; margin: 32px; color: #1f2937; }
+table { border-collapse: collapse; width: 100%; margin: 16px 0 28px; }
+th, td { border-bottom: 1px solid #d1d5db; padding: 8px; text-align: right; }
+th:first-child, td:first-child, th:nth-child(2), td:nth-child(2), th:nth-child(3), td:nth-child(3) { text-align: left; }
+code { background: #f3f4f6; padding: 1px 4px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<h1>R326 Operation Rank-Feature Robustness</h1>
+<p>Profiler input: <code>docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl</code>. Hidden labels are not passed to Rust and are used only for offline scoring.</p>
+<ul><li>global_equal_semantic_ap_wins_vs_width: 4/6</li>
+<li>global_equal_coarse_ap_wins_vs_width: 5/6</li>
+<li>global_equal_semantic_first_positive_work_wins_vs_width: 4/6</li>
+<li>task_equal_ap_within_0_02_of_weighted: 8/12</li>
+<li>task_equal_ap_improves_vs_width_semantic: 4/6</li>
+<li>task_equal_ap_improves_vs_width_coarse: 4/6</li>
+<li>repaired_ap_improves_on_misleading_cases: 2/3</li>
+<li>repaired_first_positive_work_improves_on_misleading_cases: 2/3</li>
+<li>repaired_both_ap_and_first_positive_work_improve_on_misleading_cases: 1/3</li></ul>
+<h2>R325-Guided Repairs</h2>
+<table><thead><tr><th>Task</th><th>Stack</th><th>Dropped features</th><th>Delta AP</th><th>Delta WTFP</th></tr></thead><tbody><tr><td>satraj_unsafe</td><td>semantic</td><td>loop-like</td><td>0.1734</td><td>0.0000</td></tr>
+<tr><td>osworld_group_start</td><td>semantic</td><td>input-phase</td><td>-0.0136</td><td>-0.1017</td></tr>
+<tr><td>osworld_group_start</td><td>coarse</td><td>input-phase</td><td>0.0225</td><td>-0.3261</td></tr></tbody></table>
+</body>
+</html>

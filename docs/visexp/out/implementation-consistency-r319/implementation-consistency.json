@@ -32,12 +32,17 @@
     },
     {
       "check": "operation_rank_policy_documented_as_projection_not_object",
-      "evidence": "Docs record --rank-rule/rank_rules, --rank-op-rule/rank_op_rules, and --rank-mode/rank_mode as visible operation-stack group ranking projections, with R322/R323/R324/R325 as implementation probes and R324/R325 using the scrubbed visible profiler input.",
+      "evidence": "Docs record --rank-rule/rank_rules, --rank-op-rule/rank_op_rules, and --rank-mode/rank_mode as visible operation-stack group ranking projections, with R322/R323/R324/R325/R326 as implementation probes and R324-R326 using the scrubbed visible profiler input.",
       "status": "pass"
     },
     {
       "check": "rank_feature_ablation_actionability_documented",
       "evidence": "R325 reuses the scrubbed visible operation input for leave-one-feature profile-spec ablations, and docs record critical/misleading features plus stack-depth tradeoffs.",
+      "status": "pass"
+    },
+    {
+      "check": "rank_feature_robustness_actionability_documented",
+      "evidence": "R326 records global/equal/repaired rank-policy robustness over the scrubbed visible operation input, while docs scope repaired policies as post-hoc actionability rather than deployment ranking.",
       "status": "pass"
     },
     {
@@ -66,7 +71,7 @@
       "status": "pass"
     }
   ],
-  "commit": "aee19634edd33ec6e40a3be25d9331427a799b8e",
+  "commit": "e11244f9860d12e41628183828457fd36e1f2c39",
   "not_a_human_study_result": true,
   "not_an_agent_study_result": true,
   "not_dataset_sync": true,
@@ -80,6 +85,7 @@
     "implementation_doc": "docs/implementation.md",
     "paper_main": "docs/visexp/paper/main.tex",
     "rank_feature_ablation_script": "script/operation_rank_feature_ablation_eval.py",
+    "rank_feature_robustness_script": "script/operation_rank_feature_robustness_eval.py",
     "rust_cli": "agentpprof/src/main.rs",
     "rust_profile": "agentpprof/src/profile.rs",
     "rust_standard_trace": "agentpprof/src/standard_trace.rs",
@@ -88,12 +94,12 @@
   "status": "ok",
   "summary": {
     "failed_checks": 0,
-    "passed_checks": 13,
+    "passed_checks": 14,
     "remaining_gates": [
       "controlled human/agent analyst study",
       "calibrated boundary backend beyond simple derived-field baselines",
       "real OpenTelemetry GenAI, OpenInference, or Perfetto trace import"
     ],
-    "total_checks": 13
+    "total_checks": 14
   }
 }
