@@ -1,0 +1,1720 @@
+{
+  "bootstrap": {
+    "ci": "percentile 95% interval over paired task-resampled mean deltas",
+    "reps": 10000,
+    "seed": 330,
+    "tasks": [
+      "agentnet_incorrect_step",
+      "agentnet_redundant_step",
+      "agentreward_looping",
+      "agentreward_side_effect",
+      "osworld_group_start",
+      "satraj_unsafe"
+    ],
+    "unit": "R320 task family"
+  },
+  "claim": "R330 quantifies which R320 policy comparisons are directionally stable across task-family resampling and which remain tradeoffs.",
+  "finding_summary": {
+    "mixed_or_counterpoint": [
+      {
+        "ci95": [
+          -0.9303,
+          -0.5658
+        ],
+        "comparison": "operation_stack_query_aware_vs_flat_width",
+        "directional_support": 1.0,
+        "improved_tasks": "6/6",
+        "mean_delta": -0.7608,
+        "metric": "top5_recall",
+        "metric_role": "counterpoint_lower"
+      },
+      {
+        "ci95": [
+          -0.0126,
+          0.2476
+        ],
+        "comparison": "operation_stack_query_aware_vs_fixed_session_query_aware",
+        "directional_support": null,
+        "improved_tasks": null,
+        "mean_delta": 0.1086,
+        "metric": "top5_work",
+        "metric_role": "counterpoint_mixed"
+      },
+      {
+        "ci95": [
+          -0.119,
+          0.1044
+        ],
+        "comparison": "operation_stack_query_aware_vs_fixed_session_query_aware",
+        "directional_support": null,
+        "improved_tasks": null,
+        "mean_delta": 0.0031,
+        "metric": "work_to_first_positive",
+        "metric_role": "counterpoint_mixed"
+      },
+      {
+        "ci95": [
+          -0.0337,
+          0.0074
+        ],
+        "comparison": "operation_stack_query_aware_vs_fixed_session_query_aware",
+        "directional_support": null,
+        "improved_tasks": null,
+        "mean_delta": -0.0099,
+        "metric": "average_precision",
+        "metric_role": "counterpoint_mixed"
+      },
+      {
+        "ci95": [
+          -0.0264,
+          0.3841
+        ],
+        "comparison": "operation_stack_query_aware_vs_operation_stack_width",
+        "directional_support": 0.9189,
+        "improved_tasks": "5/6",
+        "mean_delta": 0.1392,
+        "metric": "budget30_recall",
+        "metric_role": "higher"
+      },
+      {
+        "ci95": [
+          -0.1491,
+          0.1694
+        ],
+        "comparison": "operation_stack_query_aware_vs_operation_stack_width",
+        "directional_support": null,
+        "improved_tasks": null,
+        "mean_delta": -0.0045,
+        "metric": "top5_f1",
+        "metric_role": "counterpoint_mixed"
+      },
+      {
+        "ci95": [
+          -0.042,
+          0.0743
+        ],
+        "comparison": "operation_stack_query_aware_vs_raw_action_stack_query_aware",
+        "directional_support": 0.747,
+        "improved_tasks": "5/6",
+        "mean_delta": 0.0202,
+        "metric": "average_precision",
+        "metric_role": "higher"
+      },
+      {
+        "ci95": [
+          -0.0088,
+          0.2168
+        ],
+        "comparison": "operation_stack_query_aware_vs_raw_action_stack_query_aware",
+        "directional_support": 0.9668,
+        "improved_tasks": "4/6",
+        "mean_delta": 0.1068,
+        "metric": "budget30_recall",
+        "metric_role": "higher"
+      },
+      {
+        "ci95": [
+          -0.1282,
+          0.2807
+        ],
+        "comparison": "operation_stack_query_aware_vs_raw_action_stack_query_aware",
+        "directional_support": null,
+        "improved_tasks": null,
+        "mean_delta": 0.0455,
+        "metric": "top5_f1",
+        "metric_role": "counterpoint_mixed"
+      },
+      {
+        "ci95": [
+          -0.1796,
+          0.2281
+        ],
+        "comparison": "operation_stack_query_aware_vs_raw_action_stack_query_aware",
+        "directional_support": null,
+        "improved_tasks": null,
+        "mean_delta": -0.0119,
+        "metric": "top5_recall",
+        "metric_role": "counterpoint_mixed"
+      }
+    ],
+    "mixed_or_counterpoint_metric_checks": 10,
+    "supported": [
+      {
+        "ci95": [
+          0.0406,
+          0.2175
+        ],
+        "comparison": "operation_stack_query_aware_vs_flat_width",
+        "directional_support": 1.0,
+        "improved_tasks": "6/6",
+        "mean_delta": 0.1219,
+        "metric": "average_precision"
+      },
+      {
+        "ci95": [
+          -0.9653,
+          -0.6568
+        ],
+        "comparison": "operation_stack_query_aware_vs_flat_width",
+        "directional_support": 1.0,
+        "improved_tasks": "6/6",
+        "mean_delta": -0.8168,
+        "metric": "top5_work"
+      },
+      {
+        "ci95": [
+          0.345,
+          0.6143
+        ],
+        "comparison": "operation_stack_query_aware_vs_flat_width",
+        "directional_support": 1.0,
+        "improved_tasks": "6/6",
+        "mean_delta": 0.451,
+        "metric": "budget30_recall"
+      },
+      {
+        "ci95": [
+          -0.9855,
+          -0.865
+        ],
+        "comparison": "operation_stack_query_aware_vs_flat_width",
+        "directional_support": 1.0,
+        "improved_tasks": "6/6",
+        "mean_delta": -0.9303,
+        "metric": "work_to_first_positive"
+      },
+      {
+        "ci95": [
+          0.0542,
+          0.3127
+        ],
+        "comparison": "operation_stack_query_aware_vs_fixed_session_query_aware",
+        "directional_support": 0.9992,
+        "improved_tasks": "5/6",
+        "mean_delta": 0.1801,
+        "metric": "top5_recall"
+      },
+      {
+        "ci95": [
+          0.0549,
+          0.287
+        ],
+        "comparison": "operation_stack_query_aware_vs_fixed_session_query_aware",
+        "directional_support": 0.9991,
+        "improved_tasks": "5/6",
+        "mean_delta": 0.1702,
+        "metric": "top5_f1"
+      },
+      {
+        "ci95": [
+          -340.0,
+          -39.0
+        ],
+        "comparison": "operation_stack_query_aware_vs_fixed_session_query_aware",
+        "directional_support": 0.9989,
+        "improved_tasks": "4/6",
+        "mean_delta": -178.0,
+        "metric": "groups"
+      },
+      {
+        "ci95": [
+          0.011,
+          0.2184
+        ],
+        "comparison": "operation_stack_query_aware_vs_operation_stack_width",
+        "directional_support": 1.0,
+        "improved_tasks": "6/6",
+        "mean_delta": 0.0932,
+        "metric": "average_precision"
+      },
+      {
+        "ci95": [
+          -0.4209,
+          -0.1997
+        ],
+        "comparison": "operation_stack_query_aware_vs_operation_stack_width",
+        "directional_support": 1.0,
+        "improved_tasks": "6/6",
+        "mean_delta": -0.3101,
+        "metric": "top5_work"
+      },
+      {
+        "ci95": [
+          -0.3512,
+          -0.0292
+        ],
+        "comparison": "operation_stack_query_aware_vs_operation_stack_width",
+        "directional_support": 1.0,
+        "improved_tasks": "5/6",
+        "mean_delta": -0.1566,
+        "metric": "work_to_first_positive"
+      }
+    ],
+    "supported_metric_checks": 10
+  },
+  "metric_rows": [
+    {
+      "bootstrap_directional_support": 1.0,
+      "bootstrap_mean_delta_ci95": [
+        0.0406,
+        0.2175
+      ],
+      "bootstrap_reps": 10000,
+      "ci_supports_expected_direction": true,
+      "claim_role": "less_work_than_flat_and_better_budgeted_localization",
+      "comparison": "operation_stack_query_aware_vs_flat_width",
+      "expected_direction": "higher",
+      "improved_tasks": 6,
+      "left_policy": "operation_stack:query_aware",
+      "metric": "average_precision",
+      "metric_role": "higher",
+      "observed_mean_delta": 0.1219,
+      "observed_median_delta": 0.0778,
+      "right_policy": "flat:width",
+      "task_deltas": [
+        {
+          "dataset": "agentnet",
+          "delta": 0.0292,
+          "left_value": 0.0886,
+          "query_family": "step-quality",
+          "right_value": 0.0594,
+          "task": "agentnet_incorrect_step"
+        },
+        {
+          "dataset": "agentnet",
+          "delta": 0.0147,
+          "left_value": 0.0875,
+          "query_family": "step-quality",
+          "right_value": 0.0728,
+          "task": "agentnet_redundant_step"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": 0.1894,
+          "left_value": 0.8808,
+          "query_family": "failure-looping",
+          "right_value": 0.6914,
+          "task": "agentreward_looping"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": 0.1208,
+          "left_value": 0.3979,
+          "query_family": "failure-side-effect",
+          "right_value": 0.2771,
+          "task": "agentreward_side_effect"
+        },
+        {
+          "dataset": "osworld-human",
+          "delta": 0.0349,
+          "left_value": 0.2254,
+          "query_family": "human-boundary",
+          "right_value": 0.1905,
+          "task": "osworld_group_start"
+        },
+        {
+          "dataset": "satraj-os-safety",
+          "delta": 0.3423,
+          "left_value": 0.4875,
+          "query_family": "safety",
+          "right_value": 0.1452,
+          "task": "satraj_unsafe"
+        }
+      ],
+      "tasks": 6,
+      "tied_tasks": 0,
+      "worse_tasks": 0
+    },
+    {
+      "bootstrap_directional_support": 1.0,
+      "bootstrap_mean_delta_ci95": [
+        -0.9653,
+        -0.6568
+      ],
+      "bootstrap_reps": 10000,
+      "ci_supports_expected_direction": true,
+      "claim_role": "less_work_than_flat_and_better_budgeted_localization",
+      "comparison": "operation_stack_query_aware_vs_flat_width",
+      "expected_direction": "lower",
+      "improved_tasks": 6,
+      "left_policy": "operation_stack:query_aware",
+      "metric": "top5_work",
+      "metric_role": "lower",
+      "observed_mean_delta": -0.8168,
+      "observed_median_delta": -0.9063,
+      "right_policy": "flat:width",
+      "task_deltas": [
+        {
+          "dataset": "agentnet",
+          "delta": -0.9986,
+          "left_value": 0.0014,
+          "query_family": "step-quality",
+          "right_value": 1.0,
+          "task": "agentnet_incorrect_step"
+        },
+        {
+          "dataset": "agentnet",
+          "delta": -0.9911,
+          "left_value": 0.0089,
+          "query_family": "step-quality",
+          "right_value": 1.0,
+          "task": "agentnet_redundant_step"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": -0.5062,
+          "left_value": 0.4938,
+          "query_family": "failure-looping",
+          "right_value": 1.0,
+          "task": "agentreward_looping"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": -0.8546,
+          "left_value": 0.1454,
+          "query_family": "failure-side-effect",
+          "right_value": 1.0,
+          "task": "agentreward_side_effect"
+        },
+        {
+          "dataset": "osworld-human",
+          "delta": -0.5926,
+          "left_value": 0.4074,
+          "query_family": "human-boundary",
+          "right_value": 1.0,
+          "task": "osworld_group_start"
+        },
+        {
+          "dataset": "satraj-os-safety",
+          "delta": -0.958,
+          "left_value": 0.042,
+          "query_family": "safety",
+          "right_value": 1.0,
+          "task": "satraj_unsafe"
+        }
+      ],
+      "tasks": 6,
+      "tied_tasks": 0,
+      "worse_tasks": 0
+    },
+    {
+      "bootstrap_directional_support": 1.0,
+      "bootstrap_mean_delta_ci95": [
+        0.345,
+        0.6143
+      ],
+      "bootstrap_reps": 10000,
+      "ci_supports_expected_direction": true,
+      "claim_role": "less_work_than_flat_and_better_budgeted_localization",
+      "comparison": "operation_stack_query_aware_vs_flat_width",
+      "expected_direction": "higher",
+      "improved_tasks": 6,
+      "left_policy": "operation_stack:query_aware",
+      "metric": "budget30_recall",
+      "metric_role": "higher",
+      "observed_mean_delta": 0.451,
+      "observed_median_delta": 0.39,
+      "right_policy": "flat:width",
+      "task_deltas": [
+        {
+          "dataset": "agentnet",
+          "delta": 0.4382,
+          "left_value": 0.4382,
+          "query_family": "step-quality",
+          "right_value": 0.0,
+          "task": "agentnet_incorrect_step"
+        },
+        {
+          "dataset": "agentnet",
+          "delta": 0.3533,
+          "left_value": 0.3533,
+          "query_family": "step-quality",
+          "right_value": 0.0,
+          "task": "agentnet_redundant_step"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": 0.3988,
+          "left_value": 0.3988,
+          "query_family": "failure-looping",
+          "right_value": 0.0,
+          "task": "agentreward_looping"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": 0.3812,
+          "left_value": 0.3812,
+          "query_family": "failure-side-effect",
+          "right_value": 0.0,
+          "task": "agentreward_side_effect"
+        },
+        {
+          "dataset": "osworld-human",
+          "delta": 0.2971,
+          "left_value": 0.2971,
+          "query_family": "human-boundary",
+          "right_value": 0.0,
+          "task": "osworld_group_start"
+        },
+        {
+          "dataset": "satraj-os-safety",
+          "delta": 0.8376,
+          "left_value": 0.8376,
+          "query_family": "safety",
+          "right_value": 0.0,
+          "task": "satraj_unsafe"
+        }
+      ],
+      "tasks": 6,
+      "tied_tasks": 0,
+      "worse_tasks": 0
+    },
+    {
+      "bootstrap_directional_support": 1.0,
+      "bootstrap_mean_delta_ci95": [
+        -0.9855,
+        -0.865
+      ],
+      "bootstrap_reps": 10000,
+      "ci_supports_expected_direction": true,
+      "claim_role": "less_work_than_flat_and_better_budgeted_localization",
+      "comparison": "operation_stack_query_aware_vs_flat_width",
+      "expected_direction": "lower",
+      "improved_tasks": 6,
+      "left_policy": "operation_stack:query_aware",
+      "metric": "work_to_first_positive",
+      "metric_role": "lower",
+      "observed_mean_delta": -0.9303,
+      "observed_median_delta": -0.9622,
+      "right_policy": "flat:width",
+      "task_deltas": [
+        {
+          "dataset": "agentnet",
+          "delta": -0.9993,
+          "left_value": 0.0007,
+          "query_family": "step-quality",
+          "right_value": 1.0,
+          "task": "agentnet_incorrect_step"
+        },
+        {
+          "dataset": "agentnet",
+          "delta": -0.9949,
+          "left_value": 0.0051,
+          "query_family": "step-quality",
+          "right_value": 1.0,
+          "task": "agentnet_redundant_step"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": -0.7942,
+          "left_value": 0.2058,
+          "query_family": "failure-looping",
+          "right_value": 1.0,
+          "task": "agentreward_looping"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": -0.9355,
+          "left_value": 0.0645,
+          "query_family": "failure-side-effect",
+          "right_value": 1.0,
+          "task": "agentreward_side_effect"
+        },
+        {
+          "dataset": "osworld-human",
+          "delta": -0.8689,
+          "left_value": 0.1311,
+          "query_family": "human-boundary",
+          "right_value": 1.0,
+          "task": "osworld_group_start"
+        },
+        {
+          "dataset": "satraj-os-safety",
+          "delta": -0.9888,
+          "left_value": 0.0112,
+          "query_family": "safety",
+          "right_value": 1.0,
+          "task": "satraj_unsafe"
+        }
+      ],
+      "tasks": 6,
+      "tied_tasks": 0,
+      "worse_tasks": 0
+    },
+    {
+      "bootstrap_directional_support": 1.0,
+      "bootstrap_mean_delta_ci95": [
+        -0.9303,
+        -0.5658
+      ],
+      "bootstrap_reps": 10000,
+      "ci_supports_expected_direction": true,
+      "claim_role": "less_work_than_flat_and_better_budgeted_localization",
+      "comparison": "operation_stack_query_aware_vs_flat_width",
+      "expected_direction": "lower",
+      "improved_tasks": 6,
+      "left_policy": "operation_stack:query_aware",
+      "metric": "top5_recall",
+      "metric_role": "counterpoint_lower",
+      "observed_mean_delta": -0.7608,
+      "observed_median_delta": -0.812,
+      "right_policy": "flat:width",
+      "task_deltas": [
+        {
+          "dataset": "agentnet",
+          "delta": -0.9966,
+          "left_value": 0.0034,
+          "query_family": "step-quality",
+          "right_value": 1.0,
+          "task": "agentnet_incorrect_step"
+        },
+        {
+          "dataset": "agentnet",
+          "delta": -0.9823,
+          "left_value": 0.0177,
+          "query_family": "step-quality",
+          "right_value": 1.0,
+          "task": "agentnet_redundant_step"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": -0.3492,
+          "left_value": 0.6508,
+          "query_family": "failure-looping",
+          "right_value": 1.0,
+          "task": "agentreward_looping"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": -0.8861,
+          "left_value": 0.1139,
+          "query_family": "failure-side-effect",
+          "right_value": 1.0,
+          "task": "agentreward_side_effect"
+        },
+        {
+          "dataset": "osworld-human",
+          "delta": -0.6126,
+          "left_value": 0.3874,
+          "query_family": "human-boundary",
+          "right_value": 1.0,
+          "task": "osworld_group_start"
+        },
+        {
+          "dataset": "satraj-os-safety",
+          "delta": -0.7379,
+          "left_value": 0.2621,
+          "query_family": "safety",
+          "right_value": 1.0,
+          "task": "satraj_unsafe"
+        }
+      ],
+      "tasks": 6,
+      "tied_tasks": 0,
+      "worse_tasks": 0
+    },
+    {
+      "bootstrap_directional_support": 0.9992,
+      "bootstrap_mean_delta_ci95": [
+        0.0542,
+        0.3127
+      ],
+      "bootstrap_reps": 10000,
+      "ci_supports_expected_direction": true,
+      "claim_role": "less_fragmented_higher_top5_recall_than_fixed_session",
+      "comparison": "operation_stack_query_aware_vs_fixed_session_query_aware",
+      "expected_direction": "higher",
+      "improved_tasks": 5,
+      "left_policy": "operation_stack:query_aware",
+      "metric": "top5_recall",
+      "metric_role": "higher",
+      "observed_mean_delta": 0.1801,
+      "observed_median_delta": 0.159,
+      "right_policy": "fixed_session:query_aware",
+      "task_deltas": [
+        {
+          "dataset": "agentnet",
+          "delta": -0.0092,
+          "left_value": 0.0034,
+          "query_family": "step-quality",
+          "right_value": 0.0126,
+          "task": "agentnet_incorrect_step"
+        },
+        {
+          "dataset": "agentnet",
+          "delta": 0.0054,
+          "left_value": 0.0177,
+          "query_family": "step-quality",
+          "right_value": 0.0123,
+          "task": "agentnet_redundant_step"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": 0.4127,
+          "left_value": 0.6508,
+          "query_family": "failure-looping",
+          "right_value": 0.2381,
+          "task": "agentreward_looping"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": 0.1139,
+          "left_value": 0.1139,
+          "query_family": "failure-side-effect",
+          "right_value": 0.0,
+          "task": "agentreward_side_effect"
+        },
+        {
+          "dataset": "osworld-human",
+          "delta": 0.3534,
+          "left_value": 0.3874,
+          "query_family": "human-boundary",
+          "right_value": 0.034,
+          "task": "osworld_group_start"
+        },
+        {
+          "dataset": "satraj-os-safety",
+          "delta": 0.2042,
+          "left_value": 0.2621,
+          "query_family": "safety",
+          "right_value": 0.0579,
+          "task": "satraj_unsafe"
+        }
+      ],
+      "tasks": 6,
+      "tied_tasks": 0,
+      "worse_tasks": 1
+    },
+    {
+      "bootstrap_directional_support": 0.9991,
+      "bootstrap_mean_delta_ci95": [
+        0.0549,
+        0.287
+      ],
+      "bootstrap_reps": 10000,
+      "ci_supports_expected_direction": true,
+      "claim_role": "less_fragmented_higher_top5_recall_than_fixed_session",
+      "comparison": "operation_stack_query_aware_vs_fixed_session_query_aware",
+      "expected_direction": "higher",
+      "improved_tasks": 5,
+      "left_policy": "operation_stack:query_aware",
+      "metric": "top5_f1",
+      "metric_role": "higher",
+      "observed_mean_delta": 0.1702,
+      "observed_median_delta": 0.1669,
+      "right_policy": "fixed_session:query_aware",
+      "task_deltas": [
+        {
+          "dataset": "agentnet",
+          "delta": -0.0163,
+          "left_value": 0.0067,
+          "query_family": "step-quality",
+          "right_value": 0.023,
+          "task": "agentnet_incorrect_step"
+        },
+        {
+          "dataset": "agentnet",
+          "delta": 0.0096,
+          "left_value": 0.0316,
+          "query_family": "step-quality",
+          "right_value": 0.022,
+          "task": "agentnet_redundant_step"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": 0.3923,
+          "left_value": 0.7593,
+          "query_family": "failure-looping",
+          "right_value": 0.367,
+          "task": "agentreward_looping"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": 0.1494,
+          "left_value": 0.1494,
+          "query_family": "failure-side-effect",
+          "right_value": 0.0,
+          "task": "agentreward_side_effect"
+        },
+        {
+          "dataset": "osworld-human",
+          "delta": 0.1845,
+          "left_value": 0.2469,
+          "query_family": "human-boundary",
+          "right_value": 0.0624,
+          "task": "osworld_group_start"
+        },
+        {
+          "dataset": "satraj-os-safety",
+          "delta": 0.3018,
+          "left_value": 0.4065,
+          "query_family": "safety",
+          "right_value": 0.1047,
+          "task": "satraj_unsafe"
+        }
+      ],
+      "tasks": 6,
+      "tied_tasks": 0,
+      "worse_tasks": 1
+    },
+    {
+      "bootstrap_directional_support": 0.9989,
+      "bootstrap_mean_delta_ci95": [
+        -340.0,
+        -39.0
+      ],
+      "bootstrap_reps": 10000,
+      "ci_supports_expected_direction": true,
+      "claim_role": "less_fragmented_higher_top5_recall_than_fixed_session",
+      "comparison": "operation_stack_query_aware_vs_fixed_session_query_aware",
+      "expected_direction": "lower",
+      "improved_tasks": 4,
+      "left_policy": "operation_stack:query_aware",
+      "metric": "groups",
+      "metric_role": "lower",
+      "observed_mean_delta": -178.0,
+      "observed_median_delta": -127.5,
+      "right_policy": "fixed_session:query_aware",
+      "task_deltas": [
+        {
+          "dataset": "agentnet",
+          "delta": -546.0,
+          "left_value": 289.0,
+          "query_family": "step-quality",
+          "right_value": 835.0,
+          "task": "agentnet_incorrect_step"
+        },
+        {
+          "dataset": "agentnet",
+          "delta": -289.0,
+          "left_value": 260.0,
+          "query_family": "step-quality",
+          "right_value": 549.0,
+          "task": "agentnet_redundant_step"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": 11.0,
+          "left_value": 40.0,
+          "query_family": "failure-looping",
+          "right_value": 29.0,
+          "task": "agentreward_looping"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": 11.0,
+          "left_value": 40.0,
+          "query_family": "failure-side-effect",
+          "right_value": 29.0,
+          "task": "agentreward_side_effect"
+        },
+        {
+          "dataset": "osworld-human",
+          "delta": -147.0,
+          "left_value": 173.0,
+          "query_family": "human-boundary",
+          "right_value": 320.0,
+          "task": "osworld_group_start"
+        },
+        {
+          "dataset": "satraj-os-safety",
+          "delta": -108.0,
+          "left_value": 142.0,
+          "query_family": "safety",
+          "right_value": 250.0,
+          "task": "satraj_unsafe"
+        }
+      ],
+      "tasks": 6,
+      "tied_tasks": 0,
+      "worse_tasks": 2
+    },
+    {
+      "bootstrap_directional_support": null,
+      "bootstrap_mean_delta_ci95": [
+        -0.0126,
+        0.2476
+      ],
+      "bootstrap_reps": 10000,
+      "ci_supports_expected_direction": null,
+      "claim_role": "less_fragmented_higher_top5_recall_than_fixed_session",
+      "comparison": "operation_stack_query_aware_vs_fixed_session_query_aware",
+      "expected_direction": null,
+      "improved_tasks": null,
+      "left_policy": "operation_stack:query_aware",
+      "metric": "top5_work",
+      "metric_role": "counterpoint_mixed",
+      "observed_mean_delta": 0.1086,
+      "observed_median_delta": 0.0135,
+      "right_policy": "fixed_session:query_aware",
+      "task_deltas": [
+        {
+          "dataset": "agentnet",
+          "delta": -0.0042,
+          "left_value": 0.0014,
+          "query_family": "step-quality",
+          "right_value": 0.0056,
+          "task": "agentnet_incorrect_step"
+        },
+        {
+          "dataset": "agentnet",
+          "delta": 0.0003,
+          "left_value": 0.0089,
+          "query_family": "step-quality",
+          "right_value": 0.0086,
+          "task": "agentnet_redundant_step"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": 0.288,
+          "left_value": 0.4938,
+          "query_family": "failure-looping",
+          "right_value": 0.2058,
+          "task": "agentreward_looping"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": -0.0494,
+          "left_value": 0.1454,
+          "query_family": "failure-side-effect",
+          "right_value": 0.1948,
+          "task": "agentreward_side_effect"
+        },
+        {
+          "dataset": "osworld-human",
+          "delta": 0.3902,
+          "left_value": 0.4074,
+          "query_family": "human-boundary",
+          "right_value": 0.0172,
+          "task": "osworld_group_start"
+        },
+        {
+          "dataset": "satraj-os-safety",
+          "delta": 0.0266,
+          "left_value": 0.042,
+          "query_family": "safety",
+          "right_value": 0.0154,
+          "task": "satraj_unsafe"
+        }
+      ],
+      "tasks": 6,
+      "tied_tasks": 0,
+      "worse_tasks": null
+    },
+    {
+      "bootstrap_directional_support": null,
+      "bootstrap_mean_delta_ci95": [
+        -0.119,
+        0.1044
+      ],
+      "bootstrap_reps": 10000,
+      "ci_supports_expected_direction": null,
+      "claim_role": "less_fragmented_higher_top5_recall_than_fixed_session",
+      "comparison": "operation_stack_query_aware_vs_fixed_session_query_aware",
+      "expected_direction": null,
+      "improved_tasks": null,
+      "left_policy": "operation_stack:query_aware",
+      "metric": "work_to_first_positive",
+      "metric_role": "counterpoint_mixed",
+      "observed_mean_delta": 0.0031,
+      "observed_median_delta": 0.0057,
+      "right_policy": "fixed_session:query_aware",
+      "task_deltas": [
+        {
+          "dataset": "agentnet",
+          "delta": -0.001,
+          "left_value": 0.0007,
+          "query_family": "step-quality",
+          "right_value": 0.0017,
+          "task": "agentnet_incorrect_step"
+        },
+        {
+          "dataset": "agentnet",
+          "delta": 0.0038,
+          "left_value": 0.0051,
+          "query_family": "step-quality",
+          "right_value": 0.0013,
+          "task": "agentnet_redundant_step"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": 0.1646,
+          "left_value": 0.2058,
+          "query_family": "failure-looping",
+          "right_value": 0.0412,
+          "task": "agentreward_looping"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": -0.2826,
+          "left_value": 0.0645,
+          "query_family": "failure-side-effect",
+          "right_value": 0.3471,
+          "task": "agentreward_side_effect"
+        },
+        {
+          "dataset": "osworld-human",
+          "delta": 0.1261,
+          "left_value": 0.1311,
+          "query_family": "human-boundary",
+          "right_value": 0.005,
+          "task": "osworld_group_start"
+        },
+        {
+          "dataset": "satraj-os-safety",
+          "delta": 0.0075,
+          "left_value": 0.0112,
+          "query_family": "safety",
+          "right_value": 0.0037,
+          "task": "satraj_unsafe"
+        }
+      ],
+      "tasks": 6,
+      "tied_tasks": 0,
+      "worse_tasks": null
+    },
+    {
+      "bootstrap_directional_support": null,
+      "bootstrap_mean_delta_ci95": [
+        -0.0337,
+        0.0074
+      ],
+      "bootstrap_reps": 10000,
+      "ci_supports_expected_direction": null,
+      "claim_role": "less_fragmented_higher_top5_recall_than_fixed_session",
+      "comparison": "operation_stack_query_aware_vs_fixed_session_query_aware",
+      "expected_direction": null,
+      "improved_tasks": null,
+      "left_policy": "operation_stack:query_aware",
+      "metric": "average_precision",
+      "metric_role": "counterpoint_mixed",
+      "observed_mean_delta": -0.0099,
+      "observed_median_delta": -0.0002,
+      "right_policy": "fixed_session:query_aware",
+      "task_deltas": [
+        {
+          "dataset": "agentnet",
+          "delta": 0.0087,
+          "left_value": 0.0886,
+          "query_family": "step-quality",
+          "right_value": 0.0799,
+          "task": "agentnet_incorrect_step"
+        },
+        {
+          "dataset": "agentnet",
+          "delta": 0.0087,
+          "left_value": 0.0875,
+          "query_family": "step-quality",
+          "right_value": 0.0788,
+          "task": "agentnet_redundant_step"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": 0.0136,
+          "left_value": 0.8808,
+          "query_family": "failure-looping",
+          "right_value": 0.8672,
+          "task": "agentreward_looping"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": -0.0627,
+          "left_value": 0.3979,
+          "query_family": "failure-side-effect",
+          "right_value": 0.4606,
+          "task": "agentreward_side_effect"
+        },
+        {
+          "dataset": "osworld-human",
+          "delta": -0.0091,
+          "left_value": 0.2254,
+          "query_family": "human-boundary",
+          "right_value": 0.2345,
+          "task": "osworld_group_start"
+        },
+        {
+          "dataset": "satraj-os-safety",
+          "delta": -0.0184,
+          "left_value": 0.4875,
+          "query_family": "safety",
+          "right_value": 0.5059,
+          "task": "satraj_unsafe"
+        }
+      ],
+      "tasks": 6,
+      "tied_tasks": 0,
+      "worse_tasks": null
+    },
+    {
+      "bootstrap_directional_support": 1.0,
+      "bootstrap_mean_delta_ci95": [
+        0.011,
+        0.2184
+      ],
+      "bootstrap_reps": 10000,
+      "ci_supports_expected_direction": true,
+      "claim_role": "query_aware_ranker_improves_width_ranked_operation_stack",
+      "comparison": "operation_stack_query_aware_vs_operation_stack_width",
+      "expected_direction": "higher",
+      "improved_tasks": 6,
+      "left_policy": "operation_stack:query_aware",
+      "metric": "average_precision",
+      "metric_role": "higher",
+      "observed_mean_delta": 0.0932,
+      "observed_median_delta": 0.0258,
+      "right_policy": "operation_stack:width",
+      "task_deltas": [
+        {
+          "dataset": "agentnet",
+          "delta": 0.0199,
+          "left_value": 0.0886,
+          "query_family": "step-quality",
+          "right_value": 0.0687,
+          "task": "agentnet_incorrect_step"
+        },
+        {
+          "dataset": "agentnet",
+          "delta": 0.0012,
+          "left_value": 0.0875,
+          "query_family": "step-quality",
+          "right_value": 0.0863,
+          "task": "agentnet_redundant_step"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": 0.1155,
+          "left_value": 0.8808,
+          "query_family": "failure-looping",
+          "right_value": 0.7653,
+          "task": "agentreward_looping"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": 0.0318,
+          "left_value": 0.3979,
+          "query_family": "failure-side-effect",
+          "right_value": 0.3661,
+          "task": "agentreward_side_effect"
+        },
+        {
+          "dataset": "osworld-human",
+          "delta": 0.0037,
+          "left_value": 0.2254,
+          "query_family": "human-boundary",
+          "right_value": 0.2217,
+          "task": "osworld_group_start"
+        },
+        {
+          "dataset": "satraj-os-safety",
+          "delta": 0.3872,
+          "left_value": 0.4875,
+          "query_family": "safety",
+          "right_value": 0.1003,
+          "task": "satraj_unsafe"
+        }
+      ],
+      "tasks": 6,
+      "tied_tasks": 0,
+      "worse_tasks": 0
+    },
+    {
+      "bootstrap_directional_support": 1.0,
+      "bootstrap_mean_delta_ci95": [
+        -0.4209,
+        -0.1997
+      ],
+      "bootstrap_reps": 10000,
+      "ci_supports_expected_direction": true,
+      "claim_role": "query_aware_ranker_improves_width_ranked_operation_stack",
+      "comparison": "operation_stack_query_aware_vs_operation_stack_width",
+      "expected_direction": "lower",
+      "improved_tasks": 6,
+      "left_policy": "operation_stack:query_aware",
+      "metric": "top5_work",
+      "metric_role": "lower",
+      "observed_mean_delta": -0.3101,
+      "observed_median_delta": -0.3038,
+      "right_policy": "operation_stack:width",
+      "task_deltas": [
+        {
+          "dataset": "agentnet",
+          "delta": -0.2951,
+          "left_value": 0.0014,
+          "query_family": "step-quality",
+          "right_value": 0.2965,
+          "task": "agentnet_incorrect_step"
+        },
+        {
+          "dataset": "agentnet",
+          "delta": -0.3126,
+          "left_value": 0.0089,
+          "query_family": "step-quality",
+          "right_value": 0.3215,
+          "task": "agentnet_redundant_step"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": -0.1345,
+          "left_value": 0.4938,
+          "query_family": "failure-looping",
+          "right_value": 0.6283,
+          "task": "agentreward_looping"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": -0.4829,
+          "left_value": 0.1454,
+          "query_family": "failure-side-effect",
+          "right_value": 0.6283,
+          "task": "agentreward_side_effect"
+        },
+        {
+          "dataset": "osworld-human",
+          "delta": -0.1593,
+          "left_value": 0.4074,
+          "query_family": "human-boundary",
+          "right_value": 0.5667,
+          "task": "osworld_group_start"
+        },
+        {
+          "dataset": "satraj-os-safety",
+          "delta": -0.4761,
+          "left_value": 0.042,
+          "query_family": "safety",
+          "right_value": 0.5181,
+          "task": "satraj_unsafe"
+        }
+      ],
+      "tasks": 6,
+      "tied_tasks": 0,
+      "worse_tasks": 0
+    },
+    {
+      "bootstrap_directional_support": 0.9189,
+      "bootstrap_mean_delta_ci95": [
+        -0.0264,
+        0.3841
+      ],
+      "bootstrap_reps": 10000,
+      "ci_supports_expected_direction": false,
+      "claim_role": "query_aware_ranker_improves_width_ranked_operation_stack",
+      "comparison": "operation_stack_query_aware_vs_operation_stack_width",
+      "expected_direction": "higher",
+      "improved_tasks": 5,
+      "left_policy": "operation_stack:query_aware",
+      "metric": "budget30_recall",
+      "metric_role": "higher",
+      "observed_mean_delta": 0.1392,
+      "observed_median_delta": 0.0599,
+      "right_policy": "operation_stack:width",
+      "task_deltas": [
+        {
+          "dataset": "agentnet",
+          "delta": 0.1075,
+          "left_value": 0.4382,
+          "query_family": "step-quality",
+          "right_value": 0.3307,
+          "task": "agentnet_incorrect_step"
+        },
+        {
+          "dataset": "agentnet",
+          "delta": 0.0095,
+          "left_value": 0.3533,
+          "query_family": "step-quality",
+          "right_value": 0.3438,
+          "task": "agentnet_redundant_step"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": 0.0456,
+          "left_value": 0.3988,
+          "query_family": "failure-looping",
+          "right_value": 0.3532,
+          "task": "agentreward_looping"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": 0.0743,
+          "left_value": 0.3812,
+          "query_family": "failure-side-effect",
+          "right_value": 0.3069,
+          "task": "agentreward_side_effect"
+        },
+        {
+          "dataset": "osworld-human",
+          "delta": -0.127,
+          "left_value": 0.2971,
+          "query_family": "human-boundary",
+          "right_value": 0.4241,
+          "task": "osworld_group_start"
+        },
+        {
+          "dataset": "satraj-os-safety",
+          "delta": 0.7251,
+          "left_value": 0.8376,
+          "query_family": "safety",
+          "right_value": 0.1125,
+          "task": "satraj_unsafe"
+        }
+      ],
+      "tasks": 6,
+      "tied_tasks": 0,
+      "worse_tasks": 1
+    },
+    {
+      "bootstrap_directional_support": 1.0,
+      "bootstrap_mean_delta_ci95": [
+        -0.3512,
+        -0.0292
+      ],
+      "bootstrap_reps": 10000,
+      "ci_supports_expected_direction": true,
+      "claim_role": "query_aware_ranker_improves_width_ranked_operation_stack",
+      "comparison": "operation_stack_query_aware_vs_operation_stack_width",
+      "expected_direction": "lower",
+      "improved_tasks": 5,
+      "left_policy": "operation_stack:query_aware",
+      "metric": "work_to_first_positive",
+      "metric_role": "lower",
+      "observed_mean_delta": -0.1566,
+      "observed_median_delta": -0.0856,
+      "right_policy": "operation_stack:width",
+      "task_deltas": [
+        {
+          "dataset": "agentnet",
+          "delta": -0.0814,
+          "left_value": 0.0007,
+          "query_family": "step-quality",
+          "right_value": 0.0821,
+          "task": "agentnet_incorrect_step"
+        },
+        {
+          "dataset": "agentnet",
+          "delta": -0.0897,
+          "left_value": 0.0051,
+          "query_family": "step-quality",
+          "right_value": 0.0948,
+          "task": "agentnet_redundant_step"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": 0.0,
+          "left_value": 0.2058,
+          "query_family": "failure-looping",
+          "right_value": 0.2058,
+          "task": "agentreward_looping"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": -0.1413,
+          "left_value": 0.0645,
+          "query_family": "failure-side-effect",
+          "right_value": 0.2058,
+          "task": "agentreward_side_effect"
+        },
+        {
+          "dataset": "osworld-human",
+          "delta": -0.002,
+          "left_value": 0.1311,
+          "query_family": "human-boundary",
+          "right_value": 0.1331,
+          "task": "osworld_group_start"
+        },
+        {
+          "dataset": "satraj-os-safety",
+          "delta": -0.6254,
+          "left_value": 0.0112,
+          "query_family": "safety",
+          "right_value": 0.6366,
+          "task": "satraj_unsafe"
+        }
+      ],
+      "tasks": 6,
+      "tied_tasks": 1,
+      "worse_tasks": 0
+    },
+    {
+      "bootstrap_directional_support": null,
+      "bootstrap_mean_delta_ci95": [
+        -0.1491,
+        0.1694
+      ],
+      "bootstrap_reps": 10000,
+      "ci_supports_expected_direction": null,
+      "claim_role": "query_aware_ranker_improves_width_ranked_operation_stack",
+      "comparison": "operation_stack_query_aware_vs_operation_stack_width",
+      "expected_direction": null,
+      "improved_tasks": null,
+      "left_policy": "operation_stack:query_aware",
+      "metric": "top5_f1",
+      "metric_role": "counterpoint_mixed",
+      "observed_mean_delta": -0.0045,
+      "observed_median_delta": -0.0755,
+      "right_policy": "operation_stack:width",
+      "task_deltas": [
+        {
+          "dataset": "agentnet",
+          "delta": -0.1029,
+          "left_value": 0.0067,
+          "query_family": "step-quality",
+          "right_value": 0.1096,
+          "task": "agentnet_incorrect_step"
+        },
+        {
+          "dataset": "agentnet",
+          "delta": -0.1009,
+          "left_value": 0.0316,
+          "query_family": "step-quality",
+          "right_value": 0.1325,
+          "task": "agentnet_redundant_step"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": 0.0774,
+          "left_value": 0.7593,
+          "query_family": "failure-looping",
+          "right_value": 0.6819,
+          "task": "agentreward_looping"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": -0.2567,
+          "left_value": 0.1494,
+          "query_family": "failure-side-effect",
+          "right_value": 0.4061,
+          "task": "agentreward_side_effect"
+        },
+        {
+          "dataset": "osworld-human",
+          "delta": -0.0501,
+          "left_value": 0.2469,
+          "query_family": "human-boundary",
+          "right_value": 0.297,
+          "task": "osworld_group_start"
+        },
+        {
+          "dataset": "satraj-os-safety",
+          "delta": 0.4065,
+          "left_value": 0.4065,
+          "query_family": "safety",
+          "right_value": 0.0,
+          "task": "satraj_unsafe"
+        }
+      ],
+      "tasks": 6,
+      "tied_tasks": 0,
+      "worse_tasks": null
+    },
+    {
+      "bootstrap_directional_support": 0.747,
+      "bootstrap_mean_delta_ci95": [
+        -0.042,
+        0.0743
+      ],
+      "bootstrap_reps": 10000,
+      "ci_supports_expected_direction": false,
+      "claim_role": "mapping_depth_is_task_sensitive",
+      "comparison": "operation_stack_query_aware_vs_raw_action_stack_query_aware",
+      "expected_direction": "higher",
+      "improved_tasks": 5,
+      "left_policy": "operation_stack:query_aware",
+      "metric": "average_precision",
+      "metric_role": "higher",
+      "observed_mean_delta": 0.0202,
+      "observed_median_delta": 0.0142,
+      "right_policy": "raw_action_stack:query_aware",
+      "task_deltas": [
+        {
+          "dataset": "agentnet",
+          "delta": 0.0226,
+          "left_value": 0.0886,
+          "query_family": "step-quality",
+          "right_value": 0.066,
+          "task": "agentnet_incorrect_step"
+        },
+        {
+          "dataset": "agentnet",
+          "delta": 0.0058,
+          "left_value": 0.0875,
+          "query_family": "step-quality",
+          "right_value": 0.0817,
+          "task": "agentnet_redundant_step"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": 0.1296,
+          "left_value": 0.8808,
+          "query_family": "failure-looping",
+          "right_value": 0.7512,
+          "task": "agentreward_looping"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": 0.0706,
+          "left_value": 0.3979,
+          "query_family": "failure-side-effect",
+          "right_value": 0.3273,
+          "task": "agentreward_side_effect"
+        },
+        {
+          "dataset": "osworld-human",
+          "delta": 0.004,
+          "left_value": 0.2254,
+          "query_family": "human-boundary",
+          "right_value": 0.2214,
+          "task": "osworld_group_start"
+        },
+        {
+          "dataset": "satraj-os-safety",
+          "delta": -0.1113,
+          "left_value": 0.4875,
+          "query_family": "safety",
+          "right_value": 0.5988,
+          "task": "satraj_unsafe"
+        }
+      ],
+      "tasks": 6,
+      "tied_tasks": 0,
+      "worse_tasks": 1
+    },
+    {
+      "bootstrap_directional_support": 0.9668,
+      "bootstrap_mean_delta_ci95": [
+        -0.0088,
+        0.2168
+      ],
+      "bootstrap_reps": 10000,
+      "ci_supports_expected_direction": false,
+      "claim_role": "mapping_depth_is_task_sensitive",
+      "comparison": "operation_stack_query_aware_vs_raw_action_stack_query_aware",
+      "expected_direction": "higher",
+      "improved_tasks": 4,
+      "left_policy": "operation_stack:query_aware",
+      "metric": "budget30_recall",
+      "metric_role": "higher",
+      "observed_mean_delta": 0.1068,
+      "observed_median_delta": 0.1229,
+      "right_policy": "raw_action_stack:query_aware",
+      "task_deltas": [
+        {
+          "dataset": "agentnet",
+          "delta": 0.1544,
+          "left_value": 0.4382,
+          "query_family": "step-quality",
+          "right_value": 0.2838,
+          "task": "agentnet_incorrect_step"
+        },
+        {
+          "dataset": "agentnet",
+          "delta": 0.0914,
+          "left_value": 0.3533,
+          "query_family": "step-quality",
+          "right_value": 0.2619,
+          "task": "agentnet_redundant_step"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": 0.1964,
+          "left_value": 0.3988,
+          "query_family": "failure-looping",
+          "right_value": 0.2024,
+          "task": "agentreward_looping"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": 0.0,
+          "left_value": 0.3812,
+          "query_family": "failure-side-effect",
+          "right_value": 0.3812,
+          "task": "agentreward_side_effect"
+        },
+        {
+          "dataset": "osworld-human",
+          "delta": -0.1178,
+          "left_value": 0.2971,
+          "query_family": "human-boundary",
+          "right_value": 0.4149,
+          "task": "osworld_group_start"
+        },
+        {
+          "dataset": "satraj-os-safety",
+          "delta": 0.3167,
+          "left_value": 0.8376,
+          "query_family": "safety",
+          "right_value": 0.5209,
+          "task": "satraj_unsafe"
+        }
+      ],
+      "tasks": 6,
+      "tied_tasks": 1,
+      "worse_tasks": 1
+    },
+    {
+      "bootstrap_directional_support": null,
+      "bootstrap_mean_delta_ci95": [
+        -0.1282,
+        0.2807
+      ],
+      "bootstrap_reps": 10000,
+      "ci_supports_expected_direction": null,
+      "claim_role": "mapping_depth_is_task_sensitive",
+      "comparison": "operation_stack_query_aware_vs_raw_action_stack_query_aware",
+      "expected_direction": null,
+      "improved_tasks": null,
+      "left_policy": "operation_stack:query_aware",
+      "metric": "top5_f1",
+      "metric_role": "counterpoint_mixed",
+      "observed_mean_delta": 0.0455,
+      "observed_median_delta": -0.0089,
+      "right_policy": "raw_action_stack:query_aware",
+      "task_deltas": [
+        {
+          "dataset": "agentnet",
+          "delta": -0.0121,
+          "left_value": 0.0067,
+          "query_family": "step-quality",
+          "right_value": 0.0188,
+          "task": "agentnet_incorrect_step"
+        },
+        {
+          "dataset": "agentnet",
+          "delta": -0.049,
+          "left_value": 0.0316,
+          "query_family": "step-quality",
+          "right_value": 0.0806,
+          "task": "agentnet_redundant_step"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": 0.5731,
+          "left_value": 0.7593,
+          "query_family": "failure-looping",
+          "right_value": 0.1862,
+          "task": "agentreward_looping"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": -0.2591,
+          "left_value": 0.1494,
+          "query_family": "failure-side-effect",
+          "right_value": 0.4085,
+          "task": "agentreward_side_effect"
+        },
+        {
+          "dataset": "osworld-human",
+          "delta": -0.0058,
+          "left_value": 0.2469,
+          "query_family": "human-boundary",
+          "right_value": 0.2527,
+          "task": "osworld_group_start"
+        },
+        {
+          "dataset": "satraj-os-safety",
+          "delta": 0.0261,
+          "left_value": 0.4065,
+          "query_family": "safety",
+          "right_value": 0.3804,
+          "task": "satraj_unsafe"
+        }
+      ],
+      "tasks": 6,
+      "tied_tasks": 0,
+      "worse_tasks": null
+    },
+    {
+      "bootstrap_directional_support": null,
+      "bootstrap_mean_delta_ci95": [
+        -0.1796,
+        0.2281
+      ],
+      "bootstrap_reps": 10000,
+      "ci_supports_expected_direction": null,
+      "claim_role": "mapping_depth_is_task_sensitive",
+      "comparison": "operation_stack_query_aware_vs_raw_action_stack_query_aware",
+      "expected_direction": null,
+      "improved_tasks": null,
+      "left_policy": "operation_stack:query_aware",
+      "metric": "top5_recall",
+      "metric_role": "counterpoint_mixed",
+      "observed_mean_delta": -0.0119,
+      "observed_median_delta": -0.0766,
+      "right_policy": "raw_action_stack:query_aware",
+      "task_deltas": [
+        {
+          "dataset": "agentnet",
+          "delta": -0.008,
+          "left_value": 0.0034,
+          "query_family": "step-quality",
+          "right_value": 0.0114,
+          "task": "agentnet_incorrect_step"
+        },
+        {
+          "dataset": "agentnet",
+          "delta": -0.0682,
+          "left_value": 0.0177,
+          "query_family": "step-quality",
+          "right_value": 0.0859,
+          "task": "agentnet_redundant_step"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": 0.5437,
+          "left_value": 0.6508,
+          "query_family": "failure-looping",
+          "right_value": 0.1071,
+          "task": "agentreward_looping"
+        },
+        {
+          "dataset": "agent-reward-bench",
+          "delta": -0.2673,
+          "left_value": 0.1139,
+          "query_family": "failure-side-effect",
+          "right_value": 0.3812,
+          "task": "agentreward_side_effect"
+        },
+        {
+          "dataset": "osworld-human",
+          "delta": -0.0851,
+          "left_value": 0.3874,
+          "query_family": "human-boundary",
+          "right_value": 0.4725,
+          "task": "osworld_group_start"
+        },
+        {
+          "dataset": "satraj-os-safety",
+          "delta": -0.1865,
+          "left_value": 0.2621,
+          "query_family": "safety",
+          "right_value": 0.4486,
+          "task": "satraj_unsafe"
+        }
+      ],
+      "tasks": 6,
+      "tied_tasks": 0,
+      "worse_tasks": null
+    }
+  ],
+  "non_claims": [
+    "This does not create, sync, or download a dataset.",
+    "This does not rerun the profiler or change R320 point estimates.",
+    "This is not a per-operation independence or human-utility claim.",
+    "This does not claim operation stacks dominate every baseline on every metric."
+  ],
+  "purpose": "task-paired uncertainty audit for R320 profiler localization/ranking comparisons",
+  "r320_policy_csv": "docs/visexp/out/operation-profile-accuracy-r320/policy-scores.csv",
+  "r320_report": "docs/visexp/out/operation-profile-accuracy-r320/profile-accuracy-report.json",
+  "reproducibility": {
+    "commit": "89d0bf217bb9693ddacf4048ba6c386a7a01e6a7",
+    "elapsed_seconds": 0.2101
+  },
+  "run_id": "R330",
+  "source_check": {
+    "files": [
+      "docs/visexp/out/operation-profile-accuracy-r320/policy-scores.csv",
+      "docs/visexp/out/operation-profile-accuracy-r320/profile-accuracy-report.json"
+    ],
+    "status": "pass",
+    "tracked_clean_files": 2
+  },
+  "status": "pass"
+}

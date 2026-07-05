@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>R330 Paired-Bootstrap Uncertainty Audit</title>
+<style>
+body { font-family: system-ui, sans-serif; margin: 32px; color: #1f2937; }
+table { border-collapse: collapse; width: 100%; margin: 16px 0 28px; }
+th, td { border-bottom: 1px solid #d1d5db; padding: 8px; text-align: right; }
+th:first-child, td:first-child, th:nth-child(2), td:nth-child(2), th:nth-child(3), td:nth-child(3) { text-align: left; }
+code { background: #f3f4f6; padding: 1px 4px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<h1>R330 Paired-Bootstrap Uncertainty Audit</h1>
+<p>Input: <code>docs/visexp/out/operation-profile-accuracy-r320/policy-scores.csv</code>. Bootstrap is over six R320 task families.</p>
+<h2>Supported Checks</h2>
+<table><thead><tr><th>Comparison</th><th>Metric</th><th>Mean delta</th><th>95% CI</th><th>Support</th><th>Tasks</th></tr></thead><tbody><tr><td>operation_stack_query_aware_vs_flat_width</td><td>average_precision</td><td>0.1219</td><td>[0.0406, 0.2175]</td><td>1.000</td><td>6/6</td></tr>
+<tr><td>operation_stack_query_aware_vs_flat_width</td><td>top5_work</td><td>-0.8168</td><td>[-0.9653, -0.6568]</td><td>1.000</td><td>6/6</td></tr>
+<tr><td>operation_stack_query_aware_vs_flat_width</td><td>budget30_recall</td><td>0.4510</td><td>[0.3450, 0.6143]</td><td>1.000</td><td>6/6</td></tr>
+<tr><td>operation_stack_query_aware_vs_flat_width</td><td>work_to_first_positive</td><td>-0.9303</td><td>[-0.9855, -0.8650]</td><td>1.000</td><td>6/6</td></tr>
+<tr><td>operation_stack_query_aware_vs_fixed_session_query_aware</td><td>top5_recall</td><td>0.1801</td><td>[0.0542, 0.3127]</td><td>0.999</td><td>5/6</td></tr>
+<tr><td>operation_stack_query_aware_vs_fixed_session_query_aware</td><td>top5_f1</td><td>0.1702</td><td>[0.0549, 0.2870]</td><td>0.999</td><td>5/6</td></tr>
+<tr><td>operation_stack_query_aware_vs_fixed_session_query_aware</td><td>groups</td><td>-178.0000</td><td>[-340.0000, -39.0000]</td><td>0.999</td><td>4/6</td></tr>
+<tr><td>operation_stack_query_aware_vs_operation_stack_width</td><td>average_precision</td><td>0.0932</td><td>[0.0110, 0.2184]</td><td>1.000</td><td>6/6</td></tr>
+<tr><td>operation_stack_query_aware_vs_operation_stack_width</td><td>top5_work</td><td>-0.3101</td><td>[-0.4209, -0.1997]</td><td>1.000</td><td>6/6</td></tr>
+<tr><td>operation_stack_query_aware_vs_operation_stack_width</td><td>work_to_first_positive</td><td>-0.1566</td><td>[-0.3512, -0.0292]</td><td>1.000</td><td>5/6</td></tr></tbody></table>
+<h2>Mixed Or Counterpoint Checks</h2>
+<table><thead><tr><th>Comparison</th><th>Metric</th><th>Role</th><th>Mean delta</th><th>95% CI</th></tr></thead><tbody><tr><td>operation_stack_query_aware_vs_flat_width</td><td>top5_recall</td><td>counterpoint_lower</td><td>-0.7608</td><td>[-0.9303, -0.5658]</td></tr>
+<tr><td>operation_stack_query_aware_vs_fixed_session_query_aware</td><td>top5_work</td><td>counterpoint_mixed</td><td>0.1086</td><td>[-0.0126, 0.2476]</td></tr>
+<tr><td>operation_stack_query_aware_vs_fixed_session_query_aware</td><td>work_to_first_positive</td><td>counterpoint_mixed</td><td>0.0031</td><td>[-0.1190, 0.1044]</td></tr>
+<tr><td>operation_stack_query_aware_vs_fixed_session_query_aware</td><td>average_precision</td><td>counterpoint_mixed</td><td>-0.0099</td><td>[-0.0337, 0.0074]</td></tr>
+<tr><td>operation_stack_query_aware_vs_operation_stack_width</td><td>budget30_recall</td><td>higher</td><td>0.1392</td><td>[-0.0264, 0.3841]</td></tr>
+<tr><td>operation_stack_query_aware_vs_operation_stack_width</td><td>top5_f1</td><td>counterpoint_mixed</td><td>-0.0045</td><td>[-0.1491, 0.1694]</td></tr>
+<tr><td>operation_stack_query_aware_vs_raw_action_stack_query_aware</td><td>average_precision</td><td>higher</td><td>0.0202</td><td>[-0.0420, 0.0743]</td></tr>
+<tr><td>operation_stack_query_aware_vs_raw_action_stack_query_aware</td><td>budget30_recall</td><td>higher</td><td>0.1068</td><td>[-0.0088, 0.2168]</td></tr>
+<tr><td>operation_stack_query_aware_vs_raw_action_stack_query_aware</td><td>top5_f1</td><td>counterpoint_mixed</td><td>0.0455</td><td>[-0.1282, 0.2807]</td></tr>
+<tr><td>operation_stack_query_aware_vs_raw_action_stack_query_aware</td><td>top5_recall</td><td>counterpoint_mixed</td><td>-0.0119</td><td>[-0.1796, 0.2281]</td></tr></tbody></table>
+</body>
+</html>
