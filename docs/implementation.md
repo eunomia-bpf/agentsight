@@ -32,6 +32,7 @@ Purpose: identify the maintained implementation boundary.
 | `script/operation_rank_feature_ablation_eval.py` | R325 leave-one-feature actionability probe over R324's scrubbed visible profiler input. | research harness |
 | `script/operation_rank_feature_robustness_eval.py` | R326 equal-weight, global-bank, and ablation-repaired rank-feature robustness probe over R324's scrubbed visible profiler input. | research harness |
 | `script/operation_profile_spec_composition_eval.py` | R342 profile-spec composition audit over tracked R324 real-trace Rust outputs; checks predicates, operation-level rank rules, rank mode, and recursive stack depth without prompt/session frames. | research harness |
+| `script/profile_artifact_relocation_audit.py` | R343 relocated-checkout audit for historical profile specs that contain absolute artifact paths; verifies R342/R338 path normalization over existing tracked outputs. | reproducibility harness |
 | `script/implementation_consistency_audit.py` | R319 implementation/docs consistency audit over Rust CLI, docs, and paper wording. | paper hygiene harness |
 | `docs/visexp/` | Historical AgentFlame/visual-experiment notes and older prototypes. | archive/reference; not authoritative |
 
@@ -121,6 +122,16 @@ over width on 9/12 variants and first-positive work on 10/12, while coarse
 stack depth reduces groups on 6/6 tasks with median reduction 0.8267. This is a
 real-trace mechanism/reproducibility audit for operation and operation stack,
 not a third abstraction or a human-utility result.
+
+R343 closes the relocated-checkout portability gap found during review.
+`script/profile_artifact_relocation_audit.py` reads the same tracked R324/R342
+artifacts and simulates a different checkout root for profile specs whose
+`operation_files` still contain historical absolute paths. The audit verifies
+that both the R342 composition path and the R338 paper-claim path rebase those
+paths onto the current repository via the `docs/visexp/out/...` artifact suffix,
+with 12/12 operation-file path checks passing and R338 still recomputing 12
+variants across 6 tasks. This is a reproducibility guard for existing artifacts,
+not a new dataset, ranker, boundary detector, or profiler abstraction.
 
 Local trace exchange is also implemented through the maintained Rust path.
 R294/R303 show `agentsight.agent-session.trace.v1` export/import and operation

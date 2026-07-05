@@ -149,7 +149,7 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 |---|---|---|---|---|
 | evaluation | R320 headline operations | 34,539 / 34539 | pass | 15,111,133,249,281,346,353,355 |
 | evaluation | R320 top5 work | 0.0937 / 9.37% | pass | 15,134,190,281,350,351,354,366 |
-| evaluation | R333 budget30 recall | 0.3900 / 0.39 | pass | 193,281,376,442 |
+| evaluation | R333 budget30 recall | 0.3900 / 0.39 | pass | 193,281,376,443 |
 | evaluation | R334 fragmentation | 5/6 / -54.0 / fewer groups | pass | 15,53,54,71,123,136,156,157 |
 | evaluation | R335 actionability | actionability / 6/6 / optimization | pass | 5,15,57,76,85,87,123,139 |
 | evaluation | R336 visible policies | 15 visible / 15 个 / 6 diagnostic | pass | 281,379,383 |
@@ -181,12 +181,12 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | evaluation | R320:datasets | 4 | pass | 12,13,14,15,41,45,47,53 |
 | evaluation | R320:tasks | 6 | pass | 3,4,12,13,15,32,41,42 |
 | evaluation | R320:operations | 34,539 | pass | 15,111,133,249,281,346,353,355 |
-| evaluation | R320:positives | 3,699 | pass | 15,133,356,359,363,366,377,447 |
-| evaluation | R320:policies | 144 | pass | 15,132,361,366,376,382,453,458 |
-| evaluation | R320:operation_stack_top5_work_median | 0.0937 | pass | 190,366,382,443,444,445,446,447 |
+| evaluation | R320:positives | 3,699 | pass | 15,133,356,359,363,366,377,448 |
+| evaluation | R320:policies | 144 | pass | 15,132,361,366,376,382,454,459 |
+| evaluation | R320:operation_stack_top5_work_median | 0.0937 | pass | 190,366,382,444,445,446,447,448 |
 | evaluation | R320:flat_top5_work_median | 1.0 | pass | 15,179,191,281,345,348,362,366 |
-| evaluation | R320:operation_stack_groups_median | 157.5 | pass | 15,137,281,366,458 |
-| evaluation | R320:fixed_session_groups_median | 285.0 | pass | 15,137,281,366,458 |
+| evaluation | R320:operation_stack_groups_median | 157.5 | pass | 15,137,281,366,459 |
+| evaluation | R320:fixed_session_groups_median | 285.0 | pass | 15,137,281,366,459 |
 | evaluation | R320:top5_recall_wins_vs_fixed | 5/6 | pass | 15,53,54,71,123,136,156,157 |
 | evaluation | R320:ap_wins_vs_width | 6/6 | pass | 15,85,123,139,161,163,169,170 |
 | evaluation | R333:operation_stack:query_aware_budget30_median_recall | 0.3900 | pass | 193,281,376 |
@@ -211,9 +211,9 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | evaluation | R339:overall | pass | pass | 14,51,122,225,281,357,358,361 |
 | evaluation | R339:datasets | 4 | pass | 12,13,14,15,41,45,47,53 |
 | evaluation | R339:tasks | 6 | pass | 3,4,12,13,15,32,41,42 |
-| evaluation | R339:policies_scored | 144 | pass | 15,132,361,366,376,382,453,458 |
+| evaluation | R339:policies_scored | 144 | pass | 15,132,361,366,376,382,454,459 |
 | evaluation | R339:hidden_labels_used_only_for_scoring | hidden labels only for scoring | pass | 382 |
-| evaluation | R339:top5_median_operation_work | 0.0937 | pass | 190,366,382,443,444,445,446,447 |
+| evaluation | R339:top5_median_operation_work | 0.0937 | pass | 190,366,382,444,445,446,447,448 |
 | evaluation | R339:top5_median_positive_session_recall | 0.2629 | pass | 191,382 |
 | evaluation | R339:top5_fixed_positive_session_recall | 0.0160 | pass | 192,382 |
 | evaluation | R339:top5_flat_operation_work | 1.0000 | pass | 15,179,191,281,380 |
@@ -226,7 +226,7 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | evaluation | R339:top5_operation_work_lt_flat_tasks | 6/6 | pass | 15,85,123,139,161,163,169,170 |
 | evaluation | R339:budget30_session_recall_gt_fixed_tasks | 6/6 | pass | 15,85,123,139,161,163,169,170 |
 | evaluation | R339:budget30_session_work_lt_raw_action_tasks | 5/6 | pass | 15,53,54,71,123,136,156,157 |
-| evaluation | R339:csv_default_median_top5_operation_work | 0.0937 | pass | 190,366,382,443,444,445,446,447 |
+| evaluation | R339:csv_default_median_top5_operation_work | 0.0937 | pass | 190,366,382,444,445,446,447,448 |
 | evaluation | R339:csv_default_median_top5_positive_session_recall | 0.2629 | pass | 191,382 |
 | evaluation | R339:csv_default_median_budget30_positive_operation_recall | 0.3900 | pass | 193,281,376 |
 | evaluation | R339:csv_default_median_budget30_positive_session_recall | 0.4669 | pass | 15,194,281,382 |
@@ -244,9 +244,9 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | evaluation | R340:selected_beats_fixed | 69 | pass | 15,133,194,205,281,309,324,336 |
 | evaluation | R340:selected_beats_flat | 41 | pass | 13,15,206,213,225,281,310,324 |
 | evaluation | R340:operation_stack_selected | 16 | pass | 13,15,178,192,207,225,281,298 |
-| evaluation | R340:leave_task_decisions | 48 | pass | 319,320,345,413,428,430 |
+| evaluation | R340:leave_task_decisions | 48 | pass | 319,320,345,414,429,431 |
 | evaluation | R340:leave_task_within_tolerance | 32 | pass | 12,14,15,36,40,43,44,47 |
-| evaluation | R340:leave_dataset_decisions | 48 | pass | 319,320,345,413,428,430 |
+| evaluation | R340:leave_dataset_decisions | 48 | pass | 319,320,345,414,429,431 |
 | evaluation | R340:leave_dataset_within_tolerance | 30 | pass | 12,15,39,50,79,91,92,102 |
 | evaluation | R340:decision_rows | 96 | pass | 15,97,99,203,204,205,206,207 |
 | evaluation | R340:objective_rows | 16 | pass | 13,15,178,192,207,225,281,298 |
@@ -256,7 +256,7 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | evaluation | R340:best_policy_no_oracle_or_label_drilldown | 96/96 | pass | 211,212 |
 | evaluation | R340:leave_task_excludes_target_task | 96/96 | pass | 211,212 |
 | evaluation | R340:leave_dataset_excludes_target_dataset | 96/96 | pass | 211,212 |
-| evaluation | R341:overall | R341 | pass | 15,213,281,381,384,540,543,614 |
+| evaluation | R341:overall | R341 | pass | 15,213,281,381,384,542,545,616 |
 | evaluation | R341:tasks | 6 tasks | pass | 15,281,384 |
 | evaluation | R341:objective_rows | 36 objective rows | pass | 15,281,384 |
 | evaluation | R341:objective_best_policy_visible_rows | 36/36 best policies visible | pass | 384 |
@@ -274,32 +274,32 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | evaluation | R341:misleading_feature_tasks | misleading features on 2/6 | pass | 15,384 |
 | evaluation | R341:tasks_with_three_or_more_mechanism_labels | three or more mechanism labels on 6/6 | pass | 384 |
 | evaluation | R342:overall | R342 | pass | 12,15,78,221,278,281,283,381 |
-| evaluation | R342:tasks | 6 tasks | pass | 15,281,385,465 |
-| evaluation | R342:profile_spec_variants | 12 profile-spec variants | pass | 385,465 |
+| evaluation | R342:tasks | 6 tasks | pass | 15,281,385,386,466 |
+| evaluation | R342:profile_spec_variants | 12 profile-spec variants | pass | 385,466 |
 | evaluation | R342:composition_variants | 12/12 compose | pass | 15,385 |
 | evaluation | R342:prompt_session_free_variants | 12/12 prompt/session-free | pass | 385 |
-| evaluation | R342:rule_score_rank_policy_variants | rank_mode=rule-score | pass | 15,385,465 |
-| evaluation | R342:ap_improves_vs_width_variants | 9/12 variants | pass | 15,385,465 |
+| evaluation | R342:rule_score_rank_policy_variants | rank_mode=rule-score | pass | 15,385,466 |
+| evaluation | R342:ap_improves_vs_width_variants | 9/12 variants | pass | 15,385,466 |
 | evaluation | R342:top5_lift_improves_vs_width_variants | 8/12 | pass | 15 |
-| evaluation | R342:first_positive_work_improves_vs_width_variants | 10/12 | pass | 15,385,465 |
+| evaluation | R342:first_positive_work_improves_vs_width_variants | 10/12 | pass | 15,385,466 |
 | evaluation | R342:tasks_with_ap_improvement_any_depth | 5/6 | pass | 15,281 |
-| evaluation | R342:tasks_with_first_positive_improvement_any_depth | 6/6 | pass | 15,281,385,465 |
-| evaluation | R342:tasks_where_coarse_reduces_groups | 6/6 tasks | pass | 15,281,385,465 |
-| evaluation | R342:median_coarse_group_reduction | 0.8267 | pass | 15,385,465 |
+| evaluation | R342:tasks_with_first_positive_improvement_any_depth | 6/6 | pass | 15,281,385,466 |
+| evaluation | R342:tasks_where_coarse_reduces_groups | 6/6 tasks | pass | 15,281,385,466 |
+| evaluation | R342:median_coarse_group_reduction | 0.8267 | pass | 15,385,466 |
 | evaluation | R342:tasks_where_depth_choice_changes_objective | 3/6 tasks | pass | 385 |
-| evaluation | R342:best_ap_semantic_depth_tasks | semantic 4 / coarse 2 | pass | 15,385,465 |
-| evaluation | R342:best_ap_coarse_depth_tasks | semantic 4 / coarse 2 | pass | 15,385,465 |
-| evaluation | R342:committed_variant_csv_matches_sources | 12/12 | pass | 12,15,278,385,465 |
-| evaluation | R342:committed_task_csv_matches_sources | 6/6 | pass | 15,281,385,465 |
+| evaluation | R342:best_ap_semantic_depth_tasks | semantic 4 / coarse 2 | pass | 15,385,466 |
+| evaluation | R342:best_ap_coarse_depth_tasks | semantic 4 / coarse 2 | pass | 15,385,466 |
+| evaluation | R342:committed_variant_csv_matches_sources | 12/12 | pass | 12,15,278,385,386,466 |
+| evaluation | R342:committed_task_csv_matches_sources | 6/6 | pass | 15,281,385,466 |
 
 ## Guardrails
 
 | Doc | Guardrail | Status | Occurrences | Occurrence lines | Unguarded overclaim lines |
 |---|---|---|---:|---|---|
-| evaluation | human_utility | pass | 12 | 15,281,353,357,435,438,440,441,445,449,450,452 | none |
-| evaluation | automatic_boundary | pass | 6 | 228,281,434,435,457,465 | none |
-| evaluation | ecosystem_compatibility | pass | 8 | 12,15,30,281,352,434,452,544 | none |
-| evaluation | universal_selector | pass | 11 | 15,175,281,383,451,452,454,458,465,521,538 | none |
+| evaluation | human_utility | pass | 12 | 15,281,353,357,436,439,441,442,446,450,451,453 | none |
+| evaluation | automatic_boundary | pass | 6 | 228,281,435,436,458,466 | none |
+| evaluation | ecosystem_compatibility | pass | 8 | 12,15,30,281,352,435,453,546 | none |
+| evaluation | universal_selector | pass | 11 | 15,175,281,383,452,453,455,459,466,523,540 | none |
 | zh_claim_setup | human_utility | pass | 12 | 26,28,36,40,76,77,78,85,86,89,90,92 | none |
 | zh_claim_setup | automatic_boundary | pass | 5 | 23,25,26,40,239 | none |
 | zh_claim_setup | ecosystem_compatibility | pass | 8 | 22,70,88,143,190,227,228,229 | none |
