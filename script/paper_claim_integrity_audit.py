@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""R338: paper-claim integrity audit over R320-R341 evidence.
+"""R338: paper-claim integrity audit over R320-R342 evidence.
 
 This audit does not fetch, sync, create, or relabel datasets. It reads tracked
 result artifacts from the existing profiling-paper evaluation runs and the
@@ -40,6 +40,7 @@ R337_DIR = OUT_ROOT / "operation-inspection-target-r337"
 R339_DIR = OUT_ROOT / "operation-sequence-adequacy-r339"
 R340_DIR = OUT_ROOT / "operation-policy-transfer-r340"
 R341_DIR = OUT_ROOT / "operation-mechanism-attribution-r341"
+R342_DIR = OUT_ROOT / "operation-profile-spec-composition-r342"
 
 SOURCE_ARTIFACTS = {
     "R320 report": R320_DIR / "profile-accuracy-report.json",
@@ -64,6 +65,9 @@ SOURCE_ARTIFACTS = {
     "R341 report": R341_DIR / "mechanism-attribution-report.json",
     "R341 objective attribution": R341_DIR / "objective-mechanism-attribution.csv",
     "R341 transfer attribution": R341_DIR / "transfer-error-attribution.csv",
+    "R342 report": R342_DIR / "profile-spec-composition-report.json",
+    "R342 variants": R342_DIR / "profile-spec-composition-variants.csv",
+    "R342 tasks": R342_DIR / "profile-spec-composition-tasks.csv",
 }
 
 PAPER_SOURCES = {
@@ -424,6 +428,8 @@ def build_number_checks(
     r340_objectives: list[dict[str, str]],
     r341_objectives: list[dict[str, str]],
     r341_transfer: list[dict[str, str]],
+    r342_variants: list[dict[str, str]],
+    r342_tasks: list[dict[str, str]],
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     r320 = reports["R320"]
@@ -969,6 +975,41 @@ def build_number_checks(
     add_check(rows, run_id="R341", key="critical_rank_feature_tasks", actual=r341_mechanism_counts["critical_rank_features"], expected=4, source="R341 objective-mechanism-attribution.csv", paper_token="critical features on 4/6")
     add_check(rows, run_id="R341", key="misleading_feature_tasks", actual=r341_mechanism_counts["misleading_feature_risk"], expected=2, source="R341 objective-mechanism-attribution.csv", paper_token="misleading features on 2/6")
     add_check(rows, run_id="R341", key="tasks_with_three_or_more_mechanism_labels", actual=sum(len(labels) >= 3 for labels in r341_mechanisms_by_task.values()), expected=6, source="R341 objective-mechanism-attribution.csv", paper_token="three or more mechanism labels on 6/6")
+
+    r342_best_ap_counts = Counter(row["best_ap_stack_kind"] for row in r342_tasks)
+    r342_overall = "pass" if (
+        len(r342_tasks) == 6
+        and len(r342_variants) == 12
+        and sum(as_bool(row["profile_spec_composes_pipeline"]) for row in r342_variants) == 12
+        and sum(not as_bool(row["has_prompt_or_session_frame"]) for row in r342_variants) == 12
+        and sum(row["ranking_policy"] == "visible_operation_rule_score_then_width" for row in r342_variants) == 12
+        and sum(as_float(row["delta_ap"]) > 0 for row in r342_variants) == 9
+        and sum(as_float(row["delta_top5_lift"]) > 0 for row in r342_variants) == 8
+        and sum(as_float(row["delta_first_positive_work"]) < 0 for row in r342_variants) == 10
+        and sum(as_bool(row["ap_improves_at_any_depth"]) for row in r342_tasks) == 5
+        and sum(as_bool(row["first_positive_improves_at_any_depth"]) for row in r342_tasks) == 6
+        and sum(as_float(row["coarse_group_reduction"]) > 0 for row in r342_tasks) == 6
+        and round(float(median(as_float(row["coarse_group_reduction"]) for row in r342_tasks)), 4) == 0.8267
+        and sum(as_bool(row["depth_choice_changes_objective"]) for row in r342_tasks) == 3
+        and r342_best_ap_counts["semantic"] == 4
+        and r342_best_ap_counts["coarse"] == 2
+    ) else "fail"
+    add_check(rows, run_id="R342", key="overall", actual=r342_overall, expected="pass", source="R342 CSV-derived invariants", paper_token="R342")
+    add_check(rows, run_id="R342", key="tasks", actual=len(r342_tasks), expected=6, source="R342 profile-spec-composition-tasks.csv", paper_token="6 tasks")
+    add_check(rows, run_id="R342", key="profile_spec_variants", actual=len(r342_variants), expected=12, source="R342 profile-spec-composition-variants.csv", paper_token="12 profile-spec variants")
+    add_check(rows, run_id="R342", key="composition_variants", actual=sum(as_bool(row["profile_spec_composes_pipeline"]) for row in r342_variants), expected=12, source="R342 profile-spec-composition-variants.csv", paper_token="12/12 compose")
+    add_check(rows, run_id="R342", key="prompt_session_free_variants", actual=sum(not as_bool(row["has_prompt_or_session_frame"]) for row in r342_variants), expected=12, source="R342 profile-spec-composition-variants.csv", paper_token="12/12 prompt/session-free")
+    add_check(rows, run_id="R342", key="rule_score_rank_policy_variants", actual=sum(row["ranking_policy"] == "visible_operation_rule_score_then_width" for row in r342_variants), expected=12, source="R342 profile-spec-composition-variants.csv", paper_token="rank_mode=rule-score")
+    add_check(rows, run_id="R342", key="ap_improves_vs_width_variants", actual=sum(as_float(row["delta_ap"]) > 0 for row in r342_variants), expected=9, source="R342 profile-spec-composition-variants.csv", paper_token="9/12 variants")
+    add_check(rows, run_id="R342", key="top5_lift_improves_vs_width_variants", actual=sum(as_float(row["delta_top5_lift"]) > 0 for row in r342_variants), expected=8, source="R342 profile-spec-composition-variants.csv", paper_token="8/12")
+    add_check(rows, run_id="R342", key="first_positive_work_improves_vs_width_variants", actual=sum(as_float(row["delta_first_positive_work"]) < 0 for row in r342_variants), expected=10, source="R342 profile-spec-composition-variants.csv", paper_token="10/12")
+    add_check(rows, run_id="R342", key="tasks_with_ap_improvement_any_depth", actual=sum(as_bool(row["ap_improves_at_any_depth"]) for row in r342_tasks), expected=5, source="R342 profile-spec-composition-tasks.csv", paper_token="5/6")
+    add_check(rows, run_id="R342", key="tasks_with_first_positive_improvement_any_depth", actual=sum(as_bool(row["first_positive_improves_at_any_depth"]) for row in r342_tasks), expected=6, source="R342 profile-spec-composition-tasks.csv", paper_token="6/6")
+    add_check(rows, run_id="R342", key="tasks_where_coarse_reduces_groups", actual=sum(as_float(row["coarse_group_reduction"]) > 0 for row in r342_tasks), expected=6, source="R342 profile-spec-composition-tasks.csv", paper_token="6/6 tasks")
+    add_check(rows, run_id="R342", key="median_coarse_group_reduction", actual=round(float(median(as_float(row["coarse_group_reduction"]) for row in r342_tasks)), 4), expected=0.8267, source="R342 profile-spec-composition-tasks.csv", paper_token="0.8267", tolerance=5e-5)
+    add_check(rows, run_id="R342", key="tasks_where_depth_choice_changes_objective", actual=sum(as_bool(row["depth_choice_changes_objective"]) for row in r342_tasks), expected=3, source="R342 profile-spec-composition-tasks.csv", paper_token="3/6 tasks")
+    add_check(rows, run_id="R342", key="best_ap_semantic_depth_tasks", actual=r342_best_ap_counts["semantic"], expected=4, source="R342 profile-spec-composition-tasks.csv", paper_token="semantic 4 / coarse 2")
+    add_check(rows, run_id="R342", key="best_ap_coarse_depth_tasks", actual=r342_best_ap_counts["coarse"], expected=2, source="R342 profile-spec-composition-tasks.csv", paper_token="semantic 4 / coarse 2")
     return rows
 
 
@@ -1014,6 +1055,7 @@ def build_text_coverage(
         ("evaluation", "R339 sequence adequacy", ["R339", "0.4669", "0.9103"], "R339"),
         ("evaluation", "R340 policy transfer", ["R340", "96", "62/96", "72/96"], "R340"),
         ("evaluation", "R341 mechanism attribution", ["R341", "36/36", "27/36", "34/96"], "R341"),
+        ("evaluation", "R342 profile spec composition", ["R342", "12/12", "9/12", "0.8267"], "R342"),
         ("zh_main", "R320 headline", ["0.0937", "9.37", "285.0", "157.5"], "R320"),
         ("zh_main", "R333 headline", ["0.3900", "0.390"], "R333"),
         ("zh_main", "R337 headline", ["0.2000", "16.0", "50.0"], "R337"),
@@ -1035,7 +1077,7 @@ def build_text_coverage(
     rows: list[dict[str, Any]] = []
     for doc, key, tokens, source in required:
         text = texts[doc]
-        status = "pass" if (contains_all(text, tokens) if source == "R341" else contains_any(text, tokens)) else "fail"
+        status = "pass" if (contains_all(text, tokens) if source in {"R341", "R342"} else contains_any(text, tokens)) else "fail"
         rows.append(
             {
                 "doc": doc,
@@ -1049,10 +1091,10 @@ def build_text_coverage(
 
     eval_text = texts["evaluation"]
     for row in number_checks:
-        if row["run_id"] not in {"R320", "R333", "R337", "R339", "R340", "R341"}:
+        if row["run_id"] not in {"R320", "R333", "R337", "R339", "R340", "R341", "R342"}:
             continue
         token = str(row["paper_token"])
-        hits = line_hits_all(eval_text, ["R341", token]) if row["run_id"] == "R341" else line_hits(eval_text, [token])
+        hits = line_hits_all(eval_text, [row["run_id"], token]) if row["run_id"] in {"R341", "R342"} else line_hits(eval_text, [token])
         status = "pass" if hits else "warn"
         rows.append(
             {
@@ -1292,7 +1334,7 @@ def build_markdown(path: Path, payload: dict[str, Any]) -> None:
     lines = [
         "# Paper Claim Integrity Audit R338",
         "",
-        "R338 mechanically audits the current profiling-paper claim against R320-R341 result artifacts and the Chinese/English paper text. It does not fetch, sync, create, or relabel datasets.",
+        "R338 mechanically audits the current profiling-paper claim against R320-R342 result artifacts and the Chinese/English paper text. It does not fetch, sync, create, or relabel datasets.",
         "",
         "## Verdict",
         "",
@@ -1315,7 +1357,7 @@ def build_markdown(path: Path, payload: dict[str, Any]) -> None:
         "|---|---|---:|---:|---|---|",
     ]
     for row in payload["number_checks"]:
-        if row["run_id"] in {"R320", "R333", "R334", "R337", "R339", "R340", "R341"}:
+        if row["run_id"] in {"R320", "R333", "R334", "R337", "R339", "R340", "R341", "R342"}:
             lines.append(
                 f"| {row['run_id']} | {row['key']} | {row['expected']} | {row['actual']} | {row['status']} | {row['source']} |"
             )
@@ -1425,6 +1467,7 @@ def build_payload() -> dict[str, Any]:
         "R339": load_json(SOURCE_ARTIFACTS["R339 report"]),
         "R340": load_json(SOURCE_ARTIFACTS["R340 report"]),
         "R341": load_json(SOURCE_ARTIFACTS["R341 report"]),
+        "R342": load_json(SOURCE_ARTIFACTS["R342 report"]),
     }
     r320_scores = read_csv(SOURCE_ARTIFACTS["R320 policy scores"])
     r333_summary = read_csv(SOURCE_ARTIFACTS["R333 curve summary"])
@@ -1438,6 +1481,8 @@ def build_payload() -> dict[str, Any]:
     r340_objectives = read_csv(SOURCE_ARTIFACTS["R340 objective summary"])
     r341_objectives = read_csv(SOURCE_ARTIFACTS["R341 objective attribution"])
     r341_transfer = read_csv(SOURCE_ARTIFACTS["R341 transfer attribution"])
+    r342_variants = read_csv(SOURCE_ARTIFACTS["R342 variants"])
+    r342_tasks = read_csv(SOURCE_ARTIFACTS["R342 tasks"])
 
     number_checks = build_number_checks(
         reports,
@@ -1453,6 +1498,8 @@ def build_payload() -> dict[str, Any]:
         r340_objectives,
         r341_objectives,
         r341_transfer,
+        r342_variants,
+        r342_tasks,
     )
     policy_checks = validate_source_policies(reports)
     text_coverage = build_text_coverage(texts, number_checks)
@@ -1500,7 +1547,7 @@ def build_payload() -> dict[str, Any]:
             "dataset_relabeling": "none",
             "network_access_required": False,
             "source_text_clean_policy": "paper text sources may be current worktree edits and are hashed; empirical source artifacts must be tracked clean",
-            "hidden_label_use": "R338 reads already-scored R320-R341 artifacts and does not form new rankings from hidden labels",
+            "hidden_label_use": "R338 reads already-scored R320-R342 artifacts and does not form new rankings from hidden labels",
         },
         "non_claims": [
             "not a human/agent analyst study",
