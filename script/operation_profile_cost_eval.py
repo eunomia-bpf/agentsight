@@ -77,6 +77,14 @@ def write_json(path: Path, payload: Any) -> None:
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as file:
+        for chunk in iter(lambda: file.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def git_output(args: list[str]) -> str:
     result = subprocess.run(
         ["git", *args],
@@ -124,10 +132,15 @@ def ensure_sources_tracked_clean(paths: list[Path]) -> dict[str, Any]:
 
 
 def ensure_agentpprof_binary(binary: Path, skip_build: bool) -> dict[str, Any]:
-    if binary.exists():
-        return {"status": "present", "binary": rel(binary), "build_excluded_from_timings": True}
     if skip_build:
-        raise SystemExit(f"missing agentpprof binary: {rel(binary)}")
+        if not binary.exists():
+            raise SystemExit(f"missing agentpprof binary: {rel(binary)}")
+        return {
+            "status": "present",
+            "binary": rel(binary),
+            "sha256": file_sha256(binary),
+            "build_excluded_from_timings": True,
+        }
     started = time.perf_counter()
     result = subprocess.run(
         ["cargo", "build", "--manifest-path", "agentpprof/Cargo.toml"],
@@ -145,6 +158,7 @@ def ensure_agentpprof_binary(binary: Path, skip_build: bool) -> dict[str, Any]:
     return {
         "status": "built",
         "binary": rel(binary),
+        "sha256": file_sha256(binary),
         "elapsed_s": round(elapsed, 3),
         "build_excluded_from_timings": True,
     }
@@ -275,12 +289,15 @@ def run_one(
     fmt: str,
     rep: int,
     run_dir: Path,
+    agentpprof_args: list[str] | None = None,
 ) -> dict[str, Any]:
     output_path = run_dir / f"{spec_path.stem}-rep{rep}{output_extension(fmt)}"
+    extra_args = agentpprof_args or []
     started = time.perf_counter()
     result = subprocess.run(
         [
             str(binary),
+            *extra_args,
             "--profile-spec",
             rel(spec_path),
             "-o",
@@ -348,7 +365,12 @@ def summarize_runs(runs: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
-def evaluate_specs(binary: Path, specs: list[dict[str, Any]], reps: int) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+def evaluate_specs(
+    binary: Path,
+    specs: list[dict[str, Any]],
+    reps: int,
+    agentpprof_args: list[str] | None = None,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     if reps < 2:
         raise SystemExit("--reps must be at least 2 for determinism checking")
     rows = []
@@ -372,7 +394,7 @@ def evaluate_specs(binary: Path, specs: list[dict[str, Any]], reps: int) -> tupl
             spec = load_json(spec_path)
             fmt = normalized_format(spec)
             runs = [
-                run_one(binary, spec_path, fmt, rep, temp_path)
+                run_one(binary, spec_path, fmt, rep, temp_path, agentpprof_args)
                 for rep in range(1, reps + 1)
             ]
             summary = summarize_runs(runs)

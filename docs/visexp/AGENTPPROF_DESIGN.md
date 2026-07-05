@@ -116,6 +116,20 @@ docs/visexp/agentpprof-python/
 frontend/       TypeScript: pprof/artifact browsing inside AgentSight
 ```
 
+## Profile Specs and Deterministic Artifacts
+
+The Rust CLI also supports an operation JSONL path for paper experiments.
+`--profile-spec` records the operation input, mapping files, predicates, view,
+stack fields, rank rules, and output path in a JSON configuration. Command-line
+flags still override spec defaults, so the spec is a reproducibility wrapper
+around the same operation/operation-stack query surface rather than a new
+profiler abstraction.
+
+For byte-stable artifact checks, `--deterministic-output` or a profile-spec
+`deterministic_output` field replaces JSON `generated_at` and pprof profile time
+with fixed values. This mode is intended for reproducibility tests and should
+not be interpreted as a live-capture overhead measurement.
+
 ## Compatibility Boundary
 
 `agentpprof` profiles are semantic profiles, not CPU profiles. pprof will still

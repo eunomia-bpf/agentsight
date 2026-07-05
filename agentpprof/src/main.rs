@@ -125,6 +125,9 @@ struct Cli {
     /// Choose how JSON rank rules order stack groups.
     #[arg(long = "rank-mode", value_enum)]
     rank_mode: Option<CliRankMode>,
+    /// Write byte-stable profiles by replacing output timestamps with fixed values.
+    #[arg(long = "deterministic-output")]
+    deterministic_output: bool,
     /// Read operation-field mapping rules from a file. Blank lines and lines starting with '#' are ignored.
     /// Inline --op-map rules run before file rules, so command-line rules can override defaults.
     #[arg(long = "op-map-file", value_name = "PATH")]
@@ -272,6 +275,7 @@ struct ProfileSpec {
     rank_rules: Vec<String>,
     rank_op_rules: Vec<String>,
     rank_mode: Option<CliRankMode>,
+    deterministic_output: Option<bool>,
     op_map_files: Vec<PathBuf>,
     operation_files: Vec<PathBuf>,
 }
@@ -294,6 +298,7 @@ struct RawProfileSpec {
     #[serde(default)]
     rank_op_rules: Vec<String>,
     rank_mode: Option<String>,
+    deterministic_output: Option<bool>,
     #[serde(default)]
     op_map_files: Vec<PathBuf>,
     #[serde(default)]
@@ -354,6 +359,8 @@ fn command_export(args: Cli) -> Result<()> {
         .rank_mode
         .or(spec.rank_mode)
         .unwrap_or(CliRankMode::WidthBoost);
+    let deterministic_output =
+        args.deterministic_output || spec.deterministic_output.unwrap_or(false);
     profile_options = profile_options
         .with_field_rules(parse_stack_rules_with_flag(&op_maps, "--op-map")?)
         .with_filters(parse_operation_filters(&where_rules)?)
@@ -386,6 +393,7 @@ fn command_export(args: Cli) -> Result<()> {
             args.include_previews,
             &[],
             args.svg_width,
+            deterministic_output,
         )?;
         let result = json!({
             "status": "ok",
@@ -402,6 +410,7 @@ fn command_export(args: Cli) -> Result<()> {
             "rank_rules": rank_rules,
             "rank_op_rules": rank_op_rules,
             "rank_mode": cli_rank_mode_name(rank_mode),
+            "deterministic_output": deterministic_output,
             "stack_rules": stack_rules,
             "standard_trace_files": args.standard_trace_files,
             "standard_trace_format": standard_trace::CHROME_TRACE_FORMAT,
@@ -430,6 +439,7 @@ fn command_export(args: Cli) -> Result<()> {
             args.include_previews,
             &[],
             args.svg_width,
+            deterministic_output,
         )?;
         let result = json!({
             "status": "ok",
@@ -446,6 +456,7 @@ fn command_export(args: Cli) -> Result<()> {
             "rank_rules": rank_rules,
             "rank_op_rules": rank_op_rules,
             "rank_mode": cli_rank_mode_name(rank_mode),
+            "deterministic_output": deterministic_output,
             "stack_rules": stack_rules,
             "operation_files": operation_files,
             "samples": stacks.values().sum::<u64>(),
@@ -550,6 +561,7 @@ fn command_export(args: Cli) -> Result<()> {
         args.include_previews,
         &sessions,
         args.svg_width,
+        deterministic_output,
     )?;
 
     let mut result = json!({
@@ -576,6 +588,7 @@ fn command_export(args: Cli) -> Result<()> {
         "rank_rules": rank_rules,
         "rank_op_rules": rank_op_rules,
         "rank_mode": cli_rank_mode_name(rank_mode),
+        "deterministic_output": deterministic_output,
         "stack_rules": stack_rules,
         "sessions": sessions.len(),
         "samples": stacks.values().sum::<u64>(),
@@ -729,6 +742,7 @@ fn normalize_profile_spec(raw: RawProfileSpec, base: &Path) -> Result<ProfileSpe
             .as_deref()
             .map(parse_spec_rank_mode)
             .transpose()?,
+        deterministic_output: raw.deterministic_output,
         op_map_files: raw
             .op_map_files
             .into_iter()
@@ -805,6 +819,9 @@ impl ProfileSpec {
         }
         if next.rank_mode.is_some() {
             self.rank_mode = next.rank_mode;
+        }
+        if next.deterministic_output.is_some() {
+            self.deterministic_output = next.deterministic_output;
         }
         self.stack_rules.extend(next.stack_rules);
         self.op_maps.extend(next.op_maps);
@@ -998,6 +1015,7 @@ mod tests {
   "rank_rules": ["unsafe-risk:2=phase:execute|status:error"],
   "rank_op_rules": ["failure-density:3=status=error"],
   "rank_mode": "rule-score",
+  "deterministic_output": true,
   "op_map_files": ["maps/operation-map.txt"],
   "stack_rules": ["task:desktop=(tool=computer)"]
 }"#,
@@ -1048,6 +1066,7 @@ mod tests {
             vec!["failure-density:3=status=error".to_string()]
         );
         assert_eq!(spec.rank_mode, Some(CliRankMode::RuleScore));
+        assert_eq!(spec.deterministic_output, Some(true));
     }
 
     #[test]
@@ -1096,6 +1115,44 @@ mod tests {
         let err = command_export(args).unwrap_err().to_string();
 
         assert!(err.contains("--standard-trace-file cannot be used with --trace-file"));
+    }
+
+    #[test]
+    fn deterministic_output_makes_json_profiles_byte_stable() {
+        let dir = tempfile::tempdir().unwrap();
+        let operations = dir.path().join("operations.jsonl");
+        let out1 = dir.path().join("one.json");
+        let out2 = dir.path().join("two.json");
+        std::fs::write(
+            &operations,
+            r#"{"value":1,"fields":{"task":"verify","status":"ok"}}
+{"value":2,"fields":{"task":"verify","status":"error"}}
+"#,
+        )
+        .unwrap();
+
+        for output in [&out1, &out2] {
+            let args = Cli::parse_from([
+                "agentpprof",
+                "--operation-file",
+                operations.to_str().unwrap(),
+                "--view",
+                "operations",
+                "--format",
+                "json",
+                "--stack",
+                "task,status",
+                "--deterministic-output",
+                "-o",
+                output.to_str().unwrap(),
+            ]);
+            command_export(args).unwrap();
+        }
+
+        let first = std::fs::read_to_string(&out1).unwrap();
+        let second = std::fs::read_to_string(&out2).unwrap();
+        assert_eq!(first, second);
+        assert!(first.contains(r#""generated_at": "1970-01-01T00:00:00Z""#));
     }
 
     #[test]

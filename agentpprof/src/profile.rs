@@ -1269,11 +1269,12 @@ pub fn write_projection(
     include_previews: bool,
     sessions: &[SessionRecord],
     svg_width: u32,
+    deterministic_output: bool,
 ) -> Result<()> {
     ensure_parent_dir(output)?;
     let stacks = profile_to_stacks(projection);
     match format {
-        OutputFormat::Pprof => write_pprof_projection(projection, &stacks, output),
+        OutputFormat::Pprof => write_pprof_projection(projection, &stacks, output, deterministic_output),
         OutputFormat::Folded => write_folded(output, &stacks),
         OutputFormat::Svg => fs::write(
             output,
@@ -1289,7 +1290,11 @@ pub fn write_projection(
             output,
             serde_json::to_vec_pretty(&json!({
                 "schema_version": 1,
-                "generated_at": now_iso(),
+                "generated_at": if deterministic_output {
+                    "1970-01-01T00:00:00Z".to_string()
+                } else {
+                    now_iso()
+                },
                 "profile": {
                     "view": projection.view,
                     "sample_type": projection.sample_type,
@@ -1321,7 +1326,12 @@ fn ensure_parent_dir(path: &Path) -> Result<()> {
     Ok(())
 }
 
-fn write_pprof_projection(projection: &Profile, stacks: &Counter, output: &Path) -> Result<()> {
+fn write_pprof_projection(
+    projection: &Profile,
+    stacks: &Counter,
+    output: &Path,
+    deterministic_output: bool,
+) -> Result<()> {
     let mut strings = StringInterner::with_pprof_root();
     let sample_type = PprofValueType {
         type_: strings.intern(projection.sample_type),
@@ -1378,7 +1388,11 @@ fn write_pprof_projection(projection: &Profile, stacks: &Counter, output: &Path)
         location: locations,
         function: functions,
         string_table: strings.items,
-        time_nanos: Utc::now().timestamp_nanos_opt().unwrap_or(0),
+        time_nanos: if deterministic_output {
+            0
+        } else {
+            Utc::now().timestamp_nanos_opt().unwrap_or(0)
+        },
         duration_nanos: 0,
         default_sample_type,
     };
@@ -2329,7 +2343,7 @@ mod tests {
             "project:test;agent:codex;session:rustfix;prompt:review;op:llm;token:input".to_string(),
             7,
         )]);
-        write_pprof_projection(&projection, &stacks, &path).unwrap();
+        write_pprof_projection(&projection, &stacks, &path, false).unwrap();
 
         let bytes = fs::read(path).unwrap();
         let mut decoder = GzDecoder::new(&bytes[..]);
