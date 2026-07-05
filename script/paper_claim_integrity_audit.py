@@ -18,6 +18,7 @@ import math
 import re
 import subprocess
 import time
+from collections import Counter
 from pathlib import Path
 from statistics import median
 from typing import Any
@@ -223,6 +224,18 @@ def fmt_number(value: Any) -> str:
 
 def policy_key(row: dict[str, str]) -> str:
     return f"{row['view']}:{row['ranker']}"
+
+
+def visible_policy_names(rows: list[dict[str, str]]) -> set[str]:
+    return {
+        policy_key(row)
+        for row in rows
+        if row.get("uses_hidden_fields") == "False" and not policy_key(row).startswith("label_drilldown:")
+    }
+
+
+def policy_is_non_oracle(policy: str) -> bool:
+    return "oracle" not in policy and not policy.startswith("label_drilldown:")
 
 
 def median_metric(rows: list[dict[str, str]], policy: str, metric: str) -> float:
@@ -830,6 +843,74 @@ def build_number_checks(
     add_check(rows, run_id="R340", key="leave_dataset_within_tolerance", actual=r340_claim["leave_dataset"]["within_tolerance"], expected=30, source="R340 claim_summary.leave_dataset")
     add_check(rows, run_id="R340", key="decision_rows", actual=len(r340_decisions), expected=96, source="R340 transfer-decisions.csv")
     add_check(rows, run_id="R340", key="objective_rows", actual=len(r340_objectives), expected=16, source="R340 objective-transfer-summary.csv")
+
+    visible_policies = visible_policy_names(r320_scores)
+    task_dataset = {}
+    for row in r320_scores:
+        task_dataset.setdefault(row["task"], row["dataset"])
+    dataset_task_counts = Counter(task_dataset.values())
+    total_tasks = len(task_dataset)
+    add_check(
+        rows,
+        run_id="R340",
+        key="selected_policy_visible_rows",
+        actual=sum(row["selected_policy"] in visible_policies for row in r340_decisions),
+        expected=len(r340_decisions),
+        source="R340 transfer-decisions.csv + R320 policy-scores.csv",
+        paper_token="96/96",
+    )
+    add_check(
+        rows,
+        run_id="R340",
+        key="best_policy_visible_rows",
+        actual=sum(row["best_visible_policy"] in visible_policies for row in r340_decisions),
+        expected=len(r340_decisions),
+        source="R340 transfer-decisions.csv + R320 policy-scores.csv",
+        paper_token="96/96",
+    )
+    add_check(
+        rows,
+        run_id="R340",
+        key="selected_policy_no_oracle_or_label_drilldown",
+        actual=sum(policy_is_non_oracle(row["selected_policy"]) for row in r340_decisions),
+        expected=len(r340_decisions),
+        source="R340 transfer-decisions.csv",
+        paper_token="96/96",
+    )
+    add_check(
+        rows,
+        run_id="R340",
+        key="best_policy_no_oracle_or_label_drilldown",
+        actual=sum(policy_is_non_oracle(row["best_visible_policy"]) for row in r340_decisions),
+        expected=len(r340_decisions),
+        source="R340 transfer-decisions.csv",
+        paper_token="96/96",
+    )
+    add_check(
+        rows,
+        run_id="R340",
+        key="leave_task_excludes_target_task",
+        actual=sum(
+            row["protocol"] != "leave_task" or as_int(row["train_tasks"]) == total_tasks - 1
+            for row in r340_decisions
+        ),
+        expected=len(r340_decisions),
+        source="R340 transfer-decisions.csv",
+        paper_token="96/96",
+    )
+    add_check(
+        rows,
+        run_id="R340",
+        key="leave_dataset_excludes_target_dataset",
+        actual=sum(
+            row["protocol"] != "leave_dataset"
+            or as_int(row["train_tasks"]) == total_tasks - dataset_task_counts[row["dataset"]]
+            for row in r340_decisions
+        ),
+        expected=len(r340_decisions),
+        source="R340 transfer-decisions.csv + R320 policy-scores.csv",
+        paper_token="96/96",
+    )
     return rows
 
 
