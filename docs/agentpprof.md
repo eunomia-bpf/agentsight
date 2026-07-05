@@ -440,8 +440,11 @@ rules run before file rules, so the CLI can override shared defaults.
 `--where FIELD=REGEX` and `--where FIELD!=REGEX` run after `--op-map` and
 before stack construction; multiple predicates are ANDed. `--stack-rule` is a
 frame-local override during stack construction. `--rank-rule LABEL:WEIGHT=REGEX`
-orders JSON operation-stack groups after folding by visible stack text. Default
-stacks use `phase`, but users can add or remove any field or stack frame.
+orders JSON operation-stack groups after folding by visible stack text.
+`--rank-op-rule LABEL:WEIGHT=REGEX` matches visible `field=value` operation
+tokens after mapping/filtering and aggregates matched operation weight inside
+each folded group. Default stacks use `phase`, but users can add or remove any
+field or stack frame.
 
 For example, this derives a reusable task field, selects only that query subset,
 then folds it at an arbitrary depth:
@@ -453,7 +456,8 @@ agentpprof -o looping.json --format json --view operations \
   --where 'task_family=looping' \
   --stack 'task_family,dataset,query_family,environment,phase,action,repeat_signal,status' \
   --rank-mode rule-score \
-  --rank-rule 'loop-risk:4=repeat_signal:loop-like|status:failure'
+  --rank-rule 'loop-risk:4=repeat_signal:loop-like|status:failure' \
+  --rank-op-rule 'loop-density:5=repeat_signal=loop-like'
 ```
 
 For labeled external traces, `script/operation_map_infer.py` can derive a
@@ -485,6 +489,7 @@ profile spec:
   "op_map_files": ["../external-agent-trace-agentnet-r291/agentnet-op-map.txt"],
   "where_rules": ["dataset=agentnet"],
   "rank_rules": ["step-risk:2=status:failure|repeat_signal:loop-like"],
+  "rank_op_rules": ["failure-density:2=status=failure"],
   "rank_mode": "rule-score",
   "stack": "project,dataset,benchmark,environment,task,phase,op,tool,action,status,step_correct,step_redundant,repeat_signal"
 }
@@ -500,9 +505,11 @@ Paths inside a spec are resolved relative to the spec file. Scalar CLI flags
 such as `-o`, `--view`, `--format`, and `--stack` override spec values; CLI
 `--op-map` and `--op-map-file` entries are evaluated before spec defaults.
 When CLI `--where` is present, it replaces spec `where_rules`; otherwise the
-spec predicates are used. CLI `--rank-rule` entries are evaluated before spec
-`rank_rules`. Rank rules use `LABEL:WEIGHT=REGEX` and order JSON
-operation-stack groups by visible folded-stack text; they do not affect pprof,
+spec predicates are used. CLI `--rank-rule` and `--rank-op-rule` entries are
+evaluated before spec `rank_rules` and `rank_op_rules`. Both rule types use
+`LABEL:WEIGHT=REGEX`: `rank_rules` match folded stack text, while
+`rank_op_rules` match individual mapped operation `field=value` tokens and
+score each stack by matched-operation density. They do not affect pprof,
 folded, or SVG output. The default `rank_mode` is `width-boost`, which keeps
 width as the main signal. `rule-score` ranks by matched visible rules first and
 uses width as a tie-breaker. A profile spec is only a reproducibility wrapper

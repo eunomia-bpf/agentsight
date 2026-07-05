@@ -33,6 +33,8 @@ pub struct Profile {
     pub unit: &'static str,
     pub ops: Vec<StackNode>,
     rank_rules: Vec<StackRankRule>,
+    rank_operation_rules: Vec<StackRankRule>,
+    rank_operation_matches: BTreeMap<String, BTreeMap<String, u64>>,
     rank_mode: StackRankMode,
 }
 
@@ -44,6 +46,8 @@ impl Profile {
             unit,
             ops: Vec::new(),
             rank_rules: Vec::new(),
+            rank_operation_rules: Vec::new(),
+            rank_operation_matches: BTreeMap::new(),
             rank_mode: StackRankMode::WidthBoost,
         }
     }
@@ -55,6 +59,11 @@ impl Profile {
 
     fn with_rank_mode(mut self, mode: StackRankMode) -> Self {
         self.rank_mode = mode;
+        self
+    }
+
+    fn with_rank_operation_rules(mut self, rules: Vec<StackRankRule>) -> Self {
+        self.rank_operation_rules = rules;
         self
     }
 
@@ -70,6 +79,22 @@ impl Profile {
                 value: if idx == last { value } else { 0 },
             });
             parent = Some(id);
+        }
+    }
+
+    fn record_rank_operation_matches(&mut self, stack: &str, sample: &Operation, value: u64) {
+        if self.rank_operation_rules.is_empty() {
+            return;
+        }
+        for rule in &self.rank_operation_rules {
+            if sample.matches_field_token(&rule.regex) {
+                *self
+                    .rank_operation_matches
+                    .entry(stack.to_string())
+                    .or_default()
+                    .entry(rule.label.clone())
+                    .or_default() += value.max(1);
+            }
         }
     }
 }
@@ -125,6 +150,7 @@ pub struct OperationStackConfig {
     filters: Vec<OperationFilterRule>,
     rules: Vec<OperationStackRule>,
     rank_rules: Vec<StackRankRule>,
+    rank_operation_rules: Vec<StackRankRule>,
     rank_mode: StackRankMode,
 }
 
@@ -136,6 +162,7 @@ impl OperationStackConfig {
             filters: Vec::new(),
             rules: Vec::new(),
             rank_rules: Vec::new(),
+            rank_operation_rules: Vec::new(),
             rank_mode: StackRankMode::WidthBoost,
         }
     }
@@ -162,6 +189,11 @@ impl OperationStackConfig {
 
     pub fn with_rank_rules(mut self, rank_rules: Vec<StackRankRule>) -> Self {
         self.rank_rules = rank_rules;
+        self
+    }
+
+    pub fn with_rank_operation_rules(mut self, rank_operation_rules: Vec<StackRankRule>) -> Self {
+        self.rank_operation_rules = rank_operation_rules;
         self
     }
 
@@ -204,13 +236,15 @@ pub enum StackRankMode {
 }
 
 impl StackRankMode {
-    fn policy_name(self, has_rules: bool) -> &'static str {
-        if !has_rules {
+    fn policy_name(self, has_stack_rules: bool, has_operation_rules: bool) -> &'static str {
+        if !has_stack_rules && !has_operation_rules {
             return "width";
         }
-        match self {
-            Self::WidthBoost => "width_times_visible_rule_multiplier",
-            Self::RuleScore => "visible_rule_score_then_width",
+        match (self, has_operation_rules) {
+            (Self::WidthBoost, false) => "width_times_visible_rule_multiplier",
+            (Self::RuleScore, false) => "visible_rule_score_then_width",
+            (Self::WidthBoost, true) => "width_times_visible_operation_rule_multiplier",
+            (Self::RuleScore, true) => "visible_operation_rule_score_then_width",
         }
     }
 }
@@ -262,6 +296,14 @@ impl Operation {
             .flat_map(|(key, values)| values.iter().map(move |value| format!("{key}={value}")))
             .collect::<Vec<_>>()
             .join(" ")
+    }
+
+    fn matches_field_token(&self, regex: &Regex) -> bool {
+        self.fields.iter().any(|(key, values)| {
+            values
+                .iter()
+                .any(|value| regex.is_match(&format!("{key}={value}")))
+        })
     }
 }
 
@@ -334,11 +376,18 @@ pub fn parse_operation_filters(raw_filters: &[String]) -> Result<Vec<OperationFi
 pub fn parse_stack_rank_rules(raw_rules: &[String]) -> Result<Vec<StackRankRule>> {
     raw_rules
         .iter()
-        .map(|rule| parse_stack_rank_rule(rule, "--rank-rule"))
+        .map(|rule| parse_rank_rule(rule, "--rank-rule", false))
         .collect()
 }
 
-fn parse_stack_rank_rule(raw: &str, flag_name: &str) -> Result<StackRankRule> {
+pub fn parse_operation_rank_rules(raw_rules: &[String]) -> Result<Vec<StackRankRule>> {
+    raw_rules
+        .iter()
+        .map(|rule| parse_rank_rule(rule, "--rank-op-rule", true))
+        .collect()
+}
+
+fn parse_rank_rule(raw: &str, flag_name: &str, allow_negative: bool) -> Result<StackRankRule> {
     let (left, pattern) = raw.split_once('=').ok_or_else(|| {
         anyhow::anyhow!("invalid {flag_name} {raw:?}; expected LABEL:WEIGHT=REGEX")
     })?;
@@ -349,8 +398,15 @@ fn parse_stack_rank_rule(raw: &str, flag_name: &str) -> Result<StackRankRule> {
     let weight = weight
         .parse::<f64>()
         .map_err(|error| anyhow::anyhow!("invalid {flag_name} weight {weight:?}: {error}"))?;
-    if !weight.is_finite() || weight <= 0.0 {
-        bail!("invalid {flag_name} {raw:?}; weight must be a positive finite number");
+    if !weight.is_finite()
+        || (!allow_negative && weight <= 0.0)
+        || (allow_negative && weight == 0.0)
+    {
+        if allow_negative {
+            bail!("invalid {flag_name} {raw:?}; weight must be a non-zero finite number");
+        } else {
+            bail!("invalid {flag_name} {raw:?}; weight must be a positive finite number");
+        }
     }
     if pattern.is_empty() {
         bail!("invalid {flag_name} {raw:?}; regex pattern cannot be empty");
@@ -449,6 +505,7 @@ pub struct StackRankingSummary {
     groups: usize,
     limit: usize,
     rank_rules: Vec<StackRankRuleSpec>,
+    rank_operation_rules: Vec<StackRankRuleSpec>,
     top: Vec<RankedStack>,
 }
 
@@ -465,6 +522,16 @@ pub struct RankedStack {
     weight: u64,
     rank_score: f64,
     matched_rank_rules: Vec<String>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    rank_operation_features: Vec<StackRankFeature>,
+}
+
+#[derive(Serialize)]
+pub struct StackRankFeature {
+    label: String,
+    matched_weight: u64,
+    fraction: f64,
+    weighted_score: f64,
 }
 
 #[derive(Default)]
@@ -586,6 +653,7 @@ pub fn build_profile_with_options(
     let (name, sample_type, unit) = view_metadata(view);
     let mut profile = Profile::new(name, sample_type, unit)
         .with_rank_rules(options.rank_rules.clone())
+        .with_rank_operation_rules(options.rank_operation_rules.clone())
         .with_rank_mode(options.rank_mode);
     for session in sessions {
         for sample in session_samples(session, project_name, view) {
@@ -594,6 +662,8 @@ pub fn build_profile_with_options(
                 continue;
             }
             let frames = stack_frames(&sample, options);
+            let stack = folded_stack_from_frames(&frames);
+            profile.record_rank_operation_matches(&stack, &sample, sample.value);
             profile.sample(frames, sample.value);
         }
     }
@@ -643,6 +713,7 @@ fn build_profile_from_operations(
     let (name, sample_type, unit) = view_metadata(view);
     let mut profile = Profile::new(name, sample_type, unit)
         .with_rank_rules(options.rank_rules.clone())
+        .with_rank_operation_rules(options.rank_operation_rules.clone())
         .with_rank_mode(options.rank_mode);
     for sample in operations {
         let sample = apply_operation_field_rules(sample, &options.field_rules);
@@ -650,6 +721,8 @@ fn build_profile_from_operations(
             continue;
         }
         let frames = stack_frames(&sample, options);
+        let stack = folded_stack_from_frames(&frames);
+        profile.record_rank_operation_matches(&stack, &sample, sample.value);
         profile.sample(frames, sample.value);
     }
     profile
@@ -1004,15 +1077,28 @@ fn op_frames(profile: &Profile, id: OpId) -> Vec<String> {
 }
 
 pub fn folded_add(counter: &mut Counter, frames: Vec<String>, weight: u64) {
-    let stack = frames
+    let stack = folded_stack_from_strings(frames);
+    if !stack.is_empty() {
+        *counter.entry(stack).or_default() += weight.max(1);
+    }
+}
+
+fn folded_stack_from_frames(frames: &[Frame]) -> String {
+    folded_stack_from_strings(
+        frames
+            .iter()
+            .map(|(kind, name)| safe_frame(name, Some(kind.as_str())))
+            .collect(),
+    )
+}
+
+fn folded_stack_from_strings(frames: Vec<String>) -> String {
+    frames
         .into_iter()
         .map(normalize_folded_frame)
         .filter(|frame| !frame.is_empty())
         .collect::<Vec<_>>()
-        .join(";");
-    if !stack.is_empty() {
-        *counter.entry(stack).or_default() += weight.max(1);
-    }
+        .join(";")
 }
 
 fn normalize_folded_frame(frame: String) -> String {
@@ -1043,12 +1129,23 @@ pub fn summarize_counter(counter: &Counter, limit: usize) -> CounterSummary {
 pub fn summarize_ranked_counter(
     counter: &Counter,
     rules: &[StackRankRule],
+    operation_rules: &[StackRankRule],
+    operation_matches: &BTreeMap<String, BTreeMap<String, u64>>,
     mode: StackRankMode,
     limit: usize,
 ) -> StackRankingSummary {
     let mut rows = counter
         .iter()
-        .map(|(stack, weight)| rank_stack(stack, *weight, rules, mode))
+        .map(|(stack, weight)| {
+            rank_stack(
+                stack,
+                *weight,
+                rules,
+                operation_rules,
+                operation_matches.get(stack),
+                mode,
+            )
+        })
         .collect::<Vec<_>>();
     rows.sort_by(|left, right| {
         right
@@ -1061,10 +1158,18 @@ pub fn summarize_ranked_counter(
     rows.truncate(limit);
 
     StackRankingSummary {
-        policy: mode.policy_name(!rules.is_empty()),
+        policy: mode.policy_name(!rules.is_empty(), !operation_rules.is_empty()),
         groups: counter.len(),
         limit,
         rank_rules: rules
+            .iter()
+            .map(|rule| StackRankRuleSpec {
+                label: rule.label.clone(),
+                pattern: rule.pattern.clone(),
+                weight: round3(rule.weight),
+            })
+            .collect(),
+        rank_operation_rules: operation_rules
             .iter()
             .map(|rule| StackRankRuleSpec {
                 label: rule.label.clone(),
@@ -1080,31 +1185,68 @@ fn rank_stack(
     stack: &str,
     weight: u64,
     rules: &[StackRankRule],
+    operation_rules: &[StackRankRule],
+    operation_matches: Option<&BTreeMap<String, u64>>,
     mode: StackRankMode,
 ) -> RankedStack {
     let mut matched_rank_rules = Vec::new();
-    let mut boost = 0.0;
+    let mut stack_score = 0.0;
     for rule in rules {
         if rule.regex.is_match(stack) {
-            boost += rule.weight;
+            stack_score += rule.weight;
             matched_rank_rules.push(rule.label.clone());
         }
     }
+    let rank_operation_features =
+        operation_rank_features(weight, operation_rules, operation_matches);
+    let operation_score = rank_operation_features
+        .iter()
+        .map(|feature| feature.weighted_score)
+        .sum::<f64>();
+    let rule_score = stack_score + operation_score;
     RankedStack {
         stack: stack.to_string(),
         weight,
         rank_score: round3(match mode {
-            StackRankMode::WidthBoost => weight as f64 * (1.0 + boost),
+            StackRankMode::WidthBoost => weight as f64 * (1.0 + rule_score).max(0.0),
             StackRankMode::RuleScore => {
-                if rules.is_empty() {
+                if rules.is_empty() && operation_rules.is_empty() {
                     weight as f64
                 } else {
-                    boost
+                    rule_score
                 }
             }
         }),
         matched_rank_rules,
+        rank_operation_features,
     }
+}
+
+fn operation_rank_features(
+    stack_weight: u64,
+    rules: &[StackRankRule],
+    matches: Option<&BTreeMap<String, u64>>,
+) -> Vec<StackRankFeature> {
+    if rules.is_empty() || stack_weight == 0 {
+        return Vec::new();
+    }
+    let mut rows = Vec::new();
+    for rule in rules {
+        let matched_weight = matches
+            .and_then(|matched| matched.get(&rule.label).copied())
+            .unwrap_or(0);
+        if matched_weight == 0 {
+            continue;
+        }
+        let fraction = matched_weight as f64 / stack_weight as f64;
+        rows.push(StackRankFeature {
+            label: rule.label.clone(),
+            matched_weight,
+            fraction: round3(fraction),
+            weighted_score: round3(fraction * rule.weight),
+        });
+    }
+    rows
 }
 
 fn top_stacks(counter: &Counter, limit: usize) -> Vec<WeightedStack> {
@@ -1153,7 +1295,14 @@ pub fn write_projection(
                     "sample_type": projection.sample_type,
                     "unit": projection.unit,
                     "summary": summarize_counter(&stacks, 20),
-                    "ranking": summarize_ranked_counter(&stacks, &projection.rank_rules, projection.rank_mode, stacks.len()),
+                    "ranking": summarize_ranked_counter(
+                        &stacks,
+                        &projection.rank_rules,
+                        &projection.rank_operation_rules,
+                        &projection.rank_operation_matches,
+                        projection.rank_mode,
+                        stacks.len(),
+                    ),
                     "stacks": stacks,
                 },
                 "sessions": sessions.iter().map(|s| session_to_json(s, include_previews)).collect::<Vec<_>>(),
@@ -2039,7 +2188,14 @@ mod tests {
             ),
         ]);
 
-        let ranking = summarize_ranked_counter(&stacks, &rules, StackRankMode::WidthBoost, 10);
+        let ranking = summarize_ranked_counter(
+            &stacks,
+            &rules,
+            &[],
+            &BTreeMap::new(),
+            StackRankMode::WidthBoost,
+            10,
+        );
 
         assert_eq!(ranking.policy, "width_times_visible_rule_multiplier");
         assert_eq!(
@@ -2069,7 +2225,14 @@ mod tests {
             ),
         ]);
 
-        let ranking = summarize_ranked_counter(&stacks, &rules, StackRankMode::RuleScore, 10);
+        let ranking = summarize_ranked_counter(
+            &stacks,
+            &rules,
+            &[],
+            &BTreeMap::new(),
+            StackRankMode::RuleScore,
+            10,
+        );
 
         assert_eq!(ranking.policy, "visible_rule_score_then_width");
         assert_eq!(
@@ -2078,6 +2241,44 @@ mod tests {
         );
         assert_eq!(ranking.top[0].rank_score, 2.0);
         assert_eq!(ranking.top[1].rank_score, 0.0);
+    }
+
+    #[test]
+    fn operation_rank_rules_score_density_inside_folded_stack() {
+        let records = vec![
+            json!({"value": 1, "fields": {"task": "wide", "status": "error"}}),
+            json!({"value": 3, "fields": {"task": "wide", "status": "ok"}}),
+            json!({"value": 1, "fields": {"task": "narrow", "status": "error"}}),
+        ];
+        let stack = parse_stack_spec("task").unwrap();
+        let rank_operation_rules =
+            parse_operation_rank_rules(&["failure:2=status=error".to_string()]).unwrap();
+        let options = OperationStackConfig::for_view(ProfileView::Operations)
+            .with_stack(stack)
+            .with_rank_operation_rules(rank_operation_rules)
+            .with_rank_mode(StackRankMode::RuleScore);
+        let profile =
+            build_profile_from_operation_records(&records, ProfileView::Operations, &options)
+                .unwrap();
+        let stacks = profile_to_stacks(&profile);
+        let ranking = summarize_ranked_counter(
+            &stacks,
+            &profile.rank_rules,
+            &profile.rank_operation_rules,
+            &profile.rank_operation_matches,
+            profile.rank_mode,
+            10,
+        );
+
+        assert_eq!(ranking.policy, "visible_operation_rule_score_then_width");
+        assert_eq!(ranking.top[0].stack, "task:narrow");
+        assert_eq!(ranking.top[0].rank_score, 2.0);
+        assert_eq!(ranking.top[0].rank_operation_features[0].matched_weight, 1);
+        assert_eq!(ranking.top[0].rank_operation_features[0].fraction, 1.0);
+        assert_eq!(ranking.top[1].stack, "task:wide");
+        assert_eq!(ranking.top[1].rank_score, 0.5);
+        assert_eq!(ranking.top[1].rank_operation_features[0].matched_weight, 1);
+        assert_eq!(ranking.top[1].rank_operation_features[0].fraction, 0.25);
     }
 
     #[test]

@@ -114,11 +114,12 @@ def build_checks(sources: dict[str, str]) -> list[dict[str, Any]]:
                     "op_map_files: Vec<PathBuf>",
                     "where_rules: Vec<String>",
                     "rank_rules: Vec<String>",
+                    "rank_op_rules: Vec<String>",
                     "rank_mode: Option<CliRankMode>",
                 ],
             ),
             "rust_profile_spec_cli_present",
-            "agentpprof/src/main.rs defines --profile-spec, RawProfileSpec, operation_files, op_map_files, where_rules, rank_rules, and rank_mode.",
+            "agentpprof/src/main.rs defines --profile-spec, RawProfileSpec, operation_files, op_map_files, where_rules, rank_rules, rank_op_rules, and rank_mode.",
             "Rust CLI profile-spec support is missing or renamed.",
         ),
         check(
@@ -129,6 +130,7 @@ def build_checks(sources: dict[str, str]) -> list[dict[str, Any]]:
                     "merge_cli_first(&args.stack_rules, &spec.stack_rules)",
                     "effective_where_rules(&args.where_rules, &spec.where_rules)",
                     "merge_cli_first(&args.rank_rules, &spec.rank_rules)",
+                    "merge_cli_first(&args.rank_op_rules, &spec.rank_op_rules)",
                     "rank_mode = args",
                     "load_effective_op_map_rules",
                 ],
@@ -174,10 +176,12 @@ def build_checks(sources: dict[str, str]) -> list[dict[str, Any]]:
                     "with_field_rules",
                     "with_filters",
                     "with_rank_rules",
+                    "with_rank_operation_rules",
                     "with_rank_mode",
                     "StackRankMode",
                     "parse_operation_filters",
                     "parse_stack_rank_rules",
+                    "parse_operation_rank_rules",
                     "summarize_ranked_counter",
                     "build_profile_from_operation_files",
                     "build_profile_from_operation_records",
@@ -198,15 +202,20 @@ def build_checks(sources: dict[str, str]) -> list[dict[str, Any]]:
         ),
         check(
             "`--rank-rule`" in implementation
+            and "`--rank-op-rule`" in implementation
             and "`--rank-mode`" in evaluation
             and "`rank_rules`" in design
+            and "`rank_op_rules`" in docs_joined
             and "`rank_mode`" in docs_joined
+            and "visible-query-utility-operations.jsonl" in evaluation
+            and "scrubbed visible-operation profiler input" in docs_joined
             and "operation-rust-rank-rule-r322" in evaluation
             and "operation-rank-mode-r323" in evaluation
-            and "R322" in paper,
+            and "operation-rank-feature-r324" in evaluation
+            and "R324" in paper,
             "operation_rank_policy_documented_as_projection_not_object",
-            "Docs record --rank-rule/rank_rules and --rank-mode/rank_mode as visible operation-stack group ranking projections, with R322/R323 as implementation probes.",
-            "Operation rank policies are missing from docs/evaluation/paper or are not tied to R322/R323.",
+            "Docs record --rank-rule/rank_rules, --rank-op-rule/rank_op_rules, and --rank-mode/rank_mode as visible operation-stack group ranking projections, with R322/R323/R324 as implementation probes and R324 using a scrubbed visible profiler input.",
+            "Operation rank policies are missing from docs/evaluation/paper, are not tied to R322/R323/R324, or do not document the R324 scrubbed visible profiler input.",
         ),
         check(
             "`agentpprof/src/standard_trace.rs`" in implementation

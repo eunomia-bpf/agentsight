@@ -1,0 +1,2229 @@
+{
+  "claim": "Rust agentpprof can aggregate visible per-operation rank features inside operation-stack groups, making query-aware group-feature ranking a reproducible profile-spec policy rather than a Python-only analysis.",
+  "commit": "6ed97417a2faf497a5475e22b91a23062014f478",
+  "elapsed_s": 23.025,
+  "leakage_check": {
+    "hidden_fields": [
+      "group_index",
+      "group_pattern",
+      "group_position",
+      "group_size",
+      "human_group",
+      "looping",
+      "problem_oracle",
+      "problem_value",
+      "safety",
+      "side_effect",
+      "step_correct",
+      "step_redundant",
+      "target_positive"
+    ],
+    "rank_operation_rule_fields": [
+      "action",
+      "environment",
+      "phase",
+      "repeat_signal",
+      "status"
+    ],
+    "status": "pass",
+    "violations": []
+  },
+  "non_claims": [
+    "This does not create a learned detector or human-utility result.",
+    "This does not add a profiler abstraction beyond operation and operation stack.",
+    "This does not download, sync, or create a new dataset.",
+    "Rust profiles a scrubbed visible-operation JSONL; hidden labels score the emitted ranking only after profiling."
+  ],
+  "profiler_input_check": {
+    "profiler_operation_file": "docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl",
+    "rows": 34539,
+    "scrubbed_hidden_fields": [
+      "group_index",
+      "group_pattern",
+      "group_position",
+      "group_size",
+      "human_group",
+      "looping",
+      "problem_oracle",
+      "problem_value",
+      "safety",
+      "side_effect",
+      "step_correct",
+      "step_redundant",
+      "target_positive"
+    ],
+    "status": "pass",
+    "violations": []
+  },
+  "profiler_operation_file": "docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl",
+  "run_id": "R324",
+  "source_operations": "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl",
+  "stack_variants": [
+    "semantic",
+    "coarse"
+  ],
+  "status": "pass",
+  "summary": {
+    "coarse_op_feature_ap_improves_vs_width_tasks": "4/6",
+    "coarse_op_feature_first_positive_work_improves_vs_width_tasks": "5/6",
+    "coarse_op_feature_top5_lift_improves_vs_width_tasks": "4/6",
+    "semantic_op_feature_ap_improves_vs_width_tasks": "5/6",
+    "semantic_op_feature_first_positive_work_improves_vs_width_tasks": "5/6",
+    "semantic_op_feature_top5_lift_improves_vs_width_tasks": "4/6"
+  },
+  "tasks": 6,
+  "tasks_detail": [
+    {
+      "agentpprof_result": {
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl"
+        ],
+        "output": "docs/visexp/out/operation-rank-feature-r324/agentreward_looping-semantic-op-features.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-rank-feature-r324/agentreward_looping-semantic-op-features-profile-spec.json"
+        ],
+        "rank_mode": "rule-score",
+        "rank_op_rules": [
+          "loop-like:5=repeat_signal=loop-like",
+          "failure:1.5=status=(failure|error)",
+          "navigation:0.5=action=(click|left_click|goto|go_back|scroll|hover|move_to|drag)"
+        ],
+        "rank_rules": [],
+        "sample_type": "operations",
+        "samples": 729,
+        "stack": "analysis_task,dataset,benchmark,phase,action,repeat_signal,status",
+        "stack_rules": [],
+        "status": "ok",
+        "unique_stacks": 40,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=agentreward_looping"
+        ]
+      },
+      "dataset": "agent-reward-bench",
+      "deltas": {
+        "op_feature_vs_width_ap": 0.1155,
+        "op_feature_vs_width_ap_at_20": 0.078,
+        "op_feature_vs_width_first_positive_work": 0.0,
+        "op_feature_vs_width_top5_lift": 0.282
+      },
+      "metrics": {
+        "op_feature": {
+          "ap": 0.8808,
+          "ap_at_20": 0.8322,
+          "first_positive_rank": 1,
+          "first_positive_work": 0.2058,
+          "top10_groups": 10,
+          "top10_lift": 1.2476,
+          "top10_positive_operations": 389,
+          "top10_precision": 0.8625,
+          "top10_recall": 0.7718,
+          "top10_work": 0.6187,
+          "top5_groups": 5,
+          "top5_lift": 1.3179,
+          "top5_positive_operations": 328,
+          "top5_precision": 0.9111,
+          "top5_recall": 0.6508,
+          "top5_work": 0.4938
+        },
+        "width": {
+          "ap": 0.7653,
+          "ap_at_20": 0.7542,
+          "first_positive_rank": 1,
+          "first_positive_work": 0.2058,
+          "top10_groups": 10,
+          "top10_lift": 1.1001,
+          "top10_positive_operations": 451,
+          "top10_precision": 0.7605,
+          "top10_recall": 0.8948,
+          "top10_work": 0.8134,
+          "top5_groups": 5,
+          "top5_lift": 1.0359,
+          "top5_positive_operations": 328,
+          "top5_precision": 0.7162,
+          "top5_recall": 0.6508,
+          "top5_work": 0.6283
+        }
+      },
+      "policy": "visible_operation_rule_score_then_width",
+      "problem": "Find repetitive web-agent behavior in expert-reviewed trajectories.",
+      "profile_spec": "docs/visexp/out/operation-rank-feature-r324/agentreward_looping-semantic-op-features-profile-spec.json",
+      "rank_op_rules": [
+        "loop-like:5=repeat_signal=loop-like",
+        "failure:1.5=status=(failure|error)",
+        "navigation:0.5=action=(click|left_click|goto|go_back|scroll|hover|move_to|drag)"
+      ],
+      "rust_json": "docs/visexp/out/operation-rank-feature-r324/agentreward_looping-semantic-op-features.json",
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "benchmark",
+        "phase",
+        "action",
+        "repeat_signal",
+        "status"
+      ],
+      "stack_kind": "semantic",
+      "summary": {
+        "groups": 40,
+        "operations": 729,
+        "positives": 504,
+        "prevalence": 0.6914
+      },
+      "task": "agentreward_looping",
+      "top_operation_features": [
+        {
+          "features": [
+            {
+              "fraction": 1.0,
+              "label": "loop-like",
+              "matched_weight": 150,
+              "weighted_score": 5.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "failure",
+              "matched_weight": 150,
+              "weighted_score": 1.5
+            },
+            {
+              "fraction": 1.0,
+              "label": "navigation",
+              "matched_weight": 150,
+              "weighted_score": 0.5
+            }
+          ],
+          "rank_score": 7.0,
+          "stack": "analysis_task:agentreward_looping;dataset:agent-reward-bench;benchmark:workarena;phase:navigate;action:click;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "features": [
+            {
+              "fraction": 1.0,
+              "label": "loop-like",
+              "matched_weight": 78,
+              "weighted_score": 5.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "failure",
+              "matched_weight": 78,
+              "weighted_score": 1.5
+            },
+            {
+              "fraction": 1.0,
+              "label": "navigation",
+              "matched_weight": 78,
+              "weighted_score": 0.5
+            }
+          ],
+          "rank_score": 7.0,
+          "stack": "analysis_task:agentreward_looping;dataset:agent-reward-bench;benchmark:visualwebarena;phase:navigate;action:click;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "features": [
+            {
+              "fraction": 1.0,
+              "label": "loop-like",
+              "matched_weight": 76,
+              "weighted_score": 5.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "failure",
+              "matched_weight": 76,
+              "weighted_score": 1.5
+            },
+            {
+              "fraction": 1.0,
+              "label": "navigation",
+              "matched_weight": 76,
+              "weighted_score": 0.5
+            }
+          ],
+          "rank_score": 7.0,
+          "stack": "analysis_task:agentreward_looping;dataset:agent-reward-bench;benchmark:assistantbench;phase:navigate;action:click;repeat_signal:loop-like;status:failure"
+        }
+      ]
+    },
+    {
+      "agentpprof_result": {
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl"
+        ],
+        "output": "docs/visexp/out/operation-rank-feature-r324/agentreward_looping-coarse-op-features.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-rank-feature-r324/agentreward_looping-coarse-op-features-profile-spec.json"
+        ],
+        "rank_mode": "rule-score",
+        "rank_op_rules": [
+          "loop-like:5=repeat_signal=loop-like",
+          "failure:1.5=status=(failure|error)",
+          "navigation:0.5=action=(click|left_click|goto|go_back|scroll|hover|move_to|drag)"
+        ],
+        "rank_rules": [],
+        "sample_type": "operations",
+        "samples": 729,
+        "stack": "analysis_task,dataset,benchmark,phase",
+        "stack_rules": [],
+        "status": "ok",
+        "unique_stacks": 16,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=agentreward_looping"
+        ]
+      },
+      "dataset": "agent-reward-bench",
+      "deltas": {
+        "op_feature_vs_width_ap": 0.1541,
+        "op_feature_vs_width_ap_at_20": 0.1541,
+        "op_feature_vs_width_first_positive_work": -0.214,
+        "op_feature_vs_width_top5_lift": 0.1934
+      },
+      "metrics": {
+        "op_feature": {
+          "ap": 0.8174,
+          "ap_at_20": 0.8174,
+          "first_positive_rank": 1,
+          "first_positive_work": 0.1399,
+          "top10_groups": 10,
+          "top10_lift": 1.1707,
+          "top10_positive_operations": 293,
+          "top10_precision": 0.8094,
+          "top10_recall": 0.5813,
+          "top10_work": 0.4966,
+          "top5_groups": 5,
+          "top5_lift": 1.2009,
+          "top5_positive_operations": 225,
+          "top5_precision": 0.8303,
+          "top5_recall": 0.4464,
+          "top5_work": 0.3717
+        },
+        "width": {
+          "ap": 0.6633,
+          "ap_at_20": 0.6633,
+          "first_positive_rank": 1,
+          "first_positive_work": 0.3539,
+          "top10_groups": 10,
+          "top10_lift": 1.0044,
+          "top10_positive_operations": 493,
+          "top10_precision": 0.6944,
+          "top10_recall": 0.9782,
+          "top10_work": 0.9739,
+          "top5_groups": 5,
+          "top5_lift": 1.0075,
+          "top5_positive_operations": 420,
+          "top5_precision": 0.6965,
+          "top5_recall": 0.8333,
+          "top5_work": 0.8272
+        }
+      },
+      "policy": "visible_operation_rule_score_then_width",
+      "problem": "Find repetitive web-agent behavior in expert-reviewed trajectories.",
+      "profile_spec": "docs/visexp/out/operation-rank-feature-r324/agentreward_looping-coarse-op-features-profile-spec.json",
+      "rank_op_rules": [
+        "loop-like:5=repeat_signal=loop-like",
+        "failure:1.5=status=(failure|error)",
+        "navigation:0.5=action=(click|left_click|goto|go_back|scroll|hover|move_to|drag)"
+      ],
+      "rust_json": "docs/visexp/out/operation-rank-feature-r324/agentreward_looping-coarse-op-features.json",
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "benchmark",
+        "phase"
+      ],
+      "stack_kind": "coarse",
+      "summary": {
+        "groups": 16,
+        "operations": 729,
+        "positives": 504,
+        "prevalence": 0.6914
+      },
+      "task": "agentreward_looping",
+      "top_operation_features": [
+        {
+          "features": [
+            {
+              "fraction": 1.0,
+              "label": "loop-like",
+              "matched_weight": 102,
+              "weighted_score": 5.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "failure",
+              "matched_weight": 102,
+              "weighted_score": 1.5
+            },
+            {
+              "fraction": 1.0,
+              "label": "navigation",
+              "matched_weight": 102,
+              "weighted_score": 0.5
+            }
+          ],
+          "rank_score": 7.0,
+          "stack": "analysis_task:agentreward_looping;dataset:agent-reward-bench;benchmark:assistantbench;phase:navigate"
+        },
+        {
+          "features": [
+            {
+              "fraction": 0.917,
+              "label": "loop-like",
+              "matched_weight": 122,
+              "weighted_score": 4.586
+            },
+            {
+              "fraction": 0.97,
+              "label": "failure",
+              "matched_weight": 129,
+              "weighted_score": 1.455
+            },
+            {
+              "fraction": 1.0,
+              "label": "navigation",
+              "matched_weight": 133,
+              "weighted_score": 0.5
+            }
+          ],
+          "rank_score": 6.541,
+          "stack": "analysis_task:agentreward_looping;dataset:agent-reward-bench;benchmark:visualwebarena;phase:navigate"
+        },
+        {
+          "features": [
+            {
+              "fraction": 1.0,
+              "label": "loop-like",
+              "matched_weight": 29,
+              "weighted_score": 5.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "failure",
+              "matched_weight": 29,
+              "weighted_score": 1.5
+            }
+          ],
+          "rank_score": 6.5,
+          "stack": "analysis_task:agentreward_looping;dataset:agent-reward-bench;benchmark:assistantbench;phase:input"
+        }
+      ]
+    },
+    {
+      "agentpprof_result": {
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl"
+        ],
+        "output": "docs/visexp/out/operation-rank-feature-r324/agentreward_side_effect-semantic-op-features.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-rank-feature-r324/agentreward_side_effect-semantic-op-features-profile-spec.json"
+        ],
+        "rank_mode": "rule-score",
+        "rank_op_rules": [
+          "write-action:3=action=(fill|type|key|hotkey|press|select_option|send_msg_to_user|clear)",
+          "input-phase:2=phase=(input|modify)",
+          "failure:1=status=(failure|error)",
+          "navigation:0.5=action=(click|left_click|goto|go_back|scroll|hover|move_to|drag)",
+          "finish-phase:-0.5=phase=finish"
+        ],
+        "rank_rules": [],
+        "sample_type": "operations",
+        "samples": 729,
+        "stack": "analysis_task,dataset,benchmark,phase,action,repeat_signal,status",
+        "stack_rules": [],
+        "status": "ok",
+        "unique_stacks": 40,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=agentreward_side_effect"
+        ]
+      },
+      "dataset": "agent-reward-bench",
+      "deltas": {
+        "op_feature_vs_width_ap": 0.0286,
+        "op_feature_vs_width_ap_at_20": 0.0287,
+        "op_feature_vs_width_first_positive_work": -0.1413,
+        "op_feature_vs_width_top5_lift": -0.2728
+      },
+      "metrics": {
+        "op_feature": {
+          "ap": 0.3947,
+          "ap_at_20": 0.3892,
+          "first_positive_rank": 1,
+          "first_positive_work": 0.0645,
+          "top10_groups": 10,
+          "top10_lift": 1.2658,
+          "top10_positive_operations": 47,
+          "top10_precision": 0.3507,
+          "top10_recall": 0.2327,
+          "top10_work": 0.1838,
+          "top5_groups": 5,
+          "top5_lift": 0.7831,
+          "top5_positive_operations": 23,
+          "top5_precision": 0.217,
+          "top5_recall": 0.1139,
+          "top5_work": 0.1454
+        },
+        "width": {
+          "ap": 0.3661,
+          "ap_at_20": 0.3605,
+          "first_positive_rank": 1,
+          "first_positive_work": 0.2058,
+          "top10_groups": 10,
+          "top10_lift": 1.0589,
+          "top10_positive_operations": 174,
+          "top10_precision": 0.2934,
+          "top10_recall": 0.8614,
+          "top10_work": 0.8134,
+          "top5_groups": 5,
+          "top5_lift": 1.0559,
+          "top5_positive_operations": 134,
+          "top5_precision": 0.2926,
+          "top5_recall": 0.6634,
+          "top5_work": 0.6283
+        }
+      },
+      "policy": "visible_operation_rule_score_then_width",
+      "problem": "Find side-effectful web-agent trajectories.",
+      "profile_spec": "docs/visexp/out/operation-rank-feature-r324/agentreward_side_effect-semantic-op-features-profile-spec.json",
+      "rank_op_rules": [
+        "write-action:3=action=(fill|type|key|hotkey|press|select_option|send_msg_to_user|clear)",
+        "input-phase:2=phase=(input|modify)",
+        "failure:1=status=(failure|error)",
+        "navigation:0.5=action=(click|left_click|goto|go_back|scroll|hover|move_to|drag)",
+        "finish-phase:-0.5=phase=finish"
+      ],
+      "rust_json": "docs/visexp/out/operation-rank-feature-r324/agentreward_side_effect-semantic-op-features.json",
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "benchmark",
+        "phase",
+        "action",
+        "repeat_signal",
+        "status"
+      ],
+      "stack_kind": "semantic",
+      "summary": {
+        "groups": 40,
+        "operations": 729,
+        "positives": 202,
+        "prevalence": 0.2771
+      },
+      "task": "agentreward_side_effect",
+      "top_operation_features": [
+        {
+          "features": [
+            {
+              "fraction": 1.0,
+              "label": "write-action",
+              "matched_weight": 47,
+              "weighted_score": 3.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "input-phase",
+              "matched_weight": 47,
+              "weighted_score": 2.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "failure",
+              "matched_weight": 47,
+              "weighted_score": 1.0
+            }
+          ],
+          "rank_score": 6.0,
+          "stack": "analysis_task:agentreward_side_effect;dataset:agent-reward-bench;benchmark:workarena;phase:input;action:fill;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "features": [
+            {
+              "fraction": 1.0,
+              "label": "write-action",
+              "matched_weight": 29,
+              "weighted_score": 3.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "input-phase",
+              "matched_weight": 29,
+              "weighted_score": 2.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "failure",
+              "matched_weight": 29,
+              "weighted_score": 1.0
+            }
+          ],
+          "rank_score": 6.0,
+          "stack": "analysis_task:agentreward_side_effect;dataset:agent-reward-bench;benchmark:assistantbench;phase:input;action:fill;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "features": [
+            {
+              "fraction": 1.0,
+              "label": "write-action",
+              "matched_weight": 20,
+              "weighted_score": 3.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "input-phase",
+              "matched_weight": 20,
+              "weighted_score": 2.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "failure",
+              "matched_weight": 20,
+              "weighted_score": 1.0
+            }
+          ],
+          "rank_score": 6.0,
+          "stack": "analysis_task:agentreward_side_effect;dataset:agent-reward-bench;benchmark:workarena;phase:input;action:fill;repeat_signal:none;status:failure"
+        }
+      ]
+    },
+    {
+      "agentpprof_result": {
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl"
+        ],
+        "output": "docs/visexp/out/operation-rank-feature-r324/agentreward_side_effect-coarse-op-features.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-rank-feature-r324/agentreward_side_effect-coarse-op-features-profile-spec.json"
+        ],
+        "rank_mode": "rule-score",
+        "rank_op_rules": [
+          "write-action:3=action=(fill|type|key|hotkey|press|select_option|send_msg_to_user|clear)",
+          "input-phase:2=phase=(input|modify)",
+          "failure:1=status=(failure|error)",
+          "navigation:0.5=action=(click|left_click|goto|go_back|scroll|hover|move_to|drag)",
+          "finish-phase:-0.5=phase=finish"
+        ],
+        "rank_rules": [],
+        "sample_type": "operations",
+        "samples": 729,
+        "stack": "analysis_task,dataset,benchmark,phase",
+        "stack_rules": [],
+        "status": "ok",
+        "unique_stacks": 16,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=agentreward_side_effect"
+        ]
+      },
+      "dataset": "agent-reward-bench",
+      "deltas": {
+        "op_feature_vs_width_ap": 0.0343,
+        "op_feature_vs_width_ap_at_20": 0.0343,
+        "op_feature_vs_width_first_positive_work": -0.2606,
+        "op_feature_vs_width_top5_lift": 0.3763
+      },
+      "metrics": {
+        "op_feature": {
+          "ap": 0.4252,
+          "ap_at_20": 0.4252,
+          "first_positive_rank": 1,
+          "first_positive_work": 0.0933,
+          "top10_groups": 10,
+          "top10_lift": 1.6367,
+          "top10_positive_operations": 200,
+          "top10_precision": 0.4535,
+          "top10_recall": 0.9901,
+          "top10_work": 0.6049,
+          "top5_groups": 5,
+          "top5_lift": 1.2381,
+          "top5_positive_operations": 47,
+          "top5_precision": 0.3431,
+          "top5_recall": 0.2327,
+          "top5_work": 0.1879
+        },
+        "width": {
+          "ap": 0.3909,
+          "ap_at_20": 0.3909,
+          "first_positive_rank": 1,
+          "first_positive_work": 0.3539,
+          "top10_groups": 10,
+          "top10_lift": 1.0166,
+          "top10_positive_operations": 200,
+          "top10_precision": 0.2817,
+          "top10_recall": 0.9901,
+          "top10_work": 0.9739,
+          "top5_groups": 5,
+          "top5_lift": 0.8618,
+          "top5_positive_operations": 144,
+          "top5_precision": 0.2388,
+          "top5_recall": 0.7129,
+          "top5_work": 0.8272
+        }
+      },
+      "policy": "visible_operation_rule_score_then_width",
+      "problem": "Find side-effectful web-agent trajectories.",
+      "profile_spec": "docs/visexp/out/operation-rank-feature-r324/agentreward_side_effect-coarse-op-features-profile-spec.json",
+      "rank_op_rules": [
+        "write-action:3=action=(fill|type|key|hotkey|press|select_option|send_msg_to_user|clear)",
+        "input-phase:2=phase=(input|modify)",
+        "failure:1=status=(failure|error)",
+        "navigation:0.5=action=(click|left_click|goto|go_back|scroll|hover|move_to|drag)",
+        "finish-phase:-0.5=phase=finish"
+      ],
+      "rust_json": "docs/visexp/out/operation-rank-feature-r324/agentreward_side_effect-coarse-op-features.json",
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "benchmark",
+        "phase"
+      ],
+      "stack_kind": "coarse",
+      "summary": {
+        "groups": 16,
+        "operations": 729,
+        "positives": 202,
+        "prevalence": 0.2771
+      },
+      "task": "agentreward_side_effect",
+      "top_operation_features": [
+        {
+          "features": [
+            {
+              "fraction": 1.0,
+              "label": "write-action",
+              "matched_weight": 68,
+              "weighted_score": 3.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "input-phase",
+              "matched_weight": 68,
+              "weighted_score": 2.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "failure",
+              "matched_weight": 68,
+              "weighted_score": 1.0
+            }
+          ],
+          "rank_score": 6.0,
+          "stack": "analysis_task:agentreward_side_effect;dataset:agent-reward-bench;benchmark:workarena;phase:input"
+        },
+        {
+          "features": [
+            {
+              "fraction": 1.0,
+              "label": "write-action",
+              "matched_weight": 29,
+              "weighted_score": 3.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "input-phase",
+              "matched_weight": 29,
+              "weighted_score": 2.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "failure",
+              "matched_weight": 29,
+              "weighted_score": 1.0
+            }
+          ],
+          "rank_score": 6.0,
+          "stack": "analysis_task:agentreward_side_effect;dataset:agent-reward-bench;benchmark:assistantbench;phase:input"
+        },
+        {
+          "features": [
+            {
+              "fraction": 1.0,
+              "label": "write-action",
+              "matched_weight": 8,
+              "weighted_score": 3.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "input-phase",
+              "matched_weight": 8,
+              "weighted_score": 2.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "failure",
+              "matched_weight": 8,
+              "weighted_score": 1.0
+            }
+          ],
+          "rank_score": 6.0,
+          "stack": "analysis_task:agentreward_side_effect;dataset:agent-reward-bench;benchmark:webarena;phase:input"
+        }
+      ]
+    },
+    {
+      "agentpprof_result": {
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl"
+        ],
+        "output": "docs/visexp/out/operation-rank-feature-r324/satraj_unsafe-semantic-op-features.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-rank-feature-r324/satraj_unsafe-semantic-op-features-profile-spec.json"
+        ],
+        "rank_mode": "rule-score",
+        "rank_op_rules": [
+          "risky-env:2=environment=(os|unknown_file|popup|induced_text|account|error_correction|infeasible)",
+          "write-action:2=action=(fill|type|key|hotkey|press|select_option|send_msg_to_user|left_click_drag|system_command)",
+          "input-phase:1.5=phase=(input|modify)",
+          "success:0.5=status=success",
+          "loop-like:0.5=repeat_signal=.*(loop|repeat)"
+        ],
+        "rank_rules": [],
+        "sample_type": "operations",
+        "samples": 4285,
+        "stack": "analysis_task,dataset,environment,phase,action,repeat_signal,status",
+        "stack_rules": [],
+        "status": "ok",
+        "unique_stacks": 142,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=satraj_unsafe"
+        ]
+      },
+      "dataset": "satraj-os-safety",
+      "deltas": {
+        "op_feature_vs_width_ap": 0.3772,
+        "op_feature_vs_width_ap_at_20": 0.2859,
+        "op_feature_vs_width_first_positive_work": -0.6254,
+        "op_feature_vs_width_top5_lift": 6.2384
+      },
+      "metrics": {
+        "op_feature": {
+          "ap": 0.4772,
+          "ap_at_20": 0.3317,
+          "first_positive_rank": 1,
+          "first_positive_work": 0.0112,
+          "top10_groups": 10,
+          "top10_lift": 5.3728,
+          "top10_positive_operations": 163,
+          "top10_precision": 0.7799,
+          "top10_recall": 0.2621,
+          "top10_work": 0.0488,
+          "top5_groups": 5,
+          "top5_lift": 6.2384,
+          "top5_positive_operations": 163,
+          "top5_precision": 0.9056,
+          "top5_recall": 0.2621,
+          "top5_work": 0.042
+        },
+        "width": {
+          "ap": 0.1,
+          "ap_at_20": 0.0458,
+          "first_positive_rank": 9,
+          "first_positive_work": 0.6366,
+          "top10_groups": 10,
+          "top10_lift": 0.2412,
+          "top10_positive_operations": 98,
+          "top10_precision": 0.035,
+          "top10_recall": 0.1576,
+          "top10_work": 0.6532,
+          "top5_groups": 5,
+          "top5_lift": 0.0,
+          "top5_positive_operations": 0,
+          "top5_precision": 0.0,
+          "top5_recall": 0.0,
+          "top5_work": 0.5181
+        }
+      },
+      "policy": "visible_operation_rule_score_then_width",
+      "problem": "Find unsafe desktop computer-use operations.",
+      "profile_spec": "docs/visexp/out/operation-rank-feature-r324/satraj_unsafe-semantic-op-features-profile-spec.json",
+      "rank_op_rules": [
+        "risky-env:2=environment=(os|unknown_file|popup|induced_text|account|error_correction|infeasible)",
+        "write-action:2=action=(fill|type|key|hotkey|press|select_option|send_msg_to_user|left_click_drag|system_command)",
+        "input-phase:1.5=phase=(input|modify)",
+        "success:0.5=status=success",
+        "loop-like:0.5=repeat_signal=.*(loop|repeat)"
+      ],
+      "rust_json": "docs/visexp/out/operation-rank-feature-r324/satraj_unsafe-semantic-op-features.json",
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "environment",
+        "phase",
+        "action",
+        "repeat_signal",
+        "status"
+      ],
+      "stack_kind": "semantic",
+      "summary": {
+        "groups": 142,
+        "operations": 4285,
+        "positives": 622,
+        "prevalence": 0.1452
+      },
+      "task": "satraj_unsafe",
+      "top_operation_features": [
+        {
+          "features": [
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 48,
+              "weighted_score": 2.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "write-action",
+              "matched_weight": 48,
+              "weighted_score": 2.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "input-phase",
+              "matched_weight": 48,
+              "weighted_score": 1.5
+            },
+            {
+              "fraction": 1.0,
+              "label": "success",
+              "matched_weight": 48,
+              "weighted_score": 0.5
+            },
+            {
+              "fraction": 1.0,
+              "label": "loop-like",
+              "matched_weight": 48,
+              "weighted_score": 0.5
+            }
+          ],
+          "rank_score": 6.5,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:unknown_file;phase:input;action:type;repeat_signal:loop-like;status:success"
+        },
+        {
+          "features": [
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 45,
+              "weighted_score": 2.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "write-action",
+              "matched_weight": 45,
+              "weighted_score": 2.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "input-phase",
+              "matched_weight": 45,
+              "weighted_score": 1.5
+            },
+            {
+              "fraction": 1.0,
+              "label": "success",
+              "matched_weight": 45,
+              "weighted_score": 0.5
+            },
+            {
+              "fraction": 1.0,
+              "label": "loop-like",
+              "matched_weight": 45,
+              "weighted_score": 0.5
+            }
+          ],
+          "rank_score": 6.5,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:os;phase:input;action:type;repeat_signal:loop-like;status:success"
+        },
+        {
+          "features": [
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 36,
+              "weighted_score": 2.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "write-action",
+              "matched_weight": 36,
+              "weighted_score": 2.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "input-phase",
+              "matched_weight": 36,
+              "weighted_score": 1.5
+            },
+            {
+              "fraction": 1.0,
+              "label": "success",
+              "matched_weight": 36,
+              "weighted_score": 0.5
+            },
+            {
+              "fraction": 1.0,
+              "label": "loop-like",
+              "matched_weight": 36,
+              "weighted_score": 0.5
+            }
+          ],
+          "rank_score": 6.5,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:os;phase:input;action:key;repeat_signal:loop-like;status:success"
+        }
+      ]
+    },
+    {
+      "agentpprof_result": {
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl"
+        ],
+        "output": "docs/visexp/out/operation-rank-feature-r324/satraj_unsafe-coarse-op-features.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-rank-feature-r324/satraj_unsafe-coarse-op-features-profile-spec.json"
+        ],
+        "rank_mode": "rule-score",
+        "rank_op_rules": [
+          "risky-env:2=environment=(os|unknown_file|popup|induced_text|account|error_correction|infeasible)",
+          "write-action:2=action=(fill|type|key|hotkey|press|select_option|send_msg_to_user|left_click_drag|system_command)",
+          "input-phase:1.5=phase=(input|modify)",
+          "success:0.5=status=success",
+          "loop-like:0.5=repeat_signal=.*(loop|repeat)"
+        ],
+        "rank_rules": [],
+        "sample_type": "operations",
+        "samples": 4285,
+        "stack": "analysis_task,dataset,environment,phase",
+        "stack_rules": [],
+        "status": "ok",
+        "unique_stacks": 22,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=satraj_unsafe"
+        ]
+      },
+      "dataset": "satraj-os-safety",
+      "deltas": {
+        "op_feature_vs_width_ap": 0.5086,
+        "op_feature_vs_width_ap_at_20": 0.5088,
+        "op_feature_vs_width_first_positive_work": -0.7881,
+        "op_feature_vs_width_top5_lift": 1.955
+      },
+      "metrics": {
+        "op_feature": {
+          "ap": 0.6081,
+          "ap_at_20": 0.6081,
+          "first_positive_rank": 1,
+          "first_positive_work": 0.038,
+          "top10_groups": 10,
+          "top10_lift": 3.3927,
+          "top10_positive_operations": 622,
+          "top10_precision": 0.4925,
+          "top10_recall": 1.0,
+          "top10_work": 0.2947,
+          "top5_groups": 5,
+          "top5_lift": 2.2936,
+          "top5_positive_operations": 279,
+          "top5_precision": 0.3329,
+          "top5_recall": 0.4486,
+          "top5_work": 0.1956
+        },
+        "width": {
+          "ap": 0.0995,
+          "ap_at_20": 0.0993,
+          "first_positive_rank": 5,
+          "first_positive_work": 0.8261,
+          "top10_groups": 10,
+          "top10_lift": 1.011,
+          "top10_positive_operations": 619,
+          "top10_precision": 0.1468,
+          "top10_recall": 0.9952,
+          "top10_work": 0.9844,
+          "top5_groups": 5,
+          "top5_lift": 0.3386,
+          "top5_positive_operations": 174,
+          "top5_precision": 0.0492,
+          "top5_recall": 0.2797,
+          "top5_work": 0.8261
+        }
+      },
+      "policy": "visible_operation_rule_score_then_width",
+      "problem": "Find unsafe desktop computer-use operations.",
+      "profile_spec": "docs/visexp/out/operation-rank-feature-r324/satraj_unsafe-coarse-op-features-profile-spec.json",
+      "rank_op_rules": [
+        "risky-env:2=environment=(os|unknown_file|popup|induced_text|account|error_correction|infeasible)",
+        "write-action:2=action=(fill|type|key|hotkey|press|select_option|send_msg_to_user|left_click_drag|system_command)",
+        "input-phase:1.5=phase=(input|modify)",
+        "success:0.5=status=success",
+        "loop-like:0.5=repeat_signal=.*(loop|repeat)"
+      ],
+      "rust_json": "docs/visexp/out/operation-rank-feature-r324/satraj_unsafe-coarse-op-features.json",
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "environment",
+        "phase"
+      ],
+      "stack_kind": "coarse",
+      "summary": {
+        "groups": 22,
+        "operations": 4285,
+        "positives": 622,
+        "prevalence": 0.1452
+      },
+      "task": "satraj_unsafe",
+      "top_operation_features": [
+        {
+          "features": [
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 163,
+              "weighted_score": 2.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "write-action",
+              "matched_weight": 163,
+              "weighted_score": 2.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "input-phase",
+              "matched_weight": 163,
+              "weighted_score": 1.5
+            },
+            {
+              "fraction": 0.798,
+              "label": "success",
+              "matched_weight": 130,
+              "weighted_score": 0.399
+            },
+            {
+              "fraction": 0.638,
+              "label": "loop-like",
+              "matched_weight": 104,
+              "weighted_score": 0.319
+            }
+          ],
+          "rank_score": 6.218,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:unknown_file;phase:input"
+        },
+        {
+          "features": [
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 207,
+              "weighted_score": 2.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "write-action",
+              "matched_weight": 207,
+              "weighted_score": 2.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "input-phase",
+              "matched_weight": 207,
+              "weighted_score": 1.5
+            },
+            {
+              "fraction": 0.676,
+              "label": "success",
+              "matched_weight": 140,
+              "weighted_score": 0.338
+            },
+            {
+              "fraction": 0.696,
+              "label": "loop-like",
+              "matched_weight": 144,
+              "weighted_score": 0.348
+            }
+          ],
+          "rank_score": 6.186,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:os;phase:input"
+        },
+        {
+          "features": [
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 361,
+              "weighted_score": 2.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "write-action",
+              "matched_weight": 361,
+              "weighted_score": 2.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "input-phase",
+              "matched_weight": 361,
+              "weighted_score": 1.5
+            },
+            {
+              "fraction": 0.08,
+              "label": "success",
+              "matched_weight": 29,
+              "weighted_score": 0.04
+            },
+            {
+              "fraction": 0.798,
+              "label": "loop-like",
+              "matched_weight": 288,
+              "weighted_score": 0.399
+            }
+          ],
+          "rank_score": 5.939,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:account;phase:input"
+        }
+      ]
+    },
+    {
+      "agentpprof_result": {
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl"
+        ],
+        "output": "docs/visexp/out/operation-rank-feature-r324/agentnet_incorrect_step-semantic-op-features.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-rank-feature-r324/agentnet_incorrect_step-semantic-op-features-profile-spec.json"
+        ],
+        "rank_mode": "rule-score",
+        "rank_op_rules": [
+          "failure:2=status=.*(fail|error)",
+          "loop-like:1.5=repeat_signal=.*(loop|repeat)",
+          "risky-env:1=environment=(error_correction|infeasible|unknown_file|popup|induced_text|account)",
+          "input-phase:0.5=phase=(input|modify)"
+        ],
+        "rank_rules": [],
+        "sample_type": "operations",
+        "samples": 14718,
+        "stack": "analysis_task,dataset,environment,phase,action,repeat_signal,status",
+        "stack_rules": [],
+        "status": "ok",
+        "unique_stacks": 289,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=agentnet_incorrect_step"
+        ]
+      },
+      "dataset": "agentnet",
+      "deltas": {
+        "op_feature_vs_width_ap": 0.016,
+        "op_feature_vs_width_ap_at_20": -0.0477,
+        "op_feature_vs_width_first_positive_work": -0.082,
+        "op_feature_vs_width_top5_lift": 2.501
+      },
+      "metrics": {
+        "op_feature": {
+          "ap": 0.0847,
+          "ap_at_20": 0.0037,
+          "first_positive_rank": 1,
+          "first_positive_work": 0.0001,
+          "top10_groups": 10,
+          "top10_lift": 2.105,
+          "top10_positive_operations": 6,
+          "top10_precision": 0.125,
+          "top10_recall": 0.0069,
+          "top10_work": 0.0033,
+          "top5_groups": 5,
+          "top5_lift": 3.6085,
+          "top5_positive_operations": 3,
+          "top5_precision": 0.2143,
+          "top5_recall": 0.0034,
+          "top5_work": 0.001
+        },
+        "width": {
+          "ap": 0.0687,
+          "ap_at_20": 0.0514,
+          "first_positive_rank": 1,
+          "first_positive_work": 0.0821,
+          "top10_groups": 10,
+          "top10_lift": 1.1198,
+          "top10_positive_operations": 449,
+          "top10_precision": 0.0665,
+          "top10_recall": 0.5137,
+          "top10_work": 0.4588,
+          "top5_groups": 5,
+          "top5_lift": 1.1075,
+          "top5_positive_operations": 287,
+          "top5_precision": 0.0658,
+          "top5_recall": 0.3284,
+          "top5_work": 0.2965
+        }
+      },
+      "policy": "visible_operation_rule_score_then_width",
+      "problem": "Find incorrect human desktop steps.",
+      "profile_spec": "docs/visexp/out/operation-rank-feature-r324/agentnet_incorrect_step-semantic-op-features-profile-spec.json",
+      "rank_op_rules": [
+        "failure:2=status=.*(fail|error)",
+        "loop-like:1.5=repeat_signal=.*(loop|repeat)",
+        "risky-env:1=environment=(error_correction|infeasible|unknown_file|popup|induced_text|account)",
+        "input-phase:0.5=phase=(input|modify)"
+      ],
+      "rust_json": "docs/visexp/out/operation-rank-feature-r324/agentnet_incorrect_step-semantic-op-features.json",
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "environment",
+        "phase",
+        "action",
+        "repeat_signal",
+        "status"
+      ],
+      "stack_kind": "semantic",
+      "summary": {
+        "groups": 289,
+        "operations": 14718,
+        "positives": 874,
+        "prevalence": 0.0594
+      },
+      "task": "agentnet_incorrect_step",
+      "top_operation_features": [
+        {
+          "features": [
+            {
+              "fraction": 1.0,
+              "label": "failure",
+              "matched_weight": 2,
+              "weighted_score": 2.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "loop-like",
+              "matched_weight": 2,
+              "weighted_score": 1.5
+            },
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 2,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "input-phase",
+              "matched_weight": 2,
+              "weighted_score": 0.5
+            }
+          ],
+          "rank_score": 5.0,
+          "stack": "analysis_task:agentnet_incorrect_step;dataset:agentnet;environment:error_correction;phase:input;action:type;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "features": [
+            {
+              "fraction": 1.0,
+              "label": "failure",
+              "matched_weight": 9,
+              "weighted_score": 2.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "loop-like",
+              "matched_weight": 9,
+              "weighted_score": 1.5
+            },
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 9,
+              "weighted_score": 1.0
+            }
+          ],
+          "rank_score": 4.5,
+          "stack": "analysis_task:agentnet_incorrect_step;dataset:agentnet;environment:error_correction;phase:navigate;action:click;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "features": [
+            {
+              "fraction": 1.0,
+              "label": "failure",
+              "matched_weight": 1,
+              "weighted_score": 2.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "loop-like",
+              "matched_weight": 1,
+              "weighted_score": 1.5
+            },
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 1,
+              "weighted_score": 1.0
+            }
+          ],
+          "rank_score": 4.5,
+          "stack": "analysis_task:agentnet_incorrect_step;dataset:agentnet;environment:error_correction;phase:finish;action:terminate;repeat_signal:loop-like;status:failure"
+        }
+      ]
+    },
+    {
+      "agentpprof_result": {
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl"
+        ],
+        "output": "docs/visexp/out/operation-rank-feature-r324/agentnet_incorrect_step-coarse-op-features.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-rank-feature-r324/agentnet_incorrect_step-coarse-op-features-profile-spec.json"
+        ],
+        "rank_mode": "rule-score",
+        "rank_op_rules": [
+          "failure:2=status=.*(fail|error)",
+          "loop-like:1.5=repeat_signal=.*(loop|repeat)",
+          "risky-env:1=environment=(error_correction|infeasible|unknown_file|popup|induced_text|account)",
+          "input-phase:0.5=phase=(input|modify)"
+        ],
+        "rank_rules": [],
+        "sample_type": "operations",
+        "samples": 14718,
+        "stack": "analysis_task,dataset,environment,phase",
+        "stack_rules": [],
+        "status": "ok",
+        "unique_stacks": 43,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=agentnet_incorrect_step"
+        ]
+      },
+      "dataset": "agentnet",
+      "deltas": {
+        "op_feature_vs_width_ap": 0.012,
+        "op_feature_vs_width_ap_at_20": -0.0371,
+        "op_feature_vs_width_first_positive_work": -0.1207,
+        "op_feature_vs_width_top5_lift": 1.1263
+      },
+      "metrics": {
+        "op_feature": {
+          "ap": 0.077,
+          "ap_at_20": 0.0274,
+          "first_positive_rank": 4,
+          "first_positive_work": 0.0123,
+          "top10_groups": 10,
+          "top10_lift": 1.6184,
+          "top10_positive_operations": 148,
+          "top10_precision": 0.0961,
+          "top10_recall": 0.1693,
+          "top10_work": 0.1046,
+          "top5_groups": 5,
+          "top5_lift": 2.228,
+          "top5_positive_operations": 43,
+          "top5_precision": 0.1323,
+          "top5_recall": 0.0492,
+          "top5_work": 0.0221
+        },
+        "width": {
+          "ap": 0.065,
+          "ap_at_20": 0.0645,
+          "first_positive_rank": 1,
+          "first_positive_work": 0.133,
+          "top10_groups": 10,
+          "top10_lift": 1.0967,
+          "top10_positive_operations": 720,
+          "top10_precision": 0.0651,
+          "top10_recall": 0.8238,
+          "top10_work": 0.7512,
+          "top5_groups": 5,
+          "top5_lift": 1.1017,
+          "top5_positive_operations": 502,
+          "top5_precision": 0.0654,
+          "top5_recall": 0.5744,
+          "top5_work": 0.5213
+        }
+      },
+      "policy": "visible_operation_rule_score_then_width",
+      "problem": "Find incorrect human desktop steps.",
+      "profile_spec": "docs/visexp/out/operation-rank-feature-r324/agentnet_incorrect_step-coarse-op-features-profile-spec.json",
+      "rank_op_rules": [
+        "failure:2=status=.*(fail|error)",
+        "loop-like:1.5=repeat_signal=.*(loop|repeat)",
+        "risky-env:1=environment=(error_correction|infeasible|unknown_file|popup|induced_text|account)",
+        "input-phase:0.5=phase=(input|modify)"
+      ],
+      "rust_json": "docs/visexp/out/operation-rank-feature-r324/agentnet_incorrect_step-coarse-op-features.json",
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "environment",
+        "phase"
+      ],
+      "stack_kind": "coarse",
+      "summary": {
+        "groups": 43,
+        "operations": 14718,
+        "positives": 874,
+        "prevalence": 0.0594
+      },
+      "task": "agentnet_incorrect_step",
+      "top_operation_features": [
+        {
+          "features": [
+            {
+              "fraction": 1.0,
+              "label": "failure",
+              "matched_weight": 4,
+              "weighted_score": 2.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 4,
+              "weighted_score": 1.0
+            }
+          ],
+          "rank_score": 3.0,
+          "stack": "analysis_task:agentnet_incorrect_step;dataset:agentnet;environment:infeasible;phase:observe"
+        },
+        {
+          "features": [
+            {
+              "fraction": 0.935,
+              "label": "failure",
+              "matched_weight": 29,
+              "weighted_score": 1.871
+            },
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 31,
+              "weighted_score": 1.0
+            }
+          ],
+          "rank_score": 2.871,
+          "stack": "analysis_task:agentnet_incorrect_step;dataset:agentnet;environment:infeasible;phase:finish"
+        },
+        {
+          "features": [
+            {
+              "fraction": 0.625,
+              "label": "failure",
+              "matched_weight": 10,
+              "weighted_score": 1.25
+            },
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 16,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "input-phase",
+              "matched_weight": 16,
+              "weighted_score": 0.5
+            }
+          ],
+          "rank_score": 2.75,
+          "stack": "analysis_task:agentnet_incorrect_step;dataset:agentnet;environment:infeasible;phase:input"
+        }
+      ]
+    },
+    {
+      "agentpprof_result": {
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl"
+        ],
+        "output": "docs/visexp/out/operation-rank-feature-r324/agentnet_redundant_step-semantic-op-features.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-rank-feature-r324/agentnet_redundant_step-semantic-op-features-profile-spec.json"
+        ],
+        "rank_mode": "rule-score",
+        "rank_op_rules": [
+          "loop-like:4=repeat_signal=.*(loop|repeat)",
+          "failure:1=status=.*(fail|error)",
+          "navigation:0.5=action=(click|left_click|double_click|tripleclick|move_to|drag|scroll|hover|goto|go_back)"
+        ],
+        "rank_rules": [],
+        "sample_type": "operations",
+        "samples": 10067,
+        "stack": "analysis_task,dataset,environment,phase,action,repeat_signal,status",
+        "stack_rules": [],
+        "status": "ok",
+        "unique_stacks": 260,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=agentnet_redundant_step"
+        ]
+      },
+      "dataset": "agentnet",
+      "deltas": {
+        "op_feature_vs_width_ap": 0.0011,
+        "op_feature_vs_width_ap_at_20": -0.0627,
+        "op_feature_vs_width_first_positive_work": -0.0897,
+        "op_feature_vs_width_top5_lift": 0.8679
+      },
+      "metrics": {
+        "op_feature": {
+          "ap": 0.0874,
+          "ap_at_20": 0.0033,
+          "first_positive_rank": 1,
+          "first_positive_work": 0.0051,
+          "top10_groups": 10,
+          "top10_lift": 1.9075,
+          "top10_positive_operations": 15,
+          "top10_precision": 0.1389,
+          "top10_recall": 0.0205,
+          "top10_work": 0.0107,
+          "top5_groups": 5,
+          "top5_lift": 1.9838,
+          "top5_positive_operations": 13,
+          "top5_precision": 0.1444,
+          "top5_recall": 0.0177,
+          "top5_work": 0.0089
+        },
+        "width": {
+          "ap": 0.0863,
+          "ap_at_20": 0.066,
+          "first_positive_rank": 1,
+          "first_positive_work": 0.0948,
+          "top10_groups": 10,
+          "top10_lift": 1.2072,
+          "top10_positive_operations": 430,
+          "top10_precision": 0.0879,
+          "top10_recall": 0.5866,
+          "top10_work": 0.4859,
+          "top5_groups": 5,
+          "top5_lift": 1.1159,
+          "top5_positive_operations": 263,
+          "top5_precision": 0.0812,
+          "top5_recall": 0.3588,
+          "top5_work": 0.3215
+        }
+      },
+      "policy": "visible_operation_rule_score_then_width",
+      "problem": "Find redundant human desktop steps.",
+      "profile_spec": "docs/visexp/out/operation-rank-feature-r324/agentnet_redundant_step-semantic-op-features-profile-spec.json",
+      "rank_op_rules": [
+        "loop-like:4=repeat_signal=.*(loop|repeat)",
+        "failure:1=status=.*(fail|error)",
+        "navigation:0.5=action=(click|left_click|double_click|tripleclick|move_to|drag|scroll|hover|goto|go_back)"
+      ],
+      "rust_json": "docs/visexp/out/operation-rank-feature-r324/agentnet_redundant_step-semantic-op-features.json",
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "environment",
+        "phase",
+        "action",
+        "repeat_signal",
+        "status"
+      ],
+      "stack_kind": "semantic",
+      "summary": {
+        "groups": 260,
+        "operations": 10067,
+        "positives": 733,
+        "prevalence": 0.0728
+      },
+      "task": "agentnet_redundant_step",
+      "top_operation_features": [
+        {
+          "features": [
+            {
+              "fraction": 1.0,
+              "label": "loop-like",
+              "matched_weight": 51,
+              "weighted_score": 4.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "failure",
+              "matched_weight": 51,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "navigation",
+              "matched_weight": 51,
+              "weighted_score": 0.5
+            }
+          ],
+          "rank_score": 5.5,
+          "stack": "analysis_task:agentnet_redundant_step;dataset:agentnet;environment:libreoffice_impress;phase:navigate;action:click;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "features": [
+            {
+              "fraction": 1.0,
+              "label": "loop-like",
+              "matched_weight": 13,
+              "weighted_score": 4.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "failure",
+              "matched_weight": 13,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "navigation",
+              "matched_weight": 13,
+              "weighted_score": 0.5
+            }
+          ],
+          "rank_score": 5.5,
+          "stack": "analysis_task:agentnet_redundant_step;dataset:agentnet;environment:libreoffice_writer;phase:navigate;action:click;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "features": [
+            {
+              "fraction": 1.0,
+              "label": "loop-like",
+              "matched_weight": 12,
+              "weighted_score": 4.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "failure",
+              "matched_weight": 12,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "navigation",
+              "matched_weight": 12,
+              "weighted_score": 0.5
+            }
+          ],
+          "rank_score": 5.5,
+          "stack": "analysis_task:agentnet_redundant_step;dataset:agentnet;environment:libreoffice_calc;phase:navigate;action:click;repeat_signal:loop-like;status:failure"
+        }
+      ]
+    },
+    {
+      "agentpprof_result": {
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl"
+        ],
+        "output": "docs/visexp/out/operation-rank-feature-r324/agentnet_redundant_step-coarse-op-features.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-rank-feature-r324/agentnet_redundant_step-coarse-op-features-profile-spec.json"
+        ],
+        "rank_mode": "rule-score",
+        "rank_op_rules": [
+          "loop-like:4=repeat_signal=.*(loop|repeat)",
+          "failure:1=status=.*(fail|error)",
+          "navigation:0.5=action=(click|left_click|double_click|tripleclick|move_to|drag|scroll|hover|goto|go_back)"
+        ],
+        "rank_rules": [],
+        "sample_type": "operations",
+        "samples": 10067,
+        "stack": "analysis_task,dataset,environment,phase",
+        "stack_rules": [],
+        "status": "ok",
+        "unique_stacks": 42,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=agentnet_redundant_step"
+        ]
+      },
+      "dataset": "agentnet",
+      "deltas": {
+        "op_feature_vs_width_ap": -0.0001,
+        "op_feature_vs_width_ap_at_20": -0.0212,
+        "op_feature_vs_width_first_positive_work": -0.1275,
+        "op_feature_vs_width_top5_lift": -0.0425
+      },
+      "metrics": {
+        "op_feature": {
+          "ap": 0.0772,
+          "ap_at_20": 0.056,
+          "first_positive_rank": 1,
+          "first_positive_work": 0.0463,
+          "top10_groups": 10,
+          "top10_lift": 0.9963,
+          "top10_positive_operations": 353,
+          "top10_precision": 0.0725,
+          "top10_recall": 0.4816,
+          "top10_work": 0.4834,
+          "top5_groups": 5,
+          "top5_lift": 1.0585,
+          "top5_positive_operations": 241,
+          "top5_precision": 0.0771,
+          "top5_recall": 0.3288,
+          "top5_work": 0.3106
+        },
+        "width": {
+          "ap": 0.0773,
+          "ap_at_20": 0.0772,
+          "first_positive_rank": 1,
+          "first_positive_work": 0.1738,
+          "top10_groups": 10,
+          "top10_lift": 1.0761,
+          "top10_positive_operations": 645,
+          "top10_precision": 0.0784,
+          "top10_recall": 0.8799,
+          "top10_work": 0.8177,
+          "top5_groups": 5,
+          "top5_lift": 1.101,
+          "top5_positive_operations": 458,
+          "top5_precision": 0.0802,
+          "top5_recall": 0.6248,
+          "top5_work": 0.5675
+        }
+      },
+      "policy": "visible_operation_rule_score_then_width",
+      "problem": "Find redundant human desktop steps.",
+      "profile_spec": "docs/visexp/out/operation-rank-feature-r324/agentnet_redundant_step-coarse-op-features-profile-spec.json",
+      "rank_op_rules": [
+        "loop-like:4=repeat_signal=.*(loop|repeat)",
+        "failure:1=status=.*(fail|error)",
+        "navigation:0.5=action=(click|left_click|double_click|tripleclick|move_to|drag|scroll|hover|goto|go_back)"
+      ],
+      "rust_json": "docs/visexp/out/operation-rank-feature-r324/agentnet_redundant_step-coarse-op-features.json",
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "environment",
+        "phase"
+      ],
+      "stack_kind": "coarse",
+      "summary": {
+        "groups": 42,
+        "operations": 10067,
+        "positives": 733,
+        "prevalence": 0.0728
+      },
+      "task": "agentnet_redundant_step",
+      "top_operation_features": [
+        {
+          "features": [
+            {
+              "fraction": 0.88,
+              "label": "loop-like",
+              "matched_weight": 410,
+              "weighted_score": 3.519
+            },
+            {
+              "fraction": 0.024,
+              "label": "failure",
+              "matched_weight": 11,
+              "weighted_score": 0.024
+            }
+          ],
+          "rank_score": 3.543,
+          "stack": "analysis_task:agentnet_redundant_step;dataset:agentnet;environment:os;phase:input"
+        },
+        {
+          "features": [
+            {
+              "fraction": 0.667,
+              "label": "loop-like",
+              "matched_weight": 4,
+              "weighted_score": 2.667
+            }
+          ],
+          "rank_score": 2.667,
+          "stack": "analysis_task:agentnet_redundant_step;dataset:agentnet;environment:multiapp;phase:observe"
+        },
+        {
+          "features": [
+            {
+              "fraction": 0.477,
+              "label": "loop-like",
+              "matched_weight": 429,
+              "weighted_score": 1.907
+            },
+            {
+              "fraction": 0.146,
+              "label": "failure",
+              "matched_weight": 131,
+              "weighted_score": 0.146
+            },
+            {
+              "fraction": 0.97,
+              "label": "navigation",
+              "matched_weight": 873,
+              "weighted_score": 0.485
+            }
+          ],
+          "rank_score": 2.538,
+          "stack": "analysis_task:agentnet_redundant_step;dataset:agentnet;environment:libreoffice_impress;phase:navigate"
+        }
+      ]
+    },
+    {
+      "agentpprof_result": {
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl"
+        ],
+        "output": "docs/visexp/out/operation-rank-feature-r324/osworld_group_start-semantic-op-features.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-rank-feature-r324/osworld_group_start-semantic-op-features-profile-spec.json"
+        ],
+        "rank_mode": "rule-score",
+        "rank_op_rules": [
+          "input-phase:1.5=phase=(input|modify)",
+          "navigate-phase:1=phase=navigate",
+          "write-action:1=action=(fill|type|key|hotkey|press|select_option|send_msg_to_user|drag)",
+          "navigation:0.5=action=(click|left_click|double_click|tripleclick|move_to|drag|scroll|hover|goto|go_back)",
+          "finish-phase:0.5=phase=finish"
+        ],
+        "rank_rules": [],
+        "sample_type": "operations",
+        "samples": 4011,
+        "stack": "analysis_task,dataset,app,phase,action,repeat_signal,status",
+        "stack_rules": [],
+        "status": "ok",
+        "unique_stacks": 173,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=osworld_group_start"
+        ]
+      },
+      "dataset": "osworld-human",
+      "deltas": {
+        "op_feature_vs_width_ap": -0.0004,
+        "op_feature_vs_width_ap_at_20": -0.0656,
+        "op_feature_vs_width_first_positive_work": -0.002,
+        "op_feature_vs_width_top5_lift": -0.1277
+      },
+      "metrics": {
+        "op_feature": {
+          "ap": 0.2214,
+          "ap_at_20": 0.1184,
+          "first_positive_rank": 1,
+          "first_positive_work": 0.1311,
+          "top10_groups": 10,
+          "top10_lift": 0.8891,
+          "top10_positive_operations": 304,
+          "top10_precision": 0.1694,
+          "top10_recall": 0.3979,
+          "top10_work": 0.4475,
+          "top5_groups": 5,
+          "top5_lift": 0.914,
+          "top5_positive_operations": 289,
+          "top5_precision": 0.1741,
+          "top5_recall": 0.3783,
+          "top5_work": 0.4139
+        },
+        "width": {
+          "ap": 0.2218,
+          "ap_at_20": 0.184,
+          "first_positive_rank": 1,
+          "first_positive_work": 0.1331,
+          "top10_groups": 10,
+          "top10_lift": 1.0291,
+          "top10_positive_operations": 542,
+          "top10_precision": 0.196,
+          "top10_recall": 0.7094,
+          "top10_work": 0.6894,
+          "top5_groups": 5,
+          "top5_lift": 1.0417,
+          "top5_positive_operations": 451,
+          "top5_precision": 0.1984,
+          "top5_recall": 0.5903,
+          "top5_work": 0.5667
+        }
+      },
+      "policy": "visible_operation_rule_score_then_width",
+      "problem": "Find human grouped-action segment starts in desktop traces.",
+      "profile_spec": "docs/visexp/out/operation-rank-feature-r324/osworld_group_start-semantic-op-features-profile-spec.json",
+      "rank_op_rules": [
+        "input-phase:1.5=phase=(input|modify)",
+        "navigate-phase:1=phase=navigate",
+        "write-action:1=action=(fill|type|key|hotkey|press|select_option|send_msg_to_user|drag)",
+        "navigation:0.5=action=(click|left_click|double_click|tripleclick|move_to|drag|scroll|hover|goto|go_back)",
+        "finish-phase:0.5=phase=finish"
+      ],
+      "rust_json": "docs/visexp/out/operation-rank-feature-r324/osworld_group_start-semantic-op-features.json",
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "app",
+        "phase",
+        "action",
+        "repeat_signal",
+        "status"
+      ],
+      "stack_kind": "semantic",
+      "summary": {
+        "groups": 173,
+        "operations": 4011,
+        "positives": 764,
+        "prevalence": 0.1905
+      },
+      "task": "osworld_group_start",
+      "top_operation_features": [
+        {
+          "features": [
+            {
+              "fraction": 1.0,
+              "label": "input-phase",
+              "matched_weight": 526,
+              "weighted_score": 1.5
+            },
+            {
+              "fraction": 1.0,
+              "label": "write-action",
+              "matched_weight": 526,
+              "weighted_score": 1.0
+            }
+          ],
+          "rank_score": 2.5,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:multi_apps;phase:input;action:type;repeat_signal:loop-like;status:gold"
+        },
+        {
+          "features": [
+            {
+              "fraction": 1.0,
+              "label": "input-phase",
+              "matched_weight": 517,
+              "weighted_score": 1.5
+            },
+            {
+              "fraction": 1.0,
+              "label": "write-action",
+              "matched_weight": 517,
+              "weighted_score": 1.0
+            }
+          ],
+          "rank_score": 2.5,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:multi_apps;phase:input;action:press;repeat_signal:loop-like;status:gold"
+        },
+        {
+          "features": [
+            {
+              "fraction": 1.0,
+              "label": "input-phase",
+              "matched_weight": 514,
+              "weighted_score": 1.5
+            },
+            {
+              "fraction": 1.0,
+              "label": "write-action",
+              "matched_weight": 514,
+              "weighted_score": 1.0
+            }
+          ],
+          "rank_score": 2.5,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:multi_apps;phase:input;action:hotkey;repeat_signal:loop-like;status:gold"
+        }
+      ]
+    },
+    {
+      "agentpprof_result": {
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl"
+        ],
+        "output": "docs/visexp/out/operation-rank-feature-r324/osworld_group_start-coarse-op-features.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-rank-feature-r324/osworld_group_start-coarse-op-features-profile-spec.json"
+        ],
+        "rank_mode": "rule-score",
+        "rank_op_rules": [
+          "input-phase:1.5=phase=(input|modify)",
+          "navigate-phase:1=phase=navigate",
+          "write-action:1=action=(fill|type|key|hotkey|press|select_option|send_msg_to_user|drag)",
+          "navigation:0.5=action=(click|left_click|double_click|tripleclick|move_to|drag|scroll|hover|goto|go_back)",
+          "finish-phase:0.5=phase=finish"
+        ],
+        "rank_rules": [],
+        "sample_type": "operations",
+        "samples": 4011,
+        "stack": "analysis_task,dataset,app,phase",
+        "stack_rules": [],
+        "status": "ok",
+        "unique_stacks": 32,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=osworld_group_start"
+        ]
+      },
+      "dataset": "osworld-human",
+      "deltas": {
+        "op_feature_vs_width_ap": -0.0085,
+        "op_feature_vs_width_ap_at_20": -0.0085,
+        "op_feature_vs_width_first_positive_work": 0.0,
+        "op_feature_vs_width_top5_lift": -0.1459
+      },
+      "metrics": {
+        "op_feature": {
+          "ap": 0.186,
+          "ap_at_20": 0.186,
+          "first_positive_rank": 1,
+          "first_positive_work": 0.4024,
+          "top10_groups": 10,
+          "top10_lift": 0.8993,
+          "top10_positive_operations": 364,
+          "top10_precision": 0.1713,
+          "top10_recall": 0.4764,
+          "top10_work": 0.5298,
+          "top5_groups": 5,
+          "top5_lift": 0.9161,
+          "top5_positive_operations": 342,
+          "top5_precision": 0.1745,
+          "top5_recall": 0.4476,
+          "top5_work": 0.4887
+        },
+        "width": {
+          "ap": 0.1945,
+          "ap_at_20": 0.1945,
+          "first_positive_rank": 1,
+          "first_positive_work": 0.4024,
+          "top10_groups": 10,
+          "top10_lift": 1.0162,
+          "top10_positive_operations": 698,
+          "top10_precision": 0.1936,
+          "top10_recall": 0.9136,
+          "top10_work": 0.899,
+          "top5_groups": 5,
+          "top5_lift": 1.062,
+          "top5_positive_operations": 637,
+          "top5_precision": 0.2023,
+          "top5_recall": 0.8338,
+          "top5_work": 0.7851
+        }
+      },
+      "policy": "visible_operation_rule_score_then_width",
+      "problem": "Find human grouped-action segment starts in desktop traces.",
+      "profile_spec": "docs/visexp/out/operation-rank-feature-r324/osworld_group_start-coarse-op-features-profile-spec.json",
+      "rank_op_rules": [
+        "input-phase:1.5=phase=(input|modify)",
+        "navigate-phase:1=phase=navigate",
+        "write-action:1=action=(fill|type|key|hotkey|press|select_option|send_msg_to_user|drag)",
+        "navigation:0.5=action=(click|left_click|double_click|tripleclick|move_to|drag|scroll|hover|goto|go_back)",
+        "finish-phase:0.5=phase=finish"
+      ],
+      "rust_json": "docs/visexp/out/operation-rank-feature-r324/osworld_group_start-coarse-op-features.json",
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "app",
+        "phase"
+      ],
+      "stack_kind": "coarse",
+      "summary": {
+        "groups": 32,
+        "operations": 4011,
+        "positives": 764,
+        "prevalence": 0.1905
+      },
+      "task": "osworld_group_start",
+      "top_operation_features": [
+        {
+          "features": [
+            {
+              "fraction": 1.0,
+              "label": "input-phase",
+              "matched_weight": 1614,
+              "weighted_score": 1.5
+            },
+            {
+              "fraction": 1.0,
+              "label": "write-action",
+              "matched_weight": 1614,
+              "weighted_score": 1.0
+            }
+          ],
+          "rank_score": 2.5,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:multi_apps;phase:input"
+        },
+        {
+          "features": [
+            {
+              "fraction": 1.0,
+              "label": "input-phase",
+              "matched_weight": 151,
+              "weighted_score": 1.5
+            },
+            {
+              "fraction": 1.0,
+              "label": "write-action",
+              "matched_weight": 151,
+              "weighted_score": 1.0
+            }
+          ],
+          "rank_score": 2.5,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:libreoffice_calc;phase:input"
+        },
+        {
+          "features": [
+            {
+              "fraction": 1.0,
+              "label": "input-phase",
+              "matched_weight": 77,
+              "weighted_score": 1.5
+            },
+            {
+              "fraction": 1.0,
+              "label": "write-action",
+              "matched_weight": 77,
+              "weighted_score": 1.0
+            }
+          ],
+          "rank_score": 2.5,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:libreoffice_impress;phase:input"
+        }
+      ]
+    }
+  ]
+}

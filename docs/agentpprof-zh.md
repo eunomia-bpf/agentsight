@@ -350,6 +350,7 @@ agentpprof -o external.folded --view operations \
   "op_map_files": ["../external-agent-trace-agentnet-r291/agentnet-op-map.txt"],
   "where_rules": ["dataset=agentnet"],
   "rank_rules": ["step-risk:2=status:failure|repeat_signal:loop-like"],
+  "rank_op_rules": ["failure-density:2=status=failure"],
   "rank_mode": "rule-score",
   "stack": "project,dataset,benchmark,environment,task,phase,op,tool,action,status,step_correct,step_redundant,repeat_signal"
 }
@@ -364,10 +365,13 @@ agentpprof --profile-spec docs/visexp/out/profile-spec-r293/agentnet-diagnostic-
 Spec 内的路径相对 spec 文件所在目录解析。`-o`、`--view`、`--format`、`--stack`
 这类命令行标量参数会覆盖 spec 默认值；命令行 `--op-map`、`--op-map-file` 会排在
 spec 规则之前求值；命令行 `--where` 存在时会替换 spec 里的
-`where_rules`，否则使用 spec predicate。命令行 `--rank-rule` 会排在
-spec `rank_rules` 之前求值。Rank rule 使用 `LABEL:WEIGHT=REGEX`，只按可见
-folded stack 文本给 JSON 里的 operation-stack groups 排序，不影响 pprof、
-folded 或 SVG 输出。默认 `rank_mode` 是 `width-boost`，即宽度仍是主要信号；
+`where_rules`，否则使用 spec predicate。命令行 `--rank-rule` 和
+`--rank-op-rule` 会排在 spec `rank_rules` 和 `rank_op_rules` 之前求值。
+两者都使用 `LABEL:WEIGHT=REGEX`：`rank_rules` 匹配 folded stack 文本，
+`rank_op_rules` 匹配 mapping/filtering 之后的单个 operation `field=value`
+token，并把命中的 operation weight 聚合成 stack 内部的 density score。
+它们只影响 JSON 里的 operation-stack group 排序，不影响 pprof、folded 或
+SVG 输出。默认 `rank_mode` 是 `width-boost`，即宽度仍是主要信号；
 `rule-score` 会先按 visible rule 命中分数排序，再用宽度打破并列。因此
 profile spec 只是 operation、mapping、predicate、rank policy 和 operation
 stack 的复现实验配置，不是第三个 profiler 抽象。

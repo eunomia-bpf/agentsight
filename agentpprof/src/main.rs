@@ -16,8 +16,8 @@ use profile::{
     OperationStackConfig, OutputFormat, ProfileView, StackRankMode,
     build_profile_from_operation_files, build_profile_from_operation_records,
     build_profile_with_options, infer_output_format, parse_operation_filters,
-    parse_stack_rank_rules, parse_stack_rules, parse_stack_rules_with_flag, parse_stack_spec,
-    profile_to_stacks, write_projection,
+    parse_operation_rank_rules, parse_stack_rank_rules, parse_stack_rules,
+    parse_stack_rules_with_flag, parse_stack_spec, profile_to_stacks, write_projection,
 };
 use session::{
     SessionRecord, default_claude_root, discover_agent_sessions, load_agent_trace_files,
@@ -58,7 +58,8 @@ OPERATION STACK WORKFLOW:
   fields recursively fold. Use
   --op-map-file to load reusable mappings, and --stack-rule for one-off
   stack-frame overrides. JSON output can also include visible stack-ranking
-  rules with --rank-rule and --rank-mode.
+  rules with --rank-rule, operation-field ranking rules with --rank-op-rule,
+  and --rank-mode.
 
      agentpprof --view files -o files.json --format json \
        --stack 'project,agent,task,phase,op,tool,path,status' \
@@ -67,7 +68,8 @@ OPERATION STACK WORKFLOW:
        --op-map 'phase:inspect=(effect=read)' \
        --where 'task=verify' \
        --rank-mode rule-score \
-       --rank-rule 'verify-risk:2=phase:execute|status:error'
+       --rank-rule 'verify-risk:2=phase:execute|status:error' \
+       --rank-op-rule 'error-density:3=status=error'
 
   For repeatable external-trace experiments, put output, view, operation files,
   op-map files, predicates, rank rules, and stack in a JSON file and run:
@@ -116,6 +118,10 @@ struct Cli {
     /// Ranking runs after operation stacking and never reads hidden labels unless the stack includes them.
     #[arg(long = "rank-rule", value_name = "LABEL:WEIGHT=REGEX")]
     rank_rules: Vec<String>,
+    /// Rank JSON operation-stack groups using visible per-operation field matches aggregated inside each group.
+    /// Unlike --rank-rule, these regexes run on mapped operation fields before folding.
+    #[arg(long = "rank-op-rule", value_name = "LABEL:WEIGHT=REGEX")]
+    rank_op_rules: Vec<String>,
     /// Choose how JSON rank rules order stack groups.
     #[arg(long = "rank-mode", value_enum)]
     rank_mode: Option<CliRankMode>,
@@ -264,6 +270,7 @@ struct ProfileSpec {
     op_maps: Vec<String>,
     where_rules: Vec<String>,
     rank_rules: Vec<String>,
+    rank_op_rules: Vec<String>,
     rank_mode: Option<CliRankMode>,
     op_map_files: Vec<PathBuf>,
     operation_files: Vec<PathBuf>,
@@ -284,6 +291,8 @@ struct RawProfileSpec {
     where_rules: Vec<String>,
     #[serde(default)]
     rank_rules: Vec<String>,
+    #[serde(default)]
+    rank_op_rules: Vec<String>,
     rank_mode: Option<String>,
     #[serde(default)]
     op_map_files: Vec<PathBuf>,
@@ -340,6 +349,7 @@ fn command_export(args: Cli) -> Result<()> {
     let stack_rules = merge_cli_first(&args.stack_rules, &spec.stack_rules);
     let where_rules = effective_where_rules(&args.where_rules, &spec.where_rules);
     let rank_rules = merge_cli_first(&args.rank_rules, &spec.rank_rules);
+    let rank_op_rules = merge_cli_first(&args.rank_op_rules, &spec.rank_op_rules);
     let rank_mode = args
         .rank_mode
         .or(spec.rank_mode)
@@ -349,6 +359,7 @@ fn command_export(args: Cli) -> Result<()> {
         .with_filters(parse_operation_filters(&where_rules)?)
         .with_rules(parse_stack_rules(&stack_rules)?)
         .with_rank_rules(parse_stack_rank_rules(&rank_rules)?)
+        .with_rank_operation_rules(parse_operation_rank_rules(&rank_op_rules)?)
         .with_rank_mode(rank_mode.into());
     let operation_files = merge_spec_first(&spec.operation_files, &args.operation_files);
     validate_input_modes(&args, &operation_files)?;
@@ -389,6 +400,7 @@ fn command_export(args: Cli) -> Result<()> {
             "op_map_files": op_map_files,
             "where_rules": where_rules,
             "rank_rules": rank_rules,
+            "rank_op_rules": rank_op_rules,
             "rank_mode": cli_rank_mode_name(rank_mode),
             "stack_rules": stack_rules,
             "standard_trace_files": args.standard_trace_files,
@@ -432,6 +444,7 @@ fn command_export(args: Cli) -> Result<()> {
             "op_map_files": op_map_files,
             "where_rules": where_rules,
             "rank_rules": rank_rules,
+            "rank_op_rules": rank_op_rules,
             "rank_mode": cli_rank_mode_name(rank_mode),
             "stack_rules": stack_rules,
             "operation_files": operation_files,
@@ -561,6 +574,7 @@ fn command_export(args: Cli) -> Result<()> {
         "op_map_files": op_map_files,
         "where_rules": where_rules,
         "rank_rules": rank_rules,
+        "rank_op_rules": rank_op_rules,
         "rank_mode": cli_rank_mode_name(rank_mode),
         "stack_rules": stack_rules,
         "sessions": sessions.len(),
@@ -709,6 +723,7 @@ fn normalize_profile_spec(raw: RawProfileSpec, base: &Path) -> Result<ProfileSpe
         op_maps: raw.op_maps,
         where_rules: raw.where_rules,
         rank_rules: raw.rank_rules,
+        rank_op_rules: raw.rank_op_rules,
         rank_mode: raw
             .rank_mode
             .as_deref()
@@ -795,6 +810,7 @@ impl ProfileSpec {
         self.op_maps.extend(next.op_maps);
         self.where_rules.extend(next.where_rules);
         self.rank_rules.extend(next.rank_rules);
+        self.rank_op_rules.extend(next.rank_op_rules);
         self.op_map_files.extend(next.op_map_files);
         self.operation_files.extend(next.operation_files);
     }
@@ -980,6 +996,7 @@ mod tests {
   "op_maps": ["phase:inspect=(action=screenshot)"],
   "where_rules": ["phase!=noise"],
   "rank_rules": ["unsafe-risk:2=phase:execute|status:error"],
+  "rank_op_rules": ["failure-density:3=status=error"],
   "rank_mode": "rule-score",
   "op_map_files": ["maps/operation-map.txt"],
   "stack_rules": ["task:desktop=(tool=computer)"]
@@ -1025,6 +1042,10 @@ mod tests {
         assert_eq!(
             spec.rank_rules,
             vec!["unsafe-risk:2=phase:execute|status:error".to_string()]
+        );
+        assert_eq!(
+            spec.rank_op_rules,
+            vec!["failure-density:3=status=error".to_string()]
         );
         assert_eq!(spec.rank_mode, Some(CliRankMode::RuleScore));
     }

@@ -294,7 +294,8 @@ agentpprof -o files.json --format json --view files \
   --where 'task=verify' \
   --stack-rule 'path:tests=(path=tests)' \
   --rank-mode rule-score \
-  --rank-rule 'verify-risk:2=phase:execute|status:error'
+  --rank-rule 'verify-risk:2=phase:execute|status:error' \
+  --rank-op-rule 'error-density:3=status=error'
 ```
 
 Operation mapping and stack rules match a searchable `key=value` string built
@@ -307,9 +308,12 @@ rules run before `--op-map-file` rules, so command-line rules can override a
 shared mapping file. `--where FIELD=REGEX` and `--where FIELD!=REGEX` run after
 mapping and before stack construction; multiple predicates are ANDed.
 `--rank-rule LABEL:WEIGHT=REGEX` orders JSON operation-stack groups by visible
-folded-stack text and does not affect pprof, folded, or SVG output. The default
-`--rank-mode width-boost` keeps width as the primary signal; `--rank-mode
-rule-score` ranks by matched visible rules first and uses width as a tie-breaker.
+folded-stack text. `--rank-op-rule LABEL:WEIGHT=REGEX` matches individual
+`field=value` operation tokens after mapping/filtering and aggregates matched
+operation weight inside each folded group. Both ranking surfaces affect only
+JSON output, not pprof, folded, or SVG output. The default `--rank-mode
+width-boost` keeps width as the primary signal; `--rank-mode rule-score` ranks
+by matched visible rules first and uses width as a tie-breaker.
 
 Token profile:
 
