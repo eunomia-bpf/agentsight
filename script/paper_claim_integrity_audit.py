@@ -214,6 +214,16 @@ def normalize_repo_path(value: str) -> Path:
     path = Path(value)
     if not path.is_absolute():
         path = ROOT / path
+    else:
+        parts = path.parts
+        marker = ("docs", "visexp", "out")
+        for index in range(0, len(parts) - len(marker) + 1):
+            if parts[index : index + len(marker)] == marker:
+                # Historical profiler artifacts may contain the worktree's
+                # absolute path; preserve the artifact while making audits
+                # reproducible from a relocated checkout.
+                path = ROOT.joinpath(*parts[index:])
+                break
     return path
 
 
