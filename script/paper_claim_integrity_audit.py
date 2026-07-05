@@ -67,6 +67,8 @@ NEGATION_MARKERS = [
     "不证明",
     "没有证明",
     "不声称",
+    "不 claim",
+    "当前不",
     "不引入",
     "不增加",
     "不新增",
@@ -754,6 +756,14 @@ def build_guardrail_checks(texts: dict[str, str]) -> list[dict[str, Any]]:
                 r"productivity claims.*not required",
                 r"不是 human utility",
             ],
+            [
+                r"improv(e|es|ed).*human.*(productivity|accuracy)",
+                r"human.*(faster|more accurate)",
+                r"analyst.*(faster|more accurate|productivity)",
+                r"time-to-answer.*(improv|reduc)",
+                r"提升.*(开发者|人类|analyst).*(效率|准确率)",
+                r"(减少|降低).*(耗时|time-to-answer)",
+            ],
         ),
         (
             "automatic_boundary",
@@ -767,6 +777,14 @@ def build_guardrail_checks(texts: dict[str, str]) -> list[dict[str, Any]]:
                 r"不支持.*intent",
                 r"not .*all intent boundaries",
                 r"不证明.*intent detector",
+            ],
+            [
+                r"automatic.*discover.*(all|intent|semantic).*boundar",
+                r"discover.*all.*intent.*boundar",
+                r"complete.*intent.*boundar",
+                r"完整.*(恢复|发现).*边界",
+                r"自动.*(发现|恢复).*所有.*边界",
+                r"通用.*intent detector",
             ],
         ),
         (
@@ -785,6 +803,13 @@ def build_guardrail_checks(texts: dict[str, str]) -> list[dict[str, Any]]:
                 r"后续.*互操作",
                 r"exchange container",
             ],
+            [
+                r"complete.*compatib.*(OpenTelemetry|Phoenix|LangSmith|Langfuse|Perfetto)",
+                r"fully.*compatib.*(OpenTelemetry|Phoenix|LangSmith|Langfuse|Perfetto)",
+                r"full.*trace.*ecosystem.*compatib",
+                r"完整.*(OpenTelemetry|Phoenix|LangSmith|Langfuse|Perfetto).*兼容",
+                r"完整.*trace.*ecosystem.*兼容",
+            ],
         ),
         (
             "universal_selector",
@@ -801,32 +826,70 @@ def build_guardrail_checks(texts: dict[str, str]) -> list[dict[str, Any]]:
                 r"每个 task 都有多个",
                 r"vary by task and objective",
             ],
+            [
+                r"automatic.*universal selector",
+                r"universal selector",
+                r"single.*best.*(view|hierarchy|policy)",
+                r"single-view dominance",
+                r"always.*best",
+                r"唯一最优",
+                r"单一.*支配",
+                r"无条件支配",
+            ],
         ),
     ]
+
+    def context_exempt(line: str) -> bool:
+        stripped = line.strip()
+        lower = stripped.lower()
+        return (
+            stripped.startswith(r"\bibitem")
+            or stripped.startswith(r"\noindent [")
+            or r"\url{" in stripped
+            or lower.startswith("| related-work")
+            or lower.startswith("| paper claim-integrity audit")
+            or "source/command:" in lower
+        )
+
+    def locally_guarded(lines: list[str], index: int, guard_regex: re.Pattern[str]) -> bool:
+        start = max(0, index - 2)
+        end = min(len(lines), index + 3)
+        window = "\n".join(lines[start:end])
+        lower_window = window.lower()
+        return bool(guard_regex.search(window)) or any(
+            marker in lower_window for marker in NEGATION_MARKERS
+        )
+
     rows: list[dict[str, Any]] = []
     for doc, text in texts.items():
-        for key, occurrence_patterns, guard_patterns in required_guardrails:
+        lines = text.splitlines()
+        for key, occurrence_patterns, guard_patterns, overclaim_patterns in required_guardrails:
             guard_regex = re.compile("|".join(guard_patterns), re.IGNORECASE | re.DOTALL)
             guarded = bool(guard_regex.search(text))
-            if guarded:
+            occurrence_regex = re.compile("|".join(occurrence_patterns), re.IGNORECASE)
+            overclaim_regex = re.compile("|".join(overclaim_patterns), re.IGNORECASE)
+            occurrences: list[str] = []
+            unguarded: list[str] = []
+            for line_index, line in enumerate(lines):
+                if occurrence_regex.search(line):
+                    occurrences.append(str(line_index + 1))
+                if overclaim_regex.search(line) and not context_exempt(line):
+                    if not locally_guarded(lines, line_index, guard_regex):
+                        unguarded.append(str(line_index + 1))
+            if unguarded:
+                status = "fail"
+            elif guarded:
                 status = "pass"
             else:
                 status = "warn_missing_guardrail"
-            # Keep occurrence diagnostics, but do not fail related-work citations,
-            # tracker rows, or bibliography entries just because they name a system.
-            occurrence_regex = re.compile("|".join(occurrence_patterns), re.IGNORECASE)
-            occurrences = [
-                str(index)
-                for index, line in enumerate(text.splitlines(), start=1)
-                if occurrence_regex.search(line)
-            ][:12]
             rows.append(
                 {
                     "doc": doc,
                     "guardrail": key,
                     "status": status,
-                    "occurrences": len(occurrences),
-                    "unguarded_lines": ",".join(occurrences) or "none",
+                    "occurrences": len(occurrences[:12]),
+                    "occurrence_lines": ",".join(occurrences[:12]) or "none",
+                    "unguarded_lines": ",".join(unguarded[:12]) or "none",
                 }
             )
     return rows
@@ -933,13 +996,13 @@ def build_markdown(path: Path, payload: dict[str, Any]) -> None:
             "",
             "## Guardrails",
             "",
-            "| Doc | Guardrail | Status | Occurrences | Unguarded lines |",
-            "|---|---|---|---:|---|",
+            "| Doc | Guardrail | Status | Occurrences | Occurrence lines | Unguarded overclaim lines |",
+            "|---|---|---|---:|---|---|",
         ]
     )
     for row in payload["guardrail_checks"]:
         lines.append(
-            f"| {row['doc']} | {row['guardrail']} | {row['status']} | {row['occurrences']} | {row['unguarded_lines']} |"
+            f"| {row['doc']} | {row['guardrail']} | {row['status']} | {row['occurrences']} | {row['occurrence_lines']} | {row['unguarded_lines']} |"
         )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -984,7 +1047,7 @@ def build_html(path: Path, payload: dict[str, Any]) -> None:
   <h2>Number Checks</h2>
   {table(payload['number_checks'], ['run_id', 'key', 'expected', 'actual', 'status', 'source'])}
   <h2>Guardrails</h2>
-  {table(payload['guardrail_checks'], ['doc', 'guardrail', 'status', 'occurrences', 'unguarded_lines'])}
+  {table(payload['guardrail_checks'], ['doc', 'guardrail', 'status', 'occurrences', 'occurrence_lines', 'unguarded_lines'])}
 </body>
 </html>
 """
@@ -1157,7 +1220,7 @@ def main() -> None:
     write_csv(
         out_dir / "guardrail-checks.csv",
         payload["guardrail_checks"],
-        ["doc", "guardrail", "status", "occurrences", "unguarded_lines"],
+        ["doc", "guardrail", "status", "occurrences", "occurrence_lines", "unguarded_lines"],
     )
     source_rows = [
         {"name": name, **item} for name, item in payload["source_status"].items()
