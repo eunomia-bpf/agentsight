@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""R338: paper-claim integrity audit over R320-R340 evidence.
+"""R338: paper-claim integrity audit over R320-R341 evidence.
 
 This audit does not fetch, sync, create, or relabel datasets. It reads tracked
 result artifacts from the existing profiling-paper evaluation runs and the
@@ -39,6 +39,7 @@ R336_DIR = OUT_ROOT / "operation-actionability-selection-r336"
 R337_DIR = OUT_ROOT / "operation-inspection-target-r337"
 R339_DIR = OUT_ROOT / "operation-sequence-adequacy-r339"
 R340_DIR = OUT_ROOT / "operation-policy-transfer-r340"
+R341_DIR = OUT_ROOT / "operation-mechanism-attribution-r341"
 
 SOURCE_ARTIFACTS = {
     "R320 report": R320_DIR / "profile-accuracy-report.json",
@@ -60,6 +61,9 @@ SOURCE_ARTIFACTS = {
     "R340 report": R340_DIR / "policy-transfer-report.json",
     "R340 transfer decisions": R340_DIR / "transfer-decisions.csv",
     "R340 objective summary": R340_DIR / "objective-transfer-summary.csv",
+    "R341 report": R341_DIR / "mechanism-attribution-report.json",
+    "R341 objective attribution": R341_DIR / "objective-mechanism-attribution.csv",
+    "R341 transfer attribution": R341_DIR / "transfer-error-attribution.csv",
 }
 
 PAPER_SOURCES = {
@@ -412,6 +416,8 @@ def build_number_checks(
     r339_comparisons: list[dict[str, str]],
     r340_decisions: list[dict[str, str]],
     r340_objectives: list[dict[str, str]],
+    r341_objectives: list[dict[str, str]],
+    r341_transfer: list[dict[str, str]],
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     r320 = reports["R320"]
@@ -911,6 +917,26 @@ def build_number_checks(
         source="R340 transfer-decisions.csv + R320 policy-scores.csv",
         paper_token="96/96",
     )
+
+    r341 = reports["R341"]
+    r341_summary = r341["summary"]
+    add_check(rows, run_id="R341", key="overall", actual=r341_summary["overall"], expected="pass", source="R341 summary")
+    add_check(rows, run_id="R341", key="tasks", actual=r341_summary["tasks"], expected=6, source="R341 summary")
+    add_check(rows, run_id="R341", key="objective_rows", actual=r341_summary["objective_rows"], expected=36, source="R341 summary")
+    add_check(rows, run_id="R341", key="objective_csv_rows", actual=len(r341_objectives), expected=36, source="R341 objective-mechanism-attribution.csv")
+    add_check(rows, run_id="R341", key="actionable_objective_rows", actual=r341_summary["actionable_objective_rows"], expected=36, source="R341 summary", paper_token="36/36")
+    add_check(rows, run_id="R341", key="nondefault_best_objective_rows", actual=r341_summary["nondefault_best_objective_rows"], expected=27, source="R341 summary", paper_token="27/36")
+    add_check(rows, run_id="R341", key="transfer_decisions", actual=r341_summary["transfer_decisions"], expected=96, source="R341 summary")
+    add_check(rows, run_id="R341", key="transfer_csv_rows", actual=len(r341_transfer), expected=96, source="R341 transfer-error-attribution.csv")
+    add_check(rows, run_id="R341", key="transfer_misses", actual=r341_summary["transfer_misses"], expected=34, source="R341 summary", paper_token="34/96")
+    add_check(rows, run_id="R341", key="transfer_misses_with_view_change", actual=r341_summary["transfer_misses_with_view_change"], expected=32, source="R341 summary", paper_token="32/34")
+    add_check(rows, run_id="R341", key="transfer_misses_with_ranker_change", actual=r341_summary["transfer_misses_with_ranker_change"], expected=26, source="R341 summary", paper_token="26/34")
+    add_check(rows, run_id="R341", key="high_regret_transfer_misses", actual=r341_summary["high_regret_transfer_misses"], expected=29, source="R341 summary", paper_token="29/34")
+    add_check(rows, run_id="R341", key="stack_depth_tradeoff_tasks", actual=r341_summary["mechanism_task_counts"]["stack_depth_tradeoff"], expected=6, source="R341 summary.mechanism_task_counts", paper_token="6/6")
+    add_check(rows, run_id="R341", key="transfer_policy_signal_tasks", actual=r341_summary["mechanism_task_counts"]["transfer_policy_signal"], expected=6, source="R341 summary.mechanism_task_counts", paper_token="6/6")
+    add_check(rows, run_id="R341", key="critical_rank_feature_tasks", actual=r341_summary["mechanism_task_counts"]["critical_rank_features"], expected=4, source="R341 summary.mechanism_task_counts", paper_token="4/6")
+    add_check(rows, run_id="R341", key="misleading_feature_tasks", actual=r341_summary["mechanism_task_counts"]["misleading_feature_risk"], expected=2, source="R341 summary.mechanism_task_counts", paper_token="2/6")
+    add_check(rows, run_id="R341", key="tasks_with_three_or_more_mechanism_labels", actual=r341_summary["tasks_with_three_or_more_mechanism_labels"], expected=6, source="R341 summary", paper_token="6/6")
     return rows
 
 
@@ -941,20 +967,24 @@ def build_text_coverage(
         ("evaluation", "R337 fixed recall", ["25%", "0.2000", "16.0"], "R337"),
         ("evaluation", "R339 sequence adequacy", ["R339", "0.4669", "0.9103"], "R339"),
         ("evaluation", "R340 policy transfer", ["R340", "96", "62/96", "72/96"], "R340"),
+        ("evaluation", "R341 mechanism attribution", ["R341", "36/36", "27/36", "34/96"], "R341"),
         ("zh_main", "R320 headline", ["0.0937", "9.37", "285.0", "157.5"], "R320"),
         ("zh_main", "R333 headline", ["0.3900", "0.390"], "R333"),
         ("zh_main", "R337 headline", ["0.2000", "16.0", "50.0"], "R337"),
         ("zh_main", "R339 headline", ["0.4669", "0.9103", "0.3467"], "R339"),
         ("zh_main", "R340 headline", ["R340", "62/96", "72/96", "69/96"], "R340"),
+        ("zh_main", "R341 headline", ["R341", "36/36", "27/36", "34/96"], "R341"),
         ("en_main", "R320 headline", ["0.0937", "9.37", "285.0", "157.5"], "R320"),
         ("en_main", "R333 headline", ["0.3900", "0.390"], "R333"),
         ("en_main", "R337 headline", ["0.2000", "16.0", "50.0"], "R337"),
         ("en_main", "R339 headline", ["0.4669", "0.9103", "0.3467"], "R339"),
         ("en_main", "R340 headline", ["R340", "62 of 96", "72 of 96", "69 of 96"], "R340"),
+        ("en_main", "R341 headline", ["R341", "36 of 36", "27 of 36", "34 of 96"], "R341"),
         ("zh_claim_setup", "two abstractions", ["两个核心抽象", "operation stack"], "C2"),
         ("zh_claim_setup", "R337 result", ["R337", "0.2000", "16.0"], "R337"),
         ("zh_claim_setup", "R339 result", ["R339", "0.4669", "0.9103"], "R339"),
         ("zh_claim_setup", "R340 result", ["R340", "62/96", "72/96", "69/96"], "R340"),
+        ("zh_claim_setup", "R341 result", ["R341", "36/36", "27/36", "34/96"], "R341"),
     ]
     rows: list[dict[str, Any]] = []
     for doc, key, tokens, source in required:
@@ -973,7 +1003,7 @@ def build_text_coverage(
 
     eval_text = texts["evaluation"]
     for row in number_checks:
-        if row["run_id"] not in {"R320", "R333", "R337", "R339", "R340"}:
+        if row["run_id"] not in {"R320", "R333", "R337", "R339", "R340", "R341"}:
             continue
         token = str(row["paper_token"])
         status = "pass" if token in eval_text else "warn"
@@ -1215,7 +1245,7 @@ def build_markdown(path: Path, payload: dict[str, Any]) -> None:
     lines = [
         "# Paper Claim Integrity Audit R338",
         "",
-        "R338 mechanically audits the current profiling-paper claim against R320-R340 result artifacts and the Chinese/English paper text. It does not fetch, sync, create, or relabel datasets.",
+        "R338 mechanically audits the current profiling-paper claim against R320-R341 result artifacts and the Chinese/English paper text. It does not fetch, sync, create, or relabel datasets.",
         "",
         "## Verdict",
         "",
@@ -1238,7 +1268,7 @@ def build_markdown(path: Path, payload: dict[str, Any]) -> None:
         "|---|---|---:|---:|---|---|",
     ]
     for row in payload["number_checks"]:
-        if row["run_id"] in {"R320", "R333", "R334", "R337", "R339", "R340"}:
+        if row["run_id"] in {"R320", "R333", "R334", "R337", "R339", "R340", "R341"}:
             lines.append(
                 f"| {row['run_id']} | {row['key']} | {row['expected']} | {row['actual']} | {row['status']} | {row['source']} |"
             )
@@ -1347,6 +1377,7 @@ def build_payload() -> dict[str, Any]:
         "R337": load_json(SOURCE_ARTIFACTS["R337 report"]),
         "R339": load_json(SOURCE_ARTIFACTS["R339 report"]),
         "R340": load_json(SOURCE_ARTIFACTS["R340 report"]),
+        "R341": load_json(SOURCE_ARTIFACTS["R341 report"]),
     }
     r320_scores = read_csv(SOURCE_ARTIFACTS["R320 policy scores"])
     r333_summary = read_csv(SOURCE_ARTIFACTS["R333 curve summary"])
@@ -1358,6 +1389,8 @@ def build_payload() -> dict[str, Any]:
     r339_comparisons = read_csv(SOURCE_ARTIFACTS["R339 default comparisons"])
     r340_decisions = read_csv(SOURCE_ARTIFACTS["R340 transfer decisions"])
     r340_objectives = read_csv(SOURCE_ARTIFACTS["R340 objective summary"])
+    r341_objectives = read_csv(SOURCE_ARTIFACTS["R341 objective attribution"])
+    r341_transfer = read_csv(SOURCE_ARTIFACTS["R341 transfer attribution"])
 
     number_checks = build_number_checks(
         reports,
@@ -1371,6 +1404,8 @@ def build_payload() -> dict[str, Any]:
         r339_comparisons,
         r340_decisions,
         r340_objectives,
+        r341_objectives,
+        r341_transfer,
     )
     policy_checks = validate_source_policies(reports)
     text_coverage = build_text_coverage(texts, number_checks)
@@ -1418,7 +1453,7 @@ def build_payload() -> dict[str, Any]:
             "dataset_relabeling": "none",
             "network_access_required": False,
             "source_text_clean_policy": "paper text sources may be current worktree edits and are hashed; empirical source artifacts must be tracked clean",
-            "hidden_label_use": "R338 reads already-scored R320-R340 artifacts and does not form new rankings from hidden labels",
+            "hidden_label_use": "R338 reads already-scored R320-R341 artifacts and does not form new rankings from hidden labels",
         },
         "non_claims": [
             "not a human/agent analyst study",
