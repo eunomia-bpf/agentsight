@@ -391,6 +391,7 @@ def build_payload() -> dict[str, Any]:
     return {
         "run_id": RUN_ID,
         "schema": "agentsight.operation-metric-consistency.v1",
+        "profiler_abstractions": ["operation", "operation stack"],
         "source_policy": {
             "dataset_sync": "none",
             "dataset_creation": "none",
