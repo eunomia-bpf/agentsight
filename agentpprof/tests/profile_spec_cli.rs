@@ -38,28 +38,20 @@ phase:submit=(action=click.*intent=authenticate.*target=submit)
     )
     .unwrap();
 
-    fs::write(
-        &spec_path,
-        format!(
-            r#"{{
-  "output": "{}",
-  "format": "json",
-  "view": "operations",
-  "project_name": "operation-fixture",
-  "operation_files": ["{}"],
-  "op_map_files": ["{}"],
-  "where_rules": ["intent=authenticate"],
-  "stack": "project,dataset,intent,phase,op,action,status",
-  "rank_op_rules": ["failure-density:4=status=error"],
-  "rank_mode": "rule-score",
-  "deterministic_output": true
-}}"#,
-            semantic_output.display(),
-            ops_path.display(),
-            map_path.display(),
-        ),
-    )
-    .unwrap();
+    let spec = serde_json::json!({
+        "output": semantic_output,
+        "format": "json",
+        "view": "operations",
+        "project_name": "operation-fixture",
+        "operation_files": [ops_path],
+        "op_map_files": [map_path],
+        "where_rules": ["intent=authenticate"],
+        "stack": "project,dataset,intent,phase,op,action,status",
+        "rank_op_rules": ["failure-density:4=status=error"],
+        "rank_mode": "rule-score",
+        "deterministic_output": true
+    });
+    fs::write(&spec_path, serde_json::to_vec_pretty(&spec).unwrap()).unwrap();
 
     let semantic = Command::new(binary)
         .args(["--profile-spec", spec_path.to_str().unwrap()])
