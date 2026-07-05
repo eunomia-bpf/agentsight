@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>R337 Inspection-Target Cost Audit</title>
+<style>
+body { font-family: system-ui, sans-serif; color: #202124; margin: 32px; line-height: 1.45; }
+table { border-collapse: collapse; width: 100%; margin: 24px 0; font-size: 13px; }
+th, td { border-bottom: 1px solid #d8dee8; padding: 7px 8px; text-align: left; }
+th { background: #eef2f6; }
+</style>
+<h1>R337 Inspection-Target Cost Audit</h1>
+<p>Reuses tracked R333/R336 artifacts; no dataset sync, creation, or relabeling.</p>
+<h2>Primary Findings</h2>
+<ul><li>At the 25% positive-recall target, operation_stack:query_aware reaches 6/6 tasks with median inspected work 0.2000 and median 16.0 groups. Flat reaches the same target only by inspecting median work 1.0000.</li>
+<li>At the same 25% target, fixed_session:query_aware also reaches 6/6 tasks but needs median 50.0 groups versus 16.0 for operation stacks; default has fewer groups on 5/6 tasks.</li>
+<li>At the 10% early-recall target, operation_stack:query_aware and fixed_session:query_aware both reach 6/6 tasks with about 10% work, but operation stacks use median 12.5 groups versus 37.5; default has fewer groups on 5/6 tasks.</li>
+<li>Compared with flat at the 25% target, operation_stack:query_aware has lower target work on 6/6 tasks, keeping the flat summary as a complete but expensive baseline.</li>
+<li>The 50% target is an explicit counterpoint: operation_stack:query_aware reaches 5/6 tasks and the best-work policies are dataset_native:query_aware=1, operation_stack:width=4, raw_action_stack:query_aware=1. This supports configurable stack/ranker choices rather than a universal default.</li></ul>
+<h2>Target Summary</h2>
+<table>
+<tr><th>Policy</th><th>Target recall</th><th>Tasks reached</th><th>Median work</th><th>Median groups</th></tr>
+<tr><td>fixed_session:query_aware</td><td>0.1</td><td>6/6</td><td>0.0998</td><td>37.5</td></tr><tr><td>fixed_session:query_aware</td><td>0.25</td><td>6/6</td><td>0.2495</td><td>50.0</td></tr><tr><td>fixed_session:query_aware</td><td>0.5</td><td>6/6</td><td>0.4996</td><td>89.5</td></tr><tr><td>flat:width</td><td>0.1</td><td>6/6</td><td>1.0</td><td>1.0</td></tr><tr><td>flat:width</td><td>0.25</td><td>6/6</td><td>1.0</td><td>1.0</td></tr><tr><td>flat:width</td><td>0.5</td><td>6/6</td><td>1.0</td><td>1.0</td></tr><tr><td>operation_stack:query_aware</td><td>0.1</td><td>6/6</td><td>0.0988</td><td>12.5</td></tr><tr><td>operation_stack:query_aware</td><td>0.25</td><td>6/6</td><td>0.2</td><td>16.0</td></tr><tr><td>operation_stack:query_aware</td><td>0.5</td><td>5/6</td><td>0.4993</td><td>60.0</td></tr>
+</table>
+<h2>Non-Claims</h2>
+<ul><li>no new datasets, dataset sync, dataset creation, or relabeling</li>
+<li>no human or agent analyst productivity, accuracy, or time-to-answer claim</li>
+<li>no automatic universal policy selector</li>
+<li>no operation-stack dominance on every recall target or task</li>
+<li>no live eBPF overhead or trace-ecosystem compatibility claim</li>
+<li>no profiler abstraction beyond operation and operation stack</li></ul>
