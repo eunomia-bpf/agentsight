@@ -1,0 +1,20 @@
+{
+  "deterministic_output": true,
+  "format": "json",
+  "operation_files": [
+    "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl"
+  ],
+  "output": "agentreward_looping-semantic-source_equal_agentnet_incorrect_step.json",
+  "rank_mode": "rule-score",
+  "rank_op_rules": [
+    "failure:1=status=.*(fail|error)",
+    "loop-like:1=repeat_signal=.*(loop|repeat)",
+    "risky-env:1=environment=(error_correction|infeasible|unknown_file|popup|induced_text|account)",
+    "input-phase:1=phase=(input|modify)"
+  ],
+  "stack": "analysis_task,dataset,benchmark,phase,action,repeat_signal,status",
+  "view": "operations",
+  "where_rules": [
+    "analysis_task=agentreward_looping"
+  ]
+}

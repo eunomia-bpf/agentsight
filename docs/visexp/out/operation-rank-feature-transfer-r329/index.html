@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>R329 Leave-Target Rank-Policy Transfer</title>
+<style>
+body { font-family: system-ui, sans-serif; margin: 32px; color: #1f2937; }
+table { border-collapse: collapse; width: 100%; margin: 16px 0 28px; }
+th, td { border-bottom: 1px solid #d1d5db; padding: 8px; text-align: right; }
+th:first-child, td:first-child, th:nth-child(2), td:nth-child(2),
+th:nth-child(3), td:nth-child(3), th:nth-child(4), td:nth-child(4),
+th:nth-child(5), td:nth-child(5) { text-align: left; }
+code { background: #f3f4f6; padding: 1px 4px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<h1>R329 Leave-Target Rank-Policy Transfer</h1>
+<p>Profiler input: <code>docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl</code>. Target labels are held out from policy selection and used only for offline scoring.</p>
+<ul><li>candidate_policies: 7</li>
+<li>evaluated_policies_including_width: 8</li>
+<li>policy_evaluations: 96</li>
+<li>selection_rows: 24</li>
+<li>leave_task_semantic_ap_wins_vs_width: 4/6</li>
+<li>leave_task_coarse_ap_wins_vs_width: 4/6</li>
+<li>leave_dataset_semantic_ap_wins_vs_width: 4/6</li>
+<li>leave_dataset_coarse_ap_wins_vs_width: 4/6</li>
+<li>leave_task_semantic_first_positive_work_wins_vs_width: 6/6</li>
+<li>leave_dataset_semantic_first_positive_work_wins_vs_width: 6/6</li>
+<li>leave_task_no_more_than_0_02_ap_below_target_equal: 7/12</li>
+<li>leave_dataset_no_more_than_0_02_ap_below_target_equal: 7/12</li>
+<li>leave_task_mean_ap_gap_to_oracle_candidate: 0.0323</li>
+<li>leave_dataset_mean_ap_gap_to_oracle_candidate: 0.0319</li>
+<li>leave_task_selected_policy_counts: {&#x27;global_equal&#x27;: 1, &#x27;source_equal_agentnet_incorrect_step&#x27;: 1, &#x27;source_equal_satraj_unsafe&#x27;: 10}</li>
+<li>leave_dataset_selected_policy_counts: {&#x27;global_equal&#x27;: 1, &#x27;source_equal_agentnet_incorrect_step&#x27;: 1, &#x27;source_equal_satraj_unsafe&#x27;: 10}</li></ul>
+<table>
+<thead><tr><th>Target</th><th>Dataset</th><th>Stack</th><th>Protocol</th><th>Selected policy</th><th>Delta AP</th><th>Gap to oracle</th><th>Delta WTFP</th></tr></thead>
+<tbody><tr><td>agentreward_looping</td><td>agent-reward-bench</td><td>semantic</td><td>leave_task</td><td>source_equal_satraj_unsafe</td><td>0.0649</td><td>0.0345</td><td>-0.1413</td></tr>
+<tr><td>agentreward_looping</td><td>agent-reward-bench</td><td>semantic</td><td>leave_dataset</td><td>source_equal_satraj_unsafe</td><td>0.0649</td><td>0.0345</td><td>-0.1413</td></tr>
+<tr><td>agentreward_looping</td><td>agent-reward-bench</td><td>coarse</td><td>leave_task</td><td>source_equal_satraj_unsafe</td><td>0.0888</td><td>0.0630</td><td>-0.3141</td></tr>
+<tr><td>agentreward_looping</td><td>agent-reward-bench</td><td>coarse</td><td>leave_dataset</td><td>source_equal_satraj_unsafe</td><td>0.0888</td><td>0.0630</td><td>-0.3141</td></tr>
+<tr><td>agentreward_side_effect</td><td>agent-reward-bench</td><td>semantic</td><td>leave_task</td><td>source_equal_satraj_unsafe</td><td>-0.0586</td><td>0.0551</td><td>-0.1413</td></tr>
+<tr><td>agentreward_side_effect</td><td>agent-reward-bench</td><td>semantic</td><td>leave_dataset</td><td>source_equal_satraj_unsafe</td><td>-0.0586</td><td>0.0551</td><td>-0.1413</td></tr>
+<tr><td>agentreward_side_effect</td><td>agent-reward-bench</td><td>coarse</td><td>leave_task</td><td>source_equal_satraj_unsafe</td><td>-0.0885</td><td>0.0843</td><td>-0.2030</td></tr>
+<tr><td>agentreward_side_effect</td><td>agent-reward-bench</td><td>coarse</td><td>leave_dataset</td><td>source_equal_satraj_unsafe</td><td>-0.0885</td><td>0.0843</td><td>-0.2030</td></tr>
+<tr><td>satraj_unsafe</td><td>satraj-os-safety</td><td>semantic</td><td>leave_task</td><td>source_equal_agentnet_incorrect_step</td><td>-0.0123</td><td>0.0210</td><td>-0.5661</td></tr>
+<tr><td>satraj_unsafe</td><td>satraj-os-safety</td><td>semantic</td><td>leave_dataset</td><td>source_equal_agentnet_incorrect_step</td><td>-0.0123</td><td>0.0210</td><td>-0.5661</td></tr>
+<tr><td>satraj_unsafe</td><td>satraj-os-safety</td><td>coarse</td><td>leave_task</td><td>global_equal</td><td>0.0343</td><td>0.0791</td><td>-0.4984</td></tr>
+<tr><td>satraj_unsafe</td><td>satraj-os-safety</td><td>coarse</td><td>leave_dataset</td><td>global_equal</td><td>0.0343</td><td>0.0791</td><td>-0.4984</td></tr>
+<tr><td>agentnet_incorrect_step</td><td>agentnet</td><td>semantic</td><td>leave_task</td><td>source_equal_satraj_unsafe</td><td>0.0254</td><td>0.0051</td><td>-0.0686</td></tr>
+<tr><td>agentnet_incorrect_step</td><td>agentnet</td><td>semantic</td><td>leave_dataset</td><td>source_equal_satraj_unsafe</td><td>0.0254</td><td>0.0051</td><td>-0.0686</td></tr>
+<tr><td>agentnet_incorrect_step</td><td>agentnet</td><td>coarse</td><td>leave_task</td><td>source_equal_satraj_unsafe</td><td>0.0159</td><td>0.0058</td><td>-0.1013</td></tr>
+<tr><td>agentnet_incorrect_step</td><td>agentnet</td><td>coarse</td><td>leave_dataset</td><td>source_equal_satraj_unsafe</td><td>0.0159</td><td>0.0058</td><td>-0.1013</td></tr>
+<tr><td>agentnet_redundant_step</td><td>agentnet</td><td>semantic</td><td>leave_task</td><td>source_equal_satraj_unsafe</td><td>0.0023</td><td>0.0090</td><td>-0.0751</td></tr>
+<tr><td>agentnet_redundant_step</td><td>agentnet</td><td>semantic</td><td>leave_dataset</td><td>source_equal_satraj_unsafe</td><td>0.0023</td><td>0.0056</td><td>-0.0751</td></tr>
+<tr><td>agentnet_redundant_step</td><td>agentnet</td><td>coarse</td><td>leave_task</td><td>source_equal_satraj_unsafe</td><td>0.0024</td><td>0.0077</td><td>-0.1275</td></tr>
+<tr><td>agentnet_redundant_step</td><td>agentnet</td><td>coarse</td><td>leave_dataset</td><td>source_equal_satraj_unsafe</td><td>0.0024</td><td>0.0057</td><td>-0.1275</td></tr>
+<tr><td>osworld_group_start</td><td>osworld-human</td><td>semantic</td><td>leave_task</td><td>source_equal_satraj_unsafe</td><td>0.0001</td><td>0.0027</td><td>-0.1286</td></tr>
+<tr><td>osworld_group_start</td><td>osworld-human</td><td>semantic</td><td>leave_dataset</td><td>source_equal_satraj_unsafe</td><td>0.0001</td><td>0.0027</td><td>-0.1286</td></tr>
+<tr><td>osworld_group_start</td><td>osworld-human</td><td>coarse</td><td>leave_task</td><td>source_equal_satraj_unsafe</td><td>-0.0048</td><td>0.0204</td><td>-0.3879</td></tr>
+<tr><td>osworld_group_start</td><td>osworld-human</td><td>coarse</td><td>leave_dataset</td><td>source_equal_satraj_unsafe</td><td>-0.0048</td><td>0.0204</td><td>-0.3879</td></tr></tbody>
+</table>
+</body>
+</html>

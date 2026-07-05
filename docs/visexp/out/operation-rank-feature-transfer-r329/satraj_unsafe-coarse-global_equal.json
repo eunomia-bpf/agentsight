@@ -1,0 +1,989 @@
+{
+  "generated_at": "1970-01-01T00:00:00Z",
+  "profile": {
+    "ranking": {
+      "groups": 22,
+      "limit": 22,
+      "policy": "visible_operation_rule_score_then_width",
+      "rank_operation_rules": [
+        {
+          "label": "loop-like",
+          "pattern": "repeat_signal=.*(loop|repeat|loop-like)",
+          "weight": 1.0
+        },
+        {
+          "label": "failure",
+          "pattern": "status=.*(fail|failure|error|unknown)",
+          "weight": 1.0
+        },
+        {
+          "label": "navigation",
+          "pattern": "action=(click|left_click|double_click|tripleclick|goto|go_back|scroll|hover|move_to|drag)",
+          "weight": 1.0
+        },
+        {
+          "label": "write-action",
+          "pattern": "action=(fill|type|key|hotkey|press|select_option|send_msg_to_user|clear|left_click_drag|system_command|drag)",
+          "weight": 1.0
+        },
+        {
+          "label": "input-phase",
+          "pattern": "phase=(input|modify)",
+          "weight": 1.0
+        },
+        {
+          "label": "navigate-phase",
+          "pattern": "phase=navigate",
+          "weight": 1.0
+        },
+        {
+          "label": "risky-env",
+          "pattern": "environment=(os|unknown_file|popup|induced_text|account|error_correction|infeasible)",
+          "weight": 1.0
+        },
+        {
+          "label": "success",
+          "pattern": "status=success",
+          "weight": 1.0
+        },
+        {
+          "label": "finish-phase",
+          "pattern": "phase=finish",
+          "weight": -1.0
+        }
+      ],
+      "rank_rules": [],
+      "top": [
+        {
+          "matched_rank_rules": [],
+          "rank_operation_features": [
+            {
+              "fraction": 0.798,
+              "label": "loop-like",
+              "matched_weight": 288,
+              "weighted_score": 0.798
+            },
+            {
+              "fraction": 0.92,
+              "label": "failure",
+              "matched_weight": 332,
+              "weighted_score": 0.92
+            },
+            {
+              "fraction": 1.0,
+              "label": "write-action",
+              "matched_weight": 361,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "input-phase",
+              "matched_weight": 361,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 361,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 0.08,
+              "label": "success",
+              "matched_weight": 29,
+              "weighted_score": 0.08
+            }
+          ],
+          "rank_score": 4.798,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:account;phase:input",
+          "weight": 361
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_operation_features": [
+            {
+              "fraction": 0.725,
+              "label": "loop-like",
+              "matched_weight": 606,
+              "weighted_score": 0.725
+            },
+            {
+              "fraction": 0.852,
+              "label": "failure",
+              "matched_weight": 712,
+              "weighted_score": 0.852
+            },
+            {
+              "fraction": 0.971,
+              "label": "navigation",
+              "matched_weight": 812,
+              "weighted_score": 0.971
+            },
+            {
+              "fraction": 0.013,
+              "label": "write-action",
+              "matched_weight": 11,
+              "weighted_score": 0.013
+            },
+            {
+              "fraction": 1.0,
+              "label": "navigate-phase",
+              "matched_weight": 836,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 836,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 0.148,
+              "label": "success",
+              "matched_weight": 124,
+              "weighted_score": 0.148
+            }
+          ],
+          "rank_score": 4.709,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:account;phase:navigate",
+          "weight": 836
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_operation_features": [
+            {
+              "fraction": 0.696,
+              "label": "loop-like",
+              "matched_weight": 144,
+              "weighted_score": 0.696
+            },
+            {
+              "fraction": 0.324,
+              "label": "failure",
+              "matched_weight": 67,
+              "weighted_score": 0.324
+            },
+            {
+              "fraction": 1.0,
+              "label": "write-action",
+              "matched_weight": 207,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "input-phase",
+              "matched_weight": 207,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 207,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 0.676,
+              "label": "success",
+              "matched_weight": 140,
+              "weighted_score": 0.676
+            }
+          ],
+          "rank_score": 4.696,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:os;phase:input",
+          "weight": 207
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_operation_features": [
+            {
+              "fraction": 0.638,
+              "label": "loop-like",
+              "matched_weight": 104,
+              "weighted_score": 0.638
+            },
+            {
+              "fraction": 0.202,
+              "label": "failure",
+              "matched_weight": 33,
+              "weighted_score": 0.202
+            },
+            {
+              "fraction": 1.0,
+              "label": "write-action",
+              "matched_weight": 163,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "input-phase",
+              "matched_weight": 163,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 163,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 0.798,
+              "label": "success",
+              "matched_weight": 130,
+              "weighted_score": 0.798
+            }
+          ],
+          "rank_score": 4.638,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:unknown_file;phase:input",
+          "weight": 163
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_operation_features": [
+            {
+              "fraction": 0.532,
+              "label": "loop-like",
+              "matched_weight": 25,
+              "weighted_score": 0.532
+            },
+            {
+              "fraction": 0.766,
+              "label": "failure",
+              "matched_weight": 36,
+              "weighted_score": 0.766
+            },
+            {
+              "fraction": 1.0,
+              "label": "write-action",
+              "matched_weight": 47,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "input-phase",
+              "matched_weight": 47,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 47,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 0.234,
+              "label": "success",
+              "matched_weight": 11,
+              "weighted_score": 0.234
+            }
+          ],
+          "rank_score": 4.532,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:induced_text;phase:input",
+          "weight": 47
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_operation_features": [
+            {
+              "fraction": 0.5,
+              "label": "loop-like",
+              "matched_weight": 536,
+              "weighted_score": 0.5
+            },
+            {
+              "fraction": 0.88,
+              "label": "failure",
+              "matched_weight": 943,
+              "weighted_score": 0.88
+            },
+            {
+              "fraction": 0.98,
+              "label": "navigation",
+              "matched_weight": 1051,
+              "weighted_score": 0.98
+            },
+            {
+              "fraction": 0.037,
+              "label": "write-action",
+              "matched_weight": 40,
+              "weighted_score": 0.037
+            },
+            {
+              "fraction": 1.0,
+              "label": "navigate-phase",
+              "matched_weight": 1072,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 1072,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 0.12,
+              "label": "success",
+              "matched_weight": 129,
+              "weighted_score": 0.12
+            }
+          ],
+          "rank_score": 4.517,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:induced_text;phase:navigate",
+          "weight": 1072
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_operation_features": [
+            {
+              "fraction": 0.517,
+              "label": "loop-like",
+              "matched_weight": 31,
+              "weighted_score": 0.517
+            },
+            {
+              "fraction": 0.833,
+              "label": "failure",
+              "matched_weight": 50,
+              "weighted_score": 0.833
+            },
+            {
+              "fraction": 1.0,
+              "label": "write-action",
+              "matched_weight": 60,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "input-phase",
+              "matched_weight": 60,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 60,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 0.167,
+              "label": "success",
+              "matched_weight": 10,
+              "weighted_score": 0.167
+            }
+          ],
+          "rank_score": 4.517,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:popup;phase:input",
+          "weight": 60
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_operation_features": [
+            {
+              "fraction": 0.519,
+              "label": "loop-like",
+              "matched_weight": 547,
+              "weighted_score": 0.519
+            },
+            {
+              "fraction": 0.986,
+              "label": "failure",
+              "matched_weight": 1039,
+              "weighted_score": 0.986
+            },
+            {
+              "fraction": 0.962,
+              "label": "navigation",
+              "matched_weight": 1014,
+              "weighted_score": 0.962
+            },
+            {
+              "fraction": 0.028,
+              "label": "write-action",
+              "matched_weight": 29,
+              "weighted_score": 0.028
+            },
+            {
+              "fraction": 1.0,
+              "label": "navigate-phase",
+              "matched_weight": 1054,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 1054,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 0.014,
+              "label": "success",
+              "matched_weight": 15,
+              "weighted_score": 0.014
+            }
+          ],
+          "rank_score": 4.509,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:popup;phase:navigate",
+          "weight": 1054
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_operation_features": [
+            {
+              "fraction": 0.484,
+              "label": "loop-like",
+              "matched_weight": 105,
+              "weighted_score": 0.484
+            },
+            {
+              "fraction": 0.235,
+              "label": "failure",
+              "matched_weight": 51,
+              "weighted_score": 0.235
+            },
+            {
+              "fraction": 0.954,
+              "label": "navigation",
+              "matched_weight": 207,
+              "weighted_score": 0.954
+            },
+            {
+              "fraction": 1.0,
+              "label": "navigate-phase",
+              "matched_weight": 217,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 217,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 0.765,
+              "label": "success",
+              "matched_weight": 166,
+              "weighted_score": 0.765
+            }
+          ],
+          "rank_score": 4.438,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:unknown_file;phase:navigate",
+          "weight": 217
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_operation_features": [
+            {
+              "fraction": 0.418,
+              "label": "loop-like",
+              "matched_weight": 84,
+              "weighted_score": 0.418
+            },
+            {
+              "fraction": 0.174,
+              "label": "failure",
+              "matched_weight": 35,
+              "weighted_score": 0.174
+            },
+            {
+              "fraction": 0.915,
+              "label": "navigation",
+              "matched_weight": 184,
+              "weighted_score": 0.915
+            },
+            {
+              "fraction": 1.0,
+              "label": "navigate-phase",
+              "matched_weight": 201,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 201,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 0.826,
+              "label": "success",
+              "matched_weight": 166,
+              "weighted_score": 0.826
+            }
+          ],
+          "rank_score": 4.333,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:os;phase:navigate",
+          "weight": 201
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_operation_features": [
+            {
+              "fraction": 1.0,
+              "label": "failure",
+              "matched_weight": 1,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "write-action",
+              "matched_weight": 1,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 1,
+              "weighted_score": 1.0
+            }
+          ],
+          "rank_score": 3.0,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:induced_text;phase:computer-action",
+          "weight": 1
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_operation_features": [
+            {
+              "fraction": 0.8,
+              "label": "loop-like",
+              "matched_weight": 4,
+              "weighted_score": 0.8
+            },
+            {
+              "fraction": 0.6,
+              "label": "failure",
+              "matched_weight": 3,
+              "weighted_score": 0.6
+            },
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 5,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 0.4,
+              "label": "success",
+              "matched_weight": 2,
+              "weighted_score": 0.4
+            }
+          ],
+          "rank_score": 2.8,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:os;phase:observe",
+          "weight": 5
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_operation_features": [
+            {
+              "fraction": 0.75,
+              "label": "loop-like",
+              "matched_weight": 12,
+              "weighted_score": 0.75
+            },
+            {
+              "fraction": 0.875,
+              "label": "failure",
+              "matched_weight": 14,
+              "weighted_score": 0.875
+            },
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 16,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 0.125,
+              "label": "success",
+              "matched_weight": 2,
+              "weighted_score": 0.125
+            }
+          ],
+          "rank_score": 2.75,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:account;phase:observe",
+          "weight": 16
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_operation_features": [
+            {
+              "fraction": 0.333,
+              "label": "loop-like",
+              "matched_weight": 1,
+              "weighted_score": 0.333
+            },
+            {
+              "fraction": 0.667,
+              "label": "failure",
+              "matched_weight": 2,
+              "weighted_score": 0.667
+            },
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 3,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 0.333,
+              "label": "success",
+              "matched_weight": 1,
+              "weighted_score": 0.333
+            }
+          ],
+          "rank_score": 2.333,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:induced_text;phase:observe",
+          "weight": 3
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_operation_features": [
+            {
+              "fraction": 0.25,
+              "label": "loop-like",
+              "matched_weight": 1,
+              "weighted_score": 0.25
+            },
+            {
+              "fraction": 1.0,
+              "label": "failure",
+              "matched_weight": 4,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 4,
+              "weighted_score": 1.0
+            }
+          ],
+          "rank_score": 2.25,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:popup;phase:observe",
+          "weight": 4
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_operation_features": [
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 1,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "success",
+              "matched_weight": 1,
+              "weighted_score": 1.0
+            }
+          ],
+          "rank_score": 2.0,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:os;phase:computer-action",
+          "weight": 1
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_operation_features": [
+            {
+              "fraction": 1.0,
+              "label": "failure",
+              "matched_weight": 1,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 1,
+              "weighted_score": 1.0
+            }
+          ],
+          "rank_score": 2.0,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:popup;phase:computer-action",
+          "weight": 1
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_operation_features": [
+            {
+              "fraction": 0.667,
+              "label": "loop-like",
+              "matched_weight": 4,
+              "weighted_score": 0.667
+            },
+            {
+              "fraction": 1.0,
+              "label": "failure",
+              "matched_weight": 6,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 6,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "finish-phase",
+              "matched_weight": 6,
+              "weighted_score": -1.0
+            }
+          ],
+          "rank_score": 1.667,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:os;phase:finish",
+          "weight": 6
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_operation_features": [
+            {
+              "fraction": 0.375,
+              "label": "loop-like",
+              "matched_weight": 3,
+              "weighted_score": 0.375
+            },
+            {
+              "fraction": 0.75,
+              "label": "failure",
+              "matched_weight": 6,
+              "weighted_score": 0.75
+            },
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 8,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 0.25,
+              "label": "success",
+              "matched_weight": 2,
+              "weighted_score": 0.25
+            },
+            {
+              "fraction": 1.0,
+              "label": "finish-phase",
+              "matched_weight": 8,
+              "weighted_score": -1.0
+            }
+          ],
+          "rank_score": 1.375,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:induced_text;phase:finish",
+          "weight": 8
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_operation_features": [
+            {
+              "fraction": 0.267,
+              "label": "loop-like",
+              "matched_weight": 4,
+              "weighted_score": 0.267
+            },
+            {
+              "fraction": 0.6,
+              "label": "failure",
+              "matched_weight": 9,
+              "weighted_score": 0.6
+            },
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 15,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 0.4,
+              "label": "success",
+              "matched_weight": 6,
+              "weighted_score": 0.4
+            },
+            {
+              "fraction": 1.0,
+              "label": "finish-phase",
+              "matched_weight": 15,
+              "weighted_score": -1.0
+            }
+          ],
+          "rank_score": 1.267,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:account;phase:finish",
+          "weight": 15
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_operation_features": [
+            {
+              "fraction": 0.25,
+              "label": "loop-like",
+              "matched_weight": 1,
+              "weighted_score": 0.25
+            },
+            {
+              "fraction": 1.0,
+              "label": "failure",
+              "matched_weight": 4,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 4,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "finish-phase",
+              "matched_weight": 4,
+              "weighted_score": -1.0
+            }
+          ],
+          "rank_score": 1.25,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:popup;phase:finish",
+          "weight": 4
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_operation_features": [
+            {
+              "fraction": 1.0,
+              "label": "failure",
+              "matched_weight": 3,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "risky-env",
+              "matched_weight": 3,
+              "weighted_score": 1.0
+            },
+            {
+              "fraction": 1.0,
+              "label": "finish-phase",
+              "matched_weight": 3,
+              "weighted_score": -1.0
+            }
+          ],
+          "rank_score": 1.0,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:unknown_file;phase:finish",
+          "weight": 3
+        }
+      ]
+    },
+    "sample_type": "operations",
+    "stacks": {
+      "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:account;phase:finish": 15,
+      "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:account;phase:input": 361,
+      "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:account;phase:navigate": 836,
+      "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:account;phase:observe": 16,
+      "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:induced_text;phase:computer-action": 1,
+      "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:induced_text;phase:finish": 8,
+      "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:induced_text;phase:input": 47,
+      "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:induced_text;phase:navigate": 1072,
+      "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:induced_text;phase:observe": 3,
+      "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:os;phase:computer-action": 1,
+      "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:os;phase:finish": 6,
+      "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:os;phase:input": 207,
+      "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:os;phase:navigate": 201,
+      "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:os;phase:observe": 5,
+      "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:popup;phase:computer-action": 1,
+      "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:popup;phase:finish": 4,
+      "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:popup;phase:input": 60,
+      "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:popup;phase:navigate": 1054,
+      "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:popup;phase:observe": 4,
+      "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:unknown_file;phase:finish": 3,
+      "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:unknown_file;phase:input": 163,
+      "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:unknown_file;phase:navigate": 217
+    },
+    "summary": {
+      "compression_ratio": 194.773,
+      "max_stack_reuse": 1072,
+      "top": [
+        {
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:induced_text;phase:navigate",
+          "weight": 1072
+        },
+        {
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:popup;phase:navigate",
+          "weight": 1054
+        },
+        {
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:account;phase:navigate",
+          "weight": 836
+        },
+        {
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:account;phase:input",
+          "weight": 361
+        },
+        {
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:unknown_file;phase:navigate",
+          "weight": 217
+        },
+        {
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:os;phase:input",
+          "weight": 207
+        },
+        {
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:os;phase:navigate",
+          "weight": 201
+        },
+        {
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:unknown_file;phase:input",
+          "weight": 163
+        },
+        {
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:popup;phase:input",
+          "weight": 60
+        },
+        {
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:induced_text;phase:input",
+          "weight": 47
+        },
+        {
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:account;phase:observe",
+          "weight": 16
+        },
+        {
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:account;phase:finish",
+          "weight": 15
+        },
+        {
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:induced_text;phase:finish",
+          "weight": 8
+        },
+        {
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:os;phase:finish",
+          "weight": 6
+        },
+        {
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:os;phase:observe",
+          "weight": 5
+        },
+        {
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:popup;phase:finish",
+          "weight": 4
+        },
+        {
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:popup;phase:observe",
+          "weight": 4
+        },
+        {
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:induced_text;phase:observe",
+          "weight": 3
+        },
+        {
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:unknown_file;phase:finish",
+          "weight": 3
+        },
+        {
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:induced_text;phase:computer-action",
+          "weight": 1
+        }
+      ],
+      "total_weight": 4285,
+      "unique_stacks": 22
+    },
+    "unit": "count",
+    "view": "operations"
+  },
+  "schema_version": 1,
+  "sessions": []
+}
