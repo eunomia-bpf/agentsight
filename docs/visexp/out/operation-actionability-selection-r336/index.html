@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>R336 Actionability Selection Audit</title>
+<style>
+body { font-family: system-ui, sans-serif; color: #202124; margin: 32px; line-height: 1.45; }
+table { border-collapse: collapse; width: 100%; margin: 24px 0; font-size: 13px; }
+th, td { border-bottom: 1px solid #d8dee8; padding: 7px 8px; text-align: left; vertical-align: top; }
+th { background: #eef2f6; }
+.note { max-width: 980px; }
+</style>
+<h1>R336 Actionability Selection Audit</h1>
+<p class="note">This audit reuses tracked R320/R333/R334/R335 artifacts and scores visible policy choices across diagnostic objectives.</p>
+<h2>Primary Findings</h2>
+<ul><li>R336 scores 15 visible policies across 6 tasks and 6 diagnostic objectives without fetching, syncing, creating, or relabeling data.</li><li>Best visible policy depends on the analysis objective: objective best views are budget30_recall: dataset_native=1, fixed_session=1, operation_stack=4; first_positive_work: fixed_session=2, operation_stack=3, raw_action_stack=1; groups_to_50pct: dataset_native=2, fixed_session=1, raw_action_stack=3; ranking_fidelity_ap: dataset_native=1, fixed_session=2, operation_stack=3; top5_localization_f1: dataset_native=1, fixed_session=1, flat=1, operation_stack=1, raw_action_stack=2; total_group_fragmentation: flat=6. This strengthens the design choice to expose view, stack fields, predicates, and rankers as query-time knobs over the same operations.</li><li>operation_stack:query_aware remains a strong default: it is Pareto-frontier on 6/6 tasks, best AP on 3/6 tasks, best 30% budget recall on 3/6 tasks, and lower top-5 work than flat on 6/6 tasks.</li><li>The fixed-session/span-tree proxy remains a real counterpoint: operation stacks improve top-5 recall over fixed-session on 5/6 tasks and reduce total groups on 4/6 tasks, but lower work-to-first-positive on only 2/6 tasks.</li><li>Every task needs more than one best policy across the diagnostic objectives in 6/6 tasks. R336 therefore supports actionable optimization insight, not an automatic universal selector.</li></ul>
+<h2>Objective Best Policies</h2>
+<table>
+<tr><th>Objective</th><th>Best view counts</th><th>operation_stack:query_aware best tasks</th></tr>
+<tr><th>ranking_fidelity_ap</th><td>dataset_native=1, fixed_session=2, operation_stack=3</td><td>3/6</td></tr><tr><th>top5_localization_f1</th><td>dataset_native=1, fixed_session=1, flat=1, operation_stack=1, raw_action_stack=2</td><td>1/6</td></tr><tr><th>budget30_recall</th><td>dataset_native=1, fixed_session=1, operation_stack=4</td><td>3/6</td></tr><tr><th>first_positive_work</th><td>fixed_session=2, operation_stack=3, raw_action_stack=1</td><td>2/6</td></tr><tr><th>groups_to_50pct</th><td>dataset_native=2, fixed_session=1, raw_action_stack=3</td><td>0/6</td></tr><tr><th>total_group_fragmentation</th><td>flat=6</td><td>0/6</td></tr>
+</table>
+<h2>Pareto And Baselines</h2>
+<p>Frontier task counts: <code>dataset_native:query_aware=6, fixed_session:query_aware=5, flat:width=6, operation_stack:query_aware=6, operation_stack:width=3, raw_action_stack:query_aware=6</code></p>
+<p>Default-vs-baseline readout: <code>budget30_recall_higher_than_flat=6, groups_lower_than_fixed=4, groups_to_50pct_lower_than_fixed=5, top5_recall_higher_than_fixed=5, top5_work_lower_than_flat=6, work_to_first_positive_lower_than_fixed=2</code></p>

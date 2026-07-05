@@ -1,0 +1,254 @@
+{
+  "core_policies": [
+    "operation_stack:query_aware",
+    "operation_stack:width",
+    "flat:width",
+    "fixed_session:query_aware",
+    "dataset_native:query_aware",
+    "raw_action_stack:query_aware"
+  ],
+  "input_policy": {
+    "create": "none",
+    "hidden_label_use": "offline scoring after visible profiles/rankings already exist",
+    "relabel": "none",
+    "source_artifacts": [
+      "docs/visexp/out/operation-profile-accuracy-r320/profile-accuracy-report.json",
+      "docs/visexp/out/operation-profile-accuracy-r320/policy-scores.csv",
+      "docs/visexp/out/operation-inspection-frontier-r333/inspection-frontier-report.json",
+      "docs/visexp/out/operation-fragmentation-tradeoff-r334/fragmentation-tradeoff-report.json",
+      "docs/visexp/out/operation-fragmentation-tradeoff-r334/default-fragmentation-comparisons.csv",
+      "docs/visexp/out/operation-fragmentation-tradeoff-r334/budget-fragmentation-comparisons.csv",
+      "docs/visexp/out/operation-actionability-synthesis-r335/actionability-synthesis-report.json",
+      "docs/visexp/out/operation-actionability-synthesis-r335/task-actionability-cards.csv"
+    ],
+    "sync": "none"
+  },
+  "network_access_required": false,
+  "non_claims": [
+    "no new datasets, dataset sync, dataset creation, or relabeling",
+    "no human or agent analyst productivity, accuracy, or time-to-answer claim",
+    "no automatic universal policy selector",
+    "no operation-stack dominance on every metric",
+    "no profiler abstraction beyond operation and operation stack"
+  ],
+  "objectives": {
+    "budget30_recall": {
+      "direction": "higher",
+      "metric": "budget30_recall",
+      "question": "Which visible policy recovers the most positives inside a 30% work budget?"
+    },
+    "first_positive_work": {
+      "direction": "lower",
+      "metric": "work_to_first_positive",
+      "question": "Which visible policy reaches the first positive with least operation work?"
+    },
+    "groups_to_50pct": {
+      "direction": "lower",
+      "metric": "groups_to_50pct_recall",
+      "question": "Which visible policy reaches 50% positives with fewest ranked groups?"
+    },
+    "ranking_fidelity_ap": {
+      "direction": "higher",
+      "metric": "average_precision",
+      "question": "Which visible policy best orders labeled positives over the full ranked profile?"
+    },
+    "top5_localization_f1": {
+      "direction": "higher",
+      "metric": "top5_f1",
+      "question": "Which visible policy best balances top-5 precision and recall?"
+    },
+    "total_group_fragmentation": {
+      "direction": "lower",
+      "metric": "groups",
+      "question": "Which visible policy creates the fewest groups to inspect?"
+    }
+  },
+  "primary_findings": [
+    "R336 scores 15 visible policies across 6 tasks and 6 diagnostic objectives without fetching, syncing, creating, or relabeling data.",
+    "Best visible policy depends on the analysis objective: objective best views are budget30_recall: dataset_native=1, fixed_session=1, operation_stack=4; first_positive_work: fixed_session=2, operation_stack=3, raw_action_stack=1; groups_to_50pct: dataset_native=2, fixed_session=1, raw_action_stack=3; ranking_fidelity_ap: dataset_native=1, fixed_session=2, operation_stack=3; top5_localization_f1: dataset_native=1, fixed_session=1, flat=1, operation_stack=1, raw_action_stack=2; total_group_fragmentation: flat=6. This strengthens the design choice to expose view, stack fields, predicates, and rankers as query-time knobs over the same operations.",
+    "operation_stack:query_aware remains a strong default: it is Pareto-frontier on 6/6 tasks, best AP on 3/6 tasks, best 30% budget recall on 3/6 tasks, and lower top-5 work than flat on 6/6 tasks.",
+    "The fixed-session/span-tree proxy remains a real counterpoint: operation stacks improve top-5 recall over fixed-session on 5/6 tasks and reduce total groups on 4/6 tasks, but lower work-to-first-positive on only 2/6 tasks.",
+    "Every task needs more than one best policy across the diagnostic objectives in 6/6 tasks. R336 therefore supports actionable optimization insight, not an automatic universal selector."
+  ],
+  "profiler_abstractions": [
+    "operation",
+    "operation stack"
+  ],
+  "purpose": "Audit whether visible operation-stack profiles provide objective-specific actionable policy choices on real labeled traces without adding profiler abstractions.",
+  "reproducibility": {
+    "commit": "97ed26478f654e3088ca18683179fdcd9cbf3fc3",
+    "elapsed_seconds": 0.0379
+  },
+  "run_id": "R336",
+  "schema": "agentsight.actionability-selection.v1",
+  "source_run_ids": [
+    "R320",
+    "R333",
+    "R334",
+    "R335"
+  ],
+  "source_status": {
+    "docs/visexp/out/operation-actionability-synthesis-r335/actionability-synthesis-report.json": "pass",
+    "docs/visexp/out/operation-actionability-synthesis-r335/task-actionability-cards.csv": "pass",
+    "docs/visexp/out/operation-fragmentation-tradeoff-r334/budget-fragmentation-comparisons.csv": "pass",
+    "docs/visexp/out/operation-fragmentation-tradeoff-r334/default-fragmentation-comparisons.csv": "pass",
+    "docs/visexp/out/operation-fragmentation-tradeoff-r334/fragmentation-tradeoff-report.json": "pass",
+    "docs/visexp/out/operation-inspection-frontier-r333/inspection-frontier-report.json": "pass",
+    "docs/visexp/out/operation-profile-accuracy-r320/policy-scores.csv": "pass",
+    "docs/visexp/out/operation-profile-accuracy-r320/profile-accuracy-report.json": "pass"
+  },
+  "source_totals": {
+    "R320": {
+      "datasets": 4,
+      "group_views": 36,
+      "policy_scores": 144,
+      "positive_operations": 3699,
+      "task_operations": 34539,
+      "tasks": 6
+    },
+    "R333": {
+      "curve_rows": 252,
+      "datasets": 4,
+      "group_views": 36,
+      "inspection_points": 810,
+      "scored_policy_scores": 144,
+      "tasks": 6,
+      "visible_policy_names": 15,
+      "visible_policy_scores": 90
+    },
+    "R334": {
+      "datasets": 4,
+      "fixed_session_case_rows": 6,
+      "positive_operations": 3699,
+      "r320_core_policy_scores": 36,
+      "r320_default_comparison_rows": 45,
+      "r333_budget_comparison_rows": 40,
+      "r333_core_curve_rows": 252,
+      "task_operations": 34539,
+      "tasks": 6
+    },
+    "R335": {
+      "actionability_cards": 6,
+      "cards_where_coarse_preferred_by_ap": 2,
+      "cards_where_coarse_reduces_groups": 6,
+      "cards_where_fixed_session_has_lower_wtfp": 4,
+      "cards_where_operation_stack_inspects_fewer_groups_at_30pct_work_than_fixed": 5,
+      "cards_where_operation_stack_reaches_50pct_with_fewer_groups_than_fixed": 5,
+      "cards_with_critical_features": 4,
+      "cards_with_global_equal_ap_gain": 5,
+      "cards_with_misleading_features": 2,
+      "cards_with_negative_mapping_gain": 4,
+      "cards_with_optimization_action": 6,
+      "cards_with_positive_mapping_gain": 2,
+      "cards_with_ranker_ap_gain": 6,
+      "datasets": 4,
+      "median_fixed_session_wtfp_advantage": 0.0057,
+      "mixed_cards": 6,
+      "stable_cards": 0,
+      "tasks": 6
+    }
+  },
+  "summary": {
+    "datasets": 4,
+    "default_vs_baselines": {
+      "budget30_recall_higher_than_flat": 6,
+      "groups_lower_than_fixed": 4,
+      "groups_to_50pct_lower_than_fixed": 5,
+      "top5_recall_higher_than_fixed": 5,
+      "top5_work_lower_than_flat": 6,
+      "work_to_first_positive_lower_than_fixed": 2
+    },
+    "objective_best_policy_counts": {
+      "budget30_recall": {
+        "dataset_native:query_aware": 1,
+        "fixed_session:width": 1,
+        "operation_stack:query_aware": 3,
+        "operation_stack:width": 1
+      },
+      "first_positive_work": {
+        "fixed_session:query_aware": 1,
+        "fixed_session:visible_risk": 1,
+        "operation_stack:query_aware": 2,
+        "operation_stack:visible_risk": 1,
+        "raw_action_stack:visible_risk": 1
+      },
+      "groups_to_50pct": {
+        "dataset_native:query_aware": 1,
+        "dataset_native:visible_risk": 1,
+        "fixed_session:width": 1,
+        "raw_action_stack:width": 3
+      },
+      "ranking_fidelity_ap": {
+        "dataset_native:query_aware": 1,
+        "fixed_session:query_aware": 1,
+        "fixed_session:width": 1,
+        "operation_stack:query_aware": 3
+      },
+      "top5_localization_f1": {
+        "dataset_native:query_aware": 1,
+        "fixed_session:width": 1,
+        "flat:width": 1,
+        "operation_stack:query_aware": 1,
+        "raw_action_stack:width": 2
+      },
+      "total_group_fragmentation": {
+        "flat:width": 6
+      }
+    },
+    "objective_best_view_counts": {
+      "budget30_recall": {
+        "dataset_native": 1,
+        "fixed_session": 1,
+        "operation_stack": 4
+      },
+      "first_positive_work": {
+        "fixed_session": 2,
+        "operation_stack": 3,
+        "raw_action_stack": 1
+      },
+      "groups_to_50pct": {
+        "dataset_native": 2,
+        "fixed_session": 1,
+        "raw_action_stack": 3
+      },
+      "ranking_fidelity_ap": {
+        "dataset_native": 1,
+        "fixed_session": 2,
+        "operation_stack": 3
+      },
+      "top5_localization_f1": {
+        "dataset_native": 1,
+        "fixed_session": 1,
+        "flat": 1,
+        "operation_stack": 1,
+        "raw_action_stack": 2
+      },
+      "total_group_fragmentation": {
+        "flat": 6
+      }
+    },
+    "objective_rows": 36,
+    "objectives": 6,
+    "operation_stack_query_aware_best_counts": {
+      "budget30_recall": 3,
+      "first_positive_work": 2,
+      "groups_to_50pct": 0,
+      "ranking_fidelity_ap": 3,
+      "top5_localization_f1": 1,
+      "total_group_fragmentation": 0
+    },
+    "pareto_frontier_task_counts": {
+      "dataset_native:query_aware": 6,
+      "fixed_session:query_aware": 5,
+      "flat:width": 6,
+      "operation_stack:query_aware": 6,
+      "operation_stack:width": 3,
+      "raw_action_stack:query_aware": 6
+    },
+    "policy_summary_rows": 36,
+    "tasks": 6,
+    "tasks_with_multiple_best_policies_across_objectives": 6,
+    "visible_policies": 15,
+    "visible_policy_rows": 90
+  }
+}
