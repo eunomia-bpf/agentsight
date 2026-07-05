@@ -28,6 +28,7 @@ tool、action、human group、safety、looping 或 step quality 等不同深度�
 | C7：profile-spec 路径可复现并具有可报告的离线成本。 | supported as artifact/reproducibility evidence, not live overhead | R327 复用已提交的 R300/R324/R326 profile specs 和已提交 operation JSONL，不同步或下载数据集；76 个 specs 每个重复执行两次，形成 152 次 Rust `agentpprof --profile-spec` 调用。Semantic profile hash、samples 和 unique stacks 稳定为 76/76；median runtime 为 1.581s，p95 为 2.719s，max 为 4.273s；median output size 为 37,546 bytes，max unique stacks 为 2,012。默认 raw-byte hash 只有 4/76 稳定，因为 JSON profile 包含 `generated_at`。R328 在同一 76 个 specs / 152 次调用上启用 `--deterministic-output`，固定 JSON `generated_at` 和 pprof profile time，使 semantic 与 raw-byte determinism 均达到 76/76；该 run 的 median runtime 为 1.578s，p95 为 2.731s，max 为 4.298s，median output size 仍为 37,546 bytes，max unique stacks 仍为 2,012。 | 只能 claim 离线 profile-spec artifact reproducibility、opt-in byte-stable artifact mode 和本地执行成本；不能声称 live eBPF capture overhead、生产环境 overhead、人类效率提升或完整 trace ecosystem 兼容。 |
 
 R332 补强 C2/C5 的边界：同一批 R320 operations 上，best visible view 随任务和指标变化，因此支持 configurable view/depth/ranker surface；它不支持固定 hierarchy、自动 view selector 或第三个 profiler 抽象。
+R333 补强 C5 的 inspection-cost 证据：同一批 operation 输入上，operation-stack query-aware 在 20%/30% budget 下取得更高 median recall，同时保留 fixed-session first-positive 反例，因此 claim 仍是 tradeoff 而不是 dominance。
 
 ## Best Dataset Families
 
@@ -94,6 +95,7 @@ R332 补强 C2/C5 的边界：同一批 R320 operations 上，best visible view 
 | R330 | R320 paired-bootstrap uncertainty audit | 读取 tracked/clean R320 `profile-accuracy-report.json` 和 `policy-scores.csv`；不重新 profiling、不下载或创建数据；以 6 个 task families 为 bootstrap 单位，10,000 reps、seed 330。 | 10 个 metric checks 方向稳定，10 个是 mixed/counterpoint。稳定项包括：vs flat 的 AP mean delta 0.1219 CI [0.0406,0.2175]、top-5 work -0.8168 CI [-0.9653,-0.6568]、30% budget recall 0.4510 CI [0.3450,0.6143]、WTFP -0.9303 CI [-0.9855,-0.8650]；vs fixed-session 的 top-5 recall 0.1801 CI [0.0542,0.3127]、top-5 F1 0.1702 CI [0.0549,0.2870]、groups -178.0 CI [-340.0,-39.0]；vs width-only operation-stack 的 AP 0.0932 CI [0.0110,0.2184]、top-5 work -0.3101 CI [-0.4209,-0.1997]。该结果支持 task-family 层面的方向稳健性，不支持 per-operation independence、human utility 或 universal dominance。 |
 | R331 | R320 label-permutation negative-control audit | 读取 tracked/clean R320 report/CSV 和同一 4 个 source operation JSONL；不重新 profiling、不下载或创建数据；对 6 个 task families 的 5 个 visible policies 固定 group/ranking order，并把同一任务的 hidden positives 随机重分配到同样大小的 groups；2,000 reps、seed 331。 | Operation-stack query-aware AP 在 6/6 tasks 超过 95% permutation null，median observed-minus-null AP 为 0.0759；30% budget recall 在 5/6 tasks 超过 null，median delta 为 0.0904。Top-5 precision 只有 3/6 tasks 超过 null，work-to-first-positive 为 0/6。Width-only operation-stack AP 为 5/6，fixed-session 和 raw-action AP 都为 6/6，说明 baselines 有真实 signal，不是 strawman。该结果支持 prevalence/group-size negative control 和 mechanism isolation，不支持所有 hot-group 指标、label-free ranker、human utility 或 single-view dominance。 |
 | R332 | R320 view/depth task-fit audit | 读取 tracked/clean R320 `profile-accuracy-report.json` 和 `policy-scores.csv`；不重新 profiling、不下载或创建数据；只比较 visible policies，指标为 AP、top-5 F1、30% budget recall 和 work-to-first-positive。 | Best visible AP split 为 operation-stack 3/6、fixed-session 2/6、dataset-native 1/6；best top-5 F1 split 为 raw-action 2/6、dataset-native/fixed-session/flat/operation-stack 各 1/6。Operation-stack query-aware 是 AP 3/6、budget30 recall 3/6、top-5 F1 1/6、WTFP 2/6 tasks 的 best policy。Operation-stack 相对 fixed-session query-aware 在 4/6 tasks 上 group 更少，median group ratio 0.5543。Leave-task source selection 的 AP/F1 exact-best 均为 0/6。该结果支持 task-aware view/depth knob 和 configurable profiler surface，不支持 single hierarchy dominance、automatic view selector、human utility 或第三个 profiler 抽象。 |
+| R333 | R320 inspection-efficiency frontier | 复用 R320/R300 scorer 和 tracked operation JSONL 本地重算 top-k/work-budget inspection curves；不下载、不同步、不创建数据集；hidden labels 只在 visible groups/rankings 形成后用于 scoring。 | 6 tasks / 4 datasets / 144 scored policy rows / 90 visible policy-task scores / 15 visible policy names / 810 visible inspection points / 252 task-policy curve rows。30% inspected-work 内，operation-stack query-aware median recall 为 0.3900，flat/fixed-session/dataset-native/raw-action 分别为 0、0.3559、0.3377、0.3325；20% work 内为 0.2763 vs fixed-session 0.2422。相对 flat width，operation-stack query-aware 在 6/6 tasks 上 top-5 work 更低并在 30% budget 下有正召回；相对 fixed-session query-aware，top-5 recall 更高 5/6、groups 更少 4/6，但 WTFP 更低只有 2/6；相对 operation-stack width，AP 提升 6/6、budget30 recall 提升 5/6。该结果支持 inspection-cost/fragmentation tradeoff，不支持 human utility、single-view dominance、automatic selector 或 live overhead。 |
 
 ## Paper-Ready Wording
 
@@ -160,6 +162,12 @@ R332 补强 C2/C5 的边界：同一批 R320 operations 上，best visible view 
 > Operation-stack query-aware 在 AP 和 30% budget recall 上各为 3/6 tasks 最优，
 > 但 leave-task source selection 对 AP 和 F1 的 exact-best 都是 0/6。这个结果说明
 > profiler 应暴露 task-aware view/depth/ranker knobs，而不是固定 hierarchy 或自动 selector。
+> R333 再把 R320 scorer 重跑成本地 inspection-efficiency curve：不下载、不同步、不创建
+> 数据集，只在 visible groups/rankings 形成后用 hidden labels 评分。30% inspected-work
+> 内，operation-stack query-aware 的 median recall 为 0.3900，而 flat、fixed-session、
+> dataset-native 和 raw-action 分别为 0、0.3559、0.3377 和 0.3325；20% work 内为
+> 0.2763 vs fixed-session 0.2422。它支持 inspection-cost tradeoff，但 fixed-session
+> first-positive work 仍是反例。
 > Agent-session trace 是 session 交换格式，不是 profiler 抽象；导入后仍然要转成
 > operations，再由 operation stack 折叠。Chrome/Perfetto-style trace 也是同样的
 > exchange container；它不绕过 operation JSONL，也不新增第三个抽象。
@@ -184,6 +192,9 @@ R332 补强 C2/C5 的边界：同一批 R320 operations 上，best visible view 
 > R332 应作为 view/depth 反例写入：同一个 operation 输入上，最合适的 stack depth
 > 随任务和指标变化；operation-stack 减少 fixed-session fragmentation 的同时，fixed-session、
 > dataset-native、raw-action 和 flat 仍在部分指标上是有效 counterpoints。
+> R333 应作为 cost-curve 图/表写入：在固定检查预算内比较 recall，而不是只报告 top-k。
+> 它说明 operation-stack query-aware 在 30% work 内给出最强 median recall，但不是
+> first-positive 最低成本视图。
 > 因此论文应该写成 configurable inspectability surface：SATraj safety 是最强
 > selective win，AgentNet quality 是 high-lift but low-recall，AgentRewardBench
 > looping 更像 prevalence aggregation，side-effect 和 OSWorld-Human boundary 对

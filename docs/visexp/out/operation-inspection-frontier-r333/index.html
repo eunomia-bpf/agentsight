@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>R333 Inspection Frontier</title></head>
+<body>
+<h1>R333 Inspection-Efficiency Frontier</h1>
+<p>Reuses tracked R320 operation inputs; no dataset sync or creation.</p>
+<h2>Primary Findings</h2>
+<ul>
+<li>At &lt;=30% inspected-work, operation_stack:query_aware has median recall 0.3900, versus flat:width 0.0000, fixed_session:query_aware 0.3559, dataset_native:query_aware 0.3377, and raw_action_stack:query_aware 0.3325.</li>
+<li>At &lt;=20% inspected-work, operation_stack:query_aware has median recall 0.2763, versus fixed_session:query_aware 0.2422; the &lt;=30% result is the clearer budgeted-recall point.</li>
+<li>Against flat:width, operation_stack:query_aware uses lower top-5 inspected work on 6/6 tasks and has positive recall under the 30% budget where flat has none.</li>
+<li>Against fixed_session:query_aware, operation_stack:query_aware has higher top-5 recall on 5/6 tasks and fewer groups on 4/6 tasks, but lower work-to-first-positive on only 2/6 tasks.</li>
+<li>Query-aware ranking is a real mechanism knob inside the same operation stack: compared with operation_stack:width, it improves AP on 6/6 tasks and budget30 recall on 5/6 tasks.</li>
+</ul>
+<h2>Non-Claims</h2>
+<ul>
+<li>no new datasets, dataset sync, or self-created evaluation sets</li>
+<li>no human or agent analyst productivity, accuracy, or time-to-answer claim</li>
+<li>no single-view dominance over every metric or task</li>
+<li>no automatic view selector or label-free deployment ranker</li>
+<li>no live eBPF overhead or complete trace-ecosystem compatibility claim</li>
+<li>no profiler abstraction beyond operation and operation stack</li>
+</ul>
+</body>
+</html>
