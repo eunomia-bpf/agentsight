@@ -21,6 +21,11 @@
       "status": "pass"
     },
     {
+      "check": "profile_spec_cli_composition_test_present",
+      "evidence": "agentpprof has a CLI test for composed operation mapping, filtering, rank-op rules, rank mode, stack-depth override, and prompt/session-free stacks.",
+      "status": "pass"
+    },
+    {
       "check": "rust_operation_stack_source_of_truth",
       "evidence": "Operation mapping, query predicates, stack folding, and visible rank summaries live in the Rust profile path used by operation files and trace imports.",
       "status": "pass"
@@ -71,7 +76,7 @@
       "status": "pass"
     }
   ],
-  "commit": "e11244f9860d12e41628183828457fd36e1f2c39",
+  "commit": "7d7caf9f03c947e06fd5882709b84f267205a074",
   "not_a_human_study_result": true,
   "not_an_agent_study_result": true,
   "not_dataset_sync": true,
@@ -84,6 +89,7 @@
     "evaluation_doc": "docs/evaluation.md",
     "implementation_doc": "docs/implementation.md",
     "paper_main": "docs/visexp/paper/main.tex",
+    "profile_spec_cli_test": "agentpprof/tests/profile_spec_cli.rs",
     "rank_feature_ablation_script": "script/operation_rank_feature_ablation_eval.py",
     "rank_feature_robustness_script": "script/operation_rank_feature_robustness_eval.py",
     "rust_cli": "agentpprof/src/main.rs",
@@ -94,12 +100,12 @@
   "status": "ok",
   "summary": {
     "failed_checks": 0,
-    "passed_checks": 14,
+    "passed_checks": 15,
     "remaining_gates": [
       "controlled human/agent analyst study",
       "calibrated boundary backend beyond simple derived-field baselines",
       "real OpenTelemetry GenAI, OpenInference, or Perfetto trace import"
     ],
-    "total_checks": 14
+    "total_checks": 15
   }
 }

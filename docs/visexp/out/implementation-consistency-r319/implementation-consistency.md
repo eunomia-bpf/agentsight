@@ -3,8 +3,8 @@
 R319 checks that the maintained Rust semantic-profiler path, canonical docs, and Chinese paper agree on the current implementation boundary. It is not a dataset sync, not a new profiling run, and not a human/agent analyst-task result.
 
 - Overall: `implementation_consistent`
-- Checks passed: 14 / 14
-- Commit at generation: `e11244f9860d12e41628183828457fd36e1f2c39`
+- Checks passed: 15 / 15
+- Commit at generation: `7d7caf9f03c947e06fd5882709b84f267205a074`
 
 ## Checks
 
@@ -14,6 +14,7 @@ R319 checks that the maintained Rust semantic-profiler path, canonical docs, and
 | `rust_profile_spec_override_contract` | pass | Profile specs provide operation inputs while CLI stack/rule overrides remain explicit. |
 | `rust_standard_trace_cli_present` | pass | Rust CLI exposes standard trace import/export and routes imports into operation records. |
 | `standard_trace_cli_test_present` | pass | agentpprof has a CLI test for standard trace export and import. |
+| `profile_spec_cli_composition_test_present` | pass | agentpprof has a CLI test for composed operation mapping, filtering, rank-op rules, rank mode, stack-depth override, and prompt/session-free stacks. |
 | `rust_operation_stack_source_of_truth` | pass | Operation mapping, query predicates, stack folding, and visible rank summaries live in the Rust profile path used by operation files and trace imports. |
 | `operation_predicate_documented_as_query_not_object` | pass | Docs record --where/where_rules as a query predicate over operation fields, with R321 as the implementation probe. |
 | `operation_rank_policy_documented_as_projection_not_object` | pass | Docs record --rank-rule/rank_rules, --rank-op-rule/rank_op_rules, and --rank-mode/rank_mode as visible operation-stack group ranking projections, with R322/R323/R324/R325/R326 as implementation probes and R324-R326 using the scrubbed visible profiler input. |
