@@ -16,7 +16,6 @@ import html
 import json
 import math
 import subprocess
-import time
 from pathlib import Path
 from statistics import median
 from typing import Any
@@ -146,6 +145,17 @@ def parse_float(value: Any) -> float | None:
     return float(value)
 
 
+def normalize_repo_path(value: str) -> Path:
+    path = Path(value)
+    if not path.is_absolute():
+        path = ROOT / path
+    return path
+
+
+def spec_operation_paths(spec: dict[str, Any]) -> list[Path]:
+    return [normalize_repo_path(path) for path in spec.get("operation_files") or []]
+
+
 def task_key(row: dict[str, str]) -> tuple[str, str]:
     return (row["task"], row["stack_kind"])
 
@@ -165,6 +175,7 @@ def load_variant_rows(report: dict[str, Any], summary_rows: list[dict[str, str]]
         rust_json_path = ROOT / detail["rust_json"]
         spec = load_json(spec_path)
         rust_profile = load_json(rust_json_path)
+        operation_paths = spec_operation_paths(spec)
         stack = spec["stack"]
         rank_op_rules = spec.get("rank_op_rules") or []
         where_rules = spec.get("where_rules") or []
@@ -178,7 +189,8 @@ def load_variant_rows(report: dict[str, Any], summary_rows: list[dict[str, str]]
             "where_rules": where_rules,
             "rank_op_rules": rank_op_rules,
             "rank_mode": spec.get("rank_mode"),
-            "operation_files": spec.get("operation_files") or [],
+            "operation_files": [rel(path) for path in operation_paths],
+            "operation_file_count": len(operation_paths),
             "ranking_policy": rust_profile["profile"]["ranking"]["policy"],
             "profile_groups": int(rust_profile["profile"]["summary"]["unique_stacks"]),
             "summary_groups": int(summary["groups"]),
@@ -192,7 +204,8 @@ def load_variant_rows(report: dict[str, Any], summary_rows: list[dict[str, str]]
             "delta_first_positive_work": parse_float(summary["delta_first_positive_work"]),
             "has_prompt_or_session_frame": profile_stack_has_forbidden_frames(rust_profile),
             "profile_spec_composes_pipeline": bool(
-                spec.get("operation_files")
+                operation_paths
+                and all(path.exists() for path in operation_paths)
                 and where_rules
                 and rank_op_rules
                 and spec.get("rank_mode") == "rule-score"
@@ -284,9 +297,21 @@ def count_by(rows: list[dict[str, Any]], key: str) -> dict[str, int]:
 
 def source_paths(report: dict[str, Any]) -> list[Path]:
     paths = [R324_REPORT, R324_SUMMARY]
+    seen = {path.resolve() for path in paths}
     for detail in report["tasks_detail"]:
-        paths.append(ROOT / detail["profile_spec"])
-        paths.append(ROOT / detail["rust_json"])
+        spec_path = ROOT / detail["profile_spec"]
+        rust_json_path = ROOT / detail["rust_json"]
+        for path in [spec_path, rust_json_path]:
+            resolved = path.resolve()
+            if resolved not in seen:
+                paths.append(path)
+                seen.add(resolved)
+        spec = load_json(spec_path)
+        for path in spec_operation_paths(spec):
+            resolved = path.resolve()
+            if resolved not in seen:
+                paths.append(path)
+                seen.add(resolved)
     return paths
 
 
@@ -406,7 +431,6 @@ def main() -> None:
     args = parse_args()
     out_dir = args.out_dir
     out_dir.mkdir(parents=True, exist_ok=True)
-    start = time.time()
 
     report_r324 = load_json(R324_REPORT)
     summary_rows = read_csv(R324_SUMMARY)
@@ -423,9 +447,6 @@ def main() -> None:
         "run_id": RUN_ID,
         "schema": "agentsight.operation-profile-spec-composition.v1",
         "overall": "pass",
-        "commit": git_output(["rev-parse", "HEAD"]),
-        "created_unix": time.time(),
-        "elapsed_seconds": time.time() - start,
         "profiler_abstractions": ["operation", "operation stack"],
         "input_policy": {
             "dataset_sync": "none",
@@ -467,6 +488,7 @@ def main() -> None:
             "width_first_positive_work",
             "op_feature_first_positive_work",
             "delta_first_positive_work",
+            "operation_file_count",
             "profile_spec",
             "rust_json",
         ],
@@ -500,7 +522,6 @@ def main() -> None:
             "report": rel(out_dir / "profile-spec-composition-report.json"),
             "summary": summary,
             "network_access_required": False,
-            "commit": report["commit"],
         },
     )
     print(json.dumps({"run_id": RUN_ID, "status": "pass", "summary": round_value(summary)}, indent=2, sort_keys=True))
