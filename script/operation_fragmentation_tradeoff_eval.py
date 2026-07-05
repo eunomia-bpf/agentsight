@@ -573,7 +573,11 @@ def main() -> None:
         "schema": "agentsight.fragmentation-tradeoff.v1",
         "purpose": "separate positive-fragmentation evidence from operation-work cost for the R320/R333 profiler claim",
         "source_run_ids": ["R320", "R333"],
+        "network_access_required": False,
         "input_policy": {
+            "sync": "none",
+            "create": "none",
+            "relabel": "none",
             "dataset_sync": "none",
             "dataset_creation": "none",
             "dataset_relabeling": "none",
