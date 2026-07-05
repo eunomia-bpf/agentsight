@@ -384,6 +384,7 @@ def build_payload() -> dict[str, Any]:
         "budget30_recall",
         "budget30_f1",
         "work_to_first_positive",
+        "groups",
     }
     covered_metrics = {row["metric"] for row in summary_rows}
     overall = "pass" if required_metrics <= covered_metrics and support > 0 and counterpoint > 0 else "fail"
