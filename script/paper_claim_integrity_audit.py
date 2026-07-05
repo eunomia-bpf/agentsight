@@ -18,7 +18,7 @@ import math
 import re
 import subprocess
 import time
-from collections import Counter
+from collections import Counter, defaultdict
 from pathlib import Path
 from statistics import median
 from typing import Any
@@ -216,6 +216,12 @@ def as_int(value: str | int) -> int:
     return int(float(value))
 
 
+def as_bool(value: str | bool) -> bool:
+    if isinstance(value, bool):
+        return value
+    return value.lower() == "true"
+
+
 def fmt_number(value: Any) -> str:
     if isinstance(value, float):
         if value.is_integer():
@@ -234,7 +240,7 @@ def visible_policy_names(rows: list[dict[str, str]]) -> set[str]:
     return {
         policy_key(row)
         for row in rows
-        if row.get("uses_hidden_fields") == "False" and not policy_key(row).startswith("label_drilldown:")
+        if row.get("uses_hidden_fields") == "False" and policy_is_non_oracle(policy_key(row))
     }
 
 
@@ -918,25 +924,51 @@ def build_number_checks(
         paper_token="96/96",
     )
 
-    r341 = reports["R341"]
-    r341_summary = r341["summary"]
-    add_check(rows, run_id="R341", key="overall", actual=r341_summary["overall"], expected="pass", source="R341 summary")
-    add_check(rows, run_id="R341", key="tasks", actual=r341_summary["tasks"], expected=6, source="R341 summary")
-    add_check(rows, run_id="R341", key="objective_rows", actual=r341_summary["objective_rows"], expected=36, source="R341 summary")
-    add_check(rows, run_id="R341", key="objective_csv_rows", actual=len(r341_objectives), expected=36, source="R341 objective-mechanism-attribution.csv")
-    add_check(rows, run_id="R341", key="actionable_objective_rows", actual=r341_summary["actionable_objective_rows"], expected=36, source="R341 summary", paper_token="36/36")
-    add_check(rows, run_id="R341", key="nondefault_best_objective_rows", actual=r341_summary["nondefault_best_objective_rows"], expected=27, source="R341 summary", paper_token="27/36")
-    add_check(rows, run_id="R341", key="transfer_decisions", actual=r341_summary["transfer_decisions"], expected=96, source="R341 summary")
-    add_check(rows, run_id="R341", key="transfer_csv_rows", actual=len(r341_transfer), expected=96, source="R341 transfer-error-attribution.csv")
-    add_check(rows, run_id="R341", key="transfer_misses", actual=r341_summary["transfer_misses"], expected=34, source="R341 summary", paper_token="34/96")
-    add_check(rows, run_id="R341", key="transfer_misses_with_view_change", actual=r341_summary["transfer_misses_with_view_change"], expected=32, source="R341 summary", paper_token="32/34")
-    add_check(rows, run_id="R341", key="transfer_misses_with_ranker_change", actual=r341_summary["transfer_misses_with_ranker_change"], expected=26, source="R341 summary", paper_token="26/34")
-    add_check(rows, run_id="R341", key="high_regret_transfer_misses", actual=r341_summary["high_regret_transfer_misses"], expected=29, source="R341 summary", paper_token="29/34")
-    add_check(rows, run_id="R341", key="stack_depth_tradeoff_tasks", actual=r341_summary["mechanism_task_counts"]["stack_depth_tradeoff"], expected=6, source="R341 summary.mechanism_task_counts", paper_token="6/6")
-    add_check(rows, run_id="R341", key="transfer_policy_signal_tasks", actual=r341_summary["mechanism_task_counts"]["transfer_policy_signal"], expected=6, source="R341 summary.mechanism_task_counts", paper_token="6/6")
-    add_check(rows, run_id="R341", key="critical_rank_feature_tasks", actual=r341_summary["mechanism_task_counts"]["critical_rank_features"], expected=4, source="R341 summary.mechanism_task_counts", paper_token="4/6")
-    add_check(rows, run_id="R341", key="misleading_feature_tasks", actual=r341_summary["mechanism_task_counts"]["misleading_feature_risk"], expected=2, source="R341 summary.mechanism_task_counts", paper_token="2/6")
-    add_check(rows, run_id="R341", key="tasks_with_three_or_more_mechanism_labels", actual=r341_summary["tasks_with_three_or_more_mechanism_labels"], expected=6, source="R341 summary", paper_token="6/6")
+    r341_tasks = sorted({row["task"] for row in r341_objectives})
+    r341_transfer_misses = [row for row in r341_transfer if not as_bool(row["selected_within_tolerance"])]
+    r341_mechanisms_by_task: dict[str, set[str]] = defaultdict(set)
+    for row in r341_objectives:
+        for label in row["mechanism_labels"].split("; "):
+            if label:
+                r341_mechanisms_by_task[row["task"]].add(label)
+    r341_mechanism_counts = Counter(
+        label for labels in r341_mechanisms_by_task.values() for label in labels
+    )
+    r341_overall = "pass" if (
+        len(r341_tasks) == 6
+        and len(r341_objectives) == 36
+        and sum(row["best_policy"] in visible_policies for row in r341_objectives) == 36
+        and sum(policy_is_non_oracle(row["best_policy"]) for row in r341_objectives) == 36
+        and sum(as_bool(row["actionable"]) for row in r341_objectives) == 36
+        and sum(row["best_policy"] != "operation_stack:query_aware" for row in r341_objectives) == 27
+        and len(r341_transfer) == 96
+        and len(r341_transfer_misses) == 34
+        and sum(as_bool(row["view_changed"]) for row in r341_transfer_misses) == 32
+        and sum(as_bool(row["ranker_changed"]) for row in r341_transfer_misses) == 26
+        and sum(as_bool(row["high_regret_miss"]) for row in r341_transfer_misses) == 29
+        and r341_mechanism_counts["stack_depth_tradeoff"] == 6
+        and r341_mechanism_counts["transfer_policy_signal"] == 6
+        and r341_mechanism_counts["critical_rank_features"] == 4
+        and r341_mechanism_counts["misleading_feature_risk"] == 2
+        and sum(len(labels) >= 3 for labels in r341_mechanisms_by_task.values()) == 6
+    ) else "fail"
+    add_check(rows, run_id="R341", key="overall", actual=r341_overall, expected="pass", source="R341 CSV-derived invariants", paper_token="R341")
+    add_check(rows, run_id="R341", key="tasks", actual=len(r341_tasks), expected=6, source="R341 objective-mechanism-attribution.csv", paper_token="6 tasks")
+    add_check(rows, run_id="R341", key="objective_rows", actual=len(r341_objectives), expected=36, source="R341 objective-mechanism-attribution.csv", paper_token="36 objective rows")
+    add_check(rows, run_id="R341", key="objective_best_policy_visible_rows", actual=sum(row["best_policy"] in visible_policies for row in r341_objectives), expected=36, source="R341 objective-mechanism-attribution.csv + R320 policy-scores.csv", paper_token="36/36 best policies visible")
+    add_check(rows, run_id="R341", key="objective_best_policy_non_oracle_rows", actual=sum(policy_is_non_oracle(row["best_policy"]) for row in r341_objectives), expected=36, source="R341 objective-mechanism-attribution.csv", paper_token="36/36 best policies non-oracle")
+    add_check(rows, run_id="R341", key="actionable_objective_rows", actual=sum(as_bool(row["actionable"]) for row in r341_objectives), expected=36, source="R341 objective-mechanism-attribution.csv", paper_token="36/36 objective rows have optimization actions")
+    add_check(rows, run_id="R341", key="nondefault_best_objective_rows", actual=sum(row["best_policy"] != "operation_stack:query_aware" for row in r341_objectives), expected=27, source="R341 objective-mechanism-attribution.csv", paper_token="27/36 best visible policies are non-default")
+    add_check(rows, run_id="R341", key="transfer_decisions", actual=len(r341_transfer), expected=96, source="R341 transfer-error-attribution.csv", paper_token="96 transfer decisions")
+    add_check(rows, run_id="R341", key="transfer_misses", actual=len(r341_transfer_misses), expected=34, source="R341 transfer-error-attribution.csv", paper_token="34/96 transfer decisions")
+    add_check(rows, run_id="R341", key="transfer_misses_with_view_change", actual=sum(as_bool(row["view_changed"]) for row in r341_transfer_misses), expected=32, source="R341 transfer-error-attribution.csv", paper_token="32/34 misses change view")
+    add_check(rows, run_id="R341", key="transfer_misses_with_ranker_change", actual=sum(as_bool(row["ranker_changed"]) for row in r341_transfer_misses), expected=26, source="R341 transfer-error-attribution.csv", paper_token="26/34 change ranker")
+    add_check(rows, run_id="R341", key="high_regret_transfer_misses", actual=sum(as_bool(row["high_regret_miss"]) for row in r341_transfer_misses), expected=29, source="R341 transfer-error-attribution.csv", paper_token="29/34 high-regret misses")
+    add_check(rows, run_id="R341", key="stack_depth_tradeoff_tasks", actual=r341_mechanism_counts["stack_depth_tradeoff"], expected=6, source="R341 objective-mechanism-attribution.csv", paper_token="stack-depth signals on 6/6")
+    add_check(rows, run_id="R341", key="transfer_policy_signal_tasks", actual=r341_mechanism_counts["transfer_policy_signal"], expected=6, source="R341 objective-mechanism-attribution.csv", paper_token="transfer-policy signals on 6/6")
+    add_check(rows, run_id="R341", key="critical_rank_feature_tasks", actual=r341_mechanism_counts["critical_rank_features"], expected=4, source="R341 objective-mechanism-attribution.csv", paper_token="critical features on 4/6")
+    add_check(rows, run_id="R341", key="misleading_feature_tasks", actual=r341_mechanism_counts["misleading_feature_risk"], expected=2, source="R341 objective-mechanism-attribution.csv", paper_token="misleading features on 2/6")
+    add_check(rows, run_id="R341", key="tasks_with_three_or_more_mechanism_labels", actual=sum(len(labels) >= 3 for labels in r341_mechanisms_by_task.values()), expected=6, source="R341 objective-mechanism-attribution.csv", paper_token="three or more mechanism labels on 6/6")
     return rows
 
 
@@ -944,10 +976,24 @@ def contains_any(text: str, tokens: list[str]) -> bool:
     return any(token in text for token in tokens)
 
 
+def contains_all(text: str, tokens: list[str]) -> bool:
+    return all(token in text for token in tokens)
+
+
 def line_hits(text: str, tokens: list[str], limit: int = 8) -> list[int]:
     hits: list[int] = []
     for index, line in enumerate(text.splitlines(), start=1):
         if any(token in line for token in tokens):
+            hits.append(index)
+            if len(hits) >= limit:
+                break
+    return hits
+
+
+def line_hits_all(text: str, tokens: list[str], limit: int = 8) -> list[int]:
+    hits: list[int] = []
+    for index, line in enumerate(text.splitlines(), start=1):
+        if all(token in line for token in tokens):
             hits.append(index)
             if len(hits) >= limit:
                 break
@@ -989,7 +1035,7 @@ def build_text_coverage(
     rows: list[dict[str, Any]] = []
     for doc, key, tokens, source in required:
         text = texts[doc]
-        status = "pass" if contains_any(text, tokens) else "fail"
+        status = "pass" if (contains_all(text, tokens) if source == "R341" else contains_any(text, tokens)) else "fail"
         rows.append(
             {
                 "doc": doc,
@@ -1006,7 +1052,8 @@ def build_text_coverage(
         if row["run_id"] not in {"R320", "R333", "R337", "R339", "R340", "R341"}:
             continue
         token = str(row["paper_token"])
-        status = "pass" if token in eval_text else "warn"
+        hits = line_hits_all(eval_text, ["R341", token]) if row["run_id"] == "R341" else line_hits(eval_text, [token])
+        status = "pass" if hits else "warn"
         rows.append(
             {
                 "doc": "evaluation",
@@ -1014,7 +1061,7 @@ def build_text_coverage(
                 "source": row["source"],
                 "tokens": token,
                 "status": status,
-                "lines": ",".join(map(str, line_hits(eval_text, [token]))) or "missing",
+                "lines": ",".join(map(str, hits)) or "missing",
             }
         )
     return rows

@@ -33,6 +33,7 @@ DEFAULT_OUT_DIR = OUT_ROOT / "operation-mechanism-attribution-r341"
 RUN_ID = "R341"
 
 R320_REPORT = R320_DIR / "profile-accuracy-report.json"
+R320_POLICY_SCORES = R320_DIR / "policy-scores.csv"
 R335_REPORT = R335_DIR / "actionability-synthesis-report.json"
 R335_CARDS = R335_DIR / "task-actionability-cards.csv"
 R336_REPORT = R336_DIR / "actionability-selection-report.json"
@@ -176,6 +177,8 @@ def policy_ranker(policy: str) -> str:
 
 
 def classify_policy(policy: str) -> str:
+    if not policy_is_non_oracle(policy):
+        raise SystemExit(f"R341 cannot attribute hidden/oracle policy {policy}")
     if policy == DEFAULT_POLICY:
         return "default_operation_stack"
     if policy == WIDTH_POLICY:
@@ -191,6 +194,22 @@ def classify_policy(policy: str) -> str:
     if policy.startswith("raw_action_stack:"):
         return "raw_action_stack_counterpoint"
     return "other_visible_policy"
+
+
+def policy_key(row: dict[str, str]) -> str:
+    return f"{row['view']}:{row['ranker']}"
+
+
+def policy_is_non_oracle(policy: str) -> bool:
+    return "oracle" not in policy and not policy.startswith("label_drilldown:")
+
+
+def visible_policy_names(rows: list[dict[str, str]]) -> set[str]:
+    return {
+        policy_key(row)
+        for row in rows
+        if row.get("uses_hidden_fields") == "False" and policy_is_non_oracle(policy_key(row))
+    }
 
 
 def card_mechanisms(card: dict[str, str]) -> list[str]:
@@ -238,13 +257,15 @@ def objective_tradeoff(row: dict[str, str]) -> str:
 
 
 def build_objective_attribution_rows(
-    objective_rows: list[dict[str, str]], cards: dict[str, dict[str, str]]
+    objective_rows: list[dict[str, str]], cards: dict[str, dict[str, str]], visible_policies: set[str]
 ) -> list[dict[str, Any]]:
     output: list[dict[str, Any]] = []
     for row in objective_rows:
         task = row["task"]
         card = cards[task]
         best_policy = row["best_policy"]
+        if best_policy not in visible_policies:
+            raise SystemExit(f"R341 objective best policy is not visible/non-oracle: {task} {best_policy}")
         mechanisms = card_mechanisms(card)
         output.append(
             {
@@ -306,6 +327,8 @@ def build_transfer_diagnostic_rows(decisions: list[dict[str, str]]) -> list[dict
     for row in decisions:
         selected = row["selected_policy"]
         best = row["best_visible_policy"]
+        if not policy_is_non_oracle(selected) or not policy_is_non_oracle(best):
+            raise SystemExit(f"R341 transfer decision contains hidden/oracle policy: {selected} {best}")
         selected_delta_vs_best = parse_float(row.get("selected_delta_vs_best"))
         output.append(
             {
@@ -368,6 +391,7 @@ def summarize(
         "transfer_misses": len(transfer_misses),
         "actionable_objective_rows": sum(row["actionable"] for row in objective_rows),
         "nondefault_best_objective_rows": sum(row["best_policy"] != DEFAULT_POLICY for row in objective_rows),
+        "objective_best_policy_non_oracle_rows": sum(policy_is_non_oracle(row["best_policy"]) for row in objective_rows),
         "default_best_objective_rows": sum(row["best_policy"] == DEFAULT_POLICY for row in objective_rows),
         "median_default_regret_across_objectives": median(objective_regrets) if objective_regrets else None,
         "objective_best_policy_classes": counter_by(objective_rows, "best_policy_class"),
@@ -526,6 +550,7 @@ def main() -> None:
     start = time.time()
     sources = [
         R320_REPORT,
+        R320_POLICY_SCORES,
         R335_REPORT,
         R335_CARDS,
         R336_REPORT,
@@ -539,8 +564,9 @@ def main() -> None:
     r335 = load_json(R335_REPORT)
     r336 = load_json(R336_REPORT)
     r340 = load_json(R340_REPORT)
+    visible_policies = visible_policy_names(read_csv(R320_POLICY_SCORES))
     cards = {row["task"]: row for row in read_csv(R335_CARDS)}
-    objective_rows = build_objective_attribution_rows(read_csv(R336_OBJECTIVES), cards)
+    objective_rows = build_objective_attribution_rows(read_csv(R336_OBJECTIVES), cards, visible_policies)
     transfer_rows = build_transfer_diagnostic_rows(read_csv(R340_DECISIONS))
     summary = summarize(cards, objective_rows, transfer_rows)
     report = {
