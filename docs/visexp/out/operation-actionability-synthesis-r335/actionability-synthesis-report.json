@@ -1,0 +1,440 @@
+{
+  "input_policy": {
+    "create": "none",
+    "hidden_label_use": "R335 reads already-scored artifacts; source runs used hidden labels only after visible profiles/rankings were formed",
+    "relabel": "none",
+    "source_artifacts": [
+      "docs/visexp/out/operation-profile-accuracy-r320/profile-accuracy-report.json",
+      "docs/visexp/out/operation-profile-accuracy-r320/optimization-insights.csv",
+      "docs/visexp/out/operation-profile-accuracy-r320/policy-scores.csv",
+      "docs/visexp/out/operation-rank-feature-ablation-r325/rank-feature-ablation-report.json",
+      "docs/visexp/out/operation-rank-feature-ablation-r325/rank-feature-findings.csv",
+      "docs/visexp/out/operation-rank-feature-ablation-r325/rank-feature-stack-depth.csv",
+      "docs/visexp/out/operation-rank-feature-robustness-r326/rank-feature-robustness-report.json",
+      "docs/visexp/out/operation-rank-feature-robustness-r326/rank-feature-robustness-summary.csv",
+      "docs/visexp/out/operation-rank-feature-transfer-r329/rank-feature-transfer-report.json",
+      "docs/visexp/out/operation-rank-feature-transfer-r329/rank-feature-transfer-selections.csv",
+      "docs/visexp/out/operation-view-depth-fit-r332/view-depth-fit-report.json",
+      "docs/visexp/out/operation-view-depth-fit-r332/task-fit.csv",
+      "docs/visexp/out/operation-fragmentation-tradeoff-r334/fragmentation-tradeoff-report.json",
+      "docs/visexp/out/operation-fragmentation-tradeoff-r334/fixed-session-fragmentation-cases.csv"
+    ],
+    "sync": "none"
+  },
+  "mechanisms": [
+    {
+      "action": "Expose ranker policy as a query-time knob instead of hard-coding width.",
+      "counterpoint": "Query-aware ranking is not a label-free universal detector.",
+      "evidence": "6/6",
+      "interpretation": "visible query-aware ranking improves AP over width-only operation-stack ranking",
+      "mechanism": "query-aware operation-stack ranking"
+    },
+    {
+      "action": "Keep mappings first-class and task-scoped; compare against raw-action stacks.",
+      "counterpoint": "Mapping is not universally better than raw action/status stacks.",
+      "evidence": "2/6",
+      "interpretation": "mapping helps some tasks but hurts or is neutral on others",
+      "mechanism": "mapping/tagging before stacking"
+    },
+    {
+      "action": "Use leave-one-feature reports to keep helpful fields and remove misleading ones.",
+      "counterpoint": "Ablation-guided repair is post-hoc evidence, not a deployed oracle policy.",
+      "evidence": "4/6 tasks with critical feature evidence",
+      "interpretation": "feature ablations identify which visible fields drive localization",
+      "mechanism": "operation-level rank features"
+    },
+    {
+      "action": "Expose stack fields/depth as a configurable view rather than one fixed hierarchy.",
+      "counterpoint": "No single depth is best for AP, top-5 F1, recall, and work simultaneously.",
+      "evidence": "2/6 tasks prefer coarse AP; 6/6 reduce groups under coarse depth",
+      "interpretation": "depth changes accuracy and visible group count differently by task",
+      "mechanism": "stack depth"
+    },
+    {
+      "action": "Use global defaults and leave-task transfer as auditable candidate policies.",
+      "counterpoint": "Transfer is mixed and should remain an auditable policy choice.",
+      "evidence": "5/6",
+      "interpretation": "simple global/source-task visible policies often beat width",
+      "mechanism": "cross-task/global rank-policy transfer"
+    },
+    {
+      "action": "Keep fixed-session/span-tree views as drilldown baselines, not profiler abstractions.",
+      "counterpoint": "Operation stacks reduce group fragmentation on most tasks but do not dominate first-positive work.",
+      "evidence": "4/6",
+      "interpretation": "fixed sessions often find a first positive with less operation work",
+      "mechanism": "fixed-session drilldown"
+    }
+  ],
+  "network_access_required": false,
+  "non_claims": [
+    "no new datasets, dataset sync, dataset creation, or relabeling",
+    "no human or agent analyst productivity, accuracy, or time-to-answer claim",
+    "no automatic view selector or universal boundary detector",
+    "no claim that repaired rank policies are deployable without labels",
+    "no claim that operation stacks dominate fixed-session drilldown on first-positive work",
+    "no profiler abstraction beyond operation and operation stack"
+  ],
+  "primary_findings": [
+    "R335 turns scattered profiler results into six task-level actionability cards, one for each R320 task, without fetching, syncing, creating, or relabeling data.",
+    "All 6/6 cards contain a concrete optimization action; query-aware ranking improves AP over width on 6/6 cards.",
+    "Mechanism evidence is task-specific: mapping helps 2/6 cards and hurts 4/6, while feature ablations find critical features for 4/6 and misleading features for 2/6.",
+    "Stack depth is an explicit cost/accuracy knob: coarse depth reduces group count on 6/6 cards but is AP-preferred on only 2/6.",
+    "Fragmentation and work remain separate objectives: operation stacks reach 50% positives with fewer groups than fixed sessions on 5/6 cards and inspect fewer groups at 30% work on 5/6, while fixed-session drilldown has lower work-to-first-positive on 4/6."
+  ],
+  "profiler_abstractions": [
+    "operation",
+    "operation stack"
+  ],
+  "purpose": "merge existing localization, ablation, transfer, view-depth, and fragmentation evidence into task-level actionable profiler insights",
+  "reproducibility": {
+    "commit": "20b91de1d92ef0b3400b7ceb0e250cee0db0e9e1",
+    "elapsed_seconds": 0.0745
+  },
+  "run_id": "R335",
+  "schema": "agentsight.actionability-synthesis.v1",
+  "source_check": {
+    "status": "pass",
+    "tracked_clean_files": 14
+  },
+  "source_run_ids": [
+    "R320",
+    "R325",
+    "R326",
+    "R329",
+    "R332",
+    "R334"
+  ],
+  "source_status": {
+    "R320": "pass",
+    "R325": "pass",
+    "R326": "pass",
+    "R329": "pass",
+    "R332": "pass",
+    "R334": "pass"
+  },
+  "summary": {
+    "actionability_cards": 6,
+    "cards_where_coarse_preferred_by_ap": 2,
+    "cards_where_coarse_reduces_groups": 6,
+    "cards_where_fixed_session_has_lower_wtfp": 4,
+    "cards_where_operation_stack_inspects_fewer_groups_at_30pct_work_than_fixed": 5,
+    "cards_where_operation_stack_reaches_50pct_with_fewer_groups_than_fixed": 5,
+    "cards_with_critical_features": 4,
+    "cards_with_global_equal_ap_gain": 5,
+    "cards_with_misleading_features": 2,
+    "cards_with_negative_mapping_gain": 4,
+    "cards_with_optimization_action": 6,
+    "cards_with_positive_mapping_gain": 2,
+    "cards_with_ranker_ap_gain": 6,
+    "datasets": 4,
+    "median_fixed_session_wtfp_advantage": 0.0057,
+    "mixed_cards": 6,
+    "stable_cards": 0,
+    "tasks": 6
+  },
+  "task_cards": [
+    {
+      "actionability_status": "actionable_mixed",
+      "ap_preferred_stack_depth": "semantic",
+      "best_ap_policy": "operation_stack:query_aware",
+      "best_budget30_policy": "operation_stack:query_aware",
+      "best_top5_f1_policy": "dataset_native:query_aware",
+      "best_visible_top5_policy": "dataset_native:query_aware",
+      "best_wtfp_policy": "raw_action_stack:visible_risk",
+      "budget30_group_delta_vs_fixed": -4.0,
+      "budget30_recall_delta_vs_fixed": 0.0377,
+      "coarse_ap": 0.8174,
+      "coarse_group_reduction": 24.0,
+      "counterpoints": [
+        "fixed_session_lower_work_to_first_positive",
+        "default_operation_stack_not_best_top5_f1"
+      ],
+      "critical_features": [
+        "coarse:loop-like (delta_ap=-0.1363)",
+        "semantic:loop-like (delta_ap=-0.1183)"
+      ],
+      "dataset": "agent-reward-bench",
+      "evidence_tags": [
+        "ranker",
+        "mapping",
+        "feature",
+        "depth",
+        "transfer",
+        "fragmentation"
+      ],
+      "fixed_session_top5_recall": 0.2381,
+      "fixed_session_wtfp_advantage": 0.1646,
+      "flat_top5_work": 1.0,
+      "global_equal_best_delta_ap_vs_width": 0.1518,
+      "groups_to_50pct_delta_vs_fixed": -7.0,
+      "leave_task_transfer_selections": [
+        "coarse:source_equal_satraj_unsafe (delta_ap=0.0888)",
+        "semantic:source_equal_satraj_unsafe (delta_ap=0.0649)"
+      ],
+      "mapping_gain_top5_f1_vs_raw_action": 0.5731,
+      "misleading_features": [],
+      "operation_stack_ap": 0.8808,
+      "operation_stack_top5_recall": 0.6508,
+      "operation_stack_top5_work": 0.4938,
+      "optimization_action": "Keep repeat_signal in the stack, but add prevalence-aware ranking because looping positives are common.",
+      "query_aware_ap_gain_vs_width": 0.1154,
+      "query_family": "failure-looping",
+      "semantic_ap": 0.8808,
+      "task": "agentreward_looping",
+      "useful_stack_fields": "analysis_task,dataset,benchmark,phase,action,repeat_signal,status",
+      "width_ap": 0.7653
+    },
+    {
+      "actionability_status": "actionable_mixed",
+      "ap_preferred_stack_depth": "coarse",
+      "best_ap_policy": "fixed_session:width",
+      "best_budget30_policy": "fixed_session:width",
+      "best_top5_f1_policy": "fixed_session:width",
+      "best_visible_top5_policy": "fixed_session:width",
+      "best_wtfp_policy": "operation_stack:query_aware",
+      "budget30_group_delta_vs_fixed": 18.0,
+      "budget30_recall_delta_vs_fixed": 0.3812,
+      "coarse_ap": 0.4252,
+      "coarse_group_reduction": 24.0,
+      "counterpoints": [
+        "raw_action_or_baseline_stack_beats_mapping",
+        "default_operation_stack_not_best_top5_f1"
+      ],
+      "critical_features": [
+        "coarse:write-action (delta_ap=-0.0754)",
+        "semantic:write-action (delta_ap=-0.0824)"
+      ],
+      "dataset": "agent-reward-bench",
+      "evidence_tags": [
+        "ranker",
+        "mapping",
+        "feature",
+        "depth",
+        "transfer",
+        "fragmentation"
+      ],
+      "fixed_session_top5_recall": 0.0,
+      "fixed_session_wtfp_advantage": -0.2826,
+      "flat_top5_work": 1.0,
+      "global_equal_best_delta_ap_vs_width": -0.1271,
+      "groups_to_50pct_delta_vs_fixed": 10.0,
+      "leave_task_transfer_selections": [
+        "coarse:source_equal_satraj_unsafe (delta_ap=-0.0885)",
+        "semantic:source_equal_satraj_unsafe (delta_ap=-0.0586)"
+      ],
+      "mapping_gain_top5_f1_vs_raw_action": -0.2591,
+      "misleading_features": [],
+      "operation_stack_ap": 0.3979,
+      "operation_stack_top5_recall": 0.1139,
+      "operation_stack_top5_work": 0.1454,
+      "optimization_action": "Increase weight on write/input actions or use a deeper side-effect mapping before ranking.",
+      "query_aware_ap_gain_vs_width": 0.0318,
+      "query_family": "failure-side-effect",
+      "semantic_ap": 0.3947,
+      "task": "agentreward_side_effect",
+      "useful_stack_fields": "analysis_task,dataset,benchmark,phase,action,repeat_signal,status",
+      "width_ap": 0.3661
+    },
+    {
+      "actionability_status": "actionable_mixed",
+      "ap_preferred_stack_depth": "coarse",
+      "best_ap_policy": "dataset_native:query_aware",
+      "best_budget30_policy": "dataset_native:query_aware",
+      "best_top5_f1_policy": "operation_stack:query_aware",
+      "best_visible_top5_policy": "operation_stack:query_aware",
+      "best_wtfp_policy": "fixed_session:query_aware",
+      "budget30_group_delta_vs_fixed": -51.0,
+      "budget30_recall_delta_vs_fixed": -0.0274,
+      "coarse_ap": 0.6081,
+      "coarse_group_reduction": 120.0,
+      "counterpoints": [
+        "fixed_session_lower_work_to_first_positive",
+        "misleading_visible_feature"
+      ],
+      "critical_features": [
+        "coarse:success (delta_ap=-0.3948)",
+        "semantic:success (delta_ap=-0.2682)"
+      ],
+      "dataset": "satraj-os-safety",
+      "evidence_tags": [
+        "ranker",
+        "mapping",
+        "feature",
+        "depth",
+        "transfer",
+        "fragmentation"
+      ],
+      "fixed_session_top5_recall": 0.0579,
+      "fixed_session_wtfp_advantage": 0.0075,
+      "flat_top5_work": 1.0,
+      "global_equal_best_delta_ap_vs_width": 0.0343,
+      "groups_to_50pct_delta_vs_fixed": -18.0,
+      "leave_task_transfer_selections": [
+        "coarse:global_equal (delta_ap=0.0343)",
+        "semantic:source_equal_agentnet_incorrect_step (delta_ap=-0.0123)"
+      ],
+      "mapping_gain_top5_f1_vs_raw_action": 0.0261,
+      "misleading_features": [
+        "semantic:loop-like (delta_ap=0.1734)"
+      ],
+      "operation_stack_ap": 0.4875,
+      "operation_stack_top5_recall": 0.2621,
+      "operation_stack_top5_work": 0.042,
+      "optimization_action": "Use environment + phase + action stack fields; prioritize risky environments and write actions.",
+      "query_aware_ap_gain_vs_width": 0.3872,
+      "query_family": "safety",
+      "semantic_ap": 0.4772,
+      "task": "satraj_unsafe",
+      "useful_stack_fields": "analysis_task,dataset,environment,phase,action,repeat_signal,status",
+      "width_ap": 0.1003
+    },
+    {
+      "actionability_status": "actionable_mixed",
+      "ap_preferred_stack_depth": "semantic",
+      "best_ap_policy": "operation_stack:query_aware",
+      "best_budget30_policy": "operation_stack:query_aware",
+      "best_top5_f1_policy": "raw_action_stack:width",
+      "best_visible_top5_policy": "raw_action_stack:width",
+      "best_wtfp_policy": "operation_stack:query_aware",
+      "budget30_group_delta_vs_fixed": -118.0,
+      "budget30_recall_delta_vs_fixed": 0.032,
+      "coarse_ap": 0.077,
+      "coarse_group_reduction": 246.0,
+      "counterpoints": [
+        "raw_action_or_baseline_stack_beats_mapping",
+        "default_operation_stack_not_best_top5_f1"
+      ],
+      "critical_features": [],
+      "dataset": "agentnet",
+      "evidence_tags": [
+        "ranker",
+        "depth",
+        "transfer",
+        "fragmentation"
+      ],
+      "fixed_session_top5_recall": 0.0126,
+      "fixed_session_wtfp_advantage": -0.001,
+      "flat_top5_work": 1.0,
+      "global_equal_best_delta_ap_vs_width": 0.0305,
+      "groups_to_50pct_delta_vs_fixed": -140.0,
+      "leave_task_transfer_selections": [
+        "coarse:source_equal_satraj_unsafe (delta_ap=0.0159)",
+        "semantic:source_equal_satraj_unsafe (delta_ap=0.0254)"
+      ],
+      "mapping_gain_top5_f1_vs_raw_action": -0.0121,
+      "misleading_features": [],
+      "operation_stack_ap": 0.0886,
+      "operation_stack_top5_recall": 0.0034,
+      "operation_stack_top5_work": 0.0014,
+      "optimization_action": "Use desktop environment + phase + repeat/action fields, then drill into fixed sessions for examples.",
+      "query_aware_ap_gain_vs_width": 0.0199,
+      "query_family": "step-quality",
+      "semantic_ap": 0.0847,
+      "task": "agentnet_incorrect_step",
+      "useful_stack_fields": "analysis_task,dataset,environment,phase,action,repeat_signal,status",
+      "width_ap": 0.0687
+    },
+    {
+      "actionability_status": "actionable_mixed",
+      "ap_preferred_stack_depth": "semantic",
+      "best_ap_policy": "operation_stack:query_aware",
+      "best_budget30_policy": "operation_stack:query_aware",
+      "best_top5_f1_policy": "raw_action_stack:width",
+      "best_visible_top5_policy": "raw_action_stack:width",
+      "best_wtfp_policy": "operation_stack:visible_risk",
+      "budget30_group_delta_vs_fixed": -80.0,
+      "budget30_recall_delta_vs_fixed": 0.0231,
+      "coarse_ap": 0.0772,
+      "coarse_group_reduction": 218.0,
+      "counterpoints": [
+        "fixed_session_lower_work_to_first_positive",
+        "raw_action_or_baseline_stack_beats_mapping",
+        "default_operation_stack_not_best_top5_f1"
+      ],
+      "critical_features": [
+        "semantic:failure (delta_ap=-0.0008)"
+      ],
+      "dataset": "agentnet",
+      "evidence_tags": [
+        "ranker",
+        "mapping",
+        "feature",
+        "depth",
+        "transfer",
+        "fragmentation"
+      ],
+      "fixed_session_top5_recall": 0.0123,
+      "fixed_session_wtfp_advantage": 0.0038,
+      "flat_top5_work": 1.0,
+      "global_equal_best_delta_ap_vs_width": 0.0081,
+      "groups_to_50pct_delta_vs_fixed": -115.0,
+      "leave_task_transfer_selections": [
+        "coarse:source_equal_satraj_unsafe (delta_ap=0.0024)",
+        "semantic:source_equal_satraj_unsafe (delta_ap=0.0023)"
+      ],
+      "mapping_gain_top5_f1_vs_raw_action": -0.049,
+      "misleading_features": [],
+      "operation_stack_ap": 0.0875,
+      "operation_stack_top5_recall": 0.0177,
+      "operation_stack_top5_work": 0.0089,
+      "optimization_action": "Use desktop environment + phase + repeat/action fields, then drill into fixed sessions for examples.",
+      "query_aware_ap_gain_vs_width": 0.0012,
+      "query_family": "step-quality",
+      "semantic_ap": 0.0874,
+      "task": "agentnet_redundant_step",
+      "useful_stack_fields": "analysis_task,dataset,environment,phase,action,repeat_signal,status",
+      "width_ap": 0.0863
+    },
+    {
+      "actionability_status": "actionable_mixed",
+      "ap_preferred_stack_depth": "semantic",
+      "best_ap_policy": "fixed_session:query_aware",
+      "best_budget30_policy": "operation_stack:width",
+      "best_top5_f1_policy": "flat:width",
+      "best_visible_top5_policy": "flat:width",
+      "best_wtfp_policy": "fixed_session:visible_risk",
+      "budget30_group_delta_vs_fixed": -57.0,
+      "budget30_recall_delta_vs_fixed": -0.0537,
+      "coarse_ap": 0.186,
+      "coarse_group_reduction": 141.0,
+      "counterpoints": [
+        "fixed_session_lower_work_to_first_positive",
+        "raw_action_or_baseline_stack_beats_mapping",
+        "misleading_visible_feature",
+        "default_operation_stack_not_best_top5_f1"
+      ],
+      "critical_features": [],
+      "dataset": "osworld-human",
+      "evidence_tags": [
+        "ranker",
+        "depth",
+        "transfer",
+        "fragmentation"
+      ],
+      "fixed_session_top5_recall": 0.034,
+      "fixed_session_wtfp_advantage": 0.1261,
+      "flat_top5_work": 1.0,
+      "global_equal_best_delta_ap_vs_width": 0.0128,
+      "groups_to_50pct_delta_vs_fixed": -45.0,
+      "leave_task_transfer_selections": [
+        "coarse:source_equal_satraj_unsafe (delta_ap=-0.0048)",
+        "semantic:source_equal_satraj_unsafe (delta_ap=0.0001)"
+      ],
+      "mapping_gain_top5_f1_vs_raw_action": -0.0058,
+      "misleading_features": [
+        "coarse:input-phase (delta_ap=0.0225)",
+        "semantic:input-phase (delta_ap=-0.0136)"
+      ],
+      "operation_stack_ap": 0.2254,
+      "operation_stack_top5_recall": 0.3874,
+      "operation_stack_top5_work": 0.4074,
+      "optimization_action": "Use group-depth or boundary-derived fields for higher recall; action-depth alone fragments starts.",
+      "query_aware_ap_gain_vs_width": 0.0037,
+      "query_family": "human-boundary",
+      "semantic_ap": 0.2214,
+      "task": "osworld_group_start",
+      "useful_stack_fields": "analysis_task,dataset,app,phase,action,repeat_signal,status",
+      "width_ap": 0.2217
+    }
+  ]
+}

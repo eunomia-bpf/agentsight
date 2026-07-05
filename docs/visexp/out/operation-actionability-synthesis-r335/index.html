@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>R335 Actionability Synthesis</title></head>
+<body>
+<h1>R335 Actionability Synthesis</h1>
+<p>Reuses tracked R320/R325/R326/R329/R332/R334 artifacts; no dataset sync, creation, or relabeling.</p>
+<h2>Primary Findings</h2>
+<ul>
+<li>R335 turns scattered profiler results into six task-level actionability cards, one for each R320 task, without fetching, syncing, creating, or relabeling data.</li>
+<li>All 6/6 cards contain a concrete optimization action; query-aware ranking improves AP over width on 6/6 cards.</li>
+<li>Mechanism evidence is task-specific: mapping helps 2/6 cards and hurts 4/6, while feature ablations find critical features for 4/6 and misleading features for 2/6.</li>
+<li>Stack depth is an explicit cost/accuracy knob: coarse depth reduces group count on 6/6 cards but is AP-preferred on only 2/6.</li>
+<li>Fragmentation and work remain separate objectives: operation stacks reach 50% positives with fewer groups than fixed sessions on 5/6 cards and inspect fewer groups at 30% work on 5/6, while fixed-session drilldown has lower work-to-first-positive on 4/6.</li>
+</ul>
+<h2>Mechanism Ledger</h2>
+<ul>
+<li><strong>query-aware operation-stack ranking</strong>: 6/6. visible query-aware ranking improves AP over width-only operation-stack ranking Action: Expose ranker policy as a query-time knob instead of hard-coding width. Counterpoint: Query-aware ranking is not a label-free universal detector.</li>
+<li><strong>mapping/tagging before stacking</strong>: 2/6. mapping helps some tasks but hurts or is neutral on others Action: Keep mappings first-class and task-scoped; compare against raw-action stacks. Counterpoint: Mapping is not universally better than raw action/status stacks.</li>
+<li><strong>operation-level rank features</strong>: 4/6 tasks with critical feature evidence. feature ablations identify which visible fields drive localization Action: Use leave-one-feature reports to keep helpful fields and remove misleading ones. Counterpoint: Ablation-guided repair is post-hoc evidence, not a deployed oracle policy.</li>
+<li><strong>stack depth</strong>: 2/6 tasks prefer coarse AP; 6/6 reduce groups under coarse depth. depth changes accuracy and visible group count differently by task Action: Expose stack fields/depth as a configurable view rather than one fixed hierarchy. Counterpoint: No single depth is best for AP, top-5 F1, recall, and work simultaneously.</li>
+<li><strong>cross-task/global rank-policy transfer</strong>: 5/6. simple global/source-task visible policies often beat width Action: Use global defaults and leave-task transfer as auditable candidate policies. Counterpoint: Transfer is mixed and should remain an auditable policy choice.</li>
+<li><strong>fixed-session drilldown</strong>: 4/6. fixed sessions often find a first positive with less operation work Action: Keep fixed-session/span-tree views as drilldown baselines, not profiler abstractions. Counterpoint: Operation stacks reduce group fragmentation on most tasks but do not dominate first-positive work.</li>
+</ul>
+</body>
+</html>
