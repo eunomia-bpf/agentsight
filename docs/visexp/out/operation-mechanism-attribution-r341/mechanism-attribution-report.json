@@ -1,0 +1,374 @@
+{
+  "commit": "084f7ab504e54c543d83a5aa9fe576fb616fe769",
+  "created_unix": 1783284345.9046,
+  "input_policy": {
+    "dataset_creation": "none",
+    "dataset_relabeling": "none",
+    "dataset_sync": "none",
+    "hidden_label_use": "R341 reads already-scored visible-policy artifacts; it does not form new rankings",
+    "network_access_required": false
+  },
+  "non_claims": [
+    "no new datasets, dataset sync, dataset creation, or relabeling",
+    "no human or agent analyst productivity, accuracy, or time-to-answer claim",
+    "no automatic universal policy selector",
+    "no operation-stack dominance on every objective or cost metric",
+    "no profiler abstraction beyond operation and operation stack"
+  ],
+  "primary_findings": [
+    "R341 audits 36 objective-task recommendations and 96 held-out transfer decisions using only tracked R320/R335/R336/R340 artifacts.",
+    "All 36/36 objective rows have a concrete optimization action tied to visible mechanism labels; the mechanism labels cover critical_rank_features=4, fixed_session_first_positive_counterpoint=4, mapping_helps=2, mapping_hurts=2, misleading_feature_risk=2, query_aware_ranker=3, raw_action_or_baseline_counterpoint=4, stack_depth_tradeoff=6, transfer_policy_signal=6.",
+    "The best visible policy is not the default operation-stack view on 27/36 objective rows, so the actionable claim is knob selection and counterpoint exposure rather than a universal default hierarchy.",
+    "Transfer misses are classifiable rather than opaque: 34/96 held-out decisions are outside tolerance, with classes dataset_native_counterpoint=6, fixed_session_counterpoint=6, operation_stack_overselected=1, ranker_mismatch_same_view=2, raw_action_counterpoint=1, selector_missed_good_default=14, view_mismatch_operation_stack_best=4.",
+    "32/34 transfer misses change view relative to the held-out best and 26/34 change ranker, identifying whether to adjust stack shape or ranking policy."
+  ],
+  "profiler_abstractions": [
+    "operation",
+    "operation stack"
+  ],
+  "reproducibility": {
+    "commit": "084f7ab504e54c543d83a5aa9fe576fb616fe769",
+    "elapsed_seconds": 0.0445
+  },
+  "run_id": "R341",
+  "schema": "agentsight.operation-mechanism-attribution.v1",
+  "source_paths": [
+    "docs/visexp/out/operation-profile-accuracy-r320/profile-accuracy-report.json",
+    "docs/visexp/out/operation-actionability-synthesis-r335/actionability-synthesis-report.json",
+    "docs/visexp/out/operation-actionability-synthesis-r335/task-actionability-cards.csv",
+    "docs/visexp/out/operation-actionability-selection-r336/actionability-selection-report.json",
+    "docs/visexp/out/operation-actionability-selection-r336/objective-recommendations.csv",
+    "docs/visexp/out/operation-actionability-selection-r336/policy-objective-summary.csv",
+    "docs/visexp/out/operation-policy-transfer-r340/policy-transfer-report.json",
+    "docs/visexp/out/operation-policy-transfer-r340/transfer-decisions.csv"
+  ],
+  "source_run_ids": [
+    "R320",
+    "R335",
+    "R336",
+    "R340"
+  ],
+  "source_status": {
+    "docs/visexp/out/operation-actionability-selection-r336/actionability-selection-report.json": "tracked_clean",
+    "docs/visexp/out/operation-actionability-selection-r336/objective-recommendations.csv": "tracked_clean",
+    "docs/visexp/out/operation-actionability-selection-r336/policy-objective-summary.csv": "tracked_clean",
+    "docs/visexp/out/operation-actionability-synthesis-r335/actionability-synthesis-report.json": "tracked_clean",
+    "docs/visexp/out/operation-actionability-synthesis-r335/task-actionability-cards.csv": "tracked_clean",
+    "docs/visexp/out/operation-policy-transfer-r340/policy-transfer-report.json": "tracked_clean",
+    "docs/visexp/out/operation-policy-transfer-r340/transfer-decisions.csv": "tracked_clean",
+    "docs/visexp/out/operation-profile-accuracy-r320/profile-accuracy-report.json": "tracked_clean"
+  },
+  "source_totals": {
+    "R320": {
+      "datasets": 4,
+      "group_views": 36,
+      "policy_scores": 144,
+      "positive_operations": 3699,
+      "task_operations": 34539,
+      "tasks": 6
+    },
+    "R335": {
+      "actionability_cards": 6,
+      "cards_where_coarse_preferred_by_ap": 2,
+      "cards_where_coarse_reduces_groups": 6,
+      "cards_where_fixed_session_has_lower_wtfp": 4,
+      "cards_where_operation_stack_inspects_fewer_groups_at_30pct_work_than_fixed": 5,
+      "cards_where_operation_stack_reaches_50pct_with_fewer_groups_than_fixed": 5,
+      "cards_with_critical_features": 4,
+      "cards_with_global_equal_ap_gain": 5,
+      "cards_with_misleading_features": 2,
+      "cards_with_negative_mapping_gain": 4,
+      "cards_with_optimization_action": 6,
+      "cards_with_positive_mapping_gain": 2,
+      "cards_with_ranker_ap_gain": 6,
+      "datasets": 4,
+      "median_fixed_session_wtfp_advantage": 0.0057,
+      "mixed_cards": 6,
+      "stable_cards": 0,
+      "tasks": 6
+    },
+    "R336": {
+      "datasets": 4,
+      "default_vs_baselines": {
+        "budget30_recall_higher_than_flat": 6,
+        "groups_lower_than_fixed": 4,
+        "groups_to_50pct_lower_than_fixed": 5,
+        "top5_recall_higher_than_fixed": 5,
+        "top5_work_lower_than_flat": 6,
+        "work_to_first_positive_lower_than_fixed": 2
+      },
+      "objective_best_policy_counts": {
+        "budget30_recall": {
+          "dataset_native:query_aware": 1,
+          "fixed_session:width": 1,
+          "operation_stack:query_aware": 3,
+          "operation_stack:width": 1
+        },
+        "first_positive_work": {
+          "fixed_session:query_aware": 1,
+          "fixed_session:visible_risk": 1,
+          "operation_stack:query_aware": 2,
+          "operation_stack:visible_risk": 1,
+          "raw_action_stack:visible_risk": 1
+        },
+        "groups_to_50pct": {
+          "dataset_native:query_aware": 1,
+          "dataset_native:visible_risk": 1,
+          "fixed_session:width": 1,
+          "raw_action_stack:width": 3
+        },
+        "ranking_fidelity_ap": {
+          "dataset_native:query_aware": 1,
+          "fixed_session:query_aware": 1,
+          "fixed_session:width": 1,
+          "operation_stack:query_aware": 3
+        },
+        "top5_localization_f1": {
+          "dataset_native:query_aware": 1,
+          "fixed_session:width": 1,
+          "flat:width": 1,
+          "operation_stack:query_aware": 1,
+          "raw_action_stack:width": 2
+        },
+        "total_group_fragmentation": {
+          "flat:width": 6
+        }
+      },
+      "objective_best_view_counts": {
+        "budget30_recall": {
+          "dataset_native": 1,
+          "fixed_session": 1,
+          "operation_stack": 4
+        },
+        "first_positive_work": {
+          "fixed_session": 2,
+          "operation_stack": 3,
+          "raw_action_stack": 1
+        },
+        "groups_to_50pct": {
+          "dataset_native": 2,
+          "fixed_session": 1,
+          "raw_action_stack": 3
+        },
+        "ranking_fidelity_ap": {
+          "dataset_native": 1,
+          "fixed_session": 2,
+          "operation_stack": 3
+        },
+        "top5_localization_f1": {
+          "dataset_native": 1,
+          "fixed_session": 1,
+          "flat": 1,
+          "operation_stack": 1,
+          "raw_action_stack": 2
+        },
+        "total_group_fragmentation": {
+          "flat": 6
+        }
+      },
+      "objective_rows": 36,
+      "objectives": 6,
+      "operation_stack_query_aware_best_counts": {
+        "budget30_recall": 3,
+        "first_positive_work": 2,
+        "groups_to_50pct": 0,
+        "ranking_fidelity_ap": 3,
+        "top5_localization_f1": 1,
+        "total_group_fragmentation": 0
+      },
+      "pareto_frontier_task_counts": {
+        "dataset_native:query_aware": 6,
+        "fixed_session:query_aware": 5,
+        "flat:width": 6,
+        "operation_stack:query_aware": 6,
+        "operation_stack:width": 3,
+        "raw_action_stack:query_aware": 6
+      },
+      "policy_summary_rows": 36,
+      "tasks": 6,
+      "tasks_with_multiple_best_policies_across_objectives": 6,
+      "visible_policies": 15,
+      "visible_policy_rows": 90
+    },
+    "R340": {
+      "default_selected_decisions": 7,
+      "default_within_tolerance_decisions": 34,
+      "exact_best_decisions": 31,
+      "fixed_session_selected_decisions": 7,
+      "leave_dataset": {
+        "beats_default": 27,
+        "beats_fixed": 33,
+        "beats_flat": 20,
+        "beats_width": 35,
+        "dataset_native_selected": 9,
+        "decisions": 48,
+        "default_within_tolerance": 17,
+        "exact_best": 15,
+        "fixed_session_selected": 4,
+        "flat_selected": 22,
+        "median_delta_vs_best": -0.0001,
+        "median_target_rank": 4.0,
+        "operation_stack_selected": 7,
+        "protocol": "leave_dataset",
+        "raw_action_selected": 6,
+        "within_tolerance": 30
+      },
+      "leave_task": {
+        "beats_default": 27,
+        "beats_fixed": 36,
+        "beats_flat": 21,
+        "beats_width": 37,
+        "dataset_native_selected": 6,
+        "decisions": 48,
+        "default_within_tolerance": 17,
+        "exact_best": 16,
+        "fixed_session_selected": 3,
+        "flat_selected": 22,
+        "median_delta_vs_best": 0.0,
+        "median_target_rank": 4.0,
+        "operation_stack_selected": 9,
+        "protocol": "leave_task",
+        "raw_action_selected": 8,
+        "within_tolerance": 32
+      },
+      "must_not_claim": [
+        "target hidden labels are used to select the transferred policy",
+        "R340 proves an automatic universal selector",
+        "operation-stack query-aware is the best policy for every objective",
+        "task-specific actionability cards or fixed-session counterpoints are unnecessary"
+      ],
+      "objectives": 8,
+      "operation_stack_selected_decisions": 16,
+      "protocols": [
+        "leave_task",
+        "leave_dataset"
+      ],
+      "scope_guardrails": [
+        "does not use target hidden labels for policy selection",
+        "does not prove an automatic universal selector",
+        "does not make operation-stack query-aware the best policy for every objective",
+        "does not replace task-specific actionability cards or fixed-session counterpoints"
+      ],
+      "selected_beats_fixed_decisions": 69,
+      "selected_beats_flat_decisions": 41,
+      "selected_beats_width_decisions": 72,
+      "supported_wording": "Selecting visible view/ranker policies from non-target tasks gives an auditable transfer signal: it often stays near the best visible held-out policy, but exact best policy selection remains task- and objective-specific.",
+      "tasks": 6,
+      "total_decisions": 96,
+      "visible_policies": 15,
+      "within_tolerance_decisions": 62
+    }
+  },
+  "summary": {
+    "actionable_objective_rows": 36,
+    "default_best_objective_rows": 9,
+    "high_regret_transfer_misses": 29,
+    "mechanism_task_counts": {
+      "critical_rank_features": 4,
+      "fixed_session_first_positive_counterpoint": 4,
+      "mapping_helps": 2,
+      "mapping_hurts": 2,
+      "misleading_feature_risk": 2,
+      "query_aware_ranker": 3,
+      "raw_action_or_baseline_counterpoint": 4,
+      "stack_depth_tradeoff": 6,
+      "transfer_policy_signal": 6
+    },
+    "median_default_regret_across_objectives": 0.1447,
+    "nondefault_best_objective_rows": 27,
+    "objective_best_policy_classes": {
+      "dataset_native_hierarchy": 5,
+      "default_operation_stack": 9,
+      "fixed_session_drilldown": 7,
+      "flat_summary_counterpoint": 7,
+      "operation_stack_variant": 1,
+      "operation_stack_width_counterpoint": 1,
+      "raw_action_stack_counterpoint": 6
+    },
+    "objective_rows": 36,
+    "objective_tradeoff_classes": {
+      "dataset_native_boundary_or_task_hierarchy": 5,
+      "default_operation_stack_suffices": 9,
+      "fixed_session_drilldown_counterpoint": 5,
+      "fixed_session_first_positive_counterpoint": 2,
+      "flat_summary_counterpoint": 7,
+      "operation_stack_ranker_or_depth_tuning": 2,
+      "raw_action_mapping_counterpoint": 6
+    },
+    "overall": "pass",
+    "task_mechanism_labels": {
+      "agentnet_incorrect_step": [
+        "stack_depth_tradeoff",
+        "transfer_policy_signal",
+        "raw_action_or_baseline_counterpoint"
+      ],
+      "agentnet_redundant_step": [
+        "mapping_hurts",
+        "critical_rank_features",
+        "stack_depth_tradeoff",
+        "transfer_policy_signal",
+        "fixed_session_first_positive_counterpoint",
+        "raw_action_or_baseline_counterpoint"
+      ],
+      "agentreward_looping": [
+        "query_aware_ranker",
+        "mapping_helps",
+        "critical_rank_features",
+        "stack_depth_tradeoff",
+        "transfer_policy_signal",
+        "fixed_session_first_positive_counterpoint"
+      ],
+      "agentreward_side_effect": [
+        "query_aware_ranker",
+        "mapping_hurts",
+        "critical_rank_features",
+        "stack_depth_tradeoff",
+        "transfer_policy_signal",
+        "raw_action_or_baseline_counterpoint"
+      ],
+      "osworld_group_start": [
+        "misleading_feature_risk",
+        "stack_depth_tradeoff",
+        "transfer_policy_signal",
+        "fixed_session_first_positive_counterpoint",
+        "raw_action_or_baseline_counterpoint"
+      ],
+      "satraj_unsafe": [
+        "query_aware_ranker",
+        "mapping_helps",
+        "critical_rank_features",
+        "misleading_feature_risk",
+        "stack_depth_tradeoff",
+        "transfer_policy_signal",
+        "fixed_session_first_positive_counterpoint"
+      ]
+    },
+    "tasks": 6,
+    "tasks_with_three_or_more_mechanism_labels": 6,
+    "transfer_decisions": 96,
+    "transfer_miss_classes": {
+      "dataset_native_counterpoint": 6,
+      "fixed_session_counterpoint": 6,
+      "operation_stack_overselected": 1,
+      "ranker_mismatch_same_view": 2,
+      "raw_action_counterpoint": 1,
+      "selector_missed_good_default": 14,
+      "view_mismatch_operation_stack_best": 4
+    },
+    "transfer_misses": 34,
+    "transfer_misses_where_default_was_within_tolerance": 14,
+    "transfer_misses_with_ranker_change": 26,
+    "transfer_misses_with_view_change": 32,
+    "transfer_outcome_classes": {
+      "dataset_native_counterpoint": 6,
+      "exact_transfer": 31,
+      "fixed_session_counterpoint": 6,
+      "near_best_transfer": 31,
+      "operation_stack_overselected": 1,
+      "ranker_mismatch_same_view": 2,
+      "raw_action_counterpoint": 1,
+      "selector_missed_good_default": 14,
+      "view_mismatch_operation_stack_best": 4
+    }
+  }
+}

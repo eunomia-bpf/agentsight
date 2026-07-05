@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>R341 Operation Mechanism Attribution</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 32px; line-height: 1.45; color: #24292f; }
+    table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 13px; }
+    th, td { border: 1px solid #d0d7de; padding: 6px 8px; text-align: left; vertical-align: top; }
+    th { background: #f6f8fa; }
+    code { background: #f6f8fa; padding: 1px 4px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>R341 Operation Mechanism Attribution</h1>
+  <p>This audit reuses tracked profiler results and classifies objective-level mechanisms plus held-out transfer misses.</p>
+  <h2>Primary Findings</h2>
+  <ul><li>R341 audits 36 objective-task recommendations and 96 held-out transfer decisions using only tracked R320/R335/R336/R340 artifacts.</li><li>All 36/36 objective rows have a concrete optimization action tied to visible mechanism labels; the mechanism labels cover critical_rank_features=4, fixed_session_first_positive_counterpoint=4, mapping_helps=2, mapping_hurts=2, misleading_feature_risk=2, query_aware_ranker=3, raw_action_or_baseline_counterpoint=4, stack_depth_tradeoff=6, transfer_policy_signal=6.</li><li>The best visible policy is not the default operation-stack view on 27/36 objective rows, so the actionable claim is knob selection and counterpoint exposure rather than a universal default hierarchy.</li><li>Transfer misses are classifiable rather than opaque: 34/96 held-out decisions are outside tolerance, with classes dataset_native_counterpoint=6, fixed_session_counterpoint=6, operation_stack_overselected=1, ranker_mismatch_same_view=2, raw_action_counterpoint=1, selector_missed_good_default=14, view_mismatch_operation_stack_best=4.</li><li>32/34 transfer misses change view relative to the held-out best and 26/34 change ranker, identifying whether to adjust stack shape or ranking policy.</li></ul>
+  <h2>Summary</h2>
+  <table>
+    <tr><th>Objective rows</th><td>36</td></tr>
+    <tr><th>Actionable objective rows</th><td>36/36</td></tr>
+    <tr><th>Non-default best objective rows</th><td>27/36</td></tr>
+    <tr><th>Transfer misses</th><td>34/96</td></tr>
+  </table>
+  <h2>Objective Tradeoff Classes</h2>
+  <table><tr><th>Class</th><th>Count</th></tr><tr><td>dataset_native_boundary_or_task_hierarchy</td><td>5</td></tr><tr><td>default_operation_stack_suffices</td><td>9</td></tr><tr><td>fixed_session_drilldown_counterpoint</td><td>5</td></tr><tr><td>fixed_session_first_positive_counterpoint</td><td>2</td></tr><tr><td>flat_summary_counterpoint</td><td>7</td></tr><tr><td>operation_stack_ranker_or_depth_tuning</td><td>2</td></tr><tr><td>raw_action_mapping_counterpoint</td><td>6</td></tr></table>
+  <h2>Transfer Miss Classes</h2>
+  <table><tr><th>Class</th><th>Count</th></tr><tr><td>dataset_native_counterpoint</td><td>6</td></tr><tr><td>fixed_session_counterpoint</td><td>6</td></tr><tr><td>operation_stack_overselected</td><td>1</td></tr><tr><td>ranker_mismatch_same_view</td><td>2</td></tr><tr><td>raw_action_counterpoint</td><td>1</td></tr><tr><td>selector_missed_good_default</td><td>14</td></tr><tr><td>view_mismatch_operation_stack_best</td><td>4</td></tr></table>
+</body>
+</html>
