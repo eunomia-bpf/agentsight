@@ -29,6 +29,7 @@ tool、action、human group、safety、looping 或 step quality 等不同深度�
 
 R332 补强 C2/C5 的边界：同一批 R320 operations 上，best visible view 随任务和指标变化，因此支持 configurable view/depth/ranker surface；它不支持固定 hierarchy、自动 view selector 或第三个 profiler 抽象。
 R333 补强 C5 的 inspection-cost 证据：同一批 operation 输入上，operation-stack query-aware 在 20%/30% budget 下取得更高 median recall，同时保留 fixed-session first-positive 反例，因此 claim 仍是 tradeoff 而不是 dominance。
+R334 补强 C5 的 fragmentation 证据：同一批 R320/R333 artifacts 上，operation-stack query-aware 在 5/6 tasks 上用更少 ranked groups 覆盖 50% positives，并在同一 30% work budget 下用更少 groups；但 work-to-first-positive 更低仍只有 2/6，因此它支持 fixed-session fragmentation reduction，不支持 work dominance。
 
 ## Best Dataset Families
 
@@ -96,6 +97,7 @@ R333 补强 C5 的 inspection-cost 证据：同一批 operation 输入上，oper
 | R331 | R320 label-permutation negative-control audit | 读取 tracked/clean R320 report/CSV 和同一 4 个 source operation JSONL；不重新 profiling、不下载或创建数据；对 6 个 task families 的 5 个 visible policies 固定 group/ranking order，并把同一任务的 hidden positives 随机重分配到同样大小的 groups；2,000 reps、seed 331。 | Operation-stack query-aware AP 在 6/6 tasks 超过 95% permutation null，median observed-minus-null AP 为 0.0759；30% budget recall 在 5/6 tasks 超过 null，median delta 为 0.0904。Top-5 precision 只有 3/6 tasks 超过 null，work-to-first-positive 为 0/6。Width-only operation-stack AP 为 5/6，fixed-session 和 raw-action AP 都为 6/6，说明 baselines 有真实 signal，不是 strawman。该结果支持 prevalence/group-size negative control 和 mechanism isolation，不支持所有 hot-group 指标、label-free ranker、human utility 或 single-view dominance。 |
 | R332 | R320 view/depth task-fit audit | 读取 tracked/clean R320 `profile-accuracy-report.json` 和 `policy-scores.csv`；不重新 profiling、不下载或创建数据；只比较 visible policies，指标为 AP、top-5 F1、30% budget recall 和 work-to-first-positive。 | Best visible AP split 为 operation-stack 3/6、fixed-session 2/6、dataset-native 1/6；best top-5 F1 split 为 raw-action 2/6、dataset-native/fixed-session/flat/operation-stack 各 1/6。Operation-stack query-aware 是 AP 3/6、budget30 recall 3/6、top-5 F1 1/6、WTFP 2/6 tasks 的 best policy。Operation-stack 相对 fixed-session query-aware 在 4/6 tasks 上 group 更少，median group ratio 0.5543。Leave-task source selection 的 AP/F1 exact-best 均为 0/6。该结果支持 task-aware view/depth knob 和 configurable profiler surface，不支持 single hierarchy dominance、automatic view selector、human utility 或第三个 profiler 抽象。 |
 | R333 | R320 inspection-efficiency frontier | 复用 R320/R300 scorer 和 tracked operation JSONL 本地重算 top-k/work-budget inspection curves；不下载、不同步、不创建数据集；hidden labels 只在 visible groups/rankings 形成后用于 scoring。 | 6 tasks / 4 datasets / 144 scored policy rows / 90 visible policy-task scores / 15 visible policy names / 810 visible inspection points / 252 task-policy curve rows。30% inspected-work 内，operation-stack query-aware median recall 为 0.3900，flat/fixed-session/dataset-native/raw-action 分别为 0、0.3559、0.3377、0.3325；20% work 内为 0.2763 vs fixed-session 0.2422。相对 flat width，operation-stack query-aware 在 6/6 tasks 上 top-5 work 更低并在 30% budget 下有正召回；相对 fixed-session query-aware，top-5 recall 更高 5/6、groups 更少 4/6，但 WTFP 更低只有 2/6；相对 operation-stack width，AP 提升 6/6、budget30 recall 提升 5/6。该结果支持 inspection-cost/fragmentation tradeoff，不支持 human utility、single-view dominance、automatic selector 或 live overhead。 |
+| R334 | R320/R333 fragmentation tradeoff audit | 读取 tracked/clean R320 policy scores、R333 inspection curves 和同一 source operation JSONL；不下载、不同步、不创建、不重标数据集；只比较 visible policies，hidden labels 已在 R320/R333 visible ranking 后用于 scoring。 | 6 tasks / 4 datasets / 34,539 operations / 3,699 positives；operation-stack query-aware 相对 fixed-session query-aware 在 4/6 tasks 上减少 total groups 和 positive groups，在 5/6 tasks 上用更少 ranked groups 覆盖 50% positives，median groups-to-50% delta 为 -31.5；同一 30% inspected-work budget 下，在 5/6 tasks 上检查更少 groups，median group delta 为 -54.0，median recall delta 为 0.0275。反例同样保留：work-to-50%-recall 更低只有 1/6 tasks，top-5 work 更低 2/6，WTFP 更低 2/6。该结果支持 fixed-session fragmentation reduction 和 budgeted group-efficiency，不支持 work dominance、human utility、automatic selector 或第三个抽象。 |
 
 ## Paper-Ready Wording
 
@@ -195,6 +197,11 @@ R333 补强 C5 的 inspection-cost 证据：同一批 operation 输入上，oper
 > R333 应作为 cost-curve 图/表写入：在固定检查预算内比较 recall，而不是只报告 top-k。
 > 它说明 operation-stack query-aware 在 30% work 内给出最强 median recall，但不是
 > first-positive 最低成本视图。
+> R334 应作为 fragmentation 图/表写入：相对 fixed-session query-aware，
+> operation-stack query-aware 在 5/6 tasks 上用更少 ranked groups 覆盖 50%
+> positives，并在同一 30% work budget 下用更少 groups；但 work-to-first-positive
+> 更低仍只有 2/6 tasks。因此本文的 fixed-session claim 是 fragmentation reduction，
+> 不是 operation-work dominance。
 > 因此论文应该写成 configurable inspectability surface：SATraj safety 是最强
 > selective win，AgentNet quality 是 high-lift but low-recall，AgentRewardBench
 > looping 更像 prevalence aggregation，side-effect 和 OSWorld-Human boundary 对
