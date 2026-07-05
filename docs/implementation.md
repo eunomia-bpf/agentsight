@@ -1,8 +1,8 @@
 # Implementation
 
-Last updated: 2026-07-04
+Last updated: 2026-07-05
 Stage at update: stage 4 execute / stage 8 audit / stage 11 reproducibility prep
-Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agentpprof/src/standard_trace.rs`, `agentpprof/tests/standard_trace_cli.rs`, `script/operation_*.py`, `script/agent_trace_datasets.py sample tau-bench-trajectories`, `script/agent_trace_datasets.py sample agent-reward-bench`, `script/agent_trace_datasets.py sample satraj-os-safety`, `script/agent_trace_datasets.py sample osworld-human`, `script/agent_trace_datasets.py sample agentnet`, `script/agent_trace_datasets.py sample scalecua-navigation`, `script/agent_trace_exchange_eval.py`, `script/agent_trace_chrome_exchange_eval.py`, `script/operation_where_filter_eval.py`, `script/operation_rust_rank_rule_eval.py`, `script/operation_rank_mode_eval.py`, `script/operation_rank_feature_eval.py`, `script/operation_rank_feature_ablation_eval.py`, `script/operation_rank_feature_robustness_eval.py`, `script/implementation_consistency_audit.py`, `cargo test --manifest-path agentpprof/Cargo.toml`
+Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agentpprof/src/standard_trace.rs`, `agentpprof/tests/standard_trace_cli.rs`, `agentpprof/tests/profile_spec_cli.rs`, `script/operation_*.py`, `script/agent_trace_datasets.py sample tau-bench-trajectories`, `script/agent_trace_datasets.py sample agent-reward-bench`, `script/agent_trace_datasets.py sample satraj-os-safety`, `script/agent_trace_datasets.py sample osworld-human`, `script/agent_trace_datasets.py sample agentnet`, `script/agent_trace_datasets.py sample scalecua-navigation`, `script/agent_trace_exchange_eval.py`, `script/agent_trace_chrome_exchange_eval.py`, `script/operation_where_filter_eval.py`, `script/operation_rust_rank_rule_eval.py`, `script/operation_rank_mode_eval.py`, `script/operation_rank_feature_eval.py`, `script/operation_rank_feature_ablation_eval.py`, `script/operation_rank_feature_robustness_eval.py`, `script/implementation_consistency_audit.py`, `cargo test --manifest-path agentpprof/Cargo.toml --test profile_spec_cli`, `cargo test --manifest-path agentpprof/Cargo.toml`
 Completeness: partial
 
 ## Repository Layout Relevant To Semantic Profiling
@@ -16,6 +16,7 @@ Purpose: identify the maintained implementation boundary.
 | `agentpprof/src/standard_trace.rs` | Chrome Trace Event export/import bridge that normalizes trace events into operation records before folding. | exchange bridge |
 | `agentpprof/src/tagger.rs` | Regex/LLM prompt tagging for local-session operation fields. | maintained |
 | `agentpprof/tests/standard_trace_cli.rs` | CLI round-trip test for standard trace export/import. | regression test |
+| `agentpprof/tests/profile_spec_cli.rs` | CLI regression for profile-spec composition over operation JSONL, mapping, predicates, operation-level rank rules, and stack-depth override. | regression test |
 | `agent-session/` | Shared local Codex/Claude session parser. | maintained |
 | `script/agent_trace_datasets.py` | External labeled trajectory samplers and operation JSONL normalization. | research harness |
 | `script/agent_trace_exchange_eval.py` | Reproducible agent-session trace export/import/conversion equality check. | research harness |
@@ -96,6 +97,17 @@ AP over width on 4/6 semantic and 5/6 coarse tasks, task-equal stays within
 improves both metrics. The repaired policy
 uses offline R325 findings and is evidence for actionability, not a deployment
 ranker.
+
+The profile-spec composition path now has a direct Rust CLI regression in
+`agentpprof/tests/profile_spec_cli.rs`. The test writes a temporary operation
+JSONL source, derives `task`, `intent`, and `phase` fields through an
+`op_map_file`, filters with `where_rules`, ranks JSON groups with
+`rank_op_rules` and `rank_mode=rule-score`, and then reruns the same spec with a
+CLI `--stack` override. The semantic run folds three selected operations into
+three operation stacks without any `session` or `prompt` frames; the override
+folds the identical selected operations into one coarser stack. This is an
+engineering regression for configurable recursive folding, not a new empirical
+result.
 
 Local trace exchange is also implemented through the maintained Rust path.
 R294/R303 show `agentsight.agent-session.trace.v1` export/import and operation
@@ -183,6 +195,7 @@ Purpose: make the current runnable path explicit.
 
 ```bash
 cargo test --manifest-path agentpprof/Cargo.toml
+cargo test --manifest-path agentpprof/Cargo.toml --test profile_spec_cli
 cargo fmt --manifest-path agentpprof/Cargo.toml -- --check
 python3 -m py_compile script/agent_trace_datasets.py script/operation_split.py \
   script/operation_map_infer.py \

@@ -28,6 +28,7 @@ SOURCE_PATHS = {
     "rust_profile": ROOT / "agentpprof" / "src" / "profile.rs",
     "rust_standard_trace": ROOT / "agentpprof" / "src" / "standard_trace.rs",
     "standard_trace_cli_test": ROOT / "agentpprof" / "tests" / "standard_trace_cli.rs",
+    "profile_spec_cli_test": ROOT / "agentpprof" / "tests" / "profile_spec_cli.rs",
     "implementation_doc": ROOT / "docs" / "implementation.md",
     "design_doc": ROOT / "docs" / "design.md",
     "evaluation_doc": ROOT / "docs" / "evaluation.md",
@@ -96,6 +97,7 @@ def build_checks(sources: dict[str, str]) -> list[dict[str, Any]]:
     rust_profile = sources["rust_profile"]
     rust_standard_trace = sources["rust_standard_trace"]
     standard_trace_test = sources["standard_trace_cli_test"]
+    profile_spec_test = sources["profile_spec_cli_test"]
     implementation = sources["implementation_doc"]
     design = sources["design_doc"]
     evaluation = sources["evaluation_doc"]
@@ -171,6 +173,26 @@ def build_checks(sources: dict[str, str]) -> list[dict[str, Any]]:
             "standard_trace_cli_test_present",
             "agentpprof has a CLI test for standard trace export and import.",
             "Standard trace CLI round-trip test is missing.",
+        ),
+        check(
+            contains_all(
+                profile_spec_test,
+                [
+                    "profile_spec_composes_mapping_filter_ranking_and_stack_depth",
+                    "--profile-spec",
+                    "\"op_map_files\"",
+                    "\"where_rules\"",
+                    "\"rank_op_rules\"",
+                    "\"rank_mode\": \"rule-score\"",
+                    "\"project,dataset,intent,phase,op,action,status\"",
+                    "\"project,dataset,intent\"",
+                    "!stack.contains(\"session:\")",
+                    "!stack.contains(\"prompt:\")",
+                ],
+            ),
+            "profile_spec_cli_composition_test_present",
+            "agentpprof has a CLI test for composed operation mapping, filtering, rank-op rules, rank mode, stack-depth override, and prompt/session-free stacks.",
+            "Profile-spec composition CLI regression test is missing or stale.",
         ),
         check(
             contains_all(
@@ -267,7 +289,9 @@ def build_checks(sources: dict[str, str]) -> list[dict[str, Any]]:
         check(
             "`agentpprof/src/standard_trace.rs`" in implementation
             and "`agentpprof/tests/standard_trace_cli.rs`" in implementation
+            and "`agentpprof/tests/profile_spec_cli.rs`" in implementation
             and "`--profile-spec`" in implementation
+            and "profile-spec composition path" in implementation
             and "Profile specs are implemented" in implementation,
             "implementation_doc_records_current_rust_surface",
             "docs/implementation.md records profile specs and standard trace support as current implementation.",

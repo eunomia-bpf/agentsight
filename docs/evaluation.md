@@ -597,5 +597,5 @@ cargo run --manifest-path agentpprof/Cargo.toml -- \
 | Leave-dataset-out validation for generated op-map rules is implemented and tracked under R283/R284. | done |
 | Recursive stack-depth sweep over identical operations is implemented and tracked under R286. | done |
 | Large full-dataset conversion commands are not yet implemented for AndroidControl, AITW, official ToolBench, AgentRewardBench, SATraj capability, AgentNet Windows/macOS/full Ubuntu, full multi-platform ScaleCUA, UI-Vision, or VisualWebArena; Mind2Web still needs larger shard/raw-dump runs. | pending |
-| Sequence-level session adequacy is implemented under R339; deeper instruction-step or solution-path adequacy beyond available labels remains pending. | pending |
+| Deeper subtask/step/sequence-level failure adequacy scorer beyond R339's session-scope labels and the currently available instruction-step or solution-path labels remains pending. | pending |
 | R340 implements leave-task and leave-dataset visible policy-transfer validation over the current six-task R320/R339 suite; broader full-family conversions remain pending. | pending |
