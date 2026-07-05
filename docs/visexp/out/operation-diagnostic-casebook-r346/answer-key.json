@@ -1,0 +1,565 @@
+{
+  "cases": [
+    {
+      "counterpoints": [
+        {
+          "action": "Keep repeat_signal in the stack, but add prevalence-aware ranking because looping positives are common.",
+          "best_policy": "raw_action_stack:visible_risk",
+          "counterpoint": "raw_action_stack_counterpoint",
+          "dataset": "agent-reward-bench",
+          "objective_or_metric": "first_positive_work",
+          "operation_stack_query_aware_regret": "0.2044",
+          "source": "R341 objective lens",
+          "task": "agentreward_looping"
+        },
+        {
+          "action": "Keep repeat_signal in the stack, but add prevalence-aware ranking because looping positives are common.",
+          "best_policy": "raw_action_stack:width",
+          "counterpoint": "raw_action_stack_counterpoint",
+          "dataset": "agent-reward-bench",
+          "objective_or_metric": "groups_to_50pct",
+          "operation_stack_query_aware_regret": "2.0",
+          "source": "R341 objective lens",
+          "task": "agentreward_looping"
+        },
+        {
+          "action": "Keep repeat_signal in the stack, but add prevalence-aware ranking because looping positives are common.",
+          "best_policy": "dataset_native:query_aware",
+          "counterpoint": "dataset_native_hierarchy",
+          "dataset": "agent-reward-bench",
+          "objective_or_metric": "top5_localization_f1",
+          "operation_stack_query_aware_regret": "0.0582",
+          "source": "R341 objective lens",
+          "task": "agentreward_looping"
+        }
+      ],
+      "dataset": "agent-reward-bench",
+      "first_positive": {
+        "first_positive_group_id": "5f27e636831b",
+        "first_positive_positive_rate": 0.9067,
+        "first_positive_rank": 1,
+        "first_positive_work": 0.2058
+      },
+      "groups": [
+        {
+          "group_id": "5f27e636831b",
+          "operations": 150,
+          "positive_operations": 136,
+          "positive_rate": 0.9067,
+          "rank": 1
+        },
+        {
+          "group_id": "0d3274153443",
+          "operations": 78,
+          "positive_operations": 60,
+          "positive_rate": 0.7692,
+          "rank": 2
+        },
+        {
+          "group_id": "c5747b954529",
+          "operations": 76,
+          "positive_operations": 76,
+          "positive_rate": 1.0,
+          "rank": 3
+        },
+        {
+          "group_id": "460d3a6cf2f3",
+          "operations": 29,
+          "positive_operations": 29,
+          "positive_rate": 1.0,
+          "rank": 4
+        },
+        {
+          "group_id": "9fc5e01b91c8",
+          "operations": 27,
+          "positive_operations": 27,
+          "positive_rate": 1.0,
+          "rank": 5
+        }
+      ],
+      "optimization_action": "Keep repeat_signal in the stack, but add prevalence-aware ranking because looping positives are common.",
+      "oracle_field": "looping",
+      "positive_values": [
+        "yes"
+      ],
+      "score": {
+        "groups": 5,
+        "inspected_operation_fraction": 0.4938,
+        "inspected_operations": 360,
+        "positive_lift": 1.3179,
+        "positive_operations": 328,
+        "positive_precision": 0.9111,
+        "positive_recall": 0.6508
+      },
+      "task": "agentreward_looping"
+    },
+    {
+      "counterpoints": [
+        {
+          "action": "Increase weight on write/input actions or use a deeper side-effect mapping before ranking.",
+          "best_policy": "fixed_session:width",
+          "counterpoint": "fixed_session_drilldown",
+          "dataset": "agent-reward-bench",
+          "objective_or_metric": "budget30_recall",
+          "operation_stack_query_aware_regret": "0.6188",
+          "source": "R341 objective lens",
+          "task": "agentreward_side_effect"
+        },
+        {
+          "action": "Increase weight on write/input actions or use a deeper side-effect mapping before ranking.",
+          "best_policy": "fixed_session:width",
+          "counterpoint": "fixed_session_drilldown",
+          "dataset": "agent-reward-bench",
+          "objective_or_metric": "groups_to_50pct",
+          "operation_stack_query_aware_regret": "16.0",
+          "source": "R341 objective lens",
+          "task": "agentreward_side_effect"
+        },
+        {
+          "action": "Increase weight on write/input actions or use a deeper side-effect mapping before ranking.",
+          "best_policy": "fixed_session:width",
+          "counterpoint": "fixed_session_drilldown",
+          "dataset": "agent-reward-bench",
+          "objective_or_metric": "ranking_fidelity_ap",
+          "operation_stack_query_aware_regret": "0.6021",
+          "source": "R341 objective lens",
+          "task": "agentreward_side_effect"
+        }
+      ],
+      "dataset": "agent-reward-bench",
+      "first_positive": {
+        "first_positive_group_id": "a42a1b14823a",
+        "first_positive_positive_rate": 0.2766,
+        "first_positive_rank": 1,
+        "first_positive_work": 0.0645
+      },
+      "groups": [
+        {
+          "group_id": "a42a1b14823a",
+          "operations": 47,
+          "positive_operations": 13,
+          "positive_rate": 0.2766,
+          "rank": 1
+        },
+        {
+          "group_id": "e53d9469b473",
+          "operations": 29,
+          "positive_operations": 0,
+          "positive_rate": 0.0,
+          "rank": 2
+        },
+        {
+          "group_id": "16926d4c9455",
+          "operations": 20,
+          "positive_operations": 10,
+          "positive_rate": 0.5,
+          "rank": 3
+        },
+        {
+          "group_id": "c19c6f08275b",
+          "operations": 6,
+          "positive_operations": 0,
+          "positive_rate": 0.0,
+          "rank": 4
+        },
+        {
+          "group_id": "e51e8d3c7a62",
+          "operations": 4,
+          "positive_operations": 0,
+          "positive_rate": 0.0,
+          "rank": 5
+        }
+      ],
+      "optimization_action": "Increase weight on write/input actions or use a deeper side-effect mapping before ranking.",
+      "oracle_field": "side_effect",
+      "positive_values": [
+        "yes"
+      ],
+      "score": {
+        "groups": 5,
+        "inspected_operation_fraction": 0.1454,
+        "inspected_operations": 106,
+        "positive_lift": 0.7831,
+        "positive_operations": 23,
+        "positive_precision": 0.217,
+        "positive_recall": 0.1139
+      },
+      "task": "agentreward_side_effect"
+    },
+    {
+      "counterpoints": [
+        {
+          "action": "Use environment + phase + action stack fields; prioritize risky environments and write actions.",
+          "best_policy": "dataset_native:query_aware",
+          "counterpoint": "dataset_native_hierarchy",
+          "dataset": "satraj-os-safety",
+          "objective_or_metric": "budget30_recall",
+          "operation_stack_query_aware_regret": "0.1624",
+          "source": "R341 objective lens",
+          "task": "satraj_unsafe"
+        },
+        {
+          "action": "Use environment + phase + action stack fields; prioritize risky environments and write actions.",
+          "best_policy": "fixed_session:query_aware",
+          "counterpoint": "fixed_session_drilldown",
+          "dataset": "satraj-os-safety",
+          "objective_or_metric": "first_positive_work",
+          "operation_stack_query_aware_regret": "0.0075",
+          "source": "R341 objective lens",
+          "task": "satraj_unsafe"
+        },
+        {
+          "action": "Use environment + phase + action stack fields; prioritize risky environments and write actions.",
+          "best_policy": "dataset_native:query_aware",
+          "counterpoint": "dataset_native_hierarchy",
+          "dataset": "satraj-os-safety",
+          "objective_or_metric": "groups_to_50pct",
+          "operation_stack_query_aware_regret": "37.0",
+          "source": "R341 objective lens",
+          "task": "satraj_unsafe"
+        }
+      ],
+      "dataset": "satraj-os-safety",
+      "first_positive": {
+        "first_positive_group_id": "c5bb19791fb5",
+        "first_positive_positive_rate": 1.0,
+        "first_positive_rank": 1,
+        "first_positive_work": 0.0112
+      },
+      "groups": [
+        {
+          "group_id": "c5bb19791fb5",
+          "operations": 48,
+          "positive_operations": 48,
+          "positive_rate": 1.0,
+          "rank": 1
+        },
+        {
+          "group_id": "847a40ab973f",
+          "operations": 45,
+          "positive_operations": 45,
+          "positive_rate": 1.0,
+          "rank": 2
+        },
+        {
+          "group_id": "b49bde8e900a",
+          "operations": 36,
+          "positive_operations": 36,
+          "positive_rate": 1.0,
+          "rank": 3
+        },
+        {
+          "group_id": "36f1029928e4",
+          "operations": 34,
+          "positive_operations": 34,
+          "positive_rate": 1.0,
+          "rank": 4
+        },
+        {
+          "group_id": "08411d07cf97",
+          "operations": 17,
+          "positive_operations": 0,
+          "positive_rate": 0.0,
+          "rank": 5
+        }
+      ],
+      "optimization_action": "Use environment + phase + action stack fields; prioritize risky environments and write actions.",
+      "oracle_field": "safety",
+      "positive_values": [
+        "unsafe"
+      ],
+      "score": {
+        "groups": 5,
+        "inspected_operation_fraction": 0.042,
+        "inspected_operations": 180,
+        "positive_lift": 6.2384,
+        "positive_operations": 163,
+        "positive_precision": 0.9056,
+        "positive_recall": 0.2621
+      },
+      "task": "satraj_unsafe"
+    },
+    {
+      "counterpoints": [
+        {
+          "action": "Use desktop environment + phase + repeat/action fields, then drill into fixed sessions for examples.",
+          "best_policy": "raw_action_stack:width",
+          "counterpoint": "raw_action_stack_counterpoint",
+          "dataset": "agentnet",
+          "objective_or_metric": "groups_to_50pct",
+          "operation_stack_query_aware_regret": "185.0",
+          "source": "R341 objective lens",
+          "task": "agentnet_incorrect_step"
+        },
+        {
+          "action": "Use desktop environment + phase + repeat/action fields, then drill into fixed sessions for examples.",
+          "best_policy": "raw_action_stack:width",
+          "counterpoint": "raw_action_stack_counterpoint",
+          "dataset": "agentnet",
+          "objective_or_metric": "top5_localization_f1",
+          "operation_stack_query_aware_regret": "0.1056",
+          "source": "R341 objective lens",
+          "task": "agentnet_incorrect_step"
+        },
+        {
+          "action": "Use desktop environment + phase + repeat/action fields, then drill into fixed sessions for examples.",
+          "best_policy": "flat:width",
+          "counterpoint": "flat_summary_counterpoint",
+          "dataset": "agentnet",
+          "objective_or_metric": "total_group_fragmentation",
+          "operation_stack_query_aware_regret": "288.0",
+          "source": "R341 objective lens",
+          "task": "agentnet_incorrect_step"
+        }
+      ],
+      "dataset": "agentnet",
+      "first_positive": {
+        "first_positive_group_id": "af0396d069cf",
+        "first_positive_positive_rate": 0.5,
+        "first_positive_rank": 3,
+        "first_positive_work": 0.0007
+      },
+      "groups": [
+        {
+          "group_id": "fa456c553b90",
+          "operations": 5,
+          "positive_operations": 0,
+          "positive_rate": 0.0,
+          "rank": 1
+        },
+        {
+          "group_id": "de2a13f0e38b",
+          "operations": 4,
+          "positive_operations": 0,
+          "positive_rate": 0.0,
+          "rank": 2
+        },
+        {
+          "group_id": "af0396d069cf",
+          "operations": 2,
+          "positive_operations": 1,
+          "positive_rate": 0.5,
+          "rank": 3
+        },
+        {
+          "group_id": "79ffe6d2264e",
+          "operations": 9,
+          "positive_operations": 2,
+          "positive_rate": 0.2222,
+          "rank": 4
+        },
+        {
+          "group_id": "8666ffb9fedf",
+          "operations": 1,
+          "positive_operations": 0,
+          "positive_rate": 0.0,
+          "rank": 5
+        }
+      ],
+      "optimization_action": "Use desktop environment + phase + repeat/action fields, then drill into fixed sessions for examples.",
+      "oracle_field": "step_correct",
+      "positive_values": [
+        "incorrect"
+      ],
+      "score": {
+        "groups": 5,
+        "inspected_operation_fraction": 0.0014,
+        "inspected_operations": 21,
+        "positive_lift": 2.4057,
+        "positive_operations": 3,
+        "positive_precision": 0.1429,
+        "positive_recall": 0.0034
+      },
+      "task": "agentnet_incorrect_step"
+    },
+    {
+      "counterpoints": [
+        {
+          "action": "Use desktop environment + phase + repeat/action fields, then drill into fixed sessions for examples.",
+          "best_policy": "operation_stack:visible_risk",
+          "counterpoint": "operation_stack_variant",
+          "dataset": "agentnet",
+          "objective_or_metric": "first_positive_work",
+          "operation_stack_query_aware_regret": "0.004",
+          "source": "R341 objective lens",
+          "task": "agentnet_redundant_step"
+        },
+        {
+          "action": "Use desktop environment + phase + repeat/action fields, then drill into fixed sessions for examples.",
+          "best_policy": "raw_action_stack:width",
+          "counterpoint": "raw_action_stack_counterpoint",
+          "dataset": "agentnet",
+          "objective_or_metric": "groups_to_50pct",
+          "operation_stack_query_aware_regret": "156.0",
+          "source": "R341 objective lens",
+          "task": "agentnet_redundant_step"
+        },
+        {
+          "action": "Use desktop environment + phase + repeat/action fields, then drill into fixed sessions for examples.",
+          "best_policy": "raw_action_stack:width",
+          "counterpoint": "raw_action_stack_counterpoint",
+          "dataset": "agentnet",
+          "objective_or_metric": "top5_localization_f1",
+          "operation_stack_query_aware_regret": "0.1103",
+          "source": "R341 objective lens",
+          "task": "agentnet_redundant_step"
+        }
+      ],
+      "dataset": "agentnet",
+      "first_positive": {
+        "first_positive_group_id": "898cd2b61815",
+        "first_positive_positive_rate": 0.1373,
+        "first_positive_rank": 1,
+        "first_positive_work": 0.0051
+      },
+      "groups": [
+        {
+          "group_id": "898cd2b61815",
+          "operations": 51,
+          "positive_operations": 7,
+          "positive_rate": 0.1373,
+          "rank": 1
+        },
+        {
+          "group_id": "983755309b28",
+          "operations": 13,
+          "positive_operations": 3,
+          "positive_rate": 0.2308,
+          "rank": 2
+        },
+        {
+          "group_id": "a474ddcab872",
+          "operations": 12,
+          "positive_operations": 1,
+          "positive_rate": 0.0833,
+          "rank": 3
+        },
+        {
+          "group_id": "49d8042df902",
+          "operations": 9,
+          "positive_operations": 2,
+          "positive_rate": 0.2222,
+          "rank": 4
+        },
+        {
+          "group_id": "efdcf1234292",
+          "operations": 5,
+          "positive_operations": 0,
+          "positive_rate": 0.0,
+          "rank": 5
+        }
+      ],
+      "optimization_action": "Use desktop environment + phase + repeat/action fields, then drill into fixed sessions for examples.",
+      "oracle_field": "step_redundant",
+      "positive_values": [
+        "redundant"
+      ],
+      "score": {
+        "groups": 5,
+        "inspected_operation_fraction": 0.0089,
+        "inspected_operations": 90,
+        "positive_lift": 1.9838,
+        "positive_operations": 13,
+        "positive_precision": 0.1444,
+        "positive_recall": 0.0177
+      },
+      "task": "agentnet_redundant_step"
+    },
+    {
+      "counterpoints": [
+        {
+          "action": "Use group-depth or boundary-derived fields for higher recall; action-depth alone fragments starts.",
+          "best_policy": "operation_stack:width",
+          "counterpoint": "operation_stack_width_counterpoint",
+          "dataset": "osworld-human",
+          "objective_or_metric": "budget30_recall",
+          "operation_stack_query_aware_regret": "0.127",
+          "source": "R341 objective lens",
+          "task": "osworld_group_start"
+        },
+        {
+          "action": "Use group-depth or boundary-derived fields for higher recall; action-depth alone fragments starts.",
+          "best_policy": "fixed_session:visible_risk",
+          "counterpoint": "fixed_session_drilldown",
+          "dataset": "osworld-human",
+          "objective_or_metric": "first_positive_work",
+          "operation_stack_query_aware_regret": "0.1271",
+          "source": "R341 objective lens",
+          "task": "osworld_group_start"
+        },
+        {
+          "action": "Use group-depth or boundary-derived fields for higher recall; action-depth alone fragments starts.",
+          "best_policy": "dataset_native:visible_risk",
+          "counterpoint": "dataset_native_hierarchy",
+          "dataset": "osworld-human",
+          "objective_or_metric": "groups_to_50pct",
+          "operation_stack_query_aware_regret": "61.0",
+          "source": "R341 objective lens",
+          "task": "osworld_group_start"
+        }
+      ],
+      "dataset": "osworld-human",
+      "first_positive": {
+        "first_positive_group_id": "9817a6cabf47",
+        "first_positive_positive_rate": 0.3498,
+        "first_positive_rank": 1,
+        "first_positive_work": 0.1311
+      },
+      "groups": [
+        {
+          "group_id": "9817a6cabf47",
+          "operations": 526,
+          "positive_operations": 184,
+          "positive_rate": 0.3498,
+          "rank": 1
+        },
+        {
+          "group_id": "0a92d6cb1708",
+          "operations": 517,
+          "positive_operations": 28,
+          "positive_rate": 0.0542,
+          "rank": 2
+        },
+        {
+          "group_id": "94b28e889508",
+          "operations": 514,
+          "positive_operations": 77,
+          "positive_rate": 0.1498,
+          "rank": 3
+        },
+        {
+          "group_id": "5aed3f66387f",
+          "operations": 39,
+          "positive_operations": 0,
+          "positive_rate": 0.0,
+          "rank": 4
+        },
+        {
+          "group_id": "0056cebc209a",
+          "operations": 38,
+          "positive_operations": 7,
+          "positive_rate": 0.1842,
+          "rank": 5
+        }
+      ],
+      "optimization_action": "Use group-depth or boundary-derived fields for higher recall; action-depth alone fragments starts.",
+      "oracle_field": "group_position",
+      "positive_values": [
+        "start"
+      ],
+      "score": {
+        "groups": 5,
+        "inspected_operation_fraction": 0.4074,
+        "inspected_operations": 1634,
+        "positive_lift": 0.951,
+        "positive_operations": 296,
+        "positive_precision": 0.1812,
+        "positive_recall": 0.3874
+      },
+      "task": "osworld_group_start"
+    }
+  ],
+  "input_policy": "hidden labels are used only after visible ranking to score case evidence",
+  "run_id": "R346",
+  "schema": "agentsight.diagnostic-casebook.answer-key.v1"
+}
