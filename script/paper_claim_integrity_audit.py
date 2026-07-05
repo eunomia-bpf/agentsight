@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""R338: paper-claim integrity audit over R320-R339 evidence.
+"""R338: paper-claim integrity audit over R320-R340 evidence.
 
 This audit does not fetch, sync, create, or relabel datasets. It reads tracked
 result artifacts from the existing profiling-paper evaluation runs and the
@@ -37,6 +37,7 @@ R335_DIR = OUT_ROOT / "operation-actionability-synthesis-r335"
 R336_DIR = OUT_ROOT / "operation-actionability-selection-r336"
 R337_DIR = OUT_ROOT / "operation-inspection-target-r337"
 R339_DIR = OUT_ROOT / "operation-sequence-adequacy-r339"
+R340_DIR = OUT_ROOT / "operation-policy-transfer-r340"
 
 SOURCE_ARTIFACTS = {
     "R320 report": R320_DIR / "profile-accuracy-report.json",
@@ -55,6 +56,9 @@ SOURCE_ARTIFACTS = {
     "R339 report": R339_DIR / "sequence-adequacy-report.json",
     "R339 policy sequence summary": R339_DIR / "policy-sequence-summary.csv",
     "R339 default comparisons": R339_DIR / "default-sequence-comparisons.csv",
+    "R340 report": R340_DIR / "policy-transfer-report.json",
+    "R340 transfer decisions": R340_DIR / "transfer-decisions.csv",
+    "R340 objective summary": R340_DIR / "objective-transfer-summary.csv",
 }
 
 PAPER_SOURCES = {
@@ -393,6 +397,8 @@ def build_number_checks(
     r337_comparisons: list[dict[str, str]],
     r339_policy_summary: list[dict[str, str]],
     r339_comparisons: list[dict[str, str]],
+    r340_decisions: list[dict[str, str]],
+    r340_objectives: list[dict[str, str]],
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     r320 = reports["R320"]
@@ -803,6 +809,27 @@ def build_number_checks(
         source="R339 default-sequence-comparisons.csv",
         paper_token="5/6",
     )
+
+    r340 = reports["R340"]
+    r340_summary = r340["summary"]
+    r340_claim = r340["claim_summary"]
+    add_check(rows, run_id="R340", key="overall", actual=r340_summary["overall"], expected="pass", source="R340 summary")
+    add_check(rows, run_id="R340", key="tasks", actual=r340_claim["tasks"], expected=6, source="R340 claim_summary")
+    add_check(rows, run_id="R340", key="visible_policies", actual=r340_claim["visible_policies"], expected=15, source="R340 claim_summary")
+    add_check(rows, run_id="R340", key="objectives", actual=r340_claim["objectives"], expected=8, source="R340 claim_summary")
+    add_check(rows, run_id="R340", key="total_decisions", actual=r340_claim["total_decisions"], expected=96, source="R340 claim_summary")
+    add_check(rows, run_id="R340", key="exact_best_decisions", actual=r340_claim["exact_best_decisions"], expected=31, source="R340 claim_summary")
+    add_check(rows, run_id="R340", key="within_tolerance_decisions", actual=r340_claim["within_tolerance_decisions"], expected=62, source="R340 claim_summary")
+    add_check(rows, run_id="R340", key="selected_beats_width", actual=r340_claim["selected_beats_width_decisions"], expected=72, source="R340 claim_summary")
+    add_check(rows, run_id="R340", key="selected_beats_fixed", actual=r340_claim["selected_beats_fixed_decisions"], expected=69, source="R340 claim_summary")
+    add_check(rows, run_id="R340", key="selected_beats_flat", actual=r340_claim["selected_beats_flat_decisions"], expected=41, source="R340 claim_summary")
+    add_check(rows, run_id="R340", key="operation_stack_selected", actual=r340_claim["operation_stack_selected_decisions"], expected=16, source="R340 claim_summary")
+    add_check(rows, run_id="R340", key="leave_task_decisions", actual=r340_claim["leave_task"]["decisions"], expected=48, source="R340 claim_summary.leave_task")
+    add_check(rows, run_id="R340", key="leave_task_within_tolerance", actual=r340_claim["leave_task"]["within_tolerance"], expected=32, source="R340 claim_summary.leave_task")
+    add_check(rows, run_id="R340", key="leave_dataset_decisions", actual=r340_claim["leave_dataset"]["decisions"], expected=48, source="R340 claim_summary.leave_dataset")
+    add_check(rows, run_id="R340", key="leave_dataset_within_tolerance", actual=r340_claim["leave_dataset"]["within_tolerance"], expected=30, source="R340 claim_summary.leave_dataset")
+    add_check(rows, run_id="R340", key="decision_rows", actual=len(r340_decisions), expected=96, source="R340 transfer-decisions.csv")
+    add_check(rows, run_id="R340", key="objective_rows", actual=len(r340_objectives), expected=16, source="R340 objective-transfer-summary.csv")
     return rows
 
 
@@ -832,17 +859,21 @@ def build_text_coverage(
         ("evaluation", "R336 visible policies", ["15 visible", "15 个", "6 diagnostic"], "R336"),
         ("evaluation", "R337 fixed recall", ["25%", "0.2000", "16.0"], "R337"),
         ("evaluation", "R339 sequence adequacy", ["R339", "0.4669", "0.9103"], "R339"),
+        ("evaluation", "R340 policy transfer", ["R340", "96", "62/96", "72/96"], "R340"),
         ("zh_main", "R320 headline", ["0.0937", "9.37", "285.0", "157.5"], "R320"),
         ("zh_main", "R333 headline", ["0.3900", "0.390"], "R333"),
         ("zh_main", "R337 headline", ["0.2000", "16.0", "50.0"], "R337"),
         ("zh_main", "R339 headline", ["0.4669", "0.9103", "0.3467"], "R339"),
+        ("zh_main", "R340 headline", ["R340", "62/96", "72/96", "69/96"], "R340"),
         ("en_main", "R320 headline", ["0.0937", "9.37", "285.0", "157.5"], "R320"),
         ("en_main", "R333 headline", ["0.3900", "0.390"], "R333"),
         ("en_main", "R337 headline", ["0.2000", "16.0", "50.0"], "R337"),
         ("en_main", "R339 headline", ["0.4669", "0.9103", "0.3467"], "R339"),
+        ("en_main", "R340 headline", ["R340", "62 of 96", "72 of 96", "69 of 96"], "R340"),
         ("zh_claim_setup", "two abstractions", ["两个核心抽象", "operation stack"], "C2"),
         ("zh_claim_setup", "R337 result", ["R337", "0.2000", "16.0"], "R337"),
         ("zh_claim_setup", "R339 result", ["R339", "0.4669", "0.9103"], "R339"),
+        ("zh_claim_setup", "R340 result", ["R340", "62/96", "72/96", "69/96"], "R340"),
     ]
     rows: list[dict[str, Any]] = []
     for doc, key, tokens, source in required:
@@ -861,7 +892,7 @@ def build_text_coverage(
 
     eval_text = texts["evaluation"]
     for row in number_checks:
-        if row["run_id"] not in {"R320", "R333", "R337", "R339"}:
+        if row["run_id"] not in {"R320", "R333", "R337", "R339", "R340"}:
             continue
         token = str(row["paper_token"])
         status = "pass" if token in eval_text else "warn"
@@ -1103,7 +1134,7 @@ def build_markdown(path: Path, payload: dict[str, Any]) -> None:
     lines = [
         "# Paper Claim Integrity Audit R338",
         "",
-        "R338 mechanically audits the current profiling-paper claim against R320-R339 result artifacts and the Chinese/English paper text. It does not fetch, sync, create, or relabel datasets.",
+        "R338 mechanically audits the current profiling-paper claim against R320-R340 result artifacts and the Chinese/English paper text. It does not fetch, sync, create, or relabel datasets.",
         "",
         "## Verdict",
         "",
@@ -1126,7 +1157,7 @@ def build_markdown(path: Path, payload: dict[str, Any]) -> None:
         "|---|---|---:|---:|---|---|",
     ]
     for row in payload["number_checks"]:
-        if row["run_id"] in {"R320", "R333", "R334", "R337", "R339"}:
+        if row["run_id"] in {"R320", "R333", "R334", "R337", "R339", "R340"}:
             lines.append(
                 f"| {row['run_id']} | {row['key']} | {row['expected']} | {row['actual']} | {row['status']} | {row['source']} |"
             )
@@ -1234,6 +1265,7 @@ def build_payload() -> dict[str, Any]:
         "R336": load_json(SOURCE_ARTIFACTS["R336 report"]),
         "R337": load_json(SOURCE_ARTIFACTS["R337 report"]),
         "R339": load_json(SOURCE_ARTIFACTS["R339 report"]),
+        "R340": load_json(SOURCE_ARTIFACTS["R340 report"]),
     }
     r320_scores = read_csv(SOURCE_ARTIFACTS["R320 policy scores"])
     r333_summary = read_csv(SOURCE_ARTIFACTS["R333 curve summary"])
@@ -1243,6 +1275,8 @@ def build_payload() -> dict[str, Any]:
     r337_comparisons = read_csv(SOURCE_ARTIFACTS["R337 default comparisons"])
     r339_policy_summary = read_csv(SOURCE_ARTIFACTS["R339 policy sequence summary"])
     r339_comparisons = read_csv(SOURCE_ARTIFACTS["R339 default comparisons"])
+    r340_decisions = read_csv(SOURCE_ARTIFACTS["R340 transfer decisions"])
+    r340_objectives = read_csv(SOURCE_ARTIFACTS["R340 objective summary"])
 
     number_checks = build_number_checks(
         reports,
@@ -1254,6 +1288,8 @@ def build_payload() -> dict[str, Any]:
         r337_comparisons,
         r339_policy_summary,
         r339_comparisons,
+        r340_decisions,
+        r340_objectives,
     )
     policy_checks = validate_source_policies(reports)
     text_coverage = build_text_coverage(texts, number_checks)
@@ -1301,7 +1337,7 @@ def build_payload() -> dict[str, Any]:
             "dataset_relabeling": "none",
             "network_access_required": False,
             "source_text_clean_policy": "paper text sources may be current worktree edits and are hashed; empirical source artifacts must be tracked clean",
-            "hidden_label_use": "R338 reads already-scored R320-R339 artifacts and does not form new rankings from hidden labels",
+            "hidden_label_use": "R338 reads already-scored R320-R340 artifacts and does not form new rankings from hidden labels",
         },
         "non_claims": [
             "not a human/agent analyst study",
