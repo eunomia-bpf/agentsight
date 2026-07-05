@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>R327 Profile-Spec Cost</title>
+<style>
+body { font-family: system-ui, sans-serif; margin: 32px; color: #1f2937; }
+table { border-collapse: collapse; width: 100%; margin: 16px 0 28px; }
+th, td { border-bottom: 1px solid #d1d5db; padding: 8px; text-align: right; }
+th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: left; }
+code { background: #f3f4f6; padding: 1px 4px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<h1>R327 Profile-Spec Cost and Reproducibility</h1>
+<p>Existing tracked profile specs were rerun against existing tracked operation JSONL inputs. No dataset download or sync is part of this probe.</p>
+<ul>
+<li>Specs: 76</li>
+<li>Profiler invocations: 152</li>
+<li>Deterministic specs: 76/76</li>
+<li>Raw-byte deterministic specs: 4/76</li>
+<li>Median runtime: 1581.3334 ms</li>
+<li>P95 runtime: 2719.3206 ms</li>
+</ul>
+<h2>Experiment Summary</h2>
+<table><thead><tr><th>Experiment</th><th>Specs</th><th>Median ms</th><th>P95 ms</th><th>Median stacks</th><th>Median bytes</th></tr></thead><tbody><tr><td>r300_views</td><td>4</td><td>3448.0200</td><td>4272.6763</td><td>631.0</td><td>109299.0</td></tr>
+<tr><td>r324_rank_features</td><td>12</td><td>1538.8800</td><td>2691.5278</td><td>41.0</td><td>36339.0</td></tr>
+<tr><td>r326_rank_feature_robustness</td><td>60</td><td>1541.8825</td><td>2640.3084</td><td>41.0</td><td>36339.0</td></tr></tbody></table>
+<h2>Slowest Specs</h2>
+<table><thead><tr><th>Experiment</th><th>Spec</th><th>Format</th><th>Stacks</th><th>Median ms</th><th>Bytes</th></tr></thead><tbody><tr><td>r300_views</td><td><code>operation_stack-profile-spec.json</code></td><td>folded</td><td>944</td><td>4272.6763</td><td>162759</td></tr>
+<tr><td>r300_views</td><td><code>label_drilldown-profile-spec.json</code></td><td>folded</td><td>318</td><td>4242.5738</td><td>55839</td></tr>
+<tr><td>r326_rank_feature_robustness</td><td><code>agentnet_incorrect_step-semantic-global_equal-profile-spec.json</code></td><td>json</td><td>289</td><td>3109.8510</td><td>306099</td></tr>
+<tr><td>r326_rank_feature_robustness</td><td><code>agentnet_incorrect_step-coarse-global_equal-profile-spec.json</code></td><td>json</td><td>43</td><td>2719.3206</td><td>52215</td></tr>
+<tr><td>r326_rank_feature_robustness</td><td><code>agentnet_incorrect_step-semantic-task_equal-profile-spec.json</code></td><td>json</td><td>289</td><td>2708.5324</td><td>197500</td></tr>
+<tr><td>r324_rank_features</td><td><code>agentnet_incorrect_step-semantic-op-features-profile-spec.json</code></td><td>json</td><td>289</td><td>2691.5278</td><td>197500</td></tr>
+<tr><td>r300_views</td><td><code>fixed_session-profile-spec.json</code></td><td>folded</td><td>2012</td><td>2653.4662</td><td>207442</td></tr>
+<tr><td>r326_rank_feature_robustness</td><td><code>agentnet_incorrect_step-semantic-task_weighted-profile-spec.json</code></td><td>json</td><td>289</td><td>2640.3084</td><td>197500</td></tr>
+<tr><td>r326_rank_feature_robustness</td><td><code>agentnet_incorrect_step-semantic-r325_repaired-profile-spec.json</code></td><td>json</td><td>289</td><td>2637.7013</td><td>197500</td></tr>
+<tr><td>r326_rank_feature_robustness</td><td><code>agentnet_redundant_step-semantic-global_equal-profile-spec.json</code></td><td>json</td><td>260</td><td>2496.6149</td><td>275509</td></tr></tbody></table>
+</body>
+</html>
