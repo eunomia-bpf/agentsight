@@ -1,0 +1,171 @@
+{
+  "baseline_policies": [
+    "flat:width",
+    "fixed_session:query_aware",
+    "dataset_native:query_aware",
+    "raw_action_stack:query_aware",
+    "operation_stack:query_aware"
+  ],
+  "default_policy": "operation_stack:query_aware",
+  "input_policy": {
+    "dataset_creation": "none",
+    "dataset_sync": "none",
+    "hidden_label_use": "R320 hidden-label scores are reused only for offline task-fit/regret auditing",
+    "profiler_rerun": "none"
+  },
+  "metrics": {
+    "average_precision": "higher",
+    "budget30_recall": "higher",
+    "top5_f1": "higher",
+    "work_to_first_positive": "lower"
+  },
+  "non_claims": [
+    "This does not create, sync, download, or relabel a dataset.",
+    "This does not claim a universal label-free view selector.",
+    "This does not claim operation stacks dominate every hierarchy or metric.",
+    "This does not add a third profiler abstraction; views are query-time projections over operation fields."
+  ],
+  "primary_findings": [
+    "Best visible AP is split across operation_stack, fixed_session, and dataset_native views ({'operation_stack': 3, 'fixed_session': 2, 'dataset_native': 1}); best top-5 F1 spans {'raw_action_stack': 2, 'dataset_native': 1, 'fixed_session': 1, 'flat': 1, 'operation_stack': 1}. No single hierarchy is the best visible choice across tasks and objectives.",
+    "operation_stack:query_aware is the best visible AP policy on 3/6 tasks and best 30% budget-recall policy on 3/6 tasks, but it has large regret on side-effect and safety when another task-specific view is better.",
+    "operation stacks reduce fragmentation relative to fixed-session query-aware on 4/6 tasks (median group ratio 0.5543), while fixed-session remains a first-positive counterpoint.",
+    "Leave-task source selection does not solve view choice universally: selected-equals-best is 0/6 for AP and 0/6 for top-5 F1. This keeps view/depth choice as a task-aware analysis knob rather than a deployed universal selector.",
+    "The supported design implication is to expose view, stack fields, predicates, and rankers as query-time configuration over the same operations; fixed session/span trees remain baselines, not profiler abstractions."
+  ],
+  "purpose": "test whether view/depth/ranker choice is task-specific over the same R320 operations",
+  "r320_totals": {
+    "datasets": 4,
+    "group_views": 36,
+    "policy_scores": 144,
+    "positive_operations": 3699,
+    "task_operations": 34539,
+    "tasks": 6
+  },
+  "reproducibility": {
+    "commit": "dba07f38c8993e9ea3d35e93de3042d24278507d",
+    "elapsed_seconds": 0.0175,
+    "network_access_required": false
+  },
+  "run_id": "R332",
+  "schema": "agentsight.view-depth-fit.v1",
+  "source_check": {
+    "files": [
+      "docs/visexp/out/operation-profile-accuracy-r320/profile-accuracy-report.json",
+      "docs/visexp/out/operation-profile-accuracy-r320/policy-scores.csv"
+    ],
+    "status": "pass",
+    "tracked_clean_files": 2
+  },
+  "summary": {
+    "best_policy_counts": {
+      "average_precision": {
+        "dataset_native:query_aware": 1,
+        "fixed_session:query_aware": 1,
+        "fixed_session:width": 1,
+        "operation_stack:query_aware": 3
+      },
+      "budget30_recall": {
+        "dataset_native:query_aware": 1,
+        "fixed_session:width": 1,
+        "operation_stack:query_aware": 3,
+        "operation_stack:width": 1
+      },
+      "top5_f1": {
+        "dataset_native:query_aware": 1,
+        "fixed_session:width": 1,
+        "flat:width": 1,
+        "operation_stack:query_aware": 1,
+        "raw_action_stack:width": 2
+      },
+      "work_to_first_positive": {
+        "fixed_session:query_aware": 1,
+        "fixed_session:visible_risk": 1,
+        "operation_stack:query_aware": 2,
+        "operation_stack:visible_risk": 1,
+        "raw_action_stack:visible_risk": 1
+      }
+    },
+    "best_view_counts": {
+      "average_precision": {
+        "dataset_native": 1,
+        "fixed_session": 2,
+        "operation_stack": 3
+      },
+      "budget30_recall": {
+        "dataset_native": 1,
+        "fixed_session": 1,
+        "operation_stack": 4
+      },
+      "top5_f1": {
+        "dataset_native": 1,
+        "fixed_session": 1,
+        "flat": 1,
+        "operation_stack": 1,
+        "raw_action_stack": 2
+      },
+      "work_to_first_positive": {
+        "fixed_session": 2,
+        "operation_stack": 3,
+        "raw_action_stack": 1
+      }
+    },
+    "fragmentation": {
+      "median_operation_stack_vs_fixed_group_ratio": 0.5543,
+      "operation_stack_fewer_groups_than_fixed_session": "4/6"
+    },
+    "leave_task_source_selection": {
+      "average_precision": {
+        "median_default_regret": 0.0045,
+        "median_selected_regret": 0.0593,
+        "selected_beats_default": "1/6",
+        "selected_equals_best": "0/6"
+      },
+      "budget30_recall": {
+        "median_default_regret": 0.0635,
+        "median_selected_regret": 0.0635,
+        "selected_beats_default": "0/6",
+        "selected_equals_best": "3/6"
+      },
+      "top5_f1": {
+        "median_default_regret": 0.0893,
+        "median_selected_regret": 0.0106,
+        "selected_beats_default": "5/6",
+        "selected_equals_best": "0/6"
+      },
+      "work_to_first_positive": {
+        "median_default_regret": 0.0057,
+        "median_selected_regret": 0.0318,
+        "selected_beats_default": "3/6",
+        "selected_equals_best": "1/6"
+      }
+    },
+    "operation_stack_query_aware_best_tasks": {
+      "average_precision": 3,
+      "budget30_recall": 3,
+      "top5_f1": 1,
+      "work_to_first_positive": 2
+    },
+    "operation_stack_query_aware_regret": {
+      "average_precision": {
+        "best_tasks": 3,
+        "max_regret": 0.6021,
+        "median_regret": 0.0045
+      },
+      "budget30_recall": {
+        "best_tasks": 3,
+        "max_regret": 0.6188,
+        "median_regret": 0.0635
+      },
+      "top5_f1": {
+        "best_tasks": 1,
+        "max_regret": 0.6635,
+        "median_regret": 0.0893
+      },
+      "work_to_first_positive": {
+        "best_tasks": 2,
+        "max_regret": 0.2044,
+        "median_regret": 0.0057
+      }
+    }
+  }
+}

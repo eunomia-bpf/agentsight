@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>R332 View/Depth Task-Fit Audit</title>
+<style>
+body { font-family: system-ui, sans-serif; margin: 32px; color: #202124; }
+table { border-collapse: collapse; width: 100%; margin: 24px 0; font-size: 13px; }
+th, td { border-bottom: 1px solid #d8dee8; padding: 7px 8px; text-align: left; vertical-align: top; }
+th { background: #eef2f6; }
+.note { max-width: 980px; line-height: 1.45; }
+</style>
+<h1>R332 View/Depth Task-Fit Audit</h1>
+<p class="note">This audit reuses R320 visible policy scores to test whether fixed hierarchy is enough.</p>
+<h2>Primary Findings</h2>
+<ul><li>Best visible AP is split across operation_stack, fixed_session, and dataset_native views ({&#x27;operation_stack&#x27;: 3, &#x27;fixed_session&#x27;: 2, &#x27;dataset_native&#x27;: 1}); best top-5 F1 spans {&#x27;raw_action_stack&#x27;: 2, &#x27;dataset_native&#x27;: 1, &#x27;fixed_session&#x27;: 1, &#x27;flat&#x27;: 1, &#x27;operation_stack&#x27;: 1}. No single hierarchy is the best visible choice across tasks and objectives.</li><li>operation_stack:query_aware is the best visible AP policy on 3/6 tasks and best 30% budget-recall policy on 3/6 tasks, but it has large regret on side-effect and safety when another task-specific view is better.</li><li>operation stacks reduce fragmentation relative to fixed-session query-aware on 4/6 tasks (median group ratio 0.5543), while fixed-session remains a first-positive counterpoint.</li><li>Leave-task source selection does not solve view choice universally: selected-equals-best is 0/6 for AP and 0/6 for top-5 F1. This keeps view/depth choice as a task-aware analysis knob rather than a deployed universal selector.</li><li>The supported design implication is to expose view, stack fields, predicates, and rankers as query-time configuration over the same operations; fixed session/span trees remain baselines, not profiler abstractions.</li></ul>
+<h2>Best Visible View Counts</h2>
+<table>
+<thead><tr><th>Metric</th><th>Best views</th><th>operation_stack:query_aware best tasks</th></tr></thead>
+<tbody><tr><th>average_precision</th><td>{&#x27;operation_stack&#x27;: 3, &#x27;fixed_session&#x27;: 2, &#x27;dataset_native&#x27;: 1}</td><td>3/6</td></tr><tr><th>top5_f1</th><td>{&#x27;raw_action_stack&#x27;: 2, &#x27;dataset_native&#x27;: 1, &#x27;fixed_session&#x27;: 1, &#x27;flat&#x27;: 1, &#x27;operation_stack&#x27;: 1}</td><td>1/6</td></tr><tr><th>budget30_recall</th><td>{&#x27;operation_stack&#x27;: 4, &#x27;fixed_session&#x27;: 1, &#x27;dataset_native&#x27;: 1}</td><td>3/6</td></tr><tr><th>work_to_first_positive</th><td>{&#x27;operation_stack&#x27;: 3, &#x27;raw_action_stack&#x27;: 1, &#x27;fixed_session&#x27;: 2}</td><td>2/6</td></tr></tbody>
+</table>
