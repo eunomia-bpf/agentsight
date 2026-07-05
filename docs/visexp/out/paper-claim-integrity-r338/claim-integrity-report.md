@@ -1,6 +1,6 @@
 # Paper Claim Integrity Audit R338
 
-R338 mechanically audits the current profiling-paper claim against R320-R337 result artifacts and the Chinese/English paper text. It does not fetch, sync, create, or relabel datasets.
+R338 mechanically audits the current profiling-paper claim against R320-R339 result artifacts and the Chinese/English paper text. It does not fetch, sync, create, or relabel datasets.
 
 ## Verdict
 
@@ -59,6 +59,31 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | R337 | default_vs_fixed_target10_group_wins | 5 | 5 | pass | R337 summary |
 | R337 | target25_csv_median_work | 0.2 | 0.2 | pass | R337 policy-target-summary.csv |
 | R337 | target25_csv_group_wins_vs_fixed | 5 | 5 | pass | R337 default-target-comparisons.csv |
+| R339 | overall | pass | pass | pass | R339 summary |
+| R339 | datasets | 4 | 4 | pass | R339 summary |
+| R339 | tasks | 6 | 6 | pass | R339 summary |
+| R339 | policies_scored | 144 | 144 | pass | R339 summary |
+| R339 | hidden_labels_used_only_for_scoring | True | True | pass | R339 summary |
+| R339 | top5_median_operation_work | 0.0937 | 0.0937 | pass | R339 claim_summary.top5 |
+| R339 | top5_median_positive_session_recall | 0.2629 | 0.2629 | pass | R339 claim_summary.top5 |
+| R339 | top5_fixed_positive_session_recall | 0.016 | 0.016 | pass | R339 claim_summary.top5 |
+| R339 | top5_flat_operation_work | 1.0 | 1.0 | pass | R339 claim_summary.top5 |
+| R339 | budget30_median_positive_operation_recall | 0.39 | 0.39 | pass | R339 claim_summary.budget30 |
+| R339 | budget30_median_positive_session_recall | 0.4669 | 0.4669 | pass | R339 claim_summary.budget30 |
+| R339 | budget30_median_session_work | 0.3467 | 0.3467 | pass | R339 claim_summary.budget30 |
+| R339 | budget30_fixed_positive_session_recall | 0.323 | 0.323 | pass | R339 claim_summary.budget30 |
+| R339 | budget30_raw_action_positive_session_recall | 0.5147 | 0.5147 | pass | R339 claim_summary.budget30 |
+| R339 | budget30_raw_action_session_work | 0.9103 | 0.9103 | pass | R339 claim_summary.budget30 |
+| R339 | top5_operation_work_lt_flat_tasks | 6 | 6 | pass | R339 claim_summary.paired_checks |
+| R339 | budget30_session_recall_gt_fixed_tasks | 6 | 6 | pass | R339 claim_summary.paired_checks |
+| R339 | budget30_session_work_lt_raw_action_tasks | 5 | 5 | pass | R339 claim_summary.paired_checks |
+| R339 | csv_default_median_top5_operation_work | 0.0937 | 0.0937 | pass | R339 policy-sequence-summary.csv |
+| R339 | csv_default_median_top5_positive_session_recall | 0.2629 | 0.2629 | pass | R339 policy-sequence-summary.csv |
+| R339 | csv_default_median_budget30_positive_operation_recall | 0.39 | 0.39 | pass | R339 policy-sequence-summary.csv |
+| R339 | csv_default_median_budget30_positive_session_recall | 0.4669 | 0.4669 | pass | R339 policy-sequence-summary.csv |
+| R339 | csv_default_median_budget30_session_work | 0.3467 | 0.3467 | pass | R339 policy-sequence-summary.csv |
+| R339 | csv_budget30_session_recall_wins_vs_fixed | 6 | 6 | pass | R339 default-sequence-comparisons.csv |
+| R339 | csv_budget30_session_work_wins_vs_raw_action | 5 | 5 | pass | R339 default-sequence-comparisons.csv |
 
 ## Text Coverage
 
@@ -71,14 +96,18 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | evaluation | R335 actionability | actionability / 6/6 / optimization | pass | 5,15,57,76,113,129,132,150 |
 | evaluation | R336 visible policies | 15 visible / 15 个 / 6 diagnostic | pass | 251,340 |
 | evaluation | R337 fixed recall | 25% / 0.2000 / 16.0 | pass | 15,166,168,251,341 |
+| evaluation | R339 sequence adequacy | R339 / 0.4669 / 0.9103 | pass | 13,15,176,186,194,197,251,342 |
 | zh_main | R320 headline | 0.0937 / 9.37 / 285.0 / 157.5 | pass | 63,73,395,402,412,413,474,498 |
 | zh_main | R333 headline | 0.3900 / 0.390 | pass | 68,390,442,474,498,553,654 |
 | zh_main | R337 headline | 0.2000 / 16.0 / 50.0 | pass | 72,473,553,658 |
+| zh_main | R339 headline | 0.4669 / 0.9103 / 0.3467 | pass | 73,474,553,659 |
 | en_main | R320 headline | 0.0937 / 9.37 / 285.0 / 157.5 | pass | 45,48,323,325,343,352,535 |
 | en_main | R333 headline | 0.3900 / 0.390 | pass | 70,324,343,410,538 |
 | en_main | R337 headline | 0.2000 / 16.0 / 50.0 | pass | 89,90,91,523,525,699,700 |
+| en_main | R339 headline | 0.4669 / 0.9103 / 0.3467 | pass | 94,95,96,539,540,541,702,703 |
 | zh_claim_setup | two abstractions | 两个核心抽象 / operation stack | pass | 7,23,25,70,73,74,75,77 |
 | zh_claim_setup | R337 result | R337 / 0.2000 / 16.0 | pass | 35,36,37,108,109,110 |
+| zh_claim_setup | R339 result | R339 / 0.4669 / 0.9103 | pass | 36,37,109,110,243 |
 | evaluation | R320:datasets | 4 | pass | 12,13,14,15,41,45,47,53 |
 | evaluation | R320:tasks | 6 | pass | 3,4,12,13,15,32,41,42 |
 | evaluation | R320:operations | 34,539 | pass | 15,101,123,219,251,307,314,316 |
@@ -91,7 +120,7 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | evaluation | R320:top5_recall_wins_vs_fixed | 5/6 | pass | 15,53,54,71,113,126,146,147 |
 | evaluation | R320:ap_wins_vs_width | 6/6 | pass | 15,113,129,151,153,159,160,167 |
 | evaluation | R333:operation_stack:query_aware_budget30_median_recall | 0.3900 | pass | 193,251,337 |
-| evaluation | R333:flat:width_budget30_median_recall | 0.0000 | pass | 251,337,342 |
+| evaluation | R333:flat:width_budget30_median_recall | 0.0000 | pass | 251,337 |
 | evaluation | R333:fixed_session:query_aware_budget30_median_recall | 0.3559 | pass | 251,337 |
 | evaluation | R333:dataset_native:query_aware_budget30_median_recall | 0.3377 | pass | 251,337 |
 | evaluation | R333:raw_action_stack:query_aware_budget30_median_recall | 0.3325 | pass | 251,337 |
@@ -109,6 +138,31 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | evaluation | R337:default_vs_fixed_target10_group_wins | 5/6 | pass | 15,53,54,71,113,126,146,147 |
 | evaluation | R337:target25_csv_median_work | 0.2000 | pass | 15,168,251,341 |
 | evaluation | R337:target25_csv_group_wins_vs_fixed | 5/6 | pass | 15,53,54,71,113,126,146,147 |
+| evaluation | R339:overall | pass | pass | 14,15,51,112,180,251,318,319 |
+| evaluation | R339:datasets | 4 | pass | 12,13,14,15,41,45,47,53 |
+| evaluation | R339:tasks | 6 | pass | 3,4,12,13,15,32,41,42 |
+| evaluation | R339:policies_scored | 144 | pass | 15,122,322,327,337,343,411,416 |
+| evaluation | R339:hidden_labels_used_only_for_scoring | hidden labels only for scoring | pass | 343 |
+| evaluation | R339:top5_median_operation_work | 0.0937 | pass | 190,327,343,401,402,403,404,405 |
+| evaluation | R339:top5_median_positive_session_recall | 0.2629 | pass | 191,343 |
+| evaluation | R339:top5_fixed_positive_session_recall | 0.0160 | pass | 192,343 |
+| evaluation | R339:top5_flat_operation_work | 1.0000 | pass | 15,169,191,251,341 |
+| evaluation | R339:budget30_median_positive_operation_recall | 0.3900 | pass | 193,251,337 |
+| evaluation | R339:budget30_median_positive_session_recall | 0.4669 | pass | 15,194,251,343 |
+| evaluation | R339:budget30_median_session_work | 0.3467 | pass | 15,195,251,343 |
+| evaluation | R339:budget30_fixed_positive_session_recall | 0.3230 | pass | 15,195,251,343 |
+| evaluation | R339:budget30_raw_action_positive_session_recall | 0.5147 | pass | 15,197,251,343 |
+| evaluation | R339:budget30_raw_action_session_work | 0.9103 | pass | 15,197,251,343 |
+| evaluation | R339:top5_operation_work_lt_flat_tasks | 6/6 | pass | 15,113,129,151,153,159,160,167 |
+| evaluation | R339:budget30_session_recall_gt_fixed_tasks | 6/6 | pass | 15,113,129,151,153,159,160,167 |
+| evaluation | R339:budget30_session_work_lt_raw_action_tasks | 5/6 | pass | 15,53,54,71,113,126,146,147 |
+| evaluation | R339:csv_default_median_top5_operation_work | 0.0937 | pass | 190,327,343,401,402,403,404,405 |
+| evaluation | R339:csv_default_median_top5_positive_session_recall | 0.2629 | pass | 191,343 |
+| evaluation | R339:csv_default_median_budget30_positive_operation_recall | 0.3900 | pass | 193,251,337 |
+| evaluation | R339:csv_default_median_budget30_positive_session_recall | 0.4669 | pass | 15,194,251,343 |
+| evaluation | R339:csv_default_median_budget30_session_work | 0.3467 | pass | 15,195,251,343 |
+| evaluation | R339:csv_budget30_session_recall_wins_vs_fixed | 6/6 | pass | 15,113,129,151,153,159,160,167 |
+| evaluation | R339:csv_budget30_session_work_wins_vs_raw_action | 5/6 | pass | 15,53,54,71,113,126,146,147 |
 
 ## Guardrails
 

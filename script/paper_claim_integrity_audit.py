@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""R338: paper-claim integrity audit over R320-R337 evidence.
+"""R338: paper-claim integrity audit over R320-R339 evidence.
 
 This audit does not fetch, sync, create, or relabel datasets. It reads tracked
 result artifacts from the existing profiling-paper evaluation runs and the
@@ -36,6 +36,7 @@ R334_DIR = OUT_ROOT / "operation-fragmentation-tradeoff-r334"
 R335_DIR = OUT_ROOT / "operation-actionability-synthesis-r335"
 R336_DIR = OUT_ROOT / "operation-actionability-selection-r336"
 R337_DIR = OUT_ROOT / "operation-inspection-target-r337"
+R339_DIR = OUT_ROOT / "operation-sequence-adequacy-r339"
 
 SOURCE_ARTIFACTS = {
     "R320 report": R320_DIR / "profile-accuracy-report.json",
@@ -51,6 +52,9 @@ SOURCE_ARTIFACTS = {
     "R337 report": R337_DIR / "inspection-target-report.json",
     "R337 policy targets": R337_DIR / "policy-target-summary.csv",
     "R337 default comparisons": R337_DIR / "default-target-comparisons.csv",
+    "R339 report": R339_DIR / "sequence-adequacy-report.json",
+    "R339 policy sequence summary": R339_DIR / "policy-sequence-summary.csv",
+    "R339 default comparisons": R339_DIR / "default-sequence-comparisons.csv",
 }
 
 PAPER_SOURCES = {
@@ -282,7 +286,8 @@ def validate_source_policies(reports: dict[str, dict[str, Any]]) -> list[dict[st
     rows: list[dict[str, Any]] = []
     for run_id, report in reports.items():
         input_policy = report.get("input_policy", {})
-        abstractions = report.get("profiler_abstractions")
+        summary = report.get("summary", {})
+        abstractions = report.get("profiler_abstractions", summary.get("profiler_abstractions"))
         add_check(
             rows,
             run_id=run_id,
@@ -345,6 +350,36 @@ def validate_source_policies(reports: dict[str, dict[str, Any]]) -> list[dict[st
                 source="report.reproducibility.network_access_required",
                 paper_token="network",
             )
+        elif "network_access_required" in summary:
+            add_check(
+                rows,
+                run_id=run_id,
+                key="network_access_required",
+                actual=summary["network_access_required"],
+                expected=False,
+                source="report.summary.network_access_required",
+                paper_token="network",
+            )
+        if "hidden_labels_used_only_for_scoring" in summary:
+            add_check(
+                rows,
+                run_id=run_id,
+                key="hidden_labels_used_only_for_scoring",
+                actual=summary["hidden_labels_used_only_for_scoring"],
+                expected=True,
+                source="report.summary.hidden_labels_used_only_for_scoring",
+                paper_token="hidden labels only for scoring",
+            )
+        if "source_artifacts_tracked_clean" in summary:
+            add_check(
+                rows,
+                run_id=run_id,
+                key="source_artifacts_tracked_clean",
+                actual=summary["source_artifacts_tracked_clean"],
+                expected=True,
+                source="report.summary.source_artifacts_tracked_clean",
+                paper_token="tracked clean",
+            )
     return rows
 
 
@@ -356,6 +391,8 @@ def build_number_checks(
     r334_budget: list[dict[str, str]],
     r337_targets: list[dict[str, str]],
     r337_comparisons: list[dict[str, str]],
+    r339_policy_summary: list[dict[str, str]],
+    r339_comparisons: list[dict[str, str]],
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     r320 = reports["R320"]
@@ -655,6 +692,117 @@ def build_number_checks(
         source="R337 default-target-comparisons.csv",
         paper_token="5/6",
     )
+
+    r339 = reports["R339"]
+    r339_summary = r339["summary"]
+    r339_claim = r339["claim_summary"]
+    add_check(rows, run_id="R339", key="overall", actual=r339_summary["overall"], expected="pass", source="R339 summary")
+    add_check(rows, run_id="R339", key="datasets", actual=len(r339_summary["datasets"]), expected=4, source="R339 summary")
+    add_check(rows, run_id="R339", key="tasks", actual=r339_summary["tasks"], expected=6, source="R339 summary")
+    add_check(rows, run_id="R339", key="policies_scored", actual=r339_summary["policies_scored"], expected=144, source="R339 summary")
+    add_check(
+        rows,
+        run_id="R339",
+        key="hidden_labels_used_only_for_scoring",
+        actual=r339_summary["hidden_labels_used_only_for_scoring"],
+        expected=True,
+        source="R339 summary",
+        paper_token="hidden labels only for scoring",
+    )
+    for key, expected, token in [
+        ("median_operation_work", 0.0937, "0.0937"),
+        ("median_positive_session_recall", 0.2629, "0.2629"),
+        ("fixed_positive_session_recall", 0.0160, "0.0160"),
+        ("flat_operation_work", 1.0, "1.0000"),
+    ]:
+        add_check(
+            rows,
+            run_id="R339",
+            key=f"top5_{key}",
+            actual=r339_claim["top5"][key],
+            expected=expected,
+            source="R339 claim_summary.top5",
+            paper_token=token,
+            tolerance=5e-5,
+        )
+    for key, expected, token in [
+        ("median_positive_operation_recall", 0.3900, "0.3900"),
+        ("median_positive_session_recall", 0.4669, "0.4669"),
+        ("median_session_work", 0.3467, "0.3467"),
+        ("fixed_positive_session_recall", 0.3230, "0.3230"),
+        ("raw_action_positive_session_recall", 0.5147, "0.5147"),
+        ("raw_action_session_work", 0.9103, "0.9103"),
+    ]:
+        add_check(
+            rows,
+            run_id="R339",
+            key=f"budget30_{key}",
+            actual=r339_claim["budget30"][key],
+            expected=expected,
+            source="R339 claim_summary.budget30",
+            paper_token=token,
+            tolerance=5e-5,
+        )
+    for key, expected, token in [
+        ("top5_operation_work_lt_flat_tasks", 6, "6/6"),
+        ("budget30_session_recall_gt_fixed_tasks", 6, "6/6"),
+        ("budget30_session_work_lt_raw_action_tasks", 5, "5/6"),
+    ]:
+        add_check(
+            rows,
+            run_id="R339",
+            key=key,
+            actual=r339_claim["paired_checks"][key],
+            expected=expected,
+            source="R339 claim_summary.paired_checks",
+            paper_token=token,
+        )
+    row = csv_lookup(r339_policy_summary, policy="operation_stack:query_aware")
+    for field, expected, token in [
+        ("median_top5_operation_work", 0.0937, "0.0937"),
+        ("median_top5_positive_session_recall", 0.2629, "0.2629"),
+        ("median_budget30_positive_operation_recall", 0.3900, "0.3900"),
+        ("median_budget30_positive_session_recall", 0.4669, "0.4669"),
+        ("median_budget30_session_work", 0.3467, "0.3467"),
+    ]:
+        add_check(
+            rows,
+            run_id="R339",
+            key=f"csv_default_{field}",
+            actual=as_float(row[field]),
+            expected=expected,
+            source="R339 policy-sequence-summary.csv",
+            paper_token=token,
+            tolerance=5e-5,
+        )
+    row = csv_lookup(
+        r339_comparisons,
+        comparison="vs_fixed_session_query_aware",
+        metric="budget30_positive_session_recall",
+    )
+    add_check(
+        rows,
+        run_id="R339",
+        key="csv_budget30_session_recall_wins_vs_fixed",
+        actual=as_int(row["improved_tasks"]),
+        expected=6,
+        source="R339 default-sequence-comparisons.csv",
+        paper_token="6/6",
+    )
+    row = csv_lookup(
+        r339_comparisons,
+        comparison="vs_raw_action_query_aware",
+        metric="budget30_session_work",
+    )
+    add_check(
+        rows,
+        run_id="R339",
+        key="csv_budget30_session_work_wins_vs_raw_action",
+        actual=as_int(row["improved_tasks"]),
+        expected=5,
+        source="R339 default-sequence-comparisons.csv",
+        paper_token="5/6",
+    )
     return rows
 
 
@@ -683,14 +831,18 @@ def build_text_coverage(
         ("evaluation", "R335 actionability", ["actionability", "6/6", "optimization"], "R335"),
         ("evaluation", "R336 visible policies", ["15 visible", "15 个", "6 diagnostic"], "R336"),
         ("evaluation", "R337 fixed recall", ["25%", "0.2000", "16.0"], "R337"),
+        ("evaluation", "R339 sequence adequacy", ["R339", "0.4669", "0.9103"], "R339"),
         ("zh_main", "R320 headline", ["0.0937", "9.37", "285.0", "157.5"], "R320"),
         ("zh_main", "R333 headline", ["0.3900", "0.390"], "R333"),
         ("zh_main", "R337 headline", ["0.2000", "16.0", "50.0"], "R337"),
+        ("zh_main", "R339 headline", ["0.4669", "0.9103", "0.3467"], "R339"),
         ("en_main", "R320 headline", ["0.0937", "9.37", "285.0", "157.5"], "R320"),
         ("en_main", "R333 headline", ["0.3900", "0.390"], "R333"),
         ("en_main", "R337 headline", ["0.2000", "16.0", "50.0"], "R337"),
+        ("en_main", "R339 headline", ["0.4669", "0.9103", "0.3467"], "R339"),
         ("zh_claim_setup", "two abstractions", ["两个核心抽象", "operation stack"], "C2"),
         ("zh_claim_setup", "R337 result", ["R337", "0.2000", "16.0"], "R337"),
+        ("zh_claim_setup", "R339 result", ["R339", "0.4669", "0.9103"], "R339"),
     ]
     rows: list[dict[str, Any]] = []
     for doc, key, tokens, source in required:
@@ -709,7 +861,7 @@ def build_text_coverage(
 
     eval_text = texts["evaluation"]
     for row in number_checks:
-        if row["run_id"] not in {"R320", "R333", "R337"}:
+        if row["run_id"] not in {"R320", "R333", "R337", "R339"}:
             continue
         token = str(row["paper_token"])
         status = "pass" if token in eval_text else "warn"
@@ -951,7 +1103,7 @@ def build_markdown(path: Path, payload: dict[str, Any]) -> None:
     lines = [
         "# Paper Claim Integrity Audit R338",
         "",
-        "R338 mechanically audits the current profiling-paper claim against R320-R337 result artifacts and the Chinese/English paper text. It does not fetch, sync, create, or relabel datasets.",
+        "R338 mechanically audits the current profiling-paper claim against R320-R339 result artifacts and the Chinese/English paper text. It does not fetch, sync, create, or relabel datasets.",
         "",
         "## Verdict",
         "",
@@ -974,7 +1126,7 @@ def build_markdown(path: Path, payload: dict[str, Any]) -> None:
         "|---|---|---:|---:|---|---|",
     ]
     for row in payload["number_checks"]:
-        if row["run_id"] in {"R320", "R333", "R334", "R337"}:
+        if row["run_id"] in {"R320", "R333", "R334", "R337", "R339"}:
             lines.append(
                 f"| {row['run_id']} | {row['key']} | {row['expected']} | {row['actual']} | {row['status']} | {row['source']} |"
             )
@@ -1081,6 +1233,7 @@ def build_payload() -> dict[str, Any]:
         "R335": load_json(SOURCE_ARTIFACTS["R335 report"]),
         "R336": load_json(SOURCE_ARTIFACTS["R336 report"]),
         "R337": load_json(SOURCE_ARTIFACTS["R337 report"]),
+        "R339": load_json(SOURCE_ARTIFACTS["R339 report"]),
     }
     r320_scores = read_csv(SOURCE_ARTIFACTS["R320 policy scores"])
     r333_summary = read_csv(SOURCE_ARTIFACTS["R333 curve summary"])
@@ -1088,6 +1241,8 @@ def build_payload() -> dict[str, Any]:
     r334_budget = read_csv(SOURCE_ARTIFACTS["R334 budget comparisons"])
     r337_targets = read_csv(SOURCE_ARTIFACTS["R337 policy targets"])
     r337_comparisons = read_csv(SOURCE_ARTIFACTS["R337 default comparisons"])
+    r339_policy_summary = read_csv(SOURCE_ARTIFACTS["R339 policy sequence summary"])
+    r339_comparisons = read_csv(SOURCE_ARTIFACTS["R339 default comparisons"])
 
     number_checks = build_number_checks(
         reports,
@@ -1097,6 +1252,8 @@ def build_payload() -> dict[str, Any]:
         r334_budget,
         r337_targets,
         r337_comparisons,
+        r339_policy_summary,
+        r339_comparisons,
     )
     policy_checks = validate_source_policies(reports)
     text_coverage = build_text_coverage(texts, number_checks)
@@ -1144,7 +1301,7 @@ def build_payload() -> dict[str, Any]:
             "dataset_relabeling": "none",
             "network_access_required": False,
             "source_text_clean_policy": "paper text sources may be current worktree edits and are hashed; empirical source artifacts must be tracked clean",
-            "hidden_label_use": "R338 reads already-scored R320-R337 artifacts and does not form new rankings from hidden labels",
+            "hidden_label_use": "R338 reads already-scored R320-R339 artifacts and does not form new rankings from hidden labels",
         },
         "non_claims": [
             "not a human/agent analyst study",
