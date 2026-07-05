@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>R345 Diagnostic Lens Portfolio</title>
+<style>
+body { font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.45; }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+th, td { border: 1px solid #d0d7de; padding: 0.45rem; vertical-align: top; }
+th { background: #f6f8fa; text-align: left; }
+code { background: #f6f8fa; padding: 0.1rem 0.25rem; }
+</style>
+<h1>R345 Diagnostic Lens Portfolio</h1>
+<p>Overall: <strong>pass</strong>. R345 reads tracked R335/R341/R344 artifacts only.</p>
+<ul>
+  <li>6 tasks across 4 datasets.</li>
+  <li>6 diagnostic lenses over 36 objective rows.</li>
+  <li>6/6 tasks need at least three best views across objectives.</li>
+  <li>R344 metric surface: 30 support, 16 counterpoints, 4 mixed/weak.</li>
+</ul>
+<h2>Lens Summary</h2>
+<table><thead><tr><th>Objective</th><th>Lens</th><th>Best view distribution</th><th>Interpretation</th></tr></thead><tbody><tr><td>ranking_fidelity_ap</td><td>ranked-stack table</td><td>{&quot;dataset_native&quot;: 1, &quot;fixed_session&quot;: 2, &quot;operation_stack&quot;: 3}</td><td>Operation-stack query-aware is often the AP-faithful ranking view, but fixed-session and dataset-native remain task-specific counterpoints.</td></tr>
+<tr><td>top5_localization_f1</td><td>hot-stack table</td><td>{&quot;dataset_native&quot;: 1, &quot;fixed_session&quot;: 1, &quot;flat&quot;: 1, &quot;operation_stack&quot;: 1, &quot;raw_action_stack&quot;: 2}</td><td>Hot-group F1 is the most fragmented lens: raw-action, dataset-native, fixed-session, flat, and operation-stack each win at least one task.</td></tr>
+<tr><td>budget30_recall</td><td>budgeted inspection curve</td><td>{&quot;dataset_native&quot;: 1, &quot;fixed_session&quot;: 1, &quot;operation_stack&quot;: 4}</td><td>Budgeted recall mostly favors operation stacks, but a width variant and dataset-native hierarchy win on boundary/safety tasks.</td></tr>
+<tr><td>first_positive_work</td><td>first-positive drilldown</td><td>{&quot;fixed_session&quot;: 2, &quot;operation_stack&quot;: 3, &quot;raw_action_stack&quot;: 1}</td><td>First-positive search is a drilldown counterpoint: fixed-session or raw-action can surface an example earlier even when operation stacks rank better overall.</td></tr>
+<tr><td>groups_to_50pct</td><td>recall-fragmentation curve</td><td>{&quot;dataset_native&quot;: 2, &quot;fixed_session&quot;: 1, &quot;raw_action_stack&quot;: 3}</td><td>Coverage at 50% positives often prefers raw-action or dataset-native groups, exposing mapping/depth tuning needs.</td></tr>
+<tr><td>total_group_fragmentation</td><td>group-fragmentation overview</td><td>{&quot;flat&quot;: 6}</td><td>Flat has the lowest group count by construction, so group count alone is a counterpoint metric, not a localization metric.</td></tr></tbody></table>
+<h2>Task Cards</h2>
+<table><thead><tr><th>Task</th><th>Views</th><th>Visual recipe</th><th>Optimization action</th></tr></thead><tbody><tr><td>agentreward_looping</td><td>4</td><td>Start with a ranked operation-stack table over repeat_signal/phase/action, then inspect budgeted recall for prevalence.</td><td>Keep repeat_signal in the stack, but add prevalence-aware ranking because looping positives are common.</td></tr>
+<tr><td>agentreward_side_effect</td><td>3</td><td>Compare fixed-session drilldown with deeper write/input operation-stack fields before trusting hot groups.</td><td>Increase weight on write/input actions or use a deeper side-effect mapping before ranking.</td></tr>
+<tr><td>satraj_unsafe</td><td>4</td><td>Use environment/phase/action operation stacks for hot groups, then check dataset-native safety hierarchy for AP headroom.</td><td>Use environment + phase + action stack fields; prioritize risky environments and write actions.</td></tr>
+<tr><td>agentnet_incorrect_step</td><td>3</td><td>Use desktop phase/repeat/action stacks for AP and budget recall, with raw-action/fixed-session drilldown for examples.</td><td>Use desktop environment + phase + repeat/action fields, then drill into fixed sessions for examples.</td></tr>
+<tr><td>agentnet_redundant_step</td><td>3</td><td>Use desktop phase/repeat/action stacks for AP and budget recall, with raw-action/fixed-session drilldown for examples.</td><td>Use desktop environment + phase + repeat/action fields, then drill into fixed sessions for examples.</td></tr>
+<tr><td>osworld_group_start</td><td>4</td><td>Use group-depth or boundary-derived stack fields, then inspect fixed-session examples for first-positive work.</td><td>Use group-depth or boundary-derived fields for higher recall; action-depth alone fragments starts.</td></tr></tbody></table>
+</html>
