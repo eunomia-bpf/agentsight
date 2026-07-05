@@ -33,6 +33,7 @@ Purpose: identify the maintained implementation boundary.
 | `script/operation_rank_feature_robustness_eval.py` | R326 equal-weight, global-bank, and ablation-repaired rank-feature robustness probe over R324's scrubbed visible profiler input. | research harness |
 | `script/operation_profile_spec_composition_eval.py` | R342 profile-spec composition audit over tracked R324 real-trace Rust outputs; checks predicates, operation-level rank rules, rank mode, and recursive stack depth without prompt/session frames. | research harness |
 | `script/profile_artifact_relocation_audit.py` | R343 relocated-checkout audit for historical profile specs that contain absolute artifact paths; verifies R342/R338 path normalization over existing tracked outputs. | reproducibility harness |
+| `script/operation_metric_consistency_eval.py` | R344 multi-metric consistency audit over R320 scored policy outputs; checks AP, nDCG, top-k, budget, work, and fragmentation support/counterpoints. | research harness |
 | `script/implementation_consistency_audit.py` | R319 implementation/docs consistency audit over Rust CLI, docs, and paper wording. | paper hygiene harness |
 | `docs/visexp/` | Historical AgentFlame/visual-experiment notes and older prototypes. | archive/reference; not authoritative |
 
