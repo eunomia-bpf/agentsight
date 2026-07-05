@@ -13,11 +13,17 @@ R340 selects visible profile policies using only non-target tasks or non-target 
 
 Supported wording: Selecting visible view/ranker policies from non-target tasks gives an auditable transfer signal: it often stays near the best visible held-out policy, but exact best policy selection remains task- and objective-specific.
 
-Must not claim:
+Scope guardrails:
 - does not use target hidden labels for policy selection
 - does not prove an automatic universal selector
 - does not make operation-stack query-aware the best policy for every objective
 - does not replace task-specific actionability cards or fixed-session counterpoints
+
+Must not claim:
+- target hidden labels are used to select the transferred policy
+- R340 proves an automatic universal selector
+- operation-stack query-aware is the best policy for every objective
+- task-specific actionability cards or fixed-session counterpoints are unnecessary
 
 ## Objective Summary
 
