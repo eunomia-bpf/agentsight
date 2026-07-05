@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""R338: paper-claim integrity audit over R320-R342 evidence.
+"""R338: paper-claim integrity audit over R320-R344 evidence.
 
 This audit does not fetch, sync, create, or relabel datasets. It reads tracked
 result artifacts from the existing profiling-paper evaluation runs and the
@@ -40,6 +40,7 @@ R339_DIR = OUT_ROOT / "operation-sequence-adequacy-r339"
 R340_DIR = OUT_ROOT / "operation-policy-transfer-r340"
 R341_DIR = OUT_ROOT / "operation-mechanism-attribution-r341"
 R342_DIR = OUT_ROOT / "operation-profile-spec-composition-r342"
+R344_DIR = OUT_ROOT / "operation-metric-consistency-r344"
 
 SOURCE_ARTIFACTS = {
     "R320 report": R320_DIR / "profile-accuracy-report.json",
@@ -67,6 +68,9 @@ SOURCE_ARTIFACTS = {
     "R342 report": R342_DIR / "profile-spec-composition-report.json",
     "R342 variants": R342_DIR / "profile-spec-composition-variants.csv",
     "R342 tasks": R342_DIR / "profile-spec-composition-tasks.csv",
+    "R344 report": R344_DIR / "metric-consistency-report.json",
+    "R344 metric summary": R344_DIR / "metric-summary.csv",
+    "R344 task metric deltas": R344_DIR / "task-metric-deltas.csv",
 }
 
 PAPER_SOURCES = {
@@ -572,6 +576,8 @@ def build_number_checks(
     r342_tasks: list[dict[str, str]],
     r342_source_variants: list[dict[str, Any]],
     r342_source_tasks: list[dict[str, Any]],
+    r344_metric_summary: list[dict[str, str]],
+    r344_task_deltas: list[dict[str, str]],
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     r320 = reports["R320"]
@@ -1168,6 +1174,40 @@ def build_number_checks(
     add_check(rows, run_id="R342", key="best_ap_coarse_depth_tasks", actual=r342_best_ap_counts["coarse"], expected=2, source="R342 source_paths -> R324 summary", paper_token="semantic 4 / coarse 2")
     add_check(rows, run_id="R342", key="committed_variant_csv_matches_sources", actual=r342_variant_csv_matches, expected=12, source="R342 CSV compared with upstream-derived rows", paper_token="12/12")
     add_check(rows, run_id="R342", key="committed_task_csv_matches_sources", actual=r342_task_csv_matches, expected=6, source="R342 CSV compared with upstream-derived rows", paper_token="6/6")
+
+    r344 = reports["R344"]["summary"]
+    r344_metric_keys = {row["metric"] for row in r344_metric_summary}
+    r344_support = sum(row["verdict"] == "supports" for row in r344_metric_summary)
+    r344_counterpoints = sum(row["verdict"] == "counterpoint" for row in r344_metric_summary)
+    r344_mixed_or_weak = len(r344_metric_summary) - r344_support - r344_counterpoints
+
+    def r344_row(baseline: str, metric: str) -> dict[str, str]:
+        return csv_lookup(r344_metric_summary, baseline=baseline, metric=metric)
+
+    add_check(rows, run_id="R344", key="overall", actual=r344["overall"], expected="pass", source="R344 report summary", paper_token="R344")
+    add_check(rows, run_id="R344", key="tasks", actual=r344["tasks"], expected=6, source="R344 report summary", paper_token="6 tasks")
+    add_check(rows, run_id="R344", key="metric_comparisons", actual=r344["metric_comparisons"], expected=50, source="R344 report summary", paper_token="50 baseline-metric comparisons")
+    add_check(rows, run_id="R344", key="task_metric_delta_rows", actual=r344["task_metric_delta_rows"], expected=300, source="R344 report summary", paper_token="300 task-metric deltas")
+    add_check(rows, run_id="R344", key="support_verdicts", actual=r344["support_verdicts"], expected=30, source="R344 report summary", paper_token="30 support verdicts")
+    add_check(rows, run_id="R344", key="counterpoint_verdicts", actual=r344["counterpoint_verdicts"], expected=16, source="R344 report summary", paper_token="16 counterpoints")
+    add_check(rows, run_id="R344", key="mixed_or_weak_verdicts", actual=r344["mixed_or_weak_verdicts"], expected=4, source="R344 report summary", paper_token="4 mixed/weak")
+    add_check(rows, run_id="R344", key="required_metric_count", actual=len(r344["required_metrics_covered"]), expected=9, source="R344 report summary", paper_token="groups")
+    add_check(rows, run_id="R344", key="required_groups_metric_present", actual="groups" in r344["required_metrics_covered"], expected=True, source="R344 report summary", paper_token="groups")
+    add_check(rows, run_id="R344", key="metric_summary_rows", actual=len(r344_metric_summary), expected=50, source="R344 metric-summary.csv", paper_token="50")
+    add_check(rows, run_id="R344", key="task_delta_rows", actual=len(r344_task_deltas), expected=300, source="R344 task-metric-deltas.csv", paper_token="300")
+    add_check(rows, run_id="R344", key="summary_support_verdicts", actual=r344_support, expected=30, source="R344 metric-summary.csv", paper_token="30 support verdicts")
+    add_check(rows, run_id="R344", key="summary_counterpoint_verdicts", actual=r344_counterpoints, expected=16, source="R344 metric-summary.csv", paper_token="16 counterpoints")
+    add_check(rows, run_id="R344", key="summary_mixed_or_weak_verdicts", actual=r344_mixed_or_weak, expected=4, source="R344 metric-summary.csv", paper_token="4 mixed/weak")
+    add_check(rows, run_id="R344", key="required_metric_groups_in_summary", actual="groups" in r344_metric_keys, expected=True, source="R344 metric-summary.csv", paper_token="groups")
+    add_check(rows, run_id="R344", key="flat_ap_wins", actual=as_int(r344_row("flat_width", "average_precision")["wins"]), expected=6, source="R344 metric-summary.csv", paper_token="flat AP 6/6")
+    add_check(rows, run_id="R344", key="flat_budget30_recall_wins", actual=as_int(r344_row("flat_width", "budget30_recall")["wins"]), expected=6, source="R344 metric-summary.csv", paper_token="budget30 recall 6/6")
+    add_check(rows, run_id="R344", key="flat_work_to_first_positive_wins", actual=as_int(r344_row("flat_width", "work_to_first_positive")["wins"]), expected=6, source="R344 metric-summary.csv", paper_token="work-to-first-positive 6/6")
+    add_check(rows, run_id="R344", key="fixed_session_top5_f1_wins", actual=as_int(r344_row("fixed_session_query_aware", "top5_f1")["wins"]), expected=5, source="R344 metric-summary.csv", paper_token="top-5 F1 5/6")
+    add_check(rows, run_id="R344", key="fixed_session_group_wins", actual=as_int(r344_row("fixed_session_query_aware", "groups")["wins"]), expected=4, source="R344 metric-summary.csv", paper_token="groups 4/6")
+    add_check(rows, run_id="R344", key="width_ap_wins", actual=as_int(r344_row("operation_stack_width", "average_precision")["wins"]), expected=6, source="R344 metric-summary.csv", paper_token="width AP 6/6")
+    add_check(rows, run_id="R344", key="width_budget30_recall_wins", actual=as_int(r344_row("operation_stack_width", "budget30_recall")["wins"]), expected=5, source="R344 metric-summary.csv", paper_token="budget30 recall 5/6")
+    add_check(rows, run_id="R344", key="flat_ndcg_losses", actual=as_int(r344_row("flat_width", "ndcg")["losses"]), expected=6, source="R344 metric-summary.csv", paper_token="nDCG")
+    add_check(rows, run_id="R344", key="flat_top5_recall_losses", actual=as_int(r344_row("flat_width", "top5_recall")["losses"]), expected=6, source="R344 metric-summary.csv", paper_token="top-k recall")
     return rows
 
 
@@ -1214,6 +1254,7 @@ def build_text_coverage(
         ("evaluation", "R340 policy transfer", ["R340", "96", "62/96", "72/96"], "R340"),
         ("evaluation", "R341 mechanism attribution", ["R341", "36/36", "27/36", "34/96"], "R341"),
         ("evaluation", "R342 profile spec composition", ["R342", "12/12", "9/12", "0.8267"], "R342"),
+        ("evaluation", "R344 metric consistency", ["R344", "30", "16", "groups"], "R344"),
         ("zh_main", "R320 headline", ["0.0937", "9.37", "285.0", "157.5"], "R320"),
         ("zh_main", "R333 headline", ["0.3900", "0.390"], "R333"),
         ("zh_main", "R337 headline", ["0.2000", "16.0", "50.0"], "R337"),
@@ -1221,6 +1262,7 @@ def build_text_coverage(
         ("zh_main", "R340 headline", ["R340", "62/96", "72/96", "69/96"], "R340"),
         ("zh_main", "R341 headline", ["R341", "36/36", "27/36", "34/96"], "R341"),
         ("zh_main", "R342 headline", ["R342", "12/12", "9/12", "0.8267"], "R342"),
+        ("zh_main", "R344 headline", ["R344", "30", "16", "nDCG"], "R344"),
         ("en_main", "R320 headline", ["0.0937", "9.37", "285.0", "157.5"], "R320"),
         ("en_main", "R333 headline", ["0.3900", "0.390"], "R333"),
         ("en_main", "R337 headline", ["0.2000", "16.0", "50.0"], "R337"),
@@ -1228,17 +1270,19 @@ def build_text_coverage(
         ("en_main", "R340 headline", ["R340", "62 of 96", "72 of 96", "69 of 96"], "R340"),
         ("en_main", "R341 headline", ["R341", "36 of 36", "27 of 36", "34 of 96"], "R341"),
         ("en_main", "R342 headline", ["R342", "12/12", "9/12", "0.8267"], "R342"),
+        ("en_main", "R344 headline", ["R344", "30", "16", "nDCG"], "R344"),
         ("zh_claim_setup", "two abstractions", ["两个核心抽象", "operation stack"], "C2"),
         ("zh_claim_setup", "R337 result", ["R337", "0.2000", "16.0"], "R337"),
         ("zh_claim_setup", "R339 result", ["R339", "0.4669", "0.9103"], "R339"),
         ("zh_claim_setup", "R340 result", ["R340", "62/96", "72/96", "69/96"], "R340"),
         ("zh_claim_setup", "R341 result", ["R341", "36/36", "27/36", "34/96"], "R341"),
         ("zh_claim_setup", "R342 result", ["R342", "12/12", "9/12", "0.8267"], "R342"),
+        ("zh_claim_setup", "R344 result", ["R344", "30", "16", "nDCG"], "R344"),
     ]
     rows: list[dict[str, Any]] = []
     for doc, key, tokens, source in required:
         text = texts[doc]
-        status = "pass" if (contains_all(text, tokens) if source in {"R341", "R342"} else contains_any(text, tokens)) else "fail"
+        status = "pass" if (contains_all(text, tokens) if source in {"R341", "R342", "R344"} else contains_any(text, tokens)) else "fail"
         rows.append(
             {
                 "doc": doc,
@@ -1252,10 +1296,10 @@ def build_text_coverage(
 
     eval_text = texts["evaluation"]
     for row in number_checks:
-        if row["run_id"] not in {"R320", "R333", "R337", "R339", "R340", "R341", "R342"}:
+        if row["run_id"] not in {"R320", "R333", "R337", "R339", "R340", "R341", "R342", "R344"}:
             continue
         token = str(row["paper_token"])
-        hits = line_hits_all(eval_text, [row["run_id"], token]) if row["run_id"] in {"R341", "R342"} else line_hits(eval_text, [token])
+        hits = line_hits_all(eval_text, [row["run_id"], token]) if row["run_id"] in {"R341", "R342", "R344"} else line_hits(eval_text, [token])
         status = "pass" if hits else "warn"
         rows.append(
             {
@@ -1495,7 +1539,7 @@ def build_markdown(path: Path, payload: dict[str, Any]) -> None:
     lines = [
         "# Paper Claim Integrity Audit R338",
         "",
-        "R338 mechanically audits the current profiling-paper claim against R320-R342 result artifacts and the Chinese/English paper text. It does not fetch, sync, create, or relabel datasets.",
+        "R338 mechanically audits the current profiling-paper claim against R320-R344 result artifacts and the Chinese/English paper text. It does not fetch, sync, create, or relabel datasets.",
         "",
         "## Verdict",
         "",
@@ -1518,7 +1562,7 @@ def build_markdown(path: Path, payload: dict[str, Any]) -> None:
         "|---|---|---:|---:|---|---|",
     ]
     for row in payload["number_checks"]:
-        if row["run_id"] in {"R320", "R333", "R334", "R337", "R339", "R340", "R341", "R342"}:
+        if row["run_id"] in {"R320", "R333", "R334", "R337", "R339", "R340", "R341", "R342", "R344"}:
             lines.append(
                 f"| {row['run_id']} | {row['key']} | {row['expected']} | {row['actual']} | {row['status']} | {row['source']} |"
             )
@@ -1638,6 +1682,7 @@ def build_payload() -> dict[str, Any]:
         "R340": load_json(SOURCE_ARTIFACTS["R340 report"]),
         "R341": load_json(SOURCE_ARTIFACTS["R341 report"]),
         "R342": load_json(SOURCE_ARTIFACTS["R342 report"]),
+        "R344": load_json(SOURCE_ARTIFACTS["R344 report"]),
     }
     r320_scores = read_csv(SOURCE_ARTIFACTS["R320 policy scores"])
     r333_summary = read_csv(SOURCE_ARTIFACTS["R333 curve summary"])
@@ -1654,6 +1699,8 @@ def build_payload() -> dict[str, Any]:
     r342_variants = read_csv(SOURCE_ARTIFACTS["R342 variants"])
     r342_tasks = read_csv(SOURCE_ARTIFACTS["R342 tasks"])
     r342_source_variants, r342_source_tasks = build_r342_rows_from_sources(reports["R342"])
+    r344_metric_summary = read_csv(SOURCE_ARTIFACTS["R344 metric summary"])
+    r344_task_deltas = read_csv(SOURCE_ARTIFACTS["R344 task metric deltas"])
 
     number_checks = build_number_checks(
         reports,
@@ -1673,6 +1720,8 @@ def build_payload() -> dict[str, Any]:
         r342_tasks,
         r342_source_variants,
         r342_source_tasks,
+        r344_metric_summary,
+        r344_task_deltas,
     )
     policy_checks = validate_source_policies(reports)
     text_coverage = build_text_coverage(texts, number_checks)
@@ -1717,7 +1766,7 @@ def build_payload() -> dict[str, Any]:
             "dataset_relabeling": "none",
             "network_access_required": False,
             "source_text_clean_policy": "paper text sources may be current worktree edits and are hashed; empirical source artifacts must be tracked clean",
-            "hidden_label_use": "R338 reads already-scored R320-R342 artifacts and does not form new rankings from hidden labels",
+            "hidden_label_use": "R338 reads already-scored R320-R344 artifacts and does not form new rankings from hidden labels",
         },
         "non_claims": [
             "not a human/agent analyst study",
