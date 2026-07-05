@@ -43,7 +43,7 @@ AI agent 的执行历史已经不再只是一次 prompt 或一棵 trace tree。
 \op{} 是带字段和权重的观测，prompt、session、tool call、process、syscall、GUI action 和 plan step 都只是 operation 的不同形态或字段。
 \opstack{} 是用户从字段中选择的递归投影，mapping 和 tagging 在 stack 构造前派生字段，而不是创建第三种 profiler 对象。
 关键点是聚合不是第三个对象，也不是固定 trace tree；聚合由 query time 选择的 stack 形态决定。
-		我们在 Rust \toolname{} 中实现该模型，支持 \texttt{--view}、\texttt{--where}、\texttt{--stack}、\texttt{--op-map}、\texttt{--op-map-file}、\texttt{--trace-file}、\texttt{--standard-trace-file} 和可复现实验用的 \texttt{--profile-spec}，并把 15 个公开标注 agent 轨迹数据源投影为同一类 operation JSONL。
+		我们在 Rust \toolname{} 中实现该模型，支持 \texttt{--view}、\texttt{--where}、\texttt{--stack}、\texttt{--op-map}、\texttt{--op-map-file}、\texttt{--trace-file}、\texttt{--standard-trace-file}、\texttt{--deterministic-output} 和可复现实验用的 \texttt{--profile-spec}，并把 15 个公开标注 agent 轨迹数据源投影为同一类 operation JSONL。
 
 	我们在 15 个轻量采样的公开标注轨迹来源上评估该模型，不同步完整测试集、图片归档或 gated corpus。
 	核心结果显示，Web、mobile、desktop、software、API、tool-dialogue、failure、安全、human group 和 step-quality 轨迹都可以进入同一 operation layer，核心 14 个数据集包含 42,590 个 operations，补充 ScaleCUA 后为 47,590 个 operations。
@@ -64,6 +64,7 @@ AI agent 的执行历史已经不再只是一次 prompt 或一棵 trace tree。
 		Query-aware visible ranking 相比 width-only operation-stack ranking 在 6/6 tasks 上提高 AP，但 top-5 F1 和 work 仍暴露 prevalence 与 calibration 反例。
 		R326 进一步说明 rank policy 的收益不只是某一组手调权重：global equal visible features 在 semantic/coarse stack 上分别赢 4/6 和 5/6 tasks，equal-weight task policy 在 8/12 variants 上接近 weighted policy；但 repaired policy 使用 R325 离线评分结果，因此只支持 actionability，不支持已部署的 label-free universal ranker。
 		R327 复用 R300/R324/R326 已提交的 76 个 profile specs 和已提交 operation JSONL，执行 152 次 Rust profiler 调用：去除 JSON \texttt{generated\_at} 后，semantic profile hash、samples 和 unique stacks 均为 76/76 稳定；median runtime 为 1.581s，p95 为 2.719s，最大为 4.273s。
+		R328 在同一 workload 上启用 \texttt{--deterministic-output}，把 JSON \texttt{generated\_at} 和 pprof profile time 固定为可复现值，使 semantic 与 raw-byte determinism 均达到 76/76；该 run 的 median runtime 为 1.578s，p95 为 2.731s。
 		Task-level narrative 进一步显示，SATraj safety 是最强 selective win，AgentNet quality 是 high-lift/low-recall，AgentRewardBench looping 是 prevalence aggregation，side-effect 和 OSWorld-Human boundary 对 ranker 与 depth 敏感。
 		因此本文支持的 claim 是 operation-stack profiling 能在真实标注 trace 上 faithful 地定位、排序和归因任务相关问题，并提供可审计的 accuracy/work/fragmentation tradeoff，而不是人类用户效用、自动异常检测或相对 fixed-session 的无条件支配。
 	\end{abstract}
@@ -113,6 +114,7 @@ Mapping 不引入第三个抽象。
 \texttt{--where FIELD=REGEX} 和 \texttt{FIELD!=REGEX} 在 mapping 之后、stack 构造之前选择 operation 子集，多条 predicate 取 AND；它实现形式化模型里的 $\phi$，不是新的 profiler 对象。
 \texttt{script/operation\_map\_infer.py} 可以从已标注 operations 中生成同样格式的规则文件，并用这些规则测试 held-out 和 leave-dataset-out 泛化。
 \texttt{--profile-spec} 把 operation files、mapping files、predicate、view、stack 和输出路径打包成 JSON 配置，便于 reviewer 复现实验；命令行参数仍可覆盖 spec 默认值。
+\texttt{--deterministic-output} 或 spec 中的 \texttt{deterministic\_output} 可以把 JSON \texttt{generated\_at} 和 pprof profile time 固定为可复现值，用于 byte-stable artifact checks。
 它不改变模型本身，只是把已有 operation 和 operation-stack 查询显式记录下来。
 
 \subsection{Views 和非火焰图分析}
@@ -155,6 +157,7 @@ R324 把 per-operation visible feature density 接到 Rust profiler：脚本先�
 R325 在同一 Rust profile-spec 路径上做 leave-one-feature ablation：它发现 7 个 critical feature instances、3 个 misleading feature instances，并显示 coarse stack 只在 2/6 tasks 上 AP 更好但在 6/6 tasks 上减少 group 数。
 R326 进一步测试 rank-policy robustness：global equal visible feature bank 在 semantic/coarse stack 上 AP 相比 width 分别赢 4/6 和 5/6 tasks，task-equal 在 8/12 task/depth variants 上与 weighted task policy 的 AP 差距不超过 0.02，R325-guided repair 在 2/3 misleading-feature cases 上改善 AP、在 2/3 cases 上改善 first-positive work，其中 1/3 同时改善两者；repair 是 post-hoc actionability check，不是 label-free deployment policy。
 R327 再把这些可提交 profile specs 作为 reproducibility/cost workload：R300 的 4 个 view specs、R324 的 12 个 rank-feature specs 和 R326 的 60 个 robustness specs 均由 Rust \texttt{agentpprof --profile-spec} 重复执行两次；semantic profile hash 全部稳定，raw-byte hash 只有 4/76 稳定，因为 JSON profile 包含生成时间戳。
+R328 在同一 76 个 specs 上启用 \texttt{--deterministic-output}，使 raw-byte hash 也达到 76/76 稳定；这关闭的是 artifact byte-stability 缺口，不是新的 accuracy benchmark。
 因此 prompt、session、toolcall、process、syscall、plan 和 subagent 都可以在同一套 mechanism 中出现，而不是成为互不兼容的 object model。
 
 \section{实验方法}
@@ -410,7 +413,9 @@ R323 进一步说明 ranking policy 本身是可操作的优化旋钮：当排�
 R324 则把 group-level feature density 作为 Rust profile-spec policy 实现出来：Rust 只读取 scrubbed visible-operation profiler input，hidden labels 不传给 Rust，只用于 offline scoring；semantic stack 的 operation-feature ranking 在 AP 上赢 5/6 tasks，在 first-positive work 上赢 5/6 tasks；coarse stack 的 group 数从数百级降到几十级时仍在 4/6 tasks 上提升 AP。
 R325 进一步把 actionability 具体化：删除 \texttt{repeat\_signal} 会显著伤害 looping 定位，删除 \texttt{write-action} 会伤害 side-effect 定位，SATraj 的 \texttt{status=success} 是关键排序信号，但 SATraj 的 loop-like 规则和 OSWorld-Human 的 input-phase 规则会误导排序。
 R326 再检查这些结论是否过度依赖手调权重：global equal visible feature bank 在 semantic/coarse stack 上分别有 4/6 和 5/6 AP wins，equal-weight task policy 在 8/12 variants 上接近 weighted policy，R325-guided repair 在 2/3 misleading-feature cases 上改善 AP、在 2/3 cases 上改善 first-positive work，其中 1/3 同时改善两者。
-R327 则检查 profile-spec 本身是否可复现、成本是否可报告：所有 76 个 profile specs 在重复运行中保持 semantic profile content、samples 和 unique stacks 稳定，median 每个 spec 运行时间为 1.581s，p95 为 2.719s；这支持 artifact/reproducibility claim，但不等价于 live capture overhead。
+R327 则检查 profile-spec 本身是否可复现、成本是否可报告：所有 76 个 profile specs 在重复运行中保持 semantic profile content、samples 和 unique stacks 稳定，median 每个 spec 运行时间为 1.581s，p95 为 2.719s；默认 JSON profile 的 raw-byte determinism 只有 4/76，因为输出带生成时间戳。
+R328 再启用 deterministic artifact mode，固定 JSON \texttt{generated\_at} 和 pprof profile time；同一 76 个 specs 的 semantic 与 raw-byte determinism 均为 76/76，median 每个 spec 运行时间为 1.578s，p95 为 2.731s。
+这些结果支持 artifact/reproducibility claim，但不等价于 live capture overhead。
 这说明 profiler 输出不仅告诉我们哪里有问题，还告诉我们哪类 stack depth、field mapping 和 rank policy 值得调。
 这些结论是 profiler 输出对优化方向的归因，而不是人工 analyst 的主观解释。
 
@@ -439,17 +444,32 @@ R327 则检查 profile-spec 本身是否可复现、成本是否可报告：所�
 
 \begin{table}[t]
   \centering
-  \small
-  \caption{R327 profile-spec 可复现性与离线执行成本。Runtime 为 Rust binary 已存在后的每个 spec 运行时间；semantic hash 去除 JSON \texttt{generated\_at} 字段，raw-byte hash 单独报告。}
+  \scriptsize
+  \caption{R327 profile-spec 可复现性与离线执行成本。Runtime 为 Rust binary 已存在后的每个 spec 秒数；semantic hash 去除 JSON \texttt{generated\_at} 字段，raw-byte hash 单独报告。}
   \label{tab:r327-cost}
   \begin{tabular}{lrrrr}
     \toprule
-    Workload & Specs & Median ms & P95 ms & Median stacks \\
+    Workload & Specs & Med. s & P95 s & Med. stacks \\
     \midrule
-    R300 view specs & 4 & 3448.0200 & 4272.6763 & 631.0 \\
-    R324 rank-feature specs & 12 & 1538.8800 & 2691.5278 & 41.0 \\
-    R326 robustness specs & 60 & 1541.8825 & 2640.3084 & 41.0 \\
-    All specs & 76 & 1581.3334 & 2719.3206 & 42.0 \\
+    R300 views & 4 & 3.448 & 4.273 & 631.0 \\
+    R324 rank & 12 & 1.539 & 2.692 & 41.0 \\
+    R326 robust & 60 & 1.542 & 2.640 & 41.0 \\
+    All specs & 76 & 1.581 & 2.719 & 42.0 \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{table}[t]
+  \centering
+  \small
+  \caption{R327/R328 在同一 76 个 profile specs 上的 determinism 检查。R328 使用 \texttt{--deterministic-output}。}
+  \label{tab:r328-determinism}
+  \begin{tabular}{llrrrr}
+    \toprule
+    Run & Mode & Sem. & Raw & Med. s & P95 s \\
+    \midrule
+    R327 & default & 76/76 & 4/76 & 1.581 & 2.719 \\
+    R328 & deterministic & 76/76 & 76/76 & 1.578 & 2.731 \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -472,7 +492,7 @@ R327 则检查 profile-spec 本身是否可复现、成本是否可报告：所�
     Does the profiler solve real labeled problems beyond flamegraphs? & Six failure, safety, quality, and boundary tasks over 34,539 operations and 3,699 positives & Operation-stack packets are more selective than flat on 6/6 tasks, contain high-lift evidence on 5/6, and have higher selected recall than fixed-session on 5/6. They use lower selected work than fixed-session on only 2/6. & The supported value claim is an automated inspectability and localization tradeoff, with fixed-session preserved as a real low-work counterpoint. \\
     Does profiling accurately localize and rank positives? & R320 scores 144 view/ranker policies with hidden labels over the same six tasks & Query-aware operation-stack top-5 groups inspect median 0.0937 work versus 1.0 for flat. They improve top-5 recall over fixed-session on 5/6 tasks and reduce median groups from 285.0 to 157.5. & Operation-stack profiling can be claimed as a faithful localization/ranking mechanism on real labeled traces, but not as a universal detector or single best hierarchy. \\
     Are view, ranker, and mapping choices actionable? & R320 compares flat, fixed-session, dataset-native, raw-action, operation-stack, label-drilldown, width, query-aware, and oracle-upper policies; R322--R326 run Rust visible rank policies, feature ablations, and robustness probes & Query-aware ranking improves AP over width-only operation-stack ranking on 6/6 tasks. Rust operation-feature ranking improves semantic-stack AP on 5/6 tasks and first-positive work on 5/6 tasks; R325 finds 7 critical and 3 misleading feature instances. R326 global equal features beat width on 4/6 semantic and 5/6 coarse tasks, task-equal stays within 0.02 AP of weighted policy on 8/12 variants, and repaired policies improve AP on 2/3 misleading cases and first-positive work on 2/3 cases; 1/3 improves both. & The system should expose configurable stack fields, mapping rules, rank modes, operation-level rank features, global defaults, and task-specific rankers because different problems need different depths and drilldowns. \\
-    Are the profile specs reproducible and cheap enough to rerun? & R327 repeats 76 tracked R300/R324/R326 profile specs over tracked operation JSONL inputs, for 152 Rust profiler invocations & Semantic profile hash, samples, and unique stacks are stable on 76/76 specs. Median runtime is 1.581s, p95 is 2.719s, and max is 4.273s. Raw-byte determinism is 4/76 because JSON output includes \texttt{generated\_at}. & The profiler has a reproducible offline profile-spec path with reportable local cost. This does not claim live eBPF overhead, human utility, or complete trace-ecosystem compatibility. \\
+    Are the profile specs reproducible with reportable local cost? & R327 and R328 repeat 76 tracked R300/R324/R326 profile specs over tracked operation JSONL inputs, for 152 Rust profiler invocations per run & R327 semantic profile hash, samples, and unique stacks are stable on 76/76 specs; default raw-byte determinism is 4/76 because JSON output includes \texttt{generated\_at}. R328 enables deterministic output and reaches 76/76 semantic and raw-byte determinism, with median runtime 1.578s and p95 2.731s in that run. & The profiler has a reproducible offline profile-spec path and an opt-in byte-stable artifact mode with reportable local cost. This does not claim live eBPF overhead, human utility, or complete trace-ecosystem compatibility. \\
     \bottomrule
   \end{tabular}
 \end{table*}
@@ -551,7 +571,7 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld/OSWorld-Human、OpenCUA/AgentNet、SA
 
 	本文把 agent semantic profiling 收敛为两个核心抽象：operation 和 operation stack。
 	Prompt、session、toolcall、process、syscall、plan、subagent、GUI action、安全标签和质量标签都只是 operation shapes 或 fields。
-	Mapping 和 tagging 负责派生 fields，\texttt{--view}、\texttt{--where} 和 \texttt{--stack} 负责选择权重、查询子集和递归折叠形状，\texttt{--trace-file} 和 \texttt{--operation-file} 负责数据入口，\texttt{--profile-spec} 只把这些选择变成可复现实验配置。
+	Mapping 和 tagging 负责派生 fields，\texttt{--view}、\texttt{--where} 和 \texttt{--stack} 负责选择权重、查询子集和递归折叠形状，\texttt{--trace-file} 和 \texttt{--operation-file} 负责数据入口，\texttt{--profile-spec} 只把这些选择变成可复现实验配置，\texttt{--deterministic-output} 只把 profile artifact 时间戳固定为可复现值。
 	在 15 个轻量采样的公开标注轨迹数据源上，这个模型统一了 web、mobile、desktop、software、API、dialogue、failure、安全、human group 和 step-quality 轨迹，并产生 flamegraph 之外的 stack tree、transition、quality、boundary、case packet 和 claim-audit reports。
 	这支持本文的核心机制 claim：agent profiling 的边界可以从 prompt/session/span tree 中释放出来，成为 query-time operation-stack projection。
 

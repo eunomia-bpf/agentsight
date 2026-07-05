@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>R328 Deterministic Profile Output</title>
+<style>
+body { font-family: system-ui, sans-serif; margin: 32px; color: #1f2937; }
+table { border-collapse: collapse; width: 100%; margin: 16px 0 28px; }
+th, td { border-bottom: 1px solid #d1d5db; padding: 8px; text-align: right; }
+th:first-child, td:first-child { text-align: left; }
+code { background: #f3f4f6; padding: 1px 4px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<h1>R328 Deterministic Profile Output</h1>
+<p>The same tracked profile specs as R327 were rerun with <code>--deterministic-output</code>.</p>
+<ul>
+<li>Specs: 76</li>
+<li>Profiler invocations: 152</li>
+<li>Semantic deterministic specs: 76/76</li>
+<li>Raw-byte deterministic specs: 76/76</li>
+<li>Median runtime: 1577.5383 ms</li>
+</ul>
+<table><thead><tr><th>Experiment</th><th>Specs</th><th>Median ms</th><th>P95 ms</th><th>Median stacks</th><th>Median bytes</th></tr></thead><tbody><tr><td>r300_views</td><td>4</td><td>3448.3363</td><td>4298.4460</td><td>631.0</td><td>109299.0</td></tr>
+<tr><td>r324_rank_features</td><td>12</td><td>1540.7921</td><td>2673.4813</td><td>41.0</td><td>36339.0</td></tr>
+<tr><td>r326_rank_feature_robustness</td><td>60</td><td>1562.9069</td><td>2679.0805</td><td>41.0</td><td>36339.0</td></tr></tbody></table>
+<h2>Claim Scope</h2>
+<p>Deterministic output mode makes tracked operation-profile specs byte-stable across repeated offline profiler runs.</p>
+<ul><li>This is not live eBPF capture overhead.</li>
+<li>This is not a human or agent analyst productivity study.</li>
+<li>This does not download, sync, or create a dataset.</li>
+<li>This does not claim complete trace-platform ecosystem compatibility.</li>
+<li>This does not claim a performance improvement over R327.</li>
+<li>This is not a detector or boundary-discovery benchmark.</li></ul>
+</body>
+</html>
