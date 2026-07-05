@@ -401,7 +401,7 @@ def build_mechanisms(cards: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 total,
             ),
             "interpretation": "simple global/source-task visible policies often beat width",
-            "action": "Use global defaults and leave-task transfer as safe starting policies.",
+            "action": "Use global defaults and leave-task transfer as auditable candidate policies.",
             "counterpoint": "Transfer is mixed and should remain an auditable policy choice.",
         },
         {
