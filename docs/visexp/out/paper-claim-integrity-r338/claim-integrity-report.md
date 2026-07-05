@@ -124,22 +124,24 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | R341 | critical_rank_feature_tasks | 4 | 4 | pass | R341 objective-mechanism-attribution.csv |
 | R341 | misleading_feature_tasks | 2 | 2 | pass | R341 objective-mechanism-attribution.csv |
 | R341 | tasks_with_three_or_more_mechanism_labels | 6 | 6 | pass | R341 objective-mechanism-attribution.csv |
-| R342 | overall | pass | pass | pass | R342 CSV-derived invariants |
-| R342 | tasks | 6 | 6 | pass | R342 profile-spec-composition-tasks.csv |
-| R342 | profile_spec_variants | 12 | 12 | pass | R342 profile-spec-composition-variants.csv |
-| R342 | composition_variants | 12 | 12 | pass | R342 profile-spec-composition-variants.csv |
-| R342 | prompt_session_free_variants | 12 | 12 | pass | R342 profile-spec-composition-variants.csv |
-| R342 | rule_score_rank_policy_variants | 12 | 12 | pass | R342 profile-spec-composition-variants.csv |
-| R342 | ap_improves_vs_width_variants | 9 | 9 | pass | R342 profile-spec-composition-variants.csv |
-| R342 | top5_lift_improves_vs_width_variants | 8 | 8 | pass | R342 profile-spec-composition-variants.csv |
-| R342 | first_positive_work_improves_vs_width_variants | 10 | 10 | pass | R342 profile-spec-composition-variants.csv |
-| R342 | tasks_with_ap_improvement_any_depth | 5 | 5 | pass | R342 profile-spec-composition-tasks.csv |
-| R342 | tasks_with_first_positive_improvement_any_depth | 6 | 6 | pass | R342 profile-spec-composition-tasks.csv |
-| R342 | tasks_where_coarse_reduces_groups | 6 | 6 | pass | R342 profile-spec-composition-tasks.csv |
-| R342 | median_coarse_group_reduction | 0.8267 | 0.8267 | pass | R342 profile-spec-composition-tasks.csv |
-| R342 | tasks_where_depth_choice_changes_objective | 3 | 3 | pass | R342 profile-spec-composition-tasks.csv |
-| R342 | best_ap_semantic_depth_tasks | 4 | 4 | pass | R342 profile-spec-composition-tasks.csv |
-| R342 | best_ap_coarse_depth_tasks | 2 | 2 | pass | R342 profile-spec-composition-tasks.csv |
+| R342 | overall | pass | pass | pass | R342 upstream-source-derived invariants |
+| R342 | tasks | 6 | 6 | pass | R342 source_paths -> R324 report/summary/specs/Rust JSON |
+| R342 | profile_spec_variants | 12 | 12 | pass | R342 source_paths -> R324 report/summary/specs/Rust JSON |
+| R342 | composition_variants | 12 | 12 | pass | R342 source_paths -> R324 profile specs |
+| R342 | prompt_session_free_variants | 12 | 12 | pass | R342 source_paths -> R324 Rust JSON |
+| R342 | rule_score_rank_policy_variants | 12 | 12 | pass | R342 source_paths -> R324 Rust JSON |
+| R342 | ap_improves_vs_width_variants | 9 | 9 | pass | R342 source_paths -> R324 summary |
+| R342 | top5_lift_improves_vs_width_variants | 8 | 8 | pass | R342 source_paths -> R324 summary |
+| R342 | first_positive_work_improves_vs_width_variants | 10 | 10 | pass | R342 source_paths -> R324 summary |
+| R342 | tasks_with_ap_improvement_any_depth | 5 | 5 | pass | R342 source_paths -> R324 summary |
+| R342 | tasks_with_first_positive_improvement_any_depth | 6 | 6 | pass | R342 source_paths -> R324 summary |
+| R342 | tasks_where_coarse_reduces_groups | 6 | 6 | pass | R342 source_paths -> R324 summary |
+| R342 | median_coarse_group_reduction | 0.8267 | 0.8267 | pass | R342 source_paths -> R324 summary |
+| R342 | tasks_where_depth_choice_changes_objective | 3 | 3 | pass | R342 source_paths -> R324 summary |
+| R342 | best_ap_semantic_depth_tasks | 4 | 4 | pass | R342 source_paths -> R324 summary |
+| R342 | best_ap_coarse_depth_tasks | 2 | 2 | pass | R342 source_paths -> R324 summary |
+| R342 | committed_variant_csv_matches_sources | 12 | 12 | pass | R342 CSV compared with upstream-derived rows |
+| R342 | committed_task_csv_matches_sources | 6 | 6 | pass | R342 CSV compared with upstream-derived rows |
 
 ## Text Coverage
 
@@ -156,23 +158,26 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | evaluation | R340 policy transfer | R340 / 96 / 62/96 / 72/96 | pass | 15,97,99,200,203,204,205,206 |
 | evaluation | R341 mechanism attribution | R341 / 36/36 / 27/36 / 34/96 | pass | 15,213,214,215,216,281,381,384 |
 | evaluation | R342 profile spec composition | R342 / 12/12 / 9/12 / 0.8267 | pass | 12,15,78,80,83,85,221,278 |
-| zh_main | R320 headline | 0.0937 / 9.37 / 285.0 / 157.5 | pass | 63,73,397,404,414,415,476,502 |
-| zh_main | R333 headline | 0.3900 / 0.390 | pass | 68,392,444,476,502,557,658 |
-| zh_main | R337 headline | 0.2000 / 16.0 / 50.0 | pass | 72,475,557,662 |
-| zh_main | R339 headline | 0.4669 / 0.9103 / 0.3467 | pass | 73,476,557,663 |
-| zh_main | R340 headline | R340 / 62/96 / 72/96 / 69/96 | pass | 74,76,477,478,557,558,664 |
-| zh_main | R341 headline | R341 / 36/36 / 27/36 / 34/96 | pass | 75,76,478,479,557,558,633,665 |
-| en_main | R320 headline | 0.0937 / 9.37 / 285.0 / 157.5 | pass | 45,48,334,336,354,363,546 |
-| en_main | R333 headline | 0.3900 / 0.390 | pass | 70,335,354,421,549 |
-| en_main | R337 headline | 0.2000 / 16.0 / 50.0 | pass | 89,90,91,534,536,726,727 |
-| en_main | R339 headline | 0.4669 / 0.9103 / 0.3467 | pass | 94,95,96,550,551,552,729,730 |
-| en_main | R340 headline | R340 / 62 of 96 / 72 of 96 / 69 of 96 | pass | 554,571,731,813 |
-| en_main | R341 headline | R341 / 36 of 36 / 27 of 36 / 34 of 96 | pass | 104,105,106,108,564,571,734,738 |
-| zh_claim_setup | two abstractions | 两个核心抽象 / operation stack | pass | 7,23,25,72,75,76,77,79 |
-| zh_claim_setup | R337 result | R337 / 0.2000 / 16.0 | pass | 35,36,39,110,111,112 |
-| zh_claim_setup | R339 result | R339 / 0.4669 / 0.9103 | pass | 36,37,39,111,112,113,247 |
-| zh_claim_setup | R340 result | R340 / 62/96 / 72/96 / 69/96 | pass | 37,38,39,111,113,114 |
-| zh_claim_setup | R341 result | R341 / 36/36 / 27/36 / 34/96 | pass | 38,39,111,114 |
+| zh_main | R320 headline | 0.0937 / 9.37 / 285.0 / 157.5 | pass | 63,73,398,405,415,416,477,504 |
+| zh_main | R333 headline | 0.3900 / 0.390 | pass | 68,393,445,477,504,559,660 |
+| zh_main | R337 headline | 0.2000 / 16.0 / 50.0 | pass | 72,476,559,664 |
+| zh_main | R339 headline | 0.4669 / 0.9103 / 0.3467 | pass | 73,477,559,665 |
+| zh_main | R340 headline | R340 / 62/96 / 72/96 / 69/96 | pass | 74,77,478,479,559,560,666 |
+| zh_main | R341 headline | R341 / 36/36 / 27/36 / 34/96 | pass | 75,77,479,559,560,667 |
+| zh_main | R342 headline | R342 / 12/12 / 9/12 / 0.8267 | pass | 76,77,480,481,559,635,668 |
+| en_main | R320 headline | 0.0937 / 9.37 / 285.0 / 157.5 | pass | 45,48,340,342,360,369,552 |
+| en_main | R333 headline | 0.3900 / 0.390 | pass | 70,341,360,427,555 |
+| en_main | R337 headline | 0.2000 / 16.0 / 50.0 | pass | 89,90,91,540,542,739,740 |
+| en_main | R339 headline | 0.4669 / 0.9103 / 0.3467 | pass | 94,95,96,556,557,558,742,743 |
+| en_main | R340 headline | R340 / 62 of 96 / 72 of 96 / 69 of 96 | pass | 560,584,744,826 |
+| en_main | R341 headline | R341 / 36 of 36 / 27 of 36 / 34 of 96 | pass | 104,105,106,570,584,747,827 |
+| en_main | R342 headline | R342 / 12/12 / 9/12 / 0.8267 | pass | 109,112,113,114,576,577,580,582 |
+| zh_claim_setup | two abstractions | 两个核心抽象 / operation stack | pass | 7,23,25,73,76,77,78,80 |
+| zh_claim_setup | R337 result | R337 / 0.2000 / 16.0 | pass | 35,36,40,111,112,113 |
+| zh_claim_setup | R339 result | R339 / 0.4669 / 0.9103 | pass | 36,37,40,112,113,114,249 |
+| zh_claim_setup | R340 result | R340 / 62/96 / 72/96 / 69/96 | pass | 37,38,40,112,114,115 |
+| zh_claim_setup | R341 result | R341 / 36/36 / 27/36 / 34/96 | pass | 38,40,112,115 |
+| zh_claim_setup | R342 result | R342 / 12/12 / 9/12 / 0.8267 | pass | 39,40,112,116 |
 | evaluation | R320:datasets | 4 | pass | 12,13,14,15,41,45,47,53 |
 | evaluation | R320:tasks | 6 | pass | 3,4,12,13,15,32,41,42 |
 | evaluation | R320:operations | 34,539 | pass | 15,111,133,249,281,346,353,355 |
@@ -237,7 +242,7 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | evaluation | R340:within_tolerance_decisions | 62 | pass | 13,15,191,204,281,359,382,383 |
 | evaluation | R340:selected_beats_width | 72 | pass | 12,15,205,281,307,318,334,346 |
 | evaluation | R340:selected_beats_fixed | 69 | pass | 15,133,194,205,281,309,324,336 |
-| evaluation | R340:selected_beats_flat | 41 | pass | 13,15,206,213,281,310,324,337 |
+| evaluation | R340:selected_beats_flat | 41 | pass | 13,15,206,213,225,281,310,324 |
 | evaluation | R340:operation_stack_selected | 16 | pass | 13,15,178,192,207,225,281,298 |
 | evaluation | R340:leave_task_decisions | 48 | pass | 319,320,345,413,428,430 |
 | evaluation | R340:leave_task_within_tolerance | 32 | pass | 12,14,15,36,40,43,44,47 |
@@ -284,6 +289,8 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | evaluation | R342:tasks_where_depth_choice_changes_objective | 3/6 tasks | pass | 385 |
 | evaluation | R342:best_ap_semantic_depth_tasks | semantic 4 / coarse 2 | pass | 15,385,465 |
 | evaluation | R342:best_ap_coarse_depth_tasks | semantic 4 / coarse 2 | pass | 15,385,465 |
+| evaluation | R342:committed_variant_csv_matches_sources | 12/12 | pass | 12,15,278,385,465 |
+| evaluation | R342:committed_task_csv_matches_sources | 6/6 | pass | 15,281,385,465 |
 
 ## Guardrails
 
@@ -293,15 +300,15 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | evaluation | automatic_boundary | pass | 6 | 228,281,434,435,457,465 | none |
 | evaluation | ecosystem_compatibility | pass | 8 | 12,15,30,281,352,434,452,544 | none |
 | evaluation | universal_selector | pass | 11 | 15,175,281,383,451,452,454,458,465,521,538 | none |
-| zh_claim_setup | human_utility | pass | 12 | 26,28,36,39,75,76,77,84,85,88,89,91 | none |
-| zh_claim_setup | automatic_boundary | pass | 5 | 23,25,26,39,237 | none |
-| zh_claim_setup | ecosystem_compatibility | pass | 8 | 22,69,87,141,188,225,226,227 | none |
-| zh_claim_setup | universal_selector | pass | 12 | 26,34,36,37,38,39,104,105,106,107,108,109 | none |
-| zh_main | human_utility | pass | 9 | 76,202,382,425,559,626,636,666,667 | none |
-| zh_main | automatic_boundary | pass | 1 | 76 | none |
-| zh_main | ecosystem_compatibility | pass | 12 | 51,160,582,590,591,594,630,653,670,681,691,692 | none |
-| zh_main | universal_selector | pass | 8 | 76,470,476,557,619,656,661,664 | none |
-| en_main | human_utility | pass | 4 | 144,158,576,635 | none |
-| en_main | automatic_boundary | pass | 2 | 576,745 | none |
-| en_main | ecosystem_compatibility | pass | 12 | 668,670,678,680,681,682,688,689,746,829,830,832 | none |
-| en_main | universal_selector | pass | 7 | 397,400,553,562,577,717,724 | none |
+| zh_claim_setup | human_utility | pass | 12 | 26,28,36,40,76,77,78,85,86,89,90,92 | none |
+| zh_claim_setup | automatic_boundary | pass | 5 | 23,25,26,40,239 | none |
+| zh_claim_setup | ecosystem_compatibility | pass | 8 | 22,70,88,143,190,227,228,229 | none |
+| zh_claim_setup | universal_selector | pass | 12 | 26,34,36,37,38,40,105,106,107,108,109,110 | none |
+| zh_main | human_utility | pass | 9 | 77,203,383,426,561,628,638,668,669 | none |
+| zh_main | automatic_boundary | pass | 1 | 77 | none |
+| zh_main | ecosystem_compatibility | pass | 12 | 51,161,584,592,593,596,632,655,672,683,693,694 | none |
+| zh_main | universal_selector | pass | 8 | 77,471,477,559,621,658,663,666 | none |
+| en_main | human_utility | pass | 4 | 150,164,589,648 | none |
+| en_main | automatic_boundary | pass | 2 | 589,758 | none |
+| en_main | ecosystem_compatibility | pass | 12 | 681,683,691,693,694,695,701,702,759,843,844,846 | none |
+| en_main | universal_selector | pass | 7 | 403,406,559,568,590,730,737 | none |

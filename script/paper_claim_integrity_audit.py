@@ -17,7 +17,6 @@ import json
 import math
 import re
 import subprocess
-import time
 from collections import Counter, defaultdict
 from pathlib import Path
 from statistics import median
@@ -125,21 +124,6 @@ def rel_to(path: Path, base: Path) -> str:
         return str(path.resolve())
 
 
-def git_output(args: list[str], cwd: Path = ROOT) -> str:
-    result = subprocess.run(
-        ["git", *args],
-        cwd=cwd,
-        check=False,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
-    if result.returncode != 0:
-        detail = result.stderr.strip() or result.stdout.strip()
-        raise SystemExit(f"git {' '.join(args)} failed in {cwd}: {detail}")
-    return result.stdout.strip()
-
-
 def git_path_status(path: Path, *, repo_root: Path = ROOT, require_clean: bool) -> str:
     if not path.exists():
         raise SystemExit(f"missing source path {rel(path)}")
@@ -226,6 +210,13 @@ def as_bool(value: str | bool) -> bool:
     return value.lower() == "true"
 
 
+def normalize_repo_path(value: str) -> Path:
+    path = Path(value)
+    if not path.is_absolute():
+        path = ROOT / path
+    return path
+
+
 def fmt_number(value: Any) -> str:
     if isinstance(value, float):
         if value.is_integer():
@@ -283,6 +274,145 @@ def csv_lookup(rows: list[dict[str, str]], **filters: str) -> dict[str, str]:
         if all(row.get(key) == value for key, value in filters.items()):
             return row
     raise SystemExit(f"missing CSV row: {filters}")
+
+
+def profile_stack_has_forbidden_frames(profile: dict[str, Any]) -> bool:
+    stacks = profile["profile"]["stacks"]
+    return any("session:" in stack or "prompt:" in stack for stack in stacks)
+
+
+def r342_task_key(row: dict[str, str] | dict[str, Any]) -> tuple[str, str]:
+    return (str(row["task"]), str(row["stack_kind"]))
+
+
+def r342_source_paths(report: dict[str, Any]) -> list[Path]:
+    paths = [normalize_repo_path(path) for path in report.get("source_paths", [])]
+    if not paths:
+        raise SystemExit("R342 report has no source_paths")
+    return paths
+
+
+def build_r342_rows_from_sources(report: dict[str, Any]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    source_paths = r342_source_paths(report)
+    source_set = {path.resolve() for path in source_paths}
+    r324_reports = [path for path in source_paths if path.name == "rank-feature-report.json"]
+    r324_summaries = [path for path in source_paths if path.name == "rank-feature-summary.csv"]
+    if len(r324_reports) != 1 or len(r324_summaries) != 1:
+        raise SystemExit("R342 source_paths must contain exactly one R324 report and summary")
+    r324_report = load_json(r324_reports[0])
+    r324_summary = read_csv(r324_summaries[0])
+    summary_by_key = {r342_task_key(row): row for row in r324_summary}
+
+    variant_rows: list[dict[str, Any]] = []
+    for detail in r324_report["tasks_detail"]:
+        key = (detail["task"], detail["stack_kind"])
+        summary = summary_by_key[key]
+        spec_path = normalize_repo_path(detail["profile_spec"])
+        rust_json_path = normalize_repo_path(detail["rust_json"])
+        if spec_path.resolve() not in source_set:
+            raise SystemExit(f"R342 source_paths omit profile spec {rel(spec_path)}")
+        if rust_json_path.resolve() not in source_set:
+            raise SystemExit(f"R342 source_paths omit Rust JSON {rel(rust_json_path)}")
+        spec = load_json(spec_path)
+        rust_profile = load_json(rust_json_path)
+        operation_paths = [normalize_repo_path(path) for path in spec.get("operation_files") or []]
+        if not operation_paths:
+            raise SystemExit(f"R342 profile spec has no operation files: {rel(spec_path)}")
+        for operation_path in operation_paths:
+            if operation_path.resolve() not in source_set:
+                raise SystemExit(f"R342 source_paths omit operation file {rel(operation_path)}")
+        where_rules = spec.get("where_rules") or []
+        rank_op_rules = spec.get("rank_op_rules") or []
+        stack = spec["stack"]
+        variant_rows.append(
+            {
+                "task": detail["task"],
+                "dataset": detail["dataset"],
+                "stack_kind": detail["stack_kind"],
+                "summary_groups": int(summary["groups"]),
+                "positives": int(summary["positives"]),
+                "profile_spec_composes_pipeline": bool(
+                    operation_paths
+                    and all(path.exists() for path in operation_paths)
+                    and where_rules
+                    and rank_op_rules
+                    and spec.get("rank_mode") == "rule-score"
+                    and stack
+                ),
+                "has_prompt_or_session_frame": profile_stack_has_forbidden_frames(rust_profile),
+                "ranking_policy": rust_profile["profile"]["ranking"]["policy"],
+                "width_ap": as_float(summary["width_ap"]),
+                "op_feature_ap": as_float(summary["op_feature_ap"]),
+                "delta_ap": as_float(summary["delta_ap"]),
+                "delta_top5_lift": as_float(summary["delta_top5_lift"]),
+                "width_first_positive_work": as_float(summary["width_first_positive_work"]),
+                "op_feature_first_positive_work": as_float(summary["op_feature_first_positive_work"]),
+                "delta_first_positive_work": as_float(summary["delta_first_positive_work"]),
+                "operation_file_count": len(operation_paths),
+                "profile_spec": rel(spec_path),
+                "rust_json": rel(rust_json_path),
+            }
+        )
+
+    by_task: dict[str, dict[str, dict[str, Any]]] = {}
+    for row in variant_rows:
+        by_task.setdefault(row["task"], {})[row["stack_kind"]] = row
+    task_rows: list[dict[str, Any]] = []
+    for task, variants in sorted(by_task.items()):
+        semantic = variants["semantic"]
+        coarse = variants["coarse"]
+        group_reduction = 1.0 - (coarse["summary_groups"] / semantic["summary_groups"])
+        best_ap = max(variants.values(), key=lambda row: row["op_feature_ap"])
+        best_first_positive = min(
+            variants.values(),
+            key=lambda row: (
+                row["op_feature_first_positive_work"] is None,
+                row["op_feature_first_positive_work"] if row["op_feature_first_positive_work"] is not None else 1e9,
+            ),
+        )
+        task_rows.append(
+            {
+                "task": task,
+                "dataset": semantic["dataset"],
+                "semantic_groups": semantic["summary_groups"],
+                "coarse_groups": coarse["summary_groups"],
+                "coarse_group_reduction": group_reduction,
+                "best_ap_stack_kind": best_ap["stack_kind"],
+                "best_ap": best_ap["op_feature_ap"],
+                "best_first_positive_stack_kind": best_first_positive["stack_kind"],
+                "best_first_positive_work": best_first_positive["op_feature_first_positive_work"],
+                "best_first_positive_delta": best_first_positive["delta_first_positive_work"],
+                "ap_improves_at_any_depth": any(row["delta_ap"] > 0 for row in variants.values()),
+                "first_positive_improves_at_any_depth": any(
+                    row["delta_first_positive_work"] is not None
+                    and row["delta_first_positive_work"] < 0
+                    for row in variants.values()
+                ),
+                "depth_choice_changes_objective": best_ap["stack_kind"] != best_first_positive["stack_kind"],
+            }
+        )
+    return variant_rows, task_rows
+
+
+def r342_committed_variant_matches(derived: dict[str, Any], committed: dict[str, str]) -> bool:
+    return (
+        committed["profile_spec_composes_pipeline"] == str(derived["profile_spec_composes_pipeline"])
+        and committed["has_prompt_or_session_frame"] == str(derived["has_prompt_or_session_frame"])
+        and committed["ranking_policy"] == derived["ranking_policy"]
+        and as_int(committed["operation_file_count"]) == derived["operation_file_count"]
+        and abs(as_float(committed["delta_ap"]) - derived["delta_ap"]) <= 5e-5
+        and abs(as_float(committed["delta_top5_lift"]) - derived["delta_top5_lift"]) <= 5e-5
+        and abs(as_float(committed["delta_first_positive_work"]) - derived["delta_first_positive_work"]) <= 5e-5
+    )
+
+
+def r342_committed_task_matches(derived: dict[str, Any], committed: dict[str, str]) -> bool:
+    return (
+        committed["best_ap_stack_kind"] == derived["best_ap_stack_kind"]
+        and committed["best_first_positive_stack_kind"] == derived["best_first_positive_stack_kind"]
+        and committed["depth_choice_changes_objective"] == str(derived["depth_choice_changes_objective"])
+        and abs(as_float(committed["coarse_group_reduction"]) - derived["coarse_group_reduction"]) <= 5e-5
+    )
 
 
 def add_check(
@@ -430,6 +560,8 @@ def build_number_checks(
     r341_transfer: list[dict[str, str]],
     r342_variants: list[dict[str, str]],
     r342_tasks: list[dict[str, str]],
+    r342_source_variants: list[dict[str, Any]],
+    r342_source_tasks: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     r320 = reports["R320"]
@@ -976,40 +1108,56 @@ def build_number_checks(
     add_check(rows, run_id="R341", key="misleading_feature_tasks", actual=r341_mechanism_counts["misleading_feature_risk"], expected=2, source="R341 objective-mechanism-attribution.csv", paper_token="misleading features on 2/6")
     add_check(rows, run_id="R341", key="tasks_with_three_or_more_mechanism_labels", actual=sum(len(labels) >= 3 for labels in r341_mechanisms_by_task.values()), expected=6, source="R341 objective-mechanism-attribution.csv", paper_token="three or more mechanism labels on 6/6")
 
-    r342_best_ap_counts = Counter(row["best_ap_stack_kind"] for row in r342_tasks)
+    r342_best_ap_counts = Counter(row["best_ap_stack_kind"] for row in r342_source_tasks)
+    r342_committed_variants_by_key = {r342_task_key(row): row for row in r342_variants}
+    r342_committed_tasks_by_task = {row["task"]: row for row in r342_tasks}
+    r342_variant_csv_matches = sum(
+        r342_task_key(row) in r342_committed_variants_by_key
+        and r342_committed_variant_matches(row, r342_committed_variants_by_key[r342_task_key(row)])
+        for row in r342_source_variants
+    )
+    r342_task_csv_matches = sum(
+        row["task"] in r342_committed_tasks_by_task
+        and r342_committed_task_matches(row, r342_committed_tasks_by_task[row["task"]])
+        for row in r342_source_tasks
+    )
     r342_overall = "pass" if (
-        len(r342_tasks) == 6
-        and len(r342_variants) == 12
-        and sum(as_bool(row["profile_spec_composes_pipeline"]) for row in r342_variants) == 12
-        and sum(not as_bool(row["has_prompt_or_session_frame"]) for row in r342_variants) == 12
-        and sum(row["ranking_policy"] == "visible_operation_rule_score_then_width" for row in r342_variants) == 12
-        and sum(as_float(row["delta_ap"]) > 0 for row in r342_variants) == 9
-        and sum(as_float(row["delta_top5_lift"]) > 0 for row in r342_variants) == 8
-        and sum(as_float(row["delta_first_positive_work"]) < 0 for row in r342_variants) == 10
-        and sum(as_bool(row["ap_improves_at_any_depth"]) for row in r342_tasks) == 5
-        and sum(as_bool(row["first_positive_improves_at_any_depth"]) for row in r342_tasks) == 6
-        and sum(as_float(row["coarse_group_reduction"]) > 0 for row in r342_tasks) == 6
-        and round(float(median(as_float(row["coarse_group_reduction"]) for row in r342_tasks)), 4) == 0.8267
-        and sum(as_bool(row["depth_choice_changes_objective"]) for row in r342_tasks) == 3
+        len(r342_source_tasks) == 6
+        and len(r342_source_variants) == 12
+        and sum(as_bool(row["profile_spec_composes_pipeline"]) for row in r342_source_variants) == 12
+        and sum(not as_bool(row["has_prompt_or_session_frame"]) for row in r342_source_variants) == 12
+        and sum(row["ranking_policy"] == "visible_operation_rule_score_then_width" for row in r342_source_variants) == 12
+        and sum(as_float(row["delta_ap"]) > 0 for row in r342_source_variants) == 9
+        and sum(as_float(row["delta_top5_lift"]) > 0 for row in r342_source_variants) == 8
+        and sum(as_float(row["delta_first_positive_work"]) < 0 for row in r342_source_variants) == 10
+        and sum(as_bool(row["ap_improves_at_any_depth"]) for row in r342_source_tasks) == 5
+        and sum(as_bool(row["first_positive_improves_at_any_depth"]) for row in r342_source_tasks) == 6
+        and sum(as_float(row["coarse_group_reduction"]) > 0 for row in r342_source_tasks) == 6
+        and round(float(median(as_float(row["coarse_group_reduction"]) for row in r342_source_tasks)), 4) == 0.8267
+        and sum(as_bool(row["depth_choice_changes_objective"]) for row in r342_source_tasks) == 3
         and r342_best_ap_counts["semantic"] == 4
         and r342_best_ap_counts["coarse"] == 2
+        and r342_variant_csv_matches == 12
+        and r342_task_csv_matches == 6
     ) else "fail"
-    add_check(rows, run_id="R342", key="overall", actual=r342_overall, expected="pass", source="R342 CSV-derived invariants", paper_token="R342")
-    add_check(rows, run_id="R342", key="tasks", actual=len(r342_tasks), expected=6, source="R342 profile-spec-composition-tasks.csv", paper_token="6 tasks")
-    add_check(rows, run_id="R342", key="profile_spec_variants", actual=len(r342_variants), expected=12, source="R342 profile-spec-composition-variants.csv", paper_token="12 profile-spec variants")
-    add_check(rows, run_id="R342", key="composition_variants", actual=sum(as_bool(row["profile_spec_composes_pipeline"]) for row in r342_variants), expected=12, source="R342 profile-spec-composition-variants.csv", paper_token="12/12 compose")
-    add_check(rows, run_id="R342", key="prompt_session_free_variants", actual=sum(not as_bool(row["has_prompt_or_session_frame"]) for row in r342_variants), expected=12, source="R342 profile-spec-composition-variants.csv", paper_token="12/12 prompt/session-free")
-    add_check(rows, run_id="R342", key="rule_score_rank_policy_variants", actual=sum(row["ranking_policy"] == "visible_operation_rule_score_then_width" for row in r342_variants), expected=12, source="R342 profile-spec-composition-variants.csv", paper_token="rank_mode=rule-score")
-    add_check(rows, run_id="R342", key="ap_improves_vs_width_variants", actual=sum(as_float(row["delta_ap"]) > 0 for row in r342_variants), expected=9, source="R342 profile-spec-composition-variants.csv", paper_token="9/12 variants")
-    add_check(rows, run_id="R342", key="top5_lift_improves_vs_width_variants", actual=sum(as_float(row["delta_top5_lift"]) > 0 for row in r342_variants), expected=8, source="R342 profile-spec-composition-variants.csv", paper_token="8/12")
-    add_check(rows, run_id="R342", key="first_positive_work_improves_vs_width_variants", actual=sum(as_float(row["delta_first_positive_work"]) < 0 for row in r342_variants), expected=10, source="R342 profile-spec-composition-variants.csv", paper_token="10/12")
-    add_check(rows, run_id="R342", key="tasks_with_ap_improvement_any_depth", actual=sum(as_bool(row["ap_improves_at_any_depth"]) for row in r342_tasks), expected=5, source="R342 profile-spec-composition-tasks.csv", paper_token="5/6")
-    add_check(rows, run_id="R342", key="tasks_with_first_positive_improvement_any_depth", actual=sum(as_bool(row["first_positive_improves_at_any_depth"]) for row in r342_tasks), expected=6, source="R342 profile-spec-composition-tasks.csv", paper_token="6/6")
-    add_check(rows, run_id="R342", key="tasks_where_coarse_reduces_groups", actual=sum(as_float(row["coarse_group_reduction"]) > 0 for row in r342_tasks), expected=6, source="R342 profile-spec-composition-tasks.csv", paper_token="6/6 tasks")
-    add_check(rows, run_id="R342", key="median_coarse_group_reduction", actual=round(float(median(as_float(row["coarse_group_reduction"]) for row in r342_tasks)), 4), expected=0.8267, source="R342 profile-spec-composition-tasks.csv", paper_token="0.8267", tolerance=5e-5)
-    add_check(rows, run_id="R342", key="tasks_where_depth_choice_changes_objective", actual=sum(as_bool(row["depth_choice_changes_objective"]) for row in r342_tasks), expected=3, source="R342 profile-spec-composition-tasks.csv", paper_token="3/6 tasks")
-    add_check(rows, run_id="R342", key="best_ap_semantic_depth_tasks", actual=r342_best_ap_counts["semantic"], expected=4, source="R342 profile-spec-composition-tasks.csv", paper_token="semantic 4 / coarse 2")
-    add_check(rows, run_id="R342", key="best_ap_coarse_depth_tasks", actual=r342_best_ap_counts["coarse"], expected=2, source="R342 profile-spec-composition-tasks.csv", paper_token="semantic 4 / coarse 2")
+    add_check(rows, run_id="R342", key="overall", actual=r342_overall, expected="pass", source="R342 upstream-source-derived invariants", paper_token="R342")
+    add_check(rows, run_id="R342", key="tasks", actual=len(r342_source_tasks), expected=6, source="R342 source_paths -> R324 report/summary/specs/Rust JSON", paper_token="6 tasks")
+    add_check(rows, run_id="R342", key="profile_spec_variants", actual=len(r342_source_variants), expected=12, source="R342 source_paths -> R324 report/summary/specs/Rust JSON", paper_token="12 profile-spec variants")
+    add_check(rows, run_id="R342", key="composition_variants", actual=sum(as_bool(row["profile_spec_composes_pipeline"]) for row in r342_source_variants), expected=12, source="R342 source_paths -> R324 profile specs", paper_token="12/12 compose")
+    add_check(rows, run_id="R342", key="prompt_session_free_variants", actual=sum(not as_bool(row["has_prompt_or_session_frame"]) for row in r342_source_variants), expected=12, source="R342 source_paths -> R324 Rust JSON", paper_token="12/12 prompt/session-free")
+    add_check(rows, run_id="R342", key="rule_score_rank_policy_variants", actual=sum(row["ranking_policy"] == "visible_operation_rule_score_then_width" for row in r342_source_variants), expected=12, source="R342 source_paths -> R324 Rust JSON", paper_token="rank_mode=rule-score")
+    add_check(rows, run_id="R342", key="ap_improves_vs_width_variants", actual=sum(as_float(row["delta_ap"]) > 0 for row in r342_source_variants), expected=9, source="R342 source_paths -> R324 summary", paper_token="9/12 variants")
+    add_check(rows, run_id="R342", key="top5_lift_improves_vs_width_variants", actual=sum(as_float(row["delta_top5_lift"]) > 0 for row in r342_source_variants), expected=8, source="R342 source_paths -> R324 summary", paper_token="8/12")
+    add_check(rows, run_id="R342", key="first_positive_work_improves_vs_width_variants", actual=sum(as_float(row["delta_first_positive_work"]) < 0 for row in r342_source_variants), expected=10, source="R342 source_paths -> R324 summary", paper_token="10/12")
+    add_check(rows, run_id="R342", key="tasks_with_ap_improvement_any_depth", actual=sum(as_bool(row["ap_improves_at_any_depth"]) for row in r342_source_tasks), expected=5, source="R342 source_paths -> R324 summary", paper_token="5/6")
+    add_check(rows, run_id="R342", key="tasks_with_first_positive_improvement_any_depth", actual=sum(as_bool(row["first_positive_improves_at_any_depth"]) for row in r342_source_tasks), expected=6, source="R342 source_paths -> R324 summary", paper_token="6/6")
+    add_check(rows, run_id="R342", key="tasks_where_coarse_reduces_groups", actual=sum(as_float(row["coarse_group_reduction"]) > 0 for row in r342_source_tasks), expected=6, source="R342 source_paths -> R324 summary", paper_token="6/6 tasks")
+    add_check(rows, run_id="R342", key="median_coarse_group_reduction", actual=round(float(median(as_float(row["coarse_group_reduction"]) for row in r342_source_tasks)), 4), expected=0.8267, source="R342 source_paths -> R324 summary", paper_token="0.8267", tolerance=5e-5)
+    add_check(rows, run_id="R342", key="tasks_where_depth_choice_changes_objective", actual=sum(as_bool(row["depth_choice_changes_objective"]) for row in r342_source_tasks), expected=3, source="R342 source_paths -> R324 summary", paper_token="3/6 tasks")
+    add_check(rows, run_id="R342", key="best_ap_semantic_depth_tasks", actual=r342_best_ap_counts["semantic"], expected=4, source="R342 source_paths -> R324 summary", paper_token="semantic 4 / coarse 2")
+    add_check(rows, run_id="R342", key="best_ap_coarse_depth_tasks", actual=r342_best_ap_counts["coarse"], expected=2, source="R342 source_paths -> R324 summary", paper_token="semantic 4 / coarse 2")
+    add_check(rows, run_id="R342", key="committed_variant_csv_matches_sources", actual=r342_variant_csv_matches, expected=12, source="R342 CSV compared with upstream-derived rows", paper_token="12/12")
+    add_check(rows, run_id="R342", key="committed_task_csv_matches_sources", actual=r342_task_csv_matches, expected=6, source="R342 CSV compared with upstream-derived rows", paper_token="6/6")
     return rows
 
 
@@ -1062,17 +1210,20 @@ def build_text_coverage(
         ("zh_main", "R339 headline", ["0.4669", "0.9103", "0.3467"], "R339"),
         ("zh_main", "R340 headline", ["R340", "62/96", "72/96", "69/96"], "R340"),
         ("zh_main", "R341 headline", ["R341", "36/36", "27/36", "34/96"], "R341"),
+        ("zh_main", "R342 headline", ["R342", "12/12", "9/12", "0.8267"], "R342"),
         ("en_main", "R320 headline", ["0.0937", "9.37", "285.0", "157.5"], "R320"),
         ("en_main", "R333 headline", ["0.3900", "0.390"], "R333"),
         ("en_main", "R337 headline", ["0.2000", "16.0", "50.0"], "R337"),
         ("en_main", "R339 headline", ["0.4669", "0.9103", "0.3467"], "R339"),
         ("en_main", "R340 headline", ["R340", "62 of 96", "72 of 96", "69 of 96"], "R340"),
         ("en_main", "R341 headline", ["R341", "36 of 36", "27 of 36", "34 of 96"], "R341"),
+        ("en_main", "R342 headline", ["R342", "12/12", "9/12", "0.8267"], "R342"),
         ("zh_claim_setup", "two abstractions", ["两个核心抽象", "operation stack"], "C2"),
         ("zh_claim_setup", "R337 result", ["R337", "0.2000", "16.0"], "R337"),
         ("zh_claim_setup", "R339 result", ["R339", "0.4669", "0.9103"], "R339"),
         ("zh_claim_setup", "R340 result", ["R340", "62/96", "72/96", "69/96"], "R340"),
         ("zh_claim_setup", "R341 result", ["R341", "36/36", "27/36", "34/96"], "R341"),
+        ("zh_claim_setup", "R342 result", ["R342", "12/12", "9/12", "0.8267"], "R342"),
     ]
     rows: list[dict[str, Any]] = []
     for doc, key, tokens, source in required:
@@ -1445,14 +1596,23 @@ def build_payload() -> dict[str, Any]:
             "status": git_path_status(path, require_clean=True),
             "sha256": sha256_file(path),
         }
+    r342_report_for_sources = load_json(SOURCE_ARTIFACTS["R342 report"])
+    for path in r342_source_paths(r342_report_for_sources):
+        key = f"R342 upstream source: {rel(path)}"
+        source_status[key] = {
+            "path": rel(path),
+            "status": git_path_status(path, require_clean=True),
+            "sha256": sha256_file(path),
+        }
 
     paper_status = {}
     texts = {}
     for name, path in PAPER_SOURCES.items():
         repo_root = SUBMODULE_ROOT if path.is_relative_to(SUBMODULE_ROOT) else ROOT
+        git_path_status(path, repo_root=repo_root, require_clean=False)
         paper_status[name] = {
             "path": rel(path),
-            "status": git_path_status(path, repo_root=repo_root, require_clean=False),
+            "status": "tracked_hashed",
             "sha256": sha256_file(path),
         }
         texts[name] = path.read_text(encoding="utf-8")
@@ -1483,6 +1643,7 @@ def build_payload() -> dict[str, Any]:
     r341_transfer = read_csv(SOURCE_ARTIFACTS["R341 transfer attribution"])
     r342_variants = read_csv(SOURCE_ARTIFACTS["R342 variants"])
     r342_tasks = read_csv(SOURCE_ARTIFACTS["R342 tasks"])
+    r342_source_variants, r342_source_tasks = build_r342_rows_from_sources(reports["R342"])
 
     number_checks = build_number_checks(
         reports,
@@ -1500,6 +1661,8 @@ def build_payload() -> dict[str, Any]:
         r341_transfer,
         r342_variants,
         r342_tasks,
+        r342_source_variants,
+        r342_source_tasks,
     )
     policy_checks = validate_source_policies(reports)
     text_coverage = build_text_coverage(texts, number_checks)
@@ -1538,9 +1701,6 @@ def build_payload() -> dict[str, Any]:
     return {
         "schema": "agentsight.paper-claim-integrity.v1",
         "run_id": RUN_ID,
-        "created_unix": time.time(),
-        "commit": git_output(["rev-parse", "HEAD"]),
-        "submodule_commit": git_output(["rev-parse", "HEAD"], cwd=SUBMODULE_ROOT),
         "input_policy": {
             "dataset_sync": "none",
             "dataset_creation": "none",
@@ -1635,8 +1795,6 @@ def main() -> None:
             "run_id": RUN_ID,
             "schema": payload["schema"],
             "summary": payload["summary"],
-            "commit": payload["commit"],
-            "submodule_commit": payload["submodule_commit"],
         },
     )
     print(json.dumps(payload["summary"], indent=2, sort_keys=True))
