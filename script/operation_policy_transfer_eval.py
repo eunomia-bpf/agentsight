@@ -540,11 +540,17 @@ def build_report(
             "transfer signal: it often stays near the best visible held-out policy, but exact "
             "best policy selection remains task- and objective-specific."
         ),
-        "must_not_claim": [
+        "scope_guardrails": [
             "does not use target hidden labels for policy selection",
             "does not prove an automatic universal selector",
             "does not make operation-stack query-aware the best policy for every objective",
             "does not replace task-specific actionability cards or fixed-session counterpoints",
+        ],
+        "must_not_claim": [
+            "target hidden labels are used to select the transferred policy",
+            "R340 proves an automatic universal selector",
+            "operation-stack query-aware is the best policy for every objective",
+            "task-specific actionability cards or fixed-session counterpoints are unnecessary",
         ],
         "total_decisions": len(decisions),
         "visible_policies": len(policies),
@@ -624,6 +630,9 @@ def build_markdown(path: Path, report: dict[str, Any]) -> None:
         f"- Beats fixed-session baseline: {cs['selected_beats_fixed_decisions']}/{cs['total_decisions']}.",
         "",
         "Supported wording: " + cs["supported_wording"],
+        "",
+        "Scope guardrails:",
+        *[f"- {item}" for item in cs["scope_guardrails"]],
         "",
         "Must not claim:",
         *[f"- {item}" for item in cs["must_not_claim"]],
