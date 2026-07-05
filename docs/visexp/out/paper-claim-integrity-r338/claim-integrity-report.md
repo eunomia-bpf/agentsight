@@ -107,23 +107,23 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | R340 | best_policy_no_oracle_or_label_drilldown | 96 | 96 | pass | R340 transfer-decisions.csv |
 | R340 | leave_task_excludes_target_task | 96 | 96 | pass | R340 transfer-decisions.csv |
 | R340 | leave_dataset_excludes_target_dataset | 96 | 96 | pass | R340 transfer-decisions.csv + R320 policy-scores.csv |
-| R341 | overall | pass | pass | pass | R341 summary |
-| R341 | tasks | 6 | 6 | pass | R341 summary |
-| R341 | objective_rows | 36 | 36 | pass | R341 summary |
-| R341 | objective_csv_rows | 36 | 36 | pass | R341 objective-mechanism-attribution.csv |
-| R341 | actionable_objective_rows | 36 | 36 | pass | R341 summary |
-| R341 | nondefault_best_objective_rows | 27 | 27 | pass | R341 summary |
-| R341 | transfer_decisions | 96 | 96 | pass | R341 summary |
-| R341 | transfer_csv_rows | 96 | 96 | pass | R341 transfer-error-attribution.csv |
-| R341 | transfer_misses | 34 | 34 | pass | R341 summary |
-| R341 | transfer_misses_with_view_change | 32 | 32 | pass | R341 summary |
-| R341 | transfer_misses_with_ranker_change | 26 | 26 | pass | R341 summary |
-| R341 | high_regret_transfer_misses | 29 | 29 | pass | R341 summary |
-| R341 | stack_depth_tradeoff_tasks | 6 | 6 | pass | R341 summary.mechanism_task_counts |
-| R341 | transfer_policy_signal_tasks | 6 | 6 | pass | R341 summary.mechanism_task_counts |
-| R341 | critical_rank_feature_tasks | 4 | 4 | pass | R341 summary.mechanism_task_counts |
-| R341 | misleading_feature_tasks | 2 | 2 | pass | R341 summary.mechanism_task_counts |
-| R341 | tasks_with_three_or_more_mechanism_labels | 6 | 6 | pass | R341 summary |
+| R341 | overall | pass | pass | pass | R341 CSV-derived invariants |
+| R341 | tasks | 6 | 6 | pass | R341 objective-mechanism-attribution.csv |
+| R341 | objective_rows | 36 | 36 | pass | R341 objective-mechanism-attribution.csv |
+| R341 | objective_best_policy_visible_rows | 36 | 36 | pass | R341 objective-mechanism-attribution.csv + R320 policy-scores.csv |
+| R341 | objective_best_policy_non_oracle_rows | 36 | 36 | pass | R341 objective-mechanism-attribution.csv |
+| R341 | actionable_objective_rows | 36 | 36 | pass | R341 objective-mechanism-attribution.csv |
+| R341 | nondefault_best_objective_rows | 27 | 27 | pass | R341 objective-mechanism-attribution.csv |
+| R341 | transfer_decisions | 96 | 96 | pass | R341 transfer-error-attribution.csv |
+| R341 | transfer_misses | 34 | 34 | pass | R341 transfer-error-attribution.csv |
+| R341 | transfer_misses_with_view_change | 32 | 32 | pass | R341 transfer-error-attribution.csv |
+| R341 | transfer_misses_with_ranker_change | 26 | 26 | pass | R341 transfer-error-attribution.csv |
+| R341 | high_regret_transfer_misses | 29 | 29 | pass | R341 transfer-error-attribution.csv |
+| R341 | stack_depth_tradeoff_tasks | 6 | 6 | pass | R341 objective-mechanism-attribution.csv |
+| R341 | transfer_policy_signal_tasks | 6 | 6 | pass | R341 objective-mechanism-attribution.csv |
+| R341 | critical_rank_feature_tasks | 4 | 4 | pass | R341 objective-mechanism-attribution.csv |
+| R341 | misleading_feature_tasks | 2 | 2 | pass | R341 objective-mechanism-attribution.csv |
+| R341 | tasks_with_three_or_more_mechanism_labels | 6 | 6 | pass | R341 objective-mechanism-attribution.csv |
 
 ## Text Coverage
 
@@ -234,23 +234,23 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | evaluation | R340:best_policy_no_oracle_or_label_drilldown | 96/96 | pass | 201,202 |
 | evaluation | R340:leave_task_excludes_target_task | 96/96 | pass | 201,202 |
 | evaluation | R340:leave_dataset_excludes_target_dataset | 96/96 | pass | 201,202 |
-| evaluation | R341:overall | pass | pass | 14,51,112,215,271,338,339,342 |
-| evaluation | R341:tasks | 6 | pass | 3,4,12,13,15,32,41,42 |
-| evaluation | R341:objective_rows | 36 | pass | 15,157,203,204,205,271,290,317 |
-| evaluation | R341:objective_csv_rows | 36 | pass | 15,157,203,204,205,271,290,317 |
-| evaluation | R341:actionable_objective_rows | 36/36 | pass | 15,204,271,365 |
-| evaluation | R341:nondefault_best_objective_rows | 27/36 | pass | 15,205,271,365 |
-| evaluation | R341:transfer_decisions | 96 | pass | 15,87,89,193,194,195,196,197 |
-| evaluation | R341:transfer_csv_rows | 96 | pass | 15,87,89,193,194,195,196,197 |
-| evaluation | R341:transfer_misses | 34/96 | pass | 15,206,271,365 |
-| evaluation | R341:transfer_misses_with_view_change | 32/34 | pass | 15,207,271,365 |
-| evaluation | R341:transfer_misses_with_ranker_change | 26/34 | pass | 15,208,271,365 |
-| evaluation | R341:high_regret_transfer_misses | 29/34 | pass | 208,271 |
-| evaluation | R341:stack_depth_tradeoff_tasks | 6/6 | pass | 15,113,129,151,153,159,160,167 |
-| evaluation | R341:transfer_policy_signal_tasks | 6/6 | pass | 15,113,129,151,153,159,160,167 |
-| evaluation | R341:critical_rank_feature_tasks | 4/6 | pass | 15,41,45,53,54,70,72,152 |
-| evaluation | R341:misleading_feature_tasks | 2/6 | pass | 15,64,115,147,152,153,154,164 |
-| evaluation | R341:tasks_with_three_or_more_mechanism_labels | 6/6 | pass | 15,113,129,151,153,159,160,167 |
+| evaluation | R341:overall | R341 | pass | 15,203,211,271,362,365,518,521 |
+| evaluation | R341:tasks | 6 tasks | pass | 15,271,365 |
+| evaluation | R341:objective_rows | 36 objective rows | pass | 15,271,365 |
+| evaluation | R341:objective_best_policy_visible_rows | 36/36 best policies visible | pass | 365 |
+| evaluation | R341:objective_best_policy_non_oracle_rows | 36/36 best policies non-oracle | pass | 365 |
+| evaluation | R341:actionable_objective_rows | 36/36 objective rows have optimization actions | pass | 15,271,365 |
+| evaluation | R341:nondefault_best_objective_rows | 27/36 best visible policies are non-default | pass | 15,271,365 |
+| evaluation | R341:transfer_decisions | 96 transfer decisions | pass | 365 |
+| evaluation | R341:transfer_misses | 34/96 transfer decisions | pass | 365 |
+| evaluation | R341:transfer_misses_with_view_change | 32/34 misses change view | pass | 365 |
+| evaluation | R341:transfer_misses_with_ranker_change | 26/34 change ranker | pass | 365 |
+| evaluation | R341:high_regret_transfer_misses | 29/34 high-regret misses | pass | 271,365 |
+| evaluation | R341:stack_depth_tradeoff_tasks | stack-depth signals on 6/6 | pass | 365 |
+| evaluation | R341:transfer_policy_signal_tasks | transfer-policy signals on 6/6 | pass | 365 |
+| evaluation | R341:critical_rank_feature_tasks | critical features on 4/6 | pass | 365 |
+| evaluation | R341:misleading_feature_tasks | misleading features on 2/6 | pass | 15,365 |
+| evaluation | R341:tasks_with_three_or_more_mechanism_labels | three or more mechanism labels on 6/6 | pass | 365 |
 
 ## Guardrails
 
