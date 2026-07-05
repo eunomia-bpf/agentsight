@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>R342 Profile-Spec Composition Audit</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 32px; line-height: 1.45; color: #24292f; }
+    table { border-collapse: collapse; width: 100%; margin-top: 16px; }
+    th, td { border-bottom: 1px solid #d0d7de; padding: 8px; text-align: right; }
+    th:first-child, td:first-child, th:nth-child(2), td:nth-child(2), th:last-child, td:last-child { text-align: left; }
+  </style>
+</head>
+<body>
+  <h1>R342 Profile-Spec Composition Audit</h1>
+  <p>Reuses tracked R324 Rust outputs over real labeled operation traces. No dataset sync, creation, or relabeling.</p>
+  <ul><li>R342 audits 12 Rust profile-spec variants over 6 real labeled R300/R324 tasks without downloading or relabeling data.</li><li>All 12/12 variants compose operation files, query predicates, operation-level rank rules, rule-score ranking, and explicit stack depth.</li><li>All 12/12 variants fold without prompt/session frames, reinforcing that prompt/session are optional operation fields rather than required boundaries.</li><li>Visible operation-feature ranking improves AP over width on 9/12 variants and first-positive work on 10/12 variants.</li><li>Coarse depth reduces groups on 6/6 tasks with median group reduction 0.827, while best AP depth splits as {&#x27;coarse&#x27;: 2, &#x27;semantic&#x27;: 4}.</li></ul>
+  <table>
+    <thead><tr><th>Task</th><th>Dataset</th><th>Semantic groups</th><th>Coarse groups</th><th>Coarse group reduction</th><th>Best AP depth</th></tr></thead>
+    <tbody><tr><td>agentnet_incorrect_step</td><td>agentnet</td><td>289</td><td>43</td><td>0.851</td><td>semantic</td></tr><tr><td>agentnet_redundant_step</td><td>agentnet</td><td>260</td><td>42</td><td>0.838</td><td>semantic</td></tr><tr><td>agentreward_looping</td><td>agent-reward-bench</td><td>40</td><td>16</td><td>0.600</td><td>semantic</td></tr><tr><td>agentreward_side_effect</td><td>agent-reward-bench</td><td>40</td><td>16</td><td>0.600</td><td>coarse</td></tr><tr><td>osworld_group_start</td><td>osworld-human</td><td>173</td><td>32</td><td>0.815</td><td>semantic</td></tr><tr><td>satraj_unsafe</td><td>satraj-os-safety</td><td>142</td><td>22</td><td>0.845</td><td>coarse</td></tr></tbody>
+  </table>
+</body>
+</html>
