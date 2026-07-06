@@ -36,6 +36,11 @@
       "passed": true
     },
     {
+      "check": "main_papers_avoid_venue_self_undercut",
+      "detail": "Found 0 paper-facing venue-readiness self-undercut phrases; limitations should bound the scoped profiling claim rather than disclaiming top-tier evidence.",
+      "passed": true
+    },
+    {
       "check": "ledger_keeps_runs_as_provenance",
       "detail": "The evaluation ledger records run IDs as provenance/support/guardrails rather than main-paper structure.",
       "passed": true
@@ -56,21 +61,22 @@
   "interpretation": "The current paper organization remains three empirical profiling experiments plus one artifact/reproducibility block. R-numbered runs are ledger provenance, support, ablations, counterpoints, or hygiene gates, not main-paper mini-experiments.",
   "network_access_required": false,
   "paper_run_id_hits": [],
+  "paper_self_undercut_hits": [],
   "profiler_rerun": false,
   "run_id": "R398",
   "schema": "agentsight.paper_current_three_plus_one_gate.v1",
   "source_status": [
     {
       "path": "script/paper_current_three_plus_one_gate_r398.py",
-      "sha256": "cea3c1d3313badc29b342884b6d1e3711498d2f5cceb9530b6d984602d085f2a",
+      "sha256": "cbc8f944376f873e6f7632ca5dd8e2ebbe5d4596359332d8ca61e42c79285939",
       "source": "generator script",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/paper/main.tex",
       "sha256": "448bc134030472c7cc3e56137877409c5afeae531b0b8cc931dd2c6932ea6de9",
       "source": "Chinese paper",
-      "status": "tracked_dirty_allowed"
+      "status": "tracked_clean"
     },
     {
       "path": "docs/agentpprof-paper/main.tex",
@@ -80,33 +86,33 @@
     },
     {
       "path": "docs/evaluation.md",
-      "sha256": "7bb213a5c430967cfef72357710d0a7bcacecc87382dbace7ce9e04c9c8fb635",
+      "sha256": "360fda1680cb5280c08b1bfbb5f10871121105bcbcc2c964e2dc6f5dea7dfa65",
       "source": "evaluation ledger",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/idea-story.md",
-      "sha256": "85e7cdae3754619da85f56a8b455b6179b53afd67e4bd63955cc29e0db230afc",
+      "sha256": "45db3614f2a6b249b6eac76dd7695bac610c2164ea6aa382966802e4e7b2464b",
       "source": "idea story",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/out/paper-main-claim-verdict-alignment-r395/run-result.json",
-      "sha256": "91da8cf88b8821f70e78f407df3973fd452f1d2284a0d5b1c5d7ea46bfa84e27",
+      "sha256": "2d30ed27fc07ca348edee7e59220a103147afe68e215d3252a4402b28fa964a2",
       "source": "R395 claim/verdict alignment",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/out/paper-build-smoke-r396/run-result.json",
-      "sha256": "c6c4451754189d81a26438543ab3e0f583f228dc6c2cb812ed4eb608be1a410a",
+      "sha256": "63c4c517cd4b6e7a9375162ee7178c59387bb69ee6177e2cb53d7ea6c60dad84",
       "source": "R396 paper build smoke",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/out/paper-main-body-run-ledger-r397/run-result.json",
-      "sha256": "62f1bfab4bf607519c568af2e3bebde7d99fd7155de7b6229e109bb0dd379cf0",
+      "sha256": "f9e1da9f568fce4fcfe7e4cd92d4751abae531744cfceed9ee56812fa18b97cd",
       "source": "R397 anti-run-ledger",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/agentpprof-paper",
@@ -117,8 +123,8 @@
   ],
   "status": "pass",
   "summary": {
-    "checks_passed": 10,
-    "checks_total": 10,
+    "checks_passed": 11,
+    "checks_total": 11,
     "chinese_rq_subsections": [
       "RQ1/E1",
       "RQ2/E2",
@@ -131,6 +137,7 @@
       "RQ3/E3",
       "RQ4/E4"
     ],
-    "main_paper_run_id_hits": 0
+    "main_paper_run_id_hits": 0,
+    "paper_self_undercut_hits": 0
   }
 }

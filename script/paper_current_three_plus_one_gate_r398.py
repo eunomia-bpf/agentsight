@@ -44,6 +44,12 @@ SOURCES = {
 RQ_RE = re.compile(r"\\subsection\{(RQ\d+/E\d+)")
 RUN_ID_RE = re.compile(r"\bR\d{3}\b")
 EXPECTED_RQS = ["RQ1/E1", "RQ2/E2", "RQ3/E3", "RQ4/E4"]
+SELF_UNDERCUT_PATTERNS = [
+    re.compile(r"不是\s*(?:OSDI|NeurIPS|NIPS)[^。\\]*(?:最终接收|接受级|完整证据)"),
+    re.compile(r"证据不足[^。\\]*(?:OSDI|NeurIPS|NIPS|接收|接受)"),
+    re.compile(r"not [^.\\]*(?:OSDI|NeurIPS|NIPS)[^.\\]*(?:accepted|complete evidence|submission-ready)"),
+    re.compile(r"insufficient [^.\\]*(?:evidence|support)[^.\\]*(?:OSDI|NeurIPS|NIPS|acceptance|accepted)"),
+]
 
 
 def parse_args() -> argparse.Namespace:
@@ -163,6 +169,15 @@ def run_id_hits(path: Path) -> list[dict[str, Any]]:
     return hits
 
 
+def self_undercut_hits(path: Path) -> list[dict[str, Any]]:
+    hits = []
+    for line_no, line in enumerate(read_text(path).splitlines(), start=1):
+        matched = [pattern.pattern for pattern in SELF_UNDERCUT_PATTERNS if pattern.search(line)]
+        if matched:
+            hits.append({"path": rel(path), "line": line_no, "patterns": " | ".join(matched), "text": line.strip()})
+    return hits
+
+
 def build_report() -> dict[str, Any]:
     chinese = read_text(SOURCES["Chinese paper"])
     english = read_text(SOURCES["English paper"])
@@ -183,6 +198,9 @@ def build_report() -> dict[str, Any]:
     chinese_rqs = subsection_rqs(chinese)
     english_rqs = subsection_rqs(english)
     paper_run_hits = run_id_hits(SOURCES["Chinese paper"]) + run_id_hits(SOURCES["English paper"])
+    paper_self_undercut_hits = self_undercut_hits(SOURCES["Chinese paper"]) + self_undercut_hits(
+        SOURCES["English paper"]
+    )
     source_status = source_rows()
 
     checks: list[dict[str, Any]] = []
@@ -252,6 +270,16 @@ def build_report() -> dict[str, Any]:
     )
     add_check(
         checks,
+        "main_papers_avoid_venue_self_undercut",
+        not paper_self_undercut_hits,
+        (
+            "Found "
+            f"{len(paper_self_undercut_hits)} paper-facing venue-readiness self-undercut phrases; "
+            "limitations should bound the scoped profiling claim rather than disclaiming top-tier evidence."
+        ),
+    )
+    add_check(
+        checks,
         "ledger_keeps_runs_as_provenance",
         "r-numbered runs are provenance, not the paper's evaluation structure" in evaluation_l
         and "not part of the hidden-label accuracy comparison" in evaluation_l
@@ -287,6 +315,7 @@ def build_report() -> dict[str, Any]:
         "profiler_rerun": False,
         "human_or_agent_analyst_task": False,
         "paper_run_id_hits": paper_run_hits,
+        "paper_self_undercut_hits": paper_self_undercut_hits,
         "checks": checks,
         "source_status": source_status,
         "summary": {
@@ -295,6 +324,7 @@ def build_report() -> dict[str, Any]:
             "chinese_rq_subsections": chinese_rqs,
             "english_rq_subsections": english_rqs,
             "main_paper_run_id_hits": len(paper_run_hits),
+            "paper_self_undercut_hits": len(paper_self_undercut_hits),
         },
         "interpretation": (
             "The current paper organization remains three empirical profiling "
@@ -324,6 +354,7 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
         f"Status: `{report['status']}`",
         f"Checks: {report['summary']['checks_passed']}/{report['summary']['checks_total']}",
         f"Main-paper run-id hits: {report['summary']['main_paper_run_id_hits']}",
+        f"Paper-facing self-undercut hits: {report['summary']['paper_self_undercut_hits']}",
         "",
         report["interpretation"],
         "",
@@ -385,6 +416,11 @@ def main() -> int:
     (out_dir / "run-result.json").write_text(json.dumps(run_result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     write_csv(out_dir / "current-three-plus-one-checks.csv", report["checks"])
     write_csv(out_dir / "paper-run-id-hits.csv", report["paper_run_id_hits"], ["path", "line", "run_ids", "text"])
+    write_csv(
+        out_dir / "paper-self-undercut-hits.csv",
+        report["paper_self_undercut_hits"],
+        ["path", "line", "patterns", "text"],
+    )
     write_csv(out_dir / "source-status.csv", report["source_status"], ["source", "path", "status", "sha256"])
     write_markdown(out_dir / "current-three-plus-one.md", report)
     write_html(out_dir / "index.html", report)
