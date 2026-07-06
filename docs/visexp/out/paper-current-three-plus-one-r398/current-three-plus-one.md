@@ -1,7 +1,7 @@
 # R398 Current Three-Plus-One Organization Gate
 
 Status: `pass`
-Checks: 11/11
+Checks: 12/12
 Main-paper run-id hits: 0
 Paper-facing self-undercut hits: 0
 
@@ -20,5 +20,6 @@ The current paper organization remains three empirical profiling experiments plu
 | main_papers_stay_free_of_run_ids | True | Found 0 R-numbered run-id mentions in main paper bodies. |
 | main_papers_avoid_venue_self_undercut | True | Found 0 paper-facing venue-readiness self-undercut phrases; limitations should bound the scoped profiling claim rather than disclaiming top-tier evidence. |
 | ledger_keeps_runs_as_provenance | True | The evaluation ledger records run IDs as provenance/support/guardrails rather than main-paper structure. |
+| new_runs_must_strengthen_core_blocks | True | New runs must be assigned a role inside E1-E4 instead of becoming scattered paper experiments. |
 | canonical_next_action_rejects_small_experiment_sprawl | True | The idea story preserves the next-action rule against scattered new empirical blocks. |
 | source_status_tracked_or_dirty_allowed | True | All inputs are tracked or intentionally dirty while this gate is generated. |

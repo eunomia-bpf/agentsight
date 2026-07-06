@@ -284,8 +284,20 @@ def build_report() -> dict[str, Any]:
         "r-numbered runs are provenance, not the paper's evaluation structure" in evaluation_l
         and "not part of the hidden-label accuracy comparison" in evaluation_l
         and "not a fifth experiment" in evaluation_l
+        and "source/command` lines below are provenance inventories" in evaluation_l
         and "main-body run-ledger suppression gate" in evaluation_l,
         "The evaluation ledger records run IDs as provenance/support/guardrails rather than main-paper structure.",
+    )
+    add_check(
+        checks,
+        "new_runs_must_strengthen_core_blocks",
+        "new runs are allowed only when they strengthen one of these blocks" in evaluation_l
+        and "primary comparison, ablation, stress/counterpoint, provenance check, or hygiene gate" in evaluation_l
+        and "new runs enter the main evidence path only if they strengthen e1--e4" in english_l
+        and "primary comparison, ablation, stress/counterpoint, provenance check, or hygiene" in english_l
+        and "新的 run 只有在能作为 E1--E4" in chinese_norm
+        and "主比较、消融、stress/counterpoint、provenance check 或 hygiene gate" in chinese_norm,
+        "New runs must be assigned a role inside E1-E4 instead of becoming scattered paper experiments.",
     )
     add_check(
         checks,
