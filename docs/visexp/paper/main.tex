@@ -256,6 +256,8 @@ R 编号只作为 provenance，不是论文的小节结构。
 
 \subsection{E1：覆盖、递归折叠和边界字段}
 
+R361 将本节的 evidence contract 固定为：claim 是两抽象模型能覆盖异构 agent traces 且不把 prompt/session/tool 边界写死；oracle 是 public dataset labels、native trajectory fields、OSWorld-Human human boundary 和 AgentNet quality labels；baseline 包括 dataset-native stacks、no-map folding、fixed-session stacks、profile-spec replay 和 trace round trip；metric 包括 operation coverage、unique-stack range、mapping compression、boundary F1/V-measure 和 replay equality；counterpoint 是这只能支持 configurable operation stack folding，不能支持完整生态兼容或自动恢复所有 latent intent。Prompt、session、tool、process 和 syscall 都只能作为 operation forms 或 operation fields 出现，not new profiler objects。
+
 核心 14 数据集产生 42,590 个 operations 和 1,497 个 unique stacks，compression ratio 为 28.45。
 加入 ScaleCUA 补充样本后，总量为 47,590 个 operations 和 1,611 个 unique stacks，compression ratio 为 29.541。
 这些 operations 覆盖 web、mobile、desktop、software、API、tool-agent-user dialogue、expert failure labels、safety labels、human grouped-action labels 和 desktop step-quality labels。
@@ -370,6 +372,8 @@ Prompt 或 session 没有参与这个抽象。
 
 \subsection{E2：Hidden-label localization 和 ranking}
 
+R361 将本节的 evidence contract 固定为：claim 是 operation-stack profiling 能在真实 labeled traces 上 faithful localization 和 ranking；oracle 是 6 个 oracle-backed tasks 中 34,539 个 operations 和 3,699 个 hidden positives；baseline 包括 flat summary、fixed-session/span-tree proxy、dataset-native hierarchy、raw-action stack、operation-stack width、operation-stack query-aware、label-drilldown 和 oracle upper bound；metric 包括 precision@k、recall、F1、AUPRC-style AP、nDCG、recall/F1@work budget、work-to-first-positive 和 group count；counterpoint 是 flat 和 dataset-native 可以赢 broad-recall 或 nDCG 目标，所以主 claim 是 Pareto tradeoff，不是 metric dominance。
+
 AgentRewardBench、SATraj-OS 和 AgentNet 说明 operation stack 不局限于 flamegraph 热点。
 AgentRewardBench 的 729 个 expert-reviewed web-agent operations 全部携带 success、side-effect、looping 和 optimality 字段。
 Action-derived \texttt{repeat\_signal} 对 expert looping label 的 V-measure 为 0.378，而单步 \texttt{step\_error} 对 looping 的 V-measure 只有 0.011。
@@ -469,6 +473,8 @@ R334 进一步把 ``less fragmentation'' 从 ``less work'' 中拆开审计。
 
 \subsection{E3：机制隔离和 actionability}
 
+R361 将本节的 evidence contract 固定为：claim 是 profiler 通过 stack fields、mapping/tagging rules、ranking policies、profile specs 和 boundary-derived operation fields 暴露 actionable optimization knobs；oracle 是 hidden labels only after profiling，R358 还用 held-out OSWorld-Human boundary positives 评分；baseline 包括 default semantic-width specs、patched specs、visible feature rankers、transfer policies、learned-boundary stacks、fixed-session 和 semantic-width stacks；metric 包括 accepted patches、AP delta、top-5 lift delta、first-positive-work delta、group reduction 和 top-5 work counterpoint；counterpoint 是 OSWorld-Human 需要 boundary-derived fields，因此这是 actionable mechanism evidence，not automatic boundary discovery、not automatic patch selection。
+
 R320 还把结果转成 actionable optimization insight。
 SATraj unsafe 的 best visible policy 是 operation-stack query-aware，说明 \texttt{environment,phase,action} 与 risky/write-action ranking 对安全定位有效。
 AgentRewardBench looping 中，\texttt{repeat\_signal} mapping 明显改善 top-5 F1，但 positives 过于普遍，需要 prevalence-aware ranking。
@@ -504,6 +510,8 @@ R354 把 actionability 再推进到可执行 profile-spec patch：脚本读取 t
 R358 对这个 OSWorld-Human reject 做机制性 follow-up：它复用 R297 held-out boundary-backend operations，把 \texttt{learned\_group\_pattern} 和 \texttt{learned\_group\_position} 当作普通 operation fields 交给 Rust profile specs 折叠，hidden labels 只在 profiler 输出后评分。Learned-boundary stack 的 AP 为 0.2583，高于 semantic-width 的 0.2402 和 visible-rank patch 的 0.2253；group 数为 74，少于 semantic 的 108 和 fixed-session 的 96；top-5 recall 相比 semantic 增加 0.1111。反例也必须保留：top-5 operation work 和 first-positive work 在这个 held-out subset 上变差，learned-boundary rank rules 相比 width 还降低 AP。因此 R358 支持 boundary-derived fields 是一个 actionability knob，不支持 automatic boundary discovery 或 automatic patch selector。
 
 \subsection{E4：可复现性、成本和 claim integrity}
+
+R361 将本节的 evidence contract 固定为：claim 是 offline profiler path 和 paper claims 可复现、低成本且有 guardrails；oracle 是 tracked profile specs、tracked operation inputs、paper/doc hashes、claim-integrity audits 和 reviewer-style acceptance checks；baseline 包括 deterministic versus raw replay、source-status checks、paper-number checks、rubric checks、reviewer gates 和 two-abstraction guardrails；metric 包括 deterministic spec pass rate、runtime、number-check pass rate、guardrail pass rate、rubric level 和 reviewer ACCEPT count；counterpoint 是 not live eBPF overhead、not human utility、not complete ecosystem compatibility、not universal selector。
 
 R338 再把 paper claim 本身纳入审计：它复用 R320--R350 的 tracked-clean artifacts，不重新排名、不下载或重标数据集，只检查论文数字、source policy、must-not-claim guardrails 和 operation/operation-stack 边界是否一致。因此它支持“论文表述与证据一致”这个提交前 gate，而不是新的 profiler accuracy 结果。
 R352 再把当前结果集映射到 OSDI-style profiling-paper rubric：它复用 tracked R320--R351 artifacts 和当前论文文本，不下载、不同步、不重跑 profiler，也不运行 human/agent analyst task。26/26 required checks 和 10/10 rubric areas 通过，覆盖 fidelity/accuracy、actionability、baseline tradeoff、generality、mechanism isolation、robustness/statistics、reproducibility/overhead 和 claim-scope guardrails。因此它支持“当前 scoped profiling claim 的证据形态达到 profiler paper gate”，不是新的 empirical result。

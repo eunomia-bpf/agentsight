@@ -308,6 +308,13 @@ operation-stack evidence. Prompt, session, tool, process, syscall, safety, and
 human-boundary concepts remain operation fields, labels, or baselines rather
 than profiler objects.
 
+R362 audits that this ledger is visible in the paper body, not only in generated
+tables. It extracts the Chinese and English E1-E4 result sections and checks for
+claim/oracle/baseline/metric/counterpoint structure, localization metrics,
+actionability language, and must-not-claim guardrails. This is a narrative
+readiness gate over existing operation/operation-stack evidence. It does not
+introduce a section, claim, or table as a profiler abstraction.
+
 R304 evaluates the presentation boundary for those ranked groups. It writes
 `visible-case-packet.json` with stack frames, visible feature rates, hashed
 session examples, and example operations. It writes oracle positives only to
