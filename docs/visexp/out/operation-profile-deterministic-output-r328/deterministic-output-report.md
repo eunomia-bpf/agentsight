@@ -7,16 +7,16 @@ This probe reruns the same tracked R300/R324/R326 profile specs as R327, but pas
 - Profiler invocations: 152
 - Semantic deterministic specs: 76/76
 - Raw-byte deterministic specs: 76/76
-- Median runtime: 1577.5383 ms
-- P95 runtime: 2730.9206 ms
+- Median runtime: 1601.0827 ms
+- P95 runtime: 2767.1653 ms
 
 ## By Experiment
 
 | Experiment | Specs | Median runtime (ms) | P95 runtime (ms) | Median unique stacks | Median output bytes |
 |---|---:|---:|---:|---:|---:|
-| r300_views | 4 | 3448.3363 | 4298.4460 | 631.0 | 109299.0 |
-| r324_rank_features | 12 | 1540.7921 | 2673.4813 | 41.0 | 36339.0 |
-| r326_rank_feature_robustness | 60 | 1562.9069 | 2679.0805 | 41.0 | 36339.0 |
+| r300_views | 4 | 3505.2170 | 4339.5190 | 631.0 | 109299.0 |
+| r324_rank_features | 12 | 1578.0484 | 2726.1491 | 41.0 | 36339.0 |
+| r326_rank_feature_robustness | 60 | 1566.8592 | 2716.5349 | 41.0 | 36339.0 |
 
 ## Claim Scope
 
