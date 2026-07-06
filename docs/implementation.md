@@ -16,7 +16,7 @@ Purpose: identify the maintained implementation boundary.
 | `agentpprof/src/standard_trace.rs` | Chrome Trace Event export/import bridge that normalizes trace events into operation records before folding. | exchange bridge |
 | `agentpprof/src/tagger.rs` | Regex/LLM prompt tagging for local-session operation fields. | maintained |
 | `agentpprof/tests/standard_trace_cli.rs` | CLI round-trip test for standard trace export/import. | regression test |
-| `agentpprof/tests/profile_spec_cli.rs` | CLI regression for profile-spec composition over operation JSONL, mapping, predicates, operation-level rank rules, and stack-depth override. | regression test |
+| `agentpprof/tests/profile_spec_cli.rs` | CLI regression for profile-spec composition over operation JSONL and local-session inputs, mapping/tagging, predicates, operation-level rank rules, and stack-depth override. | regression test |
 | `agent-session/` | Shared local Codex/Claude session parser. | maintained |
 | `script/agent_trace_datasets.py` | External labeled trajectory samplers and operation JSONL normalization. | research harness |
 | `script/agent_trace_exchange_eval.py` | Reproducible agent-session trace export/import/conversion equality check. | research harness |
@@ -72,7 +72,8 @@ The current Rust implementation supports:
 - rank-policy selection via `--rank-mode width-boost|rule-score` and
   profile-spec `rank_mode`;
 - frame-local stack overrides via `--stack-rule`;
-- reusable profile specs via `--profile-spec`;
+- reusable profile specs via `--profile-spec`, including operation-file,
+  local-session, imported agent-trace, and standard-trace input paths;
 - portable local agent-session trace import/export via `--trace-file` and
   `--export-trace`;
 - Chrome Trace Event import/export via
@@ -116,7 +117,7 @@ improves both metrics. The repaired policy
 uses offline R325 findings and is evidence for actionability, not a deployment
 ranker.
 
-The profile-spec composition path now has a direct Rust CLI regression in
+The profile-spec composition path has direct Rust CLI regressions in
 `agentpprof/tests/profile_spec_cli.rs`. The test writes a temporary operation
 JSONL source, derives `task`, `intent`, and `phase` fields through an
 `op_map_file`, filters with `where_rules`, ranks JSON groups with
@@ -126,6 +127,19 @@ three operation stacks without any `session` or `prompt` frames; the override
 folds the identical selected operations into one coarser stack. This is an
 engineering regression for configurable recursive folding, not a new empirical
 result.
+
+R392 adds matching local-session, imported agent-trace, and standard-trace
+profile-spec regressions over the public Codex fixture and a generic Chrome
+trace fixture. The local-session and agent-trace specs carry `session_files` or
+`trace_files`, regex `tag_rules`, `where_rules`, `rank_op_rules`,
+`rank_mode=rule-score`, and a semantic stack; the CLI override folds the same
+selected prompt into a coarser stack. The standard-trace spec carries
+`standard_trace_files` and `include_standard_trace_args`, then checks that a
+generic trace arg can become an operation field before folding. This closes a
+replay gap for E4: input selection and local-session tag derivation are now
+part of the same profile-spec path as operation-file mappings and ranking, but
+they remain operation-field derivations folded into operation stacks rather
+than a third profiler object.
 
 R342 extends that composition check to existing real labeled traces without
 fetching or relabeling data. `script/operation_profile_spec_composition_eval.py`

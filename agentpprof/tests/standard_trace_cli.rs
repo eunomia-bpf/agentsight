@@ -164,3 +164,73 @@ fn cli_exports_operation_file_as_standard_trace() {
         fs::read_to_string(imported_folded_path).unwrap()
     );
 }
+
+#[test]
+fn profile_spec_imports_standard_trace_with_effective_args_flag() {
+    let tmp = tempfile::tempdir().unwrap();
+    let trace_path = tmp.path().join("generic-chrome-trace.json");
+    let spec_path = tmp.path().join("standard-trace-profile-spec.json");
+    let output_path = tmp.path().join("standard-trace-profile.json");
+    let binary = env!("CARGO_BIN_EXE_agentpprof");
+
+    let trace = serde_json::json!({
+        "traceEvents": [{
+            "name": "tool:execute",
+            "cat": "tool;execute",
+            "ph": "X",
+            "ts": 0,
+            "dur": 10,
+            "pid": 1,
+            "tid": 2,
+            "args": {
+                "project": "trace-fixture",
+                "agent": "external-agent",
+                "session": "s1",
+                "op": "tool",
+                "phase": "execute",
+                "tool": "browser",
+                "status": "ok",
+                "protocol": "mcp"
+            }
+        }]
+    });
+    fs::write(&trace_path, serde_json::to_vec_pretty(&trace).unwrap()).unwrap();
+
+    let spec = serde_json::json!({
+        "output": output_path,
+        "format": "json",
+        "view": "operations",
+        "project_name": "fallback-project",
+        "standard_trace_files": [trace_path],
+        "include_standard_trace_args": true,
+        "stack": "project,agent,session,op,phase,tool,protocol,status",
+        "deterministic_output": true
+    });
+    fs::write(&spec_path, serde_json::to_vec_pretty(&spec).unwrap()).unwrap();
+
+    let import = Command::new(binary)
+        .args(["--profile-spec", spec_path.to_str().unwrap()])
+        .output()
+        .unwrap();
+    assert!(
+        import.status.success(),
+        "profile-spec standard trace import failed: {}\nstdout: {}",
+        String::from_utf8_lossy(&import.stderr),
+        String::from_utf8_lossy(&import.stdout)
+    );
+    let import_json: Value = serde_json::from_slice(&import.stdout).unwrap();
+    assert_eq!(import_json["status"], "ok");
+    assert_eq!(import_json["operations"], 1);
+    assert_eq!(import_json["include_standard_trace_args"], true);
+    assert_eq!(
+        import_json["standard_trace_files"],
+        serde_json::json!([trace_path])
+    );
+
+    let profile_json: Value =
+        serde_json::from_str(&fs::read_to_string(&output_path).unwrap()).unwrap();
+    assert_eq!(
+        profile_json["profile"]["stacks"]["project:trace-fixture;agent:external-agent;session:s1;op:tool;phase:execute;tool:browser;protocol:mcp;status:ok"],
+        1
+    );
+}

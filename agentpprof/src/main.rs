@@ -289,8 +289,12 @@ struct ProfileSpec {
     preset: Option<bool>,
     tagger: Option<TaggerKind>,
     deterministic_output: Option<bool>,
+    include_standard_trace_args: Option<bool>,
     op_map_files: Vec<PathBuf>,
     operation_files: Vec<PathBuf>,
+    session_files: Vec<PathBuf>,
+    trace_files: Vec<PathBuf>,
+    standard_trace_files: Vec<PathBuf>,
 }
 
 #[derive(Default, Deserialize)]
@@ -316,10 +320,17 @@ struct RawProfileSpec {
     preset: Option<bool>,
     tagger: Option<String>,
     deterministic_output: Option<bool>,
+    include_standard_trace_args: Option<bool>,
     #[serde(default)]
     op_map_files: Vec<PathBuf>,
     #[serde(default)]
     operation_files: Vec<PathBuf>,
+    #[serde(default)]
+    session_files: Vec<PathBuf>,
+    #[serde(default)]
+    trace_files: Vec<PathBuf>,
+    #[serde(default)]
+    standard_trace_files: Vec<PathBuf>,
 }
 
 fn main() -> Result<()> {
@@ -381,6 +392,8 @@ fn command_export(args: Cli) -> Result<()> {
     let tagger = args.tagger.or(spec.tagger).unwrap_or(TaggerKind::Regex);
     let deterministic_output =
         args.deterministic_output || spec.deterministic_output.unwrap_or(false);
+    let include_standard_trace_args =
+        args.include_standard_trace_args || spec.include_standard_trace_args.unwrap_or(false);
     profile_options = profile_options
         .with_field_rules(parse_stack_rules_with_flag(&op_maps, "--op-map")?)
         .with_filters(parse_operation_filters(&where_rules)?)
@@ -389,16 +402,26 @@ fn command_export(args: Cli) -> Result<()> {
         .with_rank_operation_rules(parse_operation_rank_rules(&rank_op_rules)?)
         .with_rank_mode(rank_mode.into());
     let operation_files = merge_spec_first(&spec.operation_files, &args.operation_files);
-    validate_input_modes(&args, &operation_files)?;
-    if !args.standard_trace_files.is_empty() {
+    let session_files = merge_spec_first(&spec.session_files, &args.session_files);
+    let trace_files = merge_spec_first(&spec.trace_files, &args.trace_files);
+    let standard_trace_files =
+        merge_spec_first(&spec.standard_trace_files, &args.standard_trace_files);
+    validate_input_modes(
+        &args,
+        &operation_files,
+        &session_files,
+        &trace_files,
+        &standard_trace_files,
+    )?;
+    if !standard_trace_files.is_empty() {
         let output = output
             .as_ref()
             .context("missing output path; pass -o/--output or set output in --profile-spec")?;
         let format = infer_output_format(requested_format.into(), output);
         let operation_records = standard_trace::operation_records_from_chrome_trace_files(
-            &args.standard_trace_files,
+            &standard_trace_files,
             &project_name,
-            args.include_standard_trace_args,
+            include_standard_trace_args,
         )?;
         let profile =
             build_profile_from_operation_records(&operation_records, view, &profile_options)?;
@@ -432,8 +455,9 @@ fn command_export(args: Cli) -> Result<()> {
             "rank_mode": cli_rank_mode_name(rank_mode),
             "deterministic_output": deterministic_output,
             "stack_rules": stack_rules,
-            "standard_trace_files": args.standard_trace_files,
+            "standard_trace_files": standard_trace_files,
             "standard_trace_format": standard_trace::CHROME_TRACE_FORMAT,
+            "include_standard_trace_args": include_standard_trace_args,
             "operations": operation_records.len(),
             "samples": stacks.values().sum::<u64>(),
             "unique_stacks": stacks.len(),
@@ -532,14 +556,14 @@ fn command_export(args: Cli) -> Result<()> {
     } else {
         default_claude_root(&project_root)?
     };
-    let mut agent_sessions = if !args.trace_files.is_empty() {
-        load_agent_trace_files(&args.trace_files)?
+    let mut agent_sessions = if !trace_files.is_empty() {
+        load_agent_trace_files(&trace_files)?
     } else {
         discover_agent_sessions(
             &project_root,
             &codex_root,
             &claude_root,
-            &args.session_files,
+            &session_files,
             args.scan_files,
             args.max_sessions,
         )?
@@ -582,7 +606,8 @@ fn command_export(args: Cli) -> Result<()> {
             },
             "standard_trace_events": standard_trace_events,
             "sessions": agent_sessions.len(),
-            "trace_files": args.trace_files,
+            "session_files": session_files,
+            "trace_files": trace_files,
             "warnings": [],
         });
         println!("{}", serde_json::to_string_pretty(&result)?);
@@ -632,7 +657,7 @@ fn command_export(args: Cli) -> Result<()> {
         "sample_type": profile.sample_type,
         "unit": profile.unit,
         "profile_specs": args.profile_specs,
-        "trace_files": args.trace_files,
+        "trace_files": trace_files,
         "trace_output": args.export_trace,
         "standard_trace_output": args.export_standard_trace,
         "standard_trace_format": if args.export_standard_trace.is_some() {
@@ -654,6 +679,7 @@ fn command_export(args: Cli) -> Result<()> {
         "deterministic_output": deterministic_output,
         "stack_rules": stack_rules,
         "sessions": sessions.len(),
+        "session_files": session_files,
         "samples": stacks.values().sum::<u64>(),
         "unique_stacks": stacks.len(),
         "warnings": [],
@@ -741,15 +767,30 @@ fn load_effective_op_map_rules(
     Ok(rules)
 }
 
-fn validate_input_modes(args: &Cli, operation_files: &[PathBuf]) -> Result<()> {
-    if !operation_files.is_empty() && !args.trace_files.is_empty() {
+fn validate_input_modes(
+    args: &Cli,
+    operation_files: &[PathBuf],
+    session_files: &[PathBuf],
+    trace_files: &[PathBuf],
+    standard_trace_files: &[PathBuf],
+) -> Result<()> {
+    if !operation_files.is_empty() && !trace_files.is_empty() {
         bail!("--trace-file cannot be used with --operation-file");
     }
-    if !args.standard_trace_files.is_empty() {
+    if !operation_files.is_empty() && !session_files.is_empty() {
+        bail!("--session-file cannot be used with --operation-file");
+    }
+    if !trace_files.is_empty() && !session_files.is_empty() {
+        bail!("--session-file cannot be used with --trace-file");
+    }
+    if !standard_trace_files.is_empty() {
         if !operation_files.is_empty() {
             bail!("--standard-trace-file cannot be used with --operation-file");
         }
-        if !args.trace_files.is_empty() {
+        if !session_files.is_empty() {
+            bail!("--standard-trace-file cannot be used with --session-file");
+        }
+        if !trace_files.is_empty() {
             bail!("--standard-trace-file cannot be used with --trace-file");
         }
         if args.export_trace.is_some() || args.export_standard_trace.is_some() {
@@ -809,6 +850,7 @@ fn normalize_profile_spec(raw: RawProfileSpec, base: &Path) -> Result<ProfileSpe
         preset: raw.preset,
         tagger: raw.tagger.as_deref().map(parse_spec_tagger).transpose()?,
         deterministic_output: raw.deterministic_output,
+        include_standard_trace_args: raw.include_standard_trace_args,
         op_map_files: raw
             .op_map_files
             .into_iter()
@@ -816,6 +858,21 @@ fn normalize_profile_spec(raw: RawProfileSpec, base: &Path) -> Result<ProfileSpe
             .collect(),
         operation_files: raw
             .operation_files
+            .into_iter()
+            .map(|path| resolve_spec_path(base, path))
+            .collect(),
+        session_files: raw
+            .session_files
+            .into_iter()
+            .map(|path| resolve_spec_path(base, path))
+            .collect(),
+        trace_files: raw
+            .trace_files
+            .into_iter()
+            .map(|path| resolve_spec_path(base, path))
+            .collect(),
+        standard_trace_files: raw
+            .standard_trace_files
             .into_iter()
             .map(|path| resolve_spec_path(base, path))
             .collect(),
@@ -910,6 +967,9 @@ impl ProfileSpec {
         if next.deterministic_output.is_some() {
             self.deterministic_output = next.deterministic_output;
         }
+        if next.include_standard_trace_args.is_some() {
+            self.include_standard_trace_args = next.include_standard_trace_args;
+        }
         self.stack_rules.extend(next.stack_rules);
         self.op_maps.extend(next.op_maps);
         self.where_rules.extend(next.where_rules);
@@ -918,6 +978,9 @@ impl ProfileSpec {
         self.tag_rules.extend(next.tag_rules);
         self.op_map_files.extend(next.op_map_files);
         self.operation_files.extend(next.operation_files);
+        self.session_files.extend(next.session_files);
+        self.trace_files.extend(next.trace_files);
+        self.standard_trace_files.extend(next.standard_trace_files);
     }
 }
 
@@ -1113,6 +1176,10 @@ mod tests {
   "view": "operations",
   "project_name": "external-agent-traces",
   "operation_files": ["inputs/agentnet.jsonl"],
+  "session_files": ["sessions/codex.jsonl"],
+  "trace_files": ["traces/agent-trace.json"],
+  "standard_trace_files": ["traces/chrome-trace.json"],
+  "include_standard_trace_args": true,
   "stack": "project,dataset,task,phase,op,tool,action,status",
   "op_maps": ["phase:inspect=(action=screenshot)"],
   "where_rules": ["phase!=noise"],
@@ -1140,6 +1207,19 @@ mod tests {
             spec.operation_files,
             vec![dir.path().join("inputs").join("agentnet.jsonl")]
         );
+        assert_eq!(
+            spec.session_files,
+            vec![dir.path().join("sessions").join("codex.jsonl")]
+        );
+        assert_eq!(
+            spec.trace_files,
+            vec![dir.path().join("traces").join("agent-trace.json")]
+        );
+        assert_eq!(
+            spec.standard_trace_files,
+            vec![dir.path().join("traces").join("chrome-trace.json")]
+        );
+        assert_eq!(spec.include_standard_trace_args, Some(true));
 
         let op_maps = load_effective_op_map_rules(
             &["phase:verify=(cmd=cargo)".to_string()],
@@ -1199,6 +1279,38 @@ mod tests {
     }
 
     #[test]
+    fn session_file_and_operation_file_are_mutually_exclusive() {
+        let args = Cli::parse_from([
+            "agentpprof",
+            "--session-file",
+            "session.jsonl",
+            "--operation-file",
+            "operations.jsonl",
+            "-o",
+            "out.folded",
+        ]);
+        let err = command_export(args).unwrap_err().to_string();
+
+        assert!(err.contains("--session-file cannot be used with --operation-file"));
+    }
+
+    #[test]
+    fn session_file_and_trace_file_are_mutually_exclusive() {
+        let args = Cli::parse_from([
+            "agentpprof",
+            "--session-file",
+            "session.jsonl",
+            "--trace-file",
+            "trace.json",
+            "-o",
+            "out.folded",
+        ]);
+        let err = command_export(args).unwrap_err().to_string();
+
+        assert!(err.contains("--session-file cannot be used with --trace-file"));
+    }
+
+    #[test]
     fn standard_trace_file_and_operation_file_are_mutually_exclusive() {
         let args = Cli::parse_from([
             "agentpprof",
@@ -1212,6 +1324,22 @@ mod tests {
         let err = command_export(args).unwrap_err().to_string();
 
         assert!(err.contains("--standard-trace-file cannot be used with --operation-file"));
+    }
+
+    #[test]
+    fn standard_trace_file_and_session_file_are_mutually_exclusive() {
+        let args = Cli::parse_from([
+            "agentpprof",
+            "--standard-trace-file",
+            "standard-trace.json",
+            "--session-file",
+            "session.jsonl",
+            "-o",
+            "out.folded",
+        ]);
+        let err = command_export(args).unwrap_err().to_string();
+
+        assert!(err.contains("--standard-trace-file cannot be used with --session-file"));
     }
 
     #[test]

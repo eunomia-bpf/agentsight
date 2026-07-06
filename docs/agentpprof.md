@@ -509,9 +509,14 @@ Run it with:
 agentpprof --profile-spec docs/visexp/out/profile-spec-r293/agentnet-diagnostic-spec.json
 ```
 
-Paths inside a spec are resolved relative to the spec file. Scalar CLI flags
-such as `-o`, `--view`, `--format`, and `--stack` override spec values; CLI
-`--op-map` and `--op-map-file` entries are evaluated before spec defaults.
+Paths inside a spec are resolved relative to the spec file. Specs may carry
+`operation_files`, `session_files`, `trace_files`, or `standard_trace_files`
+so the input source is replayed with the same operation-stack query. These
+input source families are mutually exclusive after spec and CLI values are
+merged, which prevents an unused source from silently appearing in a replay
+spec. Scalar CLI flags such as `-o`, `--view`, `--format`, and `--stack`
+override spec values; CLI `--op-map` and `--op-map-file` entries are evaluated
+before spec defaults.
 When CLI `--where` is present, it replaces spec `where_rules`; otherwise the
 spec predicates are used. CLI `--rank-rule` and `--rank-op-rule` entries are
 evaluated before spec `rank_rules` and `rank_op_rules`. Both rule types use
@@ -522,10 +527,11 @@ folded, or SVG output. The default `rank_mode` is `width-boost`, which keeps
 width as the main signal. `rule-score` ranks by matched visible rules first and
 uses width as a tie-breaker. For local-session inputs, a spec can also carry
 `tagger`, `preset`, and `tag_rules`; these fields derive prompt/session tags
-before operation-stack construction just like CLI tagging flags. A profile spec
-is only a reproducibility wrapper around operations, field derivation,
-predicates, rank policies, and operation stacks. It is not a third profiler
-abstraction.
+before operation-stack construction just like CLI tagging flags. For standard
+trace imports, `include_standard_trace_args` mirrors
+`--include-standard-trace-args`. A profile spec is only a reproducibility
+wrapper around operations, input selection, field derivation, predicates, rank
+policies, and operation stacks. It is not a third profiler abstraction.
 
 The `tokens` view uses model budget as the width:
 
