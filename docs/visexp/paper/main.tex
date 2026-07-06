@@ -361,6 +361,33 @@ R363 把同一批 scored outputs 组织成五个 paper-facing views，而不是�
     Actionability knobs & \texttt{actionability-knobs.svg} & 27/36 objective rows 需要 non-default actions；R354 接受 5/6 profile-spec patches；R358 boundary fields 带来 AP +0.0181。 & E3 \\
     Oracle-depth adequacy & \texttt{oracle-depth-adequacy.svg} & 24/24 rows 的 top-5 unit work 低于 flat；20/24 rows 的 fixed-session unit recall 更高；22/24 rows 用更少 groups 到达 50\% positives。 & E2/E3 \\
     \bottomrule
+\end{tabular}
+\end{table*}
+
+R365 进一步把 E2/E3 的同一证据压缩成 headline rows 和 task case cards，
+方便论文主文引用而不是展开 R-run 历史。它只读取 tracked artifacts，不下载
+数据、不重新标注、不重跑 profiler；因此 R365 是 paper-integration artifact，
+不是第五个实验，也不是 operation/operation-stack 之外的新 profiler object。
+表~\ref{tab:r365-headlines} 给出主文可引用的 compact 版本；case cards 则为
+6 个任务分别保留 best visible policy、operation-stack top-5 work/recall/lift、
+profile-spec patch verdict、optimization action 和 counterpoint。
+
+\begin{table*}[t]
+  \centering
+  \scriptsize
+  \setlength{\tabcolsep}{3pt}
+  \caption{R365 E2/E3 headline 和 case-study selector。它只读取 tracked artifacts，不下载数据、不重跑 profiler，不是第五个实验。}
+  \label{tab:r365-headlines}
+  \begin{tabular}{p{0.10\linewidth}p{0.18\linewidth}p{0.42\linewidth}p{0.20\linewidth}}
+    \toprule
+    Row & Role & Main numbers & Counterpoint \\
+    \midrule
+    H1 & localization/work & 6 tasks / 4 datasets / 34,539 operations / 3,699 positives；Work@5 0.0937 vs flat 1.0；R@30\% 0.3900 vs fixed-session 0.3559。 & Fixed-session WTFP 0.0044；dataset-native R@5 0.8665 at high work。 \\
+    H2 & fragmentation & Groups 157.5 vs fixed-session 285；top-5 recall wins 5/6；30\% budget fewer groups 5/6。 & Fixed-session 仍然是 early-hit counterpoint。 \\
+    H3 & oracle depth & 24/24 rows lower top-5 unit work than flat；20/24 beat fixed-session unit recall；22/24 use fewer groups to 50\% positives。 & Session labels 和 positive-run proxy 不能等同 human intent。 \\
+    H4 & actionability & 27/36 objective rows need non-default actions；25/36 require view changes；R354 accepts 5/6 patches with median AP delta 0.0376 and lift delta 0.5750。 & 不是 automatic patch selector 或 human-productivity result。 \\
+    H5 & boundary mechanism & Learned-boundary AP 0.2583 vs semantic-width 0.2402；groups 74 vs 108；top-5 recall delta +0.1111。 & Top-5 work 和 first-positive work 变差，说明它是 scoped repair。 \\
+    \bottomrule
   \end{tabular}
 \end{table*}
 
@@ -479,6 +506,7 @@ R352 再把当前结果集映射到 OSDI-style profiling-paper rubric：它复�
 R360 把表~\ref{tab:results} 的核心数字做成可复现 artifact：脚本只读取 R360 source-status 中列出的 tracked upstream results 和当前 paper/docs，输出 JSON、CSV、Markdown、HTML 和 LaTeX table fragment；7/7 checks 通过，其中包括 fixed-session drilldown 作为当前 trace-tree-shaped baseline 的 scope 检查。R360 不是新的 empirical result，也不重新排名或同步数据集；R338/R352/R356/R357/R359/R361 只作为 artifact hygiene 和 claim-scope gate，不作为主表的 scientific evidence。
 R361 进一步把 E1--E4 表格整理成 claim-evidence ledger：每个核心实验都必须给出 claim、research question、oracle、baselines、primary metrics、headline result、actionable insight、counterpoint、scoped wording 和 source runs。该 gate 10/10 checks 通过，覆盖 hidden-label scale/metric surface、baseline tradeoff 而不是 metric dominance、oracle-depth/fragmentation、mechanism/actionability counterpoints、reproducibility guardrails、two-abstraction boundary 和 must-not-claim guardrails。R361 仍然只是 paper-structure artifact，不是新的实验，不重新跑 profiler，也不做 dataset sync、creation 或 relabeling。
 R363 再把这些证据组织成表~\ref{tab:visualization-portfolio} 中的五个 paper views：baseline-tradeoff scatter、metric heatmap、diagnostic lenses、actionability knobs 和 oracle-depth adequacy。该 portfolio 7/7 checks 通过，作用是把 E2/E3 的 tradeoff 和 actionability 用多种分析视图展示出来，而不是新增第五个实验、把论文降格为单一 flamegraph，或引入 operation/operation-stack 之外的新抽象。
+R365 最后把同一批 E2/E3 证据整理成表~\ref{tab:r365-headlines} 的 five headline rows 和 six task case cards：它保留 Work@5、R@30\%、group count、oracle-depth、non-default action、profile-spec patch 和 boundary-field counterpoints，但仍然只是 paper-integration artifact，不下载数据、不重跑 profiler、不引入新实验。
 
 \section{哪些数据集最适合}
 
