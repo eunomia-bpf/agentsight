@@ -444,11 +444,10 @@ R363 把同一批 scored outputs 组织成非 flamegraph 的 paper-facing views�
 它们显示：6/6 tasks 相比 flat summary 改善 AP 和 top-five inspected work；5/6 tasks 相比 fixed-session drilldown 改善 top-five recall；4/6 tasks 降低 fixed-session group fragmentation；6/6 tasks 都有 actionable configuration result，即 R354 profile-spec patch 或 R358 boundary-field repair。
 同时它们保留负证据：fixed-session 在若干任务上仍然是 first-positive 或 group-count counterpoint，OSWorld-Human 需要 boundary-derived fields，而不是 visible phase/action ranking alone。
 
-R330--R334 和 R355 是同一个 E2 主实验的稳健性和边界审计，而不是额外小实验。
-R330 在 6 个 task families 上做 10,000 次 paired bootstrap：相对 flat width，operation-stack query-aware 的 AP mean delta 为 0.1219，top-5 inspected-work delta 为 -0.8168，30\% budget recall delta 为 0.4510，四项都是 6/6 tasks 同向；相对 fixed-session query-aware，它的 top-5 recall、top-5 F1 和 group count delta 也给出稳定方向。
-R331 的 2,000 次 label-permutation negative control 进一步说明，operation-stack query-aware 的 AP 在 6/6 tasks 上超过 95\% null，30\% budget recall 在 5/6 tasks 上超过 null，因此主要 AP/预算召回信号不能只由 prevalence 或 group size 解释。
-R333/R334 把 work 和 fragmentation 拆开：在 30\% inspected-work 内，operation-stack query-aware 的 median recall 为 0.3900，高于 fixed-session query-aware 的 0.3559；相同 budget 下它在 5/6 tasks 上检查更少 groups，median group delta 为 -54.0，但 work-to-first-positive 更低只有 2/6 tasks。
-R355 再按 dataset-provided oracle depth 评分，operation-stack query-aware 在 24 个 task-depth rows 中有 20 个提高 budget-30 positive-unit recall，并在 22 个 rows 用更少 groups 达到 50\% positive units。
+E2 的 support audits 只用于检验这个 Pareto 结论是否稳健，而不是形成新的主实验。
+Bootstrap 和 label-permutation checks 显示，operation-stack query-aware 的 AP、top-5 work、budget recall 和 group-count deltas 在 6/6 tasks 上方向稳定；AP 在 6/6 tasks 上超过 95\% prevalence/group-size null，30\% budget recall 在 5/6 tasks 上超过 null。
+Work-budget、fragmentation 和 oracle-depth slices 再把收益拆到 reviewer 关心的检查成本上：30\% work budget 下 median recall 为 0.3900，高于 fixed-session 的 0.3559 和 flat 的 0.0000；相同 budget 下它在 5/6 tasks 上检查更少 groups，同时保留 fixed-session first-positive-work 反例；在 24 个 task-depth rows 中，它有 20 个提高 fixed-session budget-30 positive-unit recall，并在 22 个 rows 用更少 groups 达到 50\% positive units。
+这些 slices 合起来支持 faithful localization surface 和 inspection-work/fragmentation tradeoff；它们不支持 single best hierarchy、human productivity 或对所有 trace-tree-shaped objectives 的 dominance。
 
 E2 的结论因此是 scoped profiler result：operation-stack profiling 在真实标注轨迹上能把 hot groups 排成对 hidden positives 有信号的 localization surface，相比 flat summary 明显减少 inspection work，相比 fixed-session drilldown 通常改善 median fragmentation tradeoff 或提高同预算 recall。
 它不能写成 automatic detector、single best hierarchy、human/agent analyst productivity，或对真实 OpenTelemetry/Phoenix/LangSmith/Perfetto span tree 的完整兼容和支配。
