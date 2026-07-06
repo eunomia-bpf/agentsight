@@ -156,6 +156,9 @@ LLM tags are cached under the user cache directory by default, for example
 For external operations and reproducible experiments, prefer `--op-map`,
 `--op-map-file`, and `--profile-spec`. These mechanisms derive operation fields
 before stack construction without adding another profiler abstraction.
+Profile specs can also carry local-session tagging controls (`tagger`,
+`preset`, and `tag_rules`) so prompt/session tag derivation is replayed with the
+same configuration as external operation mappings and stack queries.
 
 ## Selecting Sessions
 

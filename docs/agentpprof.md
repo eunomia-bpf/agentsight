@@ -520,9 +520,12 @@ evaluated before spec `rank_rules` and `rank_op_rules`. Both rule types use
 score each stack by matched-operation density. They do not affect pprof,
 folded, or SVG output. The default `rank_mode` is `width-boost`, which keeps
 width as the main signal. `rule-score` ranks by matched visible rules first and
-uses width as a tie-breaker. A profile spec is only a reproducibility wrapper
-around operations, mappings, predicates, rank policies, and operation stacks.
-It is not a third profiler abstraction.
+uses width as a tie-breaker. For local-session inputs, a spec can also carry
+`tagger`, `preset`, and `tag_rules`; these fields derive prompt/session tags
+before operation-stack construction just like CLI tagging flags. A profile spec
+is only a reproducibility wrapper around operations, field derivation,
+predicates, rank policies, and operation stacks. It is not a third profiler
+abstraction.
 
 The `tokens` view uses model budget as the width:
 

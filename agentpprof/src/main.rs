@@ -78,7 +78,8 @@ OPERATION STACK QUERY WORKFLOW:
        --rank-op-rule 'error-density:3=status=error'
 
   For repeatable external-trace experiments, put output, view, operation files,
-  op-map files, predicates, rank rules, and stack in a JSON file and run:
+  op-map files, predicates, rank rules, stack, and local-session tagging rules
+  in a JSON file and run:
 
      agentpprof --profile-spec agentnet-diagnostic-spec.json
 "#;
@@ -86,8 +87,11 @@ OPERATION STACK QUERY WORKFLOW:
 #[derive(Parser)]
 #[command(name = "agentpprof")]
 #[command(version)]
-#[command(about = "pprof-compatible operation-stack profiler for local sessions and labeled agent traces")]
+#[command(
+    about = "pprof-compatible operation-stack profiler for local sessions and labeled agent traces"
+)]
 #[command(after_help = TAGGING_HELP)]
+#[derive(Clone)]
 struct Cli {
     /// Output file. Use .pb.gz for Go pprof, .folded for folded stacks, .svg for an SVG flamegraph, or .json.
     /// Required unless --profile-spec provides output.
@@ -138,8 +142,8 @@ struct Cli {
     /// Inline --op-map rules run before file rules, so command-line rules can override defaults.
     #[arg(long = "op-map-file", value_name = "PATH")]
     op_map_files: Vec<PathBuf>,
-    #[arg(long, value_enum, default_value_t = TaggerKind::Regex)]
-    tagger: TaggerKind,
+    #[arg(long, value_enum)]
+    tagger: Option<TaggerKind>,
     /// Add a deterministic tag rule, for example prompt:review='(?i)review|diff'.
     /// Rules are evaluated in order; first match wins.
     #[arg(long = "tag-rule", value_name = "KIND:TAG=REGEX")]
@@ -262,7 +266,7 @@ impl From<CliProfileView> for ProfileView {
     }
 }
 
-#[derive(Clone, Copy, Debug, ValueEnum)]
+#[derive(Clone, Copy, Debug, ValueEnum, PartialEq, Eq)]
 enum TaggerKind {
     Regex,
     Llm,
@@ -281,6 +285,9 @@ struct ProfileSpec {
     rank_rules: Vec<String>,
     rank_op_rules: Vec<String>,
     rank_mode: Option<CliRankMode>,
+    tag_rules: Vec<String>,
+    preset: Option<bool>,
+    tagger: Option<TaggerKind>,
     deterministic_output: Option<bool>,
     op_map_files: Vec<PathBuf>,
     operation_files: Vec<PathBuf>,
@@ -304,6 +311,10 @@ struct RawProfileSpec {
     #[serde(default)]
     rank_op_rules: Vec<String>,
     rank_mode: Option<String>,
+    #[serde(default)]
+    tag_rules: Vec<String>,
+    preset: Option<bool>,
+    tagger: Option<String>,
     deterministic_output: Option<bool>,
     #[serde(default)]
     op_map_files: Vec<PathBuf>,
@@ -365,6 +376,9 @@ fn command_export(args: Cli) -> Result<()> {
         .rank_mode
         .or(spec.rank_mode)
         .unwrap_or(CliRankMode::WidthBoost);
+    let tag_rules = merge_cli_first(&args.tag_rules, &spec.tag_rules);
+    let preset = args.preset || spec.preset.unwrap_or(false);
+    let tagger = args.tagger.or(spec.tagger).unwrap_or(TaggerKind::Regex);
     let deterministic_output =
         args.deterministic_output || spec.deterministic_output.unwrap_or(false);
     profile_options = profile_options
@@ -582,7 +596,11 @@ fn command_export(args: Cli) -> Result<()> {
             project_root.display()
         );
     }
-    let diagnostics = annotate_sessions_with(&mut sessions, &args)?;
+    let mut tagging_args = args.clone();
+    tagging_args.tag_rules = tag_rules.clone();
+    tagging_args.preset = preset;
+    tagging_args.tagger = Some(tagger);
+    let diagnostics = annotate_sessions_with(&mut sessions, &tagging_args)?;
     filter_sessions_after_tagging(&mut sessions, &args);
     if sessions.is_empty() {
         bail!("sessions were found, but none matched the requested tag filters");
@@ -630,6 +648,9 @@ fn command_export(args: Cli) -> Result<()> {
         "rank_rules": rank_rules,
         "rank_op_rules": rank_op_rules,
         "rank_mode": cli_rank_mode_name(rank_mode),
+        "tagger": cli_tagger_name(tagger),
+        "tag_rules": tag_rules,
+        "preset": preset,
         "deterministic_output": deterministic_output,
         "stack_rules": stack_rules,
         "sessions": sessions.len(),
@@ -784,6 +805,9 @@ fn normalize_profile_spec(raw: RawProfileSpec, base: &Path) -> Result<ProfileSpe
             .as_deref()
             .map(parse_spec_rank_mode)
             .transpose()?,
+        tag_rules: raw.tag_rules,
+        preset: raw.preset,
+        tagger: raw.tagger.as_deref().map(parse_spec_tagger).transpose()?,
         deterministic_output: raw.deterministic_output,
         op_map_files: raw
             .op_map_files
@@ -835,10 +859,25 @@ fn parse_spec_rank_mode(raw: &str) -> Result<CliRankMode> {
     }
 }
 
+fn parse_spec_tagger(raw: &str) -> Result<TaggerKind> {
+    match raw.trim().to_ascii_lowercase().replace('_', "-").as_str() {
+        "regex" => Ok(TaggerKind::Regex),
+        "llm" | "llama" | "llama-cpp" => Ok(TaggerKind::Llm),
+        other => bail!("unsupported profile spec tagger '{other}'"),
+    }
+}
+
 fn cli_rank_mode_name(mode: CliRankMode) -> &'static str {
     match mode {
         CliRankMode::WidthBoost => "width-boost",
         CliRankMode::RuleScore => "rule-score",
+    }
+}
+
+fn cli_tagger_name(tagger: TaggerKind) -> &'static str {
+    match tagger {
+        TaggerKind::Regex => "regex",
+        TaggerKind::Llm => "llm",
     }
 }
 
@@ -862,6 +901,12 @@ impl ProfileSpec {
         if next.rank_mode.is_some() {
             self.rank_mode = next.rank_mode;
         }
+        if next.preset.is_some() {
+            self.preset = next.preset;
+        }
+        if next.tagger.is_some() {
+            self.tagger = next.tagger;
+        }
         if next.deterministic_output.is_some() {
             self.deterministic_output = next.deterministic_output;
         }
@@ -870,6 +915,7 @@ impl ProfileSpec {
         self.where_rules.extend(next.where_rules);
         self.rank_rules.extend(next.rank_rules);
         self.rank_op_rules.extend(next.rank_op_rules);
+        self.tag_rules.extend(next.tag_rules);
         self.op_map_files.extend(next.op_map_files);
         self.operation_files.extend(next.operation_files);
     }
@@ -979,7 +1025,7 @@ fn annotate_sessions_with(
     sessions: &mut [SessionRecord],
     args: &Cli,
 ) -> Result<Option<TagDiagnostics>> {
-    match args.tagger {
+    match args.tagger.unwrap_or(TaggerKind::Regex) {
         TaggerKind::Regex => {
             let tagger = RegexTagger::new(&args.tag_rules, args.preset)?;
             let diagnostics = annotate_sessions_regex(sessions, &tagger);
@@ -1073,6 +1119,9 @@ mod tests {
   "rank_rules": ["unsafe-risk:2=phase:execute|status:error"],
   "rank_op_rules": ["failure-density:3=status=error"],
   "rank_mode": "rule-score",
+  "tagger": "regex",
+  "preset": true,
+  "tag_rules": ["prompt:review=(?i)review|diff"],
   "deterministic_output": true,
   "op_map_files": ["maps/operation-map.txt"],
   "stack_rules": ["task:desktop=(tool=computer)"]
@@ -1124,6 +1173,12 @@ mod tests {
             vec!["failure-density:3=status=error".to_string()]
         );
         assert_eq!(spec.rank_mode, Some(CliRankMode::RuleScore));
+        assert_eq!(spec.tagger, Some(TaggerKind::Regex));
+        assert_eq!(spec.preset, Some(true));
+        assert_eq!(
+            spec.tag_rules,
+            vec!["prompt:review=(?i)review|diff".to_string()]
+        );
         assert_eq!(spec.deterministic_output, Some(true));
     }
 
