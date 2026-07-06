@@ -1,0 +1,265 @@
+{
+  "checks": [
+    {
+      "check": "prerequisite_gates_pass",
+      "detail": "Prerequisite statuses={'R396 paper build smoke': 'pass', 'R398 current three-plus-one': 'pass'}",
+      "passed": true
+    },
+    {
+      "check": "pdftotext_available",
+      "detail": "pdftotext=/usr/bin/pdftotext",
+      "passed": true
+    },
+    {
+      "check": "tracked_pdfs_exist",
+      "detail": "PDF bytes={'chinese_pdf_bytes': 597125, 'english_pdf_bytes': 595145}",
+      "passed": true
+    },
+    {
+      "check": "pdftotext_extraction_succeeds",
+      "detail": "Chinese rc=0 stderr=; English rc=0 stderr=",
+      "passed": true
+    },
+    {
+      "check": "source_display_path_tokens_present",
+      "detail": "Chinese and English TeX sources contain the main-display path tokens.",
+      "passed": true
+    },
+    {
+      "check": "tracked_pdfs_contain_display_path",
+      "detail": "Tracked Chinese and English PDFs contain the display-path text after PDF text extraction.",
+      "passed": true
+    },
+    {
+      "check": "pdf_non_claim_scope_visible",
+      "detail": "Tracked English PDF keeps fifth-experiment, accuracy, productivity, boundary, and ecosystem non-claims visible.",
+      "passed": true
+    },
+    {
+      "check": "english_submodule_captured_by_parent",
+      "detail": "submodule_head=c87fdc168a38997026bb9f6e728b18f95df1c8df; parent_index=c87fdc168a38997026bb9f6e728b18f95df1c8df",
+      "passed": true
+    },
+    {
+      "check": "source_status_tracked_or_dirty_allowed",
+      "detail": "All inputs are tracked or intentionally dirty while this gate is generated.",
+      "passed": true
+    }
+  ],
+  "data_sync": false,
+  "human_or_agent_analyst_task": false,
+  "interpretation": "The tracked Chinese and English paper PDFs contain the same main-display path that the TeX sources expose. This is an E4 artifact-hygiene gate, not a new empirical experiment.",
+  "network_access_required": false,
+  "paper_rebuild": false,
+  "pdf_sizes": {
+    "chinese_pdf_bytes": 597125,
+    "english_pdf_bytes": 595145
+  },
+  "profiler_rerun": false,
+  "run_id": "R399",
+  "schema": "agentsight.paper_pdf_freshness_gate.v1",
+  "source_status": [
+    {
+      "path": "script/paper_pdf_freshness_r399.py",
+      "sha256": "eece3308d50c1b5ca0c79cad7120f39ae22e26b5d7398e02895a5d645b7bd82c",
+      "source": "generator script",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/paper/main.tex",
+      "sha256": "9a62e606a806f472be2b34a77e6dfae422aa20f0ae793b6f577720ac3a900f65",
+      "source": "Chinese paper tex",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/paper/main.pdf",
+      "sha256": "efc02e4efb1c33293c9198f4e2d3730f3fbb82380d3c48b7f29154b592013994",
+      "source": "Chinese paper pdf",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/agentpprof-paper/main.tex",
+      "sha256": "95ceea1cb4c477b565c4852696299600a891a8ea5898d300ecb439e3b3d22b8b",
+      "source": "English paper tex",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/agentpprof-paper/main.pdf",
+      "sha256": "04e7c9c6118ee3fb093a3bfaf748e709d4e3dff190ab374c4e423fc8f3ea9382",
+      "source": "English paper pdf",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/paper-build-smoke-r396/run-result.json",
+      "sha256": "ed2e01a55895ca5e5f2ce8a93c4a5a1bf2fd026af0e06c2f23776c932cc853ff",
+      "source": "R396 paper build smoke",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/out/paper-current-three-plus-one-r398/run-result.json",
+      "sha256": "21a1d6d7225da67292e21ffce4175543daa4424c4d967a6cdd3405e4b3724575",
+      "source": "R398 current three-plus-one",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/agentpprof-paper",
+      "sha256": "submodule_head=c87fdc168a38997026bb9f6e728b18f95df1c8df;parent_index=c87fdc168a38997026bb9f6e728b18f95df1c8df",
+      "source": "English paper submodule gitlink",
+      "status": "tracked_clean"
+    }
+  ],
+  "status": "pass",
+  "summary": {
+    "checks_passed": 9,
+    "checks_total": 9,
+    "token_checks_passed": 29,
+    "token_checks_total": 29
+  },
+  "token_checks": [
+    {
+      "kind": "chinese_source",
+      "present": true,
+      "token": "\u4e3b\u6587\u56fe\u8868\u6309\u8fd9\u6761\u8def\u5f84\u9605\u8bfb"
+    },
+    {
+      "kind": "chinese_source",
+      "present": true,
+      "token": "\u8868~\\ref{tab:results} \u662f\u56db\u4e2a block \u7684 claim map"
+    },
+    {
+      "kind": "chinese_source",
+      "present": true,
+      "token": "hidden-label fidelity \u548c baseline tradeoff"
+    },
+    {
+      "kind": "chinese_source",
+      "present": true,
+      "token": "mechanism/actionability"
+    },
+    {
+      "kind": "chinese_source",
+      "present": true,
+      "token": "replay/cost \u8bc1\u636e"
+    },
+    {
+      "kind": "chinese_source",
+      "present": true,
+      "token": "artifact ledger\uff0c\u53ea\u4f5c\u4e3a\u8fd9\u4e9b\u4e3b\u663e\u793a\u7684 provenance\u3001counterpoint \u6216 hygiene checks"
+    },
+    {
+      "kind": "english_source",
+      "present": true,
+      "token": "The main-paper displays follow this path"
+    },
+    {
+      "kind": "english_source",
+      "present": true,
+      "token": "Table~\\ref{tab:core-results} is the four-block claim map"
+    },
+    {
+      "kind": "english_source",
+      "present": true,
+      "token": "provide hidden-label fidelity and baseline tradeoff evidence"
+    },
+    {
+      "kind": "english_source",
+      "present": true,
+      "token": "provide mechanism/actionability evidence"
+    },
+    {
+      "kind": "english_source",
+      "present": true,
+      "token": "provide replay and cost evidence"
+    },
+    {
+      "kind": "english_source",
+      "present": true,
+      "token": "stay in the artifact ledger as provenance, counterpoints, or hygiene checks"
+    },
+    {
+      "kind": "chinese_pdf",
+      "present": true,
+      "token": "\u4e3b\u6587\u56fe\u8868\u6309\u8fd9\u6761\u8def\u5f84\u9605\u8bfb"
+    },
+    {
+      "kind": "chinese_pdf",
+      "present": true,
+      "token": "\u56db\u4e2a block \u7684 claim map"
+    },
+    {
+      "kind": "chinese_pdf",
+      "present": true,
+      "token": "hidden-label fidelity \u548c baseline tradeoff"
+    },
+    {
+      "kind": "chinese_pdf",
+      "present": true,
+      "token": "mechanism/actionability"
+    },
+    {
+      "kind": "chinese_pdf",
+      "present": true,
+      "token": "replay/cost \u8bc1\u636e"
+    },
+    {
+      "kind": "chinese_pdf",
+      "present": true,
+      "token": "artifact ledger"
+    },
+    {
+      "kind": "english_pdf",
+      "present": true,
+      "token": "The main-paper displays follow this path"
+    },
+    {
+      "kind": "english_pdf",
+      "present": true,
+      "token": "four-block claim map"
+    },
+    {
+      "kind": "english_pdf",
+      "present": true,
+      "token": "hidden-label fidelity and baseline"
+    },
+    {
+      "kind": "english_pdf",
+      "present": true,
+      "token": "mechanism/actionability evidence"
+    },
+    {
+      "kind": "english_pdf",
+      "present": true,
+      "token": "provide replay"
+    },
+    {
+      "kind": "english_pdf",
+      "present": true,
+      "token": "artifact ledger as provenance"
+    },
+    {
+      "kind": "english_non_claims",
+      "present": true,
+      "token": "not a fifth core"
+    },
+    {
+      "kind": "english_non_claims",
+      "present": true,
+      "token": "not a hidden-label accuracy result"
+    },
+    {
+      "kind": "english_non_claims",
+      "present": true,
+      "token": "human productivity result"
+    },
+    {
+      "kind": "english_non_claims",
+      "present": true,
+      "token": "not automatic boundary discovery"
+    },
+    {
+      "kind": "english_non_claims",
+      "present": true,
+      "token": "not complete ecosystem compatibility"
+    }
+  ]
+}
