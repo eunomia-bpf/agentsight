@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>R347 Case-Level Baseline Contrast</title>
+<style>
+body { font-family: system-ui, sans-serif; margin: 32px; color: #202124; }
+p { max-width: 980px; line-height: 1.5; }
+table { border-collapse: collapse; width: 100%; margin-top: 24px; font-size: 13px; }
+th, td { border-bottom: 1px solid #d7dce2; padding: 7px 8px; text-align: left; vertical-align: top; }
+th { background: #edf1f5; }
+</style>
+<h1>R347 Case-Level Baseline Contrast</h1>
+<p>Overall: pass. Operation-stack top-5 positives on 6/6 tasks, top-1 positives on 5/6 tasks, median top-5 work 0.0937.</p>
+<table>
+<thead><tr><th>Task</th><th>OS recall</th><th>OS work</th><th>Fixed recall</th><th>Best recall</th><th>Best first positive</th><th>Counterpoints</th></tr></thead>
+<tbody><tr><td>agentnet_incorrect_step</td><td>0.0034</td><td>0.0014</td><td>0.0126</td><td>flat:width</td><td>operation_stack:query_aware</td><td>top5_recall-&gt;flat:width</td></tr>
+<tr><td>agentnet_redundant_step</td><td>0.0177</td><td>0.0089</td><td>0.0123</td><td>flat:width</td><td>fixed_session:query_aware</td><td>top5_recall-&gt;flat:width; first_positive-&gt;fixed_session:query_aware</td></tr>
+<tr><td>agentreward_looping</td><td>0.6508</td><td>0.4938</td><td>0.2381</td><td>flat:width</td><td>raw_action_stack:query_aware</td><td>top5_recall-&gt;flat:width; first_positive-&gt;raw_action_stack:query_aware</td></tr>
+<tr><td>agentreward_side_effect</td><td>0.1139</td><td>0.1454</td><td>0.0000</td><td>flat:width</td><td>operation_stack:query_aware</td><td>top5_recall-&gt;flat:width; top5_lift-&gt;raw_action_stack:query_aware</td></tr>
+<tr><td>osworld_group_start</td><td>0.3874</td><td>0.4074</td><td>0.0340</td><td>flat:width</td><td>fixed_session:query_aware</td><td>top5_recall-&gt;flat:width; top5_lift-&gt;fixed_session:query_aware; first_positive-&gt;fixed_session:query_aware</td></tr>
+<tr><td>satraj_unsafe</td><td>0.2621</td><td>0.0420</td><td>0.0579</td><td>flat:width</td><td>fixed_session:query_aware</td><td>top5_recall-&gt;flat:width; first_positive-&gt;fixed_session:query_aware</td></tr></tbody>
+</table>
+</html>
