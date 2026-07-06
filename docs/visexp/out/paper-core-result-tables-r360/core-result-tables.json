@@ -1,0 +1,325 @@
+{
+  "checks": [
+    {
+      "check": "four_core_experiment_rows",
+      "evidence": "4 generated rows.",
+      "status": "pass"
+    },
+    {
+      "check": "real_labeled_profile_scale_preserved",
+      "evidence": "R320 scale tokens match the labeled profiler benchmark.",
+      "status": "pass"
+    },
+    {
+      "check": "baseline_tradeoff_tokens_present",
+      "evidence": "R320 flat/fixed-session comparison tokens are present.",
+      "status": "pass"
+    },
+    {
+      "check": "actionability_tokens_present",
+      "evidence": "R354/R358 actionability and boundary-field tokens are present.",
+      "status": "pass"
+    },
+    {
+      "check": "reproducibility_tokens_present",
+      "evidence": "R328/R338/R352/R357/R359 gates are all represented.",
+      "status": "pass"
+    },
+    {
+      "check": "two_abstractions_and_nonclaims_visible",
+      "evidence": "Current paper/docs preserve abstraction and must-not-claim text.",
+      "status": "pass"
+    }
+  ],
+  "commit": "dc1f69f423bd22bb2e68f95438a4cd79cc65c732",
+  "elapsed_s": 0.076,
+  "experiments": [
+    {
+      "claim": "Heterogeneous agent traces enter one operation layer, and operation stacks are query-time recursive projections over fields.",
+      "conclusion": "Supported as operation/operation-stack coverage and configurability, not a new trace ecosystem compatibility claim.",
+      "core_experiment": "E1: coverage, recursive folding, and field derivation",
+      "evidence": "recursive_depth_sweep_operations=13265 (R286); stack_depths_and_unique_stack_range=8 depths, 9->3757 stacks (R286); leave_dataset_out_positive_stack_reductions=6/9 (R285); prompt_session_free_profile_specs=12/12 (R342); real_operation_standard_trace_roundtrip=512 ops, 512 samples, 11 stacks, equal=True (R353)",
+      "workload": "15 public labeled trace families / 47,590 operations, plus local-session and standard-trace exchange fixtures."
+    },
+    {
+      "claim": "Profile groups can be scored as ranked localization outputs against real hidden labels.",
+      "conclusion": "Supported as a hidden-label profiler benchmark with baseline tradeoffs, not human utility.",
+      "core_experiment": "E2: hidden-label localization and ranking",
+      "evidence": "labeled_profile_benchmark_scale=6 tasks / 4 datasets / 34539 ops / 3699 positives / 144 policy scores (R320); top5_inspection_work=0.0937 vs 1 (R320); top5_recall_wins_vs_fixed_session=5/6 (R320); median_group_fragmentation=157.5 vs 285 (R320); budget30_recall_wins_vs_flat=6/6 (R320); oracle_depth_unit_recall=0.4342; 20/24 rows beat fixed-session (R355)",
+      "workload": "Six oracle-backed tasks over AgentRewardBench, SATraj-OS, AgentNet, and OSWorld-Human."
+    },
+    {
+      "claim": "Stack fields, mapping/tagging, rankers, and profile specs expose actionable optimization knobs.",
+      "conclusion": "Supported as actionable profile-spec and field/ranker guidance, not an automatic selector or boundary detector.",
+      "core_experiment": "E3: mechanism and actionability",
+      "evidence": "profile_spec_patch_acceptance=5/6 (R354); patch_median_delta_ap_top5_lift_wtfp=0.0376 AP, 0.575 lift, -0.0859 first-positive work (R354); recursive_depth_actionability=9/12 AP variants, 6/6 tasks reduce groups (R342); boundary_field_patch=AP 0.2583 vs 0.2402; groups 74 vs 108 (R358); boundary_counterpoint=top5 work +0.0813; first-positive work +0.1581 (R358)",
+      "workload": "The same six labeled tasks plus held-out OSWorld-Human boundary-backend operations."
+    },
+    {
+      "claim": "The offline profiler path is reproducible, auditable, and scoped by explicit non-claims.",
+      "conclusion": "Supported as reproducible offline profiling-paper evidence, not live overhead or complete trace-ecosystem compatibility.",
+      "core_experiment": "E4: reproducibility, cost, and claim integrity",
+      "evidence": "deterministic_profile_specs=76/76 semantic, 76/76 raw-byte, 152 invocations (R328); offline_runtime=median 1.6011s, p95 2.7672s (R328); claim_integrity_gate=350/350 numbers, 16/16 guardrails (R338); evaluation_rubric_and_reviewer_gate=R352 level_4_scoped_profile_benchmark; R357 4/4 ACCEPT; R359 13/13 core-table checks (R352/R357/R359)",
+      "workload": "Tracked profile specs, current paper/docs hashes, and claim-scope gates."
+    }
+  ],
+  "input_policy": {
+    "dataset_creation": "none",
+    "dataset_relabeling": "none",
+    "dataset_sync": "none",
+    "hidden_label_use": "only through already-scored upstream artifacts",
+    "network_access_required": false,
+    "profiler_rerun": false
+  },
+  "metrics": [
+    {
+      "baseline_or_comparator": "same operation input",
+      "evidence": "R286",
+      "experiment": "E1",
+      "metric": "recursive_depth_sweep_operations",
+      "value": "13265"
+    },
+    {
+      "baseline_or_comparator": "dataset depth to fixed-session depth",
+      "evidence": "R286",
+      "experiment": "E1",
+      "metric": "stack_depths_and_unique_stack_range",
+      "value": "8 depths, 9->3757 stacks"
+    },
+    {
+      "baseline_or_comparator": "generated mapping vs no-map",
+      "evidence": "R285",
+      "experiment": "E1",
+      "metric": "leave_dataset_out_positive_stack_reductions",
+      "value": "6/9"
+    },
+    {
+      "baseline_or_comparator": "profile-spec composition",
+      "evidence": "R342",
+      "experiment": "E1",
+      "metric": "prompt_session_free_profile_specs",
+      "value": "12/12"
+    },
+    {
+      "baseline_or_comparator": "direct operation-file profile vs imported standard trace",
+      "evidence": "R353",
+      "experiment": "E1",
+      "metric": "real_operation_standard_trace_roundtrip",
+      "value": "512 ops, 512 samples, 11 stacks, equal=True"
+    },
+    {
+      "baseline_or_comparator": "flat, fixed-session, dataset-native, raw-action, operation-stack, oracle",
+      "evidence": "R320",
+      "experiment": "E2",
+      "metric": "labeled_profile_benchmark_scale",
+      "value": "6 tasks / 4 datasets / 34539 ops / 3699 positives / 144 policy scores"
+    },
+    {
+      "baseline_or_comparator": "operation_stack:query_aware vs flat:width",
+      "evidence": "R320",
+      "experiment": "E2",
+      "metric": "top5_inspection_work",
+      "value": "0.0937 vs 1"
+    },
+    {
+      "baseline_or_comparator": "operation_stack:query_aware vs fixed_session:query_aware",
+      "evidence": "R320",
+      "experiment": "E2",
+      "metric": "top5_recall_wins_vs_fixed_session",
+      "value": "5/6"
+    },
+    {
+      "baseline_or_comparator": "operation_stack:query_aware vs fixed_session:query_aware",
+      "evidence": "R320",
+      "experiment": "E2",
+      "metric": "median_group_fragmentation",
+      "value": "157.5 vs 285"
+    },
+    {
+      "baseline_or_comparator": "operation_stack:query_aware vs flat:width",
+      "evidence": "R320",
+      "experiment": "E2",
+      "metric": "budget30_recall_wins_vs_flat",
+      "value": "6/6"
+    },
+    {
+      "baseline_or_comparator": "operation_stack:query_aware vs fixed-session at dataset oracle depths",
+      "evidence": "R355",
+      "experiment": "E2",
+      "metric": "oracle_depth_unit_recall",
+      "value": "0.4342; 20/24 rows beat fixed-session"
+    },
+    {
+      "baseline_or_comparator": "patched profile specs vs default semantic-width specs",
+      "evidence": "R354",
+      "experiment": "E3",
+      "metric": "profile_spec_patch_acceptance",
+      "value": "5/6"
+    },
+    {
+      "baseline_or_comparator": "profile-guided patch vs default",
+      "evidence": "R354",
+      "experiment": "E3",
+      "metric": "patch_median_delta_ap_top5_lift_wtfp",
+      "value": "0.0376 AP, 0.575 lift, -0.0859 first-positive work"
+    },
+    {
+      "baseline_or_comparator": "ranked operation-stack variants vs width",
+      "evidence": "R342",
+      "experiment": "E3",
+      "metric": "recursive_depth_actionability",
+      "value": "9/12 AP variants, 6/6 tasks reduce groups"
+    },
+    {
+      "baseline_or_comparator": "learned-boundary fields vs semantic width",
+      "evidence": "R358",
+      "experiment": "E3",
+      "metric": "boundary_field_patch",
+      "value": "AP 0.2583 vs 0.2402; groups 74 vs 108"
+    },
+    {
+      "baseline_or_comparator": "learned-boundary fields vs semantic width",
+      "evidence": "R358",
+      "experiment": "E3",
+      "metric": "boundary_counterpoint",
+      "value": "top5 work +0.0813; first-positive work +0.1581"
+    },
+    {
+      "baseline_or_comparator": "deterministic-output mode",
+      "evidence": "R328",
+      "experiment": "E4",
+      "metric": "deterministic_profile_specs",
+      "value": "76/76 semantic, 76/76 raw-byte, 152 invocations"
+    },
+    {
+      "baseline_or_comparator": "76 tracked profile specs",
+      "evidence": "R328",
+      "experiment": "E4",
+      "metric": "offline_runtime",
+      "value": "median 1.6011s, p95 2.7672s"
+    },
+    {
+      "baseline_or_comparator": "paper text vs artifact hashes",
+      "evidence": "R338",
+      "experiment": "E4",
+      "metric": "claim_integrity_gate",
+      "value": "350/350 numbers, 16/16 guardrails"
+    },
+    {
+      "baseline_or_comparator": "claim-scope gates",
+      "evidence": "R352/R357/R359",
+      "experiment": "E4",
+      "metric": "evaluation_rubric_and_reviewer_gate",
+      "value": "R352 level_4_scoped_profile_benchmark; R357 4/4 ACCEPT; R359 13/13 core-table checks"
+    }
+  ],
+  "not_a_human_study_result": true,
+  "not_an_agent_analyst_task_result": true,
+  "not_new_empirical_result": true,
+  "profiler_abstractions": [
+    "operation",
+    "operation stack"
+  ],
+  "run_id": "R360",
+  "schema": "agentsight.paper-core-result-tables.v1",
+  "source_status": [
+    {
+      "path": "docs/visexp/out/operation-map-leaveout-api-r285/leaveout-summary.json",
+      "sha256": "1773b9c43b05fa20fdf07ec179aeadf6b4af7a7385bf5509f774305b0848c8cf",
+      "source": "R285 leave-dataset-out mapping",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-stack-depth-r286/depth-summary.json",
+      "sha256": "c83449e84de68d3e663927e45c2c6740bb06ea686ee77d18fd3d7c385fb951bb",
+      "source": "R286 recursive stack-depth sweep",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-profile-accuracy-r320/profile-accuracy-report.json",
+      "sha256": "4baf9e91f444ec47a4d8d843ffc210e11fabf51b18dbc6113c7a2b2532a35786",
+      "source": "R320 profile accuracy",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-profile-deterministic-output-r328/deterministic-output-report.json",
+      "sha256": "d04d939eca92cf692e80689b65f5a9892363586084022f20278395623f252464",
+      "source": "R328 deterministic output",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/paper-claim-integrity-r338/claim-integrity-report.json",
+      "sha256": "a3285c125cd4b225f60995d164e25a944052b5643f33174ca1c3be3c077be2f1",
+      "source": "R338 paper claim integrity",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/out/operation-profile-spec-composition-r342/profile-spec-composition-report.json",
+      "sha256": "79677d777a07244b23ea7dfd2c0dec487b0a57863d9983eb19eef5b45aa1ba0c",
+      "source": "R342 profile-spec composition",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-standard-trace-exchange-r353/standard-trace-exchange-report.json",
+      "sha256": "2d719718ee46bd0841f3f7b24533ddc2044175f468e319e1114e8cd3fa4d8c76",
+      "source": "R353 standard-trace exchange",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-profile-patch-r354/profile-patch-report.json",
+      "sha256": "6585af0a77956fa56b8aadec29f822714789b5bfcdf1769fcd61ba3d0c1994ad",
+      "source": "R354 executable profile patch",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-oracle-depth-adequacy-r355/oracle-depth-adequacy-report.json",
+      "sha256": "59b32c9cb9f00000984ae19376ac9aa411ad7b1c9a679ef3d0306017e5def00a",
+      "source": "R355 oracle-depth adequacy",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/paper-reviewer-acceptance-r357/reviewer-acceptance-r357.json",
+      "sha256": "fa79f0b360e34865e118822bf613cb54a136ef8641244e3050a4509c38a57ee6",
+      "source": "R357 reviewer acceptance",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/out/operation-boundary-profile-patch-r358/boundary-profile-patch-report.json",
+      "sha256": "3a73b69d7e4be423506edf9350b3c0c9db393520d79c3698b85d9024463597a7",
+      "source": "R358 boundary profile patch",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/paper-core-experiments-r359/core-experiment-report.json",
+      "sha256": "0fe92099af4e1c39def18bad4ee3efd3abda7ee1e89ff5833a01f5ce5cfe99b6",
+      "source": "R359 core-experiment consolidation",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/evaluation.md",
+      "sha256": "392430186249b8f6f292de3b755ec5e19c768e64c98ec0a4727c52cb60be4739",
+      "source": "evaluation ledger",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/paper/evaluation-claims-setup.zh-CN.md",
+      "sha256": "9a2e30be577744dc90d87b5a0dc8d454ab238b27d990e835583d0036f8e2dbc1",
+      "source": "Chinese claim setup",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/paper/main.tex",
+      "sha256": "2435a22e89ce9e65c61f570906cb877f5456b0f5c5738be1879c5364c7854f33",
+      "source": "Chinese paper",
+      "status": "tracked_dirty_allowed"
+    }
+  ],
+  "status": "pass",
+  "summary": {
+    "checks_passed": 6,
+    "checks_total": 6,
+    "core_experiments": 4,
+    "metrics": 20,
+    "status": "pass"
+  }
+}
