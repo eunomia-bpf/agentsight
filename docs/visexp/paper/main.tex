@@ -247,30 +247,12 @@ R 编号只作为 provenance，不是论文的小节结构。
 \end{tabular}
 \end{table*}
 
-后续 evaluation 遵循表~\ref{tab:r374-roles} 的角色划分：每个 RQ 只有一个 primary anchor；其他 R 编号只能作为 supporting evidence、presentation artifact、counterpoint 或 hygiene gate 放在 E1--E4 内部。
-这保证论文保持三个经验性 profiling 实验加一个 artifact/reproducibility block，而不是按 run chronology 展开。
-该 role map 只读取已有 tracked artifacts 和论文文本，不下载、不同步、不创建、不重标数据，也不重跑 profiler。
-
-\begin{table*}[t]
-  \centering
-  \tiny
-  \setlength{\tabcolsep}{2pt}
-  \caption{R374 three-plus-one role map。每行区分 primary anchor、support/presentation roles 和 non-claim boundary；R374 是 paper organization gate，不是 profiler run。}
-  \label{tab:r374-roles}
-  \input{../out/paper-core-experiment-weight-r374/experiment-role-table.tex}
-\end{table*}
-
-R375 把完整 claim-gate 表保留在 artifact ledger，而不在主文继续增加第二张 meta table。
-它的 gate decision 是：E1 supported with scoped limits；E2 supported as a hidden-label profiler benchmark；E3 supported as profile-configuration actionability；E4 只 supported as offline artifact replayability。
-如果 flat 或 fixed-session 在某个指标上占优、transfer 失败、或 replay 不再 deterministic，claim 必须相应收窄。
-仍然不能 claim 的范围包括 metric dominance、human/agent analyst productivity、automatic boundary discovery、automatic patch selection 和 full trace-ecosystem compatibility。
-R375 只读取 tracked R361/R364/R370/R373/R374 artifacts 和当前论文文本，不下载、不同步、不创建、不重标数据，也不重跑 profiler。
-
-R377 进一步把中心 profiling claim 物化为五个可审计的 evidence facets，但不把 evaluation 拆成五个更小的研究。
-论文面向 reviewer 的结构仍然是 RQ1/E1--RQ4/E4：hidden-label localization/ranking、相对 flat summary 的更低 inspection work、相对 fixed-session drilldown proxy 的 fragmentation tradeoff 都归入 E2；profile-configuration actionability 和 mechanism isolation 归入 E3；E1 提供 two-abstraction guardrail，E4 只提供 replayability 和 artifact hygiene。
-R377 只读取 tracked R320、R333、R334、R354、R355、R358、R366、R375 和 R376 artifacts。
-这个 packet 给 reviewer 一条从 claim sentence 到具体指标的路径：R320 给出 6 tasks / 4 datasets / 34,539 operations / 3,699 positives 的 benchmark；R333/R334 给出 top-five work 0.0937 versus flat summaries 和 fixed-session counterpoints；R355 给出 20/24 positive-unit recall wins over fixed-session 和 22/24 groups-to-50\% positive-unit wins over fixed-session；R354/R358/R366 给出 executable patch、boundary-field 和 mechanism evidence。
-它同时保留 scope：不 claim metric dominance、不 claim human utility、不 claim automatic boundary 或 patch selector，也不 claim complete trace-ecosystem compatibility。
+后续 evaluation 继续保持这个结构。
+E1 证明两个 profiler objects 足以表达异构轨迹和递归折叠选择。
+E2 是唯一的 hidden-label localization/ranking 主实验。
+E3 解释哪些 stack fields、mappings、rankers 和 profile specs 造成或修复 E2 的结果。
+E4 只负责 reproducibility 和 claim hygiene。
+完整 run-role map、claim gates、reviewer evidence packets、negative controls 和 table-generation checks 保留在 artifact ledger；它们只能支撑或约束 E1--E4，不形成额外主实验。
 
 \subsection{RQ1/E1：泛化覆盖、递归折叠和边界字段}
 
@@ -549,7 +531,7 @@ R352 再把当前结果集映射到 OSDI-style profiling-paper rubric：它复�
 剩余 paper gates 是 artifact hygiene，不是新的 empirical evidence。
 它们检查表格生成、claim wording、source provenance、non-claims 和 operation/operation-stack boundary 是否与 tracked outputs 对齐。
 我们把这些检查保留在 evaluation ledger，方便 reviewer 审计一致性；但它们不增加 localization、actionability 或 overhead claim。
-表~\ref{tab:r374-roles} 是主文中唯一需要保留的角色摘要：table generators、visualization portfolios、headline selectors 和 reviewer gates 可以支持 E1--E4，但不会形成额外主实验。
+表格生成器、visualization portfolios、headline selectors 和 reviewer gates 可以支持 E1--E4，但不会形成额外主实验。
 
 \section{哪些数据集最适合}
 

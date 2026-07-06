@@ -1,0 +1,114 @@
+{
+  "checks": [
+    {
+      "check": "upstream_three_plus_one_gates_pass",
+      "detail": "R380 and R382 remain passing provenance for the three-plus-one organization.",
+      "passed": true
+    },
+    {
+      "check": "core_result_tables_present",
+      "detail": "Both paper drafts keep a single paper-facing core result table.",
+      "passed": true
+    },
+    {
+      "check": "required_english_focus_wording",
+      "detail": "English draft states E1/E2/E3/E4 roles and says support records are not additional experiments.",
+      "passed": true
+    },
+    {
+      "check": "required_chinese_focus_wording",
+      "detail": "Chinese draft states E1/E2/E3/E4 roles and says support records do not form extra experiments.",
+      "passed": true
+    },
+    {
+      "check": "no_main_body_role_map_table_or_run_ledger",
+      "detail": "Forbidden main-body role-map/run-ledger markers: {}",
+      "passed": true
+    },
+    {
+      "check": "four_named_blocks_only",
+      "detail": "Both drafts explicitly route the paper through RQ1/E1--RQ4/E4.",
+      "passed": true
+    },
+    {
+      "check": "ledger_records_r384_as_paper_hygiene_when_present",
+      "detail": "If R384 is already in the ledger, it is described as paper focus/hygiene, not a new profiler run.",
+      "passed": true
+    },
+    {
+      "check": "no_data_or_profiler_rerun",
+      "detail": "This script reads paper text and prior gate reports only; it does not fetch data, relabel traces, or run agentpprof.",
+      "passed": true
+    }
+  ],
+  "claim": "The main paper is organized as three substantial empirical profiling experiments plus one artifact/reproducibility block, with R-numbered artifacts kept as provenance/support rather than main experiments.",
+  "generated_at_unix": 1783357488.0069325,
+  "run_id": "R384",
+  "source_status": [
+    {
+      "path": "script/paper_main_experiment_focus_r384.py",
+      "sha256": "5fa6ce121f3230b210b7c2f79d1f65b234eeaeb3a883f0942f307c6f47df0fc4",
+      "source": "generator script",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/agentpprof-paper/main.tex",
+      "sha256": "4d373389d5e63144abd39428101a19a2836c3b68275932b0d9795e7b52621d73",
+      "source": "English paper",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/paper/main.tex",
+      "sha256": "7876f4ecae1569fbb38d25ca2f9977f618079174000cca23f2de580e11f03ee5",
+      "source": "Chinese paper",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/evaluation.md",
+      "sha256": "ae477864b023e8e2284ee368d881056f582721c244123c0d3beed50525d0546b",
+      "source": "evaluation ledger",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/out/paper-experiment-block-consolidation-r380/experiment-block-consolidation-report.json",
+      "sha256": "f9a7f37df5b9f4480a7f11547ccc51e142adcc2657bfbc64bd3009fc7860d5fa",
+      "source": "R380 experiment-block gate",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/paper-canonical-three-plus-one-r382/canonical-three-plus-one-report.json",
+      "sha256": "4256737a3ac02c2592bacc9bf1e2ee268b469533126d27b9c69fbfdd88ff4e58",
+      "source": "R382 canonical three-plus-one gate",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/agentpprof-paper",
+      "sha256": "submodule_head=48f927371baafdcc05e4094025bfb410da62a18e;parent_index=48f927371baafdcc05e4094025bfb410da62a18e",
+      "source": "English paper submodule gitlink",
+      "status": "tracked_dirty_allowed"
+    }
+  ],
+  "status": "pass",
+  "summary_rows": [
+    {
+      "main_experiment": "yes",
+      "paper_block": "E1",
+      "role": "Generality, two-abstraction coverage, recursive folding, and field derivation."
+    },
+    {
+      "main_experiment": "yes",
+      "paper_block": "E2",
+      "role": "Hidden-label localization/ranking over real labeled traces."
+    },
+    {
+      "main_experiment": "yes",
+      "paper_block": "E3",
+      "role": "Mechanism isolation and profile-configuration actionability."
+    },
+    {
+      "main_experiment": "artifact block only",
+      "paper_block": "E4",
+      "role": "Artifact replayability, offline cost, and claim hygiene."
+    }
+  ]
+}
