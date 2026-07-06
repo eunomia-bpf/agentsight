@@ -1,0 +1,25 @@
+# R380 Experiment-Block Consolidation Gate
+
+Status: `pass`
+Checks: 14/14
+
+The paper-facing evaluation remains three empirical profiling experiments plus one artifact/reproducibility block; support runs are provenance inside those blocks rather than chronological main experiments.
+
+## Checks
+
+| Check | Passed | Detail |
+|---|---:|---|
+| three_plus_one_structure_visible | True | Both papers state the 3 empirical + 1 artifact/reproducibility organization. |
+| paper_blocks_have_subsections | True | The results sections expose RQ1/E1 through RQ4/E4 as the paper-facing blocks. |
+| run_ids_are_provenance_not_structure | True | Run IDs are explicitly demoted to provenance/support roles. |
+| stale_chinese_implementation_ledger_removed | True | The Chinese implementation section no longer narrates R321-R329/R327-R328 chronologically. |
+| stale_english_rq3_ledger_removed | True | The English RQ3 section presents mechanism/actionability blocks rather than chronological support-run paragraphs. |
+| chinese_rq3_block_language_visible | True | The Chinese RQ3 section names the mechanism/actionability blocks and keeps the fifth-experiment guardrail. |
+| main_tables_remain_budgeted | True | Core displays remain; demoted support-artifact tables do not return to the main body. |
+| claim_facets_remain_inside_blocks | True | The five claim facets remain routed through E2/E3 instead of becoming five experiments. |
+| non_claims_preserved | True | Both papers preserve the non-claims needed for scoped profiling-paper wording. |
+| support_run_density_bounded | True | R-run references are bounded and explicitly labeled as support/provenance inside E1-E4: English=44, Chinese=84. |
+| prior_gates_remain_passing | True | R377/R378/R379 remain passing inputs for this consolidation gate. |
+| evaluation_ledger_mentions_r380 | True | The evaluation ledger records this consolidation gate. |
+| english_submodule_input_committed | True | The English paper input is clean in the submodule and captured by the parent gitlink. |
+| source_status_tracked | True | All R380 sources are tracked or intentionally dirty/staged. |

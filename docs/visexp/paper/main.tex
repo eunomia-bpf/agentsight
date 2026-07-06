@@ -142,15 +142,19 @@ Stack 结构分析脚本位于 \texttt{script/operation\_stack\_analysis.py}，�
 
 这个实现刻意保留简单接口。
 它不像 jq 那样完整表达 JSON 查询语言，但它已经把 profiler 的关键自由度暴露为 flags 和可提交配置：数据源由 \texttt{--trace-file} 或 \texttt{--operation-file} 选择，权重由 \texttt{--view} 选择，查询子集由 \texttt{--where} 选择，字段派生由 \texttt{--op-map} 选择，递归边界由 \texttt{--stack} 选择，JSON group 排序由 \texttt{--rank-rule}、\texttt{--rank-op-rule} 和 \texttt{--rank-mode} 选择，复现实验由 \texttt{--profile-spec} 固化。
-R321 用同一份 R300 真实标注 operation JSONL 验证该实现路径：profile spec 中的 mapping-derived \texttt{where\_rules} 分别选出 729/729、714/714 和 4,285/4,285 个预期 operations 后再折叠。
-R322 进一步让 Rust JSON profile 输出 visible-rule ranked operation-stack groups；在同一 6 个标注任务上，\texttt{rank\_rules} 相比 width ranking 的 AP 提升覆盖 4/6 tasks，top-5 lift 提升覆盖 3/6 tasks，同时 SATraj 和 side-effect 反例显示二值 stack-text boost 仍弱于 R320 的 group-feature query-aware ranker。
-R323 把该反例转化为 rank-mode 机制隔离：\texttt{rule-score} 相比 \texttt{width-boost} 的 AP 提升覆盖 4/6 tasks、top-5 lift 提升覆盖 4/6 tasks，并把 SATraj first-positive work 从 0.6376 降到 0.0842；side-effect 和 OSWorld-Human 仍保留为 depth/ranker counterexamples。
-R324 把 per-operation visible feature density 接到 Rust profiler：脚本先从 R300 source 派生删除 oracle fields 的 visible-operation JSONL，再让 \texttt{rank\_op\_rules} 匹配 mapping/filtering 后的单个 operation \texttt{field=value} token，并在 folded group 内聚合 matched operation weight；semantic stack 上 AP 相比 width 提升 5/6 tasks、top-5 lift 提升 4/6 tasks、first-positive work 改善 5/6 tasks，coarse stack 也在 AP 上提升 4/6 tasks，同时保留 OSWorld-Human 反例。
-R325 在同一 Rust profile-spec 路径上做 leave-one-feature ablation：它发现 7 个 critical feature instances、3 个 misleading feature instances，并显示 coarse stack 只在 2/6 tasks 上 AP 更好但在 6/6 tasks 上减少 group 数。
-R326 进一步测试 rank-policy robustness：global equal visible feature bank 在 semantic/coarse stack 上 AP 相比 width 分别赢 4/6 和 5/6 tasks，task-equal 在 8/12 task/depth variants 上与 weighted task policy 的 AP 差距不超过 0.02，R325-guided repair 在 2/3 misleading-feature cases 上改善 AP、在 2/3 cases 上改善 first-positive work，其中 1/3 同时改善两者；repair 是 post-hoc actionability check，不是 label-free deployment policy。
-R329 再做 target-held-out transfer：候选 policy 包括 global equal bank 和 6 个 source-task equal-weight policies，选择 leave-task 或 leave-dataset policy 时只使用非目标任务的离线评分，目标 hidden labels 仅用于最终 scoring；semantic/coarse stack 的 AP wins 都是 4/6，semantic first-positive work 在 6/6 tasks 改善，但 side-effect、SATraj 和 boundary 反例说明这仍不是通用 label-free ranker。
-R327 再把这些可提交 profile specs 作为 reproducibility/cost workload：R300 的 4 个 view specs、R324 的 12 个 rank-feature specs 和 R326 的 60 个 robustness specs 均由 Rust \texttt{agentpprof --profile-spec} 重复执行两次；semantic profile hash 全部稳定，raw-byte hash 只有 4/76 稳定，因为 JSON profile 包含生成时间戳。
-R328 在同一 76 个 specs 上启用 \texttt{--deterministic-output}，使 raw-byte hash 也达到 76/76 稳定；这关闭的是 artifact byte-stability 缺口，不是新的 accuracy benchmark。
+实现证据只作为 E1--E4 的接口验证进入论文，而不是形成额外主实验。
+Profile-spec predicate 证明 mapping-derived \texttt{where\_rules} 可以在 folding 前选择 729/729、714/714 和 4,285/4,285 个预期 operations；profile-spec composition 证明 operation source、predicate、visible rank rule、rank mode 和显式 stack depth 可以在 12/12 variants 中组合，且不引入 prompt/session frame；standard-trace exchange 证明 tracked real labeled operation prefix 经 trace container 往返后仍保持 512 samples 和 11 stacks。
+这些结果的 run IDs 是 R321、R342 和 R353，但它们的角色是 E1 的接口 provenance，而不是新的 experiment block。
+
+Ranker 和 actionability 的实现证据被归入 E3。
+Stack-text rule 与 rank-mode variants 可以从 profile spec 复现，但对 safety/side-effect 过粗；operation-level visible feature density 在 folding 前匹配 mapped operation token，并在 semantic stack 上使 AP 赢 5/6 tasks、top-5 lift 赢 4/6、first-positive work 赢 5/6，coarse stack 也在 AP 上赢 4/6。
+Leave-one-feature、robustness 和 transfer checks 说明 \texttt{repeat\_signal}、write-action、\texttt{status=success} 等字段在不同 family 中作用不同，误导性 safety-like 或 input-phase features 会伤害 AP 或 first-positive work；global/equal feature banks 常能保留收益，但 guided repair 使用离线评分反馈，因此不是 label-free automatic ranker。
+这些结果对应 R322--R326 和 R329，只作为一个 E3 mechanism/actionability block 的 provenance。
+
+Profile-spec replay 和 deterministic output 归入 E4。
+同一批 76 个 tracked specs 覆盖 R300 views、R324 rank-feature specs 和 R326 robustness specs；Rust \texttt{agentpprof --profile-spec} 重复运行两次后 semantic profile hash 全部稳定，默认 raw-byte hash 只有 4/76 稳定，因为 JSON profile 包含生成时间戳。
+启用 \texttt{--deterministic-output} 后 raw-byte hash 达到 76/76。
+这关闭的是 artifact byte-stability 缺口，不是新的 accuracy benchmark、live overhead benchmark 或第五个主实验。
 因此 prompt、session、toolcall、process、syscall、plan 和 subagent 都可以在同一套 mechanism 中出现，而不是成为互不兼容的 object model。
 
 \section{实验方法}
@@ -421,10 +425,11 @@ R320 首先把 localization 分数解释成任务级诊断，而不是只给 pol
 SATraj unsafe 说明 \texttt{environment,phase,action} 和 risky/write-action ranking 对安全问题有效；looping 说明 \texttt{repeat\_signal} 有用但需要 prevalence-aware ranking；side-effect 指向更深的 write/input mapping；AgentNet step-quality 需要 action-family 定位后再进入 fixed-session examples；OSWorld-Human 则需要 boundary-derived fields。
 因此 actionability 的第一层结论是：profiler 指出该调 stack field、mapping、ranker 还是 drilldown，而不是给出唯一默认 view。
 
-Rust 机制消融说明这些诊断来自可复现的 profiler 配置。
-R322/R323 证明 stack-text rank rules 和 rank mode 可以从 profile spec 复现，但它们对 safety/side-effect 过粗。
-R324 把 operation-level rank features 放进 Rust：visible mapped operation tokens 在 folding 前被匹配和聚合，semantic stack 的 feature ranking 在 AP 上赢 5/6 tasks、top-5 lift 赢 4/6、first-positive work 赢 5/6，coarse depth 在 4/6 tasks 上改善 AP 并减少 groups。
-R325/R326 进一步说明哪些字段有用或有害：\texttt{repeat\_signal}、write-action 和 \texttt{status=success} 在不同 family 关键，SATraj loop-like 或 OSWorld-Human input-phase features 会误导；global/equal feature banks 常能保留收益，R325-guided repair 在 2/3 misleading-feature cases 上改善 AP，但这些 repair 使用离线评分反馈，因此不是自动 learned ranker。
+Rust 机制消融说明这些诊断来自可复现的 profiler 配置，而不是来自又一组独立小实验。
+第一，stack-text rank rules 和 rank mode 可以从 profile spec 复现，但它们对 safety/side-effect 过粗。
+第二，operation-level rank features 在 folding 前匹配 visible mapped operation tokens；semantic stack 的 feature ranking 在 AP 上赢 5/6 tasks、top-5 lift 赢 4/6、first-positive work 赢 5/6，coarse depth 在 4/6 tasks 上改善 AP 并减少 groups。
+第三，leave-one-feature 和 robustness checks 说明哪些字段有用或有害：\texttt{repeat\_signal}、write-action 和 \texttt{status=success} 在不同 family 关键，SATraj loop-like 或 OSWorld-Human input-phase features 会误导；global/equal feature banks 常能保留收益，guided repair 在 2/3 misleading-feature cases 上改善 AP，但这些 repair 使用离线评分反馈，因此不是自动 learned ranker。
+R322--R326 只是这个 E3 mechanism block 的 provenance。
 
 View、depth 和 budget 审计把机制结果放回 profiling tradeoff。
 Best AP 和 best top-5 F1 分散在 operation-stack、fixed-session、dataset-native、raw-action 和 flat views；leave-task source selection 不能稳定选中 best view。
@@ -435,28 +440,28 @@ Positive-run proxy units 是 episode-derived proxy units，不是 human intent�
 R344 也保留多指标反例：30 个 baseline-metric comparisons 支持 operation-stack query-aware，16 个是明确 counterpoints，nDCG 场景下 flat 或 dataset-native 可能胜出。
 
 Actionability portfolio 把这些比较变成 reviewer 可以检查的优化建议。
-R335/R341 显示 36/36 objective rows 都有具体 profile-configuration action，但 27/36 best visible policies 不是默认 operation-stack query-aware；transfer miss 多数对应 view 或 ranker 变化，而不是不可解释错误。
-R345/R346/R347 把同一证据组织成 diagnostic lenses、case packets 和 baseline contrasts：6 个 lenses 覆盖 36 objectives，top-5 case groups 在 6/6 tasks 命中 positive，top-1 在 5/6 命中，median top-5 lift 为 1.6508 且 work 为 0.0937；operation-stack 在 6/6 tasks 胜过 flat top-5 work、在 5/6 胜过 fixed-session top-5 recall，同时保留 fixed-session first-positive 和 flat full-recall 反例。
-R348/R349 则把 visible counterfactual 与目标标签泄漏分开：36/36 best rows 是 visible non-oracle，27/36 需要 non-default action，25/36 需要 view change；held-out action transfer 在 35/60 aligned decisions 上 within tolerance，但 exact action-class transfer 只有 7/60，在 non-default target action 上只有 2/42。
-R350 最终把证据合成 bounded packets：6/6 tasks top-5 含 positive，5/6 top-1 含 positive，4/6 满足严格 30\% work budget，同时保留 transfer guardrail。
+36/36 objective rows 都有具体 profile-configuration action，但 27/36 best visible policies 不是默认 operation-stack query-aware；transfer miss 多数对应 view 或 ranker 变化，而不是不可解释错误。
+同一证据被组织成 diagnostic lenses、case packets 和 baseline contrasts：6 个 lenses 覆盖 36 objectives，top-5 case groups 在 6/6 tasks 命中 positive，top-1 在 5/6 命中，median top-5 lift 为 1.6508 且 work 为 0.0937；operation-stack 在 6/6 tasks 胜过 flat top-5 work、在 5/6 胜过 fixed-session top-5 recall，同时保留 fixed-session first-positive 和 flat full-recall 反例。
+Visible counterfactual 和 held-out transfer checks 把行动建议与目标标签泄漏分开：36/36 best rows 是 visible non-oracle，27/36 需要 non-default action，25/36 需要 view change；held-out action transfer 在 35/60 aligned decisions 上 within tolerance，但 exact action-class transfer 只有 7/60，在 non-default target action 上只有 2/42。
+这些支持运行（R335、R341、R345--R350）合起来只是一个 E3 actionability block。
 因此这里的 claim 是可调诊断 surface，不是 label-free automatic selector。
 
-R354/R358 关闭一个从诊断到可执行配置的闭环。
-R354 对同一 visible operation input 写 default 与 patched profile specs 并实际运行 Rust \texttt{agentpprof --profile-spec}，hidden labels 只在 profiler 输出后评分；5/6 patches 同时改善 AP、top-5 lift 和 first-positive work，median AP delta 为 0.0376，median top-5 lift delta 为 0.5750。
+Executable profile-spec patches 关闭一个从诊断到可执行配置的闭环。
+Default 与 patched profile specs 在同一 visible operation input 上实际运行 Rust \texttt{agentpprof --profile-spec}，hidden labels 只在 profiler 输出后评分；5/6 patches 同时改善 AP、top-5 lift 和 first-positive work，median AP delta 为 0.0376，median top-5 lift delta 为 0.5750。
 这里的 failure interpretation 同样重要：唯一 reject 是 OSWorld-Human，说明 visible phase/action rank features 不足以处理 human-boundary 目标。
-R358 按这个诊断把 held-out boundary-derived fields 当作普通 operation fields 折叠，AP 从 semantic-width 的 0.2402 提升到 0.2583，groups 从 108 降到 74；反例是 top-5 work 和 first-positive work 变差。
-R358 支持 boundary-derived fields 是 actionable operation-field knob，不支持 automatic boundary discovery 或 automatic patch selector。
+Held-out boundary-derived fields 随后作为普通 operation fields 折叠，AP 从 semantic-width 的 0.2402 提升到 0.2583，groups 从 108 降到 74；反例是 top-5 work 和 first-positive work 变差。
+R354/R358 支持 boundary-derived fields 是 actionable operation-field knob，不支持 automatic boundary discovery 或 automatic patch selector，也不是第五个核心实验。
 
 \subsection{RQ4/E4：Replayability、离线成本和 artifact hygiene}
 
 R361 将本节的 evidence contract 固定为：claim 是 offline profiler path 可以在 tracked inputs 上低成本 replay；oracle 是 tracked profile specs、tracked operation inputs、repeated profile outputs、runtime logs 和 source-status rows；baseline 包括 default output versus deterministic-output replay、semantic profile hashes versus raw-byte profile hashes；metric 包括 deterministic spec pass rate、profiler invocations、median/p95 runtime、sample equality、stack equality 和 raw-byte output equality；counterpoint 是 not live eBPF overhead、not human utility、not complete ecosystem compatibility、not universal selector。Claim-integrity、rubric 和 reviewer-style checks 是 artifact hygiene，不是 empirical evidence。
 Claim-test：RQ4/E4 问的是：reviewer 能否 replay offline profile-spec path，并验证 source provenance、paper numbers、two-abstraction wording 和 non-claims 都保持一致。
 
-R327/R328 是本节的 empirical content。
-它们在 tracked operation JSONL inputs 上重复执行 76 个 profile specs，共 152 次 profiler invocations。
-R327 显示所有 specs 在重复运行中保持 semantic profile content、samples 和 unique stacks 稳定，median 每个 spec 运行时间为 1.581s，p95 为 2.719s；默认 JSON profile 的 raw-byte determinism 只有 4/76，因为输出带生成时间戳。
-R328 启用 deterministic artifact mode，固定 JSON \texttt{generated\_at} 和 pprof profile time；同一 76 个 specs 的 semantic 与 raw-byte determinism 均为 76/76，clean rerun 记录空的 git/code status，median 每个 spec 运行时间为 1.601s，p95 为 2.767s。
-这些结果支持 artifact/reproducibility claim，但不等价于 live capture overhead。
+本节的 empirical content 是一个 replayability/cost block。
+它在 tracked operation JSONL inputs 上重复执行 76 个 profile specs，共 152 次 profiler invocations。
+默认模式下所有 specs 在重复运行中保持 semantic profile content、samples 和 unique stacks 稳定，median 每个 spec 运行时间为 1.581s，p95 为 2.719s；raw-byte determinism 只有 4/76，因为输出带生成时间戳。
+Deterministic artifact mode 固定 JSON \texttt{generated\_at} 和 pprof profile time 后，同一 76 个 specs 的 semantic 与 raw-byte determinism 均为 76/76，clean rerun 记录空的 git/code status，median 每个 spec 运行时间为 1.601s，p95 为 2.767s。
+R327/R328 只是这个 E4 replayability block 的 provenance；这些结果支持 artifact/reproducibility claim，但不等价于 live capture overhead。
 
 其余 paper gates 是 artifact hygiene，不是新的 empirical evidence。
 R338 把 paper claim 本身纳入审计：它复用 R320--R350 的 tracked-clean artifacts，不重新排名、不下载、不同步、不创建、不重标数据集，只检查论文数字、source policy、must-not-claim guardrails 和 operation/operation-stack 边界是否一致。
