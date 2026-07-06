@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-06
 Stage at update: stage 9 paper integration / stage 10 prose polish / stage 11 reproducibility prep
-Source/command: current branch `research/semantic-flamegraph-artifacts-v2`; `docs/evaluation.md`; `docs/design.md`; `docs/implementation.md`; `docs/background-related-work.md`; R320/R328/R352/R356/R357/R360-R364 artifacts
+Source/command: current branch `research/semantic-flamegraph-artifacts-v2`; `docs/evaluation.md`; `docs/design.md`; `docs/implementation.md`; `docs/background-related-work.md`; R320/R328/R392/R352/R356/R357/R360-R364 artifacts
 Completeness: partial. The scoped profiling claim is paper-ready against the current labeled-trace evidence, but broader human-utility, full ecosystem-compatibility, and universal boundary-discovery claims remain unsupported.
 
 ## Current State And Blocking Gate
@@ -11,7 +11,7 @@ Purpose: Give the project a single canonical entry point for the paper story, cl
 
 Draft paragraph: AgentSight's semantic profiling work is now in paper-integration mode. The design has been narrowed to two profiler abstractions, `operation` and `operation stack`. The strongest current claim is not human productivity, full automatic diagnosis, or complete trace-ecosystem compatibility. It is that operation/operation-stack profiling can localize, rank, and explain task-relevant failures, quality problems, and semantic boundaries in real labeled agent traces, while requiring less inspection work than flat summaries and less fragmentation than fixed-session drilldown. Fixed-session drilldown is the current trace-tree-shaped baseline in this benchmark; real OpenTelemetry/OpenInference/Phoenix-style span-tree imports are future baselines.
 
-Evidence/claim dependency: The primary empirical gate is R320 over 6 tasks, 4 oracle-rich datasets, 34,539 operations, 3,699 positives, and 144 view/ranker policies. R333/R334/R337/R339/R344/R355 add work-budget, fragmentation, fixed-recall, sequence-scope, metric-surface, and oracle-depth checks. R354/R358 add executable profile-spec patch and boundary-derived-field actionability evidence. R327/R328 cover replayability and offline cost. R338/R352/R356/R357/R359/R360/R361/R362/R364 are artifact, rubric, reviewer, structure, or claim-scope gates, not new empirical profiler evidence.
+Evidence/claim dependency: The primary empirical gate is R320 over 6 tasks, 4 oracle-rich datasets, 34,539 operations, 3,699 positives, and 144 view/ranker policies. R333/R334/R337/R339/R344/R355 add work-budget, fragmentation, fixed-recall, sequence-scope, metric-surface, and oracle-depth checks. R354/R358 add executable profile-spec patch and boundary-derived-field actionability evidence. R327/R328 cover replayability and offline cost; R392 covers profile-spec input-source replay for local-session, agent-trace, and standard-trace inputs. R338/R352/R356/R357/R359/R360/R361/R362/R364 are artifact, rubric, reviewer, structure, or claim-scope gates, not new empirical profiler evidence.
 
 Completeness: Partial. The main paper evidence is organized into three empirical profiling experiments plus one artifact/reproducibility block, but the next gate is an independent reviewer pass on the canonical docs and draft after this story file is updated.
 
@@ -61,7 +61,7 @@ Purpose: Identify what was built.
 
 Draft paragraph: The evaluated artifact is the Rust `agentpprof` offline profiler and its dataset/conversion/evaluation harness. It reads operation JSONL, local agent-session traces, and standard trace containers after normalization; applies mapping, tagging, filtering, rank rules, and profile specs; folds recursive operation stacks; and emits folded stacks, JSON profiles, pprof-compatible profiles, SVG/HTML views, and analysis outputs. Local session and standard trace exchange are containers around the operation path, not separate profiler objects.
 
-Evidence/claim dependency: R294/R303/R306/R353 validate trace and standard-trace exchange. R319 validates implementation/docs consistency. R327/R328 validate deterministic replay over 76 profile specs and 152 profiler invocations.
+Evidence/claim dependency: R294/R303/R306/R353 validate trace and standard-trace exchange. R319 validates implementation/docs consistency. R327/R328 validate deterministic replay over 76 profile specs and 152 profiler invocations. R392 validates that profile specs can replay local-session, agent-trace, and standard-trace input sources with effective metadata rather than silently ignoring configured paths.
 
 Completeness: Supported for the offline artifact path. Live eBPF overhead and full producer-ecosystem import are not part of the current claim.
 
@@ -71,7 +71,7 @@ Purpose: Tie the thesis to three empirical profiling experiments plus one artifa
 
 Draft paragraph: The evaluation is organized around three core empirical profiling experiments plus one artifact/reproducibility block. E1 tests whether one operation layer can cover heterogeneous labeled agent trajectories and be recursively folded into multiple stack depths. E2 is the main hidden-label localization/ranking benchmark over real labeled traces. E3 isolates mechanism and actionability through ranker, mapping, stack-depth, transfer, case, and profile-spec patch evidence. E4 checks replayability and offline cost as an artifact block, while claim-integrity and reviewer gates remain artifact hygiene rather than empirical profiler evidence.
 
-Evidence/claim dependency: E1 uses R279-R292/R286/R290/R291/R293/R321/R342 plus exchange checks. E2 uses R320 plus R330/R331/R333/R334/R337/R339/R344/R355. E3 uses R324-R326/R335/R336/R340/R341/R345-R350/R354/R358. E4 uses R327/R328 plus source-status and guardrail checks.
+Evidence/claim dependency: E1 uses R279-R292/R286/R290/R291/R293/R321/R342 plus exchange checks. E2 uses R320 plus R330/R331/R333/R334/R337/R339/R344/R355. E3 uses R324-R326/R335/R336/R340/R341/R345-R350/R354/R358. E4 uses R327/R328/R392 plus source-status and guardrail checks.
 
 Completeness: Supported as a scoped profiling-paper evaluation. The paper should keep R-runs as provenance rather than the main narrative.
 
@@ -93,7 +93,7 @@ Completeness: Supported for current paper wording. Broader claims require additi
 | C2 | Recursive operation stacks expose useful task, phase, action, quality, safety, and available boundary structure. | Dataset-provided labels and available oracle depths, especially OSWorld-Human and AgentNet. | V-measure, boundary F1, oracle-depth recall/F1, fragmentation, counterpoint rows. | supported with scoped limits |
 | C3 | Mapping, tagging, and boundary-derived fields improve semantic aggregation as first-class field derivation before stack folding. | Deterministic mappings, held-out splits, leave-dataset-out stress, supervised boundary-field probes. | Compression, stack reduction, held-out boundary F1, patch acceptance, failure/counterpoint analysis. | partial |
 | C4 | Operation-stack profiling localizes, ranks, and explains task-relevant failures, quality problems, and semantic boundaries on real labeled traces. | Six hidden-label tasks over AgentRewardBench, SATraj-OS, AgentNet, and OSWorld-Human. | Precision@k, recall@budget, F1, AP/AUPRC-style score, nDCG, work-to-first-positive, fragmentation, actionability. | supported as hidden-label profiler benchmark |
-| C5 | The artifact is replayable and cheap enough for offline artifact evaluation. | Tracked operation inputs and profile specs. | Deterministic semantic/raw hashes, sample/stack equality, median/p95 runtime, source-status rows. | supported for offline path |
+| C5 | The artifact is replayable and cheap enough for offline artifact evaluation. | Tracked operation inputs, local-session/agent-trace/standard-trace input-source specs, and profile specs. | Deterministic semantic/raw hashes, sample/stack equality, input-source replay coverage, median/p95 runtime, source-status rows. | supported for offline path |
 
 ## Largest Plausible Claim
 
