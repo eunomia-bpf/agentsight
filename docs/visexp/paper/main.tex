@@ -362,11 +362,13 @@ Prompt 或 session 没有参与这个抽象。
 
 \subsection{RQ2/E2：Hidden-label localization 和 ranking}
 
-实验契约：RQ2/E2 的 claim 是 operation-stack profiling 能在真实 labeled traces 上 faithful localization 和 ranking；oracle 是 6 个 oracle-backed tasks 中 34,539 个 operations 和 3,699 个 hidden positives；baseline 包括 flat summary、fixed-session drilldown、dataset-native hierarchy、raw-action stack、operation-stack width、operation-stack query-aware、label-drilldown 和 oracle upper bound；metric 包括 precision@k、recall、F1、AUPRC-style AP、nDCG、recall/F1@work budget、work-to-first-positive 和 group count；counterpoint 是 flat 和 dataset-native 可以赢 broad-recall 或 nDCG 目标，所以主 claim 是 Pareto tradeoff，不是 metric dominance。
-Claim-test：RQ2/E2 问的是：hot stacks 和 top-ranked groups 是否真的对应 hidden positives，并且相对 flat summary 需要更少 inspection work、相对 fixed-session drilldown proxy 改善 localization-budget/fragmentation tradeoff。
+实验契约：RQ2/E2 检验 operation-stack profiling 能否在真实 labeled traces 上完成 faithful localization 和 ranking。
+它的 oracle 是 6 个 oracle-backed tasks 中的 34,539 个 operations 和 3,699 个 hidden positives；baseline 包括 flat summary、fixed-session drilldown、dataset-native hierarchy、raw-action stack、operation-stack width、operation-stack query-aware、label-drilldown 和 oracle upper bound；metric 包括 precision@k、recall、F1、AUPRC-style AP、nDCG、recall/F1@work budget、work-to-first-positive 和 group count。
+关键 counterpoint 是 flat 和 dataset-native 可以赢 broad-recall 或 nDCG 目标，因此主 claim 必须是 Pareto tradeoff，而不是 metric dominance。
+Claim-test：RQ2/E2 问的是 hot stacks 和 top-ranked groups 是否真的对应 hidden positives，并且是否能相对 flat summary 降低 inspection work、相对 fixed-session drilldown proxy 改善 localization-budget/fragmentation tradeoff。
 
-Primary comparison 和 success criterion 是本节的核心。
-E2 把每个 profile group 当作 inspection target，问 ranked targets 能否用比 flat summary 更少的 work 找到 hidden positives，并比 fixed-session trace-tree proxy 更少碎片化。
+本节的主比较和成功条件是 reviewer 应先看的结果。
+E2 把每个 profile group 当作 inspection target，检查 ranked targets 能否用比 flat summary 更少的 work 找到 hidden positives，并比 fixed-session trace-tree proxy 更少碎片化。
 成功条件不是单一指标第一，而是 Pareto 条件：operation stack 必须降低 flat inspection work，在有意义的 fixed-session localization 或 fragmentation objective 上改善，同时保留 fixed-session early-hit 反例。
 本节的主实验不是重新定义一个 agent benchmark，而是把真实标注轨迹中的 failure、safety、quality 和 human-boundary labels 当作 profiler localization oracle。
 6 个任务覆盖 AgentRewardBench looping/side-effect、SATraj unsafe、AgentNet incorrect/redundant steps 和 OSWorld-Human group starts，总计 34,539 个 operations、3,699 个 positives。
@@ -434,19 +436,22 @@ Work-budget、fragmentation、fixed-recall、sequence-scope、oracle-depth、unc
 
 \subsection{RQ3/E3：机制隔离和 actionability}
 
-实验契约：RQ3/E3 的 claim 是 profiler 通过 stack fields、mapping/tagging rules、ranking policies、profile specs 和 boundary-derived operation fields 暴露 actionable optimization knobs；oracle 是 hidden labels only after profiling，并用 held-out OSWorld-Human boundary positives 评分 boundary-derived fields；baseline 包括 default semantic-width specs、patched specs、visible feature rankers、transfer policies、learned-boundary stacks、fixed-session 和 semantic-width stacks；metric 包括 accepted patches、AP delta、top-5 lift delta、first-positive-work delta、group reduction 和 top-5 work counterpoint；counterpoint 是 OSWorld-Human 需要 boundary-derived fields，因此这是 actionable mechanism evidence，not automatic boundary discovery、not automatic patch selection。
-Claim-test：RQ3/E3 问的是：localization gain 来自哪些机制，profile-guided 的 stack fields、rank features、mappings 或 boundary-derived fields 能否在不把 hidden labels 泄漏进 profiler input 的前提下改善输出。
+实验契约：RQ3/E3 检验 profiler 是否能通过 stack fields、mapping/tagging rules、ranking policies、profile specs 和 boundary-derived operation fields 暴露 actionable optimization knobs。
+它的 oracle 仍然只在 profiling 之后使用 hidden labels；boundary-derived fields 还用 held-out OSWorld-Human boundary positives 评分。
+baseline 包括 default semantic-width specs、patched specs、visible feature rankers、transfer policies、learned-boundary stacks、fixed-session 和 semantic-width stacks；metric 包括 accepted patches、AP delta、top-5 lift delta、first-positive-work delta、group reduction 和 top-5 work counterpoint。
+关键 counterpoint 是 OSWorld-Human 需要 boundary-derived fields，因此这是 actionable mechanism evidence，不是自动边界发现，也不是自动 patch 选择。
+Claim-test：RQ3/E3 问的是 localization gain 来自哪些机制，以及 profile-guided 的 stack fields、rank features、mappings 或 boundary-derived fields 能否在不把 hidden labels 泄漏进 profiler input 的前提下改善输出。
 E3 mechanism block 解释 rank-feature、mapping、stack-depth 和 boundary-field 机制；E3 actionability block 解释 profile-spec patch、case packet、diagnostic lens 和 transfer counterpoint。
 这两者共同支撑同一个 RQ3/E3 claim，不是第五个核心实验。
 
-Primary mechanism question 是：E2 的 ranked outputs 能不能解释应该怎样改 profile configuration。
+主要机制问题是：E2 的 ranked outputs 能不能解释应该怎样改 profile configuration。
 Hidden labels 只在 profiling 之后用于 scoring；visible inputs 仍然是 stack fields、mapping/tagging rules、rank features、profile specs 和 boundary-derived operation fields。
 成功条件是 actionable、replayable diagnosis：每个任务应该指向具体的 stack、field、ranker、mapping、profile-spec 或 drilldown change，并且 executable patches 能改善 scored output，但不能把结果写成 automatic selector。
 
 表~\ref{tab:actionability} 是 E3 的主显示：它把 task-card evidence 压缩成 paper-facing diagnosis table，而 source artifacts 只作为 provenance。
 SATraj unsafe 说明 \texttt{environment,phase,action} 和 risky/write-action ranking 对安全问题有效；looping 说明 \texttt{repeat\_signal} 有用但需要 prevalence-aware ranking；side-effect 指向更深的 write/input mapping；AgentNet step-quality 需要 action-family 定位后再进入 fixed-session examples；OSWorld-Human 则需要 boundary-derived fields。
 因此 actionability 的第一层结论是：profiler 指出该调 stack field、mapping、ranker、profile spec、boundary field 还是 drilldown，而不是给出唯一默认 view。
-Task-level verdict synthesis 给出 claim gate：6/6 任务都是 ``supports with counterpoints''，不是 unconditional win。
+Task-level verdict synthesis 给出 claim gate：6/6 任务都是 ``supports with counterpoints''，不是无条件胜出。
 其中 5/6 任务有 accepted executable profile-spec patch；剩下的 OSWorld-Human row 指向 boundary-derived fields，并保留 top-five 与 first-positive work 反例。
 
 机制消融说明这些诊断来自可复现的 profiler 配置，而不是来自又一组独立小实验。
