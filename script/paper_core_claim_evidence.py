@@ -2,8 +2,9 @@
 """R361: generate a reviewer-facing core-claim evidence ledger.
 
 This is a paper-structure and claim-gating artifact, not a new empirical
-experiment. It reads existing tracked E1--E4 artifacts and records, for each
-core experiment, the claim, oracle, baselines, primary metrics, headline result,
+experiment. It reads existing tracked artifacts for three empirical profiling
+experiments plus one replayability/overhead experiment and records, for each
+core block, the claim, oracle, baselines, primary metrics, headline result,
 actionable insight, counterpoint, and scoped paper wording.
 """
 
@@ -166,7 +167,7 @@ def build_ledger(data: dict[str, dict[str, Any]]) -> list[dict[str, str]]:
 
     return [
         {
-            "core_experiment": "E1: coverage, recursive folding, and field derivation",
+            "core_experiment": "E1: generality, recursive folding, and field derivation",
             "claim": "A two-object profiler model, operation plus operation stack, covers heterogeneous agent traces without binding profiling units to prompt/session/tool boundaries.",
             "research_question": "Can the same operation layer be folded recursively into task-, phase-, action-, boundary-, and fixed-session-shaped stacks by changing mappings and stack fields?",
             "oracle": "Public dataset labels and native trajectory fields; OSWorld-Human and AgentNet provide the strongest boundary and quality labels.",
@@ -205,7 +206,7 @@ def build_ledger(data: dict[str, dict[str, Any]]) -> list[dict[str, str]]:
             "primary_sources": "R324; R342; R345-R350; R354; R358; R360",
         },
         {
-            "core_experiment": "E4: reproducibility and artifact hygiene",
+            "core_experiment": "E4: replayability, offline cost, and artifact hygiene",
             "claim": "The offline profiling path is replayable over tracked inputs at low local cost.",
             "research_question": "Can reviewers rerun the profile-spec path and reproduce stable profile outputs without dataset sync, relabeling, or hidden human-study assumptions?",
             "oracle": "Tracked profile specs, tracked operation inputs, repeated profiler outputs, runtime logs, and source-status rows.",
@@ -213,8 +214,8 @@ def build_ledger(data: dict[str, dict[str, Any]]) -> list[dict[str, str]]:
             "primary_metrics": "deterministic spec pass rate, profiler invocations, median/p95 runtime, sample equality, stack equality, and raw-byte output equality.",
             "headline_result": r360_evidence["E4"],
             "actionable_insight": "The artifact path is replayable without dataset sync, relabeling, or hidden human-study assumptions.",
-            "counterpoint_or_scope": "This is offline artifact reproducibility, not live eBPF overhead, full OpenTelemetry/Phoenix/LangSmith/Langfuse/Perfetto compatibility, or human productivity evidence.",
-            "paper_wording": "Supported as replayable offline profiling artifact evidence; claim-integrity, rubric, and reviewer-style gates are artifact hygiene rather than scientific evidence.",
+            "counterpoint_or_scope": "This is offline artifact reproducibility and systems evidence, not hidden-label profiler accuracy, not live eBPF overhead, not complete ecosystem compatibility with OpenTelemetry/Phoenix/LangSmith/Langfuse/Perfetto, and not human productivity evidence.",
+            "paper_wording": "Supported as replayable offline profiling artifact evidence; claim-integrity, rubric, and reviewer-style gates are artifact hygiene rather than empirical accuracy evidence.",
             "primary_sources": "R328; R360",
         },
     ]

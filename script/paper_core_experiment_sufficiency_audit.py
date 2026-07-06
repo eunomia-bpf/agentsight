@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""R364: audit the E1--E4 core experiments for reviewer sufficiency.
+"""R364: audit the core experiment blocks for reviewer sufficiency.
 
 This is a paper-organization and claim-gating artifact, not a new empirical
-result. It verifies that each paper-facing core experiment has a primary
-experiment, oracle, named baselines, metrics, quantified success criterion,
-negative/scope condition, and figure/table target. It reads tracked artifacts
-only and does not fetch, sync, create, or relabel datasets.
+result. It verifies that the paper is organized as three empirical profiling
+experiments plus one replayability/overhead experiment, and that each block has
+a primary experiment, oracle, named baselines, metrics, quantified success
+criterion, negative/scope condition, and figure/table target. It reads tracked
+artifacts only and does not fetch, sync, create, or relabel datasets.
 """
 
 from __future__ import annotations
@@ -171,7 +172,7 @@ def build_rows(data: dict[str, dict[str, Any]]) -> list[dict[str, str]]:
 
     return [
         {
-            "core_experiment": "E1: coverage, recursive folding, and field derivation",
+            "core_experiment": "E1: generality, recursive folding, and field derivation",
             "primary_experiment": "R286 recursive stack-depth sweep, with R342 profile-spec composition and R353 trace exchange as support.",
             "claim_test": r361["E1"]["research_question"],
             "oracle": r361["E1"]["oracle"],
@@ -213,8 +214,8 @@ def build_rows(data: dict[str, dict[str, Any]]) -> list[dict[str, str]]:
             "source_artifacts": "R324; R342; R345-R350; R354; R358; R360; R361; R363",
         },
         {
-            "core_experiment": "E4: reproducibility and artifact hygiene",
-            "primary_experiment": "R328 deterministic replay over 76 tracked profile specs; R338/R352/R356/R357/R359/R360/R361/R363 remain artifact-hygiene and paper-structure gates.",
+            "core_experiment": "E4: replayability, offline cost, and artifact hygiene",
+            "primary_experiment": "R328 deterministic replay over 76 tracked profile specs; R338/R352/R356/R357/R359/R360/R361/R363 remain artifact-hygiene and paper-structure gates, not hidden-label accuracy results.",
             "claim_test": r361["E4"]["research_question"],
             "oracle": r361["E4"]["oracle"],
             "baselines": r361["E4"]["baselines"],
@@ -222,7 +223,7 @@ def build_rows(data: dict[str, dict[str, Any]]) -> list[dict[str, str]]:
             "success_criterion": "R328 records 76/76 semantic deterministic specs and 76/76 raw-byte deterministic specs over 152 invocations, with median runtime 1.601s and p95 2.767s.",
             "failure_interpretation": "If deterministic replay or tracked-source provenance fails, the paper can discuss profiler outputs but not claim replayable offline artifact evidence.",
             "negative_or_scope_condition": r361["E4"]["counterpoint_or_scope"],
-            "figure_table_target": "Reproducibility table, source-status CSVs, and E4 row in Table core-results; claim/rubric/reviewer gates stay in artifact hygiene.",
+            "figure_table_target": "Reproducibility table, source-status CSVs, and E4 row in Table core-results; claim/rubric/reviewer gates stay in artifact hygiene rather than the empirical accuracy comparison.",
             "claim_gate_decision": r360["E4"]["conclusion"],
             "source_artifacts": "R328; R338; R352; R356; R357; R359; R360; R361; R363",
         },
@@ -256,9 +257,9 @@ def build_checks(
 
     add_check(
         checks,
-        "four_core_experiments_only",
+        "three_empirical_plus_one_reproducibility_block",
         len(rows) == 4 and all(rows[i - 1]["core_experiment"].startswith(f"E{i}:") for i in range(1, 5)) and "E5" not in paper_text,
-        "Exactly E1-E4 are represented, and no paper-facing E5 is present.",
+        "Exactly E1-E4 are represented, E1-E3 are empirical profiling blocks, E4 is replayability/overhead/artifact hygiene, and no paper-facing E5 is present.",
     )
     add_check(
         checks,
@@ -334,7 +335,7 @@ def build_checks(
         "self_audits_are_artifact_hygiene_not_empirical_evidence",
         "not a new empirical result" in paper_text
         and "artifact hygiene" in combined_text.lower()
-        and "not empirical evidence" in combined_text.lower(),
+        and ("not empirical evidence" in combined_text.lower() or "not empirical accuracy evidence" in combined_text.lower()),
         "R338/R352/R356/R357/R359/R360/R363 are treated as artifact and claim-hygiene gates, not empirical profiler accuracy evidence.",
     )
     add_check(

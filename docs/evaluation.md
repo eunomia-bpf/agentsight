@@ -17,19 +17,24 @@ Completeness: partial
 ## Paper-Facing Core Experiments
 
 The R-numbered runs are provenance, not the paper's evaluation structure. The
-main paper should present four substantial experiments and then cite individual
-R-runs as main comparisons, ablations, counterpoints, or reproducibility gates.
-This avoids a chronological "experiment log" and gives reviewers a clear
-claim-to-evidence path.
+main paper should present three substantial empirical profiling experiments
+plus one systems/reproducibility experiment, and then cite individual R-runs as
+main comparisons, ablations, counterpoints, or reproducibility gates. This
+avoids a chronological "experiment log" and gives reviewers a clear
+claim-to-evidence path: E1 establishes the operation/operation-stack
+abstraction across workloads, E2 tests hidden-label profiler fidelity and
+baseline tradeoffs, E3 isolates mechanisms and actionability, and E4 checks
+replayability, offline cost, and claim hygiene without being treated as a
+fourth accuracy result.
 
 | Core experiment | Claim tested | Main workload and oracle | Main comparisons and metrics | Evidence placement |
 |---|---|---|---|---|
-| E1: Operation coverage and recursive folding | C1/C2/C3: two abstractions cover heterogeneous agent trajectories, and stack depth is a query over operation fields. | 15 public labeled trace families / 47,590 operations, plus local-session and standard-trace exchange fixtures; OSWorld-Human and AgentNet provide the strongest boundary/quality labels. | Coverage, operations, stack counts, compression, V-measure, boundary F1, profile-spec replay, stack override, predicate replay, and trace import/export equality. | Main results: R279-R292, R286, R290, R291, R293, R321, R342. Reproducibility/exchange support: R294/R303/R306/R353. Mapping and boundary-field probes: R281/R282/R285/R297/R299. |
+| E1: Generality and recursive operation-stack formation | C1/C2/C3: two abstractions cover heterogeneous agent trajectories, and stack depth is a query over operation fields. | 15 public labeled trace families / 47,590 operations, plus local-session and standard-trace exchange fixtures; OSWorld-Human and AgentNet provide the strongest boundary/quality labels. | Coverage, operations, stack counts, compression, V-measure, boundary F1, profile-spec replay, stack override, predicate replay, and trace import/export equality. | Main results: R279-R292, R286, R290, R291, R293, R321, R342. Reproducibility/exchange support: R294/R303/R306/R353. Mapping and boundary-field probes: R281/R282/R285/R297/R299. |
 | E2: Hidden-label localization and ranking | C4: profile groups can be scored as ranked localization outputs against real hidden labels. | Six oracle-backed failure/safety/quality/boundary tasks over AgentRewardBench, SATraj-OS, AgentNet, and OSWorld-Human: 34,539 operations / 3,699 positives. | Flat, fixed-session drilldown, dataset-native, raw-action, operation-stack, label-drilldown, and oracle policies; AP/AUPRC-style score, precision/recall/F1@k, nDCG, recall@work budget, work-to-first-positive, groups, fragmentation, and oracle-depth scoring. | Main result: R320. Budget/fragmentation/depth/robustness slices: R330/R331/R333/R334/R337/R339/R344/R355. R300-R305/R308-R313 remain setup and case-packet provenance. |
 | E3: Mechanism and actionability | C2/C3/C4: improvements come from stack shape, field derivation, ranking policy, and profile-spec patches, and the profiler exposes actionable knobs without becoming an automatic selector. | The same six labeled tasks plus held-out OSWorld-Human boundary-backend operations from R297. | Width vs visible rankers, operation-level feature density, leave-one-feature ablation, equal/global/transfer policies, objective-specific selection, diagnostic lenses, casebook, action counterfactuals, held-out action transfer, and before/after profile-spec patches. | Main actionability block: R324/R325/R326/R329/R335/R336/R340/R341/R342/R345/R346/R347/R348/R349/R350/R354. R358 is a mechanism ablation/counterpoint for the R354 OSWorld-Human rejection: boundary-derived fields help AP and reduce groups, but do not improve all inspection-cost metrics. |
-| E4: Reproducibility and artifact hygiene | C1/C2/C4 guardrails: the profiler path is replayable, low-cost enough for offline artifacts, and the paper does not overclaim human utility, complete trace-ecosystem compatibility, universal selectors, or automatic boundary discovery. | Tracked profile specs, tracked operation inputs, repeated profile outputs, runtime logs, and source-status rows; no dataset sync, no relabeling, no human/agent analyst task. | Semantic/raw determinism, sample/stack equality, runtime and output size, source provenance, number alignment, guardrail checks, and abstraction-boundary checks. | Main reproducibility result: R327/R328. Implementation/exchange checks: R319/R353. Claim/rubric/reviewer gates: R338/R352/R356/R357 are artifact hygiene only, not empirical evidence. Controlled analyst-study protocol R315/R316 remains optional for future human-utility claims only. |
+| E4: Replayability, offline cost, and artifact hygiene | C1/C2/C4 guardrails: the profiler path is replayable, low-cost enough for offline artifacts, and the paper does not overclaim human utility, complete trace-ecosystem compatibility, universal selectors, or automatic boundary discovery. | Tracked profile specs, tracked operation inputs, repeated profile outputs, runtime logs, and source-status rows; no dataset sync, no relabeling, no human/agent analyst task. | Semantic/raw determinism, sample/stack equality, runtime and output size, source provenance, number alignment, guardrail checks, and abstraction-boundary checks. | Main reproducibility result: R327/R328. Implementation/exchange checks: R319/R353. Claim/rubric/reviewer gates: R338/R352/R356/R357 are artifact hygiene only, not empirical evidence and not part of the hidden-label accuracy comparison. Controlled analyst-study protocol R315/R316 remains optional for future human-utility claims only. |
 
-R363 adds a visualization portfolio over these four experiments rather than a
+R363 adds a visualization portfolio over these four paper-facing blocks rather than a
 fifth experiment. It reads tracked R320/R345/R348/R354/R355/R358/R361/R362
 artifacts and emits five views: a baseline tradeoff scatter, metric heatmap,
 diagnostic-lens summary, actionability-knob chart, and oracle-depth adequacy
@@ -240,13 +245,14 @@ R359 audits the paper structure after the E1-E4 consolidation. It reads the
 evaluation ledger, Chinese claim setup, Chinese draft, English submodule draft,
 and R358 artifacts; it does not rerun the profiler, download data, sync data,
 create labels, or form a new empirical result. The gate passes 13/13 checks:
-the paper-facing evaluation has four core experiments, legacy RQ framing is
-absent from the drafts, the Chinese main result table is a four-row core
-experiment table, R-numbered runs are provenance rather than main structure,
-R358 is positioned as an E3 mechanism/actionability ablation rather than a
-fifth experiment, the R358 AP/group/counterpoint tokens remain visible, and the
-two-abstraction and must-not-claim guardrails remain visible.
-R359 token ledger for auditability: 4 core experiments, 13/13 checks,
+the paper-facing evaluation has three empirical profiling blocks plus one
+replayability/overhead block, legacy RQ framing is absent from the drafts, the
+Chinese main result table is a four-row paper-facing block table, R-numbered
+runs are provenance rather than main structure, R358 is positioned as an E3
+mechanism/actionability ablation rather than a fifth experiment, the R358
+AP/group/counterpoint tokens remain visible, and the two-abstraction and
+must-not-claim guardrails remain visible.
+R359 token ledger for auditability: 4 paper-facing blocks, 13/13 checks,
 R358 learned-boundary AP 0.2583, semantic-width AP 0.2402, learned-boundary
 groups 74, top-5 work delta 0.0813, first-positive-work delta 0.1581, no new
 empirical result, no human/agent analyst task, no dataset sync, and no fifth

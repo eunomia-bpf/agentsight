@@ -293,19 +293,19 @@ reports remain wrappers around operation fields and operation stack queries.
 It is a claim-integrity layer, not another profiler abstraction.
 
 R359 audits the paper-facing experiment structure against that same boundary.
-It checks that the evaluation is organized as four core experiments, E1-E4,
-while R-numbered runs remain provenance, ablations, counterpoints, or audit
-gates. It also checks that R358 is an E3 mechanism/actionability ablation, not
-a fifth experiment or an automatic boundary detector. This keeps the design
-claim centered on operation and operation stack rather than on a collection of
-one-off artifacts.
+It checks that the evaluation is organized as three empirical profiling
+experiments plus one replayability/overhead experiment, while R-numbered runs
+remain provenance, ablations, counterpoints, or audit gates. It also checks
+that R358 is an E3 mechanism/actionability ablation, not a fifth experiment or
+an automatic boundary detector. This keeps the design claim centered on
+operation and operation stack rather than on a collection of one-off artifacts.
 
-R360 audits the paper table that summarizes those four experiments. It reads
+R360 audits the paper table that summarizes those four paper-facing blocks. It reads
 tracked artifacts and emits the E1-E4 headline table plus metric rows. The
 table is a provenance view over existing operation/operation-stack evidence,
 not another profiler abstraction, visualization primitive, or result source.
 
-R361 audits the claim-evidence layer for those same four experiments. It reads
+R361 audits the claim-evidence layer for those same four paper-facing blocks. It reads
 tracked R320/R352/R354/R355/R357/R358/R359/R360 artifacts and emits a ledger
 that binds each E1-E4 block to its claim, research question, oracle, baselines,
 primary metrics, headline result, actionable insight, counterpoint, and scoped

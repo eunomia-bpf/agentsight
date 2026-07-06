@@ -2,7 +2,8 @@
 """R360: generate paper-facing core result tables from tracked artifacts.
 
 This is a table-consolidation gate, not a new empirical result. It reads the
-existing result artifacts that already support E1--E4 and writes compact
+existing result artifacts that already support three empirical profiling
+experiments plus one replayability/overhead experiment and writes compact
 paper-ready tables plus provenance rows. No profiler is rerun and no dataset is
 downloaded, synced, created, or relabeled.
 """
@@ -332,7 +333,7 @@ def experiment_rows(metrics: list[dict[str, str]]) -> list[dict[str, str]]:
         grouped.setdefault(row["experiment"], []).append(row)
     summaries = {
         "E1": {
-            "core_experiment": "E1: coverage, recursive folding, and field derivation",
+            "core_experiment": "E1: generality, recursive folding, and field derivation",
             "claim": "Heterogeneous agent traces enter one operation layer, and operation stacks are query-time recursive projections over fields.",
             "workload": "15 public labeled trace families / 47,590 operations, plus local-session and standard-trace exchange fixtures.",
             "conclusion": "Supported as operation/operation-stack coverage and configurability, not a new trace ecosystem compatibility claim.",
@@ -350,10 +351,10 @@ def experiment_rows(metrics: list[dict[str, str]]) -> list[dict[str, str]]:
             "conclusion": "Supported as actionable profile-spec and field/ranker guidance, not an automatic selector or boundary detector.",
         },
         "E4": {
-            "core_experiment": "E4: reproducibility and offline cost",
+            "core_experiment": "E4: replayability, offline cost, and artifact hygiene",
             "claim": "The offline profiler path is replayable over tracked inputs at low local cost.",
             "workload": "76 tracked profile specs over tracked operation JSONL inputs.",
-            "conclusion": "Supported as replayable offline profiling artifact evidence, not live overhead, human productivity, or trace-ecosystem compatibility.",
+            "conclusion": "Supported as systems/reproducibility evidence, not a hidden-label accuracy result, live overhead, human productivity, or trace-ecosystem compatibility.",
         },
     }
     rows: list[dict[str, str]] = []

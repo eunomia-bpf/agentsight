@@ -2,10 +2,11 @@
 """R359: paper-facing core experiment consolidation audit.
 
 This is a paper-organization gate, not a new empirical result. It verifies that
-the current paper presents the evaluation as four core experiments, while the
-R-numbered runs remain provenance, ablations, counterpoints, or audit gates.
-It also checks that R358 is positioned as an E3 mechanism/actionability
-ablation rather than a fifth main experiment.
+the current paper presents the evaluation as three empirical profiling
+experiments plus one replayability/overhead experiment, while the R-numbered
+runs remain provenance, ablations, counterpoints, or audit gates. It also
+checks that R358 is positioned as an E3 mechanism/actionability ablation rather
+than a fifth main experiment.
 """
 
 from __future__ import annotations
@@ -38,10 +39,10 @@ SOURCE_PATHS = {
 }
 
 CORE_TOKENS = {
-    "E1": ["E1", "Coverage", "coverage", "recursive", "folding", "递归"],
+    "E1": ["E1", "Generality", "generality", "recursive", "folding", "递归"],
     "E2": ["E2", "Hidden-Label", "hidden-label", "localization", "ranking"],
     "E3": ["E3", "Mechanism", "mechanism", "actionability"],
-    "E4": ["E4", "Reproducibility", "reproducibility", "claim integrity", "claim-integrity"],
+    "E4": ["E4", "Replayability", "replayability", "artifact hygiene", "claim-integrity"],
 }
 
 MUST_NOT_CLAIM = [
@@ -166,14 +167,14 @@ def build_checks(texts: dict[str, str], r358: dict[str, Any], r358_run: dict[str
 
     add_check(
         checks,
-        "evaluation_has_four_core_experiment_table",
+        "evaluation_has_four_paper_facing_blocks",
         "## Paper-Facing Core Experiments" in evaluation
         and all(f"| {eid}:" in evaluation for eid in CORE_TOKENS),
-        "docs/evaluation.md has the paper-facing E1-E4 table.",
+        "docs/evaluation.md has the paper-facing E1-E4 table with three empirical blocks plus one replayability/overhead block.",
     )
     add_check(
         checks,
-        "claim_setup_has_four_core_experiment_table",
+        "claim_setup_has_four_paper_facing_blocks",
         "## Paper-Facing Core Experiments" in claim_setup
         and "## Run/Artifact Provenance Map" in claim_setup
         and all(f"| {eid}：" in claim_setup for eid in CORE_TOKENS),
@@ -207,7 +208,7 @@ def build_checks(texts: dict[str, str], r358: dict[str, Any], r358_run: dict[str
         "Core experiment & Workload / oracle & Main evidence & Scoped conclusion" in zh
         and "Paper question &" not in zh
         and count_regex(zh, r"^\s+E[1-4]:",) >= 4,
-        "Chinese tab:results is now a four-row core-experiment table.",
+        "Chinese tab:results is now a four-row paper-facing block table.",
     )
     add_check(
         checks,
@@ -215,7 +216,7 @@ def build_checks(texts: dict[str, str], r358: dict[str, Any], r358_run: dict[str
         "R-numbered runs are provenance" in evaluation
         and has_any(claim_setup, ["R 编号只作为 provenance", "R 编号保留为 artifact provenance"])
         and has_any(zh, ["R 编号只作为 provenance", "R 编号保留为 artifact provenance"])
-        and has_any(en, ["Individual R-runs\nare provenance", "Individual R-runs are provenance"]),
+        and has_any(en, ["Individual R-runs\nare provenance", "Individual R-runs are provenance", "R-runs are provenance"]),
         "Evaluation ledger, claim setup, Chinese paper, and English paper state that R runs are provenance.",
     )
     add_check(
@@ -393,7 +394,7 @@ def main() -> None:
         "schema": "agentsight.paper_core_experiments.v1",
         "status": status,
         "elapsed_s": round(time.time() - start, 4),
-        "claim": "paper evaluation is organized around four core experiments, not chronological R-run history",
+        "claim": "paper evaluation is organized around three empirical profiling experiments plus one replayability/overhead experiment, not chronological R-run history",
         "summary": summary,
         "checks": checks,
         "source_status": sources,

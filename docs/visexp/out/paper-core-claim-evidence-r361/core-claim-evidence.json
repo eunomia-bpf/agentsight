@@ -51,8 +51,8 @@
       "status": "pass"
     }
   ],
-  "commit": "1364eeb56f4c7f3e931cbc424ce1f6b7ebe5aa50",
-  "elapsed_s": 0.112,
+  "commit": "121914e5233f922347d5613ef1d638077240a867",
+  "elapsed_s": 0.228,
   "input_policy": {
     "dataset_creation": "none",
     "dataset_relabeling": "none",
@@ -66,7 +66,7 @@
       "actionable_insight": "Users can choose recursive stack depth and field mappings at profiling time while keeping prompt, session, tool, process, and syscall records as operation forms or fields.",
       "baselines": "Dataset-native stacks, no-map folding, fixed-session stacks, profile-spec replay, and direct operation-file versus standard-trace import/export.",
       "claim": "A two-object profiler model, operation plus operation stack, covers heterogeneous agent traces without binding profiling units to prompt/session/tool boundaries.",
-      "core_experiment": "E1: coverage, recursive folding, and field derivation",
+      "core_experiment": "E1: generality, recursive folding, and field derivation",
       "counterpoint_or_scope": "This supports configurable operation-stack folding, not complete ecosystem compatibility or automatic latent-intent recovery.",
       "headline_result": "recursive_depth_sweep_operations=13265 (R286); stack_depths_and_unique_stack_range=8 depths, 9->3757 stacks (R286); leave_dataset_out_positive_stack_reductions=6/9 (R285); prompt_session_free_profile_specs=12/12 (R342); real_operation_standard_trace_roundtrip=512 ops, 512 samples, 11 stacks, equal=True (R353)",
       "oracle": "Public dataset labels and native trajectory fields; OSWorld-Human and AgentNet provide the strongest boundary and quality labels.",
@@ -105,11 +105,11 @@
       "actionable_insight": "The artifact path is replayable without dataset sync, relabeling, or hidden human-study assumptions.",
       "baselines": "default output versus deterministic-output replay, semantic profile hashes versus raw-byte profile hashes, and tracked-clean source-status checks.",
       "claim": "The offline profiling path is replayable over tracked inputs at low local cost.",
-      "core_experiment": "E4: reproducibility and artifact hygiene",
-      "counterpoint_or_scope": "This is offline artifact reproducibility, not live eBPF overhead, full OpenTelemetry/Phoenix/LangSmith/Langfuse/Perfetto compatibility, or human productivity evidence.",
+      "core_experiment": "E4: replayability, offline cost, and artifact hygiene",
+      "counterpoint_or_scope": "This is offline artifact reproducibility and systems evidence, not hidden-label profiler accuracy, not live eBPF overhead, not complete ecosystem compatibility with OpenTelemetry/Phoenix/LangSmith/Langfuse/Perfetto, and not human productivity evidence.",
       "headline_result": "deterministic_profile_specs=76/76 semantic, 76/76 raw-byte, 152 invocations (R328); offline_runtime=median 1.6011s, p95 2.7672s (R328)",
       "oracle": "Tracked profile specs, tracked operation inputs, repeated profiler outputs, runtime logs, and source-status rows.",
-      "paper_wording": "Supported as replayable offline profiling artifact evidence; claim-integrity, rubric, and reviewer-style gates are artifact hygiene rather than scientific evidence.",
+      "paper_wording": "Supported as replayable offline profiling artifact evidence; claim-integrity, rubric, and reviewer-style gates are artifact hygiene rather than empirical accuracy evidence.",
       "primary_metrics": "deterministic spec pass rate, profiler invocations, median/p95 runtime, sample equality, stack equality, and raw-byte output equality.",
       "primary_sources": "R328; R360",
       "research_question": "Can reviewers rerun the profile-spec path and reproduce stable profile outputs without dataset sync, relabeling, or hidden human-study assumptions?"
@@ -127,9 +127,9 @@
   "source_status": [
     {
       "path": "script/paper_core_claim_evidence.py",
-      "sha256": "752a478ed6e5dfb2bd0ccc093e886afb4bbdcc749dbeec1c8ea67cb9d7255179",
+      "sha256": "706e18954abac54d943b8f23def0df6a34511db188a1b0ca9403d9e2270b0c8e",
       "source": "generator script",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/out/operation-profile-accuracy-r320/profile-accuracy-report.json",
@@ -139,7 +139,7 @@
     },
     {
       "path": "docs/visexp/out/paper-evaluation-rubric-r352/evaluation-rubric-report.json",
-      "sha256": "51603283ed47703fda21488cdd66e40d2b196b76003e640c53235ae10dc0ea35",
+      "sha256": "47251390953553c026387c5da8d7cbdb7c3a07983a17be3320b2c1cc3622bbac",
       "source": "R352 evaluation rubric",
       "status": "tracked_dirty_allowed"
     },
@@ -159,7 +159,7 @@
       "path": "docs/visexp/out/paper-reviewer-acceptance-r357/reviewer-acceptance-r357.json",
       "sha256": "2fc192bb080c2d692647e63e9afff2726eccaba056fec41f55778a3b6db9660e",
       "source": "R357 reviewer acceptance",
-      "status": "tracked_dirty_allowed"
+      "status": "tracked_clean"
     },
     {
       "path": "docs/visexp/out/operation-boundary-profile-patch-r358/boundary-profile-patch-report.json",
@@ -169,31 +169,31 @@
     },
     {
       "path": "docs/visexp/out/paper-core-experiments-r359/core-experiment-report.json",
-      "sha256": "9eed70e3e9fb2ec2b524220af66ee0e5beca8120b437b8d138adaa848fe5d8f2",
+      "sha256": "b1043a9e0f1ab222a9b4105357f0e3283431c64dc5c72274c3ca4ae25597416f",
       "source": "R359 core-experiment consolidation",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/out/paper-core-result-tables-r360/core-result-tables.json",
-      "sha256": "f1b67615f86ba2d0b77db08d21e9333af25e8b6838b4d367d83cfa5cd3985354",
+      "sha256": "a6857160406cc787a0647f0d09ab4b218484c32b4f327d2f6b574f42734e54b1",
       "source": "R360 core result table",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/evaluation.md",
-      "sha256": "61fc50a2d3b318886e65d0e6e8a3ab94a3f7b9e9c749676f2cfb6ae4b0d8066d",
+      "sha256": "8dd115c02f62b7cd166d70e38bd5b5863f7d293414e36bd363e9cc4273116a55",
       "source": "evaluation ledger",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/paper/main.tex",
-      "sha256": "b5892268ca560d3406b44cc6fde1160286134c1a9b686b2b38d8ac3ee82343a2",
+      "sha256": "654068ba9061187f2072c69e86985956c981dc23ef6d4dd2abca6fc2009419ca",
       "source": "Chinese paper",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/agentpprof-paper/main.tex",
-      "sha256": "54c2ba631706db1024929a61a6a076a0407fc7ad9e1262d61127777eb034b585",
+      "sha256": "4306e023ca56144b99af8b668572e171579b0ae92b6335bf316358b8513ff15a",
       "source": "English paper",
       "status": "tracked_dirty_allowed"
     }

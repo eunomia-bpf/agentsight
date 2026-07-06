@@ -36,10 +36,10 @@ PAPER_SOURCES = {
 
 SECTION_IDS = ["E1", "E2", "E3", "E4"]
 SECTION_LABELS = {
-    "E1": ["coverage", "recursive", "folding", "field derivation"],
+    "E1": ["generality", "recursive", "folding", "field derivation"],
     "E2": ["hidden-label", "localization", "ranking"],
     "E3": ["mechanism", "actionability"],
-    "E4": ["reproducibility", "cost", "artifact hygiene"],
+    "E4": ["replayability", "cost", "artifact hygiene"],
 }
 REQUIRED_SECTION_TOKENS = {
     "E1": ["claim-test", "claim", "oracle", "baseline", "metric", "counterpoint", "operation stack"],
