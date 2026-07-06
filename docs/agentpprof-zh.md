@@ -81,15 +81,15 @@ Wall-clock 时间分布与 token 消耗相似：review（`prompt:review`）领�
 
 ## 工作原理
 
-`agentpprof` 的核心是两个抽象：**操作**（operation，历史中一次可计量的活动）和**操作栈**（operation stack，表达这次活动归因上下文的帧序列）。整个工具分三层围绕它们工作：解析层把本地 trace 还原成操作集合，意图识别层为操作打上语义标签，投影层把带标签的操作折叠成操作栈并渲染。
+`agentpprof` 的核心是两个抽象：**操作**（operation，历史中一次可计量的活动）和**操作栈**（operation stack，表达这次活动归因上下文的帧序列）。整个工具分三段围绕它们工作：解析段把本地 trace 还原成操作集合，字段派生段用 tagging 和 mapping 往操作上写稳定字段，投影段把带字段的操作折叠成操作栈并渲染。这三段是实现流程，不是三个 profiler 抽象。
 
 ### 解析层：从 trace 到操作
 
 `agent-session` 解析器读取 Codex/Claude 的 JSONL 历史，恢复出 prompt、LLM 调用、工具调用以及它们触发的文件和网络效果。每个这样的活动就是一个操作，带着自己的属性（时间戳、token 数、路径、域名、状态等），构成后续两层共享的操作表。解析同时保留序列结构：每个操作都记着自己落在哪条 prompt 的跨度内。
 
-### 意图识别层：从 prompt 到标签
+### 字段派生段：从原始字段到可折叠标签
 
-解析和投影都是常规工程，真正的难点在这一层。同一个项目里的 prompt 可能混合多种语言（「fix the 编译 error」），长度从单个字符（「嗯」、「ok」）到长段落不等，还有很多孤立看来没有意义的片段（「继续」、「好」、系统生成的上下文恢复消息）。为了应对这些挑战，`agentpprof` 提供了一个可插拔的标签器框架，支持多种后端：
+解析和投影都是常规工程，真正的难点是把自由格式字段变成稳定、可复现的 operation fields。同一个项目里的 prompt 可能混合多种语言（「fix the 编译 error」），长度从单个字符（「嗯」、「ok」）到长段落不等，还有很多孤立看来没有意义的片段（「继续」、「好」、系统生成的上下文恢复消息）。`agentpprof` 的 tagger 和 mapping 后端只负责写入字段，例如 `task=debug` 或 `phase=inspect`；它们不是新的 profiler object，也不自动声称发现了真实 intent boundary。为了派生这些字段，`agentpprof` 提供了一个可插拔的标签器框架，支持多种后端：
 
 | 后端 | 方法 | 适用场景 |
 | --- | --- | --- |
@@ -139,7 +139,7 @@ llama-server -m /path/to/model.gguf --port 8080
 agentpprof -o tokens.svg --tagger llm --llama-url http://127.0.0.1:8080
 ```
 
-LLM 标签默认缓存在 `$XDG_CACHE_HOME/agentpprof/tags.json`。LLM 标签器的输出可以作为编写 regex 规则的参考：观察 LLM 产生了哪些类别，然后为每个类别写一条 regex 规则。
+LLM 标签默认缓存在 `$XDG_CACHE_HOME/agentpprof/tags.json`。LLM 标签器的输出可以作为编写 regex 规则的参考：观察 LLM 产生了哪些类别，然后为每个类别写一条 regex 规则。它是字段派生辅助，不是自动边界 detector。
 
 #### Python 聚类后端（实验性）
 
@@ -157,19 +157,19 @@ python agentpprof/backend/python/cluster_tagger.py \
 agentpprof --project-root . --tag-cache tags.json -o flamegraph.svg
 ```
 
-聚类后端会自动选择最优的聚类数（5-25），并根据每个聚类的关键词生成标签名。这对于理解「我的 prompt 分布里有哪些自然类别」很有用，可以作为编写 regex 规则的起点。
+聚类后端会自动选择最优的聚类数（5-25），并根据每个聚类的关键词生成标签名。这对于理解「我的 prompt 分布里有哪些候选字段」很有用，可以作为编写 regex 规则的起点。聚类结果应当通过规则、profile spec 或数据集已有标签固化后再用于可复现实验。
 
 ### 投影层：从操作到 folded stacks
 
-前两层的产出可以用一个小的形式模型精确刻画，投影层就是对这个模型的查询求值。开头说的两个核心抽象在这里给出正式定义。
+前两个流程段的产出可以用一个小的形式模型精确刻画，投影段就是对这个模型的查询求值。开头说的两个核心抽象在这里给出正式定义。
 
-**定义 1（operation，操作）。** 一次 agent 执行历史被解析为操作集合 O。一个操作 o ∈ O 是历史中一次可计量的活动：一条用户 prompt、一次 LLM 调用，或一次工具触发的文件/网络效果。每个操作携带属性元组 attr(o) = (project, agent, session, prompt, kind, model, path, domain, status, …) 以及若干可加度量，如 token 数、持续时间、发生次数。解析层产出 O，意图识别层为其中的意图属性提供稳定取值。
+**定义 1（operation，操作）。** 一次 agent 执行历史被解析为操作集合 O。一个操作 o ∈ O 是历史中一次可计量的活动：一条用户 prompt、一次 LLM 调用，或一次工具触发的文件/网络效果。每个操作携带属性元组 attr(o) = (project, agent, session, prompt, kind, model, path, domain, status, …) 以及若干可加度量，如 token 数、持续时间、发生次数。解析段产出 O，字段派生段只为其中的属性提供稳定取值。
 
 操作的粒度在解析时就固定了，与视图无关。视图改变的是计量方式：一个操作可以展开成多个样本，tokens 视图把一次 LLM 调用按 input/output/cache 展开成三个样本，files 视图把一次工具调用按触碰的路径逐一展开。样本是视图相关的，操作不是。
 
 **定义 2（operation stack，操作栈）。** 栈化函数 σ 把操作映射为有序帧序列 σ(o) = [f₁; f₂; …; f_k]。每一帧都是某种 operation 属性或 operation stack frame：project、agent、session、prompt、tool call、process、path、domain 都不是独立抽象，只是 operation 在不同粒度上的形态。与 CPU 调用栈不同，操作栈表达的是**归因链**而非控制流：每一帧回答「这个活动发生在什么上下文里」。
 
-层级从哪里来？agent 历史本身是一条线性事件序列，没有现成的树。当前实现把 operation field mapping、operation predicate 和 operation stack rule 作为栈构造规则：`--op-map FIELD:LABEL=REGEX` 先把 task、subtask、phase 等派生成普通 operation 字段，`--where FIELD=REGEX` 或 `--where FIELD!=REGEX` 再选择参与本次查询的 operation 子集，`--stack` 最后选择栈中要出现的 frame，`--stack-rule FRAME:LABEL=REGEX` 只在构造某个 frame 时做局部覆盖。默认 `phase` 只是一个内置 frame，它根据 LLM 标签和 tool effect/category 给单个 prompt 内的事件生成阶段；用户也可以去掉 prompt、增加 `task,subtask,phase`，让几个 prompt 合并到同一个 intent/task 下。折叠出结构在前，标签聚合在后。
+层级从哪里来？agent 历史本身是一条线性事件序列，没有现成的树。当前实现把 operation field mapping、operation predicate 和 operation stack rule 作为栈构造规则：`--op-map FIELD:LABEL=REGEX` 先把 task、subtask、phase 等派生成普通 operation 字段，`--where FIELD=REGEX` 或 `--where FIELD!=REGEX` 再选择参与本次查询的 operation 子集，`--stack` 最后选择栈中要出现的 frame，`--stack-rule FRAME:LABEL=REGEX` 只在构造某个 frame 时做局部覆盖。默认 `phase` 只是一个内置 frame，它根据 LLM 标签和 tool effect/category 给单个 prompt 内的事件生成阶段；用户也可以去掉 prompt、增加 `task,subtask,phase`，让几个 prompt 合并到同一个 intent/task 下。字段派生在前，按 `--stack` 折叠与聚合在后。
 
 `--op-map` 和 `--stack-rule` 匹配的是由 operation 字段组成的 `key=value` 字符串，可用字段包括 `prompt`、`prompt_preview`、`op`、`tool`、`category`、`command`、`cmd`、`process`、`effect`、`status`、`path`、`domain`、`llm`、`llm_preview`、`model` 和 `token`。`--op-map` 先执行，并按顺序匹配已经派生出来的字段；同一个字段第一条匹配规则生效。`--where` 在 mapping 之后、stack 构造之前执行，多条 predicate 取 AND。默认栈使用 `phase`，但用户可以增删任意 frame。
 
@@ -179,7 +179,7 @@ agentpprof --project-root . --tag-cache tags.json -o flamegraph.svg
 eval(V, O) = { (s, w_s) : w_s = Σ w(o), 对所有 o ∈ O 满足 φ(o) 且 σ(o) = s }
 ```
 
-这个模型的直接推论是：栈不是预定义的固定结构，视图也不是预先画好的图，两者都由查询决定，换一个分析问题只需换一组 (φ, σ, w)。栈里的语义帧也不是内置词表，而是来自意图识别层你为项目定义的标签规则。内置视图就是几组预定义查询：
+这个模型的直接推论是：栈不是预定义的固定结构，视图也不是预先画好的图，两者都由查询决定，换一个分析问题只需换一组 (φ, σ, w)。栈里的语义帧也不是内置词表，而是来自字段派生段中你为项目定义的 tagging、mapping 或数据集标签规则。内置视图就是几组预定义查询：
 
 | 视图 | φ（选择哪些操作） | σ（栈结构） | w（权重） |
 | --- | --- | --- | --- |
