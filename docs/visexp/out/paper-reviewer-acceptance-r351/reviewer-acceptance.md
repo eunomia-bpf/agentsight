@@ -8,6 +8,7 @@ R351 records the independent reviewer closure after the R350 evidence-packet and
 - Final reviewer accepts: 4/4.
 - Blocking issues: 0.
 - Residual risks: 12.
+- Resolved residual risks: 1.
 
 ## Checks
 
@@ -20,6 +21,7 @@ R351 records the independent reviewer closure after the R350 evidence-packet and
 | r350_counterpoints_preserved | pass | R350 preserves strict-budget exceptions and weak exact action transfer as guardrails. |
 | r320_hidden_label_leakage_check_passes | pass | R320 visible rank features do not overlap hidden oracle fields. |
 | r331_negative_control_provenance_passes | pass | R331 negative control reads tracked-clean sources without dataset sync. |
+| r328_clean_deterministic_output_provenance | pass | R328 clean rerun records empty git/code status and 76/76 semantic/raw-byte deterministic specs. |
 | r350_no_dataset_sync_or_label_leak | pass | R350 records no dataset sync/creation/relabeling and hidden-label use only through offline scoring. |
 | paper_must_not_claim_boundaries_visible | pass | English and Chinese drafts visibly guard human utility, automatic selector, and ecosystem-compatibility claims. |
 | two_abstractions_only | pass | R338 and both drafts keep operation and operation stack as the two profiler abstractions. |
@@ -47,3 +49,7 @@ R351 records the independent reviewer closure after the R350 evidence-packet and
 - Galileo: Some older upstream reports have less uniform provenance schema than R338/R350.
 - Herschel: Chinese draft has broad all-profilable-objects language but later caveats scope it.
 - Herschel: Accuracy and actionability appear often but are consistently tied to hidden-label profiler scoring.
+
+## Resolved Residuals
+
+- Galileo: R328 records a dirty worktree at generation time despite tracked-clean source checks. Resolution: Current R328 deterministic-output report was rerun from a clean worktree and records empty git/code status with 76/76 semantic and raw-byte deterministic specs.

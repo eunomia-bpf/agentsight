@@ -4,7 +4,8 @@
 This is a paper-readiness artifact. It does not fetch or sync datasets, rerun
 the profiler, create labels, or run a human/agent analyst study. It records the
 current subagent review closure and mechanically checks that the accepted claim
-still rests on the R320-R350 hidden-label profiler evidence and guardrails.
+still rests on the R320-R350 hidden-label profiler evidence, R328 clean
+deterministic-output provenance, and guardrails.
 """
 
 from __future__ import annotations
@@ -31,6 +32,9 @@ SOURCE_PATHS = {
     "r331_negative_control": OUT_ROOT
     / "operation-profile-negative-control-r331"
     / "negative-control-report.json",
+    "r328_deterministic_output": OUT_ROOT
+    / "operation-profile-deterministic-output-r328"
+    / "deterministic-output-report.json",
     "r338_claim_integrity": OUT_ROOT
     / "paper-claim-integrity-r338"
     / "claim-integrity-report.json",
@@ -151,6 +155,7 @@ def build_checks(
     chinese_paper: str,
     r320: dict[str, Any],
     r331: dict[str, Any],
+    r328: dict[str, Any],
     r338: dict[str, Any],
     r350: dict[str, Any],
 ) -> list[dict[str, str]]:
@@ -158,6 +163,8 @@ def build_checks(
     r350_summary = r350["summary"]
     leakage = r320["leakage_check"]
     r350_input = r350["input_policy"]
+    r328_summary = r328["summary"]
+    r328_source_status = r328["source_status"]
     return [
         check(
             all(event["final_verdict"] == "ACCEPT" for event in REVIEW_EVENTS),
@@ -218,6 +225,17 @@ def build_checks(
             "R331 negative control provenance is not clean.",
         ),
         check(
+            r328["status"] == "pass"
+            and r328["source_check"]["status"] == "pass"
+            and r328_source_status["git_status_short"] == ""
+            and r328_source_status["code_status_short"] == ""
+            and r328_summary["semantic_deterministic_specs"] == "76/76"
+            and r328_summary["raw_byte_deterministic_specs"] == "76/76",
+            "r328_clean_deterministic_output_provenance",
+            "R328 clean rerun records empty git/code status and 76/76 semantic/raw-byte deterministic specs.",
+            "R328 deterministic-output provenance is dirty or no longer deterministic.",
+        ),
+        check(
             r350_input["dataset_sync"] == "none"
             and r350_input["dataset_creation"] == "none"
             and r350_input["dataset_relabeling"] == "none"
@@ -246,6 +264,27 @@ def build_checks(
             "The two-abstraction boundary is not preserved.",
         ),
     ]
+
+
+def build_resolved_residuals(r328: dict[str, Any]) -> list[dict[str, str]]:
+    r328_summary = r328["summary"]
+    r328_source_status = r328["source_status"]
+    if (
+        r328["status"] == "pass"
+        and r328["source_check"]["status"] == "pass"
+        and r328_source_status["git_status_short"] == ""
+        and r328_source_status["code_status_short"] == ""
+        and r328_summary["semantic_deterministic_specs"] == "76/76"
+        and r328_summary["raw_byte_deterministic_specs"] == "76/76"
+    ):
+        return [
+            {
+                "reviewer": "Galileo",
+                "residual_risk": "R328 records a dirty worktree at generation time despite tracked-clean source checks.",
+                "resolution": "Current R328 deterministic-output report was rerun from a clean worktree and records empty git/code status with 76/76 semantic and raw-byte deterministic specs.",
+            }
+        ]
+    return []
 
 
 def write_review_csv(path: Path, events: list[dict[str, Any]]) -> None:
@@ -287,6 +326,7 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
         f"- Final reviewer accepts: {payload['summary']['final_accepts']}/{payload['summary']['reviewers']}.",
         f"- Blocking issues: {payload['summary']['blocking_issues']}.",
         f"- Residual risks: {payload['summary']['residual_risks']}.",
+        f"- Resolved residual risks: {payload['summary']['resolved_residual_risks']}.",
         "",
         "## Checks",
         "",
@@ -324,6 +364,18 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
     for event in payload["review_events"]:
         for risk in event["residual_risks"]:
             lines.append(f"- {event['reviewer']}: {risk}")
+    if payload["resolved_residuals"]:
+        lines.extend(
+            [
+                "",
+                "## Resolved Residuals",
+                "",
+            ]
+        )
+        for row in payload["resolved_residuals"]:
+            lines.append(
+                f"- {row['reviewer']}: {row['residual_risk']} Resolution: {row['resolution']}"
+            )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
@@ -347,6 +399,15 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
             f"<td>{len(event['blocking_issues'])}</td>"
             f"<td>{len(event['residual_risks'])}</td>"
             "</tr>"
+        )
+    resolved_items = []
+    for row in payload["resolved_residuals"]:
+        resolved_items.append(
+            "<li>"
+            f"<strong>{html.escape(row['reviewer'])}:</strong> "
+            f"{html.escape(row['residual_risk'])} "
+            f"Resolution: {html.escape(row['resolution'])}"
+            "</li>"
         )
     path.write_text(
         """<!doctype html>
@@ -380,6 +441,12 @@ def write_html(path: Path, payload: dict[str, Any]) -> None:
         + "\n".join(reviewer_rows)
         + """
   </table>
+  <h2>Resolved residuals</h2>
+  <ul>
+"""
+        + "\n".join(resolved_items)
+        + """
+  </ul>
 </body>
 </html>
 """,
@@ -397,9 +464,11 @@ def main() -> None:
     chinese_paper = SOURCE_PATHS["chinese_paper"].read_text(encoding="utf-8")
     r320 = load_json(SOURCE_PATHS["r320_accuracy"])
     r331 = load_json(SOURCE_PATHS["r331_negative_control"])
+    r328 = load_json(SOURCE_PATHS["r328_deterministic_output"])
     r338 = load_json(SOURCE_PATHS["r338_claim_integrity"])
     r350 = load_json(SOURCE_PATHS["r350_evidence_packet"])
-    checks = build_checks(english_paper, chinese_paper, r320, r331, r338, r350)
+    checks = build_checks(english_paper, chinese_paper, r320, r331, r328, r338, r350)
+    resolved_residuals = build_resolved_residuals(r328)
     final_accepts = sum(1 for event in REVIEW_EVENTS if event["final_verdict"] == "ACCEPT")
     blocking_issues = sum(len(event["blocking_issues"]) for event in REVIEW_EVENTS)
     residual_risks = sum(len(event["residual_risks"]) for event in REVIEW_EVENTS)
@@ -416,7 +485,7 @@ def main() -> None:
         "status": "ok" if overall == "accepted" else "needs_changes",
         "overall": overall,
         "commit": git_output(["rev-parse", "HEAD"]),
-        "input_policy": "current paper plus tracked R320/R331/R338/R350 artifacts; no dataset sync, no profiler rerun, no human/agent analyst task",
+        "input_policy": "current paper plus tracked R320/R328/R331/R338/R350 artifacts; no dataset sync, no profiler rerun inside R351, no human/agent analyst task",
         "not_new_empirical_result": True,
         "not_a_human_study_result": True,
         "not_an_agent_analyst_task_result": True,
@@ -428,8 +497,13 @@ def main() -> None:
             "final_accepts": final_accepts,
             "blocking_issues": blocking_issues,
             "residual_risks": residual_risks,
+            "resolved_residual_risks": len(resolved_residuals),
             "checks_passed": sum(1 for row in checks if row["status"] == "pass"),
             "checks_total": len(checks),
+            "r328_semantic_deterministic_specs": r328["summary"]["semantic_deterministic_specs"],
+            "r328_raw_byte_deterministic_specs": r328["summary"]["raw_byte_deterministic_specs"],
+            "r328_git_status_short": r328["source_status"]["git_status_short"],
+            "r328_code_status_short": r328["source_status"]["code_status_short"],
             "r350_tasks": r350["summary"]["tasks"],
             "r350_datasets": r350["summary"]["datasets"],
             "r350_top5_positive_packets": r350["summary"]["packets_with_top5_positive"],
@@ -439,6 +513,7 @@ def main() -> None:
             "r338_guardrail_checks": r338["summary"]["guardrail_checks_total"],
         },
         "checks": checks,
+        "resolved_residuals": resolved_residuals,
         "review_events": REVIEW_EVENTS,
         "claim_scope": {
             "supports": [
@@ -477,6 +552,7 @@ def main() -> None:
             "reviewers": report["summary"]["reviewers"],
             "final_accepts": final_accepts,
             "blocking_issues": blocking_issues,
+            "resolved_residual_risks": len(resolved_residuals),
             "checks_passed": report["summary"]["checks_passed"],
             "checks_total": report["summary"]["checks_total"],
             "not_new_empirical_result": True,

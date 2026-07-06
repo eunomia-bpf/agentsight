@@ -36,6 +36,11 @@
       "status": "pass"
     },
     {
+      "check": "r328_clean_deterministic_output_provenance",
+      "evidence": "R328 clean rerun records empty git/code status and 76/76 semantic/raw-byte deterministic specs.",
+      "status": "pass"
+    },
+    {
       "check": "r350_no_dataset_sync_or_label_leak",
       "evidence": "R350 records no dataset sync/creation/relabeling and hidden-label use only through offline scoring.",
       "status": "pass"
@@ -65,8 +70,8 @@
       "bounded operation-stack evidence packets with explicit baseline counterpoints"
     ]
   },
-  "commit": "c71064497aa9053eff289c06bedb75a3a89e71c1",
-  "input_policy": "current paper plus tracked R320/R331/R338/R350 artifacts; no dataset sync, no profiler rerun, no human/agent analyst task",
+  "commit": "a80937a6df9c2d03d225998605acd4e5f6c5bea0",
+  "input_policy": "current paper plus tracked R320/R328/R331/R338/R350 artifacts; no dataset sync, no profiler rerun inside R351, no human/agent analyst task",
   "network_access_required": false,
   "not_a_human_study_result": true,
   "not_an_agent_analyst_task_result": true,
@@ -82,6 +87,13 @@
   "profiler_abstractions": [
     "operation",
     "operation stack"
+  ],
+  "resolved_residuals": [
+    {
+      "residual_risk": "R328 records a dirty worktree at generation time despite tracked-clean source checks.",
+      "resolution": "Current R328 deterministic-output report was rerun from a clean worktree and records empty git/code status with 76/76 semantic and raw-byte deterministic specs.",
+      "reviewer": "Galileo"
+    }
   ],
   "review_events": [
     {
@@ -145,6 +157,7 @@
     "english_paper": "docs/agentpprof-paper/main.tex",
     "evaluation": "docs/evaluation.md",
     "r320_accuracy": "docs/visexp/out/operation-profile-accuracy-r320/profile-accuracy-report.json",
+    "r328_deterministic_output": "docs/visexp/out/operation-profile-deterministic-output-r328/deterministic-output-report.json",
     "r331_negative_control": "docs/visexp/out/operation-profile-negative-control-r331/negative-control-report.json",
     "r338_claim_integrity": "docs/visexp/out/paper-claim-integrity-r338/claim-integrity-report.json",
     "r350_evidence_packet": "docs/visexp/out/operation-evidence-packet-r350/evidence-packet-report.json"
@@ -152,9 +165,13 @@
   "status": "ok",
   "summary": {
     "blocking_issues": 0,
-    "checks_passed": 10,
-    "checks_total": 10,
+    "checks_passed": 11,
+    "checks_total": 11,
     "final_accepts": 4,
+    "r328_code_status_short": "",
+    "r328_git_status_short": "",
+    "r328_raw_byte_deterministic_specs": "76/76",
+    "r328_semantic_deterministic_specs": "76/76",
     "r338_guardrail_checks": 16,
     "r338_number_checks": 326,
     "r338_source_policy_checks": 78,
@@ -163,6 +180,7 @@
     "r350_tasks": 6,
     "r350_top5_positive_packets": 6,
     "residual_risks": 12,
+    "resolved_residual_risks": 1,
     "reviewers": 4
   }
 }
