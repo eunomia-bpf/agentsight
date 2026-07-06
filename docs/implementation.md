@@ -38,6 +38,7 @@ Purpose: identify the maintained implementation boundary.
 | `script/operation_oracle_depth_adequacy_eval.py` | R355 oracle-depth adequacy audit; scores visible-ranked profile groups at session, operation/step, positive-run proxy, and task-specific oracle depths over tracked labeled outputs. | research harness |
 | `script/operation_field_derivation_mechanism_eval.py` | R366 field-derivation mechanism audit; consolidates deterministic mapping, profile-spec composition, rank-feature ablation, supervised boundary backends, and boundary-derived profile patches from tracked artifacts without rerunning the profiler. | paper hygiene harness |
 | `script/paper_entry_claim_path_audit.py` | R367 entry claim-path audit; checks that abstract, introduction/problem framing, and main result table present three empirical profiling experiments plus one systems/reproducibility experiment, with R-runs as provenance and only operation/operation-stack profiler abstractions. | paper hygiene harness |
+| `script/paper_trace_tree_baseline_audit.py` | R368 trace-tree-shaped baseline audit; reads existing R320/R355 hidden-label scoring outputs and makes the flat/fixed-session/dataset-native/raw-action baseline tradeoffs explicit without importing ecosystem traces or rerunning the profiler. | paper hygiene harness |
 | `script/paper_core_experiment_consolidation_audit.py` | R359 paper-facing core-experiment consolidation audit; checks that evaluation is organized as E1-E4, R-runs are provenance, and R358 remains an E3 mechanism ablation. | paper hygiene harness |
 | `script/paper_core_result_tables.py` | R360 paper core-result table generator; regenerates the E1-E4 headline table and metric rows from tracked artifacts, now folding R366 field-derivation evidence into E1/E3 without rerunning the profiler. | paper hygiene harness |
 | `script/paper_core_claim_evidence.py` | R361 core-claim evidence ledger; binds each E1-E4 experiment to claim, oracle, baselines, primary metrics, actionability, counterpoints, scoped wording, and R366 field-derivation scope. | paper hygiene harness |
@@ -233,6 +234,20 @@ compatibility claims. It passed 11/11 checks with 6/6 entry-token rows. R367 is
 a paper-integration guardrail, not a new dataset, profiler run, empirical
 result, or fifth experiment.
 
+R368 makes the E2 trace-tree-shaped baseline scope explicit.
+`script/paper_trace_tree_baseline_audit.py` reads the existing R320 policy
+scores, R355 oracle-depth comparisons, R361/R364/R367 paper ledgers, and the
+current Chinese/English paper text. It compares operation-stack query-aware
+against flat summary, fixed-session drilldown, dataset-native hierarchy, and
+raw-action stacks on the same six labeled tasks and records both support and
+counterpoints. The gate passes 10/10 checks: operation-stack improves top-5
+recall/F1 over fixed-session on 5/6 tasks, reduces median groups from 285.0 to
+157.5, and R355 preserves 20/24 fixed-session unit-recall wins plus 22/24
+groups-to-50%-positive-unit wins; fixed-session still wins top-5 work and
+first-positive work on 4/6 tasks. R368 is an E2 baseline-scope guardrail, not a
+real OpenTelemetry/Phoenix/LangSmith/Perfetto import, new dataset, profiler
+rerun, human/agent analyst task, or metric-dominance claim.
+
 R355 then closes the main R339 depth-scoring gap without adding another
 runtime object. `script/operation_oracle_depth_adequacy_eval.py` reuses tracked
 R300 operation JSONL plus R320/R339 scored artifacts and evaluates the same
@@ -372,6 +387,7 @@ python3 -m py_compile script/agent_trace_datasets.py script/operation_split.py \
   script/paper_core_experiment_consolidation_audit.py \
   script/paper_core_result_tables.py \
   script/paper_entry_claim_path_audit.py \
+  script/paper_trace_tree_baseline_audit.py \
   script/agent_trace_exchange_eval.py script/agent_trace_chrome_exchange_eval.py \
   script/operation_standard_trace_exchange_eval.py \
   script/implementation_consistency_audit.py

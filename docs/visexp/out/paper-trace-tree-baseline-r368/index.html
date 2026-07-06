@@ -1,0 +1,42 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>R368 Trace-Tree Baseline Tradeoff Audit</title>
+<style>
+body { font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.45; }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+th, td { border: 1px solid #ddd; padding: 0.45rem; vertical-align: top; }
+th { background: #f5f5f5; text-align: left; }
+code { background: #f3f3f3; padding: 0.1rem 0.2rem; }
+</style>
+</head>
+<body>
+<h1>R368 Trace-Tree Baseline Tradeoff Audit</h1>
+<p>Status: <code>pass</code>;
+checks: 10/10.</p>
+<h2>Baseline Summary</h2>
+<table>
+<tr><th>Policy</th><th>Role</th><th>AP</th><th>Top-5 work</th><th>Budget-30 recall</th><th>WTFP</th><th>Groups</th></tr>
+<tr><td>operation_stack:query_aware</td><td>proposed operation/operation-stack view</td><td>0.3117</td><td>0.0937</td><td>0.39</td><td>0.0378</td><td>157.5</td></tr>
+<tr><td>flat:width</td><td>summary baseline</td><td>0.1678</td><td>1.0</td><td>0.0</td><td>1.0</td><td>1.0</td></tr>
+<tr><td>fixed_session:query_aware</td><td>trace-tree-shaped baseline</td><td>0.3476</td><td>0.0163</td><td>0.3559</td><td>0.0044</td><td>285.0</td></tr>
+<tr><td>dataset_native:query_aware</td><td>native hierarchy baseline</td><td>0.3572</td><td>0.8539</td><td>0.3377</td><td>0.0582</td><td>7.5</td></tr>
+<tr><td>raw_action_stack:query_aware</td><td>action-tree baseline</td><td>0.2744</td><td>0.1507</td><td>0.3325</td><td>0.0374</td><td>24.5</td></tr>
+</table>
+<h2>Checks</h2>
+<table>
+<tr><th>Check</th><th>Status</th><th>Evidence</th></tr>
+<tr><td>real_labeled_trace_scale_preserved</td><td>pass</td><td>R320 covers 6 tasks / 4 datasets / 34,539 operations / 3,699 positives.</td></tr>
+<tr><td>span_tree_scope_is_fixed_session_proxy_not_ecosystem_claim</td><td>pass</td><td>Paper text scopes the evaluated trace-tree-shaped baseline to fixed-session drilldown and leaves real ecosystem imports for future work.</td></tr>
+<tr><td>operation_stack_vs_fixed_session_fragmentation_tradeoff</td><td>pass</td><td>Operation-stack beats fixed-session on top-5 recall/F1 for 5/6 tasks, budget-30 recall for 4/6, group count for 4/6, and median groups 157.5 vs 285.0.</td></tr>
+<tr><td>fixed_session_counterpoints_preserved</td><td>pass</td><td>Fixed-session remains a counterpoint: it wins top-5 work and first-positive work on 4/6 tasks, with 0.0044 median WTFP.</td></tr>
+<tr><td>operation_stack_vs_flat_inspection_work_tradeoff</td><td>pass</td><td>Operation-stack improves AP, budget-30 recall, and top-5 work on 6/6 tasks vs flat; median top-5 work is 0.0937 vs flat 1.0.</td></tr>
+<tr><td>dataset_native_tradeoff_preserved</td><td>pass</td><td>Dataset-native hierarchy has fewer groups and broader top-5 recall, but operation-stack improves AP on 4/6, budget recall on 5/6, and top-5 work on 6/6.</td></tr>
+<tr><td>raw_action_stack_is_not_sufficient_baseline</td><td>pass</td><td>Raw-action stacks are useful counterpoints but miss task-aware aggregation: operation-stack improves AP/budget recall on at least 4/6 while raw-action keeps some top-5 recall wins.</td></tr>
+<tr><td>oracle_depth_confirms_fixed_session_fragmentation_support</td><td>pass</td><td>R355 confirms depth-aware support: 20/24 fixed-session unit-recall wins and 22/24 groups-to-50%-positive-unit wins.</td></tr>
+<tr><td>core_experiment_structure_remains_e1_e4</td><td>pass</td><td>R361/R364/R367 keep this as E2 baseline evidence inside E1-E4, not a fifth core experiment.</td></tr>
+<tr><td>two_abstractions_and_no_new_data_policy_preserved</td><td>pass</td><td>The audit reads tracked outputs only and preserves operation/operation-stack as the only profiler abstractions.</td></tr>
+</table>
+</body>
+</html>
