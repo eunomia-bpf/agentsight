@@ -256,6 +256,12 @@ R 编号只作为 provenance，不是论文的小节结构。
   \input{../out/paper-core-experiment-weight-r374/experiment-role-table.tex}
 \end{table*}
 
+R375 把完整 claim-gate 表保留在 artifact ledger，而不在主文继续增加第二张 meta table。
+它的 gate decision 是：E1 supported with scoped limits；E2 supported as a hidden-label profiler benchmark；E3 supported as profile-configuration actionability；E4 supported as offline artifact replayability。
+如果 flat 或 fixed-session 在某个指标上占优、transfer 失败、或 replay 不再 deterministic，claim 必须相应收窄。
+仍然不能 claim 的范围包括 metric dominance、human/agent analyst productivity、automatic boundary discovery、automatic patch selection 和 full trace-ecosystem compatibility。
+R375 只读取 tracked R361/R364/R370/R373/R374 artifacts 和当前论文文本，不下载、不同步、不创建、不重标数据，也不重跑 profiler。
+
 \subsection{RQ1/E1：泛化覆盖、递归折叠和边界字段}
 
 R361 将本节的 evidence contract 固定为：claim 是两抽象模型能覆盖异构 agent traces 且不把 prompt/session/tool 边界写死；oracle 是 public dataset labels、native trajectory fields、OSWorld-Human human boundary 和 AgentNet quality labels；baseline 包括 dataset-native stacks、no-map folding、fixed-session stacks、profile-spec replay 和 trace round trip；metric 包括 operation coverage、unique-stack range、mapping compression、boundary F1/V-measure 和 replay equality；counterpoint 是这只能支持 configurable operation stack folding，不能支持完整生态兼容或自动恢复所有 latent intent。Prompt、tool、process 和 syscall 可以是 operation records 或 fields；session/span 是字段、容器或 baseline shape，not new profiler objects。

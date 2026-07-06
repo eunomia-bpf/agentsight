@@ -1,0 +1,184 @@
+{
+  "checks": [
+    {
+      "check": "upstream_claim_gates_pass",
+      "detail": "R361=pass; R364=pass; R370=pass; R373=pass; R374=pass",
+      "passed": true
+    },
+    {
+      "check": "exactly_four_claim_gate_rows",
+      "detail": "rows=4",
+      "passed": true
+    },
+    {
+      "check": "each_gate_has_decision_allowed_failure_forbidden",
+      "detail": "Each row has a decision, allowed claim, failure interpretation, must-not-claim boundary, and evidence sources.",
+      "passed": true
+    },
+    {
+      "check": "profiling_metrics_and_baselines_preserved",
+      "detail": "The paper still carries the profiler metrics and the named baseline families.",
+      "passed": true
+    },
+    {
+      "check": "actionability_mechanisms_preserved",
+      "detail": "R375 ties actionability to fields, mappings/tags, rankers, profile specs, and boundary-derived operation fields.",
+      "passed": true
+    },
+    {
+      "check": "must_not_claims_preserved",
+      "detail": "Metric dominance, human utility/productivity, automatic-boundary, and ecosystem-compatibility limits remain explicit.",
+      "passed": true
+    },
+    {
+      "check": "paper_mentions_r375_claim_gate",
+      "detail": "Both papers and the evaluation ledger mention the R375 claim gate.",
+      "passed": true
+    },
+    {
+      "check": "paper_summarizes_claim_gate_decisions",
+      "detail": "Both papers summarize the R375 decisions while the full table stays in the artifact ledger.",
+      "passed": true
+    },
+    {
+      "check": "evaluation_records_claim_gate_role",
+      "detail": "The evaluation ledger records that R375 converts E1-E4 into scoped claim decisions.",
+      "passed": true
+    },
+    {
+      "check": "no_new_data_or_profiler_rerun",
+      "detail": "R375 reads tracked artifacts and paper text only; it does not sync data, relabel traces, or invoke agentpprof.",
+      "passed": true
+    },
+    {
+      "check": "source_status_tracked",
+      "detail": "All R375 sources and generated claim-gate tables are tracked or staged as intent-to-add.",
+      "passed": true
+    }
+  ],
+  "data_sync": false,
+  "gate_rows": [
+    {
+      "allowed_claim": "A two-object model covers heterogeneous public labeled traces, and mappings/tags derive operation fields before query-time recursive stack folding.",
+      "core_experiment": "RQ1/E1: generality and recursive folding",
+      "evidence_sources": "R286/R290/R342/R353/R366 plus R361/R364/R370/R374 gates.",
+      "failure_interpretation": "If a dataset needs a new profiler object or a fixed prompt/session hierarchy to obtain useful groups, narrow C1/C2/C3 to the covered families and fields.",
+      "gate_decision": "Supported with scoped limits.",
+      "must_not_claim": "Complete trace-ecosystem compatibility; automatic discovery of every latent intent boundary."
+    },
+    {
+      "allowed_claim": "Operation-stack profiling localizes dataset-provided positives with less inspection work than flat summaries and a better median-fragmentation tradeoff than fixed-session drilldown proxy.",
+      "core_experiment": "RQ2/E2: hidden-label localization and ranking",
+      "evidence_sources": "R320/R333/R334/R337/R339/R344/R355/R368 plus R373 task verdict.",
+      "failure_interpretation": "If flat or fixed-session dominates the Pareto surface on a task or metric, keep that counterpoint visible and narrow the claim to the supported budget, recall, and fragmentation objectives.",
+      "gate_decision": "Supported as a hidden-label profiler benchmark.",
+      "must_not_claim": "Metric dominance; human or agent analyst productivity; superiority over imported OpenTelemetry/Phoenix/LangSmith/Langfuse/Perfetto traces."
+    },
+    {
+      "allowed_claim": "Stack fields, mapping/tagging rules, rankers, profile specs, and boundary-derived fields expose actionable configuration knobs and explain task-specific wins and failures.",
+      "core_experiment": "RQ3/E3: mechanism and actionability",
+      "evidence_sources": "R324/R325/R335/R340/R341/R345-R350/R354/R358/R366 plus R373 task verdict.",
+      "failure_interpretation": "If one default view wins everywhere, remove configurable actionability; if transfer fails, keep the result as post-hoc profile-guided configuration rather than automatic selection.",
+      "gate_decision": "Supported as profile-configuration actionability.",
+      "must_not_claim": "Automatic patch selection; label-free universal view/ranker selection; automatic boundary detection."
+    },
+    {
+      "allowed_claim": "Tracked profile specs replay deterministically over tracked operation inputs at low local cost, and paper guardrails keep evidence, wording, and non-claims aligned.",
+      "core_experiment": "RQ4/E4: replayability, offline cost, and artifact hygiene",
+      "evidence_sources": "R327/R328 plus R338/R352/R356/R357/R359-R375 guardrails.",
+      "failure_interpretation": "If replay is nondeterministic or paper wording outruns evidence, block artifact readiness and narrow the abstract until source, number, and claim gates pass again.",
+      "gate_decision": "Supported as offline artifact replayability.",
+      "must_not_claim": "Live eBPF overhead; hidden-label accuracy evidence; human utility; complete ecosystem compatibility."
+    }
+  ],
+  "network_access_required": false,
+  "not_new_empirical_result": true,
+  "paper_tables": [
+    "docs/visexp/out/paper-core-claim-gate-r375/claim-gate-table.tex",
+    "docs/agentpprof-paper/figures/claim-gate-table.tex"
+  ],
+  "profiler_rerun": false,
+  "run_id": "R375",
+  "schema": "agentsight.paper_core_claim_gate.v1",
+  "source_status": [
+    {
+      "path": "script/paper_core_claim_gate.py",
+      "sha256": "0991796ca9875efb990d3c97620580b4e4aa981b00fcbce8796ce92682b76599",
+      "source": "generator script",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/out/paper-core-claim-evidence-r361/core-claim-evidence.json",
+      "sha256": "64cf9a781df9edd594ae1c8b1f18a1b73e2e9a2a007830441d80fcff294b694e",
+      "source": "R361 core claim evidence",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/out/paper-core-experiment-sufficiency-r364/core-experiment-sufficiency.json",
+      "sha256": "48a74d476c6aee5bebcbced6381701b387d9eb6d814e47926345c78c05a7f913",
+      "source": "R364 core experiment sufficiency",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/out/paper-main-experiment-contract-r370/main-experiment-contract.json",
+      "sha256": "20eac8b31b68c5f10fb790147b1a5039b094642a5948353c3b94cc0635032355",
+      "source": "R370 main experiment contract",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/out/paper-task-claim-verdict-r373/task-claim-verdict-report.json",
+      "sha256": "717aecb6299bcab8a075ca756642219c4689e351230494dd7085e8b0db07e44f",
+      "source": "R373 task claim verdict",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/out/paper-core-experiment-weight-r374/core-experiment-weight-report.json",
+      "sha256": "e9a5defb3242e31f453807467ef7c7221fdbbdd01b065e107c0e6e16656376db",
+      "source": "R374 core experiment weight",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/agentpprof-paper/main.tex",
+      "sha256": "65e9df18c70dcd3f164e0d606171087a2c3f17e72d6efe16a6a195e0ea5374a0",
+      "source": "English paper",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/paper/main.tex",
+      "sha256": "dd1e738153bdfd9067855d1fff0fd234997b13c7805de2bbe7dfd70415399048",
+      "source": "Chinese paper",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/evaluation.md",
+      "sha256": "def396085e5ec4f3f1d4b4c987276821c775f4311be80869149ea6aac3b46014",
+      "source": "evaluation ledger",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/out/paper-core-claim-gate-r375/claim-gate-table.tex",
+      "sha256": "4524471ca3e777479887e26f13ea5e2c313d124797e2d381088c1d01375d9c2d",
+      "source": "generated claim-gate table",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/agentpprof-paper/figures/claim-gate-table.tex",
+      "sha256": "4524471ca3e777479887e26f13ea5e2c313d124797e2d381088c1d01375d9c2d",
+      "source": "generated claim-gate table",
+      "status": "tracked_clean"
+    }
+  ],
+  "status": "pass",
+  "summary": {
+    "checks_passed": 11,
+    "checks_total": 11,
+    "core_experiments": 4,
+    "upstream_gates": [
+      "R361",
+      "R364",
+      "R370",
+      "R373",
+      "R374"
+    ]
+  }
+}

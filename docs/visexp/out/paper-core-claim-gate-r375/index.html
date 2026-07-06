@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>R375 Core-Experiment Claim Gate</title>
+<style>
+body { font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.45; }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+th, td { border: 1px solid #d0d7de; padding: 0.45rem; vertical-align: top; }
+th { background: #f6f8fa; }
+.status { font-weight: 700; }
+</style>
+<h1>R375 Core-Experiment Claim Gate</h1>
+<p class="status">Status: pass; checks 11/11.</p>
+<p>This is a paper-integration guardrail, not a new empirical result.</p>
+<h2>Checks</h2>
+<table><tr><th>Check</th><th>Passed</th><th>Detail</th></tr><tr><td>upstream_claim_gates_pass</td><td>True</td><td>R361=pass; R364=pass; R370=pass; R373=pass; R374=pass</td></tr>
+<tr><td>exactly_four_claim_gate_rows</td><td>True</td><td>rows=4</td></tr>
+<tr><td>each_gate_has_decision_allowed_failure_forbidden</td><td>True</td><td>Each row has a decision, allowed claim, failure interpretation, must-not-claim boundary, and evidence sources.</td></tr>
+<tr><td>profiling_metrics_and_baselines_preserved</td><td>True</td><td>The paper still carries the profiler metrics and the named baseline families.</td></tr>
+<tr><td>actionability_mechanisms_preserved</td><td>True</td><td>R375 ties actionability to fields, mappings/tags, rankers, profile specs, and boundary-derived operation fields.</td></tr>
+<tr><td>must_not_claims_preserved</td><td>True</td><td>Metric dominance, human utility/productivity, automatic-boundary, and ecosystem-compatibility limits remain explicit.</td></tr>
+<tr><td>paper_mentions_r375_claim_gate</td><td>True</td><td>Both papers and the evaluation ledger mention the R375 claim gate.</td></tr>
+<tr><td>paper_summarizes_claim_gate_decisions</td><td>True</td><td>Both papers summarize the R375 decisions while the full table stays in the artifact ledger.</td></tr>
+<tr><td>evaluation_records_claim_gate_role</td><td>True</td><td>The evaluation ledger records that R375 converts E1-E4 into scoped claim decisions.</td></tr>
+<tr><td>no_new_data_or_profiler_rerun</td><td>True</td><td>R375 reads tracked artifacts and paper text only; it does not sync data, relabel traces, or invoke agentpprof.</td></tr>
+<tr><td>source_status_tracked</td><td>True</td><td>All R375 sources and generated claim-gate tables are tracked or staged as intent-to-add.</td></tr></table>
+<h2>Claim Gates</h2>
+<table><tr><th>Core experiment</th><th>Gate decision</th><th>Allowed claim</th><th>Failure / narrowing rule</th><th>Must not claim</th><th>Evidence sources</th></tr><tr><td>RQ1/E1: generality and recursive folding</td><td>Supported with scoped limits.</td><td>A two-object model covers heterogeneous public labeled traces, and mappings/tags derive operation fields before query-time recursive stack folding.</td><td>If a dataset needs a new profiler object or a fixed prompt/session hierarchy to obtain useful groups, narrow C1/C2/C3 to the covered families and fields.</td><td>Complete trace-ecosystem compatibility; automatic discovery of every latent intent boundary.</td><td>R286/R290/R342/R353/R366 plus R361/R364/R370/R374 gates.</td></tr>
+<tr><td>RQ2/E2: hidden-label localization and ranking</td><td>Supported as a hidden-label profiler benchmark.</td><td>Operation-stack profiling localizes dataset-provided positives with less inspection work than flat summaries and a better median-fragmentation tradeoff than fixed-session drilldown proxy.</td><td>If flat or fixed-session dominates the Pareto surface on a task or metric, keep that counterpoint visible and narrow the claim to the supported budget, recall, and fragmentation objectives.</td><td>Metric dominance; human or agent analyst productivity; superiority over imported OpenTelemetry/Phoenix/LangSmith/Langfuse/Perfetto traces.</td><td>R320/R333/R334/R337/R339/R344/R355/R368 plus R373 task verdict.</td></tr>
+<tr><td>RQ3/E3: mechanism and actionability</td><td>Supported as profile-configuration actionability.</td><td>Stack fields, mapping/tagging rules, rankers, profile specs, and boundary-derived fields expose actionable configuration knobs and explain task-specific wins and failures.</td><td>If one default view wins everywhere, remove configurable actionability; if transfer fails, keep the result as post-hoc profile-guided configuration rather than automatic selection.</td><td>Automatic patch selection; label-free universal view/ranker selection; automatic boundary detection.</td><td>R324/R325/R335/R340/R341/R345-R350/R354/R358/R366 plus R373 task verdict.</td></tr>
+<tr><td>RQ4/E4: replayability, offline cost, and artifact hygiene</td><td>Supported as offline artifact replayability.</td><td>Tracked profile specs replay deterministically over tracked operation inputs at low local cost, and paper guardrails keep evidence, wording, and non-claims aligned.</td><td>If replay is nondeterministic or paper wording outruns evidence, block artifact readiness and narrow the abstract until source, number, and claim gates pass again.</td><td>Live eBPF overhead; hidden-label accuracy evidence; human utility; complete ecosystem compatibility.</td><td>R327/R328 plus R338/R352/R356/R357/R359-R375 guardrails.</td></tr></table>
