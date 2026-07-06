@@ -452,6 +452,27 @@ Default 与 patched profile specs 在同一 visible operation input 上实际运
 Held-out boundary-derived fields 随后作为普通 operation fields 折叠，AP 从 semantic-width 的 0.2402 提升到 0.2583，groups 从 108 降到 74；反例是 top-5 work 和 first-positive work 变差。
 R354/R358 支持 boundary-derived fields 是 actionable operation-field knob，不支持 automatic boundary discovery 或 automatic patch selector，也不是第五个核心实验。
 
+\begin{table*}[t]
+  \centering
+  \scriptsize
+  \setlength{\tabcolsep}{2.5pt}
+  \renewcommand{\arraystretch}{0.92}
+  \caption{E3 task diagnosis cards。每行把 hidden-label localization 信号、可执行 profile 配置动作和反例放在一起；它是 R365/R373 task-card evidence 的压缩主文版本，不是新增实验。}
+  \label{tab:actionability}
+  \begin{tabular}{p{0.14\linewidth}p{0.20\linewidth}p{0.38\linewidth}p{0.20\linewidth}}
+    \toprule
+    Task & Localization signal & Profile action & Counterpoint \\
+    \midrule
+    Looping & Work@5 0.4938, R@5 0.6508, patch AP +0.1155 & 保留 \texttt{repeat\_signal}，但加入 prevalence-aware ranking，因为 positives 很常见。 & Raw-action first-positive work 更低。 \\
+    Side-effect & Work@5 0.1454, R@5 0.1139, patch AP +0.0591 & 提高 write/input 权重，或在 ranking 前使用更深的 side-effect mapping。 & Fixed-session groups 更少；raw-action top-five lift 更好。 \\
+    Unsafe operation & Work@5 0.0420, R@5 0.2621, patch AP +0.5081 & 使用 environment、phase、action stack fields，并优先 risky environment 和 write actions。 & Fixed-session first-positive work 更低。 \\
+    Incorrect step & Work@5 0.0014, R@5 0.0034, patch AP +0.0160 & 使用 desktop environment、phase、repeat 和 action fields，再进入 fixed-session examples。 & Fixed-session 仍是 drilldown baseline。 \\
+    Redundant step & Work@5 0.0089, R@5 0.0177, patch AP +0.0011 & 使用 desktop environment、phase、repeat 和 action fields，再进入 fixed-session examples。 & Fixed-session first-positive work 更低。 \\
+    Group start & Work@5 0.4074, R@5 0.3874, boundary AP 0.2583 & 使用 group-depth 或 boundary-derived fields；action-depth alone 会 fragment starts。 & Boundary fields 把 groups 降到 74，但 top-five 和 first-positive work 变差。 \\
+    \bottomrule
+  \end{tabular}
+\end{table*}
+
 \subsection{RQ4/E4：Replayability、离线成本和 artifact hygiene}
 
 R361 将本节的 evidence contract 固定为：claim 是 offline profiler path 可以在 tracked inputs 上低成本 replay；oracle 是 tracked profile specs、tracked operation inputs、repeated profile outputs、runtime logs 和 source-status rows；baseline 包括 default output versus deterministic-output replay、semantic profile hashes versus raw-byte profile hashes；metric 包括 deterministic spec pass rate、profiler invocations、median/p95 runtime、sample equality、stack equality 和 raw-byte output equality；counterpoint 是 not live eBPF overhead、not human utility、not complete ecosystem compatibility、not universal selector。Claim-integrity、rubric 和 reviewer-style checks 是 artifact hygiene，不是 empirical evidence。
