@@ -5,6 +5,7 @@
 \usepackage{array}
 \usepackage{url}
 \usepackage{xcolor}
+\usepackage{graphicx}
 \usepackage{caption}
 \usepackage{enumitem}
 \usepackage[compact]{titlesec}
@@ -355,6 +356,15 @@ R355 给出 depth-aware 版本：operation-stack rankings 在 20/24 task-depth r
 R363 把同一批 scored outputs 组织成五个 paper-facing views，而不是只输出 flamegraph。
 表~\ref{tab:visualization-portfolio} 给出论文中使用的 compact 版本；artifact 还生成对应 SVG、CSV、HTML、JSON 和 LaTeX fragment。
 这些 view 不是新的 profiler object，也不是第五个实验，只是对 operation-stack 输出及其 baseline counterpoints 的不同 inspection surface。
+
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=0.48\linewidth]{../out/paper-visualization-portfolio-r363/baseline-tradeoff.png}
+  \hfill
+  \includegraphics[width=0.48\linewidth]{../out/paper-visualization-portfolio-r363/actionability-knobs.png}
+  \caption{R363 的两个 paper-facing 非 flamegraph 视图。左图把 RQ2/E2 的核心 tradeoff 放在同一坐标系中：operation-stack query-aware 位于 flat summary 的低 work 区域，同时保留 fixed-session 和 oracle 上界反例。右图把 RQ3/E3 的 actionability 展开为 profile-configuration knobs：多数 objective rows 需要改变 view、ranker、profile spec 或 boundary-derived fields，而不是使用一个固定默认视图。}
+  \label{fig:r363-portfolio}
+\end{figure*}
 
 \begin{table*}[t]
   \centering
