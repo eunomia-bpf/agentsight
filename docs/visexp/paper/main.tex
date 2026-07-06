@@ -440,15 +440,14 @@ Primary mechanism question 是：E2 的 ranked outputs 能不能解释应该怎�
 Hidden labels 只在 profiling 之后用于 scoring；visible inputs 仍然是 stack fields、mapping/tagging rules、rank features、profile specs 和 boundary-derived operation fields。
 成功条件是 actionable、replayable diagnosis：每个任务应该指向具体的 stack、field、ranker、mapping、profile-spec 或 drilldown change，并且 executable patches 能改善 scored output，但不能把结果写成 automatic selector。
 
-R320 首先把 localization 分数解释成任务级诊断，而不是只给 policy 排名。
+表~\ref{tab:actionability} 是 E3 的主显示：它把 task-card evidence 压缩成 paper-facing diagnosis table，而 source artifacts 只作为 provenance。
 SATraj unsafe 说明 \texttt{environment,phase,action} 和 risky/write-action ranking 对安全问题有效；looping 说明 \texttt{repeat\_signal} 有用但需要 prevalence-aware ranking；side-effect 指向更深的 write/input mapping；AgentNet step-quality 需要 action-family 定位后再进入 fixed-session examples；OSWorld-Human 则需要 boundary-derived fields。
-因此 actionability 的第一层结论是：profiler 指出该调 stack field、mapping、ranker 还是 drilldown，而不是给出唯一默认 view。
+因此 actionability 的第一层结论是：profiler 指出该调 stack field、mapping、ranker、profile spec、boundary field 还是 drilldown，而不是给出唯一默认 view。
 
-Rust 机制消融说明这些诊断来自可复现的 profiler 配置，而不是来自又一组独立小实验。
-第一，stack-text rank rules 和 rank mode 可以从 profile spec 复现，但它们对 safety/side-effect 过粗。
-第二，operation-level rank features 在 folding 前匹配 visible mapped operation tokens；semantic stack 的 feature ranking 在 AP 上赢 5/6 tasks、top-5 lift 赢 4/6、first-positive work 赢 5/6，coarse depth 在 4/6 tasks 上改善 AP 并减少 groups。
-第三，leave-one-feature 和 robustness checks 说明哪些字段有用或有害：\texttt{repeat\_signal}、write-action 和 \texttt{status=success} 在不同 family 关键，SATraj loop-like 或 OSWorld-Human input-phase features 会误导；global/equal feature banks 常能保留收益，guided repair 在 2/3 misleading-feature cases 上改善 AP，但这些 repair 使用离线评分反馈，因此不是自动 learned ranker。
-R322--R326 只是这个 E3 mechanism block 的 provenance。
+机制消融说明这些诊断来自可复现的 profiler 配置，而不是来自又一组独立小实验。
+Stack-text rank rules 和 rank mode 可以从 profile spec 复现，但它们对 safety/side-effect 过粗；operation-level rank features 在 folding 前匹配 visible mapped operation tokens，semantic stack 的 feature ranking 在 AP 上赢 5/6 tasks、top-5 lift 赢 4/6、first-positive work 赢 5/6，coarse depth 在 4/6 tasks 上改善 AP 并减少 groups。
+Leave-one-feature 和 robustness checks 说明哪些字段有用或有害：\texttt{repeat\_signal}、write-action 和 \texttt{status=success} 在不同 family 关键，SATraj loop-like 或 OSWorld-Human input-phase features 会误导；global/equal feature banks 常能保留收益，guided repair 在 2/3 misleading-feature cases 上改善 AP。
+这些 repair 使用离线评分反馈，因此支持 mechanism isolation，不支持 automatic learned ranker。
 
 View、depth 和 budget 审计把机制结果放回 profiling tradeoff。
 Best AP 和 best top-5 F1 分散在 operation-stack、fixed-session、dataset-native、raw-action 和 flat views；leave-task source selection 不能稳定选中 best view。
@@ -456,21 +455,19 @@ Best AP 和 best top-5 F1 分散在 operation-stack、fixed-session、dataset-na
 25\% recall target 下它覆盖 6/6 tasks，median work 为 0.2000 而 flat 为 1.0000，median groups 为 16.0 而 fixed-session 为 50.0；50\% recall 和 first-positive work 仍保留 fixed-session、dataset-native 或 raw-action counterpoints。
 Sequence-scope 和 oracle-depth 审计进一步说明：30\% work budget 下 positive-session recall 为 0.4669，高于 fixed-session 的 0.3230；24 个 oracle-depth rows 上 budget-30 positive-unit recall median 为 0.4342，并在 20/24 rows 提高 fixed-session unit recall、22/24 rows 用更少 groups 达到 50\% positive units。
 Positive-run proxy units 是 episode-derived proxy units，不是 human intent；\texttt{positive-session-without-unit} fixed-session depth-gap counterpoint 仍然保留，所以这只是 depth-aware triage，不是自动发现所有 latent subtask 或 intent boundary。
-R344 也保留多指标反例：30 个 baseline-metric comparisons 支持 operation-stack query-aware，16 个是明确 counterpoints，nDCG 场景下 flat 或 dataset-native 可能胜出。
+多指标审计也保留反例：30 个 baseline-metric comparisons 支持 operation-stack query-aware，16 个是明确 counterpoints，nDCG 场景下 flat 或 dataset-native 可能胜出。
 
 Actionability portfolio 把这些比较变成 reviewer 可以检查的优化建议。
 36/36 objective rows 都有具体 profile-configuration action，但 27/36 best visible policies 不是默认 operation-stack query-aware；transfer miss 多数对应 view 或 ranker 变化，而不是不可解释错误。
 同一证据被组织成 diagnostic lenses、case packets 和 baseline contrasts：6 个 lenses 覆盖 36 objectives，top-5 case groups 在 6/6 tasks 命中 positive，top-1 在 5/6 命中，median top-5 lift 为 1.6508 且 work 为 0.0937；operation-stack 在 6/6 tasks 胜过 flat top-5 work、在 5/6 胜过 fixed-session top-5 recall，同时保留 fixed-session first-positive 和 flat full-recall 反例。
 Visible counterfactual 和 held-out transfer checks 把行动建议与目标标签泄漏分开：36/36 best rows 是 visible non-oracle，27/36 需要 non-default action，25/36 需要 view change；held-out action transfer 在 35/60 aligned decisions 上 within tolerance，但 exact action-class transfer 只有 7/60，在 non-default target action 上只有 2/42。
-这些支持运行（R335、R341、R345--R350）合起来只是一个 E3 actionability block。
 因此这里的 claim 是可调诊断 surface，不是 label-free automatic selector。
 
 Executable profile-spec patches 关闭一个从诊断到可执行配置的闭环。
 Default 与 patched profile specs 在同一 visible operation input 上实际运行 Rust \texttt{agentpprof --profile-spec}，hidden labels 只在 profiler 输出后评分；5/6 patches 同时改善 AP、top-5 lift 和 first-positive work，median AP delta 为 0.0376，median top-5 lift delta 为 0.5750。
 这里的 failure interpretation 同样重要：唯一 reject 是 OSWorld-Human，说明 visible phase/action rank features 不足以处理 human-boundary 目标。
 Held-out boundary-derived fields 随后作为普通 operation fields 折叠，AP 从 semantic-width 的 0.2402 提升到 0.2583，groups 从 108 降到 74；反例是 top-5 work 和 first-positive work 变差。
-R354/R358 支持 boundary-derived fields 是 actionable operation-field knob，不支持 automatic boundary discovery 或 automatic patch selector，也不是第五个核心实验。
-表~\ref{tab:actionability} 是 E3 的主显示；它把 R365/R373 task-card evidence 压缩成 paper-facing diagnosis table，source artifacts 只作为 provenance，不新增主实验。
+这些 patch 和 boundary-field results 支持 boundary-derived fields 是 actionable operation-field knob，不支持 automatic boundary discovery、automatic patch selector 或第五个核心实验。
 
 \begin{table*}[t]
   \centering
