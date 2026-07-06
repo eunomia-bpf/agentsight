@@ -54,7 +54,7 @@ Task-query operation-stack profiling 的 top-5 median work 为 0.0937，而 flat
 E3 隔离机制和 profile-configuration actionability。
 Rank feature、stack depth、mapping、transfer、diagnostic lens、case packet 和 counterfactual 分析显示：有效配置随 task 和 objective 变化，operation-stack 是 Pareto point，不是 universal default。
 Executable profile-spec patches 在 5/6 tasks 上改善 AP、top-5 lift 和 first-positive work；supervised held-out boundary-field ablation 把 OSWorld-Human AP 从 0.2402 提到 0.2583，并把 groups 从 108 降到 74，但保留 work 反例。
-E4 则验证可复现性和 claim integrity：76 个 tracked profile specs 可确定性 replay，paper gates 检查 source status、数字、guardrails、rubric coverage 和 two-abstraction boundary。
+E4 则验证 replayability 和 offline cost：76 个 tracked profile specs 可确定性 replay；source status、数字、guardrails、rubric coverage 和 two-abstraction boundary 检查只作为 artifact hygiene，不作为 profiler 的 empirical evidence。
 
 因此本文支持的是 scoped profiling claim：operation-stack profiling 能在公开真实标注 trace 的 dataset-provided hidden labels 下定位、排序和解释任务相关 failure、quality problem 和 semantic boundary，并相对 flat summary 减少 inspection work、相对 fixed-session/span-tree proxy 减少 fragmentation。
 本文不声称提升 human productivity，不声称自动发现所有 intent boundary，不声称 metric dominance，也不声称完整兼容现有 trace ecosystem。
@@ -220,7 +220,7 @@ R328 在同一 76 个 specs 上启用 \texttt{--deterministic-output}，使 raw-
 \section{结果}
 
 本文的结果不应按 R 编号或零散 probe 展开。
-论文主体收敛为四个核心实验：E1 验证 operation coverage、递归 stack folding、field derivation 和人工边界都能落在同一个两抽象模型中；E2 是 hidden-label localization/ranking 主实验；E3 通过 ranker、stack、mapping、transfer、case 和 profile-spec patch 消融隔离机制与 actionability；E4 检查 profile-spec 可复现性、离线成本和 claim-integrity guardrails。
+论文主体收敛为四个核心实验：E1 验证 operation coverage、递归 stack folding、field derivation 和人工边界都能落在同一个两抽象模型中；E2 是 hidden-label localization/ranking 主实验；E3 通过 ranker、stack、mapping、transfer、case 和 profile-spec patch 消融隔离机制与 actionability；E4 检查 profile-spec 可复现性和离线成本，claim-integrity guardrails 只作为 artifact hygiene。
 R 编号只作为 provenance，不是论文的小节结构。
 
 \subsection{E1：覆盖、递归折叠和边界字段}
