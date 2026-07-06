@@ -1,0 +1,201 @@
+{
+  "checks": [
+    {
+      "check": "entry_sections_share_e1_e4_structure",
+      "evidence": "6/6 entry token rows pass.",
+      "status": "pass"
+    },
+    {
+      "check": "paper_uses_three_plus_one_not_scattered_experiments",
+      "evidence": "Chinese and English entry text present three empirical profiling experiments plus one systems/reproducibility block, not a chronological run list.",
+      "status": "pass"
+    },
+    {
+      "check": "only_two_profiler_abstractions_in_entry_path",
+      "evidence": "Prompt/session/tool/process/syscall are presented as operation forms or fields under operation and operation stack.",
+      "status": "pass"
+    },
+    {
+      "check": "r_runs_are_provenance_not_paper_structure",
+      "evidence": "R-numbered artifacts remain provenance and no E5 paper-facing experiment is introduced.",
+      "status": "pass"
+    },
+    {
+      "check": "e2_hidden_label_localization_numbers_visible",
+      "evidence": "Entry path keeps the E2 hidden-label scale and flat/fixed-session tradeoff numbers visible.",
+      "status": "pass"
+    },
+    {
+      "check": "e3_actionability_and_boundary_scope_visible",
+      "evidence": "Entry path keeps profile-spec actionability, boundary-field improvement, and boundary counterpoints visible.",
+      "status": "pass"
+    },
+    {
+      "check": "e4_replayability_not_accuracy_claim_visible",
+      "evidence": "Entry path presents E4 as reproducibility/cost evidence rather than another accuracy or live-overhead result.",
+      "status": "pass"
+    },
+    {
+      "check": "generated_ledgers_match_entry_numbers",
+      "evidence": "R360/R361/R364/R366 ledgers pass and preserve four core experiments plus internal R366 mechanism evidence.",
+      "status": "pass"
+    },
+    {
+      "check": "must_not_claim_boundaries_visible",
+      "evidence": "Entry path excludes human utility/productivity, automatic boundary discovery, metric dominance, and complete ecosystem compatibility claims.",
+      "status": "pass"
+    },
+    {
+      "check": "visualization_not_flamegraph_only",
+      "evidence": "Presentation is framed as a small portfolio of analysis views, not a flamegraph-only result or extra experiment.",
+      "status": "pass"
+    },
+    {
+      "check": "input_policy_no_new_data_or_profiler_rerun",
+      "evidence": "The R367 sources are tracked ledgers/docs only: no dataset sync, no relabeling, and no profiler rerun.",
+      "status": "pass"
+    }
+  ],
+  "claim": "The paper entry path is organized as three empirical profiling experiments plus one systems/reproducibility experiment, with operation and operation stack as the only profiler abstractions.",
+  "commit": "4831c8f435ef8966709c2e87ad8bf5a82360f7fd",
+  "elapsed_s": 0.1,
+  "entry_rows": [
+    {
+      "language": "zh",
+      "missing_tokens": "",
+      "required_tokens": "operation;operation-stack;\u4e09\u4e2a\u7ecf\u9a8c\u6027;\u7cfb\u7edf/\u590d\u73b0\u5b9e\u9a8c;E1;E2;E3;E4;\u4e0d\u58f0\u79f0",
+      "section": "abstract",
+      "status": "pass"
+    },
+    {
+      "language": "zh",
+      "missing_tokens": "",
+      "required_tokens": "operation;operation fields;\u9012\u5f52\u6298\u53e0;stack;\u4e24\u4e2a\u7cfb\u7edf\u6311\u6218",
+      "section": "intro_or_problem",
+      "status": "pass"
+    },
+    {
+      "language": "zh",
+      "missing_tokens": "",
+      "required_tokens": "E1;E2;E3;E4;Core experiment;R360;provenance",
+      "section": "main_result_framing",
+      "status": "pass"
+    },
+    {
+      "language": "en",
+      "missing_tokens": "",
+      "required_tokens": "operation;operation-stack;three empirical;systems/reproducibility;E1;E2;E3;E4;not",
+      "section": "abstract",
+      "status": "pass"
+    },
+    {
+      "language": "en",
+      "missing_tokens": "",
+      "required_tokens": "operation;operation stack;field;recursive;three empirical;systems/reproducibility;R-runs",
+      "section": "intro_or_problem",
+      "status": "pass"
+    },
+    {
+      "language": "en",
+      "missing_tokens": "",
+      "required_tokens": "E1;E2;E3;E4;Core experiment;R360;provenance",
+      "section": "main_result_framing",
+      "status": "pass"
+    }
+  ],
+  "input_policy": {
+    "dataset_creation": "none",
+    "dataset_relabeling": "none",
+    "dataset_sync": "none",
+    "hidden_label_use": "only through already-scored upstream artifacts",
+    "network_access_required": false,
+    "profiler_rerun": false
+  },
+  "non_claims": [
+    "not a new empirical result",
+    "not a human or agent analyst study",
+    "not a fifth paper-facing experiment",
+    "not automatic boundary discovery",
+    "not metric dominance",
+    "not live eBPF overhead",
+    "not complete trace-ecosystem compatibility"
+  ],
+  "not_a_human_study_result": true,
+  "not_an_agent_analyst_task_result": true,
+  "not_new_empirical_result": true,
+  "profiler_abstractions": [
+    "operation",
+    "operation stack"
+  ],
+  "run_id": "R367",
+  "schema": "agentsight.paper-entry-claim-path.v1",
+  "source_status": [
+    {
+      "path": "script/paper_entry_claim_path_audit.py",
+      "sha256": "0178aab4d0e465b095e5014b9d68535fea25d21bba5bfc3f67818db52cbb47b6",
+      "source": "generator script",
+      "status": "untracked_or_missing"
+    },
+    {
+      "path": "docs/visexp/paper/main.tex",
+      "sha256": "d687257ad91e597f9479c3b35b01413f6593ef9f7210cbe614b0accbc78bae0a",
+      "source": "Chinese paper",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/agentpprof-paper/main.tex",
+      "sha256": "ac350912eec0851ac8ebed3e0099306e48fb3628087c2775c3f43408e1837a4e",
+      "source": "English paper",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/evaluation.md",
+      "sha256": "e29b85448aaf222f12ef498473914310345c758866446176ea75f4912ed0b0bd",
+      "source": "evaluation ledger",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/implementation.md",
+      "sha256": "abeb34fe8abb34f71bda591b95896aa8cd5bbb9d54b4ca6cb660cc0e96bfafb9",
+      "source": "implementation doc",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/out/paper-core-result-tables-r360/core-result-tables.json",
+      "sha256": "66a731954f5214ff0c21d2e54ea5300bda468acc712c7c5977ea9cebc3aaa1df",
+      "source": "R360 core result tables",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/paper-core-claim-evidence-r361/core-claim-evidence.json",
+      "sha256": "db39c864378eecc3a7286b9f2ce22bf584897155175aab93af1cd77cb295ec7f",
+      "source": "R361 core claim evidence",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/paper-core-experiment-sufficiency-r364/core-experiment-sufficiency.json",
+      "sha256": "00581a0d7be0cafce7f704e2789c69790c973951b4e19d7cc15f7d5fd91b77fe",
+      "source": "R364 core experiment sufficiency",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-field-derivation-mechanism-r366/field-derivation-mechanism-report.json",
+      "sha256": "505fc5962a6e7aa3fcbb71a66fbd3dc46970c7e013312f23ef25961c6135dae9",
+      "source": "R366 field derivation mechanism",
+      "status": "tracked_clean"
+    }
+  ],
+  "status": "pass",
+  "summary": {
+    "checks_passed": 11,
+    "checks_total": 11,
+    "core_experiments": [
+      "E1",
+      "E2",
+      "E3",
+      "E4"
+    ],
+    "entry_rows": 6,
+    "status": "pass"
+  }
+}

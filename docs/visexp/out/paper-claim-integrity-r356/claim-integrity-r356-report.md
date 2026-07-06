@@ -96,7 +96,7 @@ R356 keeps the paper claim scoped to profiler fidelity, ranking, inspection work
 |---|---|---|---|---|
 | evaluation | R354 profile patch | R354 / 5/6 / 0.0376 / 0.5750 | pass | 686,688,689 |
 | evaluation | R355 oracle depth | R355 / 24 / 0.4342 / 20/24 / 22/24 | pass | 687,688 |
-| evaluation | R356 refresh | R356 / R354 / R355 / claim-integrity | pass | 570,688,866,967 |
+| evaluation | R356 refresh | R356 / R354 / R355 / claim-integrity | pass | 570,688,867,969 |
 | zh_main | R354 profile patch | R354 / 5/6 / 0.0376 / 0.5750 | pass | 395,440 |
 | zh_main | R355 oracle depth | R355 / 24 / 0.4342 / 20/24 / 22/24 | pass | missing |
 | zh_main | R356 refresh | R356 / R354 / R355 / claim-integrity | pass | missing |
@@ -107,7 +107,7 @@ R356 keeps the paper claim scoped to profiler fidelity, ranking, inspection work
 | zh_claim_setup | R355 oracle depth | R355 / 24 / 0.4342 / 20/24 / 22/24 | pass | 50,51,52,151 |
 | zh_claim_setup | R356 refresh | R356 / R354 / R355 / claim-integrity | pass | 51 |
 | design | R356 audit boundary | R356 / R354 / R355 / operation stack | pass | missing |
-| implementation | R356 script | script/paper_claim_integrity_r356.py / R356 | pass | 46 |
+| implementation | R356 script | script/paper_claim_integrity_r356.py / R356 | pass | 47 |
 | evaluation | R355 depth-gap counterpoint | R355 / depth-gap / fixed-session | pass | 570,687 |
 | en_main | R355 depth-gap counterpoint | R355 / depth-gap / fixed-session | pass | 616 |
 | zh_main | R355 depth-gap counterpoint | R355 / depth-gap / fixed-session | pass | missing |
@@ -117,34 +117,34 @@ R356 keeps the paper claim scoped to profiler fidelity, ranking, inspection work
 
 | Doc | Guardrail | Status | Occurrences | Occurrence lines | Unguarded lines |
 |---|---|---|---:|---|---|
-| evaluation | human_utility | pass | 12 | 16,36,175,570,642,646,748,751,753,754,758,762 | none |
-| evaluation | automatic_boundary | pass | 12 | 35,36,65,260,517,569,570,747,748,770,779,886 | none |
-| evaluation | ecosystem_compatibility | pass | 8 | 13,16,84,570,641,747,765,880 | none |
-| evaluation | universal_selector | pass | 12 | 35,36,154,162,260,446,570,672,764,765,767,771 | none |
+| evaluation | human_utility | pass | 12 | 16,36,175,570,642,646,699,749,752,754,755,759 | none |
+| evaluation | automatic_boundary | pass | 12 | 35,36,65,260,517,569,570,699,748,749,771,780 | none |
+| evaluation | ecosystem_compatibility | pass | 8 | 13,16,84,570,641,748,766,882 | none |
+| evaluation | universal_selector | pass | 12 | 35,36,154,162,260,446,570,672,765,766,768,772 | none |
 | zh_claim_setup | human_utility | pass | 12 | 26,28,36,42,43,47,49,51,52,53,78,102 | none |
 | zh_claim_setup | automatic_boundary | pass | 12 | 23,25,26,47,48,50,51,52,53,78,150,152 | none |
 | zh_claim_setup | ecosystem_compatibility | pass | 8 | 22,96,114,181,228,265,266,267 | none |
 | zh_claim_setup | universal_selector | pass | 12 | 26,34,36,37,38,41,42,43,44,45,46,47 | none |
-| zh_main | human_utility | pass | 9 | 60,180,240,395,408,447,590,601,623 | none |
+| zh_main | human_utility | pass | 9 | 60,180,240,395,408,447,591,602,624 | none |
 | zh_main | automatic_boundary | pass | 6 | 237,239,321,412,443,517 | none |
-| zh_main | ecosystem_compatibility | pass | 12 | 138,408,537,545,546,549,594,621,624,633,643,644 | none |
-| zh_main | universal_selector | pass | 8 | 238,395,437,443,447,583,617,623 | none |
-| en_main | human_utility | pass | 8 | 70,100,113,245,262,466,686,779 | none |
-| en_main | automatic_boundary | pass | 7 | 235,255,355,617,653,740,895 | none |
-| en_main | ecosystem_compatibility | pass | 12 | 69,813,815,823,825,826,827,834,896,897,927,932 | none |
-| en_main | universal_selector | pass | 9 | 255,466,508,511,567,640,687,895,926 | none |
+| zh_main | ecosystem_compatibility | pass | 12 | 138,408,538,546,547,550,595,622,625,634,644,645 | none |
+| zh_main | universal_selector | pass | 8 | 238,395,437,443,447,584,618,624 | none |
+| en_main | human_utility | pass | 8 | 70,100,113,245,262,466,686,788 | none |
+| en_main | automatic_boundary | pass | 7 | 235,255,355,617,653,740,904 | none |
+| en_main | ecosystem_compatibility | pass | 12 | 69,822,824,832,834,835,836,843,905,906,936,941 | none |
+| en_main | universal_selector | pass | 9 | 255,466,508,511,567,640,687,904,935 | none |
 | design | human_utility | pass | 2 | 238,491 | none |
 | design | automatic_boundary | pass | 3 | 276,286,300 | none |
 | design | ecosystem_compatibility | pass | 1 | 198 | none |
 | design | universal_selector | pass | 2 | 150,266 | none |
-| implementation | human_utility | pass | 3 | 148,181,405 | none |
-| implementation | automatic_boundary | pass | 5 | 158,218,234,242,404 | none |
-| implementation | ecosystem_compatibility | pass | 4 | 23,258,267,406 | none |
-| implementation | universal_selector | pass | 3 | 148,158,242 | none |
+| implementation | human_utility | pass | 3 | 149,182,419 | none |
+| implementation | automatic_boundary | pass | 6 | 159,219,231,247,255,418 | none |
+| implementation | ecosystem_compatibility | pass | 4 | 23,271,280,420 | none |
+| implementation | universal_selector | pass | 3 | 149,159,255 | none |
 | evaluation | r354_not_automatic_patch_selector | pass | 56 | 16,35,39,46,52,166,177,208 | none |
 | evaluation | r354_boundary_derived_counterpoint | pass | 56 | 16,35,39,46,52,166,177,208 | none |
 | evaluation | r355_no_latent_boundary_discovery | pass | 57 | 14,16,34,39,46,183,198,208 | none |
-| evaluation | r355_positive_run_proxy | pass | 11 | 14,185,189,202,568,687,858,985 | none |
+| evaluation | r355_positive_run_proxy | pass | 11 | 14,185,189,202,568,687,859,988 | none |
 | evaluation | r355_depth_gap_counterpoint | pass | 2 | 570,687 | none |
 | zh_claim_setup | r354_not_automatic_patch_selector | pass | 16 | 49,51,52,53,55,77,151,154 | none |
 | zh_claim_setup | r354_boundary_derived_counterpoint | pass | 16 | 49,51,52,53,55,77,151,154 | none |
@@ -166,8 +166,8 @@ R356 keeps the paper claim scoped to profiler fidelity, ranking, inspection work
 | design | r355_no_latent_boundary_discovery | pass | 7 | 23,278,286,289,290,309,491 | none |
 | design | r355_positive_run_proxy | pass | 3 | 281,285,491 | none |
 | design | r355_depth_gap_counterpoint | pass | 1 | 286 | none |
-| implementation | r354_not_automatic_patch_selector | pass | 10 | 36,46,140,150,170,176,192,202 | none |
-| implementation | r354_boundary_derived_counterpoint | pass | 10 | 36,46,140,150,170,176,192,202 | none |
-| implementation | r355_no_latent_boundary_discovery | pass | 10 | 38,46,170,176,193,202,223,234 | none |
-| implementation | r355_positive_run_proxy | pass | 3 | 38,226,233 | none |
-| implementation | r355_depth_gap_counterpoint | pass | 1 | 232 | none |
+| implementation | r354_not_automatic_patch_selector | pass | 10 | 36,47,141,151,171,177,193,203 | none |
+| implementation | r354_boundary_derived_counterpoint | pass | 10 | 36,47,141,151,171,177,193,203 | none |
+| implementation | r355_no_latent_boundary_discovery | pass | 10 | 38,47,171,177,194,203,236,247 | none |
+| implementation | r355_positive_run_proxy | pass | 3 | 38,239,246 | none |
+| implementation | r355_depth_gap_counterpoint | pass | 1 | 245 | none |

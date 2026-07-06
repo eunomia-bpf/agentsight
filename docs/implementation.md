@@ -37,6 +37,7 @@ Purpose: identify the maintained implementation boundary.
 | `script/operation_boundary_profile_patch_eval.py` | R358 boundary-derived profile patch audit; reruns Rust profile specs over R297 held-out OSWorld-Human boundary fields as ordinary operation fields and scores hidden labels after profiling. | research harness |
 | `script/operation_oracle_depth_adequacy_eval.py` | R355 oracle-depth adequacy audit; scores visible-ranked profile groups at session, operation/step, positive-run proxy, and task-specific oracle depths over tracked labeled outputs. | research harness |
 | `script/operation_field_derivation_mechanism_eval.py` | R366 field-derivation mechanism audit; consolidates deterministic mapping, profile-spec composition, rank-feature ablation, supervised boundary backends, and boundary-derived profile patches from tracked artifacts without rerunning the profiler. | paper hygiene harness |
+| `script/paper_entry_claim_path_audit.py` | R367 entry claim-path audit; checks that abstract, introduction/problem framing, and main result table present three empirical profiling experiments plus one systems/reproducibility experiment, with R-runs as provenance and only operation/operation-stack profiler abstractions. | paper hygiene harness |
 | `script/paper_core_experiment_consolidation_audit.py` | R359 paper-facing core-experiment consolidation audit; checks that evaluation is organized as E1-E4, R-runs are provenance, and R358 remains an E3 mechanism ablation. | paper hygiene harness |
 | `script/paper_core_result_tables.py` | R360 paper core-result table generator; regenerates the E1-E4 headline table and metric rows from tracked artifacts, now folding R366 field-derivation evidence into E1/E3 without rerunning the profiler. | paper hygiene harness |
 | `script/paper_core_claim_evidence.py` | R361 core-claim evidence ledger; binds each E1-E4 experiment to claim, oracle, baselines, primary metrics, actionability, counterpoints, scoped wording, and R366 field-derivation scope. | paper hygiene harness |
@@ -220,6 +221,18 @@ R360/R361/R364 now consume this R366 audit as internal E1/E3 evidence, so the
 paper-facing structure remains three empirical profiling experiments plus one
 systems/reproducibility experiment rather than adding a fifth block.
 
+R367 checks the paper entry path for that same structure.
+`script/paper_entry_claim_path_audit.py` reads the Chinese paper, English
+submodule paper, evaluation ledger, implementation doc, and tracked
+R360/R361/R364/R366 ledgers. It parses the abstract, introduction/problem
+statement, and main-result framing, then checks that they all present E1-E4 as
+the paper-facing experiment structure, keep R-runs as provenance, preserve the
+two-abstraction boundary, carry the E2/E3/E4 headline numbers, and avoid human
+productivity, automatic-boundary, metric-dominance, live-overhead, or ecosystem
+compatibility claims. It passed 11/11 checks with 6/6 entry-token rows. R367 is
+a paper-integration guardrail, not a new dataset, profiler run, empirical
+result, or fifth experiment.
+
 R355 then closes the main R339 depth-scoring gap without adding another
 runtime object. `script/operation_oracle_depth_adequacy_eval.py` reuses tracked
 R300 operation JSONL plus R320/R339 scored artifacts and evaluates the same
@@ -358,6 +371,7 @@ python3 -m py_compile script/agent_trace_datasets.py script/operation_split.py \
   script/operation_boundary_profile_patch_eval.py \
   script/paper_core_experiment_consolidation_audit.py \
   script/paper_core_result_tables.py \
+  script/paper_entry_claim_path_audit.py \
   script/agent_trace_exchange_eval.py script/agent_trace_chrome_exchange_eval.py \
   script/operation_standard_trace_exchange_eval.py \
   script/implementation_consistency_audit.py
