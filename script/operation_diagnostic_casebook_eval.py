@@ -340,6 +340,7 @@ def build_casebook(groups_per_task: int) -> tuple[dict[str, Any], dict[str, Any]
     report = {
         "run_id": RUN_ID,
         "schema": "agentsight.diagnostic-casebook.v1",
+        "profiler_abstractions": ["operation", "operation stack"],
         "summary": summary,
         "task_cards": scored_cards,
         "top_stack_evidence": top_stack_rows,
