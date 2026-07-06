@@ -9,16 +9,16 @@ Both paper drafts build locally in temporary output locations, final logs have n
 
 | Name | Return Code | Elapsed (s) | Command |
 |---|---:|---:|---|
-| english-make | 0 | 1.304 | `make` |
-| chinese-xelatex-1 | 0 | 0.831 | `xelatex -output-directory=/tmp/agentsight-r396-paper-mlef6oxb/chinese-build -interaction=nonstopmode main.tex` |
-| chinese-xelatex-2 | 0 | 0.827 | `xelatex -output-directory=/tmp/agentsight-r396-paper-mlef6oxb/chinese-build -interaction=nonstopmode main.tex` |
+| english-make | 0 | 1.284 | `make` |
+| chinese-xelatex-1 | 0 | 0.845 | `xelatex -output-directory=/tmp/agentsight-r396-paper-mgw6_q0v/chinese-build -interaction=nonstopmode main.tex` |
+| chinese-xelatex-2 | 0 | 0.84 | `xelatex -output-directory=/tmp/agentsight-r396-paper-mgw6_q0v/chinese-build -interaction=nonstopmode main.tex` |
 
 ## Checks
 
 | Check | Passed | Detail |
 |---|---:|---|
 | build_commands_exit_zero | True | Return codes=[0, 0, 0] |
-| paper_pdfs_exist | True | English PDF bytes=595145; Chinese PDF bytes=597107 |
+| paper_pdfs_exist | True | English PDF bytes=595145; Chinese PDF bytes=597116 |
 | english_log_has_no_unresolved_refs_or_citations | True | Hits=[] |
 | chinese_log_has_no_unresolved_refs | True | Hits=[] |
 | english_acm_image_description_warning_absent | True | Hits=[] |
