@@ -1,0 +1,150 @@
+{
+  "checks": [
+    {
+      "check": "e4_tables_present_once",
+      "detail": "Both drafts expose the R327 cost table and R328 determinism table as E4 main displays.",
+      "passed": true
+    },
+    {
+      "check": "tables_live_inside_rq4_sections",
+      "detail": "All E4 main-display tables are located inside RQ4/E4 before related work or the dataset discussion.",
+      "passed": true
+    },
+    {
+      "check": "table_shapes_preserved",
+      "detail": "English rows=[4, 2]; Chinese rows=[4, 2].",
+      "passed": true
+    },
+    {
+      "check": "table_numbers_preserved",
+      "detail": "Missing English=[]; missing Chinese=[].",
+      "passed": true
+    },
+    {
+      "check": "section_numbers_preserved",
+      "detail": "Missing English=[]; missing Chinese=[].",
+      "passed": true
+    },
+    {
+      "check": "source_artifacts_match_headline_numbers",
+      "detail": "Missing R327=[]; missing R328=[].",
+      "passed": true
+    },
+    {
+      "check": "source_artifact_role_visible",
+      "detail": "R327/R328 are framed as provenance for E4 main displays, not additional accuracy experiments.",
+      "passed": true
+    },
+    {
+      "check": "non_claim_boundaries_visible",
+      "detail": "E4 keeps live overhead, human utility, ecosystem compatibility, selector, and empirical-accuracy non-claims visible.",
+      "passed": true
+    },
+    {
+      "check": "ledger_records_r389_as_focus_gate_when_present",
+      "detail": "If R389 is present in the ledger, it is a paper-focus gate, not a profiler experiment.",
+      "passed": true
+    },
+    {
+      "check": "no_data_or_profiler_rerun",
+      "detail": "Runtime commands=['git_stdout(args)', 'git ls-files --error-unmatch -- <dynamic>', 'git diff --quiet -- <dynamic>', 'git diff --cached --quiet -- <dynamic>', 'git_stdout call: git rev-parse HEAD', 'git_stdout call: git ls-files -s -- <dynamic>']; forbidden hits=[]; non-git commands=[].",
+      "passed": true
+    }
+  ],
+  "claim": "RQ4/E4 presents R327/R328 as the replayability/cost and deterministic-output main displays for the artifact/reproducibility block.",
+  "generated_at_unix": 1783360460.28845,
+  "run_id": "R389",
+  "source_status": [
+    {
+      "path": "script/paper_e4_main_display_r389.py",
+      "sha256": "a59a9ce3f7b7a5f23468c4bd52b72933dac5be313b5cd0ccc31d3dbed0b888eb",
+      "source": "generator script",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/agentpprof-paper/main.tex",
+      "sha256": "c69c3dc5cb20d92f3ee349ea180decaeb5d5c82f2bc7ee7ff168f05976db136d",
+      "source": "English paper",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/paper/main.tex",
+      "sha256": "6188030572f058937f2066182cfd1e7e2cd8519914664827a58e67d6457f9836",
+      "source": "Chinese paper",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/evaluation.md",
+      "sha256": "3e7ce23c61c28236c938197c8e34a4ade33658018105513decb85b7838125029",
+      "source": "evaluation ledger",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/out/operation-profile-cost-r327/profile-cost-report.md",
+      "sha256": "5249adb0a7e15a04027dfb391ce0349bad5e9ae8a152f5f03e495f06d3129360",
+      "source": "R327 report",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-profile-cost-r327/profile-cost-summary.csv",
+      "sha256": "6ea41219ede016965481fa97105073b44c49d7dc0c4ce5668fd8683bf9083e7d",
+      "source": "R327 summary",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-profile-deterministic-output-r328/deterministic-output-report.md",
+      "sha256": "3db0ef7f1dc6c3f517bdb6b3f82bf6d57551799f26d1e4cb78e066279c54fb07",
+      "source": "R328 report",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-profile-deterministic-output-r328/deterministic-output-summary.csv",
+      "sha256": "1003aa313d764df9a6256b9024d4dd28ab4409af32e5951197d324ee8a39e031",
+      "source": "R328 summary",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/agentpprof-paper",
+      "sha256": "submodule_head=4faf0044337513241332aba342433bae44fd0882;parent_index=4faf0044337513241332aba342433bae44fd0882",
+      "source": "English paper submodule gitlink",
+      "status": "tracked_dirty_allowed"
+    }
+  ],
+  "status": "pass",
+  "tables": {
+    "chinese_row_counts": [
+      4,
+      2
+    ],
+    "english_row_counts": [
+      4,
+      2
+    ],
+    "required_chinese_table_tokens": [
+      "R300 views & 4 & 3.448 & 4.273 & 631.0",
+      "R324 rank & 12 & 1.539 & 2.692 & 41.0",
+      "R326 robust & 60 & 1.542 & 2.640 & 41.0",
+      "All specs & 76 & 1.581 & 2.719 & 42.0",
+      "R327 & default & 76/76 & 4/76 & 1.581 & 2.719",
+      "R328 & deterministic & 76/76 & 76/76 & 1.601 & 2.767"
+    ],
+    "required_english_table_tokens": [
+      "R300 view specs & 4 & 3.448 & 4.273 & 631.0",
+      "R324 rank-feature specs & 12 & 1.539 & 2.692 & 41.0",
+      "R326 robustness specs & 60 & 1.542 & 2.640 & 41.0",
+      "All specs & 76 & 1.581 & 2.719 & 42.0",
+      "R327 & default & 76/76 & 4/76 & 1.581 & 2.719",
+      "R328 & deterministic & 76/76 & 76/76 & 1.601 & 2.767"
+    ],
+    "required_section_tokens": [
+      "76",
+      "152",
+      "76/76",
+      "4/76",
+      "1.581",
+      "2.719",
+      "1.601",
+      "2.767"
+    ]
+  }
+}

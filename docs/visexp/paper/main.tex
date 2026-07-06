@@ -521,6 +521,7 @@ Claim-test：RQ4/E4 问的是：reviewer 能否 replay offline profile-spec path
 默认模式下所有 specs 在重复运行中保持 semantic profile content、samples 和 unique stacks 稳定，median 每个 spec 运行时间为 1.581s，p95 为 2.719s；raw-byte determinism 只有 4/76，因为输出带生成时间戳。
 Deterministic artifact mode 固定 JSON \texttt{generated\_at} 和 pprof profile time 后，同一 76 个 specs 的 semantic 与 raw-byte determinism 均为 76/76，clean rerun 记录空的 git/code status，median 每个 spec 运行时间为 1.601s，p95 为 2.767s。
 R327/R328 只是这个 E4 replayability block 的 provenance；这些结果支持 artifact/reproducibility claim，但不等价于 live capture overhead。
+表~\ref{tab:r327-cost} 和表~\ref{tab:r328-determinism} 是 E4 的主显示：前者呈现 replayability/cost result，后者呈现 deterministic-output repair；R327/R328 是 source artifacts，不是新的 accuracy 实验。
 
 其余 paper gates 是 artifact hygiene，不是新的 empirical evidence。
 R338 把 paper claim 本身纳入审计：它复用 R320--R350 的 tracked-clean artifacts，不重新排名、不下载、不同步、不创建、不重标数据集，只检查论文数字、source policy、must-not-claim guardrails 和 operation/operation-stack 边界是否一致。
@@ -532,7 +533,7 @@ R352 再把当前结果集映射到 OSDI-style profiling-paper rubric：它复�
 \begin{table}[t]
   \centering
   \scriptsize
-  \caption{R327 profile-spec 可复现性与离线执行成本。Runtime 为 Rust binary 已存在后的每个 spec 秒数；semantic hash 去除 JSON \texttt{generated\_at} 字段，raw-byte hash 单独报告。}
+  \caption{E4 replayability/cost 主显示，来自 R327。Runtime 为 Rust binary 已存在后的每个 spec 秒数；semantic hash 去除 JSON \texttt{generated\_at} 字段，raw-byte hash 单独报告。}
   \label{tab:r327-cost}
   \begin{tabular}{lrrrr}
     \toprule
@@ -549,7 +550,7 @@ R352 再把当前结果集映射到 OSDI-style profiling-paper rubric：它复�
 \begin{table}[t]
   \centering
   \small
-  \caption{R327/R328 在同一 76 个 profile specs 上的 determinism 检查。R328 使用 \texttt{--deterministic-output}。}
+  \caption{E4 deterministic-output 主显示，来自 R327/R328 在同一 76 个 profile specs 上的 determinism 检查。R328 使用 \texttt{--deterministic-output}。}
   \label{tab:r328-determinism}
   \begin{tabular}{llrrrr}
     \toprule
