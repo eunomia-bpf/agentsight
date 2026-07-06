@@ -430,11 +430,14 @@ Work-budget、fragmentation 和 oracle-depth slices 再把收益拆到 reviewer 
 
 E2 的结论因此是 scoped profiler result：operation-stack profiling 在真实标注轨迹上能把 hot groups 排成对 hidden positives 有信号的 localization surface，相比 flat summary 明显减少 inspection work，相比 fixed-session drilldown 通常改善 median fragmentation tradeoff 或提高同预算 recall。
 它不能写成 automatic detector、single best hierarchy、human/agent analyst productivity，或对真实 OpenTelemetry/Phoenix/LangSmith/Perfetto span tree 的完整兼容和支配。
+Work-budget、fragmentation、fixed-recall、sequence-scope、oracle-depth、uncertainty、negative-control 和 multi-metric slices 都是同一个 E2 主实验的 support audits，不是额外的小实验。
 
 \subsection{RQ3/E3：机制隔离和 actionability}
 
 实验契约：RQ3/E3 的 claim 是 profiler 通过 stack fields、mapping/tagging rules、ranking policies、profile specs 和 boundary-derived operation fields 暴露 actionable optimization knobs；oracle 是 hidden labels only after profiling，并用 held-out OSWorld-Human boundary positives 评分 boundary-derived fields；baseline 包括 default semantic-width specs、patched specs、visible feature rankers、transfer policies、learned-boundary stacks、fixed-session 和 semantic-width stacks；metric 包括 accepted patches、AP delta、top-5 lift delta、first-positive-work delta、group reduction 和 top-5 work counterpoint；counterpoint 是 OSWorld-Human 需要 boundary-derived fields，因此这是 actionable mechanism evidence，not automatic boundary discovery、not automatic patch selection。
 Claim-test：RQ3/E3 问的是：localization gain 来自哪些机制，profile-guided 的 stack fields、rank features、mappings 或 boundary-derived fields 能否在不把 hidden labels 泄漏进 profiler input 的前提下改善输出。
+E3 mechanism block 解释 rank-feature、mapping、stack-depth 和 boundary-field 机制；E3 actionability block 解释 profile-spec patch、case packet、diagnostic lens 和 transfer counterpoint。
+这两者共同支撑同一个 RQ3/E3 claim，不是第五个核心实验。
 
 Primary mechanism question 是：E2 的 ranked outputs 能不能解释应该怎样改 profile configuration。
 Hidden labels 只在 profiling 之后用于 scoring；visible inputs 仍然是 stack fields、mapping/tagging rules、rank features、profile specs 和 boundary-derived operation fields。
@@ -449,7 +452,7 @@ Task-level verdict synthesis 给出 claim gate：6/6 任务都是 ``supports wit
 机制消融说明这些诊断来自可复现的 profiler 配置，而不是来自又一组独立小实验。
 Stack-text rank rules 和 rank mode 可以从 profile spec 复现，但它们对 safety/side-effect 过粗；operation-level rank features 在 folding 前匹配 visible mapped operation tokens，semantic stack 的 feature ranking 在 AP 上赢 5/6 tasks、top-5 lift 赢 4/6、first-positive work 赢 5/6，coarse depth 在 4/6 tasks 上改善 AP 并减少 groups。
 Leave-one-feature 和 robustness checks 说明哪些字段有用或有害：\texttt{repeat\_signal}、write-action 和 \texttt{status=success} 在不同 family 关键，SATraj loop-like 或 OSWorld-Human input-phase features 会误导；global/equal feature banks 常能保留收益，guided repair 在 2/3 misleading-feature cases 上改善 AP。
-这些 repair 使用离线评分反馈，因此支持 mechanism isolation，不支持 automatic learned ranker。
+这些 repair 使用离线评分反馈，因此支持 mechanism isolation；它们不是自动 learned ranker，也不支持 automatic learned ranker。
 
 View、depth 和 budget 审计把机制结果放回 profiling tradeoff。
 Best AP 和 best top-5 F1 分散在 operation-stack、fixed-session、dataset-native、raw-action 和 flat views；leave-task source selection 不能稳定选中 best view。
@@ -502,6 +505,7 @@ Claim-test：RQ4/E4 问的是：reviewer 能否 replay offline profile-spec path
 默认模式下所有 specs 在重复运行中保持 semantic profile content、samples 和 unique stacks 稳定，median 每个 spec 运行时间为 1.581s，p95 为 2.719s；raw-byte determinism 只有 4/76，因为输出带生成时间戳。
 Deterministic artifact mode 固定 JSON \texttt{generated\_at} 和 pprof profile time 后，同一 76 个 specs 的 semantic 与 raw-byte determinism 均为 76/76，clean rerun 记录空的 git/code status，median 每个 spec 运行时间为 1.601s，p95 为 2.767s。
 这些 source artifacts 支持 artifact/reproducibility claim，但不等价于 live capture overhead，也不形成另一个经验性 profiling 实验。
+Profile-spec replay、determinism、source-status 和 claim-hygiene checks 都属于 E4 replayability block，而不是新的 accuracy block。
 
 Input-source replay guardrail 属于同一个 E4 block。
 Rust profile-spec path 现在可以携带 \texttt{session\_files}、\texttt{trace\_files}、\texttt{standard\_trace\_files}、regex \texttt{tag\_rules}、predicates、rank rules、stack overrides 和 \texttt{include\_standard\_trace\_args}。

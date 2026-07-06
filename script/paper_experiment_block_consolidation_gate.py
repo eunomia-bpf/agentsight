@@ -236,10 +236,18 @@ def build_report() -> dict[str, Any]:
     add_check(
         checks,
         "main_tables_remain_budgeted",
-        all(label in combined for label in ["tab:core-results", "tab:r374-roles", "tab:r320", "fig:r363-portfolio"])
+        all(
+            label in combined
+            for label in [
+                "tab:core-results",
+                "tab:e2-localization",
+                "fig:e2e3-portfolio",
+                "tab:actionability",
+            ]
+        )
         and "tab:visualization-portfolio" not in combined
         and "tab:r373-verdict" not in combined,
-        "Core displays remain; demoted support-artifact tables do not return to the main body.",
+        "Current core displays remain; demoted support-artifact tables do not return to the main body.",
     )
     add_check(
         checks,

@@ -165,6 +165,7 @@ def build_report() -> dict[str, Any]:
     chinese = read_text(SOURCES["Chinese paper"])
     evaluation = read_text(SOURCES["evaluation ledger"])
     combined = english + "\n" + chinese
+    combined_lower = combined.lower()
     source_status = source_rows()
     source_by_name = {row["source"]: row for row in source_status}
     checks: list[dict[str, Any]] = []
@@ -196,7 +197,7 @@ def build_report() -> dict[str, Any]:
         checks,
         "paper_cards_have_actions_and_counterpoints",
         all(
-            token in combined
+            token in combined_lower
             for token in [
                 "prevalence-aware ranking",
                 "write/input",
@@ -204,8 +205,8 @@ def build_report() -> dict[str, Any]:
                 "fixed sessions for examples",
                 "boundary-derived fields",
                 "first-positive work",
-                "Fixed-session",
-                "Raw-action",
+                "fixed-session",
+                "raw-action",
             ]
         ),
         "The cards include profile actions and explicit baseline counterpoints.",
