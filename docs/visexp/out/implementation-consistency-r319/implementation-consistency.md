@@ -4,7 +4,7 @@ R319 checks that the maintained Rust operation-stack profiler path, canonical do
 
 - Overall: `implementation_consistent`
 - Checks passed: 16 / 16
-- Commit at generation: `e9eff551040d9c85ca4d0d05a68f46e66960dcf1`
+- Commit at generation: `91d1b025155de137dfe2c0e169bbc5e05f366e44`
 
 ## Checks
 

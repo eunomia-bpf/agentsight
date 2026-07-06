@@ -1,8 +1,8 @@
 {
   "checks": [
     {
-      "check": "four_core_experiments_only",
-      "evidence": "Exactly E1-E4 are represented, and no paper-facing E5 is present.",
+      "check": "three_empirical_plus_one_reproducibility_block",
+      "evidence": "Exactly E1-E4 are represented, E1-E3 are empirical profiling blocks, E4 is replayability/overhead/artifact hygiene, and no paper-facing E5 is present.",
       "status": "pass"
     },
     {
@@ -72,8 +72,8 @@
     }
   ],
   "claim": "E1-E4 are substantial reviewer-facing experiments rather than a chronological run list",
-  "commit": "0a1511b5dd980fab68a5dcd3a8e26a62fffd2537",
-  "elapsed_s": 0.0562,
+  "commit": "91d1b025155de137dfe2c0e169bbc5e05f366e44",
+  "elapsed_s": 0.3127,
   "input_policy": {
     "hidden_labels_only_for_scoring": true,
     "no_dataset_creation": true,
@@ -92,27 +92,27 @@
   "source_status": [
     {
       "path": "script/paper_core_experiment_sufficiency_audit.py",
-      "sha256": "cf9f58ac6e2c54ffacb8eb8ba3803a5e7b874a7a2a4fd25906e4e62a689c0de5",
+      "sha256": "233dcb7688f37ffb15c1eb2a23a74319752625100e6742c539c0800612f9c5bb",
       "source": "generator script",
       "status": "tracked_clean"
     },
     {
       "path": "docs/visexp/out/paper-claim-integrity-r338/claim-integrity-report.json",
-      "sha256": "676a1d62b571b22ce6a183389c2cbc27ef78a4e29c6e31cb5bc77f9e7391fd22",
+      "sha256": "beea01d64b4cd57535e0eb2286bed7a84628c0664ac2684a0fcfe36049183b18",
       "source": "R338 paper claim integrity",
       "status": "tracked_clean"
     },
     {
       "path": "docs/visexp/out/paper-evaluation-rubric-r352/evaluation-rubric-report.json",
-      "sha256": "51603283ed47703fda21488cdd66e40d2b196b76003e640c53235ae10dc0ea35",
+      "sha256": "47251390953553c026387c5da8d7cbdb7c3a07983a17be3320b2c1cc3622bbac",
       "source": "R352 evaluation rubric",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/out/paper-claim-integrity-r356/claim-integrity-r356-report.json",
-      "sha256": "c857a2175eb56910b43febc2859285c2f154e7c3045f5dcd0ed72fd3ad1dba28",
+      "sha256": "52fe52e8a3471f3b1f0f14efc49e2c77b20dd67f1bd39abc288608615639fcdf",
       "source": "R356 claim integrity refresh",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/out/paper-reviewer-acceptance-r357/reviewer-acceptance-r357.json",
@@ -122,37 +122,37 @@
     },
     {
       "path": "docs/visexp/out/paper-core-result-tables-r360/core-result-tables.json",
-      "sha256": "f1b67615f86ba2d0b77db08d21e9333af25e8b6838b4d367d83cfa5cd3985354",
+      "sha256": "a6857160406cc787a0647f0d09ab4b218484c32b4f327d2f6b574f42734e54b1",
       "source": "R360 core result table",
       "status": "tracked_clean"
     },
     {
       "path": "docs/visexp/out/paper-core-claim-evidence-r361/core-claim-evidence.json",
-      "sha256": "2ebf4122f0e2816b0380b35f1c75146c205724d11c42d093e0036fcf52eb3662",
+      "sha256": "8c623c104ef5d4e67f003b8d2ec0aad3aee7e346f48bdc2fb4b45a07adae5e1c",
       "source": "R361 claim evidence",
       "status": "tracked_clean"
     },
     {
       "path": "docs/visexp/out/paper-visualization-portfolio-r363/visualization-portfolio.json",
-      "sha256": "33447bb81c955258f561d55abc85c9d843949e7d370f7cb4b80034206afebe94",
+      "sha256": "b48a33d0c79aeb5e1746cf0fc339a855658b1f96d687fd477224df1ca2b2dca1",
       "source": "R363 visualization portfolio",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/evaluation.md",
-      "sha256": "61fc50a2d3b318886e65d0e6e8a3ab94a3f7b9e9c749676f2cfb6ae4b0d8066d",
+      "sha256": "8dd115c02f62b7cd166d70e38bd5b5863f7d293414e36bd363e9cc4273116a55",
       "source": "evaluation ledger",
       "status": "tracked_clean"
     },
     {
       "path": "docs/visexp/paper/main.tex",
-      "sha256": "b5892268ca560d3406b44cc6fde1160286134c1a9b686b2b38d8ac3ee82343a2",
+      "sha256": "654068ba9061187f2072c69e86985956c981dc23ef6d4dd2abca6fc2009419ca",
       "source": "Chinese paper",
       "status": "tracked_clean"
     },
     {
       "path": "docs/agentpprof-paper/main.tex",
-      "sha256": "54c2ba631706db1024929a61a6a076a0407fc7ad9e1262d61127777eb034b585",
+      "sha256": "4306e023ca56144b99af8b668572e171579b0ae92b6335bf316358b8513ff15a",
       "source": "English paper",
       "status": "tracked_clean"
     }
@@ -163,7 +163,7 @@
       "baselines": "Dataset-native stacks, no-map folding, fixed-session stacks, profile-spec replay, and direct operation-file versus standard-trace import/export.",
       "claim_gate_decision": "Supported as operation/operation-stack coverage and configurability, not a new trace ecosystem compatibility claim.",
       "claim_test": "Can the same operation layer be folded recursively into task-, phase-, action-, boundary-, and fixed-session-shaped stacks by changing mappings and stack fields?",
-      "core_experiment": "E1: coverage, recursive folding, and field derivation",
+      "core_experiment": "E1: generality, recursive folding, and field derivation",
       "failure_interpretation": "If stack depth cannot change without changing operation input, the two-abstraction model collapses back into fixed prompt/session/tool objects.",
       "figure_table_target": "Table core-results plus dataset/coverage table; E1 is table-first because the key claim is coverage and foldability rather than a ranking curve.",
       "negative_or_scope_condition": "This supports configurable operation-stack folding, not complete ecosystem compatibility or automatic latent-intent recovery.",
@@ -203,14 +203,14 @@
     },
     {
       "baselines": "default output versus deterministic-output replay, semantic profile hashes versus raw-byte profile hashes, and tracked-clean source-status checks.",
-      "claim_gate_decision": "Supported as replayable offline profiling artifact evidence, not live overhead, human productivity, or trace-ecosystem compatibility.",
+      "claim_gate_decision": "Supported as systems/reproducibility evidence, not a hidden-label accuracy result, live overhead, human productivity, or trace-ecosystem compatibility.",
       "claim_test": "Can reviewers rerun the profile-spec path and reproduce stable profile outputs without dataset sync, relabeling, or hidden human-study assumptions?",
-      "core_experiment": "E4: reproducibility and artifact hygiene",
+      "core_experiment": "E4: replayability, offline cost, and artifact hygiene",
       "failure_interpretation": "If deterministic replay or tracked-source provenance fails, the paper can discuss profiler outputs but not claim replayable offline artifact evidence.",
-      "figure_table_target": "Reproducibility table, source-status CSVs, and E4 row in Table core-results; claim/rubric/reviewer gates stay in artifact hygiene.",
-      "negative_or_scope_condition": "This is offline artifact reproducibility, not live eBPF overhead, full OpenTelemetry/Phoenix/LangSmith/Langfuse/Perfetto compatibility, or human productivity evidence.",
+      "figure_table_target": "Reproducibility table, source-status CSVs, and E4 row in Table core-results; claim/rubric/reviewer gates stay in artifact hygiene rather than the empirical accuracy comparison.",
+      "negative_or_scope_condition": "This is offline artifact reproducibility and systems evidence, not hidden-label profiler accuracy, not live eBPF overhead, not complete ecosystem compatibility with OpenTelemetry/Phoenix/LangSmith/Langfuse/Perfetto, and not human productivity evidence.",
       "oracle": "Tracked profile specs, tracked operation inputs, repeated profiler outputs, runtime logs, and source-status rows.",
-      "primary_experiment": "R328 deterministic replay over 76 tracked profile specs; R338/R352/R356/R357/R359/R360/R361/R363 remain artifact-hygiene and paper-structure gates.",
+      "primary_experiment": "R328 deterministic replay over 76 tracked profile specs; R338/R352/R356/R357/R359/R360/R361/R363 remain artifact-hygiene and paper-structure gates, not hidden-label accuracy results.",
       "primary_metrics": "deterministic spec pass rate, profiler invocations, median/p95 runtime, sample equality, stack equality, and raw-byte output equality.",
       "source_artifacts": "R328; R338; R352; R356; R357; R359; R360; R361; R363",
       "success_criterion": "R328 records 76/76 semantic deterministic specs and 76/76 raw-byte deterministic specs over 152 invocations, with median runtime 1.601s and p95 2.767s."
