@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>R364 Core Experiment Sufficiency Audit</title>
+<style>
+body { font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.45; }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+th, td { border: 1px solid #ddd; padding: 0.45rem; vertical-align: top; }
+th { background: #f6f6f6; }
+code { background: #f3f3f3; padding: 0.1rem 0.2rem; }
+</style>
+<h1>R364 Core Experiment Sufficiency Audit</h1>
+<p>Status: <code>pass</code></p>
+<p>Checks: 14/14</p>
+<h2>Sufficiency Matrix</h2>
+<table><thead><tr><th>Experiment</th><th>Primary experiment</th><th>Success criterion</th><th>Claim gate</th></tr></thead><tbody><tr><td>E1: coverage, recursive folding, and field derivation</td><td>R286 recursive stack-depth sweep, with R342 profile-spec composition and R353 trace exchange as support.</td><td>The same operation input folds across depths (9-&gt;3757 stacks), profile specs stay prompt/session-free (12/12), and standard-trace import/export preserves 512 samples and 11 stacks.</td><td>Supported as operation/operation-stack coverage and configurability, not a new trace ecosystem compatibility claim.</td></tr>
+<tr><td>E2: hidden-label localization and ranking</td><td>R320 hidden-label profile accuracy, with R333/R334/R355 budget, fragmentation, and oracle-depth slices.</td><td>Operation-stack task-query ranking uses 0.0937 top-5 work vs 1.0 flat, beats fixed-session drilldown top-5 recall on 5/6 tasks, reduces median groups from 285.0 to 157.5, and beats fixed-session budget-30 unit recall on 20/24 oracle-depth rows.</td><td>Supported as a hidden-label profiler benchmark with baseline tradeoffs, not human utility.</td></tr>
+<tr><td>E3: mechanism and actionability</td><td>R354 executable profile-spec patches, with R358 boundary-derived-field ablation for the OSWorld-Human rejection.</td><td>R354 accepts 5/6 patches with median AP delta 0.0376 and top-5 lift delta 0.5750; R358 improves held-out OSWorld-Human AP from 0.2402 to 0.2583 and groups from 108 to 74 using supervised boundary-derived fields as visible operation fields.</td><td>Supported as actionable profile-spec and field/ranker guidance, not an automatic selector or boundary detector.</td></tr>
+<tr><td>E4: reproducibility, cost, and claim integrity</td><td>R328 deterministic replay plus R338/R352/R356/R357/R359/R360/R361/R363 claim and paper-structure gates.</td><td>R338 passes 350/350 number checks and 16/16 guardrails; R356 passes 69/69 number checks; R352 is level_4_scoped_profile_benchmark; R357 records 4/4 reviewer accepts; R363 generates 5 paper views.</td><td>Supported as reproducible offline profiling-paper evidence, not live overhead or complete trace-ecosystem compatibility.</td></tr></tbody></table>
+<h2>Checks</h2>
+<table><thead><tr><th>Check</th><th>Status</th><th>Evidence</th></tr></thead><tbody><tr><td>four_core_experiments_only</td><td>pass</td><td>Exactly E1-E4 are represented, and no paper-facing E5 is present.</td></tr>
+<tr><td>required_sufficiency_fields_complete</td><td>pass</td><td>Every core experiment row has primary experiment, oracle, baselines, metrics, success criterion, failure interpretation, scope, target, and sources.</td></tr>
+<tr><td>primary_experiments_are_substantial</td><td>pass</td><td>Primary experiments are named for all E1-E4 and are not chronological run lists.</td></tr>
+<tr><td>baseline_and_metric_surface_covers_main_claim</td><td>pass</td><td>E2 includes the required baselines and localization/ranking metrics.</td></tr>
+<tr><td>span_tree_baseline_is_scoped_proxy</td><td>pass</td><td>The current baseline is fixed-session drilldown as a span-tree proxy; real span-tree imports remain future work.</td></tr>
+<tr><td>query_aware_is_task_query_tuning_surface</td><td>pass</td><td>Query-aware policies are scoped as task-query tuning heuristics rather than a universal label-free ranker.</td></tr>
+<tr><td>boundary_backend_is_supervised_ablation</td><td>pass</td><td>R358 is scoped to supervised held-out boundary-derived fields, not automatic boundary discovery.</td></tr>
+<tr><td>actionability_has_executable_and_boundary_mechanisms</td><td>pass</td><td>E3 includes executable profile-spec patches and the OSWorld-Human boundary-field ablation.</td></tr>
+<tr><td>negative_results_preserved</td><td>pass</td><td>Metric, action-transfer, and boundary-field counterpoints remain visible.</td></tr>
+<tr><td>visual_targets_are_not_flamegraph_only</td><td>pass</td><td>R363 provides five non-flamegraph-only paper views for E2/E3 plus oracle depth.</td></tr>
+<tr><td>upstream_gates_pass</td><td>pass</td><td>R360/R361/R363 pass, R352 is level_4, and R357 has 4/4 accepts with 0 blockers.</td></tr>
+<tr><td>self_audits_are_artifact_hygiene_not_empirical_evidence</td><td>pass</td><td>R338/R352/R356/R357/R359/R360/R363 are treated as artifact and claim-hygiene gates, not empirical profiler accuracy evidence.</td></tr>
+<tr><td>two_abstraction_and_source_policy_preserved</td><td>pass</td><td>Operation/operation-stack remain the only profiler abstractions, and the no-new-data policy is visible.</td></tr>
+<tr><td>tracked_source_artifacts_available</td><td>pass</td><td>All source artifacts are tracked; current paper/docs may be dirty while this audit is being generated.</td></tr></tbody></table>
