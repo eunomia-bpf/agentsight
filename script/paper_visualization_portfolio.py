@@ -140,6 +140,23 @@ def fmt(value: Any) -> str:
     return str(value)
 
 
+def tex_escape(value: Any) -> str:
+    text = str(value)
+    replacements = {
+        "\\": r"\textbackslash{}",
+        "&": r"\&",
+        "%": r"\%",
+        "$": r"\$",
+        "#": r"\#",
+        "_": r"\_",
+        "{": r"\{",
+        "}": r"\}",
+        "~": r"\textasciitilde{}",
+        "^": r"\textasciicircum{}",
+    }
+    return "".join(replacements.get(ch, ch) for ch in text)
+
+
 def source_rows() -> list[dict[str, str]]:
     return [
         {
@@ -495,6 +512,7 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
         f"- Status: `{payload['status']}`.",
         f"- Checks: {payload['summary']['checks_passed']}/{payload['summary']['checks_total']}.",
         "- This is a visualization and analysis portfolio over existing tracked results, not a new empirical result.",
+        f"- Paper table: `{payload['paper_table']}`.",
         "",
         "## Visualizations",
         "",
@@ -548,6 +566,98 @@ th {{ background: #f5f5f5; text-align: left; }}
 """,
         encoding="utf-8",
     )
+
+
+def write_latex_table(path: Path, payload: dict[str, Any]) -> None:
+    tradeoff = {row["policy"]: row for row in payload["tradeoff_rows"]}
+    op_query = tradeoff["operation_stack:query_aware"]
+    flat = tradeoff["flat:width"]
+    fixed = tradeoff["fixed_session:query_aware"]
+
+    op_best = sum(row["operation_stack_family_best_tasks"] for row in payload["lens_rows"])
+    counter_best = sum(row["non_operation_stack_best_tasks"] for row in payload["lens_rows"])
+
+    r348_actions = [row for row in payload["action_rows"] if row["source"] == "R348"]
+    total_objectives = sum(row["objective_rows"] for row in r348_actions)
+    nondefault = sum(row["objective_rows"] for row in r348_actions if row["action_class"] != "keep_default_operation_stack")
+    patch = next(row for row in payload["action_rows"] if row["action_class"] == "executable_profile_spec_patch")
+    boundary = next(row for row in payload["action_rows"] if row["action_class"] == "boundary_derived_fields")
+
+    depth_by_metric = {row["metric"]: row for row in payload["oracle_depth_rows"]}
+
+    rows = [
+        {
+            "view": "Baseline tradeoff",
+            "artifact": "baseline-tradeoff.svg",
+            "evidence": (
+                f"Op-stack query Work@5 {fmt(op_query['top5_work'])} vs flat {fmt(flat['top5_work'])}; "
+                f"R@30% {fmt(op_query['budget30_recall'])} vs fixed-session {fmt(fixed['budget30_recall'])}; "
+                f"groups {fmt(op_query['groups'])} vs {fmt(fixed['groups'])}."
+            ),
+            "role": "E2",
+        },
+        {
+            "view": "Metric heatmap",
+            "artifact": "metric-heatmap.svg",
+            "evidence": (
+                f"Shows AP {fmt(op_query['ap'])}, R@30% {fmt(op_query['budget30_recall'])}, "
+                f"Work@5 {fmt(op_query['top5_work'])}, and the fixed-session WTFP counterpoint "
+                f"{fmt(fixed['work_to_first_positive'])}."
+            ),
+            "role": "E2",
+        },
+        {
+            "view": "Diagnostic lenses",
+            "artifact": "diagnostic-lenses.svg",
+            "evidence": (
+                f"Six lenses over 36 objective rows: operation-stack-family views win {op_best}/36, "
+                f"while baseline counterpoints win {counter_best}/36."
+            ),
+            "role": "E3",
+        },
+        {
+            "view": "Actionability knobs",
+            "artifact": "actionability-knobs.svg",
+            "evidence": (
+                f"{nondefault}/{total_objectives} objective rows require non-default actions; "
+                f"R354 accepts {patch['objective_rows']}/{patch['tasks']} profile-spec patches; "
+                f"R358 boundary fields add AP {fmt(boundary['median_gain_over_default'])}."
+            ),
+            "role": "E3",
+        },
+        {
+            "view": "Oracle-depth adequacy",
+            "artifact": "oracle-depth-adequacy.svg",
+            "evidence": (
+                f"Lower top-5 unit work than flat on {depth_by_metric['top5_unit_work']['improved_rows']}/24 rows; "
+                f"higher fixed-session unit recall on "
+                f"{depth_by_metric['budget30_positive_unit_recall']['improved_rows']}/24; "
+                f"fewer groups to 50% positives on "
+                f"{depth_by_metric['groups_to_50pct_positive_units']['improved_rows']}/24."
+            ),
+            "role": "E2/E3",
+        },
+    ]
+
+    lines = [
+        r"\begin{table*}[t]",
+        r"\centering",
+        r"\scriptsize",
+        r"\setlength{\tabcolsep}{3pt}",
+        r"\caption{R363 paper-facing visualization portfolio. The views are generated from tracked R320/R345/R348/R354/R355/R358 artifacts and summarize E2/E3 tradeoffs; R363 is not a new empirical result.}",
+        r"\label{tab:visualization-portfolio}",
+        r"\begin{tabular}{p{0.16\linewidth}p{0.19\linewidth}p{0.45\linewidth}p{0.09\linewidth}}",
+        r"\toprule",
+        r"View & Artifact & Paper-facing evidence & Role \\",
+        r"\midrule",
+    ]
+    for row in rows:
+        lines.append(
+            f"{tex_escape(row['view'])} & \\texttt{{{tex_escape(row['artifact'])}}} & "
+            f"{tex_escape(row['evidence'])} & {tex_escape(row['role'])} \\\\"
+        )
+    lines.extend([r"\bottomrule", r"\end{tabular}", r"\end{table*}", ""])
+    path.write_text("\n".join(lines), encoding="utf-8")
 
 
 def main() -> int:
@@ -680,6 +790,9 @@ def main() -> int:
     )
     write_csv(out_dir / "portfolio-checks.csv", checks, ["check", "status", "evidence"])
     write_csv(out_dir / "source-status.csv", payload["source_status"], ["source", "path", "status", "sha256"])
+    table_path = out_dir / "portfolio-table.tex"
+    payload["paper_table"] = rel(table_path)
+    write_latex_table(table_path, payload)
     (out_dir / "visualization-portfolio.json").write_text(
         json.dumps(payload, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
