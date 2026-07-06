@@ -332,52 +332,31 @@ Profile spec 把这个 query 自由度变成可复现实验配置。
 第三，field derivation 是可扩展接口，因为 mapping 和 supervised backend 只写入 operation fields，profiler 仍按 operation stack 折叠。
 这些机制结果给出 paper novelty，但 user-utility、通用 boundary detector 和完整 trace-platform compatibility 仍是后续 gate。
 
-	\paragraph{Field derivation 和 boundary probes。}
+\paragraph{Field derivation 和 boundary probes。}
 
-	本节支持的是 configurable deterministic/supervised field derivation 在合适标签家族上的迁移，而不是通用无监督边界发现。
+本节支持的是 configurable deterministic/supervised field derivation 在合适标签家族上的迁移，而不是通用无监督边界发现。
+Held-out mapping rules 在 3,990 个 operations 上把 compression 从无 mapping baseline 的 14.049 提高到 19.091，held-out stacks 从 284 降到 209，并把 task/dataset V-measure 从 0.837 提高到 0.853。
+Phase/action boundary F1 为 0.777、precision 为 1.0，说明当前 mapping 保守：它不会制造 false positive phase changes，但会合并一些 fine-grained action changes。
+Leave-dataset-out mapping 在修正 API/tool phase precedence 后，在 9 个 held-out datasets 中的 6 个减少 unique stacks，0 个出现 negative stack-reduction regression，weighted stack reduction 为每 1,000 operations 1162.005。
+这些结果说明 mapping 不是单个数据集的 ad hoc pretty printer，但它仍是 deterministic taxonomy-seeded field derivation，不是无监督边界发现。
 
-	R281 从 13,265 个 labeled operations 中生成 10 条 mapping rules，复现手写 mapping 的 folded 输出。
-R282 使用 dataset-stratified held-out split，在 9,275 个 train operations 上生成规则，并在 3,990 个 held-out operations 上评估。
-Mapped stack 产生 209 个 held-out stacks，compression ratio 为 19.091；无 mapping baseline 为 284 个 stacks，compression ratio 为 14.049。
-Task/dataset V-measure 从 0.837 提升到 0.853。
-Phase/action boundary F1 为 0.777，precision 为 1.0，说明当前 mapping 是保守的。
-它不会制造 false positive phase changes，但会合并一些 fine-grained action changes。
+Boundary backend 提供更强但仍 scoped 的 field derivation 证据。
+在 OSWorld-Human exact-aligned sessions 上，held-out adjacent-pair backend 使用非 oracle operation fields 训练，明确排除 \texttt{human\_group}、\texttt{group\_index}、\texttt{group\_position}、\texttt{group\_size}、\texttt{group\_pattern} 和 \texttt{group\_alignment}。
+它在 held-out pairs 上达到 precision 0.7400、recall 0.8102、F1 0.7735，高于 phase-change baseline 0.2919、action-change baseline 0.5142 和 conservative \texttt{group\_pattern} reference 0.5810；预测字段写回 \texttt{learned\_group\_pattern} 和 \texttt{learned\_group\_position} 后，Rust \toolname{} 在 1,132 个 held-out operations 上折叠得到 74 个 stacks。
+这支持 supervised boundary fields 可以作为普通 operation fields 被 folding 使用，不支持新增第三个 profiler object。
 
-R283--R285 进一步做 leave-dataset-out。
-在修正 API/tool phase precedence 后，R285 对 9 个 held-out datasets 中的 6 个减少 unique stacks，0 个出现 negative stack reduction，weighted stack reduction 为每 1,000 operations 1162.005。
-这说明 mapping 不是单个数据集的 ad hoc pretty printer。
-它仍然是 deterministic taxonomy-seeded mapping，不是无监督边界发现。
-R297 开始测试更强的 boundary backend。
-它在 OSWorld-Human exact-aligned sessions 上按 session 做 deterministic split：191 个 train sessions 产生 2,655 个 train adjacent pairs，96 个 test sessions 产生 1,036 个 test adjacent pairs。
-模型使用非 oracle operation fields 训练 Bernoulli adjacent-boundary predictor，明确排除 \texttt{human\_group}、\texttt{group\_index}、\texttt{group\_position}、\texttt{group\_size}、\texttt{group\_pattern} 和 \texttt{group\_alignment}。
-在 held-out pairs 上，learned backend 的 precision 为 0.7400，recall 为 0.8102，F1 为 0.7735；phase-change baseline 为 0.2919，action-change 为 0.5142，conservative \texttt{group\_pattern} reference 为 0.5810。
-随后脚本把预测边界写成 \texttt{learned\_group\_pattern} 和 \texttt{learned\_group\_position} 字段，Rust \toolname{} 在 1,132 个 held-out operations 上折叠得到 74 个 stacks。
-当前可支持的 claim 是 configurable deterministic/supervised field derivation 能在 held-out 设置下改善语义聚合；完整 model-backed 或 unsupervised boundary detector 仍是后续工作。
-
-R299 将这个 backend 接口复制到现有标注家族，并加入 suitability/calibration gate。
-脚本检查 OSWorld-Human human-group、AgentNet step correctness、AgentNet step redundancy、AgentRewardBench looping、SATraj safety、ScaleCUA history state 和 tau-bench tool-dialogue role 共 7 个候选。
-其中 SATraj safety 在当前样本中没有 session-local adjacent positives，ScaleCUA history state 是 context marker 而不是语义边界，tau-bench 在 R287 没有 tracked operation JSONL，因此不训练。
-四个可训练候选的 held-out learned F1 分别是 OSWorld-Human 0.6916、AgentNet step-correct 0.3197、AgentNet step-redundant 0.3361 和 AgentRewardBench looping 0.7833。
-AgentNet 两个质量状态边界都优于 always-boundary baseline（0.2155 和 0.2645），但 precision 低且 calibration error 仍明显；AgentRewardBench looping 虽然 learned F1 达到 0.7833，却被 \texttt{repeat\_signal\_change} baseline 的 1.0 F1 完全解释。
-这把 C3 的范围收得更清楚：backend 可以统一地派生 stackable operation fields，但每个标签家族都必须证明它真的是边界 oracle，并且必须胜过简单 sequence-derived fields。
-
-R366 把这些 field derivation 证据整理成一个机制审计，而不是新增实验。
-它读取 R282/R285/R297/R299/R325/R342/R358 的 tracked artifacts，输出 6 个 mechanism rows 和 5 个 boundary-family rows。
-结论是：mapping、tagging/rank features、profile specs 和 supervised boundary backends 都只是写入 operation fields，然后由 operation stack 折叠。
-Held-out mapping 将 compression 从 14.049 提到 19.091，但 action->phase V-measure 从 0.9343 降到 0.7416，说明它是聚合机制而不是细粒度边界 oracle。
-Boundary backend 在 4/5 rows 上胜过 best simple baseline，但 AgentRewardBench looping 仍由 \texttt{repeat\_signal\_change} 完全解释。
-因此 R366 支持 first-class field derivation 和 suitability checks，not automatic intent boundary discovery，也不引入新 profiler object。
+Field-derivation audit 同时保留反例。
+Mapping 提高 compression，但把 action-to-phase V-measure 从 0.9343 降到 0.7416，说明它是聚合机制而不是细粒度边界 oracle。
+跨标签家族的 boundary suitability check 中，learned boundary backends 在 4/5 rows 上胜过 best simple baseline；可训练 rows 的 held-out F1 分别是 OSWorld-Human 0.6916、AgentNet step-correct 0.3197、AgentNet step-redundant 0.3361 和 AgentRewardBench looping 0.7833。
+AgentNet 两个 quality-state boundaries 优于 always-boundary baselines（0.2155 和 0.2645），但仍有 precision 和 calibration caveat；AgentRewardBench looping 虽然 learned F1 达到 0.7833，却被 \texttt{repeat\_signal\_change} baseline 的 1.0 F1 完全解释。
+因此 E1 的结论是：mapping、tagging/rank features、profile specs 和 supervised boundary backends 都只是写入 operation fields，然后由 operation stack 折叠；它们支持 first-class field derivation 和 suitability checks，不支持 automatic intent boundary discovery。
 
 \paragraph{Human-boundary oracle。}
 
 OSWorld-Human 是当前最强的 grouped-boundary oracle。
-R290 转换全部 369 个 human desktop tasks，得到 6,010 个 single-action operations。
-转换器把 grouped-action 序列展平后与 single-action 序列对齐，只有 exact-aligned tasks 才写入 \texttt{human\_group}、\texttt{group\_pattern} 和 \texttt{group\_position} 字段。
-最终 320 个 tasks、4,011 个 operations 和 2,075 个 session-local groups 进入 grouped-boundary scoring；31 个 content-mismatch tasks 和 18 个 length-mismatch tasks 保留用于 action profiling，但不被当作 gold group oracle。
-
-在 OSWorld-Human 上，普通 action-depth stack 有 482 个 unique stacks，grouped-depth stack 降到 106 个。
-Phase/action boundary F1 为 0.638，precision 为 1.0。
-更重要的是，保守的 \texttt{group\_pattern} 对人工 \texttt{human\_group} boundary 的 F1 为 0.627，precision 为 1.0，recall 为 0.456。
+转换器覆盖 369 个 human desktop tasks 和 6,010 个 single-action operations；只有 grouped-action 序列与 single-action 序列 exact-aligned 的 320 个 tasks 被写入 \texttt{human\_group}、\texttt{group\_pattern} 和 \texttt{group\_position} oracle fields。
+这些 exact-aligned tasks 含 4,011 个 operations 和 2,075 个 session-local groups；31 个 content-mismatch tasks 和 18 个 length-mismatch tasks 保留用于 action profiling，但不被当作 gold group oracle。
+在同一批 exact-aligned operations 上，action-depth stack 有 482 个 unique stacks，grouped-depth stack 降到 106 个；保守 \texttt{group\_pattern} 对人工 \texttt{human\_group} boundary 的 F1 为 0.627，precision 为 1.0，recall 为 0.456。
 这不是完美边界 detector，但它给出有意义结论：operation stack 可以在同一条单动作序列上选择 action-depth 或 group-depth，并以人工 grouped-action 标签作为 oracle 验证。
 Prompt 或 session 没有参与这个抽象。
 
