@@ -1,0 +1,312 @@
+{
+  "case_cards": [
+    {
+      "best_visible_policy": "dataset_native:query_aware",
+      "counterpoints": "top5_recall->flat:width; first_positive->raw_action_stack:query_aware",
+      "dataset": "agent-reward-bench",
+      "operation_stack_top5_lift": "1.3179",
+      "operation_stack_top5_recall": "0.6508",
+      "operation_stack_top5_work": "0.4938",
+      "optimization_action": "Keep repeat_signal in the stack, but add prevalence-aware ranking because looping positives are common.",
+      "patch_delta_ap": "0.1155",
+      "patch_verdict": "accept_patch",
+      "query_family": "failure-looping",
+      "task": "agentreward_looping",
+      "useful_stack_fields": "analysis_task,dataset,benchmark,phase,action,repeat_signal,status",
+      "visual_recipe": "Start with a ranked operation-stack table over repeat_signal/phase/action, then inspect budgeted recall for prevalence."
+    },
+    {
+      "best_visible_policy": "fixed_session:width",
+      "counterpoints": "top5_recall->flat:width; top5_lift->raw_action_stack:query_aware",
+      "dataset": "agent-reward-bench",
+      "operation_stack_top5_lift": "0.7831",
+      "operation_stack_top5_recall": "0.1139",
+      "operation_stack_top5_work": "0.1454",
+      "optimization_action": "Increase weight on write/input actions or use a deeper side-effect mapping before ranking.",
+      "patch_delta_ap": "0.0591",
+      "patch_verdict": "accept_patch",
+      "query_family": "failure-side-effect",
+      "task": "agentreward_side_effect",
+      "useful_stack_fields": "analysis_task,dataset,benchmark,phase,action,repeat_signal,status",
+      "visual_recipe": "Compare fixed-session drilldown with deeper write/input operation-stack fields before trusting hot groups."
+    },
+    {
+      "best_visible_policy": "operation_stack:query_aware",
+      "counterpoints": "top5_recall->flat:width; first_positive->fixed_session:query_aware",
+      "dataset": "satraj-os-safety",
+      "operation_stack_top5_lift": "6.2384",
+      "operation_stack_top5_recall": "0.2621",
+      "operation_stack_top5_work": "0.042",
+      "optimization_action": "Use environment + phase + action stack fields; prioritize risky environments and write actions.",
+      "patch_delta_ap": "0.5081",
+      "patch_verdict": "accept_patch",
+      "query_family": "safety",
+      "task": "satraj_unsafe",
+      "useful_stack_fields": "analysis_task,dataset,environment,phase,action,repeat_signal,status",
+      "visual_recipe": "Use environment/phase/action operation stacks for hot groups, then check dataset-native safety hierarchy for AP headroom."
+    },
+    {
+      "best_visible_policy": "raw_action_stack:width",
+      "counterpoints": "top5_recall->flat:width",
+      "dataset": "agentnet",
+      "operation_stack_top5_lift": "2.4057",
+      "operation_stack_top5_recall": "0.0034",
+      "operation_stack_top5_work": "0.0014",
+      "optimization_action": "Use desktop environment + phase + repeat/action fields, then drill into fixed sessions for examples.",
+      "patch_delta_ap": "0.016",
+      "patch_verdict": "accept_patch",
+      "query_family": "step-quality",
+      "task": "agentnet_incorrect_step",
+      "useful_stack_fields": "analysis_task,dataset,environment,phase,action,repeat_signal,status",
+      "visual_recipe": "Use desktop phase/repeat/action stacks for AP and budget recall, with raw-action/fixed-session drilldown for examples."
+    },
+    {
+      "best_visible_policy": "raw_action_stack:width",
+      "counterpoints": "top5_recall->flat:width; first_positive->fixed_session:query_aware",
+      "dataset": "agentnet",
+      "operation_stack_top5_lift": "1.9838",
+      "operation_stack_top5_recall": "0.0177",
+      "operation_stack_top5_work": "0.0089",
+      "optimization_action": "Use desktop environment + phase + repeat/action fields, then drill into fixed sessions for examples.",
+      "patch_delta_ap": "0.0011",
+      "patch_verdict": "accept_patch",
+      "query_family": "step-quality",
+      "task": "agentnet_redundant_step",
+      "useful_stack_fields": "analysis_task,dataset,environment,phase,action,repeat_signal,status",
+      "visual_recipe": "Use desktop phase/repeat/action stacks for AP and budget recall, with raw-action/fixed-session drilldown for examples."
+    },
+    {
+      "best_visible_policy": "flat:width",
+      "counterpoints": "top5_recall->flat:width; top5_lift->fixed_session:query_aware; first_positive->fixed_session:query_aware",
+      "dataset": "osworld-human",
+      "operation_stack_top5_lift": "0.951",
+      "operation_stack_top5_recall": "0.3874",
+      "operation_stack_top5_work": "0.4074",
+      "optimization_action": "Use group-depth or boundary-derived fields for higher recall; action-depth alone fragments starts.",
+      "patch_delta_ap": "-0.0004",
+      "patch_verdict": "reject_patch_or_needs_new_mapping",
+      "query_family": "human-boundary",
+      "task": "osworld_group_start",
+      "useful_stack_fields": "analysis_task,dataset,app,phase,action,repeat_signal,status",
+      "visual_recipe": "Use group-depth or boundary-derived stack fields, then inspect fixed-session examples for first-positive work."
+    }
+  ],
+  "checks": [
+    {
+      "check": "headline_rows_cover_e2_e3_claim",
+      "evidence": "Headline rows preserve E2 localization/tradeoff, E3 actionability, oracle-depth, and boundary-field numbers.",
+      "status": "pass"
+    },
+    {
+      "check": "six_task_cards_with_counterpoints",
+      "evidence": "All six oracle-backed tasks have an action card and explicit counterpoint.",
+      "status": "pass"
+    },
+    {
+      "check": "visible_non_oracle_actionability",
+      "evidence": "Task cards are based on visible-policy action cards and R354 profile-spec patches.",
+      "status": "pass"
+    },
+    {
+      "check": "paper_text_mentions_r365",
+      "evidence": "Evaluation ledger and paper drafts mention the R365 headline/case-study selector.",
+      "status": "pass"
+    },
+    {
+      "check": "no_new_data_or_profiler_rerun",
+      "evidence": "All inputs are tracked artifacts or current paper/docs; the script does not fetch data or rerun the profiler.",
+      "status": "pass"
+    },
+    {
+      "check": "two_abstractions_only",
+      "evidence": "The paper text keeps outputs as operation/operation-stack evidence rather than new profiler abstractions.",
+      "status": "pass"
+    }
+  ],
+  "claim": "E2/E3 paper-ready headline rows and case cards can be mechanically extracted from existing labeled-trace artifacts",
+  "commit": "8df0ebf272ab3e0c72fcee4c62ef235549a1b0ee",
+  "elapsed_s": 0.0771,
+  "headline_rows": [
+    {
+      "claim_role": "hidden-label localization and inspection work",
+      "counterpoint": "Fixed-session still has lower first-positive work (0.0044); dataset-native has higher top-5 recall (0.8665) at high work.",
+      "headline": "Operation-stack query-aware rankings localize positives while inspecting much less work than flat summaries.",
+      "paper_block": "E2",
+      "paper_takeaway": "Use the operation stack as the primary triage surface when the goal is budgeted localization rather than full-recall summarization.",
+      "primary_numbers": "6 tasks / 4 datasets / 34539 operations / 3699 positives; Work@5 0.0937 vs flat 1; R@30% 0.39 vs fixed-session 0.3559.",
+      "row_id": "H1",
+      "sources": "R320; R333"
+    },
+    {
+      "claim_role": "fixed-boundary fragmentation tradeoff",
+      "counterpoint": "The fixed-session result is a fragmentation result, not work dominance: operation_stack:query_aware has lower work-to-50%-recall on only 1/6 tasks, lower top-5 work on only 2/6 tasks, and lower work-to-first-positive on only 2/6 tasks.",
+      "headline": "Operation stacks reduce fixed-session fragmentation for ranked inspection.",
+      "paper_block": "E2",
+      "paper_takeaway": "Session/span-shaped drilldown should be a secondary view; making it primary fragments positives across too many groups.",
+      "primary_numbers": "Median groups 157.5 vs fixed-session 285; top-5 recall wins vs fixed-session 5/6; 30% budget inspects fewer groups on 5/6 tasks.",
+      "row_id": "H2",
+      "sources": "R320; R334"
+    },
+    {
+      "claim_role": "oracle-depth adequacy",
+      "counterpoint": "session-level AgentRewardBench labels do not prove latent subtask boundaries; positive-run units are a cross-dataset proxy, not human intent annotations",
+      "headline": "The same ranked groups remain useful when scored at dataset-provided oracle depths.",
+      "paper_block": "E2/E3",
+      "paper_takeaway": "The profiler can be evaluated at operation, session, positive-run, and OSWorld human-group depths without changing the two-object model.",
+      "primary_numbers": "24/24 rows lower top-5 unit work than flat; 20/24 rows beat fixed-session unit recall; 22/24 rows use fewer groups to 50% positives.",
+      "row_id": "H3",
+      "sources": "R355"
+    },
+    {
+      "claim_role": "profile-configuration actionability",
+      "counterpoint": "These are visible-profile configuration actions, not an automatic patch selector or human-productivity result.",
+      "headline": "Profiler output identifies concrete view, ranker, and profile-spec changes.",
+      "paper_block": "E3",
+      "paper_takeaway": "The profiler is actionable because it names which stack fields, mappings, ranker policy, or drilldown should change.",
+      "primary_numbers": "27/36 objective rows need non-default actions; 25/36 require view changes; R354 accepts 5/6 patches with median AP delta 0.0376 and top-5 lift delta 0.575.",
+      "row_id": "H4",
+      "sources": "R348; R354"
+    },
+    {
+      "claim_role": "boundary-field mechanism ablation",
+      "counterpoint": "Boundary-derived fields improve AP and reduce groups, but they increase top-5 operation work and first-positive work on this held-out subset.",
+      "headline": "The OSWorld-Human rejection is repaired by boundary-derived operation fields, not by adding a new profiler object.",
+      "paper_block": "E3",
+      "paper_takeaway": "Boundary backends are field derivation mechanisms whose outputs fold through the same operation-stack path.",
+      "primary_numbers": "AP 0.2583 vs semantic-width 0.2402; groups 74 vs 108; top-5 recall delta 0.1111.",
+      "row_id": "H5",
+      "sources": "R358"
+    }
+  ],
+  "input_policy": {
+    "hidden_labels_only_after_ranking": true,
+    "no_dataset_creation": true,
+    "no_dataset_sync": true,
+    "no_profiler_rerun": true,
+    "no_relabeling": true
+  },
+  "not_a_human_study_result": true,
+  "not_an_agent_analyst_task_result": true,
+  "not_new_empirical_result": true,
+  "profiler_abstractions": [
+    "operation",
+    "operation stack"
+  ],
+  "run_id": "R365",
+  "schema": "agentsight.paper_headline_case_studies.v1",
+  "source_status": [
+    {
+      "path": "script/paper_headline_case_studies.py",
+      "sha256": "ea1ee095e5e43d54066b884e686759d18fd620c6af9cb4ffc5088a7b833a423f",
+      "source": "generator script",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-profile-accuracy-r320/profile-accuracy-report.json",
+      "sha256": "4baf9e91f444ec47a4d8d843ffc210e11fabf51b18dbc6113c7a2b2532a35786",
+      "source": "R320 profile accuracy",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-profile-accuracy-r320/optimization-insights.csv",
+      "sha256": "3cb337b5b07143c57e953b5280552a4741b20ca6b0be3781a4756d25489eb638",
+      "source": "R320 optimization insights",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-inspection-frontier-r333/inspection-frontier-report.json",
+      "sha256": "f55bfad1a45cf918774bcb035a5fe4a4099fd2ca3c19643e824a0c03accaae00",
+      "source": "R333 inspection frontier",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-fragmentation-tradeoff-r334/fragmentation-tradeoff-report.json",
+      "sha256": "44bed687dd253e7c30145f8941c16f3859779cf4db03e80e479b14e6a85bebf1",
+      "source": "R334 fragmentation tradeoff",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-diagnostic-lens-portfolio-r345/task-lens-cards.csv",
+      "sha256": "7730f0d48af2872290a3fdc3056ad41c82941ba0026ab0a1507e17b0198887e3",
+      "source": "R345 task lens cards",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-action-counterfactual-r348/task-action-counterfactual-cards.csv",
+      "sha256": "44a7871fa00a44bc7e5bf3f485cdeae9eaa48227d7506c4bb84a1592d915ef6f",
+      "source": "R348 action cards",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-action-counterfactual-r348/action-counterfactual-report.json",
+      "sha256": "4eeb9beb6acc17a711cff394a5f4e365dc9df610ef0396261572a742d1449c7f",
+      "source": "R348 action report",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-profile-patch-r354/profile-patch-report.json",
+      "sha256": "6585af0a77956fa56b8aadec29f822714789b5bfcdf1769fcd61ba3d0c1994ad",
+      "source": "R354 profile patch",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-profile-patch-r354/profile-patch-summary.csv",
+      "sha256": "7ce37e551534578247b43ac3ab5ebe1f62e4d14f90a7c454b848dc6d06c9f44f",
+      "source": "R354 profile patch summary",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-oracle-depth-adequacy-r355/oracle-depth-adequacy-report.json",
+      "sha256": "59b32c9cb9f00000984ae19376ac9aa411ad7b1c9a679ef3d0306017e5def00a",
+      "source": "R355 oracle depth",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-boundary-profile-patch-r358/boundary-profile-patch-report.json",
+      "sha256": "3a73b69d7e4be423506edf9350b3c0c9db393520d79c3698b85d9024463597a7",
+      "source": "R358 boundary patch",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-boundary-profile-patch-r358/top-stacks.csv",
+      "sha256": "6ff5d0371d88fc80925c43b1a0b8f99e5efd67ad3ef74dd102cccb9753a45bb2",
+      "source": "R358 top stacks",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/paper-visualization-portfolio-r363/visualization-portfolio.json",
+      "sha256": "3a0f5ee1f7d837b87c629e5415952eaa2010dfd40f3c86fe346799a272162f37",
+      "source": "R363 visualization portfolio",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/evaluation.md",
+      "sha256": "1245092189bd16fc262441b858a2b26173a15243e4090cb597f77e33c2a92f50",
+      "source": "evaluation ledger",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/paper/main.tex",
+      "sha256": "3cf83ac5632601005b9c98ddd526b35ddac736973e7bb0e48dde807c5c39ec90",
+      "source": "Chinese paper",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/agentpprof-paper/main.tex",
+      "sha256": "b762eff791a7ab9f955606c97a8db833c572e32a1b2d9ac6674d9d22514a567b",
+      "source": "English paper",
+      "status": "tracked_clean"
+    }
+  ],
+  "status": "pass",
+  "summary": {
+    "case_cards": 6,
+    "checks_passed": 6,
+    "checks_total": 6,
+    "dataset_sync": false,
+    "headline_rows": 5,
+    "network_access_required": false,
+    "profiler_rerun": false,
+    "status": "pass"
+  }
+}

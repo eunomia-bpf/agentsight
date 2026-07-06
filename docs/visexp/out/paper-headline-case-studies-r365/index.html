@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>R365 Paper Headline Case Studies</title>
+<style>
+body { font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.45; }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+th, td { border: 1px solid #ddd; padding: 0.45rem; vertical-align: top; }
+th { background: #f6f6f6; }
+code { background: #f3f3f3; padding: 0.1rem 0.2rem; }
+</style>
+<h1>R365 Paper Headline Case Studies</h1>
+<p>Status: <code>pass</code></p>
+<p>Checks: 6/6</p>
+<h2>Headline Rows</h2>
+<table><thead><tr><th>Row</th><th>Block</th><th>Role</th><th>Main numbers</th><th>Counterpoint</th></tr></thead><tbody><tr><td>H1</td><td>E2</td><td>hidden-label localization and inspection work</td><td>6 tasks / 4 datasets / 34539 operations / 3699 positives; Work@5 0.0937 vs flat 1; R@30% 0.39 vs fixed-session 0.3559.</td><td>Fixed-session still has lower first-positive work (0.0044); dataset-native has higher top-5 recall (0.8665) at high work.</td></tr>
+<tr><td>H2</td><td>E2</td><td>fixed-boundary fragmentation tradeoff</td><td>Median groups 157.5 vs fixed-session 285; top-5 recall wins vs fixed-session 5/6; 30% budget inspects fewer groups on 5/6 tasks.</td><td>The fixed-session result is a fragmentation result, not work dominance: operation_stack:query_aware has lower work-to-50%-recall on only 1/6 tasks, lower top-5 work on only 2/6 tasks, and lower work-to-first-positive on only 2/6 tasks.</td></tr>
+<tr><td>H3</td><td>E2/E3</td><td>oracle-depth adequacy</td><td>24/24 rows lower top-5 unit work than flat; 20/24 rows beat fixed-session unit recall; 22/24 rows use fewer groups to 50% positives.</td><td>session-level AgentRewardBench labels do not prove latent subtask boundaries; positive-run units are a cross-dataset proxy, not human intent annotations</td></tr>
+<tr><td>H4</td><td>E3</td><td>profile-configuration actionability</td><td>27/36 objective rows need non-default actions; 25/36 require view changes; R354 accepts 5/6 patches with median AP delta 0.0376 and top-5 lift delta 0.575.</td><td>These are visible-profile configuration actions, not an automatic patch selector or human-productivity result.</td></tr>
+<tr><td>H5</td><td>E3</td><td>boundary-field mechanism ablation</td><td>AP 0.2583 vs semantic-width 0.2402; groups 74 vs 108; top-5 recall delta 0.1111.</td><td>Boundary-derived fields improve AP and reduce groups, but they increase top-5 operation work and first-positive work on this held-out subset.</td></tr></tbody></table>
+<h2>Task Cards</h2>
+<table><thead><tr><th>Task</th><th>Policy</th><th>Work@5</th><th>Recall@5</th><th>Patch</th><th>Action</th></tr></thead><tbody><tr><td>agentreward_looping</td><td>dataset_native:query_aware</td><td>0.4938</td><td>0.6508</td><td>accept_patch (0.1155)</td><td>Keep repeat_signal in the stack, but add prevalence-aware ranking because looping positives are common.</td></tr>
+<tr><td>agentreward_side_effect</td><td>fixed_session:width</td><td>0.1454</td><td>0.1139</td><td>accept_patch (0.0591)</td><td>Increase weight on write/input actions or use a deeper side-effect mapping before ranking.</td></tr>
+<tr><td>satraj_unsafe</td><td>operation_stack:query_aware</td><td>0.042</td><td>0.2621</td><td>accept_patch (0.5081)</td><td>Use environment + phase + action stack fields; prioritize risky environments and write actions.</td></tr>
+<tr><td>agentnet_incorrect_step</td><td>raw_action_stack:width</td><td>0.0014</td><td>0.0034</td><td>accept_patch (0.016)</td><td>Use desktop environment + phase + repeat/action fields, then drill into fixed sessions for examples.</td></tr>
+<tr><td>agentnet_redundant_step</td><td>raw_action_stack:width</td><td>0.0089</td><td>0.0177</td><td>accept_patch (0.0011)</td><td>Use desktop environment + phase + repeat/action fields, then drill into fixed sessions for examples.</td></tr>
+<tr><td>osworld_group_start</td><td>flat:width</td><td>0.4074</td><td>0.3874</td><td>reject_patch_or_needs_new_mapping (-0.0004)</td><td>Use group-depth or boundary-derived fields for higher recall; action-depth alone fragments starts.</td></tr></tbody></table>
+<h2>Checks</h2>
+<table><thead><tr><th>Check</th><th>Status</th><th>Evidence</th></tr></thead><tbody><tr><td>headline_rows_cover_e2_e3_claim</td><td>pass</td><td>Headline rows preserve E2 localization/tradeoff, E3 actionability, oracle-depth, and boundary-field numbers.</td></tr>
+<tr><td>six_task_cards_with_counterpoints</td><td>pass</td><td>All six oracle-backed tasks have an action card and explicit counterpoint.</td></tr>
+<tr><td>visible_non_oracle_actionability</td><td>pass</td><td>Task cards are based on visible-policy action cards and R354 profile-spec patches.</td></tr>
+<tr><td>paper_text_mentions_r365</td><td>pass</td><td>Evaluation ledger and paper drafts mention the R365 headline/case-study selector.</td></tr>
+<tr><td>no_new_data_or_profiler_rerun</td><td>pass</td><td>All inputs are tracked artifacts or current paper/docs; the script does not fetch data or rerun the profiler.</td></tr>
+<tr><td>two_abstractions_only</td><td>pass</td><td>The paper text keeps outputs as operation/operation-stack evidence rather than new profiler abstractions.</td></tr></tbody></table>
