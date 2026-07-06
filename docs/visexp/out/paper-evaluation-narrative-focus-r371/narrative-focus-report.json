@@ -1,0 +1,169 @@
+{
+  "checks": [
+    {
+      "check": "four_rq_sections_in_both_papers",
+      "evidence": "zh=['RQ1/E1', 'RQ2/E2', 'RQ3/E3', 'RQ4/E4']; en=['RQ1/E1', 'RQ2/E2', 'RQ3/E3', 'RQ4/E4']",
+      "status": "pass"
+    },
+    {
+      "check": "rq1_keeps_ranker_ablation_out_of_primary_folding_story",
+      "evidence": "English RQ1 no longer lists E3 ranker/actionability probes as recursive-folding evidence.",
+      "status": "pass"
+    },
+    {
+      "check": "rq2_primary_result_precedes_supporting_robustness_runs",
+      "evidence": "RQ2 leads with the hidden-label localization benchmark before robustness/counterpoint slices.",
+      "status": "pass"
+    },
+    {
+      "check": "rq3_mechanism_runs_precede_patch_case",
+      "evidence": "RQ3 explains rank-feature/mapping mechanisms before executable patch and boundary repair cases.",
+      "status": "pass"
+    },
+    {
+      "check": "rq4_replay_cost_precedes_hygiene_gates",
+      "evidence": "RQ4 now leads with replay/cost evidence before paper-hygiene audits.",
+      "status": "pass"
+    },
+    {
+      "check": "each_section_has_claim_counterpoint_nonclaim",
+      "evidence": "Each RQ section exposes claim test, counterpoint language, and scoped non-claim language.",
+      "status": "pass"
+    },
+    {
+      "check": "r370_contract_still_passes",
+      "evidence": "{\"checks_passed\": 10, \"checks_total\": 10, \"core_experiments\": 4}",
+      "status": "pass"
+    },
+    {
+      "check": "paper_mentions_r371_narrative_focus",
+      "evidence": "Chinese and English drafts mention R371 as a narrative-focus guardrail.",
+      "status": "pass"
+    },
+    {
+      "check": "evaluation_records_r371",
+      "evidence": "Evaluation ledger records R371 as paper-organization hygiene.",
+      "status": "pass"
+    },
+    {
+      "check": "source_policy_no_new_data_or_profiler_rerun",
+      "evidence": "R371 reads tracked paper/docs/artifacts only; it downloads no data and reruns no profiler.",
+      "status": "pass"
+    }
+  ],
+  "generated_at": "2026-07-06T14:03:00Z",
+  "git_commit": "79825836e1e6ccb28047eb773af4a393b38cfc37",
+  "run_id": "R371",
+  "sections": [
+    {
+      "chars": 7429,
+      "has_claim_test": true,
+      "has_counterpoint": true,
+      "has_nonclaim": true,
+      "paper": "zh",
+      "r_run_mentions": 20,
+      "rq": "RQ1/E1"
+    },
+    {
+      "chars": 8958,
+      "has_claim_test": true,
+      "has_counterpoint": true,
+      "has_nonclaim": true,
+      "paper": "zh",
+      "r_run_mentions": 31,
+      "rq": "RQ2/E2"
+    },
+    {
+      "chars": 4979,
+      "has_claim_test": true,
+      "has_counterpoint": true,
+      "has_nonclaim": true,
+      "paper": "zh",
+      "r_run_mentions": 23,
+      "rq": "RQ3/E3"
+    },
+    {
+      "chars": 7960,
+      "has_claim_test": true,
+      "has_counterpoint": true,
+      "has_nonclaim": true,
+      "paper": "zh",
+      "r_run_mentions": 61,
+      "rq": "RQ4/E4"
+    },
+    {
+      "chars": 4625,
+      "has_claim_test": true,
+      "has_counterpoint": true,
+      "has_nonclaim": true,
+      "paper": "en",
+      "r_run_mentions": 12,
+      "rq": "RQ1/E1"
+    },
+    {
+      "chars": 14819,
+      "has_claim_test": true,
+      "has_counterpoint": true,
+      "has_nonclaim": true,
+      "paper": "en",
+      "r_run_mentions": 40,
+      "rq": "RQ2/E2"
+    },
+    {
+      "chars": 8047,
+      "has_claim_test": true,
+      "has_counterpoint": true,
+      "has_nonclaim": true,
+      "paper": "en",
+      "r_run_mentions": 21,
+      "rq": "RQ3/E3"
+    },
+    {
+      "chars": 9052,
+      "has_claim_test": true,
+      "has_counterpoint": true,
+      "has_nonclaim": true,
+      "paper": "en",
+      "r_run_mentions": 55,
+      "rq": "RQ4/E4"
+    }
+  ],
+  "sources": [
+    {
+      "path": "script/paper_evaluation_narrative_focus.py",
+      "sha256": "5e0d78d691acd4294cc5d751f97cc5038f44c8f424357f3f8f1d4a39039251c7",
+      "source": "generator script",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/out/paper-main-experiment-contract-r370/main-experiment-contract.json",
+      "sha256": "2f0d4a45dd5875249e0e1e4253e4a19668c269d37815a60c2d0abcaa7e26e810",
+      "source": "R370 main experiment contract",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/paper/main.tex",
+      "sha256": "9bda06666a9593cfe50b6b927f5c94446a2541e2bb6a8f06337e0fbdcbe68d29",
+      "source": "Chinese paper",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/agentpprof-paper/main.tex",
+      "sha256": "fb2eb46a2c702241dbef4eeaf54d8354533a7bcb32f84a2c58fa8abb24890afa",
+      "source": "English paper",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/evaluation.md",
+      "sha256": "4a78354957084b687105788390311ca12531a1830871dc186c9d819958b406ed",
+      "source": "evaluation ledger",
+      "status": "tracked_dirty_allowed"
+    }
+  ],
+  "status": "pass",
+  "summary": {
+    "checks_passed": 10,
+    "checks_total": 10,
+    "sections": 8
+  }
+}

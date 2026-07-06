@@ -251,6 +251,8 @@ R370 再把这个组织方式固定成 main-experiment contract。
 每个核心实验必须明确 primary test、workload/oracle、baselines/metrics、primary evidence、supporting R-run roles、failure interpretation 和 non-claim。
 这意味着后续新增的 R 编号只能作为 E1--E4 内部的 primary evidence、ablation、counterpoint、provenance 或 hygiene gate；不能因为时间顺序变成新的主实验。
 因此本文保持三个经验性 profiling 实验加一个系统/复现实验，而不是把 R-run 历史展开成一堆小实验。
+R371 进一步审计 evaluation narrative focus：它检查 RQ1 不混入 E3 ranker 消融、RQ2 先给 R320 主 localization 结果、RQ3 先解释机制再讲 profile patch、RQ4 先给 replay/cost 再讲 paper hygiene。
+这同样只是 paper-organization guardrail，不新增数据或 profiler run。
 
 \begin{table*}[t]
   \centering
@@ -488,13 +490,18 @@ R358 支持 boundary-derived fields 是 actionable operation-field knob，不支
 R361 将本节的 evidence contract 固定为：claim 是 offline profiler path 可以在 tracked inputs 上低成本 replay；oracle 是 tracked profile specs、tracked operation inputs、repeated profile outputs、runtime logs 和 source-status rows；baseline 包括 default output versus deterministic-output replay、semantic profile hashes versus raw-byte profile hashes；metric 包括 deterministic spec pass rate、profiler invocations、median/p95 runtime、sample equality、stack equality 和 raw-byte output equality；counterpoint 是 not live eBPF overhead、not human utility、not complete ecosystem compatibility、not universal selector。Claim-integrity、rubric 和 reviewer-style checks 是 artifact hygiene，不是 empirical evidence。
 Claim-test：RQ4/E4 问的是：reviewer 能否 replay offline profile-spec path，并验证 source provenance、paper numbers、two-abstraction wording 和 non-claims 都保持一致。
 
-R338 再把 paper claim 本身纳入审计：它复用 R320--R350 的 tracked-clean artifacts，不重新排名、不下载、不同步、不创建、不重标数据集，只检查论文数字、source policy、must-not-claim guardrails 和 operation/operation-stack 边界是否一致。因此它支持“论文表述与证据一致”这个提交前 gate，而不是新的 profiler accuracy 结果。
-R352 再把当前结果集映射到 OSDI-style profiling-paper rubric：它复用 tracked R320--R351 artifacts 和当前论文文本，不下载、不同步、不重跑 profiler，也不运行 human/agent analyst task。26/26 required checks 和 10/10 rubric areas 通过，覆盖 fidelity/accuracy、actionability、baseline tradeoff、generality、mechanism isolation、robustness/statistics、reproducibility/overhead 和 claim-scope guardrails。因此它支持“当前 scoped profiling claim 的证据形态达到 profiler paper gate”，不是新的 empirical result。
-	R327 则检查 profile-spec 本身是否可复现、成本是否可报告：所有 76 个 profile specs 在重复运行中保持 semantic profile content、samples 和 unique stacks 稳定，median 每个 spec 运行时间为 1.581s，p95 为 2.719s；默认 JSON profile 的 raw-byte determinism 只有 4/76，因为输出带生成时间戳。
-	R328 再启用 deterministic artifact mode，固定 JSON \texttt{generated\_at} 和 pprof profile time；同一 76 个 specs 的 semantic 与 raw-byte determinism 均为 76/76，clean rerun 记录空的 git/code status，median 每个 spec 运行时间为 1.601s，p95 为 2.767s。
-	这些结果支持 artifact/reproducibility claim，但不等价于 live capture overhead。
-	上一节的 actionability 结论依赖这些可复现 profile specs 和 tracked operation inputs；本节只证明 reviewer 能重放这些 artifacts 并检查 source provenance、paper numbers 和 non-claims。
-	因此 RQ4/E4 是 replayability/claim-hygiene 证据，不是人工 analyst 主观解释、live overhead 或新的 profiler accuracy 结果。
+R327/R328 是本节的 empirical content。
+它们在 tracked operation JSONL inputs 上重复执行 76 个 profile specs，共 152 次 profiler invocations。
+R327 显示所有 specs 在重复运行中保持 semantic profile content、samples 和 unique stacks 稳定，median 每个 spec 运行时间为 1.581s，p95 为 2.719s；默认 JSON profile 的 raw-byte determinism 只有 4/76，因为输出带生成时间戳。
+R328 启用 deterministic artifact mode，固定 JSON \texttt{generated\_at} 和 pprof profile time；同一 76 个 specs 的 semantic 与 raw-byte determinism 均为 76/76，clean rerun 记录空的 git/code status，median 每个 spec 运行时间为 1.601s，p95 为 2.767s。
+这些结果支持 artifact/reproducibility claim，但不等价于 live capture overhead。
+
+其余 paper gates 是 artifact hygiene，不是新的 empirical evidence。
+R338 把 paper claim 本身纳入审计：它复用 R320--R350 的 tracked-clean artifacts，不重新排名、不下载、不同步、不创建、不重标数据集，只检查论文数字、source policy、must-not-claim guardrails 和 operation/operation-stack 边界是否一致。
+R352 再把当前结果集映射到 OSDI-style profiling-paper rubric：它复用 tracked R320--R351 artifacts 和当前论文文本，不下载、不同步、不重跑 profiler，也不运行 human/agent analyst task。
+26/26 required checks 和 10/10 rubric areas 通过，覆盖 fidelity/accuracy、actionability、baseline tradeoff、generality、mechanism isolation、robustness/statistics、reproducibility/overhead 和 claim-scope guardrails。
+上一节的 actionability 结论依赖这些可复现 profile specs 和 tracked operation inputs；本节只证明 reviewer 能重放这些 artifacts 并检查 source provenance、paper numbers 和 non-claims。
+因此 RQ4/E4 是 replayability/claim-hygiene 证据，不是人工 analyst 主观解释、live overhead 或新的 profiler accuracy 结果。
 
 \begin{table*}[t]
   \centering
@@ -559,6 +566,7 @@ R366 再把 C3/E3 的 field derivation 机制证据整理成 6 个 mechanism row
 R367 最后审计论文入口叙事本身：它解析中英文稿的 abstract、introduction/problem framing 和 main-result framing，并读取 R360/R361/R364/R366 ledgers，检查所有入口是否都把论文组织成 RQ1/E1--RQ4/E4：三个经验性 profiling 问题加一个系统/复现问题。该 gate 11/11 checks 通过，6/6 entry-token rows 通过；RQ1/E1--RQ4/E4 可见，R 编号仍只是 provenance，operation 和 operation stack 仍是仅有 profiler abstractions，RQ2/E2、RQ3/E3 和 RQ4/E4 headline numbers 与 must-not-claim 边界都可见。R367 是 paper-integration guardrail，不是新的 empirical result，也不是第五个实验。
 R368 再审计 E2 baseline wording：它只读取现有 R320/R355 hidden-label scoring artifacts，检查 flat、fixed-session、dataset-native 和 raw-action comparisons 是否足以支撑 trace-tree-shaped baseline claim。该 gate 10/10 checks 通过，明确 fixed-session drilldown 是当前已评估的 trace-tree-shaped baseline，并保留 fixed-session top-5-work 与 first-positive-work 反例；R368 不是真实 ecosystem trace import、新数据集、profiler rerun、human/agent analyst task 或 metric-dominance result。
 R370 进一步审计 main-experiment contract：它读取 R360/R361/R363/R364/R365/R368/R369 和当前中英文论文，要求每个 RQ/E 都有 primary test、workload/oracle、baselines/metrics、primary evidence、supporting roles、failure interpretation 和 non-claim。该 gate 防止论文重新退回按 run chronology 叙事；新增 run 必须增强 E1--E4 之一，而不是制造新的主实验。
+R371 再审计 narrative focus：它要求每个 RQ section 都有 claim-test、counterpoint 和 scoped non-claim，并检查 E1/E2/E3/E4 的主证据顺序没有被 supporting run history 打乱。R371 是组织审计，不是新实验。
 
 \section{哪些数据集最适合}
 
