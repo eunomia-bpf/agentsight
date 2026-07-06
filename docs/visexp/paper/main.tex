@@ -400,6 +400,29 @@ R355 给出 depth-aware 版本：operation-stack rankings 在 20/24 task-depth r
 如果这些反例从论文里消失，claim 就会被写过头；保留它们后，E2 支持的是更好的 localization-budget/fragmentation tradeoff，不是对所有 trace-tree-shaped objectives 的 dominance。
 R300--R305 只作为 setup 和 case-packet provenance：它们验证 visible packet 与 hidden answer key 分离、top-ranked operation-stack groups 能形成 reviewer-facing cases，并暴露 flat full-recall 与 fixed-session early-hit 反例；主 accuracy claim 由 R320 统一评分。
 
+\begin{table*}[t]
+  \centering
+  \tiny
+  \setlength{\tabcolsep}{2pt}
+  \renewcommand{\arraystretch}{0.9}
+  \caption{E2 hidden-label localization benchmark。R320 是 source artifact；Hidden 表示 policy 是否读取 oracle label；WTFP 是 work-to-first-positive。非 oracle policies 只读 visible operation fields，hidden labels 只用于 scoring。}
+  \label{tab:r320-accuracy}
+  \begin{tabular}{lrrrrrrrrr}
+    \toprule
+    Policy & Hidden & AP & nDCG & P@5 & R@5 & F1@5 & Work@5 & R@30\% & WTFP \\
+    \midrule
+    flat:width & no & 0.1678 & 1.0000 & 0.1678 & 1.0000 & 0.2868 & 1.0000 & 0.0000 & 1.0000 \\
+    fixed-session:query-aware & no & 0.3476 & 0.7642 & 0.2555 & 0.0233 & 0.0427 & 0.0163 & 0.3559 & 0.0044 \\
+    dataset-native:query-aware & no & 0.3572 & 0.7445 & 0.1712 & 0.8665 & 0.2822 & 0.8539 & 0.3377 & 0.0582 \\
+    raw-action:query-aware & no & 0.2744 & 0.5012 & 0.2513 & 0.2442 & 0.2195 & 0.1507 & 0.3325 & 0.0374 \\
+    operation-stack:width & no & 0.1610 & 0.9364 & 0.1398 & 0.4746 & 0.2147 & 0.5424 & 0.3372 & 0.1694 \\
+    operation-stack:query-aware & no & 0.3117 & 0.5487 & 0.1991 & 0.1880 & 0.1981 & 0.0937 & 0.3900 & 0.0378 \\
+    operation-stack:oracle-upper & yes & 0.5993 & 0.6372 & 0.8984 & 0.3004 & 0.4029 & 0.0441 & 0.5640 & 0.0122 \\
+    label-drilldown:oracle-upper & yes & 1.0000 & 1.0000 & 1.0000 & 0.6703 & 0.7972 & 0.1150 & 1.0000 & 0.0377 \\
+    \bottomrule
+  \end{tabular}
+\end{table*}
+
 R363 把同一批 scored outputs 组织成非 flamegraph 的 paper-facing views，而不是只输出 flamegraph。
 主文只保留一个代表性图：左图服务 E2，展示 localization/work/fragmentation tradeoff；右图服务 E3，展示 profile-configuration knobs。
 其余 portfolio table、headline rows、task case cards 和 verdict matrix 保留在 artifact ledger，作为 paper-integration material，而不是主文中的额外实验。
@@ -504,29 +527,6 @@ R352 再把当前结果集映射到 OSDI-style profiling-paper rubric：它复�
 26/26 required checks 和 10/10 rubric areas 通过，覆盖 fidelity/accuracy、actionability、baseline tradeoff、generality、mechanism isolation、robustness/statistics、reproducibility/overhead 和 claim-scope guardrails。
 上一节的 actionability 结论依赖这些可复现 profile specs 和 tracked operation inputs；本节只证明 reviewer 能重放这些 artifacts 并检查 source provenance、paper numbers 和 non-claims。
 因此 RQ4/E4 是 replayability/claim-hygiene 证据，不是人工 analyst 主观解释、live overhead 或新的 profiler accuracy 结果。
-
-\begin{table*}[t]
-  \centering
-  \tiny
-  \setlength{\tabcolsep}{2pt}
-  \renewcommand{\arraystretch}{0.9}
-  \caption{R320 hidden-label profiler benchmark。Hidden 表示 policy 是否读取 oracle label；WTFP 是 work-to-first-positive。非 oracle policies 只读 visible operation fields，hidden labels 只用于 scoring。}
-  \label{tab:r320-accuracy}
-  \begin{tabular}{lrrrrrrrrr}
-    \toprule
-    Policy & Hidden & AP & nDCG & P@5 & R@5 & F1@5 & Work@5 & R@30\% & WTFP \\
-    \midrule
-    flat:width & no & 0.1678 & 1.0000 & 0.1678 & 1.0000 & 0.2868 & 1.0000 & 0.0000 & 1.0000 \\
-    fixed-session:query-aware & no & 0.3476 & 0.7642 & 0.2555 & 0.0233 & 0.0427 & 0.0163 & 0.3559 & 0.0044 \\
-    dataset-native:query-aware & no & 0.3572 & 0.7445 & 0.1712 & 0.8665 & 0.2822 & 0.8539 & 0.3377 & 0.0582 \\
-    raw-action:query-aware & no & 0.2744 & 0.5012 & 0.2513 & 0.2442 & 0.2195 & 0.1507 & 0.3325 & 0.0374 \\
-    operation-stack:width & no & 0.1610 & 0.9364 & 0.1398 & 0.4746 & 0.2147 & 0.5424 & 0.3372 & 0.1694 \\
-    operation-stack:query-aware & no & 0.3117 & 0.5487 & 0.1991 & 0.1880 & 0.1981 & 0.0937 & 0.3900 & 0.0378 \\
-    operation-stack:oracle-upper & yes & 0.5993 & 0.6372 & 0.8984 & 0.3004 & 0.4029 & 0.0441 & 0.5640 & 0.0122 \\
-    label-drilldown:oracle-upper & yes & 1.0000 & 1.0000 & 1.0000 & 0.6703 & 0.7972 & 0.1150 & 1.0000 & 0.0377 \\
-    \bottomrule
-  \end{tabular}
-\end{table*}
 
 \begin{table}[t]
   \centering
