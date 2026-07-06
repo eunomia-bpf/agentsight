@@ -241,7 +241,7 @@ RQ4 检查 profile-spec 可复现性、离线成本和 claim scope。
   \tiny
   \setlength{\tabcolsep}{2.2pt}
   \renewcommand{\arraystretch}{0.92}
-  \caption{三个 empirical profiling experiments 加一个 artifact/reproducibility block。每行给出 workload、oracle、主要证据和该证据允许的 scoped conclusion。}
+  \caption{三个 empirical profiling experiments 加一个 replayability/scope-control block。每行给出 workload、oracle、主要证据和该证据允许的 scoped conclusion。}
   \label{tab:results}
   \begin{tabular}{p{0.18\linewidth}p{0.22\linewidth}p{0.28\linewidth}p{0.24\linewidth}}
     \toprule
@@ -520,7 +520,7 @@ RQ4 检查 offline profiler path 能否在 tracked inputs 上低成本 replay。
 它在 tracked operation JSONL inputs 上重复执行 76 个 profile specs，共 152 次 profiler invocations。
 默认模式下所有 specs 在重复运行中保持 semantic profile content、samples 和 unique stacks 稳定，median 每个 spec 运行时间为 1.581s，p95 为 2.719s；raw-byte determinism 只有 4/76，因为输出带生成时间戳。
 Deterministic artifact mode 固定 JSON \texttt{generated\_at} 和 pprof profile time 后，同一 76 个 specs 的 semantic 与 raw-byte determinism 均为 76/76，clean rerun 记录空的 git/code status，median 每个 spec 运行时间为 1.601s，p95 为 2.767s。
-这些结果支持 artifact/reproducibility claim，但不等价于 live capture overhead，也不形成另一个经验性 profiling 实验。
+这些结果支持 replayability/scope-control claim，但不等价于 live capture overhead，也不形成另一个经验性 profiling 实验。
 Profile-spec replay、determinism、source-status 和 claim-scope checks 都属于 E4 replayability block，而不是新的 accuracy block。
 
 Input-source replay 属于同一个 E4 block。
@@ -532,8 +532,8 @@ Rust profile-spec path 现在可以携带 \texttt{session\_files}、\texttt{trac
 前者呈现 replayability/cost result，后者呈现 deterministic-output repair；表中的 labels 只标识 source-spec families，不是新的 accuracy 实验。
 
 论文数字和 claim-scope 的一致性检查复用 tracked-clean artifacts 和当前论文文本，不重新排名、不下载、不同步、不创建、不重标数据集、不重跑 profiler，也不运行 human/agent analyst task。
-这些检查覆盖 fidelity/accuracy、actionability、baseline tradeoff、generality、mechanism isolation、robustness/statistics、reproducibility/overhead 和 claim scope。
-上一节的 actionability 结论依赖这些可复现 profile specs 和 tracked operation inputs；本节只证明 reviewer 能重放这些 artifacts，并检查 source paths、paper numbers 和 non-claims。
+这些检查只覆盖 replay path、source provenance、paper-number alignment、two-abstraction wording 和 non-claim consistency。
+上一节的 actionability 结论依赖这些可复现 profile specs 和 tracked operation inputs；本节不重新验证 fidelity/accuracy、actionability 或 baseline tradeoff，只证明 reviewer 能重放这些 artifacts，并检查 source paths、paper numbers 和 non-claims。
 因此 RQ4/E4 是 replayability/scope evidence，不是人工 analyst 主观解释、live overhead 或新的 profiler accuracy 结果。
 
 \begin{table}[t]

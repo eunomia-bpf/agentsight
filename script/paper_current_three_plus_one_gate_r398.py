@@ -3,7 +3,7 @@
 
 This is a paper-organization regression guard for the current drafts. It checks
 that the Chinese and English papers still present the evaluation as three core
-empirical profiling experiments plus one artifact/reproducibility block, with
+empirical profiling experiments plus one replayability/scope-control block, with
 R-numbered runs confined to the evaluation ledger and artifacts. It reads only
 tracked paper/docs/gate outputs; it does not fetch datasets, relabel traces,
 rerun the profiler, or run a human/agent analyst task.
@@ -59,6 +59,15 @@ INTERNAL_STYLE_PATTERNS = [
     "paper gates",
     "Gate / counterpoint",
     "supports-with-counterpoints",
+    "artifact/reproducibility",
+    "supporting artifact index",
+    "artifact hygiene",
+    "claim hygiene",
+    "claim-hygiene",
+    "guardrail",
+    "guardrails",
+    "audit gates",
+    "table-provenance gate",
 ]
 SELF_UNDERCUT_PATTERNS = [
     re.compile(r"不是\s*(?:OSDI|NeurIPS|NIPS)[^。\\]*(?:最终接收|接受级|完整证据)"),
@@ -188,7 +197,12 @@ def run_id_hits(path: Path) -> list[dict[str, Any]]:
 def internal_style_hits(path: Path) -> list[dict[str, Any]]:
     hits = []
     for line_no, line in enumerate(read_text(path).splitlines(), start=1):
-        matches = [pattern for pattern in INTERNAL_STYLE_PATTERNS if pattern in line]
+        line_l = line.lower()
+        matches = [
+            pattern
+            for pattern in INTERNAL_STYLE_PATTERNS
+            if pattern in line or pattern.lower() in line_l
+        ]
         if matches:
             hits.append({"path": rel(path), "line": line_no, "patterns": " | ".join(matches), "text": line.strip()})
     return hits
@@ -251,15 +265,15 @@ def build_report() -> dict[str, Any]:
         checks,
         "three_plus_one_stated_in_both_papers",
         "three core empirical profiling experiments" in english_l
-        and "artifact/reproducibility block" in english_l
+        and "replayability/scope-control block" in english_l
         and "not additional main experiments" in english_l
         and (
             "三个核心经验性 profiling 实验" in chinese_norm
             or "前三个问题是 empirical profiling experiments" in chinese_norm
         )
-        and "artifact/reproducibility block" in chinese_norm
+        and "replayability/scope-control block" in chinese_norm
         and "不会形成额外主实验" in chinese_norm,
-        "Both drafts state E1-E3 as core empirical profiling experiments and E4 as artifact/reproducibility.",
+        "Both drafts state E1-E3 as core empirical profiling experiments and E4 as replayability/scope-control.",
     )
     add_check(
         checks,
@@ -290,14 +304,14 @@ def build_report() -> dict[str, Any]:
     )
     add_check(
         checks,
-        "e4_is_replay_hygiene_not_accuracy_or_ecosystem_claim",
-        "e4 is the reproducibility and claim-hygiene block" in english_l
+        "e4_is_replay_scope_not_accuracy_or_ecosystem_claim",
+        "e4 is the replayability, offline-cost, and scope-control block" in english_l
         and "not treated as a fourth hidden-label accuracy result" in english_l
         and "not a human-productivity claim" in english_l
         and re.search(r"not [^.\\]*trace-ecosystem compatibility result", english_l) is not None
         and (
-            "E4 只负责 reproducibility 和 claim hygiene" in chinese_norm
-            or "RQ4 检查 offline profiler path 能否在 tracked inputs 上低成本 replay" in chinese_norm
+            "RQ4 检查 offline profiler path 能否在 tracked inputs 上低成本 replay" in chinese_norm
+            or "replayability/scope-control claim" in chinese_norm
         )
         and (
             "不是新的 accuracy benchmark" in chinese_norm
@@ -305,7 +319,7 @@ def build_report() -> dict[str, Any]:
         )
         and "不是人工 analyst" in chinese_norm
         and re.search(r"不是[^。\\]*trace-ecosystem compatibility claim", chinese_norm) is not None,
-        "E4 remains an artifact/reproducibility block with explicit non-claims.",
+        "E4 remains a replayability/scope-control block with explicit non-claims.",
     )
     add_check(
         checks,
@@ -337,24 +351,18 @@ def build_report() -> dict[str, Any]:
         and "not a fifth experiment" in evaluation_l
         and "source/command` lines below are provenance inventories" in evaluation_l
         and "main-body run-ledger suppression gate" in evaluation_l,
-        "The evaluation ledger records run IDs as provenance/support/guardrails rather than main-paper structure.",
+        "The evaluation ledger records run IDs as provenance/support/scope checks rather than main-paper structure.",
     )
     add_check(
         checks,
         "new_runs_must_strengthen_core_blocks",
         "new runs are allowed only when they strengthen one of these blocks" in evaluation_l
-        and "primary comparison, ablation, stress/counterpoint, provenance check, or hygiene gate" in evaluation_l
+        and "primary comparison, ablation, stress/counterpoint, provenance check, or scope check" in evaluation_l
         and "new runs enter the main evidence path only if they strengthen e1--e4" in english_l
-        and "primary comparison, ablation, stress/counterpoint, provenance check, or hygiene" in english_l
+        and "primary comparison, ablation, stress/counterpoint, provenance check, or scope" in english_l
         and (
-            (
-                "新的 run 只有在能作为 E1--E4" in chinese_norm
-                and "主比较、消融、stress/counterpoint、provenance check 或 hygiene gate" in chinese_norm
-            )
-            or (
-                "只保留能够支撑 claim 的比较、消融、反例和复现实验" in chinese_norm
-                and "其他生成物只作为补充材料中的证据来源" in chinese_norm
-            )
+            "只保留能够支撑 claim 的比较、消融、反例和复现实验" in chinese_norm
+            and "其他生成物只作为补充材料中的证据来源" in chinese_norm
         ),
         "New runs must be assigned a role inside E1-E4 instead of becoming scattered paper experiments.",
     )
@@ -365,15 +373,12 @@ def build_report() -> dict[str, Any]:
         and "table~\\ref{tab:core-results} is the four-block claim map" in english_l
         and "provide hidden-label fidelity and baseline tradeoff evidence" in english_l
         and "provide mechanism/actionability evidence" in english_l
-        and "stay in the supporting artifact index as data sources, counterpoints, or scope checks" in english_l
+        and "supplementary artifacts that provide data sources, counterpoints, or scope checks" in english_l
         and ("主文图表按这条路径阅读" in chinese_norm or "主文图表形成一条固定证据路径" in chinese_norm)
         and "表~\\ref{tab:results} 是四个 block 的 claim map" in chinese_norm
         and "hidden-label fidelity 和 baseline tradeoff" in chinese_norm
         and "mechanism/actionability" in chinese_norm
-        and (
-            "artifact ledger，只作为这些主显示的 provenance、counterpoint 或 hygiene checks" in chinese_norm
-            or "补充的 portfolio、case、verdict 和 consistency tables 只用于解释这些主图表的 data sources、counterpoints 或 scope checks" in chinese_norm
-        ),
+        and "补充的 portfolio、case、verdict 和 consistency tables 只用于解释这些主图表的 data sources、counterpoints 或 scope checks" in chinese_norm,
         "The papers expose a compact display path from workload provenance through E1-E4 main displays.",
     )
     add_check(
@@ -424,9 +429,9 @@ def build_report() -> dict[str, Any]:
         },
         "interpretation": (
             "The current paper organization remains three empirical profiling "
-            "experiments plus one artifact/reproducibility block. R-numbered "
+            "experiments plus one replayability/scope-control block. R-numbered "
             "runs are ledger provenance, support, ablations, counterpoints, or "
-            "hygiene gates, not main-paper mini-experiments."
+            "scope checks, not main-paper mini-experiments."
         ),
     }
 

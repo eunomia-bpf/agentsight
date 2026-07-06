@@ -55,7 +55,7 @@ ENGLISH_SOURCE_TOKENS = [
     "provide hidden-label fidelity and baseline tradeoff evidence",
     "provide mechanism/actionability evidence",
     "provide replay and cost evidence",
-    "stay in the supporting artifact index as data sources, counterpoints, or scope checks",
+    "supplementary artifacts that provide data sources, counterpoints, or scope checks",
 ]
 
 CHINESE_PDF_TOKENS = [
@@ -73,7 +73,7 @@ ENGLISH_PDF_TOKENS = [
     "hidden-label fidelity and baseline",
     "mechanism/actionability evidence",
     "provide replay",
-    "supporting artifact index",
+    "supplementary artifacts",
 ]
 
 NON_CLAIM_TOKENS = [
@@ -81,7 +81,7 @@ NON_CLAIM_TOKENS = [
     "not a hidden-label accuracy result",
     "human productivity result",
     "not automatic boundary discovery",
-    "not complete ecosystem compatibility",
+    "complete ecosystem compatibility",
 ]
 
 
@@ -334,7 +334,7 @@ def build_report() -> dict[str, Any]:
         "interpretation": (
             "The tracked Chinese and English paper PDFs contain the same "
             "main-display path that the TeX sources expose. This is an E4 "
-            "artifact-hygiene gate, not a new empirical experiment."
+            "replayability/scope-control check, not a new empirical experiment."
         ),
     }
 

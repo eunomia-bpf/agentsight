@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """R395: main claim and verdict alignment gate.
 
-This is a paper-integration guardrail. It checks that the canonical docs and
+This is a paper-integration scope check. It checks that the canonical docs and
 Chinese/English paper drafts keep the central profiling claim aligned with the
 claim verdict: hidden-label profiler fidelity, inspection-cost reduction
 against flat summaries, median-fragmentation tradeoff against the fixed-session
@@ -293,8 +293,8 @@ def build_report() -> dict[str, Any]:
         contains_all(
             normalized["English paper"],
             [
-                "three empirical profiling experiments plus one artifact/reproducibility block",
-                "RQ4/E4 checks replayability, offline cost, and claim hygiene",
+                "three empirical profiling experiments plus one replayability/scope-control block",
+                "RQ4/E4 checks replayability, offline cost, and claim scope",
             ],
         )
         and contains_all(
@@ -308,11 +308,11 @@ def build_report() -> dict[str, Any]:
         and contains_all(
             normalized["evaluation ledger"],
             [
-                "three substantial empirical profiling experiments plus one artifact/reproducibility block",
-                "claim hygiene without being treated as a fourth accuracy result",
+                "three substantial empirical profiling experiments plus one replayability/scope-control block",
+                "claim scope without being treated as a fourth accuracy result",
             ],
         ),
-        "E1-E3 remain empirical profiling experiments; E4 remains artifact/reproducibility.",
+        "E1-E3 remain empirical profiling experiments; E4 remains replayability/scope-control.",
     )
     add_check(
         checks,
@@ -376,7 +376,7 @@ def build_report() -> dict[str, Any]:
                 "not empirical profiler evidence",
             ],
         ),
-        "E4 remains replayability/cost/hygiene, not accuracy, live overhead, or human utility.",
+        "E4 remains replayability/cost/scope-control, not accuracy, live overhead, or human utility.",
     )
     add_check(
         checks,

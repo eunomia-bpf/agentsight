@@ -56,6 +56,15 @@ INTERNAL_STYLE_PATTERNS = [
     "paper gates",
     "Gate / counterpoint",
     "supports-with-counterpoints",
+    "artifact/reproducibility",
+    "supporting artifact index",
+    "artifact hygiene",
+    "claim hygiene",
+    "claim-hygiene",
+    "guardrail",
+    "guardrails",
+    "audit gates",
+    "table-provenance gate",
 ]
 
 
@@ -171,7 +180,12 @@ def run_id_hits(path: Path) -> list[dict[str, Any]]:
 def internal_style_hits(path: Path) -> list[dict[str, Any]]:
     rows = []
     for line_no, line in enumerate(read_text(path).splitlines(), start=1):
-        matches = [pattern for pattern in INTERNAL_STYLE_PATTERNS if pattern in line]
+        line_l = line.lower()
+        matches = [
+            pattern
+            for pattern in INTERNAL_STYLE_PATTERNS
+            if pattern in line or pattern.lower() in line_l
+        ]
         if matches:
             rows.append({"path": rel(path), "line": line_no, "patterns": " | ".join(matches), "text": line.strip()})
     return rows
@@ -213,7 +227,7 @@ def build_report() -> dict[str, Any]:
         checks,
         "english_three_plus_one_visible",
         "three core empirical profiling experiments" in english_l
-        and "artifact/reproducibility block" in english_l
+        and "replayability/scope-control block" in english_l
         and "not additional main experiments" in english_l,
         "English draft frames E1-E3 plus E4 and demotes support artifacts from main experiments.",
     )
@@ -221,7 +235,7 @@ def build_report() -> dict[str, Any]:
         checks,
         "chinese_three_plus_one_visible",
         ("三个核心经验性 profiling 实验" in chinese_norm or "前三个问题是 empirical profiling experiments" in chinese_norm)
-        and "artifact/reproducibility block" in chinese_norm
+        and "replayability/scope-control block" in chinese_norm
         and "不会形成额外主实验" in chinese_norm,
         "Chinese draft frames E1-E3 plus E4 and demotes support artifacts from main experiments.",
     )
@@ -245,7 +259,7 @@ def build_report() -> dict[str, Any]:
             or "不作为第四个 empirical accuracy result" in chinese_norm
         )
         and "not a fifth" in evaluation_l,
-        "E4 is artifact/reproducibility hygiene, not another hidden-label accuracy experiment.",
+        "E4 is replayability/scope-control, not another hidden-label accuracy experiment.",
     )
     add_check(
         checks,
