@@ -1,0 +1,479 @@
+{
+  "checks": [
+    {
+      "area": "claim_evidence_alignment",
+      "check": "paper_integrity_gate_passes",
+      "evidence": "R338 passes 350 number checks, 78 source-policy checks, and 16 guardrail checks.",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "area": "claim_evidence_alignment",
+      "check": "reviewer_gate_accepts_scoped_claim",
+      "evidence": "R351 records 4/4 ACCEPT, zero blocking issues, and all mechanical checks passing.",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "area": "claim_evidence_alignment",
+      "check": "two_abstractions_only",
+      "evidence": "The current evidence and paper text keep only operation and operation stack as profiler abstractions.",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "area": "workload_and_setup",
+      "check": "real_labeled_workload_scale",
+      "evidence": "R320 scores 6 tasks over 4 public labeled trace families, 34,539 operations, and 3,699 positives.",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "area": "workload_and_setup",
+      "check": "baseline_and_ranker_surface_present",
+      "evidence": "R320 covers flat, fixed-session, dataset-native, raw-action, operation-stack, and oracle drilldown views with 15 visible non-oracle policies and 144 policy scores.",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "area": "workload_and_setup",
+      "check": "source_policy_uses_existing_datasets",
+      "evidence": "R320/R333/R331 use existing tracked operation JSONL from four real labeled trace families; no dataset sync or creation is recorded.",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "area": "fidelity_accuracy",
+      "check": "localization_metrics_cover_profiler_claim",
+      "evidence": "R344 covers AP/AUPRC-style score, nDCG, P/R/F1@5, budgeted recall/F1, work-to-first-positive, and group fragmentation across 50 comparisons.",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "area": "fidelity_accuracy",
+      "check": "hot_groups_recover_real_positives",
+      "evidence": "R350/R346 show top-5 operation-stack packets contain positives on 6/6 tasks, top-1 on 5/6, at median top-5 work 0.0937.",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "area": "fidelity_accuracy",
+      "check": "hidden_label_leakage_control",
+      "evidence": "R320 leakage check passes with no overlap between visible rank fields and hidden oracle labels.",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "area": "baseline_tradeoff",
+      "check": "operation_stack_beats_flat_on_inspection_work",
+      "evidence": "Operation-stack top-ranked evidence uses less top-5 work than flat summaries on 6/6 tasks.",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "area": "baseline_tradeoff",
+      "check": "operation_stack_reduces_fixed_session_fragmentation",
+      "evidence": "Operation-stack beats fixed-session top-5 recall on 5/6 tasks, uses fewer groups on 4/6, and wins fixed-25%-recall group cost on 5/6.",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "area": "baseline_tradeoff",
+      "check": "counterpoints_are_preserved",
+      "evidence": "R344 has 16 counterpoint verdicts; R350 keeps baseline counterpoints for 6/6 packets; fixed-session lower-WTFP remains 4/6.",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "area": "actionability",
+      "check": "diagnostic_cards_have_concrete_actions",
+      "evidence": "R335/R345/R350 produce concrete optimization actions for all 6 tasks and non-default action packets for 6/6 tasks.",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "area": "actionability",
+      "check": "objective_level_knobs_are_not_universal_selector",
+      "evidence": "R341/R348 show 36 objective-level actions with 27 non-default best rows and 25 view changes, while R349 keeps exact action transfer weak at 7/60.",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "area": "actionability",
+      "check": "diagnostic_lenses_are_disaggregated",
+      "evidence": "R345 disaggregates 6 diagnostic lenses over 36 objective rows; every task needs at least 3 best views and non-operation-stack views win 25/36 objectives.",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "area": "generality",
+      "check": "multiple_trace_families_and_problem_types",
+      "evidence": "The main benchmark spans AgentRewardBench, AgentNet, OSWorld-Human, and SATraj safety traces with six problem tasks.",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "area": "generality",
+      "check": "sequence_scope_and_boundary_scope_are_scored",
+      "evidence": "R339 scores sequence/session-scope recall tradeoffs, while R342 confirms 12/12 recursive stack specs are prompt/session-free.",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "area": "mechanism_isolation",
+      "check": "recursive_stack_depth_and_mapping_are_isolated",
+      "evidence": "R342 isolates recursive stack depth over 12 specs; coarse depth reduces groups on 6/6 tasks and depth changes the best objective on 3/6, while R335 records both positive and negative mapping effects.",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "area": "mechanism_isolation",
+      "check": "query_aware_ranking_and_feature_ablation_are_visible",
+      "evidence": "R335 identifies ranker gains, critical features, and misleading features; R340 selects policies without target hidden labels.",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "area": "mechanism_isolation",
+      "check": "negative_control_calibrates_signal",
+      "evidence": "R331 fixes visible group/ranking order and shows operation-stack query-aware AP exceeds the permutation null on 6/6 tasks without rerunning the profiler.",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "area": "robustness_statistics",
+      "check": "bootstrap_uncertainty_has_support_and_counterpoints",
+      "evidence": "R330 task-family bootstrap has 10 supported checks and 10 mixed/counterpoint checks, preserving statistical uncertainty.",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "area": "robustness_statistics",
+      "check": "heldout_policy_transfer_is_scoped_guardrail",
+      "evidence": "R340/R349 provide held-out visible policy-transfer guardrails: 96 decisions, 62/96 within tolerance in R340, and 35/60 within tolerance but only 7/60 exact action in R349.",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "area": "reproducibility_overhead",
+      "check": "profile_spec_cost_and_determinism_are_reported",
+      "evidence": "R327/R328 cover 76 specs and 152 invocations; R328 clean rerun gives 76/76 semantic and raw-byte deterministic outputs.",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "area": "reproducibility_overhead",
+      "check": "no_network_or_dataset_sync_in_final_gates",
+      "evidence": "R338/R350/R351 require no network access, use tracked evidence, and do not sync/create/relabel datasets.",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "area": "claim_scope_guardrails",
+      "check": "must_not_claim_boundaries_visible",
+      "evidence": "Paper text and R338 visibly exclude human utility, automatic boundary/action selection, single-view dominance, and full ecosystem compatibility claims.",
+      "required": true,
+      "status": "pass"
+    },
+    {
+      "area": "claim_scope_guardrails",
+      "check": "rubric_claim_is_scoped_profiler_claim",
+      "evidence": "R351 and the paper scope the result as a hidden-label profiler benchmark, not a human/agent analyst study.",
+      "required": true,
+      "status": "pass"
+    }
+  ],
+  "claim": "Operation/operation-stack profiling can accurately localize task-relevant failures, quality problems, and semantic boundaries in real labeled agent traces while requiring less inspection work than flat summaries and less fragmentation than fixed session/span trees.",
+  "commit": "1eaeff821f1e0f9b7c9e4824109dac6b5490f5c7",
+  "input_policy": {
+    "dataset_creation": "none",
+    "dataset_relabeling": "none",
+    "dataset_sync": "none",
+    "hidden_label_use": "R352 reads already-scored hidden-label artifacts only to audit claim support; it does not form new rankings",
+    "network_access_required": false,
+    "profiler_rerun": "none"
+  },
+  "not_a_human_study_result": true,
+  "not_an_agent_analyst_task_result": true,
+  "not_new_empirical_result": true,
+  "profiler_abstractions": [
+    "operation",
+    "operation stack"
+  ],
+  "residual_risks": [
+    {
+      "paper_handling": "R352 is a profiler-output benchmark audit; it does not support analyst accuracy, time, or productivity claims.",
+      "risk": "human_or_agent_analyst_utility",
+      "status": "not_claimed"
+    },
+    {
+      "paper_handling": "Recursive stack fields and existing labels are evaluated, but the paper does not claim complete automatic boundary discovery.",
+      "risk": "automatic_intent_boundary_discovery",
+      "status": "not_claimed"
+    },
+    {
+      "paper_handling": "Trace import/export examples remain artifact-level exchange evidence, not full OpenTelemetry/Phoenix/LangSmith/Langfuse/Perfetto compatibility.",
+      "risk": "complete_trace_ecosystem_compatibility",
+      "status": "not_claimed"
+    },
+    {
+      "paper_handling": "R349 exact action transfer remains 7/60 and non-default exact action remains 2/42.",
+      "risk": "automatic_action_selector",
+      "status": "counterpoint_preserved"
+    },
+    {
+      "paper_handling": "R350 strict 30% work packets hold for 4/6 tasks, so the claim is bounded rather than universal.",
+      "risk": "universal_budget_dominance",
+      "status": "counterpoint_preserved"
+    },
+    {
+      "paper_handling": "The main label-scored claim uses six tasks from four oracle-rich families; broader tool/API/mobile coverage remains optional future generality.",
+      "risk": "broader_family_coverage",
+      "status": "future_work"
+    }
+  ],
+  "run_id": "R352",
+  "schema": "agentsight.paper-evaluation-rubric.v1",
+  "source_status": {
+    "Chinese claim setup": {
+      "path": "docs/visexp/paper/evaluation-claims-setup.zh-CN.md",
+      "role": "paper_text",
+      "sha256": "ee5210734e6ec139c562a8e1da1e25179e5ad7c4e102b748d9496eab3e480054",
+      "status": "tracked_dirty_allowed"
+    },
+    "Chinese paper": {
+      "path": "docs/visexp/paper/main.tex",
+      "role": "paper_text",
+      "sha256": "aee5b5d5c6a9e99ebdf3c6cbf15559d3f89e37268670b2c0ec1c1e3632a7b5be",
+      "status": "tracked_clean"
+    },
+    "English paper": {
+      "path": "docs/agentpprof-paper/main.tex",
+      "role": "paper_text",
+      "sha256": "c3995f5ea97762624afc619df9b6c445d91821e02567fd942755ea243255005a",
+      "status": "tracked_clean"
+    },
+    "R320 policy scores": {
+      "path": "docs/visexp/out/operation-profile-accuracy-r320/policy-scores.csv",
+      "role": "empirical_evidence",
+      "sha256": "459cfa19fde3144fa6d51a4bbc8e643d78b81e19f6caf4c478bd52ca2217e111",
+      "status": "tracked_clean"
+    },
+    "R320 profile accuracy": {
+      "path": "docs/visexp/out/operation-profile-accuracy-r320/profile-accuracy-report.json",
+      "role": "empirical_evidence",
+      "sha256": "4baf9e91f444ec47a4d8d843ffc210e11fabf51b18dbc6113c7a2b2532a35786",
+      "status": "tracked_clean"
+    },
+    "R327 profile cost": {
+      "path": "docs/visexp/out/operation-profile-cost-r327/profile-cost-report.json",
+      "role": "empirical_evidence",
+      "sha256": "3bea6fb238a8962ff6f440660d7800eaba2f0755c4efc91c5c5c55e5b895a7fc",
+      "status": "tracked_clean"
+    },
+    "R328 deterministic output": {
+      "path": "docs/visexp/out/operation-profile-deterministic-output-r328/deterministic-output-report.json",
+      "role": "empirical_evidence",
+      "sha256": "d04d939eca92cf692e80689b65f5a9892363586084022f20278395623f252464",
+      "status": "tracked_clean"
+    },
+    "R330 uncertainty": {
+      "path": "docs/visexp/out/operation-profile-uncertainty-r330/uncertainty-report.json",
+      "role": "empirical_evidence",
+      "sha256": "55cf5f7b5cbd41e08089280b9357f1aef0d6bd358005889de864c75ba138f50c",
+      "status": "tracked_clean"
+    },
+    "R331 negative control": {
+      "path": "docs/visexp/out/operation-profile-negative-control-r331/negative-control-report.json",
+      "role": "empirical_evidence",
+      "sha256": "a278080e67d4f71e12805a411e7c5230d9cab1f3b6e64eb912050501a73edd24",
+      "status": "tracked_clean"
+    },
+    "R333 inspection frontier": {
+      "path": "docs/visexp/out/operation-inspection-frontier-r333/inspection-frontier-report.json",
+      "role": "empirical_evidence",
+      "sha256": "f55bfad1a45cf918774bcb035a5fe4a4099fd2ca3c19643e824a0c03accaae00",
+      "status": "tracked_clean"
+    },
+    "R334 fragmentation": {
+      "path": "docs/visexp/out/operation-fragmentation-tradeoff-r334/fragmentation-tradeoff-report.json",
+      "role": "empirical_evidence",
+      "sha256": "44bed687dd253e7c30145f8941c16f3859779cf4db03e80e479b14e6a85bebf1",
+      "status": "tracked_clean"
+    },
+    "R335 actionability": {
+      "path": "docs/visexp/out/operation-actionability-synthesis-r335/actionability-synthesis-report.json",
+      "role": "empirical_evidence",
+      "sha256": "92d3f42a19367787fb0400d0d39ec7f328d5c91fc21e945ef2772f71998d8bbc",
+      "status": "tracked_clean"
+    },
+    "R336 actionability selection": {
+      "path": "docs/visexp/out/operation-actionability-selection-r336/actionability-selection-report.json",
+      "role": "empirical_evidence",
+      "sha256": "9d3e5dd2ee4f141c88ef488d10c1e77f5cdff21307eea7f54e0613081d6143cd",
+      "status": "tracked_clean"
+    },
+    "R337 inspection target": {
+      "path": "docs/visexp/out/operation-inspection-target-r337/inspection-target-report.json",
+      "role": "empirical_evidence",
+      "sha256": "42cce60bee37699b4c318b491c4d45122974be433e17f0890a8cd7afd6fc259c",
+      "status": "tracked_clean"
+    },
+    "R338 claim integrity": {
+      "path": "docs/visexp/out/paper-claim-integrity-r338/claim-integrity-report.json",
+      "role": "paper_gate",
+      "sha256": "baf7b01da39d13aa9c3dc5f1e2eba8efc90b94b55309c8643f4676b48d3f1240",
+      "status": "tracked_dirty_allowed"
+    },
+    "R339 sequence adequacy": {
+      "path": "docs/visexp/out/operation-sequence-adequacy-r339/sequence-adequacy-report.json",
+      "role": "empirical_evidence",
+      "sha256": "9c5cc11c5b6eea79a73a222b74ad6571c4c7f3cb19327030fc8d93067a6ac873",
+      "status": "tracked_clean"
+    },
+    "R340 policy transfer": {
+      "path": "docs/visexp/out/operation-policy-transfer-r340/policy-transfer-report.json",
+      "role": "empirical_evidence",
+      "sha256": "bcb3880d0160c3fbd778190b01811978cc3fd2b607b97083ff1ba6d95e6a4b14",
+      "status": "tracked_clean"
+    },
+    "R341 mechanism attribution": {
+      "path": "docs/visexp/out/operation-mechanism-attribution-r341/mechanism-attribution-report.json",
+      "role": "empirical_evidence",
+      "sha256": "812f6a7afdc5519f9850fe28576629b877be64055d97debcf2f9cf2cf0deb8a3",
+      "status": "tracked_clean"
+    },
+    "R342 profile composition": {
+      "path": "docs/visexp/out/operation-profile-spec-composition-r342/profile-spec-composition-report.json",
+      "role": "empirical_evidence",
+      "sha256": "79677d777a07244b23ea7dfd2c0dec487b0a57863d9983eb19eef5b45aa1ba0c",
+      "status": "tracked_clean"
+    },
+    "R344 metric consistency": {
+      "path": "docs/visexp/out/operation-metric-consistency-r344/metric-consistency-report.json",
+      "role": "empirical_evidence",
+      "sha256": "efd92f217e603babb4ed900ae8551ade316dd8cfe9c0eb46fd8974a1f84026fb",
+      "status": "tracked_clean"
+    },
+    "R345 diagnostic lens": {
+      "path": "docs/visexp/out/operation-diagnostic-lens-portfolio-r345/diagnostic-lens-report.json",
+      "role": "empirical_evidence",
+      "sha256": "36c3f83661b6ca190aeb28cfb6f3ac47572df0220c3c1a2d24cf18160cc380d8",
+      "status": "tracked_clean"
+    },
+    "R346 diagnostic casebook": {
+      "path": "docs/visexp/out/operation-diagnostic-casebook-r346/diagnostic-casebook-report.json",
+      "role": "empirical_evidence",
+      "sha256": "344d04ccf4b52937e98fa5ed4ffdcaba23a82ecdb6fda396a3f6bb81ce4c2993",
+      "status": "tracked_clean"
+    },
+    "R347 baseline contrast": {
+      "path": "docs/visexp/out/operation-case-baseline-contrast-r347/case-baseline-contrast-report.json",
+      "role": "empirical_evidence",
+      "sha256": "8b803392faeb511ac013967a161d8b6201da8fceee1b2685768895166387f683",
+      "status": "tracked_clean"
+    },
+    "R348 action counterfactual": {
+      "path": "docs/visexp/out/operation-action-counterfactual-r348/action-counterfactual-report.json",
+      "role": "empirical_evidence",
+      "sha256": "4eeb9beb6acc17a711cff394a5f4e365dc9df610ef0396261572a742d1449c7f",
+      "status": "tracked_clean"
+    },
+    "R349 action transfer": {
+      "path": "docs/visexp/out/operation-action-transfer-r349/action-transfer-report.json",
+      "role": "empirical_evidence",
+      "sha256": "e6e1f7be2113bb81eb05363f902c8db401fcf5c70bc4d634e041f5d8b6bb4a66",
+      "status": "tracked_clean"
+    },
+    "R350 evidence packet": {
+      "path": "docs/visexp/out/operation-evidence-packet-r350/evidence-packet-report.json",
+      "role": "empirical_evidence",
+      "sha256": "e3a73658141f375e6d798420ffd1a6a712360e75c8f89f2461fbd57dfd9c8e73",
+      "status": "tracked_clean"
+    },
+    "R351 reviewer acceptance": {
+      "path": "docs/visexp/out/paper-reviewer-acceptance-r351/reviewer-acceptance.json",
+      "role": "paper_gate",
+      "sha256": "57f8224bc9c8964b55a07101d54227f06a8f39b78ae0b58801726e2565a8c9ac",
+      "status": "tracked_dirty_allowed"
+    },
+    "evaluation ledger": {
+      "path": "docs/evaluation.md",
+      "role": "paper_text",
+      "sha256": "da4dcddbec8377e5b0a19cc7b205c4a6b3f3f35ca0d01a819719727b425b8b2b",
+      "status": "tracked_dirty_allowed"
+    }
+  },
+  "status": "ok",
+  "summary": {
+    "by_area": {
+      "actionability": {
+        "checks": 3,
+        "passed": 3,
+        "required": 3
+      },
+      "baseline_tradeoff": {
+        "checks": 3,
+        "passed": 3,
+        "required": 3
+      },
+      "claim_evidence_alignment": {
+        "checks": 3,
+        "passed": 3,
+        "required": 3
+      },
+      "claim_scope_guardrails": {
+        "checks": 2,
+        "passed": 2,
+        "required": 2
+      },
+      "fidelity_accuracy": {
+        "checks": 3,
+        "passed": 3,
+        "required": 3
+      },
+      "generality": {
+        "checks": 2,
+        "passed": 2,
+        "required": 2
+      },
+      "mechanism_isolation": {
+        "checks": 3,
+        "passed": 3,
+        "required": 3
+      },
+      "reproducibility_overhead": {
+        "checks": 2,
+        "passed": 2,
+        "required": 2
+      },
+      "robustness_statistics": {
+        "checks": 2,
+        "passed": 2,
+        "required": 2
+      },
+      "workload_and_setup": {
+        "checks": 3,
+        "passed": 3,
+        "required": 3
+      }
+    },
+    "checks_passed": 26,
+    "checks_total": 26,
+    "datasets": 4,
+    "empirical_sources_tracked_clean": true,
+    "exact_action_transfer_decisions": 7,
+    "network_access_required": false,
+    "objective_rows": 36,
+    "overall": "pass",
+    "required_checks_passed": 26,
+    "required_checks_total": 26,
+    "rubric_areas_passed": 10,
+    "rubric_areas_total": 10,
+    "rubric_level": "level_4_scoped_profile_benchmark",
+    "strict_30pct_packets": 4,
+    "tasks": 6,
+    "top5_positive_packets": 6,
+    "within_tolerance_transfer_decisions": 35
+  }
+}

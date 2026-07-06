@@ -1,0 +1,27 @@
+area,check,required,status,evidence
+claim_evidence_alignment,paper_integrity_gate_passes,True,pass,"R338 passes 350 number checks, 78 source-policy checks, and 16 guardrail checks."
+claim_evidence_alignment,reviewer_gate_accepts_scoped_claim,True,pass,"R351 records 4/4 ACCEPT, zero blocking issues, and all mechanical checks passing."
+claim_evidence_alignment,two_abstractions_only,True,pass,The current evidence and paper text keep only operation and operation stack as profiler abstractions.
+workload_and_setup,real_labeled_workload_scale,True,pass,"R320 scores 6 tasks over 4 public labeled trace families, 34,539 operations, and 3,699 positives."
+workload_and_setup,baseline_and_ranker_surface_present,True,pass,"R320 covers flat, fixed-session, dataset-native, raw-action, operation-stack, and oracle drilldown views with 15 visible non-oracle policies and 144 policy scores."
+workload_and_setup,source_policy_uses_existing_datasets,True,pass,R320/R333/R331 use existing tracked operation JSONL from four real labeled trace families; no dataset sync or creation is recorded.
+fidelity_accuracy,localization_metrics_cover_profiler_claim,True,pass,"R344 covers AP/AUPRC-style score, nDCG, P/R/F1@5, budgeted recall/F1, work-to-first-positive, and group fragmentation across 50 comparisons."
+fidelity_accuracy,hot_groups_recover_real_positives,True,pass,"R350/R346 show top-5 operation-stack packets contain positives on 6/6 tasks, top-1 on 5/6, at median top-5 work 0.0937."
+fidelity_accuracy,hidden_label_leakage_control,True,pass,R320 leakage check passes with no overlap between visible rank fields and hidden oracle labels.
+baseline_tradeoff,operation_stack_beats_flat_on_inspection_work,True,pass,Operation-stack top-ranked evidence uses less top-5 work than flat summaries on 6/6 tasks.
+baseline_tradeoff,operation_stack_reduces_fixed_session_fragmentation,True,pass,"Operation-stack beats fixed-session top-5 recall on 5/6 tasks, uses fewer groups on 4/6, and wins fixed-25%-recall group cost on 5/6."
+baseline_tradeoff,counterpoints_are_preserved,True,pass,R344 has 16 counterpoint verdicts; R350 keeps baseline counterpoints for 6/6 packets; fixed-session lower-WTFP remains 4/6.
+actionability,diagnostic_cards_have_concrete_actions,True,pass,R335/R345/R350 produce concrete optimization actions for all 6 tasks and non-default action packets for 6/6 tasks.
+actionability,objective_level_knobs_are_not_universal_selector,True,pass,"R341/R348 show 36 objective-level actions with 27 non-default best rows and 25 view changes, while R349 keeps exact action transfer weak at 7/60."
+actionability,diagnostic_lenses_are_disaggregated,True,pass,R345 disaggregates 6 diagnostic lenses over 36 objective rows; every task needs at least 3 best views and non-operation-stack views win 25/36 objectives.
+generality,multiple_trace_families_and_problem_types,True,pass,"The main benchmark spans AgentRewardBench, AgentNet, OSWorld-Human, and SATraj safety traces with six problem tasks."
+generality,sequence_scope_and_boundary_scope_are_scored,True,pass,"R339 scores sequence/session-scope recall tradeoffs, while R342 confirms 12/12 recursive stack specs are prompt/session-free."
+mechanism_isolation,recursive_stack_depth_and_mapping_are_isolated,True,pass,"R342 isolates recursive stack depth over 12 specs; coarse depth reduces groups on 6/6 tasks and depth changes the best objective on 3/6, while R335 records both positive and negative mapping effects."
+mechanism_isolation,query_aware_ranking_and_feature_ablation_are_visible,True,pass,"R335 identifies ranker gains, critical features, and misleading features; R340 selects policies without target hidden labels."
+mechanism_isolation,negative_control_calibrates_signal,True,pass,R331 fixes visible group/ranking order and shows operation-stack query-aware AP exceeds the permutation null on 6/6 tasks without rerunning the profiler.
+robustness_statistics,bootstrap_uncertainty_has_support_and_counterpoints,True,pass,"R330 task-family bootstrap has 10 supported checks and 10 mixed/counterpoint checks, preserving statistical uncertainty."
+robustness_statistics,heldout_policy_transfer_is_scoped_guardrail,True,pass,"R340/R349 provide held-out visible policy-transfer guardrails: 96 decisions, 62/96 within tolerance in R340, and 35/60 within tolerance but only 7/60 exact action in R349."
+reproducibility_overhead,profile_spec_cost_and_determinism_are_reported,True,pass,R327/R328 cover 76 specs and 152 invocations; R328 clean rerun gives 76/76 semantic and raw-byte deterministic outputs.
+reproducibility_overhead,no_network_or_dataset_sync_in_final_gates,True,pass,"R338/R350/R351 require no network access, use tracked evidence, and do not sync/create/relabel datasets."
+claim_scope_guardrails,must_not_claim_boundaries_visible,True,pass,"Paper text and R338 visibly exclude human utility, automatic boundary/action selection, single-view dominance, and full ecosystem compatibility claims."
+claim_scope_guardrails,rubric_claim_is_scoped_profiler_claim,True,pass,"R351 and the paper scope the result as a hidden-label profiler benchmark, not a human/agent analyst study."
