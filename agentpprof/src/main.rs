@@ -31,9 +31,15 @@ use tagger::{
 const DEFAULT_LLAMA_URL: &str = "http://127.0.0.1:8080";
 
 const TAGGING_HELP: &str = r#"
-TAGGING WORKFLOW:
-  Flamegraphs require semantic tags to aggregate meaningfully. Without --tag-rule,
-  prompts are marked 'unmatched' and won't aggregate well.
+FIELD DERIVATION WORKFLOW:
+  agentpprof has two core profiling abstractions: operations and operation
+  stacks. Tags and mappings derive operation fields before folding; prompts,
+  sessions, tools, processes, and trace spans are fields or input containers,
+  not separate profiler objects.
+
+  For local free-form prompts, deterministic tags are one field-derivation
+  mechanism. Without --tag-rule or --preset, prompts are marked 'unmatched' and
+  prompt-tag frames will not aggregate well.
 
   1. Run with no rules to see diagnostics:
      agentpprof --project-root . -o out.json --format json --include-previews
@@ -51,7 +57,7 @@ TAGGING WORKFLOW:
   --preset enables built-in keyword rules (profile, debug, test, etc.) for quick
   testing, but these are generic and unlikely to match your project's prompts well.
 
-OPERATION STACK WORKFLOW:
+OPERATION STACK QUERY WORKFLOW:
   --view chooses which operation samples are measured. --stack chooses how those
   operations fold into a stack. Use --op-map to derive reusable operation
   fields, --where to select an operation subset, then --stack chooses how those
@@ -80,7 +86,7 @@ OPERATION STACK WORKFLOW:
 #[derive(Parser)]
 #[command(name = "agentpprof")]
 #[command(version)]
-#[command(about = "pprof-compatible semantic profiler for local AI coding-agent sessions")]
+#[command(about = "pprof-compatible operation-stack profiler for local sessions and labeled agent traces")]
 #[command(after_help = TAGGING_HELP)]
 struct Cli {
     /// Output file. Use .pb.gz for Go pprof, .folded for folded stacks, .svg for an SVG flamegraph, or .json.
@@ -1004,7 +1010,23 @@ fn annotate_sessions_with(
 mod tests {
     use super::*;
     use crate::session::{LlmEvent, ToolEvent, UserRequest};
+    use clap::CommandFactory;
     use std::path::PathBuf;
+
+    #[test]
+    fn cli_help_describes_operation_stack_model() {
+        let mut command = Cli::command();
+        let mut output = Vec::new();
+        command.write_long_help(&mut output).unwrap();
+        let help = String::from_utf8(output).unwrap();
+
+        assert!(help.contains("operation-stack profiler"));
+        assert!(help.contains("two core profiling abstractions"));
+        assert!(help.contains("Tags and mappings derive operation fields before folding"));
+        assert!(help.contains("OPERATION STACK QUERY WORKFLOW"));
+        assert!(!help.contains("semantic profiler for local AI coding-agent sessions"));
+        assert!(!help.contains("Flamegraphs require semantic tags"));
+    }
 
     #[test]
     fn op_map_file_rules_ignore_comments_and_follow_inline_rules() {
