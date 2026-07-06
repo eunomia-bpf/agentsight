@@ -254,6 +254,7 @@ R370 再把这个组织方式固定成 main-experiment contract。
 R371 进一步审计 evaluation narrative focus：它检查 RQ1 不混入 E3 ranker 消融、RQ2 先给 R320 主 localization 结果、RQ3 先解释机制再讲 profile patch、RQ4 先给 replay/cost 再讲 paper hygiene。
 这同样只是 paper-organization guardrail，不新增数据或 profiler run。
 R372 再审计 main-body concision：E2 的 uncertainty、negative control、inspection curve、fragmentation 和 oracle-depth slices 必须作为 RQ2/E2 的 supporting audits 合并出现，而不是重新展开成按 R 编号的小实验段落。
+R373 再把 E2/E3 的六个任务级证据合成 claim-verdict matrix，逐任务显示 fidelity/work 支持、fixed-session counterpoint 和 actionability 结果。
 
 \begin{table*}[t]
   \centering
@@ -413,6 +414,9 @@ R365 进一步把 E2/E3 的同一证据压缩成 headline rows 和 task case car
 表~\ref{tab:r365-headlines} 给出主文可引用的 compact 版本。
 表~\ref{tab:r365-cases} 进一步展开 6 个任务的 case cards：每行保留 best visible policy、operation-stack top-5 work/recall/lift、profile-spec patch verdict、optimization action 和 counterpoint。
 这张表的作用是把 actionability claim 从 aggregate 数字落到真实任务：profiler 不只是排序 hot groups，还指出应该改 stack fields、ranker、mapping、profile spec，或者承认 flat/fixed-session/raw-action 是当前任务的反例视图。
+R373 再把这些 case cards 合成为 task-level claim verdict matrix。
+表~\ref{tab:r373-verdict} 对每个真实标注任务同时列出 E2 的 fidelity/work 证据、相对 fixed-session/span-tree-shaped baseline 的 tradeoff、E3 的可执行配置动作，以及必须保留的 counterpoint。
+它只读取 R320/R354/R355/R358/R365 tracked artifacts，不重跑 profiler、不下载或创建数据；作用是让 reviewer 逐任务检查主 claim，而不是只看 aggregate median。
 
 \begin{table*}[t]
   \centering
@@ -440,6 +444,15 @@ R365 进一步把 E2/E3 的同一证据压缩成 headline rows 和 task case car
   \caption{R365 六个真实标注任务的 task-level case cards。每行只读取 tracked R320/R345/R348/R354 artifacts；hidden labels 只用于 scoring，不进入 visible policy 或 optimization action。}
   \label{tab:r365-cases}
   \input{../out/paper-headline-case-studies-r365/case-table.tex}
+\end{table*}
+
+\begin{table*}[t]
+  \centering
+  \tiny
+  \setlength{\tabcolsep}{2pt}
+  \caption{R373 task-level claim verdict。每行把 E2 localization/work 证据、fixed-session tradeoff、E3 actionability 和 counterpoint 合并起来；R373 不是新实验。}
+  \label{tab:r373-verdict}
+  \input{../out/paper-task-claim-verdict-r373/task-verdict-table.tex}
 \end{table*}
 
 R330--R334 和 R355 是同一个 E2 主实验的稳健性和边界审计，而不是额外小实验。
@@ -569,6 +582,7 @@ R368 再审计 E2 baseline wording：它只读取现有 R320/R355 hidden-label s
 R370 进一步审计 main-experiment contract：它读取 R360/R361/R363/R364/R365/R368/R369 和当前中英文论文，要求每个 RQ/E 都有 primary test、workload/oracle、baselines/metrics、primary evidence、supporting roles、failure interpretation 和 non-claim。该 gate 防止论文重新退回按 run chronology 叙事；新增 run 必须增强 E1--E4 之一，而不是制造新的主实验。
 R371 再审计 narrative focus：它要求每个 RQ section 都有 claim-test、counterpoint 和 scoped non-claim，并检查 E1/E2/E3/E4 的主证据顺序没有被 supporting run history 打乱。R371 是组织审计，不是新实验。
 R372 再审计主文 concision：RQ2 的 robustness/depth slices 必须保持为 E2 内部的 supporting-audit 段落，RQ3 则继续围绕 mechanism 和 profile-configuration actionability，而不是把 support runs 拆成新的实验叙事。R372 是写作和证据组织检查，不是新实验。
+R373 则把 6 个真实标注任务的 claim verdict 固定成一张矩阵：每个任务必须同时显示 fidelity/work 支持、fixed-session tradeoff、actionability 结果和 counterpoint。R373 是已有 artifact 的 synthesis，不是新数据集或 profiler run。
 
 \section{哪些数据集最适合}
 

@@ -24,10 +24,10 @@
 | Paper | RQ | Chars | R-run mentions | Claim-test | Counterpoint | Non-claim |
 |---|---|---:|---:|---|---|---|
 | zh | RQ1/E1 | 7429 | 20 | True | True | True |
-| zh | RQ2/E2 | 8958 | 31 | True | True | True |
+| zh | RQ2/E2 | 9608 | 39 | True | True | True |
 | zh | RQ3/E3 | 4979 | 23 | True | True | True |
-| zh | RQ4/E4 | 8152 | 63 | True | True | True |
+| zh | RQ4/E4 | 8327 | 65 | True | True | True |
 | en | RQ1/E1 | 4625 | 12 | True | True | True |
-| en | RQ2/E2 | 10398 | 30 | True | True | True |
+| en | RQ2/E2 | 11575 | 40 | True | True | True |
 | en | RQ3/E3 | 8047 | 21 | True | True | True |
-| en | RQ4/E4 | 9386 | 56 | True | True | True |
+| en | RQ4/E4 | 9654 | 57 | True | True | True |
