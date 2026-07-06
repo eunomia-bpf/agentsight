@@ -205,9 +205,9 @@ def build_checks(zh: str, en: str, evaluation: str, contract: dict[str, Any], so
             "evidence": json.dumps(contract.get("summary", {}), sort_keys=True),
         },
         {
-            "check": "paper_mentions_r371_narrative_focus",
-            "status": "pass" if "R371" in paper_blob and "narrative" in paper_blob.lower() else "fail",
-            "evidence": "Chinese and English drafts mention R371 as a narrative-focus guardrail.",
+            "check": "paper_uses_compact_role_map_not_r371_log",
+            "status": "pass" if "tab:r374-roles" in paper_blob and "chronological run ledger" in paper_blob.lower() else "fail",
+            "evidence": "Chinese and English drafts use the compact R374 role map instead of exposing R371 as a main-body process log.",
         },
         {
             "check": "evaluation_records_r371",

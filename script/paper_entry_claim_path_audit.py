@@ -228,14 +228,15 @@ def token_matrix(zh_sections: dict[str, str], en_sections: dict[str, str]) -> li
             "E3",
             "E4",
             "RQ / core experiment",
-            "R360",
+            "R374",
+            "role map",
             "provenance",
         ],
     }
     zh_overrides = {
         "abstract": ["operation", "operation-stack", "三个经验性", "系统/复现", "RQ1", "RQ2", "RQ3", "RQ4", "不声称"],
         "intro_or_problem": ["operation", "operation fields", "递归折叠", "stack", "两个系统挑战"],
-        "main_result_framing": ["RQ1/E1", "RQ2/E2", "RQ3/E3", "RQ4/E4", "RQ / core experiment", "R360", "provenance"],
+        "main_result_framing": ["RQ1/E1", "RQ2/E2", "RQ3/E3", "RQ4/E4", "RQ / core experiment", "R374", "role map", "provenance"],
     }
     rows: list[dict[str, str]] = []
     for language, sections, reqs in [

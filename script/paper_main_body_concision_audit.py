@@ -192,7 +192,7 @@ def build_report() -> dict[str, Any]:
             for token in [
                 "single best hierarchy",
                 "human-productivity claim",
-                "dominance over every trace-tree-shaped objective",
+                "metric dominance",
             ]
         ),
         "English RQ2 keeps scoped non-claims after compaction.",
@@ -219,9 +219,9 @@ def build_report() -> dict[str, Any]:
     )
     add_check(
         checks,
-        "paper_mentions_r372",
-        "R372" in english and "R372" in chinese and "R372" in evaluation,
-        "Both papers and the evaluation ledger mention the concision guardrail.",
+        "paper_keeps_concision_gate_out_of_main_log",
+        "R372" in evaluation and "tab:r374-roles" in english and "tab:r374-roles" in chinese,
+        "The evaluation ledger records R372, while both papers expose the compact R374 role map instead of a main-body R372 process log.",
     )
     add_check(
         checks,

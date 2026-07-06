@@ -248,11 +248,11 @@ def build_checks(rows: list[dict[str, str]], sources: list[dict[str, str]], zh: 
             "evidence": "RQ3 links executable patches, boundary-field repair, task cards, and mechanism counterpoints.",
         },
         {
-            "check": "paper_mentions_evidence_path_table",
+            "check": "paper_exposes_compact_role_map",
             "status": "pass"
-            if contains_all(paper_blob, ["tab:reviewer-evidence-path", "R369"])
+            if contains_all(paper_blob, ["tab:r374-roles", "R374"])
             else "fail",
-            "evidence": "Chinese and English papers mention the R369 reviewer evidence-path table.",
+            "evidence": "Chinese and English papers expose the compact R374 role map instead of the old R369 run-ledger table.",
         },
         {
             "check": "evaluation_mentions_r369",

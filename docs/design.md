@@ -11,9 +11,11 @@ Purpose: keep the current operation-stack profiler design aligned with the activ
 implementation.
 
 AgentSight's profiler should expose only two core abstractions:
-`operation` and `operation stack`. Prompt, session, tool call, process, file
-event, network event, syscall, plan step, and subagent event are concrete
-operation shapes or operation fields, not separate profiler abstractions.
+`operation` and `operation stack`. Prompt, tool call, process, file event,
+network event, syscall, plan step, and subagent event can be concrete operation
+records or derived operation fields. Session, span, task, and trace identifiers
+are operation fields, exchange containers, or baseline shapes, not separate
+profiler abstractions.
 
 The current blocking gate is not more dataset breadth. R279-R294 show that
 external labeled trajectories can be projected through the current Rust

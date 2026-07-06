@@ -41,35 +41,35 @@
       "status": "pass"
     }
   ],
-  "commit": "d219d6c54212527ca5359db901efd65f7e93ef80",
-  "elapsed_s": 0.087,
+  "commit": "b05718e417452a95fdc66b737d98c46b9bbeb7cc",
+  "elapsed_s": 0.096,
   "experiments": [
     {
       "claim": "Heterogeneous agent traces enter one operation layer, and operation stacks are query-time recursive projections over fields.",
       "conclusion": "Supported as operation/operation-stack coverage and configurability, not a new trace ecosystem compatibility claim.",
       "core_experiment": "RQ1/E1: generality, recursive folding, and field derivation",
-      "evidence": "recursive_depth_sweep_operations=13265 (R286); stack_depths_and_unique_stack_range=8 depths, 9->3757 stacks (R286); leave_dataset_out_positive_stack_reductions=6/9 (R285); prompt_session_free_profile_specs=12/12 (R342); real_operation_standard_trace_roundtrip=512 ops, 512 samples, 11 stacks, equal=True (R353); field_derivation_mechanism_rows=6 mechanism rows, 5 boundary-family rows, 4/5 boundary backends beat the best simple baseline (R366)",
+      "evidence": "recursive_depth_sweep_operations=13265 [source: R286]; stack_depths_and_unique_stack_range=8 depths, 9->3757 stacks [source: R286]; leave_dataset_out_positive_stack_reductions=6/9 [source: R285]; prompt_session_free_profile_specs=12/12 [source: R342]; real_operation_standard_trace_roundtrip=512 ops, 512 samples, 11 stacks, equal=True [source: R353]; field_derivation_mechanism_rows=6 mechanism rows, 5 boundary-family rows, 4/5 boundary backends beat the best simple baseline [source: R366]",
       "workload": "15 public labeled trace families / 47,590 operations, plus local-session and standard-trace exchange fixtures."
     },
     {
       "claim": "Profile groups can be scored as ranked localization outputs against real hidden labels.",
       "conclusion": "Supported as a hidden-label profiler benchmark with baseline tradeoffs, not human utility.",
       "core_experiment": "RQ2/E2: hidden-label localization and ranking",
-      "evidence": "labeled_profile_benchmark_scale=6 tasks / 4 datasets / 34539 ops / 3699 positives / 144 policy scores (R320); top5_inspection_work=0.0937 vs 1 (R320); top5_recall_wins_vs_fixed_session=5/6 (R320); median_group_fragmentation=157.5 vs 285 (R320); budget30_recall_wins_vs_flat=6/6 (R320); oracle_depth_unit_recall=0.4342; 20/24 rows beat fixed-session (R355)",
+      "evidence": "labeled_profile_benchmark_scale=6 tasks / 4 datasets / 34539 ops / 3699 positives / 144 policy scores [source: R320]; top5_inspection_work=0.0937 vs 1 [source: R320]; top5_recall_wins_vs_fixed_session=5/6 [source: R320]; median_group_fragmentation=157.5 vs 285 [source: R320]; budget30_recall_wins_vs_flat=6/6 [source: R320]; oracle_depth_unit_recall=0.4342; 20/24 rows beat fixed-session [source: R355]",
       "workload": "Six oracle-backed tasks over AgentRewardBench, SATraj-OS, AgentNet, and OSWorld-Human."
     },
     {
       "claim": "Stack fields, mapping/tagging, rankers, and profile specs expose actionable optimization knobs.",
       "conclusion": "Supported as actionable profile-spec and field/ranker guidance, not an automatic selector or boundary detector.",
       "core_experiment": "RQ3/E3: mechanism and actionability",
-      "evidence": "profile_spec_patch_acceptance=5/6 (R354); patch_median_delta_ap_top5_lift_wtfp=0.0376 AP, 0.575 lift, -0.0859 first-positive work (R354); recursive_depth_actionability=9/12 AP variants, 6/6 tasks reduce groups (R342); boundary_field_patch=AP 0.2583 vs 0.2402; groups 74 vs 108 (R358); boundary_counterpoint=top5 work +0.0813; first-positive work +0.1581 (R358); field_rank_boundary_mechanism_audit=7 critical feature rows, 3 misleading feature rows, 4/5 boundary-family rows beat the best simple baseline (R366)",
+      "evidence": "profile_spec_patch_acceptance=5/6 [source: R354]; patch_median_delta_ap_top5_lift_wtfp=0.0376 AP, 0.575 lift, -0.0859 first-positive work [source: R354]; recursive_depth_actionability=9/12 AP variants, 6/6 tasks reduce groups [source: R342]; boundary_field_patch=AP 0.2583 vs 0.2402; groups 74 vs 108 [source: R358]; boundary_counterpoint=top5 work +0.0813; first-positive work +0.1581 [source: R358]; field_rank_boundary_mechanism_audit=7 critical feature rows, 3 misleading feature rows, 4/5 boundary-family rows beat the best simple baseline [source: R366]",
       "workload": "The same six labeled tasks plus held-out OSWorld-Human boundary-backend operations."
     },
     {
       "claim": "The offline profiler path is replayable over tracked inputs at low local cost.",
       "conclusion": "Supported as systems/reproducibility evidence, not a hidden-label accuracy result, live overhead, human productivity, or trace-ecosystem compatibility.",
       "core_experiment": "RQ4/E4: replayability, offline cost, and artifact hygiene",
-      "evidence": "deterministic_profile_specs=76/76 semantic, 76/76 raw-byte, 152 invocations (R328); offline_runtime=median 1.6011s, p95 2.7672s (R328)",
+      "evidence": "deterministic_profile_specs=76/76 semantic, 76/76 raw-byte, 152 invocations [source: R328]; offline_runtime=median 1.6011s, p95 2.7672s [source: R328]",
       "workload": "76 tracked profile specs over tracked operation JSONL inputs."
     }
   ],
@@ -235,9 +235,9 @@
   "source_status": [
     {
       "path": "script/paper_core_result_tables.py",
-      "sha256": "54492ca155241cdaa4e0aff56b9a13ecc567cd5e6a282044c405e22a6b12ae82",
+      "sha256": "ce36d2259b716f388a625568dcd120131329a923a642cee2d87da8c0abc0a08c",
       "source": "generator script",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/out/operation-map-leaveout-api-r285/leaveout-summary.json",
@@ -307,19 +307,19 @@
     },
     {
       "path": "docs/visexp/out/paper-core-experiments-r359/core-experiment-report.json",
-      "sha256": "c10bd1fd839d7047488f0008dd9ffd09f196db3cb6a208829e814a8e79e96ff2",
+      "sha256": "fd349122c737760366b31845b3e7b96cade367f1f93df14a09f244171f4a9a37",
       "source": "R359 core-experiment consolidation",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/out/operation-field-derivation-mechanism-r366/field-derivation-mechanism-report.json",
-      "sha256": "6a671d8124a2815ca4530a32403c89db4e448ce5dc43f5a0dc291ad84d64342f",
+      "sha256": "6747c39882788c94a9c80f538ff789b5eee520ce9221762dfef021882f77bf4b",
       "source": "R366 field derivation mechanism",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/evaluation.md",
-      "sha256": "62736845b84c1d285be43ae7ca95ca340aec55de51bfd52a42fa2ca952328145",
+      "sha256": "106cfae836b896f1301110524415d3e1cb07fb21b173767c466398806d8007de",
       "source": "evaluation ledger",
       "status": "tracked_dirty_allowed"
     },
@@ -331,13 +331,13 @@
     },
     {
       "path": "docs/visexp/paper/main.tex",
-      "sha256": "4ace597b40deddc197f70f509399885177cf4fce6db87b4009bdceeb5f928420",
+      "sha256": "4178b729bab15f736b32de8e68e74dd765e04053220fcfe7d30cf56b0deebe28",
       "source": "Chinese paper",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/agentpprof-paper/main.tex",
-      "sha256": "7b4ad80d13a27708b4b32dec74acadb3a5919fcfa3939d74c40eb084b4d454ac",
+      "sha256": "21acfec8c8386b84f3d31cd2b83ce89e13390693c2f6eb3fcc1cee6ce193fbe9",
       "source": "English paper",
       "status": "tracked_clean"
     }

@@ -216,9 +216,9 @@ def build_checks(rows: list[dict[str, str]], sources: list[dict[str, str]], zh: 
         {
             "check": "paper_states_core_experiment_contract",
             "status": "pass"
-            if all(token in paper_blob for token in ["R370", "RQ1/E1", "RQ2/E2", "RQ3/E3", "RQ4/E4"])
+            if all(token in paper_blob for token in ["RQ1/E1", "RQ2/E2", "RQ3/E3", "RQ4/E4", "tab:r374-roles"])
             else "fail",
-            "evidence": "Chinese and English drafts mention R370 and the four core experiments.",
+            "evidence": "Chinese and English drafts expose the four core experiments and the compact role map; R370 remains ledger provenance.",
         },
         {
             "check": "paper_downgrades_r_runs_to_support",

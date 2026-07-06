@@ -381,7 +381,7 @@ def experiment_rows(metrics: list[dict[str, str]]) -> list[dict[str, str]]:
     }
     rows: list[dict[str, str]] = []
     for eid in ["E1", "E2", "E3", "E4"]:
-        evidence = "; ".join(f"{m['metric']}={m['value']} ({m['evidence']})" for m in grouped[eid])
+        evidence = "; ".join(f"{m['metric']}={m['value']} [source: {m['evidence']}]" for m in grouped[eid])
         row = dict(summaries[eid])
         row["evidence"] = evidence
         rows.append(row)
