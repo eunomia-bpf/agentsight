@@ -46,7 +46,7 @@ CHINESE_SOURCE_TOKENS = [
     "hidden-label fidelity 和 baseline tradeoff",
     "mechanism/actionability",
     "replay/cost 证据",
-    "补充的 portfolio、case、verdict 和 consistency tables 只用于解释这些主图表的 data sources、counterpoints 或 scope checks",
+    "补充的 portfolio、case 和 verdict 视图只用于解释这些主图表的数据来源、反例和适用边界",
 ]
 
 ENGLISH_SOURCE_TOKENS = [
@@ -55,7 +55,7 @@ ENGLISH_SOURCE_TOKENS = [
     "provide hidden-label fidelity and baseline tradeoff evidence",
     "provide mechanism/actionability evidence",
     "provide replay and cost evidence",
-    "supplementary artifacts that provide data sources, counterpoints, or scope checks",
+    "Supporting materials contain the larger portfolio, case, verdict, and consistency tables",
 ]
 
 CHINESE_PDF_TOKENS = [
@@ -64,7 +64,7 @@ CHINESE_PDF_TOKENS = [
     "hidden-label fidelity 和 baseline tradeoff",
     "mechanism/actionability",
     "replay/cost 证据",
-    "consistency tables",
+    "适用边界",
 ]
 
 ENGLISH_PDF_TOKENS = [
@@ -73,7 +73,7 @@ ENGLISH_PDF_TOKENS = [
     "hidden-label fidelity and baseline",
     "mechanism/actionability evidence",
     "provide replay",
-    "supplementary artifacts",
+    "Supporting materials",
 ]
 
 NON_CLAIM_TOKENS = [

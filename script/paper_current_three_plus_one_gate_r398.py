@@ -51,11 +51,26 @@ INTERNAL_STYLE_PATTERNS = [
     "paper value/novelty synthesis",
     "paper evidence matrix",
     "submission audit",
+    "RQ setup",
     "Claim test",
     "Claim-test",
+    "claim gate",
+    "determinism gate",
+    "reproducibility gate",
+    "reproducibility gates",
     "Experiment contract",
     "实验契约",
     "artifact ledger",
+    "case and verdict artifacts",
+    "generated case",
+    "case 和 verdict outputs",
+    "生成的 case",
+    "run ledger",
+    "run-role map",
+    "R-numbered",
+    "source-status",
+    "claim-integrity",
+    "reviewer-style",
     "paper gates",
     "Gate / counterpoint",
     "supports-with-counterpoints",
@@ -358,11 +373,11 @@ def build_report() -> dict[str, Any]:
         "new_runs_must_strengthen_core_blocks",
         "new runs are allowed only when they strengthen one of these blocks" in evaluation_l
         and "primary comparison, ablation, stress/counterpoint, provenance check, or scope check" in evaluation_l
-        and "new runs enter the main evidence path only if they strengthen e1--e4" in english_l
-        and "primary comparison, ablation, stress/counterpoint, provenance check, or scope" in english_l
+        and "additional analyses enter the paper only when they strengthen one of these four blocks" in english_l
+        and "primary comparison, ablation, counterpoint, provenance check, or scope check" in english_l
         and (
             "只保留能够支撑 claim 的比较、消融、反例和复现实验" in chinese_norm
-            and "其他生成物只作为补充材料中的证据来源" in chinese_norm
+            and "其他分析只作为补充材料中的证据来源" in chinese_norm
         ),
         "New runs must be assigned a role inside E1-E4 instead of becoming scattered paper experiments.",
     )
@@ -373,12 +388,12 @@ def build_report() -> dict[str, Any]:
         and "table~\\ref{tab:core-results} is the four-block claim map" in english_l
         and "provide hidden-label fidelity and baseline tradeoff evidence" in english_l
         and "provide mechanism/actionability evidence" in english_l
-        and "supplementary artifacts that provide data sources, counterpoints, or scope checks" in english_l
+        and "supporting materials contain the larger portfolio, case, verdict, and consistency tables" in english_l
         and ("主文图表按这条路径阅读" in chinese_norm or "主文图表形成一条固定证据路径" in chinese_norm)
         and "表~\\ref{tab:results} 是四个 block 的 claim map" in chinese_norm
         and "hidden-label fidelity 和 baseline tradeoff" in chinese_norm
         and "mechanism/actionability" in chinese_norm
-        and "补充的 portfolio、case、verdict 和 consistency tables 只用于解释这些主图表的 data sources、counterpoints 或 scope checks" in chinese_norm,
+        and "补充的 portfolio、case 和 verdict 视图只用于解释这些主图表的数据来源、反例和适用边界" in chinese_norm,
         "The papers expose a compact display path from workload provenance through E1-E4 main displays.",
     )
     add_check(
