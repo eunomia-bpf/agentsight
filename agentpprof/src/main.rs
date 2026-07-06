@@ -14,10 +14,10 @@ use std::time::Duration;
 
 use profile::{
     OperationStackConfig, OutputFormat, ProfileView, StackRankMode,
-    build_profile_from_operation_files, build_profile_from_operation_records,
-    build_profile_with_options, infer_output_format, parse_operation_filters,
-    parse_operation_rank_rules, parse_stack_rank_rules, parse_stack_rules,
-    parse_stack_rules_with_flag, parse_stack_spec, profile_to_stacks, write_projection,
+    build_profile_from_operation_records, build_profile_with_options, infer_output_format,
+    parse_operation_filters, parse_operation_rank_rules, parse_stack_rank_rules, parse_stack_rules,
+    parse_stack_rules_with_flag, parse_stack_spec, profile_to_stacks, read_operation_record_values,
+    write_projection,
 };
 use session::{
     SessionRecord, default_claude_root, discover_agent_sessions, load_agent_trace_files,
@@ -423,11 +423,39 @@ fn command_export(args: Cli) -> Result<()> {
         return Ok(());
     }
     if !operation_files.is_empty() {
+        let operation_records = read_operation_record_values(&operation_files)?;
+        let standard_trace_events = if let Some(trace_path) = args.export_standard_trace.as_ref() {
+            Some(standard_trace::write_chrome_trace_from_operation_records(
+                trace_path,
+                &operation_records,
+                &project_name,
+            )?)
+        } else {
+            None
+        };
+        if output.is_none() {
+            let result = json!({
+                "status": "ok",
+                "standard_trace_output": args.export_standard_trace,
+                "standard_trace_format": if args.export_standard_trace.is_some() {
+                    Some(standard_trace::CHROME_TRACE_FORMAT)
+                } else {
+                    None
+                },
+                "standard_trace_events": standard_trace_events,
+                "operation_files": operation_files,
+                "operations": operation_records.len(),
+                "warnings": [],
+            });
+            println!("{}", serde_json::to_string_pretty(&result)?);
+            return Ok(());
+        }
         let output = output
             .as_ref()
             .context("missing output path; pass -o/--output or set output in --profile-spec")?;
         let format = infer_output_format(requested_format.into(), output);
-        let profile = build_profile_from_operation_files(&operation_files, view, &profile_options)?;
+        let profile =
+            build_profile_from_operation_records(&operation_records, view, &profile_options)?;
         let stacks = profile_to_stacks(&profile);
         if stacks.is_empty() {
             bail!("operation input produced no folded stacks");
@@ -459,6 +487,14 @@ fn command_export(args: Cli) -> Result<()> {
             "deterministic_output": deterministic_output,
             "stack_rules": stack_rules,
             "operation_files": operation_files,
+            "operations": operation_records.len(),
+            "standard_trace_output": args.export_standard_trace,
+            "standard_trace_format": if args.export_standard_trace.is_some() {
+                Some(standard_trace::CHROME_TRACE_FORMAT)
+            } else {
+                None
+            },
+            "standard_trace_events": standard_trace_events,
             "samples": stacks.values().sum::<u64>(),
             "unique_stacks": stacks.len(),
             "warnings": [],
@@ -696,8 +732,8 @@ fn validate_input_modes(args: &Cli, operation_files: &[PathBuf]) -> Result<()> {
         }
     }
     if args.export_trace.is_some() || args.export_standard_trace.is_some() {
-        if !operation_files.is_empty() {
-            bail!("trace export cannot be used with --operation-file");
+        if args.export_trace.is_some() && !operation_files.is_empty() {
+            bail!("--export-trace cannot be used with --operation-file");
         }
         if args.session_tag.is_some() || args.prompt_tag.is_some() {
             bail!("trace export cannot be combined with --session-tag or --prompt-tag");

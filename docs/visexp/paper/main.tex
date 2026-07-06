@@ -48,7 +48,7 @@ AI agent 的执行历史已经不再只是一次 prompt 或一棵 trace tree。
 	我们在 15 个轻量采样的公开标注轨迹来源上评估该模型，不同步完整测试集、图片归档或 gated corpus。
 	核心结果显示，Web、mobile、desktop、software、API、tool-dialogue、failure、安全、human group 和 step-quality 轨迹都可以进入同一 operation layer，核心 14 个数据集包含 42,590 个 operations，补充 ScaleCUA 后为 47,590 个 operations。
 	同一批 13,265 个 operations 可以从 9 个 dataset stacks 递归展开到 57 个 phase stacks、226 个 tool/semantic stacks 和 455 个 action stacks，而把固定 session 加入默认层级会膨胀到 3,757 个 stacks。
-	本地 agent session 和 Chrome/Perfetto-style trace 只作为 fixture-level exchange smoke 使用，完整 benchmark conversion、image-heavy corpora 和真实 OpenTelemetry/Perfetto producer 兼容性仍是后续工作。
+	本地 agent session、Chrome/Perfetto-style trace 和 operation-file standard-trace path 只作为 exchange/reproducibility smoke 使用，完整 benchmark conversion、image-heavy corpora 和真实 OpenTelemetry/Perfetto producer 兼容性仍是后续工作。
 
 	第二组结果验证 stack 不是 prompt/session/span 的别名。
 	OSWorld-Human 的单动作轨迹可以按人工 grouped-action 边界折叠，保守边界 F1 为 0.627 且 precision 为 1.0。
@@ -165,7 +165,7 @@ agentpprof --operation-file ops.jsonl --view operations \\
 外部数据集转换器位于 \texttt{script/agent\_trace\_datasets.py}。
 转换器只下载或流式读取所需公开文件的采样前缀。
 对于包含截图、长 prompt 或完整对话的数据集，默认保存 redacted rows 和 operation JSONL，不提交原始数据。
-	本地 agent session 通过 \texttt{agent-session} 解析为 \texttt{agentsight.agent-session.trace.v1} trace；\toolname{} 可以用 \texttt{--export-trace} 写出 filesystem-normalized trace，用 \texttt{--trace-file} 读回，也可以通过 \texttt{script/agent\_trace\_convert.py to-operations} 转成 operation JSONL。\texttt{script/agent\_trace\_exchange\_eval.py} 将这三步、filesystem/tool-command portability check 和 folded-output equality check 固化为一个可复现实验；该检查不声称 prompt/LLM preview 已完整脱敏。\toolname{} 还可以用 \texttt{--export-standard-trace} 写出 Chrome/Perfetto-style \texttt{traceEvents}，再用 \texttt{--standard-trace-file} 导入为普通 operations 后折叠。\texttt{script/agent\_trace\_convert.py export-standard --format chrome} 和 \texttt{import-standard --format chrome} 保留为显式中间文件脚本；\texttt{script/agent\_trace\_chrome\_exchange\_eval.py} 验证该路径不改变 folded operation-stack 输出。
+	本地 agent session 通过 \texttt{agent-session} 解析为 \texttt{agentsight.agent-session.trace.v1} trace；\toolname{} 可以用 \texttt{--export-trace} 写出 filesystem-normalized trace，用 \texttt{--trace-file} 读回，也可以通过 \texttt{script/agent\_trace\_convert.py to-operations} 转成 operation JSONL。\texttt{script/agent\_trace\_exchange\_eval.py} 将这三步、filesystem/tool-command portability check 和 folded-output equality check 固化为一个可复现实验；该检查不声称 prompt/LLM preview 已完整脱敏。\toolname{} 还可以用 \texttt{--export-standard-trace} 写出 Chrome/Perfetto-style \texttt{traceEvents}，再用 \texttt{--standard-trace-file} 导入为普通 operations 后折叠。\texttt{script/agent\_trace\_convert.py export-standard --format chrome} 和 \texttt{import-standard --format chrome} 保留为显式中间文件脚本；\texttt{script/agent\_trace\_chrome\_exchange\_eval.py} 验证 session fixture 路径不改变 folded operation-stack 输出。R353 进一步用 tracked R324 real labeled visible-operation JSONL 的 512-row prefix 验证 operation-file 路径：512 operations 导出为 512 个 Chrome complete events，经 \texttt{--standard-trace-file} 导入后仍得到 byte-identical 的 512-sample / 11-stack folded 输出；这仍是 exchange check，不是新的 accuracy result。
 质量评估脚本位于 \texttt{script/operation\_stack\_quality.py}，它复用 \toolname{} 的 operation mapping contract，并计算字段覆盖率、oracle V-measure 和序列相邻边界 F1。
 Stack 结构分析脚本位于 \texttt{script/operation\_stack\_analysis.py}，用于生成 flamegraph 之外的 tree、top-kind 和 transition 报告。
 
@@ -566,7 +566,7 @@ R328 再启用 deterministic artifact mode，固定 JSON \texttt{generated\_at} 
     \toprule
     Paper question & Workload / oracle & Main evidence & Scoped conclusion \\
     \midrule
-    Can agent traces share one object model? & 15 sampled public trajectory sources plus local-session exchange fixtures & Core public sources contain 42,590 operations, and ScaleCUA brings the smoke set to 47,590 operations. Agent-session and Chrome Trace Event round trips preserve 6 samples / 5 stacks on the fixture. & Heterogeneous trajectories and exchange traces enter the same operation layer. Trace formats are containers, not profiler abstractions. \\
+    Can agent traces share one object model? & 15 sampled public trajectory sources plus local-session exchange fixtures & Core public sources contain 42,590 operations, and ScaleCUA brings the smoke set to 47,590 operations. Agent-session and Chrome Trace Event round trips preserve 6 samples / 5 stacks on the fixture; R353 preserves 512 samples / 11 stacks on a tracked real labeled operation prefix. & Heterogeneous trajectories and exchange traces enter the same operation layer. Trace formats are containers, not profiler abstractions. \\
     Is stack depth a query rather than a prompt/session tree? & 13,265 operations with depth sweeps, plus 16,741 AgentNet operations with profile-spec override and R321 predicate specs & The same operations fold from 9 dataset stacks to 57 phase, 226 tool/semantic, 455 action, or 3,757 fixed-session stacks. AgentNet stack override changes 608 stacks to 83 without changing input operations. R321 predicates select 729, 714, and 4,285 expected operations before folding. & Operation stack is a recursive query over fields. Fixed session is a useful drilldown field, not the default boundary. \\
     Can fields be derived without adding a third object? & Held-out mapping splits, leave-dataset-out mapping, and OSWorld-Human supervised boundary probes & Held-out mapping improves compression from 14.049 to 19.091. Leave-dataset-out reduces stacks on 6/9 datasets with 0 negative regressions. OSWorld-Human learned boundary F1 reaches 0.7735 on held-out pairs. & Mapping/tagging/backends derive operation fields before folding. The claim is partial because calibration and simple-baseline checks remain family-specific. \\
     Does recursive folding match human boundaries? & 369 OSWorld-Human tasks, including 4,011 exact grouped-oracle operations & Grouped-depth stacks reduce 482 action stacks to 106 grouped stacks. Conservative human-group boundary F1 is 0.627 with precision 1.0 and recall 0.456. & The profiler can expose action-depth and human-group-depth views over the same sequence, but it does not fully recover latent intent boundaries. \\
@@ -677,7 +677,7 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld/OSWorld-Human、OpenCUA/AgentNet、SA
 
 	第三，数据和互操作范围是轻量采样。
 	本文避免同步完整测试集、图片归档和 gated 数据，因此有些来源只覆盖前缀、子配置或 redacted rows。
-	Chrome Trace Event 和 agent-session exchange 当前是 fixture-level smoke，它证明 trace 可以作为 exchange container，但不证明完整 OpenTelemetry/Chrome trace-ecosystem、Perfetto producer 或图像密集 benchmark 兼容。
+	Chrome Trace Event 和 agent-session exchange 当前是 exchange/reproducibility smoke；R306 覆盖本地 session fixture，R353 覆盖 tracked real labeled operation prefix。它们证明 trace 可以作为 exchange container，但不证明完整 OpenTelemetry/Chrome trace-ecosystem、Perfetto producer 或图像密集 benchmark 兼容。
 
 	第四，audit artifacts 是 claim-control surface，不是额外实证结果。
 			R338 进一步把 R320--R350 的论文数字、source policy、guardrails 和两抽象边界做成机械检查；result invariants、source-policy checks 和 guardrail checks 均通过。

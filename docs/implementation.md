@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-05
 Stage at update: stage 4 execute / stage 8 audit / stage 11 reproducibility prep
-Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agentpprof/src/standard_trace.rs`, `agentpprof/tests/standard_trace_cli.rs`, `agentpprof/tests/profile_spec_cli.rs`, `script/operation_*.py`, `script/agent_trace_datasets.py sample tau-bench-trajectories`, `script/agent_trace_datasets.py sample agent-reward-bench`, `script/agent_trace_datasets.py sample satraj-os-safety`, `script/agent_trace_datasets.py sample osworld-human`, `script/agent_trace_datasets.py sample agentnet`, `script/agent_trace_datasets.py sample scalecua-navigation`, `script/agent_trace_exchange_eval.py`, `script/agent_trace_chrome_exchange_eval.py`, `script/operation_where_filter_eval.py`, `script/operation_rust_rank_rule_eval.py`, `script/operation_rank_mode_eval.py`, `script/operation_rank_feature_eval.py`, `script/operation_rank_feature_ablation_eval.py`, `script/operation_rank_feature_robustness_eval.py`, `script/operation_profile_spec_composition_eval.py`, `script/implementation_consistency_audit.py`, `cargo test --manifest-path agentpprof/Cargo.toml --test profile_spec_cli`, `cargo test --manifest-path agentpprof/Cargo.toml`
+Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agentpprof/src/standard_trace.rs`, `agentpprof/tests/standard_trace_cli.rs`, `agentpprof/tests/profile_spec_cli.rs`, `script/operation_*.py`, `script/agent_trace_datasets.py sample tau-bench-trajectories`, `script/agent_trace_datasets.py sample agent-reward-bench`, `script/agent_trace_datasets.py sample satraj-os-safety`, `script/agent_trace_datasets.py sample osworld-human`, `script/agent_trace_datasets.py sample agentnet`, `script/agent_trace_datasets.py sample scalecua-navigation`, `script/agent_trace_exchange_eval.py`, `script/agent_trace_chrome_exchange_eval.py`, `script/operation_standard_trace_exchange_eval.py`, `script/operation_where_filter_eval.py`, `script/operation_rust_rank_rule_eval.py`, `script/operation_rank_mode_eval.py`, `script/operation_rank_feature_eval.py`, `script/operation_rank_feature_ablation_eval.py`, `script/operation_rank_feature_robustness_eval.py`, `script/operation_profile_spec_composition_eval.py`, `script/implementation_consistency_audit.py`, `cargo test --manifest-path agentpprof/Cargo.toml --test profile_spec_cli`, `cargo test --manifest-path agentpprof/Cargo.toml`
 Completeness: partial
 
 ## Repository Layout Relevant To Semantic Profiling
@@ -21,6 +21,7 @@ Purpose: identify the maintained implementation boundary.
 | `script/agent_trace_datasets.py` | External labeled trajectory samplers and operation JSONL normalization. | research harness |
 | `script/agent_trace_exchange_eval.py` | Reproducible agent-session trace export/import/conversion equality check. | research harness |
 | `script/agent_trace_chrome_exchange_eval.py` | Reproducible Chrome/Perfetto-style trace exchange equality check. | research harness |
+| `script/operation_standard_trace_exchange_eval.py` | R353 operation-file standard-trace exchange check over an existing tracked real labeled operation prefix. | reproducibility harness |
 | `script/operation_map_infer.py` | Generates reproducible operation-field mapping rules from labeled operations. | research harness |
 | `script/operation_stack_quality.py` | Scores operation stacks against dataset-provided labels. | research harness |
 | `script/operation_leaveout_eval.py` | Leave-dataset-out mapping validation over external traces. | research harness |
@@ -62,7 +63,8 @@ The current Rust implementation supports:
 - portable local agent-session trace import/export via `--trace-file` and
   `--export-trace`;
 - Chrome Trace Event import/export via
-  `--standard-trace-file` and `--export-standard-trace`;
+  `--standard-trace-file` and `--export-standard-trace`, including direct
+  standard-trace export from normalized operation JSONL;
 - pprof, folded, SVG, and JSON outputs;
 - local Codex/Claude session projections and external dataset projections
   through the same stack construction code path.
@@ -142,8 +144,13 @@ that is Perfetto-readable in the fixture path: `agentpprof` exports the same
 fixture with `--export-standard-trace`, imports it with
 `--standard-trace-file`, and folds the imported events as ordinary operations.
 The CLI test in `agentpprof/tests/standard_trace_cli.rs` covers this
-standard-trace round trip. Real OpenTelemetry, OpenInference, or Perfetto
-producer traces remain an open compatibility gate.
+standard-trace round trip, and R353 extends the Rust path to external
+operation-file inputs: a 512-row deterministic prefix of the tracked R324 real
+labeled visible-operation corpus exports to 512 Chrome events, imports through
+`--standard-trace-file`, and preserves 512 samples / 11 stacks with
+byte-identical folded output. This is still an exchange/reproducibility smoke;
+real OpenTelemetry, OpenInference, or Perfetto producer traces remain an open
+compatibility gate.
 
 The external sampler currently covers 15 labeled trajectory sources, including
 R287's tau-bench converter, R288's AgentRewardBench converter, and R289's
@@ -233,6 +240,7 @@ python3 -m py_compile script/agent_trace_datasets.py script/operation_split.py \
   script/operation_rank_feature_robustness_eval.py \
   script/operation_profile_spec_composition_eval.py \
   script/agent_trace_exchange_eval.py script/agent_trace_chrome_exchange_eval.py \
+  script/operation_standard_trace_exchange_eval.py \
   script/implementation_consistency_audit.py
 ```
 
@@ -276,7 +284,7 @@ Purpose: name work still needed before a paper-ready artifact.
 | Add deeper boundary scorers for step instructions, solution paths, and failure labels. | Action-label F1 is too shallow for final recursive-boundary claims. | pending |
 | Add a non-rule or model-backed boundary backend for OSWorld-Human and AgentNet. | The paper can currently claim configurable deterministic mapping, not automatic boundary discovery. | pending |
 | Execute the controlled human/agent analyst study from R315/R316/R317. | The current C4 evidence is an automated proxy; productivity, accuracy, time-to-answer, and user utility remain unsupported. | pending |
-| Import one real OpenTelemetry GenAI, OpenInference, or Perfetto trace from another agent tool. | R306 proves a standard trace container round trip on a fixture, not compatibility with real producer traces. | pending |
+| Import one real OpenTelemetry GenAI, OpenInference, or Perfetto trace from another agent tool. | R306/R353 prove standard-trace container round trips for session and operation-file inputs, not compatibility with real producer traces. | pending |
 | Add converters for the best next trajectory sources: UI-Vision, OSWorld-Verified/OSWorld 2.0 trajectories, and VisualWebArena trajectories. | Future expansion beyond the current 15 sources should be driven by stronger oracles, not dataset count alone. | pending |
 | Scale tau-bench beyond the R287 `gpt-4o-mini` 50-episode sample. | Multi-model tau-bench trajectories can support outcome/failure and model-comparison analysis. | pending |
 | Scale AgentRewardBench beyond the R288 38-trajectory lightweight sample. | Expert side-effect and looping labels are sparse; larger balanced sampling is needed for paper-grade failure diagnostics and better sequence-derived repetition rules. | pending |

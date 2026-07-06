@@ -1,4 +1,4 @@
-use anyhow::{Result, bail};
+use anyhow::{Context, Result, bail};
 use chrono::Utc;
 use flate2::{Compression, write::GzEncoder};
 use prost::Message;
@@ -307,7 +307,7 @@ impl Operation {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Deserialize)]
 struct OperationRecord {
     #[serde(default)]
     value: Option<u64>,
@@ -670,6 +670,7 @@ pub fn build_profile_with_options(
     profile
 }
 
+#[cfg(test)]
 pub fn build_profile_from_operation_files(
     paths: &[PathBuf],
     view: ProfileView,
@@ -683,6 +684,21 @@ pub fn build_profile_from_operation_files(
         bail!("operation input produced no samples");
     }
     Ok(build_profile_from_operations(&operations, view, options))
+}
+
+pub fn read_operation_record_values(paths: &[PathBuf]) -> Result<Vec<Value>> {
+    let mut records = Vec::new();
+    for path in paths {
+        for record in read_operation_records_jsonl(path)? {
+            operation_from_record(record.clone())
+                .with_context(|| format!("invalid operation fields in {}", path.display()))?;
+            records.push(operation_record_to_value(record));
+        }
+    }
+    if records.is_empty() {
+        bail!("operation input produced no samples");
+    }
+    Ok(records)
 }
 
 pub fn build_profile_from_operation_records(
@@ -728,9 +744,26 @@ fn build_profile_from_operations(
     profile
 }
 
+#[cfg(test)]
 fn read_operation_jsonl(path: &Path) -> Result<Vec<Operation>> {
+    read_operation_records_jsonl(path)?
+        .into_iter()
+        .enumerate()
+        .map(|(index, record)| {
+            operation_from_record(record).map_err(|error| {
+                anyhow::anyhow!(
+                    "invalid operation fields at {}:{}: {error}",
+                    path.display(),
+                    index + 1
+                )
+            })
+        })
+        .collect()
+}
+
+fn read_operation_records_jsonl(path: &Path) -> Result<Vec<OperationRecord>> {
     let file = fs::File::open(path)?;
-    let mut operations = Vec::new();
+    let mut records = Vec::new();
     for (line_number, line) in BufReader::new(file).lines().enumerate() {
         let line = line?;
         let line = line.trim();
@@ -744,15 +777,18 @@ fn read_operation_jsonl(path: &Path) -> Result<Vec<Operation>> {
                 line_number + 1
             )
         })?;
-        operations.push(operation_from_record(record).map_err(|error| {
-            anyhow::anyhow!(
-                "invalid operation fields at {}:{}: {error}",
-                path.display(),
-                line_number + 1
-            )
-        })?);
+        records.push(record);
     }
-    Ok(operations)
+    Ok(records)
+}
+
+fn operation_record_to_value(record: OperationRecord) -> Value {
+    let mut fields = record.fields;
+    fields.extend(record.extra_fields);
+    json!({
+        "value": record.value.unwrap_or(1).max(1),
+        "fields": fields,
+    })
 }
 
 fn operation_from_record(record: OperationRecord) -> Result<Operation> {

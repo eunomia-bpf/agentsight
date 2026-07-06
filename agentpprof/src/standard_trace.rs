@@ -25,13 +25,26 @@ pub fn write_chrome_trace(
     include_previews: bool,
 ) -> Result<usize> {
     let payload = chrome_payload_from_sessions(sessions, project_name, include_previews);
+    write_chrome_trace_payload(path, &payload, "agent sessions")
+}
+
+pub fn write_chrome_trace_from_operation_records(
+    path: &Path,
+    records: &[Value],
+    project_name: &str,
+) -> Result<usize> {
+    let payload = chrome_payload_from_operation_records(records, project_name);
+    write_chrome_trace_payload(path, &payload, "operation input")
+}
+
+fn write_chrome_trace_payload(path: &Path, payload: &Value, empty_source: &str) -> Result<usize> {
     let events = payload
         .get("traceEvents")
         .and_then(Value::as_array)
         .map(Vec::len)
         .unwrap_or(0);
     if events == 0 {
-        bail!("agent sessions produced zero Chrome trace events");
+        bail!("{empty_source} produced zero Chrome trace events");
     }
     if let Some(parent) = path.parent()
         && !parent.as_os_str().is_empty()
@@ -77,6 +90,42 @@ pub fn chrome_payload_from_sessions(
         "metadata": {
             "format": CHROME_TRACE_FORMAT,
             "source_schema": agent_session::AGENT_TRACE_SCHEMA,
+            "operation_schema": AGENTSIGHT_OPERATION_SCHEMA,
+            "project": project_name,
+        },
+        "traceEvents": events,
+    })
+}
+
+pub fn chrome_payload_from_operation_records(records: &[Value], project_name: &str) -> Value {
+    let records = collect_operation_file_trace_records(records, project_name);
+    let base_ms = records.iter().filter_map(|record| record.ts_ms).min();
+    let events = records
+        .iter()
+        .enumerate()
+        .map(|(idx, record)| {
+            json!({
+                "name": event_name(&record.fields),
+                "cat": string_field(&record.fields, "op").unwrap_or_else(|| "operation".to_string()),
+                "ph": "X",
+                "ts": trace_timestamp_us(record.ts_ms, base_ms, idx),
+                "dur": 1,
+                "pid": record.pid,
+                "tid": record.tid,
+                "args": {
+                    "agentsight.schema": AGENTSIGHT_OPERATION_SCHEMA,
+                    "agentsight.value": record.value.max(1),
+                    "agentsight.operation": record.fields,
+                }
+            })
+        })
+        .collect::<Vec<_>>();
+
+    json!({
+        "displayTimeUnit": "ms",
+        "metadata": {
+            "format": CHROME_TRACE_FORMAT,
+            "source_schema": AGENTSIGHT_OPERATION_SCHEMA,
             "operation_schema": AGENTSIGHT_OPERATION_SCHEMA,
             "project": project_name,
         },
@@ -189,6 +238,68 @@ fn collect_operation_records(
         }
     }
     records
+}
+
+fn collect_operation_file_trace_records(
+    records: &[Value],
+    project_name: &str,
+) -> Vec<OperationTraceRecord> {
+    records
+        .iter()
+        .enumerate()
+        .filter_map(|(idx, record)| operation_file_trace_record(record, project_name, idx))
+        .collect()
+}
+
+fn operation_file_trace_record(
+    record: &Value,
+    project_name: &str,
+    ordinal: usize,
+) -> Option<OperationTraceRecord> {
+    let object = record.as_object()?;
+    let mut fields = object
+        .get("fields")
+        .and_then(Value::as_object)
+        .cloned()
+        .unwrap_or_else(|| {
+            object
+                .iter()
+                .filter(|(key, _)| key.as_str() != "value")
+                .map(|(key, value)| (key.clone(), value.clone()))
+                .collect()
+        });
+    if fields.is_empty() {
+        return None;
+    }
+    if !fields.contains_key("project") {
+        insert(&mut fields, "project", project_name);
+    }
+    if !fields.contains_key("agent") {
+        insert(&mut fields, "agent", "operation-file");
+    }
+    let session = string_field(&fields, "session")
+        .or_else(|| string_field(&fields, "session_id"))
+        .unwrap_or_else(|| "operation-file".to_string());
+    if !fields.contains_key("session") {
+        insert(&mut fields, "session", &session);
+    }
+    if !fields.contains_key("session_id") {
+        insert(&mut fields, "session_id", &session);
+    }
+    let tid = parse_i64(fields.get("prompt_index"))
+        .or_else(|| parse_i64(fields.get("trace_tid")))
+        .unwrap_or(0);
+    let ts_ms = parse_i64(fields.get("ts_ms"))
+        .or_else(|| parse_i64(fields.get("timestamp_ms")))
+        .or_else(|| parse_i64(fields.get("trace_ts_us")).map(|value| value / 1000));
+
+    Some(OperationTraceRecord {
+        fields: clean_fields(fields),
+        value: operation_value(object.get("value")),
+        ts_ms,
+        pid: stable_int(&session),
+        tid: tid + ordinal as i64,
+    })
 }
 
 fn base_fields(

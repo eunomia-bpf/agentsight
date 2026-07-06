@@ -220,6 +220,18 @@ agentpprof --standard-trace-file fixture-chrome-trace.json --view operations \
   -o fixture.folded --format folded
 ```
 
+Already-normalized external operation JSONL can also be exported through the
+same standard trace container:
+
+```bash
+agentpprof --operation-file external-operations.jsonl \
+  --export-standard-trace external-chrome-trace.json
+
+agentpprof --standard-trace-file external-chrome-trace.json --view operations \
+  --stack 'project,dataset,task,phase,op,action,status' \
+  -o external.folded --format folded
+```
+
 Use the scripts when a workflow needs explicit intermediate files in AgentSight
 operation JSONL:
 
@@ -244,7 +256,10 @@ The Chrome/Perfetto trace is an exchange format, not a third profiling object.
 After import, `agentpprof` still folds ordinary operation JSONL with the chosen
 operation stack. `python3 script/agent_trace_chrome_exchange_eval.py` reproduces
 the fixture round trip and checks that direct trace import, direct operation
-import, and Chrome-trace import produce the same folded output.
+import, and Chrome-trace import produce the same folded output. `python3
+script/operation_standard_trace_exchange_eval.py` performs the same equality
+check for the Rust operation-file export path on a deterministic prefix of an
+existing real labeled operation artifact.
 
 ## Python Prototype
 
