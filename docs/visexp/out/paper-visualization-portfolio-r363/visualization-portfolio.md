@@ -3,6 +3,7 @@
 - Status: `pass`.
 - Checks: 7/7.
 - This is a visualization and analysis portfolio over existing tracked results, not a new empirical result.
+- Paper table: `docs/visexp/out/paper-visualization-portfolio-r363/portfolio-table.tex`.
 
 ## Visualizations
 

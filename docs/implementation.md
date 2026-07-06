@@ -40,7 +40,7 @@ Purpose: identify the maintained implementation boundary.
 | `script/paper_core_result_tables.py` | R360 paper core-result table generator; regenerates the E1-E4 headline table and metric rows from tracked artifacts without rerunning the profiler. | paper hygiene harness |
 | `script/paper_core_claim_evidence.py` | R361 core-claim evidence ledger; binds each E1-E4 experiment to claim, oracle, baselines, primary metrics, actionability, counterpoints, and scoped wording. | paper hygiene harness |
 | `script/paper_core_section_readiness.py` | R362 section-readiness audit; checks that Chinese/English E1-E4 result sections carry claim, oracle, baseline, metric, counterpoint/scope, and two-abstraction guardrails. | paper hygiene harness |
-| `script/paper_visualization_portfolio.py` | R363 paper visualization portfolio; turns tracked E1-E4 evidence artifacts into baseline-tradeoff, metric-heatmap, diagnostic-lens, actionability-knob, and oracle-depth SVG/CSV/HTML views without rerunning the profiler. | paper hygiene harness |
+| `script/paper_visualization_portfolio.py` | R363 paper visualization portfolio; turns tracked E1-E4 evidence artifacts into baseline-tradeoff, metric-heatmap, diagnostic-lens, actionability-knob, and oracle-depth SVG/CSV/HTML views plus a LaTeX table fragment without rerunning the profiler. | paper hygiene harness |
 | `script/paper_claim_integrity_r356.py` | R356 claim-integrity refresh over R354/R355 plus the R338 R320-R350 gate; checks paper numbers, source provenance, guardrails, and the two-abstraction boundary. | paper hygiene harness |
 | `script/profile_artifact_relocation_audit.py` | R343 relocated-checkout audit for historical profile specs that contain absolute artifact paths; verifies R342/R338 path normalization over existing tracked outputs. | reproducibility harness |
 | `script/operation_metric_consistency_eval.py` | R344 multi-metric consistency audit over R320 scored policy outputs; checks AP, nDCG, top-k, budget, work, and fragmentation support/counterpoints. | research harness |
@@ -188,11 +188,12 @@ hygiene gate, not a profiler run or a new experiment.
 
 R363 adds the paper visualization portfolio for that same E1-E4 structure.
 `script/paper_visualization_portfolio.py` reads tracked R320/R345/R348/R354/
-R355/R358/R361/R362 artifacts and emits five paper views: baseline tradeoff,
-metric heatmap, diagnostic lenses, actionability knobs, and oracle-depth
-adequacy. The portfolio is a report layer over operation and operation-stack
-outputs; it does not introduce a flamegraph-only framing, a new profiler
-abstraction, a profiler rerun, or a new empirical result.
+R355/R358/R361/R362 artifacts and emits five paper views plus a LaTeX table
+fragment: baseline tradeoff, metric heatmap, diagnostic lenses, actionability
+knobs, and oracle-depth adequacy. The portfolio is a report layer over
+operation and operation-stack outputs; it does not introduce a flamegraph-only
+framing, a new profiler abstraction, a profiler rerun, or a new empirical
+result.
 
 R355 then closes the main R339 depth-scoring gap without adding another
 runtime object. `script/operation_oracle_depth_adequacy_eval.py` reuses tracked
