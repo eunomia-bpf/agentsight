@@ -1,0 +1,100 @@
+{
+  "checks": [
+    {
+      "check": "english_uses_experiment_contracts",
+      "detail": "English RQ/E sections use four reviewer-facing experiment contracts.",
+      "passed": true
+    },
+    {
+      "check": "chinese_uses_experiment_contracts",
+      "detail": "Chinese RQ/E sections use four experiment contracts and no R361-led section openings.",
+      "passed": true
+    },
+    {
+      "check": "section_openings_are_contracts",
+      "detail": "The first content line after every RQ/E subsection is the experiment contract.",
+      "passed": true
+    },
+    {
+      "check": "claim_tests_present",
+      "detail": "Every RQ/E subsection still states a claim test.",
+      "passed": true
+    },
+    {
+      "check": "ledger_records_r385_as_focus_gate_when_present",
+      "detail": "If R385 is present in the ledger, it is a paper-focus gate, not a profiler experiment.",
+      "passed": true
+    },
+    {
+      "check": "no_data_or_profiler_rerun",
+      "detail": "Runtime commands=['<dynamic>', 'git ls-files --error-unmatch -- <dynamic>', 'git diff --quiet -- <dynamic>', 'git diff --cached --quiet -- <dynamic>']; forbidden hits=[]",
+      "passed": true
+    }
+  ],
+  "claim": "Each RQ/E section opens as a claim-facing experiment contract rather than an R-numbered provenance paragraph.",
+  "contract_rows": [
+    {
+      "chinese_first_line": "\u5b9e\u9a8c\u5951\u7ea6\uff1aRQ1/E1 \u7684 claim \u662f\u4e24\u62bd\u8c61\u6a21\u578b\u80fd\u8986\u76d6\u5f02\u6784 agent traces \u4e14\u4e0d\u628a prompt/session/tool \u8fb9\u754c\u5199\u6b7b\uff1boracle \u662f public dataset labels\u3001native trajectory fields\u3001OSWorld-Human human boundary \u548c AgentNet quality labels\uff1bbaseline \u5305\u62ec dataset-native stacks\u3001no-map folding\u3001fixed-session stacks\u3001profile-spec replay \u548c trace round trip\uff1bmetric \u5305\u62ec operation coverage\u3001unique-stack range\u3001mapping compression\u3001boundary F1/V-measure \u548c replay equality\uff1bcounterpoint \u662f\u8fd9\u53ea\u80fd\u652f\u6301 configurable operation stack folding\uff0c\u4e0d\u80fd\u652f\u6301\u5b8c\u6574\u751f\u6001\u517c\u5bb9\u6216\u81ea\u52a8\u6062\u590d\u6240\u6709 latent intent\u3002Prompt\u3001tool\u3001process \u548c syscall \u53ef\u4ee5\u662f operation records \u6216 fields\uff1bsession/span \u662f\u5b57\u6bb5\u3001\u5bb9\u5668\u6216 baseline shape\uff0cnot new profiler objects\u3002",
+      "chinese_has_claim_test": true,
+      "english_first_line": "Experiment contract: claim, the operation/operation stack model covers",
+      "english_has_claim_test": true,
+      "rq": "RQ1/E1"
+    },
+    {
+      "chinese_first_line": "\u5b9e\u9a8c\u5951\u7ea6\uff1aRQ2/E2 \u7684 claim \u662f operation-stack profiling \u80fd\u5728\u771f\u5b9e labeled traces \u4e0a faithful localization \u548c ranking\uff1boracle \u662f 6 \u4e2a oracle-backed tasks \u4e2d 34,539 \u4e2a operations \u548c 3,699 \u4e2a hidden positives\uff1bbaseline \u5305\u62ec flat summary\u3001fixed-session drilldown\u3001dataset-native hierarchy\u3001raw-action stack\u3001operation-stack width\u3001operation-stack query-aware\u3001label-drilldown \u548c oracle upper bound\uff1bmetric \u5305\u62ec precision@k\u3001recall\u3001F1\u3001AUPRC-style AP\u3001nDCG\u3001recall/F1@work budget\u3001work-to-first-positive \u548c group count\uff1bcounterpoint \u662f flat \u548c dataset-native \u53ef\u4ee5\u8d62 broad-recall \u6216 nDCG \u76ee\u6807\uff0c\u6240\u4ee5\u4e3b claim \u662f Pareto tradeoff\uff0c\u4e0d\u662f metric dominance\u3002",
+      "chinese_has_claim_test": true,
+      "english_first_line": "Experiment contract: claim, operation-stack profiling localizes and ranks real",
+      "english_has_claim_test": true,
+      "rq": "RQ2/E2"
+    },
+    {
+      "chinese_first_line": "\u5b9e\u9a8c\u5951\u7ea6\uff1aRQ3/E3 \u7684 claim \u662f profiler \u901a\u8fc7 stack fields\u3001mapping/tagging rules\u3001ranking policies\u3001profile specs \u548c boundary-derived operation fields \u66b4\u9732 actionable optimization knobs\uff1boracle \u662f hidden labels only after profiling\uff0cR358 \u8fd8\u7528 held-out OSWorld-Human boundary positives \u8bc4\u5206\uff1bbaseline \u5305\u62ec default semantic-width specs\u3001patched specs\u3001visible feature rankers\u3001transfer policies\u3001learned-boundary stacks\u3001fixed-session \u548c semantic-width stacks\uff1bmetric \u5305\u62ec accepted patches\u3001AP delta\u3001top-5 lift delta\u3001first-positive-work delta\u3001group reduction \u548c top-5 work counterpoint\uff1bcounterpoint \u662f OSWorld-Human \u9700\u8981 boundary-derived fields\uff0c\u56e0\u6b64\u8fd9\u662f actionable mechanism evidence\uff0cnot automatic boundary discovery\u3001not automatic patch selection\u3002",
+      "chinese_has_claim_test": true,
+      "english_first_line": "Experiment contract: claim, the profiler exposes actionable knobs in stack",
+      "english_has_claim_test": true,
+      "rq": "RQ3/E3"
+    },
+    {
+      "chinese_first_line": "\u5b9e\u9a8c\u5951\u7ea6\uff1aRQ4/E4 \u7684 claim \u662f offline profiler path \u53ef\u4ee5\u5728 tracked inputs \u4e0a\u4f4e\u6210\u672c replay\uff1boracle \u662f tracked profile specs\u3001tracked operation inputs\u3001repeated profile outputs\u3001runtime logs \u548c source-status rows\uff1bbaseline \u5305\u62ec default output versus deterministic-output replay\u3001semantic profile hashes versus raw-byte profile hashes\uff1bmetric \u5305\u62ec deterministic spec pass rate\u3001profiler invocations\u3001median/p95 runtime\u3001sample equality\u3001stack equality \u548c raw-byte output equality\uff1bcounterpoint \u662f not live eBPF overhead\u3001not human utility\u3001not complete ecosystem compatibility\u3001not universal selector\u3002Claim-integrity\u3001rubric \u548c reviewer-style checks \u662f artifact hygiene\uff0c\u4e0d\u662f empirical evidence\u3002",
+      "chinese_has_claim_test": true,
+      "english_first_line": "Experiment contract: claim, the offline profiler path is replayable over tracked",
+      "english_has_claim_test": true,
+      "rq": "RQ4/E4"
+    }
+  ],
+  "generated_at_unix": 1783358161.6627085,
+  "run_id": "R385",
+  "source_status": [
+    {
+      "path": "script/paper_rq_contract_focus_r385.py",
+      "sha256": "8f79798fcc070077ae9a8dfccb3f3b729d8370e64f2ea57a8ca413c736a3e851",
+      "source": "generator script",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/agentpprof-paper/main.tex",
+      "sha256": "0cdf341adb616946ad90fda58a6bb4aeffc1249743f4ea8d6d23a7f4d5f2404a",
+      "source": "English paper",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/paper/main.tex",
+      "sha256": "804502e2bd974430d97dfd3cbef1761ad1dc75b3d666f4831f6c465f21b25c15",
+      "source": "Chinese paper",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/evaluation.md",
+      "sha256": "7b7e5792aa64b8378a596466939bde79a92d419461a275a7986a8233cb9f8955",
+      "source": "evaluation ledger",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/agentpprof-paper",
+      "sha256": "submodule_head=5aaccdd9a4e736f46b02a744ef8e7e6b73ee6dad;parent_index=5aaccdd9a4e736f46b02a744ef8e7e6b73ee6dad",
+      "source": "English paper submodule gitlink",
+      "status": "tracked_dirty_allowed"
+    }
+  ],
+  "status": "pass"
+}
