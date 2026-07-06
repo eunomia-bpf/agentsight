@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""R338: paper-claim integrity audit over R320-R345 evidence.
+"""R338: paper-claim integrity audit over R320-R346 evidence.
 
 This audit does not fetch, sync, create, or relabel datasets. It reads tracked
 result artifacts from the existing profiling-paper evaluation runs and the
@@ -42,6 +42,7 @@ R341_DIR = OUT_ROOT / "operation-mechanism-attribution-r341"
 R342_DIR = OUT_ROOT / "operation-profile-spec-composition-r342"
 R344_DIR = OUT_ROOT / "operation-metric-consistency-r344"
 R345_DIR = OUT_ROOT / "operation-diagnostic-lens-portfolio-r345"
+R346_DIR = OUT_ROOT / "operation-diagnostic-casebook-r346"
 
 SOURCE_ARTIFACTS = {
     "R320 report": R320_DIR / "profile-accuracy-report.json",
@@ -76,6 +77,9 @@ SOURCE_ARTIFACTS = {
     "R345 lens summary": R345_DIR / "diagnostic-lens-summary.csv",
     "R345 task cards": R345_DIR / "task-lens-cards.csv",
     "R345 counterpoint ledger": R345_DIR / "counterpoint-ledger.csv",
+    "R346 report": R346_DIR / "diagnostic-casebook-report.json",
+    "R346 task cards": R346_DIR / "task-diagnostic-case-cards.csv",
+    "R346 top stack evidence": R346_DIR / "top-stack-evidence.csv",
 }
 
 PAPER_SOURCES = {
@@ -586,6 +590,8 @@ def build_number_checks(
     r345_lens_summary: list[dict[str, str]],
     r345_task_cards: list[dict[str, str]],
     r345_counterpoints: list[dict[str, str]],
+    r346_task_cards: list[dict[str, str]],
+    r346_top_stack_evidence: list[dict[str, str]],
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     r320 = reports["R320"]
@@ -1239,6 +1245,27 @@ def build_number_checks(
     add_check(rows, run_id="R345", key="lens_summary_rows", actual=len(r345_lens_summary), expected=6, source="R345 diagnostic-lens-summary.csv", paper_token="6 diagnostic lenses")
     add_check(rows, run_id="R345", key="task_lens_card_rows", actual=len(r345_task_cards), expected=6, source="R345 task-lens-cards.csv", paper_token="6 tasks")
     add_check(rows, run_id="R345", key="counterpoint_ledger_rows", actual=len(r345_counterpoints), expected=46, source="R345 counterpoint-ledger.csv", paper_token="46 counterpoint rows")
+
+    r346 = reports["R346"]["summary"]
+    add_check(rows, run_id="R346", key="overall", actual=r346["overall"], expected="pass", source="R346 report summary", paper_token="R346")
+    add_check(rows, run_id="R346", key="tasks", actual=r346["tasks"], expected=6, source="R346 report summary", paper_token="6 tasks")
+    add_check(rows, run_id="R346", key="datasets", actual=r346["datasets"], expected=4, source="R346 report summary", paper_token="4 datasets")
+    add_check(rows, run_id="R346", key="case_groups", actual=r346["case_groups"], expected=30, source="R346 report summary", paper_token="30 case groups")
+    add_check(rows, run_id="R346", key="top_groups_per_task", actual=r346["top_groups_per_task"], expected=5, source="R346 report summary", paper_token="top-5")
+    add_check(rows, run_id="R346", key="tasks_with_top1_positive", actual=r346["tasks_with_top1_positive"], expected=5, source="R346 report summary", paper_token="5/6 top-1")
+    add_check(rows, run_id="R346", key="tasks_with_positive_in_top5", actual=r346["tasks_with_positive_in_top5"], expected=6, source="R346 report summary", paper_token="6/6 top-5")
+    add_check(rows, run_id="R346", key="median_top5_recall", actual=r346["median_top5_recall"], expected=0.188, source="R346 report summary", paper_token="0.188", tolerance=5e-5)
+    add_check(rows, run_id="R346", key="median_top5_precision", actual=r346["median_top5_precision"], expected=0.1991, source="R346 report summary", paper_token="0.1991", tolerance=5e-5)
+    add_check(rows, run_id="R346", key="median_top5_lift", actual=r346["median_top5_lift"], expected=1.6508, source="R346 report summary", paper_token="1.6508", tolerance=5e-5)
+    add_check(rows, run_id="R346", key="median_top5_work", actual=r346["median_top5_work"], expected=0.0937, source="R346 report summary", paper_token="0.0937", tolerance=5e-5)
+    add_check(rows, run_id="R346", key="median_first_positive_work", actual=r346["median_first_positive_work"], expected=0.0378, source="R346 report summary", paper_token="0.0378", tolerance=5e-5)
+    add_check(rows, run_id="R346", key="tasks_with_actionable_case_cards", actual=r346["tasks_with_actionable_case_cards"], expected=6, source="R346 report summary", paper_token="6/6 actionable case cards")
+    add_check(rows, run_id="R346", key="tasks_with_counterpoints", actual=r346["tasks_with_counterpoints"], expected=6, source="R346 report summary", paper_token="6/6 counterpoints")
+    add_check(rows, run_id="R346", key="tasks_with_three_or_more_best_views", actual=r346["tasks_with_three_or_more_best_views"], expected=6, source="R346 report summary", paper_token="6/6 tasks need at least three best views")
+    add_check(rows, run_id="R346", key="min_distinct_best_views_per_task", actual=r346["min_distinct_best_views_per_task"], expected=3, source="R346 report summary", paper_token="3 best views")
+    add_check(rows, run_id="R346", key="max_distinct_best_views_per_task", actual=r346["max_distinct_best_views_per_task"], expected=4, source="R346 report summary", paper_token="4 best views")
+    add_check(rows, run_id="R346", key="task_case_card_rows", actual=len(r346_task_cards), expected=6, source="R346 task-diagnostic-case-cards.csv", paper_token="6 tasks")
+    add_check(rows, run_id="R346", key="top_stack_evidence_rows", actual=len(r346_top_stack_evidence), expected=30, source="R346 top-stack-evidence.csv", paper_token="30 case groups")
     return rows
 
 
@@ -1287,6 +1314,7 @@ def build_text_coverage(
         ("evaluation", "R342 profile spec composition", ["R342", "12/12", "9/12", "0.8267"], "R342"),
         ("evaluation", "R344 metric consistency", ["R344", "30", "16", "groups"], "R344"),
         ("evaluation", "R345 diagnostic lens portfolio", ["R345", "6 diagnostic lenses", "11/36", "25/36"], "R345"),
+        ("evaluation", "R346 diagnostic casebook", ["R346", "30 case groups", "5/6", "1.6508"], "R346"),
         ("zh_main", "R320 headline", ["0.0937", "9.37", "285.0", "157.5"], "R320"),
         ("zh_main", "R333 headline", ["0.3900", "0.390"], "R333"),
         ("zh_main", "R337 headline", ["0.2000", "16.0", "50.0"], "R337"),
@@ -1296,6 +1324,7 @@ def build_text_coverage(
         ("zh_main", "R342 headline", ["R342", "12/12", "9/12", "0.8267"], "R342"),
         ("zh_main", "R344 headline", ["R344", "30", "16", "nDCG"], "R344"),
         ("zh_main", "R345 headline", ["R345", "6", "11/36", "25/36"], "R345"),
+        ("zh_main", "R346 headline", ["R346", "30", "5/6", "1.6508"], "R346"),
         ("en_main", "R320 headline", ["0.0937", "9.37", "285.0", "157.5"], "R320"),
         ("en_main", "R333 headline", ["0.3900", "0.390"], "R333"),
         ("en_main", "R337 headline", ["0.2000", "16.0", "50.0"], "R337"),
@@ -1305,6 +1334,7 @@ def build_text_coverage(
         ("en_main", "R342 headline", ["R342", "12/12", "9/12", "0.8267"], "R342"),
         ("en_main", "R344 headline", ["R344", "30", "16", "nDCG"], "R344"),
         ("en_main", "R345 headline", ["R345", "6", "11/36", "25/36"], "R345"),
+        ("en_main", "R346 headline", ["R346", "30", "5/6", "1.6508"], "R346"),
         ("zh_claim_setup", "two abstractions", ["两个核心抽象", "operation stack"], "C2"),
         ("zh_claim_setup", "R337 result", ["R337", "0.2000", "16.0"], "R337"),
         ("zh_claim_setup", "R339 result", ["R339", "0.4669", "0.9103"], "R339"),
@@ -1313,11 +1343,12 @@ def build_text_coverage(
         ("zh_claim_setup", "R342 result", ["R342", "12/12", "9/12", "0.8267"], "R342"),
         ("zh_claim_setup", "R344 result", ["R344", "30", "16", "nDCG"], "R344"),
         ("zh_claim_setup", "R345 result", ["R345", "6", "11/36", "25/36"], "R345"),
+        ("zh_claim_setup", "R346 result", ["R346", "30", "5/6", "1.6508"], "R346"),
     ]
     rows: list[dict[str, Any]] = []
     for doc, key, tokens, source in required:
         text = texts[doc]
-        status = "pass" if (contains_all(text, tokens) if source in {"R341", "R342", "R344", "R345"} else contains_any(text, tokens)) else "fail"
+        status = "pass" if (contains_all(text, tokens) if source in {"R341", "R342", "R344", "R345", "R346"} else contains_any(text, tokens)) else "fail"
         rows.append(
             {
                 "doc": doc,
@@ -1331,10 +1362,10 @@ def build_text_coverage(
 
     eval_text = texts["evaluation"]
     for row in number_checks:
-        if row["run_id"] not in {"R320", "R333", "R337", "R339", "R340", "R341", "R342", "R344", "R345"}:
+        if row["run_id"] not in {"R320", "R333", "R337", "R339", "R340", "R341", "R342", "R344", "R345", "R346"}:
             continue
         token = str(row["paper_token"])
-        hits = line_hits_all(eval_text, [row["run_id"], token]) if row["run_id"] in {"R341", "R342", "R344", "R345"} else line_hits(eval_text, [token])
+        hits = line_hits_all(eval_text, [row["run_id"], token]) if row["run_id"] in {"R341", "R342", "R344", "R345", "R346"} else line_hits(eval_text, [token])
         status = "pass" if hits else "warn"
         rows.append(
             {
@@ -1574,7 +1605,7 @@ def build_markdown(path: Path, payload: dict[str, Any]) -> None:
     lines = [
         "# Paper Claim Integrity Audit R338",
         "",
-        "R338 mechanically audits the current profiling-paper claim against R320-R345 result artifacts and the Chinese/English paper text. It does not fetch, sync, create, or relabel datasets.",
+        "R338 mechanically audits the current profiling-paper claim against R320-R346 result artifacts and the Chinese/English paper text. It does not fetch, sync, create, or relabel datasets.",
         "",
         "## Verdict",
         "",
@@ -1597,7 +1628,7 @@ def build_markdown(path: Path, payload: dict[str, Any]) -> None:
         "|---|---|---:|---:|---|---|",
     ]
     for row in payload["number_checks"]:
-        if row["run_id"] in {"R320", "R333", "R334", "R337", "R339", "R340", "R341", "R342", "R344", "R345"}:
+        if row["run_id"] in {"R320", "R333", "R334", "R337", "R339", "R340", "R341", "R342", "R344", "R345", "R346"}:
             lines.append(
                 f"| {row['run_id']} | {row['key']} | {row['expected']} | {row['actual']} | {row['status']} | {row['source']} |"
             )
@@ -1719,6 +1750,7 @@ def build_payload() -> dict[str, Any]:
         "R342": load_json(SOURCE_ARTIFACTS["R342 report"]),
         "R344": load_json(SOURCE_ARTIFACTS["R344 report"]),
         "R345": load_json(SOURCE_ARTIFACTS["R345 report"]),
+        "R346": load_json(SOURCE_ARTIFACTS["R346 report"]),
     }
     r320_scores = read_csv(SOURCE_ARTIFACTS["R320 policy scores"])
     r333_summary = read_csv(SOURCE_ARTIFACTS["R333 curve summary"])
@@ -1740,6 +1772,8 @@ def build_payload() -> dict[str, Any]:
     r345_lens_summary = read_csv(SOURCE_ARTIFACTS["R345 lens summary"])
     r345_task_cards = read_csv(SOURCE_ARTIFACTS["R345 task cards"])
     r345_counterpoints = read_csv(SOURCE_ARTIFACTS["R345 counterpoint ledger"])
+    r346_task_cards = read_csv(SOURCE_ARTIFACTS["R346 task cards"])
+    r346_top_stack_evidence = read_csv(SOURCE_ARTIFACTS["R346 top stack evidence"])
 
     number_checks = build_number_checks(
         reports,
@@ -1764,6 +1798,8 @@ def build_payload() -> dict[str, Any]:
         r345_lens_summary,
         r345_task_cards,
         r345_counterpoints,
+        r346_task_cards,
+        r346_top_stack_evidence,
     )
     policy_checks = validate_source_policies(reports)
     text_coverage = build_text_coverage(texts, number_checks)
@@ -1808,7 +1844,7 @@ def build_payload() -> dict[str, Any]:
             "dataset_relabeling": "none",
             "network_access_required": False,
             "source_text_clean_policy": "paper text sources may be current worktree edits and are hashed; empirical source artifacts must be tracked clean",
-            "hidden_label_use": "R338 reads already-scored R320-R345 artifacts and does not form new rankings from hidden labels",
+            "hidden_label_use": "R338 reads already-scored R320-R346 artifacts and does not form new rankings from hidden labels",
         },
         "non_claims": [
             "not a human/agent analyst study",
