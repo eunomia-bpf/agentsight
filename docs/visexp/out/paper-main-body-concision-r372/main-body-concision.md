@@ -1,0 +1,28 @@
+# R372 Main-Body Concision Audit
+
+Status: `pass`
+
+This is a paper-organization guardrail. It checks that E2/E3 prose stays organized around the four core experiments rather than support-run chronology.
+
+## Checks
+
+| Check | Passed | Detail |
+|---|---:|---|
+| r371_still_passes | True | R371 status=pass |
+| english_rq2_support_runs_are_compact | True | English RQ2 uses one supporting-audit paragraph instead of five run-ledger paragraphs. |
+| english_rq2_run_token_shape | True | English RQ2 token counts={'R320': 5, 'R330': 1, 'R331': 0, 'R332': 0, 'R333': 0, 'R334': 1, 'R355': 4, 'R363': 4, 'R365': 4, 'R372': 0} |
+| english_rq2_keeps_primary_numbers | True | English RQ2 still carries E2 work, recall, fragmentation, and oracle-depth numbers. |
+| english_rq2_keeps_nonclaims | True | English RQ2 keeps scoped non-claims after compaction. |
+| chinese_rq2_already_compact | True | Chinese RQ2 presents robustness/depth as one E2 audit block. |
+| rq3_keeps_mechanism_and_actionability | True | RQ3 still centers mechanism/actionability and its scoped counterclaims. |
+| paper_mentions_r372 | True | Both papers and the evaluation ledger mention the concision guardrail. |
+| no_new_data_or_profiler_rerun | True | This script reads paper text, R371, and the ledger only; it does not sync data or invoke agentpprof. |
+
+## Section Summary
+
+| Paper | RQ | R-run mentions | R330-R334 mentions |
+|---|---|---:|---:|
+| english | RQ2/E2 | 30 | 2 |
+| english | RQ3/E3 | 21 | 0 |
+| chinese | RQ2/E2 | 31 | 6 |
+| chinese | RQ3/E3 | 23 | 0 |
