@@ -1143,6 +1143,7 @@ cargo run --manifest-path agentpprof/Cargo.toml -- \
 | Canonical reviewer acceptance closure after R382 is implemented and tracked under R383. | done |
 | Main-paper experiment focus gate demoting the R374/R375/R377 run-role material to artifact-ledger provenance while preserving the E1/E2/E3/E4 paper structure is implemented and tracked under R384. | done |
 | RQ section contract focus gate replacing R-run-led section openings with claim-facing experiment contracts in the Chinese/English drafts is implemented and tracked under R385. | done |
+| E1 main-display gate over the RQ1/E1 claim-test table, recursive folding, mapping/boundary, and human-boundary evidence is implemented and tracked under R386. | done |
 | Flat/fixed/mapped stack ablation is tracked under R277. | done |
 | Operation-stack quality scorer is implemented and tracked under R280. | done |
 | Learned-from-labeled-fields op-map generation is implemented and tracked under R281. | done |

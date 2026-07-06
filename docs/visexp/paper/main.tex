@@ -270,6 +270,38 @@ Claim-test：RQ1/E1 问的是：同一 operation layer 能否只通过改变 map
 适合该方法的轨迹通常具备四个特征：有有序 step 或 turn，有稳定 session/task id，有动作或阶段标签，有 outcome、quality、group 或 safety 等较高层 oracle。
 只有静态截图 grounding、缺少顺序、缺少 action label、强依赖大图片归档或 gated access 的数据源更适合作为后续扩展，而不是当前主证据。
 
+表~\ref{tab:e1-claim-test} 是 E1 的主证据表；后文只展开这些行，不新增主实验。
+
+\begin{table*}[t]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\caption{E1 主证据表：同一个 operation layer 可以被递归折叠、mapping、tagging 和 boundary scoring，而不引入 prompt/session/tool-specific profiler object。}
+\label{tab:e1-claim-test}
+\begin{tabular}{p{0.17\linewidth}p{0.22\linewidth}p{0.28\linewidth}p{0.25\linewidth}}
+\toprule
+Claim test & Workload/oracle & Main evidence & Counterpoint / scope \\
+\midrule
+异构 operation layer &
+15 个 public labeled trace families / 47,590 operations &
+Web、mobile、desktop、software、API、dialogue、failure、safety、human-boundary 和 step-quality labels 都作为 operation fields 进入同一 pipeline。 &
+这是 lightweight sampling；image-heavy 或 gated full benchmarks 仍是 out of scope。 \\
+递归 stack choice &
+同一批 13,265 operations，加 AgentNet profile-spec override &
+9 个 dataset stacks、57 个 phase stacks、226 个 tool/semantic stacks、455 个 action stacks 和 3,757 个 fixed-session stacks；AgentNet 在不改变 16,741 个 input operations 的情况下从 608 个 stacks 改成 83 个 stacks。 &
+Fixed sessions 可以作为 drilldown fields，但 hard-coded 到 stack 里会造成 fragmentation。 \\
+先派生 fields 再折叠 &
+Held-out mapping 和 boundary-backend rows &
+Mapping 把 compression 从 14.049 提到 19.091；leave-dataset-out 在 6/9 个数据集上减少 stacks；boundary backends 在 4/5 rows 上优于 best simple baseline。 &
+Mapping 会把 action-to-phase V-measure 从 0.9343 降到 0.7416；looping 由 \texttt{repeat\_signal\_change} 解释。 \\
+Human-boundary folding &
+OSWorld-Human exact-aligned tasks &
+4,011 operations / 2,075 human groups；grouped-depth stacks 把 482 个 action stacks 降到 106 个；group-pattern boundary F1 为 0.627，precision 为 1.0。 &
+这是 scoped human-group alignment，不是自动恢复所有 latent intent boundary。 \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
 \paragraph{递归 stack-depth sweep。}
 
 R286 在同一批 13,265 个 operations 上扫过 8 个 stack depths。
