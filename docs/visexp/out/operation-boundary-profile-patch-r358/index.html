@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>R358 Boundary-Derived Profile Patch Audit</title>
+<style>
+body { font-family: system-ui, sans-serif; margin: 32px; color: #1f2937; }
+table { border-collapse: collapse; width: 100%; }
+th, td { border-bottom: 1px solid #d1d5db; padding: 8px; text-align: right; }
+th:first-child, td:first-child { text-align: left; }
+code { background: #f3f4f6; padding: 1px 4px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<h1>R358 Boundary-Derived Profile Patch Audit</h1>
+<p>Profiler input: <code>docs/visexp/out/operation-boundary-profile-patch-r358/osworld-boundary-visible-operations.jsonl</code>. Hidden labels score profile groups only after Rust profiling.</p>
+<table>
+<thead><tr><th>Policy</th><th>Hidden</th><th>Groups</th><th>AP</th><th>Top-5 work</th><th>Top-5 recall</th><th>First-positive work</th></tr></thead>
+<tbody><tr><td>flat_width</td><td>False</td><td>1</td><td>0.2147</td><td>1.0000</td><td>1.0000</td><td>1.0</td></tr>
+<tr><td>fixed_session_width</td><td>False</td><td>96</td><td>0.2392</td><td>0.4055</td><td>0.4403</td><td>0.2253</td></tr>
+<tr><td>semantic_width</td><td>False</td><td>108</td><td>0.2402</td><td>0.5627</td><td>0.5844</td><td>0.1502</td></tr>
+<tr><td>semantic_visible_rank</td><td>False</td><td>108</td><td>0.2253</td><td>0.4125</td><td>0.3704</td><td>0.1502</td></tr>
+<tr><td>learned_boundary_width</td><td>False</td><td>74</td><td>0.2583</td><td>0.6440</td><td>0.6955</td><td>0.3083</td></tr>
+<tr><td>learned_boundary_rank</td><td>False</td><td>74</td><td>0.2359</td><td>0.5115</td><td>0.4239</td><td>0.3083</td></tr>
+<tr><td>oracle_positive_rate_semantic</td><td>True</td><td>108</td><td>0.5852</td><td>0.0053</td><td>0.0247</td><td>0.0018</td></tr>
+<tr><td>oracle_positive_rate_learned_stack</td><td>True</td><td>74</td><td>0.5406</td><td>0.0062</td><td>0.0288</td><td>0.0018</td></tr></tbody>
+</table>
+</body>
+</html>

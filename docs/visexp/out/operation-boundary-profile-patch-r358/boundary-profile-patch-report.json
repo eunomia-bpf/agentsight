@@ -1,0 +1,927 @@
+{
+  "claim": "For the OSWorld-Human boundary task that rejected the R354 visible phase/action patch, boundary-derived operation fields improve AP and reduce fragmentation on held-out labeled traces, while preserving top-5 work and first-positive-work counterpoints.",
+  "commit": "f37bfbccd6eb8702be56dd05112038cc5e491fbb",
+  "comparisons": [
+    {
+      "comparison": "learned_boundary_vs_semantic_width",
+      "delta_ap": 0.0181,
+      "delta_first_positive_work": 0.1581,
+      "delta_groups": -34.0,
+      "delta_groups_to_50pct": -3.0,
+      "delta_top5_lift": 0.0414,
+      "delta_top5_precision": 0.0089,
+      "delta_top5_recall": 0.1111,
+      "delta_top5_work": 0.0813,
+      "delta_work_to_50pct": -0.1369,
+      "left_policy": "learned_boundary_width",
+      "right_policy": "semantic_width"
+    },
+    {
+      "comparison": "learned_boundary_vs_visible_rank",
+      "delta_ap": 0.033,
+      "delta_first_positive_work": 0.1581,
+      "delta_groups": -34.0,
+      "delta_groups_to_50pct": -59.0,
+      "delta_top5_lift": 0.1821,
+      "delta_top5_precision": 0.0391,
+      "delta_top5_recall": 0.3251,
+      "delta_top5_work": 0.2315,
+      "delta_work_to_50pct": -0.2447,
+      "left_policy": "learned_boundary_width",
+      "right_policy": "semantic_visible_rank"
+    },
+    {
+      "comparison": "learned_boundary_vs_fixed_session",
+      "delta_ap": 0.0191,
+      "delta_first_positive_work": 0.083,
+      "delta_groups": -22.0,
+      "delta_groups_to_50pct": -8.0,
+      "delta_top5_lift": -0.0061,
+      "delta_top5_precision": -0.0013,
+      "delta_top5_recall": 0.2552,
+      "delta_top5_work": 0.2385,
+      "delta_work_to_50pct": -0.0627,
+      "left_policy": "learned_boundary_width",
+      "right_policy": "fixed_session_width"
+    },
+    {
+      "comparison": "learned_boundary_rank_vs_width",
+      "delta_ap": -0.0224,
+      "delta_first_positive_work": 0.0,
+      "delta_groups": 0.0,
+      "delta_groups_to_50pct": 5.0,
+      "delta_top5_lift": -0.2512,
+      "delta_top5_precision": -0.0539,
+      "delta_top5_recall": -0.2716,
+      "delta_top5_work": -0.1325,
+      "delta_work_to_50pct": 0.1316,
+      "left_policy": "learned_boundary_rank",
+      "right_policy": "learned_boundary_width"
+    },
+    {
+      "comparison": "semantic_visible_rank_vs_width",
+      "delta_ap": -0.0149,
+      "delta_first_positive_work": 0.0,
+      "delta_groups": 0.0,
+      "delta_groups_to_50pct": 56.0,
+      "delta_top5_lift": -0.1407,
+      "delta_top5_precision": -0.0302,
+      "delta_top5_recall": -0.214,
+      "delta_top5_work": -0.1502,
+      "delta_work_to_50pct": 0.1078,
+      "left_policy": "semantic_visible_rank",
+      "right_policy": "semantic_width"
+    }
+  ],
+  "elapsed_s": 1.635,
+  "input_policy": {
+    "dataset_creation": "none",
+    "dataset_relabeling": "none",
+    "dataset_sync": "none",
+    "hidden_label_use": "only after Rust emits profile groups",
+    "network_access_required": false,
+    "profiler_input": "R297 held-out OSWorld-Human operations with oracle fields removed before Rust profiling"
+  },
+  "leakage_check": {
+    "hidden_fields": [
+      "group_alignment",
+      "group_index",
+      "group_pattern",
+      "group_position",
+      "group_size",
+      "human_group",
+      "oracle_boundary_field",
+      "problem_value",
+      "target_positive"
+    ],
+    "status": "pass",
+    "violations": []
+  },
+  "non_claims": [
+    "This is not a human or agent analyst study.",
+    "This is not an automatic boundary-discovery claim.",
+    "This is not a complete latent intent recovery claim.",
+    "This is not an automatic patch selector; the tested patch is an explicit profile-spec alternative.",
+    "The only profiler objects are operations and operation stacks; learned boundary fields are operation fields."
+  ],
+  "policies": [
+    {
+      "agentpprof_result": {
+        "deterministic_output": false,
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-boundary-profile-patch-r358/osworld-boundary-visible-operations.jsonl"
+        ],
+        "operations": 1132,
+        "output": "docs/visexp/out/operation-boundary-profile-patch-r358/flat_width.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-boundary-profile-patch-r358/flat_width-profile-spec.json"
+        ],
+        "rank_mode": "width-boost",
+        "rank_op_rules": [],
+        "rank_rules": [],
+        "sample_type": "operations",
+        "samples": 1132,
+        "stack": "analysis_task,dataset",
+        "stack_rules": [],
+        "standard_trace_events": null,
+        "standard_trace_format": null,
+        "standard_trace_output": null,
+        "status": "ok",
+        "unique_stacks": 1,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=osworld_group_start"
+        ]
+      },
+      "description": "Flat task summary baseline.",
+      "hidden": false,
+      "metrics": {
+        "ap": 0.2147,
+        "ap_at_20": 0.2147,
+        "first_positive_rank": 1,
+        "first_positive_work": 1.0,
+        "groups_to_50pct_positive_recall": 1,
+        "top5_groups": 1,
+        "top5_lift": 1.0,
+        "top5_positive_operations": 243,
+        "top5_precision": 0.2147,
+        "top5_recall": 1.0,
+        "top5_work": 1.0,
+        "work_to_50pct_positive_recall": 1.0
+      },
+      "policy": "flat_width",
+      "profile_spec": "docs/visexp/out/operation-boundary-profile-patch-r358/flat_width-profile-spec.json",
+      "rank_op_rules": [],
+      "rust_json": "docs/visexp/out/operation-boundary-profile-patch-r358/flat_width.json",
+      "stack": [
+        "analysis_task",
+        "dataset"
+      ],
+      "summary": {
+        "groups": 1,
+        "operations": 1132,
+        "positives": 243,
+        "prevalence": 0.2147
+      },
+      "top_stacks": [
+        {
+          "operations": 1132,
+          "positive_rate": 0.2147,
+          "positives": 243,
+          "rank": 1,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human"
+        }
+      ]
+    },
+    {
+      "agentpprof_result": {
+        "deterministic_output": false,
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-boundary-profile-patch-r358/osworld-boundary-visible-operations.jsonl"
+        ],
+        "operations": 1132,
+        "output": "docs/visexp/out/operation-boundary-profile-patch-r358/fixed_session_width.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-boundary-profile-patch-r358/fixed_session_width-profile-spec.json"
+        ],
+        "rank_mode": "width-boost",
+        "rank_op_rules": [],
+        "rank_rules": [],
+        "sample_type": "operations",
+        "samples": 1132,
+        "stack": "analysis_task,dataset,session",
+        "stack_rules": [],
+        "standard_trace_events": null,
+        "standard_trace_format": null,
+        "standard_trace_output": null,
+        "status": "ok",
+        "unique_stacks": 96,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=osworld_group_start"
+        ]
+      },
+      "description": "Fixed-session/span-tree proxy baseline.",
+      "hidden": false,
+      "metrics": {
+        "ap": 0.2392,
+        "ap_at_20": 0.1554,
+        "first_positive_rank": 1,
+        "first_positive_work": 0.2253,
+        "groups_to_50pct_positive_recall": 10,
+        "top5_groups": 5,
+        "top5_lift": 1.086,
+        "top5_positive_operations": 107,
+        "top5_precision": 0.2331,
+        "top5_recall": 0.4403,
+        "top5_work": 0.4055,
+        "work_to_50pct_positive_recall": 0.4885
+      },
+      "policy": "fixed_session_width",
+      "profile_spec": "docs/visexp/out/operation-boundary-profile-patch-r358/fixed_session_width-profile-spec.json",
+      "rank_op_rules": [],
+      "rust_json": "docs/visexp/out/operation-boundary-profile-patch-r358/fixed_session_width.json",
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "session"
+      ],
+      "summary": {
+        "groups": 96,
+        "operations": 1132,
+        "positives": 243,
+        "prevalence": 0.2147
+      },
+      "top_stacks": [
+        {
+          "operations": 255,
+          "positive_rate": 0.2863,
+          "positives": 73,
+          "rank": 1,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;session:236833a3-5704-47fc-888c-4f298f09f799"
+        },
+        {
+          "operations": 100,
+          "positive_rate": 0.13,
+          "positives": 13,
+          "rank": 2,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;session:3e3fc409-bff3-4905-bf16-c968eee3f807"
+        },
+        {
+          "operations": 59,
+          "positive_rate": 0.1186,
+          "positives": 7,
+          "rank": 3,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;session:7e287123-70ca-47b9-8521-47db09b69b14"
+        },
+        {
+          "operations": 24,
+          "positive_rate": 0.4167,
+          "positives": 10,
+          "rank": 4,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;session:7f35355e-02a6-45b5-b140-f0be698bcf85"
+        },
+        {
+          "operations": 21,
+          "positive_rate": 0.1905,
+          "positives": 4,
+          "rank": 5,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;session:51719eea-10bc-4246-a428-ac7c433dd4b3"
+        }
+      ]
+    },
+    {
+      "agentpprof_result": {
+        "deterministic_output": false,
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-boundary-profile-patch-r358/osworld-boundary-visible-operations.jsonl"
+        ],
+        "operations": 1132,
+        "output": "docs/visexp/out/operation-boundary-profile-patch-r358/semantic_width.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-boundary-profile-patch-r358/semantic_width-profile-spec.json"
+        ],
+        "rank_mode": "width-boost",
+        "rank_op_rules": [],
+        "rank_rules": [],
+        "sample_type": "operations",
+        "samples": 1132,
+        "stack": "analysis_task,dataset,app,phase,action,repeat_signal,status",
+        "stack_rules": [],
+        "standard_trace_events": null,
+        "standard_trace_format": null,
+        "standard_trace_output": null,
+        "status": "ok",
+        "unique_stacks": 108,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=osworld_group_start"
+        ]
+      },
+      "description": "R354 default OSWorld-Human semantic stack ranked by width.",
+      "hidden": false,
+      "metrics": {
+        "ap": 0.2402,
+        "ap_at_20": 0.1985,
+        "first_positive_rank": 1,
+        "first_positive_work": 0.1502,
+        "groups_to_50pct_positive_recall": 5,
+        "top5_groups": 5,
+        "top5_lift": 1.0385,
+        "top5_positive_operations": 142,
+        "top5_precision": 0.2229,
+        "top5_recall": 0.5844,
+        "top5_work": 0.5627,
+        "work_to_50pct_positive_recall": 0.5627
+      },
+      "policy": "semantic_width",
+      "profile_spec": "docs/visexp/out/operation-boundary-profile-patch-r358/semantic_width-profile-spec.json",
+      "rank_op_rules": [],
+      "rust_json": "docs/visexp/out/operation-boundary-profile-patch-r358/semantic_width.json",
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "app",
+        "phase",
+        "action",
+        "repeat_signal",
+        "status"
+      ],
+      "summary": {
+        "groups": 108,
+        "operations": 1132,
+        "positives": 243,
+        "prevalence": 0.2147
+      },
+      "top_stacks": [
+        {
+          "operations": 170,
+          "positive_rate": 0.0176,
+          "positives": 3,
+          "rank": 1,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:multi_apps;phase:input;action:hotkey;repeat_signal:loop-like;status:gold"
+        },
+        {
+          "operations": 143,
+          "positive_rate": 0.6014,
+          "positives": 86,
+          "rank": 2,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:multi_apps;phase:input;action:type;repeat_signal:loop-like;status:gold"
+        },
+        {
+          "operations": 130,
+          "positive_rate": 0.0,
+          "positives": 0,
+          "rank": 3,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:multi_apps;phase:input;action:press;repeat_signal:loop-like;status:gold"
+        },
+        {
+          "operations": 108,
+          "positive_rate": 0.2963,
+          "positives": 32,
+          "rank": 4,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:multi_apps;phase:navigate;action:click;repeat_signal:loop-like;status:gold"
+        },
+        {
+          "operations": 86,
+          "positive_rate": 0.2442,
+          "positives": 21,
+          "rank": 5,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:libreoffice_impress;phase:navigate;action:click;repeat_signal:loop-like;status:gold"
+        }
+      ]
+    },
+    {
+      "agentpprof_result": {
+        "deterministic_output": false,
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-boundary-profile-patch-r358/osworld-boundary-visible-operations.jsonl"
+        ],
+        "operations": 1132,
+        "output": "docs/visexp/out/operation-boundary-profile-patch-r358/semantic_visible_rank.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-boundary-profile-patch-r358/semantic_visible_rank-profile-spec.json"
+        ],
+        "rank_mode": "rule-score",
+        "rank_op_rules": [
+          "input-phase:1.5=phase=(input|modify)",
+          "navigate-phase:1=phase=navigate",
+          "write-action:1=action=(fill|type|key|hotkey|press|select_option|send_msg_to_user|drag)",
+          "navigation:0.5=action=(click|left_click|double_click|tripleclick|move_to|drag|scroll|hover|goto|go_back)",
+          "finish-phase:0.5=phase=finish"
+        ],
+        "rank_rules": [],
+        "sample_type": "operations",
+        "samples": 1132,
+        "stack": "analysis_task,dataset,app,phase,action,repeat_signal,status",
+        "stack_rules": [],
+        "standard_trace_events": null,
+        "standard_trace_format": null,
+        "standard_trace_output": null,
+        "status": "ok",
+        "unique_stacks": 108,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=osworld_group_start"
+        ]
+      },
+      "description": "R354 visible phase/action rank-feature patch, rerun on R297 held-out operations.",
+      "hidden": false,
+      "metrics": {
+        "ap": 0.2253,
+        "ap_at_20": 0.1062,
+        "first_positive_rank": 1,
+        "first_positive_work": 0.1502,
+        "groups_to_50pct_positive_recall": 61,
+        "top5_groups": 5,
+        "top5_lift": 0.8978,
+        "top5_positive_operations": 90,
+        "top5_precision": 0.1927,
+        "top5_recall": 0.3704,
+        "top5_work": 0.4125,
+        "work_to_50pct_positive_recall": 0.6705
+      },
+      "policy": "semantic_visible_rank",
+      "profile_spec": "docs/visexp/out/operation-boundary-profile-patch-r358/semantic_visible_rank-profile-spec.json",
+      "rank_op_rules": [
+        "input-phase:1.5=phase=(input|modify)",
+        "navigate-phase:1=phase=navigate",
+        "write-action:1=action=(fill|type|key|hotkey|press|select_option|send_msg_to_user|drag)",
+        "navigation:0.5=action=(click|left_click|double_click|tripleclick|move_to|drag|scroll|hover|goto|go_back)",
+        "finish-phase:0.5=phase=finish"
+      ],
+      "rust_json": "docs/visexp/out/operation-boundary-profile-patch-r358/semantic_visible_rank.json",
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "app",
+        "phase",
+        "action",
+        "repeat_signal",
+        "status"
+      ],
+      "summary": {
+        "groups": 108,
+        "operations": 1132,
+        "positives": 243,
+        "prevalence": 0.2147
+      },
+      "top_stacks": [
+        {
+          "operations": 170,
+          "positive_rate": 0.0176,
+          "positives": 3,
+          "rank": 1,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:multi_apps;phase:input;action:hotkey;repeat_signal:loop-like;status:gold"
+        },
+        {
+          "operations": 143,
+          "positive_rate": 0.6014,
+          "positives": 86,
+          "rank": 2,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:multi_apps;phase:input;action:type;repeat_signal:loop-like;status:gold"
+        },
+        {
+          "operations": 130,
+          "positive_rate": 0.0,
+          "positives": 0,
+          "rank": 3,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:multi_apps;phase:input;action:press;repeat_signal:loop-like;status:gold"
+        },
+        {
+          "operations": 12,
+          "positive_rate": 0.0833,
+          "positives": 1,
+          "rank": 4,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:chrome;phase:input;action:type;repeat_signal:loop-like;status:gold"
+        },
+        {
+          "operations": 12,
+          "positive_rate": 0.0,
+          "positives": 0,
+          "rank": 5,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:multi_apps;phase:navigate;action:drag;repeat_signal:loop-like;status:gold"
+        }
+      ]
+    },
+    {
+      "agentpprof_result": {
+        "deterministic_output": false,
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-boundary-profile-patch-r358/osworld-boundary-visible-operations.jsonl"
+        ],
+        "operations": 1132,
+        "output": "docs/visexp/out/operation-boundary-profile-patch-r358/learned_boundary_width.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-boundary-profile-patch-r358/learned_boundary_width-profile-spec.json"
+        ],
+        "rank_mode": "width-boost",
+        "rank_op_rules": [],
+        "rank_rules": [],
+        "sample_type": "operations",
+        "samples": 1132,
+        "stack": "analysis_task,dataset,phase,learned_group_pattern,learned_group_position,action,status",
+        "stack_rules": [],
+        "standard_trace_events": null,
+        "standard_trace_format": null,
+        "standard_trace_output": null,
+        "status": "ok",
+        "unique_stacks": 74,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=osworld_group_start"
+        ]
+      },
+      "description": "Boundary-derived stack using R297 learned_group_pattern and learned_group_position fields.",
+      "hidden": false,
+      "metrics": {
+        "ap": 0.2583,
+        "ap_at_20": 0.2328,
+        "first_positive_rank": 1,
+        "first_positive_work": 0.3083,
+        "groups_to_50pct_positive_recall": 2,
+        "top5_groups": 5,
+        "top5_lift": 1.0799,
+        "top5_positive_operations": 169,
+        "top5_precision": 0.2318,
+        "top5_recall": 0.6955,
+        "top5_work": 0.644,
+        "work_to_50pct_positive_recall": 0.4258
+      },
+      "policy": "learned_boundary_width",
+      "profile_spec": "docs/visexp/out/operation-boundary-profile-patch-r358/learned_boundary_width-profile-spec.json",
+      "rank_op_rules": [],
+      "rust_json": "docs/visexp/out/operation-boundary-profile-patch-r358/learned_boundary_width.json",
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "phase",
+        "learned_group_pattern",
+        "learned_group_position",
+        "action",
+        "status"
+      ],
+      "summary": {
+        "groups": 74,
+        "operations": 1132,
+        "positives": 243,
+        "prevalence": 0.2147
+      },
+      "top_stacks": [
+        {
+          "operations": 349,
+          "positive_rate": 0.235,
+          "positives": 82,
+          "rank": 1,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;phase:navigate;learned_group_pattern:select;learned_group_position:single;action:click;status:gold"
+        },
+        {
+          "operations": 133,
+          "positive_rate": 0.5714,
+          "positives": 76,
+          "rank": 2,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;phase:input;learned_group_pattern:input;learned_group_position:middle;action:type;status:gold"
+        },
+        {
+          "operations": 103,
+          "positive_rate": 0.0388,
+          "positives": 4,
+          "rank": 3,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;phase:input;learned_group_pattern:input;learned_group_position:single;action:hotkey;status:gold"
+        },
+        {
+          "operations": 91,
+          "positive_rate": 0.0,
+          "positives": 0,
+          "rank": 4,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;phase:input;learned_group_pattern:input;learned_group_position:middle;action:press;status:gold"
+        },
+        {
+          "operations": 53,
+          "positive_rate": 0.1321,
+          "positives": 7,
+          "rank": 5,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;phase:input;learned_group_pattern:input;learned_group_position:start;action:hotkey;status:gold"
+        }
+      ]
+    },
+    {
+      "agentpprof_result": {
+        "deterministic_output": false,
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-boundary-profile-patch-r358/osworld-boundary-visible-operations.jsonl"
+        ],
+        "operations": 1132,
+        "output": "docs/visexp/out/operation-boundary-profile-patch-r358/learned_boundary_rank.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-boundary-profile-patch-r358/learned_boundary_rank-profile-spec.json"
+        ],
+        "rank_mode": "rule-score",
+        "rank_op_rules": [
+          "predicted-boundary:4=learned_boundary_prev=(start|boundary)",
+          "predicted-start:2=learned_group_position=(start|single)",
+          "input-phase:0.5=phase=(input|modify)",
+          "navigate-phase:0.5=phase=navigate"
+        ],
+        "rank_rules": [],
+        "sample_type": "operations",
+        "samples": 1132,
+        "stack": "analysis_task,dataset,phase,learned_group_pattern,learned_group_position,action,status",
+        "stack_rules": [],
+        "standard_trace_events": null,
+        "standard_trace_format": null,
+        "standard_trace_output": null,
+        "status": "ok",
+        "unique_stacks": 74,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=osworld_group_start"
+        ]
+      },
+      "description": "Same boundary-derived stack plus visible rank rules over learned boundary fields.",
+      "hidden": false,
+      "metrics": {
+        "ap": 0.2359,
+        "ap_at_20": 0.1368,
+        "first_positive_rank": 1,
+        "first_positive_work": 0.3083,
+        "groups_to_50pct_positive_recall": 7,
+        "top5_groups": 5,
+        "top5_lift": 0.8287,
+        "top5_positive_operations": 103,
+        "top5_precision": 0.1779,
+        "top5_recall": 0.4239,
+        "top5_work": 0.5115,
+        "work_to_50pct_positive_recall": 0.5574
+      },
+      "policy": "learned_boundary_rank",
+      "profile_spec": "docs/visexp/out/operation-boundary-profile-patch-r358/learned_boundary_rank-profile-spec.json",
+      "rank_op_rules": [
+        "predicted-boundary:4=learned_boundary_prev=(start|boundary)",
+        "predicted-start:2=learned_group_position=(start|single)",
+        "input-phase:0.5=phase=(input|modify)",
+        "navigate-phase:0.5=phase=navigate"
+      ],
+      "rust_json": "docs/visexp/out/operation-boundary-profile-patch-r358/learned_boundary_rank.json",
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "phase",
+        "learned_group_pattern",
+        "learned_group_position",
+        "action",
+        "status"
+      ],
+      "summary": {
+        "groups": 74,
+        "operations": 1132,
+        "positives": 243,
+        "prevalence": 0.2147
+      },
+      "top_stacks": [
+        {
+          "operations": 349,
+          "positive_rate": 0.235,
+          "positives": 82,
+          "rank": 1,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;phase:navigate;learned_group_pattern:select;learned_group_position:single;action:click;status:gold"
+        },
+        {
+          "operations": 103,
+          "positive_rate": 0.0388,
+          "positives": 4,
+          "rank": 2,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;phase:input;learned_group_pattern:input;learned_group_position:single;action:hotkey;status:gold"
+        },
+        {
+          "operations": 53,
+          "positive_rate": 0.1321,
+          "positives": 7,
+          "rank": 3,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;phase:input;learned_group_pattern:input;learned_group_position:start;action:hotkey;status:gold"
+        },
+        {
+          "operations": 40,
+          "positive_rate": 0.0,
+          "positives": 0,
+          "rank": 4,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;phase:input;learned_group_pattern:input;learned_group_position:single;action:press;status:gold"
+        },
+        {
+          "operations": 34,
+          "positive_rate": 0.2941,
+          "positives": 10,
+          "rank": 5,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;phase:navigate;learned_group_pattern:select;learned_group_position:single;action:double_click;status:gold"
+        }
+      ]
+    },
+    {
+      "agentpprof_result": null,
+      "description": "Hidden-label positive-rate upper bound on the semantic stack.",
+      "hidden": true,
+      "metrics": {
+        "ap": 0.5852,
+        "ap_at_20": 0.3602,
+        "first_positive_rank": 1,
+        "first_positive_work": 0.0018,
+        "groups_to_50pct_positive_recall": 17,
+        "top5_groups": 5,
+        "top5_lift": 4.6584,
+        "top5_positive_operations": 6,
+        "top5_precision": 1.0,
+        "top5_recall": 0.0247,
+        "top5_work": 0.0053,
+        "work_to_50pct_positive_recall": 0.1705
+      },
+      "policy": "oracle_positive_rate_semantic",
+      "profile_spec": "",
+      "rank_op_rules": [],
+      "rust_json": "",
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "app",
+        "phase",
+        "action",
+        "repeat_signal",
+        "status"
+      ],
+      "summary": {
+        "groups": 108,
+        "operations": 1132,
+        "positives": 243,
+        "prevalence": 0.2147
+      },
+      "top_stacks": [
+        {
+          "operations": 2,
+          "positive_rate": 1.0,
+          "positives": 2,
+          "rank": 1,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:gimp;phase:input;action:hotkey;repeat_signal:none;status:gold"
+        },
+        {
+          "operations": 1,
+          "positive_rate": 1.0,
+          "positives": 1,
+          "rank": 2,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:libreoffice_calc;phase:navigate;action:right_click;repeat_signal:loop-like;status:gold"
+        },
+        {
+          "operations": 1,
+          "positive_rate": 1.0,
+          "positives": 1,
+          "rank": 3,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:libreoffice_impress;phase:navigate;action:move_to;repeat_signal:none;status:gold"
+        },
+        {
+          "operations": 1,
+          "positive_rate": 1.0,
+          "positives": 1,
+          "rank": 4,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:libreoffice_writer;phase:navigate;action:triple_click;repeat_signal:loop-like;status:gold"
+        },
+        {
+          "operations": 1,
+          "positive_rate": 1.0,
+          "positives": 1,
+          "rank": 5,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:os;phase:input;action:hotkey;repeat_signal:none;status:infeasible"
+        }
+      ]
+    },
+    {
+      "agentpprof_result": null,
+      "description": "Hidden-label positive-rate upper bound on the learned-boundary stack.",
+      "hidden": true,
+      "metrics": {
+        "ap": 0.5406,
+        "ap_at_20": 0.3902,
+        "first_positive_rank": 1,
+        "first_positive_work": 0.0018,
+        "groups_to_50pct_positive_recall": 14,
+        "top5_groups": 5,
+        "top5_lift": 4.6584,
+        "top5_positive_operations": 7,
+        "top5_precision": 1.0,
+        "top5_recall": 0.0288,
+        "top5_work": 0.0062,
+        "work_to_50pct_positive_recall": 0.1811
+      },
+      "policy": "oracle_positive_rate_learned_stack",
+      "profile_spec": "",
+      "rank_op_rules": [],
+      "rust_json": "",
+      "stack": [
+        "analysis_task",
+        "dataset",
+        "phase",
+        "learned_group_pattern",
+        "learned_group_position",
+        "action",
+        "status"
+      ],
+      "summary": {
+        "groups": 74,
+        "operations": 1132,
+        "positives": 243,
+        "prevalence": 0.2147
+      },
+      "top_stacks": [
+        {
+          "operations": 2,
+          "positive_rate": 1.0,
+          "positives": 2,
+          "rank": 1,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;phase:navigate;learned_group_pattern:drag;learned_group_position:middle;action:move_to;status:gold"
+        },
+        {
+          "operations": 2,
+          "positive_rate": 1.0,
+          "positives": 2,
+          "rank": 2,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;phase:navigate;learned_group_pattern:select;learned_group_position:single;action:triple_click;status:gold"
+        },
+        {
+          "operations": 1,
+          "positive_rate": 1.0,
+          "positives": 1,
+          "rank": 3,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;phase:input;learned_group_pattern:input-and-shell-and-input-and-fail;learned_group_position:start;action:hotkey;status:infeasible"
+        },
+        {
+          "operations": 1,
+          "positive_rate": 1.0,
+          "positives": 1,
+          "rank": 4,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;phase:navigate;learned_group_pattern:drag-and-input-and-right-click;learned_group_position:start;action:move_to;status:gold"
+        },
+        {
+          "operations": 1,
+          "positive_rate": 1.0,
+          "positives": 1,
+          "rank": 5,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;phase:navigate;learned_group_pattern:drag-and-input;learned_group_position:start;action:move_to;status:gold"
+        }
+      ]
+    }
+  ],
+  "r297_boundary_backend": {
+    "f1": 0.7735,
+    "precision": 0.74,
+    "recall": 0.8102,
+    "test_pairs": 1036
+  },
+  "run_id": "R358",
+  "schema": "agentsight.operation-boundary-profile-patch.v1",
+  "source": {
+    "r297_operations": "docs/visexp/out/operation-boundary-backend-r297/osworld-learned-boundary-test-operations.jsonl",
+    "r297_report": "docs/visexp/out/operation-boundary-backend-r297/boundary-backend-report.json",
+    "r354_report": "docs/visexp/out/operation-profile-patch-r354/profile-patch-report.json"
+  },
+  "source_status": {
+    "docs/visexp/out/operation-boundary-backend-r297/boundary-backend-report.json": "tracked_clean",
+    "docs/visexp/out/operation-boundary-backend-r297/osworld-learned-boundary-test-operations.jsonl": "tracked_clean",
+    "docs/visexp/out/operation-profile-patch-r354/osworld_group_start-default-semantic-width-profile-spec.json": "tracked_clean",
+    "docs/visexp/out/operation-profile-patch-r354/osworld_group_start-patched-semantic-op-features-profile-spec.json": "tracked_clean",
+    "docs/visexp/out/operation-profile-patch-r354/profile-patch-report.json": "tracked_clean"
+  },
+  "status": "pass",
+  "summary": {
+    "accepted_boundary_patch": true,
+    "comparison_rows": 5,
+    "counterpoint": "Boundary-derived fields improve AP and reduce groups, but they increase top-5 operation work and first-positive work on this held-out subset.",
+    "fixed_session_groups": 96,
+    "heldout_operations": 1132,
+    "heldout_positives": 243,
+    "hidden_upper_bounds": 2,
+    "learned_boundary_ap": 0.2583,
+    "learned_boundary_delta_ap_vs_semantic": 0.0181,
+    "learned_boundary_delta_ap_vs_visible_rank": 0.033,
+    "learned_boundary_delta_first_positive_work_vs_semantic": 0.1581,
+    "learned_boundary_delta_top5_recall_vs_semantic": 0.1111,
+    "learned_boundary_delta_top5_work_vs_semantic": 0.0813,
+    "learned_boundary_group_reduction_vs_fixed": 0.2292,
+    "learned_boundary_group_reduction_vs_semantic": 0.3148,
+    "learned_boundary_groups": 74,
+    "learned_boundary_top5_recall": 0.6955,
+    "learned_rank_delta_ap_vs_width": -0.0224,
+    "semantic_visible_rank_ap": 0.2253,
+    "semantic_width_ap": 0.2402,
+    "semantic_width_groups": 108,
+    "semantic_width_top5_recall": 0.5844,
+    "visible_policies": 6
+  },
+  "visible_profiler_input": "docs/visexp/out/operation-boundary-profile-patch-r358/osworld-boundary-visible-operations.jsonl"
+}

@@ -1,0 +1,19 @@
+{
+  "format": "json",
+  "operation_files": [
+    "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-boundary-profile-patch-r358/osworld-boundary-visible-operations.jsonl"
+  ],
+  "output": "learned_boundary_rank.json",
+  "rank_mode": "rule-score",
+  "rank_op_rules": [
+    "predicted-boundary:4=learned_boundary_prev=(start|boundary)",
+    "predicted-start:2=learned_group_position=(start|single)",
+    "input-phase:0.5=phase=(input|modify)",
+    "navigate-phase:0.5=phase=navigate"
+  ],
+  "stack": "analysis_task,dataset,phase,learned_group_pattern,learned_group_position,action,status",
+  "view": "operations",
+  "where_rules": [
+    "analysis_task=osworld_group_start"
+  ]
+}

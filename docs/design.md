@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-06
 Stage at update: stage 5 analyze / stage 6 claim gate / stage 9 paper integration
-Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agent-session`, `script/agent_trace_to_operations.py`, `script/agent_trace_convert.py`, `script/agent_trace_exchange_eval.py`, `script/agent_trace_chrome_trace.py`, `script/agent_trace_chrome_exchange_eval.py`, `script/operation_boundary_backend_eval.py`, `script/boundary_family_calibration_eval.py`, `script/operation_query_utility_eval.py`, `script/operation_analyst_task_eval.py`, `script/operation_analyst_ranking_eval.py`, `script/operation_case_study_eval.py`, `script/operation_case_baseline_eval.py`, `script/operation_analyst_outcome_eval.py`, `script/operation_problem_value_synthesis.py`, `script/operation_where_filter_eval.py`, `script/operation_rust_rank_rule_eval.py`, `script/operation_rank_mode_eval.py`, `script/operation_rank_feature_eval.py`, `script/operation_rank_feature_ablation_eval.py`, `script/operation_rank_feature_robustness_eval.py`, `script/operation_profile_patch_eval.py`, `script/operation_oracle_depth_adequacy_eval.py`, `script/paper_claim_integrity_r356.py`, `script/paper_claim_synthesis.py`, `script/reviewer_evidence_packet.py`, `script/paper_value_novelty_synthesis.py`, `script/paper_claim_readiness_synthesis.py`, `script/paper_evidence_matrix_synthesis.py`, `script/paper_robustness_audit.py`, `docs/evaluation.md`, `agentpprof --profile-spec`
+Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agent-session`, `script/agent_trace_to_operations.py`, `script/agent_trace_convert.py`, `script/agent_trace_exchange_eval.py`, `script/agent_trace_chrome_trace.py`, `script/agent_trace_chrome_exchange_eval.py`, `script/operation_boundary_backend_eval.py`, `script/boundary_family_calibration_eval.py`, `script/operation_query_utility_eval.py`, `script/operation_analyst_task_eval.py`, `script/operation_analyst_ranking_eval.py`, `script/operation_case_study_eval.py`, `script/operation_case_baseline_eval.py`, `script/operation_analyst_outcome_eval.py`, `script/operation_problem_value_synthesis.py`, `script/operation_where_filter_eval.py`, `script/operation_rust_rank_rule_eval.py`, `script/operation_rank_mode_eval.py`, `script/operation_rank_feature_eval.py`, `script/operation_rank_feature_ablation_eval.py`, `script/operation_rank_feature_robustness_eval.py`, `script/operation_profile_patch_eval.py`, `script/operation_boundary_profile_patch_eval.py`, `script/operation_oracle_depth_adequacy_eval.py`, `script/paper_claim_integrity_r356.py`, `script/paper_claim_synthesis.py`, `script/reviewer_evidence_packet.py`, `script/paper_value_novelty_synthesis.py`, `script/paper_claim_readiness_synthesis.py`, `script/paper_evidence_matrix_synthesis.py`, `script/paper_robustness_audit.py`, `docs/evaluation.md`, `agentpprof --profile-spec`
 Completeness: partial
 
 ## Current State And Blocking Gate
@@ -259,6 +259,15 @@ to fold operation stacks. The patch plan, profile spec, and report are
 reproducibility wrappers, not new profiler abstractions. R354 is not an
 automatic patch selector; it shows that a profiler-guided edit can be replayed
 and scored on the same visible operation input.
+
+R358 tests the design implication of the R354 OSWorld-Human rejection. The
+boundary backend still does not become a profiler object: it writes
+`learned_group_pattern`, `learned_group_position`, and related fields onto
+held-out operations, and the profiler folds those fields through ordinary
+profile specs. The learned-boundary stack improves held-out AP and reduces
+groups, but worsens top-5 operation work and first-positive work. This keeps
+the design claim scoped to boundary-derived operation fields as an actionable
+knob, not complete intent-boundary recovery.
 
 R355 evaluates the same operation-stack outputs at finer oracle depths without
 changing the model. It reads existing labeled operations and already-defined
