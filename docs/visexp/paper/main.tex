@@ -396,11 +396,11 @@ Claim-test：E4 问的是：reviewer 能否 replay offline profile-spec path，�
 
 R338 再把 paper claim 本身纳入审计：它复用 R320--R350 的 tracked-clean artifacts，不重新排名、不下载、不同步、不创建、不重标数据集，只检查论文数字、source policy、must-not-claim guardrails 和 operation/operation-stack 边界是否一致。因此它支持“论文表述与证据一致”这个提交前 gate，而不是新的 profiler accuracy 结果。
 R352 再把当前结果集映射到 OSDI-style profiling-paper rubric：它复用 tracked R320--R351 artifacts 和当前论文文本，不下载、不同步、不重跑 profiler，也不运行 human/agent analyst task。26/26 required checks 和 10/10 rubric areas 通过，覆盖 fidelity/accuracy、actionability、baseline tradeoff、generality、mechanism isolation、robustness/statistics、reproducibility/overhead 和 claim-scope guardrails。因此它支持“当前 scoped profiling claim 的证据形态达到 profiler paper gate”，不是新的 empirical result。
-R327 则检查 profile-spec 本身是否可复现、成本是否可报告：所有 76 个 profile specs 在重复运行中保持 semantic profile content、samples 和 unique stacks 稳定，median 每个 spec 运行时间为 1.581s，p95 为 2.719s；默认 JSON profile 的 raw-byte determinism 只有 4/76，因为输出带生成时间戳。
-R328 再启用 deterministic artifact mode，固定 JSON \texttt{generated\_at} 和 pprof profile time；同一 76 个 specs 的 semantic 与 raw-byte determinism 均为 76/76，clean rerun 记录空的 git/code status，median 每个 spec 运行时间为 1.601s，p95 为 2.767s。
-这些结果支持 artifact/reproducibility claim，但不等价于 live capture overhead。
-这说明 profiler 输出不仅告诉我们哪里有问题，还告诉我们哪类 stack depth、field mapping 和 rank policy 值得调。
-这些结论是 profiler 输出对优化方向的归因，而不是人工 analyst 的主观解释。
+	R327 则检查 profile-spec 本身是否可复现、成本是否可报告：所有 76 个 profile specs 在重复运行中保持 semantic profile content、samples 和 unique stacks 稳定，median 每个 spec 运行时间为 1.581s，p95 为 2.719s；默认 JSON profile 的 raw-byte determinism 只有 4/76，因为输出带生成时间戳。
+	R328 再启用 deterministic artifact mode，固定 JSON \texttt{generated\_at} 和 pprof profile time；同一 76 个 specs 的 semantic 与 raw-byte determinism 均为 76/76，clean rerun 记录空的 git/code status，median 每个 spec 运行时间为 1.601s，p95 为 2.767s。
+	这些结果支持 artifact/reproducibility claim，但不等价于 live capture overhead。
+	上一节的 actionability 结论依赖这些可复现 profile specs 和 tracked operation inputs；本节只证明 reviewer 能重放这些 artifacts 并检查 source provenance、paper numbers 和 non-claims。
+	因此 E4 是 replayability/claim-hygiene 证据，不是人工 analyst 主观解释、live overhead 或新的 profiler accuracy 结果。
 
 \begin{table*}[t]
   \centering
