@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-06
 Stage at update: stage 4 execute / stage 8 audit / stage 11 reproducibility prep
-Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agentpprof/src/standard_trace.rs`, `agentpprof/tests/standard_trace_cli.rs`, `agentpprof/tests/profile_spec_cli.rs`, `script/operation_*.py`, `script/agent_trace_datasets.py sample tau-bench-trajectories`, `script/agent_trace_datasets.py sample agent-reward-bench`, `script/agent_trace_datasets.py sample satraj-os-safety`, `script/agent_trace_datasets.py sample osworld-human`, `script/agent_trace_datasets.py sample agentnet`, `script/agent_trace_datasets.py sample scalecua-navigation`, `script/agent_trace_exchange_eval.py`, `script/agent_trace_chrome_exchange_eval.py`, `script/operation_standard_trace_exchange_eval.py`, `script/operation_where_filter_eval.py`, `script/operation_rust_rank_rule_eval.py`, `script/operation_rank_mode_eval.py`, `script/operation_rank_feature_eval.py`, `script/operation_rank_feature_ablation_eval.py`, `script/operation_rank_feature_robustness_eval.py`, `script/operation_profile_spec_composition_eval.py`, `script/operation_profile_patch_eval.py`, `script/operation_boundary_profile_patch_eval.py`, `script/operation_oracle_depth_adequacy_eval.py`, `script/paper_core_experiment_consolidation_audit.py`, `script/paper_core_result_tables.py`, `script/paper_core_claim_evidence.py`, `script/paper_core_section_readiness.py`, `script/paper_visualization_portfolio.py`, `script/paper_headline_case_studies.py`, `script/paper_claim_integrity_r356.py`, `script/implementation_consistency_audit.py`, `cargo test --manifest-path agentpprof/Cargo.toml --test profile_spec_cli`, `cargo test --manifest-path agentpprof/Cargo.toml`
+Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agentpprof/src/standard_trace.rs`, `agentpprof/tests/standard_trace_cli.rs`, `agentpprof/tests/profile_spec_cli.rs`, `script/operation_*.py`, `script/agent_trace_datasets.py sample tau-bench-trajectories`, `script/agent_trace_datasets.py sample agent-reward-bench`, `script/agent_trace_datasets.py sample satraj-os-safety`, `script/agent_trace_datasets.py sample osworld-human`, `script/agent_trace_datasets.py sample agentnet`, `script/agent_trace_datasets.py sample scalecua-navigation`, `script/agent_trace_exchange_eval.py`, `script/agent_trace_chrome_exchange_eval.py`, `script/operation_standard_trace_exchange_eval.py`, `script/operation_where_filter_eval.py`, `script/operation_rust_rank_rule_eval.py`, `script/operation_rank_mode_eval.py`, `script/operation_rank_feature_eval.py`, `script/operation_rank_feature_ablation_eval.py`, `script/operation_rank_feature_robustness_eval.py`, `script/operation_profile_spec_composition_eval.py`, `script/operation_profile_patch_eval.py`, `script/operation_boundary_profile_patch_eval.py`, `script/operation_oracle_depth_adequacy_eval.py`, `script/operation_field_derivation_mechanism_eval.py`, `script/paper_core_experiment_consolidation_audit.py`, `script/paper_core_result_tables.py`, `script/paper_core_claim_evidence.py`, `script/paper_core_section_readiness.py`, `script/paper_visualization_portfolio.py`, `script/paper_headline_case_studies.py`, `script/paper_claim_integrity_r356.py`, `script/implementation_consistency_audit.py`, `cargo test --manifest-path agentpprof/Cargo.toml --test profile_spec_cli`, `cargo test --manifest-path agentpprof/Cargo.toml`
 Completeness: partial
 
 ## Repository Layout Relevant To Semantic Profiling
@@ -36,6 +36,7 @@ Purpose: identify the maintained implementation boundary.
 | `script/operation_profile_patch_eval.py` | R354 executable profile-spec patch audit; reruns default and patched Rust profiles over tracked R324 visible operations and scores with hidden labels after profiling. | research harness |
 | `script/operation_boundary_profile_patch_eval.py` | R358 boundary-derived profile patch audit; reruns Rust profile specs over R297 held-out OSWorld-Human boundary fields as ordinary operation fields and scores hidden labels after profiling. | research harness |
 | `script/operation_oracle_depth_adequacy_eval.py` | R355 oracle-depth adequacy audit; scores visible-ranked profile groups at session, operation/step, positive-run proxy, and task-specific oracle depths over tracked labeled outputs. | research harness |
+| `script/operation_field_derivation_mechanism_eval.py` | R366 field-derivation mechanism audit; consolidates deterministic mapping, profile-spec composition, rank-feature ablation, supervised boundary backends, and boundary-derived profile patches from tracked artifacts without rerunning the profiler. | paper hygiene harness |
 | `script/paper_core_experiment_consolidation_audit.py` | R359 paper-facing core-experiment consolidation audit; checks that evaluation is organized as E1-E4, R-runs are provenance, and R358 remains an E3 mechanism ablation. | paper hygiene harness |
 | `script/paper_core_result_tables.py` | R360 paper core-result table generator; regenerates the E1-E4 headline table and metric rows from tracked artifacts without rerunning the profiler. | paper hygiene harness |
 | `script/paper_core_claim_evidence.py` | R361 core-claim evidence ledger; binds each E1-E4 experiment to claim, oracle, baselines, primary metrics, actionability, counterpoints, and scoped wording. | paper hygiene harness |
@@ -203,6 +204,18 @@ cards, a LaTeX table fragment, Markdown, HTML, JSON, CSV checks, and source
 status. It is a paper-integration layer over existing profiler results, not a
 new experiment, dataset sync, profiler rerun, human/agent analyst task, or
 third profiler abstraction.
+
+R366 adds the operation-field derivation mechanism audit.
+`script/operation_field_derivation_mechanism_eval.py` reads tracked R282/R285/
+R297/R299/R325/R342/R358 artifacts and emits six mechanism rows plus five
+boundary-family rows. It checks that deterministic mappings, rank/tag fields,
+profile specs, and supervised boundary backends remain operation-field
+derivation mechanisms folded through operation stacks. It also records the
+counterpoints: mapping can coarsen fine action labels, simple sequence-derived
+fields can beat a learned backend, and boundary-derived profile patches can
+improve AP/groups while increasing some inspection-work metrics. This is a
+mechanism guardrail, not a new dataset, profiler rerun, human/agent analyst
+task, automatic boundary detector, or third profiler abstraction.
 
 R355 then closes the main R339 depth-scoring gap without adding another
 runtime object. `script/operation_oracle_depth_adequacy_eval.py` reuses tracked

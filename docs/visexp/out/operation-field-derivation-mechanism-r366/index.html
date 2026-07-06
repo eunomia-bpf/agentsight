@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>R366 Operation-Field Derivation Mechanism Audit</title>
+<style>
+body { font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.45; }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+th, td { border: 1px solid #ddd; padding: 0.45rem; vertical-align: top; }
+th { background: #f6f6f6; }
+code { background: #f3f3f3; padding: 0.1rem 0.2rem; }
+</style>
+<h1>R366 Operation-Field Derivation Mechanism Audit</h1>
+<p>Status: <code>pass</code></p>
+<p>Checks: 6/6</p>
+<h2>Mechanism Rows</h2>
+<table><thead><tr><th>Row</th><th>Block</th><th>Mechanism</th><th>Evidence</th><th>Counterpoint</th></tr></thead><tbody><tr><td>M1</td><td>E1</td><td>deterministic operation-field mapping</td><td>Held-out mapping over 3990 operations reduces unique stacks 284-&gt;209 and improves compression 14.049-&gt;19.091; dataset-&gt;task V-measure 0.8374-&gt;0.8531.</td><td>It deliberately coarsens action labels: action-&gt;phase V-measure 0.9343-&gt;0.7416 and adjacent phase/action boundary F1 0.9677-&gt;0.7774.</td></tr>
+<tr><td>M2</td><td>E1</td><td>leave-dataset-out mapping generalization</td><td>Across 9 held-out datasets / 13265 operations, mapped stacks reduce stack count on 6/9 datasets, never increase it (0 negative), and yield 1162.005 weighted stack reduction per 1k ops.</td><td>Mean task/dataset V-measure is unchanged at 0.7778; some datasets are already well structured and do not benefit.</td></tr>
+<tr><td>M3</td><td>E1/E3</td><td>profile-spec composition of mappings, predicates, rank rules, and stack depth</td><td>12 profile-spec variants compose operation files, predicates, operation rank rules, rule-score ranking, and explicit stack depth; 12/12 are prompt/session-frame free. AP improves versus width in 9/12 variants and first-positive work in 10/12.</td><td>Depth is objective-dependent: 3/6 tasks choose different stack depths for AP and first-positive work.</td></tr>
+<tr><td>M4</td><td>E3</td><td>operation-level rank-feature ablation</td><td>Leave-one-feature ablation identifies 7 critical feature rows across safety, looping, side-effect, and step-quality tasks. Examples include success, loop-like, write-action, and failure fields.</td><td>It also finds 3 misleading feature rows, including OSWorld input-phase and SATraj loop-like cases.</td></tr>
+<tr><td>M5</td><td>E1/E3</td><td>supervised adjacent-boundary field derivation</td><td>Boundary backends beat the best simple baseline on 4/5 tested rows; OSWorld-Human R297 reaches F1 0.7735 versus best baseline 0.7090, and R299 also improves AgentNet quality-state boundaries.</td><td>1/5 rows remain counterpoints; AgentRewardBench looping is better explained by repeat_signal_change than the learned backend.</td></tr>
+<tr><td>M6</td><td>E3</td><td>boundary-derived profile patch</td><td>On held-out OSWorld-Human, learned-boundary fields improve AP 0.2402-&gt;0.2583, reduce groups 108-&gt;74, and raise top-5 recall by 0.1111.</td><td>Inspection-cost metrics are mixed: top-5 work changes by +0.0813 and first-positive work by +0.1581.</td></tr></tbody></table>
+<h2>Boundary Families</h2>
+<table><thead><tr><th>Candidate</th><th>Dataset</th><th>Learned F1</th><th>Best baseline</th><th>Delta</th><th>Verdict</th></tr></thead><tbody><tr><td>osworld_human_group_r297</td><td>osworld-human</td><td>0.7735</td><td>always_boundary (0.709)</td><td>0.0645</td><td>supports_boundary_field_derivation</td></tr>
+<tr><td>osworld_human_group</td><td>osworld-human</td><td>0.6916</td><td>always_boundary (0.6706)</td><td>0.021</td><td>supports_backend</td></tr>
+<tr><td>agentnet_step_correct</td><td>agentnet</td><td>0.3197</td><td>always_boundary (0.2155)</td><td>0.1042</td><td>supports_backend</td></tr>
+<tr><td>agentnet_step_redundant</td><td>agentnet</td><td>0.3361</td><td>always_boundary (0.2645)</td><td>0.0716</td><td>supports_backend</td></tr>
+<tr><td>agentreward_looping</td><td>agentrewardbench</td><td>0.7833</td><td>repeat_signal_change (1)</td><td>-0.2167</td><td>counterpoint_simple_field_wins</td></tr></tbody></table>
+<h2>Checks</h2>
+<table><thead><tr><th>Check</th><th>Status</th><th>Evidence</th></tr></thead><tbody><tr><td>mechanism_rows_cover_mapping_ranking_boundary</td><td>pass</td><td>Rows cover deterministic mapping, leave-dataset-out mapping, profile-spec composition, rank-feature ablation, boundary backends, and boundary profile patches.</td></tr>
+<tr><td>counterpoints_preserved</td><td>pass</td><td>The audit preserves mapping coarsening, simple-field baseline, and inspection-cost counterpoints.</td></tr>
+<tr><td>boundary_backend_suitability_not_universal</td><td>pass</td><td>Learned boundary backend beats the best simple baseline on 4/5 rows, leaving explicit counterpoints.</td></tr>
+<tr><td>no_new_data_or_profiler_rerun</td><td>pass</td><td>All inputs are tracked artifacts or current paper/docs; this script only synthesizes existing results.</td></tr>
+<tr><td>paper_text_mentions_r366_scope</td><td>pass</td><td>Evaluation ledger and paper drafts mention R366&#x27;s scoped field-derivation role.</td></tr>
+<tr><td>two_abstractions_only</td><td>pass</td><td>The paper keeps mapping/tagging/boundary outputs as operation fields folded into operation stacks.</td></tr></tbody></table>

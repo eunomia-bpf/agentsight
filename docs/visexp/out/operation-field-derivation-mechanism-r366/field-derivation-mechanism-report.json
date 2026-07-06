@@ -1,0 +1,256 @@
+{
+  "boundary_family_rows": [
+    {
+      "best_baseline": "always_boundary",
+      "best_baseline_f1": "0.709",
+      "candidate": "osworld_human_group_r297",
+      "dataset": "osworld-human",
+      "delta_vs_best_baseline_f1": "0.0645",
+      "learned_f1": "0.7735",
+      "learned_precision": "0.74",
+      "learned_recall": "0.8102",
+      "test_pairs": "1036",
+      "verdict": "supports_boundary_field_derivation"
+    },
+    {
+      "best_baseline": "always_boundary",
+      "best_baseline_f1": "0.6706",
+      "candidate": "osworld_human_group",
+      "dataset": "osworld-human",
+      "delta_vs_best_baseline_f1": "0.021",
+      "learned_f1": "0.6916",
+      "learned_precision": "0.6531",
+      "learned_recall": "0.735",
+      "test_pairs": "1122",
+      "verdict": "supports_backend"
+    },
+    {
+      "best_baseline": "always_boundary",
+      "best_baseline_f1": "0.2155",
+      "candidate": "agentnet_step_correct",
+      "dataset": "agentnet",
+      "delta_vs_best_baseline_f1": "0.1042",
+      "learned_f1": "0.3197",
+      "learned_precision": "0.2518",
+      "learned_recall": "0.4379",
+      "test_pairs": "4066",
+      "verdict": "supports_backend"
+    },
+    {
+      "best_baseline": "always_boundary",
+      "best_baseline_f1": "0.2645",
+      "candidate": "agentnet_step_redundant",
+      "dataset": "agentnet",
+      "delta_vs_best_baseline_f1": "0.0716",
+      "learned_f1": "0.3361",
+      "learned_precision": "0.3119",
+      "learned_recall": "0.3645",
+      "test_pairs": "2881",
+      "verdict": "supports_backend"
+    },
+    {
+      "best_baseline": "repeat_signal_change",
+      "best_baseline_f1": "1",
+      "candidate": "agentreward_looping",
+      "dataset": "agentrewardbench",
+      "delta_vs_best_baseline_f1": "-0.2167",
+      "learned_f1": "0.7833",
+      "learned_precision": "0.7833",
+      "learned_recall": "0.7833",
+      "test_pairs": "387",
+      "verdict": "counterpoint_simple_field_wins"
+    }
+  ],
+  "checks": [
+    {
+      "check": "mechanism_rows_cover_mapping_ranking_boundary",
+      "evidence": "Rows cover deterministic mapping, leave-dataset-out mapping, profile-spec composition, rank-feature ablation, boundary backends, and boundary profile patches.",
+      "status": "pass"
+    },
+    {
+      "check": "counterpoints_preserved",
+      "evidence": "The audit preserves mapping coarsening, simple-field baseline, and inspection-cost counterpoints.",
+      "status": "pass"
+    },
+    {
+      "check": "boundary_backend_suitability_not_universal",
+      "evidence": "Learned boundary backend beats the best simple baseline on 4/5 rows, leaving explicit counterpoints.",
+      "status": "pass"
+    },
+    {
+      "check": "no_new_data_or_profiler_rerun",
+      "evidence": "All inputs are tracked artifacts or current paper/docs; this script only synthesizes existing results.",
+      "status": "pass"
+    },
+    {
+      "check": "paper_text_mentions_r366_scope",
+      "evidence": "Evaluation ledger and paper drafts mention R366's scoped field-derivation role.",
+      "status": "pass"
+    },
+    {
+      "check": "two_abstractions_only",
+      "evidence": "The paper keeps mapping/tagging/boundary outputs as operation fields folded into operation stacks.",
+      "status": "pass"
+    }
+  ],
+  "claim": "Operation-field derivation mechanisms can improve aggregation and localization when folded through operation stacks, with scoped suitability counterpoints.",
+  "commit": "9bef26e11120fa76e0dc85596323daa2a3fac28a",
+  "elapsed_s": 0.0558,
+  "input_policy": {
+    "hidden_labels_only_in_upstream_scoring": true,
+    "no_dataset_creation": true,
+    "no_dataset_sync": true,
+    "no_profiler_rerun": true,
+    "no_relabeling": true
+  },
+  "mechanism_rows": [
+    {
+      "counterpoint": "It deliberately coarsens action labels: action->phase V-measure 0.9343->0.7416 and adjacent phase/action boundary F1 0.9677->0.7774.",
+      "evidence": "Held-out mapping over 3990 operations reduces unique stacks 284->209 and improves compression 14.049->19.091; dataset->task V-measure 0.8374->0.8531.",
+      "mechanism": "deterministic operation-field mapping",
+      "paper_block": "E1",
+      "paper_claim": "Mappings are first-class field derivations for semantic aggregation, not proof of fine-grained boundary recovery.",
+      "row_id": "M1",
+      "source_runs": "R282"
+    },
+    {
+      "counterpoint": "Mean task/dataset V-measure is unchanged at 0.7778; some datasets are already well structured and do not benefit.",
+      "evidence": "Across 9 held-out datasets / 13265 operations, mapped stacks reduce stack count on 6/9 datasets, never increase it (0 negative), and yield 1162.005 weighted stack reduction per 1k ops.",
+      "mechanism": "leave-dataset-out mapping generalization",
+      "paper_block": "E1",
+      "paper_claim": "Mapping rules generalize as conservative compression/normalization rules, not as a universal semantic parser.",
+      "row_id": "M2",
+      "source_runs": "R285"
+    },
+    {
+      "counterpoint": "Depth is objective-dependent: 3/6 tasks choose different stack depths for AP and first-positive work.",
+      "evidence": "12 profile-spec variants compose operation files, predicates, operation rank rules, rule-score ranking, and explicit stack depth; 12/12 are prompt/session-frame free. AP improves versus width in 9/12 variants and first-positive work in 10/12.",
+      "mechanism": "profile-spec composition of mappings, predicates, rank rules, and stack depth",
+      "paper_block": "E1/E3",
+      "paper_claim": "The configurable view surface is the operation-stack query itself, not hard-coded prompt/session/span boundaries.",
+      "row_id": "M3",
+      "source_runs": "R342"
+    },
+    {
+      "counterpoint": "It also finds 3 misleading feature rows, including OSWorld input-phase and SATraj loop-like cases.",
+      "evidence": "Leave-one-feature ablation identifies 7 critical feature rows across safety, looping, side-effect, and step-quality tasks. Examples include success, loop-like, write-action, and failure fields.",
+      "mechanism": "operation-level rank-feature ablation",
+      "paper_block": "E3",
+      "paper_claim": "Actionability comes from naming useful and harmful operation fields, not from selecting one universal ranker.",
+      "row_id": "M4",
+      "source_runs": "R325"
+    },
+    {
+      "counterpoint": "1/5 rows remain counterpoints; AgentRewardBench looping is better explained by repeat_signal_change than the learned backend.",
+      "evidence": "Boundary backends beat the best simple baseline on 4/5 tested rows; OSWorld-Human R297 reaches F1 0.7735 versus best baseline 0.7090, and R299 also improves AgentNet quality-state boundaries.",
+      "mechanism": "supervised adjacent-boundary field derivation",
+      "paper_block": "E1/E3",
+      "paper_claim": "Boundary detectors are optional supervised field derivation backends with suitability checks, not automatic intent discovery.",
+      "row_id": "M5",
+      "source_runs": "R297; R299"
+    },
+    {
+      "counterpoint": "Inspection-cost metrics are mixed: top-5 work changes by +0.0813 and first-positive work by +0.1581.",
+      "evidence": "On held-out OSWorld-Human, learned-boundary fields improve AP 0.2402->0.2583, reduce groups 108->74, and raise top-5 recall by 0.1111.",
+      "mechanism": "boundary-derived profile patch",
+      "paper_block": "E3",
+      "paper_claim": "Derived fields can repair a rejected visible profile patch, while preserving Pareto-tradeoff wording.",
+      "row_id": "M6",
+      "source_runs": "R358"
+    }
+  ],
+  "not_a_human_study_result": true,
+  "not_an_agent_analyst_task_result": true,
+  "not_new_empirical_result": true,
+  "profiler_abstractions": [
+    "operation",
+    "operation stack"
+  ],
+  "run_id": "R366",
+  "schema": "agentsight.operation_field_derivation_mechanism.v1",
+  "source_status": [
+    {
+      "path": "script/operation_field_derivation_mechanism_eval.py",
+      "sha256": "78dfb817fa9f9a2ad606fe274ee9e2fa37ca95d2afd11c072e1cd2059fd67bb2",
+      "source": "generator script",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/out/operation-map-heldout-r282/quality.json",
+      "sha256": "8ce0bd0e16eccfacd8ca4756105752d0c4088dd18877c534f62cadbbd22c0507",
+      "source": "R282 heldout mapped quality",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-map-heldout-r282/quality-nomap.json",
+      "sha256": "1496cefa7498178193466b2f2cd9c5158434db615fd3a6b0e31b09f3f9127376",
+      "source": "R282 heldout no-map quality",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-map-leaveout-api-r285/leaveout-summary.json",
+      "sha256": "1773b9c43b05fa20fdf07ec179aeadf6b4af7a7385bf5509f774305b0848c8cf",
+      "source": "R285 leave-dataset-out mapping",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-boundary-backend-r297/boundary-backend-report.json",
+      "sha256": "34f026228c787396729a13de8495b41c241a29ec50776fdec369c83b9d3630ee",
+      "source": "R297 OSWorld boundary backend",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/boundary-family-calibration-r299/boundary-family-report.json",
+      "sha256": "2a724e54cea8cc6aac37373a7779525036d260192a3785562c022b00311de4f6",
+      "source": "R299 boundary-family calibration",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-rank-feature-ablation-r325/rank-feature-findings.csv",
+      "sha256": "e00b81affdb4cc23f03d891947c9169188feb031b7437004c87068b476eecb3d",
+      "source": "R325 rank-feature ablation",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-profile-spec-composition-r342/profile-spec-composition-report.json",
+      "sha256": "79677d777a07244b23ea7dfd2c0dec487b0a57863d9983eb19eef5b45aa1ba0c",
+      "source": "R342 profile-spec composition",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-boundary-profile-patch-r358/boundary-profile-patch-report.json",
+      "sha256": "3a73b69d7e4be423506edf9350b3c0c9db393520d79c3698b85d9024463597a7",
+      "source": "R358 boundary profile patch",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/evaluation.md",
+      "sha256": "a9a70edcaeb4624116e8be90e3ecdfe7ee13e986778931ae0b0169c330cd8631",
+      "source": "evaluation ledger",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/paper/main.tex",
+      "sha256": "8d11a3f0dc1cbc0aa35e89ceb665e66e8ab5976a2129946ca49f80d79bb24ab7",
+      "source": "Chinese paper",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/agentpprof-paper/main.tex",
+      "sha256": "0d017d2c936e14099c70d01734c52ea002626695f49e67cf3c3e7a430cbeda5a",
+      "source": "English paper",
+      "status": "tracked_clean"
+    }
+  ],
+  "status": "pass",
+  "summary": {
+    "boundary_family_rows": 5,
+    "checks_passed": 6,
+    "checks_total": 6,
+    "dataset_sync": false,
+    "mechanism_rows": 6,
+    "network_access_required": false,
+    "profiler_rerun": false,
+    "status": "pass"
+  }
+}
