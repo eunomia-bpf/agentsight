@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>R350 Evidence-Packet Budget Audit</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 32px; line-height: 1.45; color: #202124; }
+    table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 13px; }
+    th, td { border: 1px solid #d0d7de; padding: 6px 8px; text-align: left; vertical-align: top; }
+    th { background: #f6f8fa; }
+  </style>
+</head>
+<body>
+  <h1>R350 Evidence-Packet Budget Audit</h1>
+  <p><strong>Overall:</strong> pass. Top-5 packets contain positives on 6/6 tasks; strict 30% work budget holds on 4/6 tasks.</p>
+  <h2>Summary</h2>
+  <table><thead><tr><th>tasks</th><th>datasets</th><th>objective_rows</th><th>packets_with_top5_positive</th><th>packets_with_30pct_work_budget</th><th>median_top5_work</th><th>median_top5_recall</th><th>nondefault_objective_rows</th><th>r349_selected_within_tolerance</th><th>r349_selected_action_exact</th></tr></thead><tbody><tr><td>6</td><td>4</td><td>36</td><td>6</td><td>4</td><td>0.093706</td><td>0.18796</td><td>27</td><td>35</td><td>7</td></tr></tbody></table>
+  <h2>Task Packets</h2>
+  <table><thead><tr><th>task</th><th>packet_verdict</th><th>top5_work</th><th>top5_recall</th><th>first_positive_work</th><th>nondefault_action_rows</th><th>baseline_counterpoints</th><th>optimization_action</th></tr></thead><tbody><tr><td>agentnet_incorrect_step</td><td>bounded_30pct_packet</td><td>0.001427</td><td>0.003432</td><td>0.000747</td><td>3</td><td>[&quot;top5_recall-&gt;flat:width&quot;]</td><td>Use desktop environment + phase + repeat/action fields, then drill into fixed sessions for examples.</td></tr><tr><td>agentnet_redundant_step</td><td>bounded_30pct_packet</td><td>0.00894</td><td>0.017735</td><td>0.005066</td><td>4</td><td>[&quot;top5_recall-&gt;flat:width&quot;, &quot;first_positive-&gt;fixed_session:query_aware&quot;]</td><td>Use desktop environment + phase + repeat/action fields, then drill into fixed sessions for examples.</td></tr><tr><td>agentreward_looping</td><td>actionable_budget_exception</td><td>0.493827</td><td>0.650794</td><td>0.205761</td><td>4</td><td>[&quot;top5_recall-&gt;flat:width&quot;, &quot;first_positive-&gt;raw_action_stack:query_aware&quot;]</td><td>Keep repeat_signal in the stack, but add prevalence-aware ranking because looping positives are common.</td></tr><tr><td>agentreward_side_effect</td><td>bounded_30pct_packet</td><td>0.145405</td><td>0.113861</td><td>0.064472</td><td>5</td><td>[&quot;top5_recall-&gt;flat:width&quot;, &quot;top5_lift-&gt;raw_action_stack:query_aware&quot;]</td><td>Increase weight on write/input actions or use a deeper side-effect mapping before ranking.</td></tr><tr><td>osworld_group_start</td><td>actionable_budget_exception</td><td>0.40738</td><td>0.387435</td><td>0.131139</td><td>6</td><td>[&quot;top5_recall-&gt;flat:width&quot;, &quot;top5_lift-&gt;fixed_session:query_aware&quot;, &quot;first_positive-&gt;fixed_session:query_aware&quot;]</td><td>Use group-depth or boundary-derived fields for higher recall; action-depth alone fragments starts.</td></tr><tr><td>satraj_unsafe</td><td>bounded_30pct_packet</td><td>0.042007</td><td>0.262058</td><td>0.011202</td><td>5</td><td>[&quot;top5_recall-&gt;flat:width&quot;, &quot;first_positive-&gt;fixed_session:query_aware&quot;]</td><td>Use environment + phase + action stack fields; prioritize risky environments and write actions.</td></tr></tbody></table>
+</body>
+</html>
