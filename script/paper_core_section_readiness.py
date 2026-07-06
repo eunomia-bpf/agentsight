@@ -42,9 +42,9 @@ SECTION_LABELS = {
     "E4": ["reproducibility", "cost", "artifact hygiene"],
 }
 REQUIRED_SECTION_TOKENS = {
-    "E1": ["RQ1", "claim", "oracle", "baseline", "metric", "counterpoint", "operation stack"],
+    "E1": ["claim-test", "claim", "oracle", "baseline", "metric", "counterpoint", "operation stack"],
     "E2": [
-        "RQ2",
+        "claim-test",
         "claim",
         "oracle",
         "baseline",
@@ -56,8 +56,8 @@ REQUIRED_SECTION_TOKENS = {
         "nDCG",
         "work-to-first-positive",
     ],
-    "E3": ["RQ3", "claim", "oracle", "baseline", "metric", "counterpoint", "actionable", "not automatic"],
-    "E4": ["RQ4", "claim", "oracle", "baseline", "metric", "counterpoint", "not live", "not human"],
+    "E3": ["claim-test", "claim", "oracle", "baseline", "metric", "counterpoint", "actionable", "not automatic"],
+    "E4": ["claim-test", "claim", "oracle", "baseline", "metric", "counterpoint", "not live", "not human"],
 }
 MUST_NOT_SCOPE_TOKENS = [
     "not a human",

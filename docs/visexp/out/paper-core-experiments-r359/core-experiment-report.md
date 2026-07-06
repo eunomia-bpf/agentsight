@@ -14,7 +14,7 @@
 | `claim_setup_has_four_core_experiment_table` | pass | Chinese claim setup separates E1-E4 from the run/artifact provenance map. |
 | `english_results_use_e1_e4_subsections` | pass | English paper has E1-E4 result subsections. |
 | `chinese_results_use_e1_e4_subsections` | pass | Chinese paper has E1-E4 result subsections. |
-| `legacy_rq_structure_removed_from_papers` | pass | No paper-facing RQ subsection or seven-research-question framing remains. |
+| `legacy_rq_structure_removed_from_papers` | pass | No paper-facing RQ subsection, RQ-number token, or seven-research-question framing remains. |
 | `chinese_main_result_table_is_core_experiment_table` | pass | Chinese tab:results is now a four-row core-experiment table. |
 | `r_runs_are_provenance_not_main_structure` | pass | Evaluation ledger, claim setup, Chinese paper, and English paper state that R runs are provenance. |
 | `r358_is_e3_mechanism_not_fifth_experiment` | pass | R358 is described as an E3 mechanism/actionability ablation and no E5 core experiment exists. |

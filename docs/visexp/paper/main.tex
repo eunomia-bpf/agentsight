@@ -226,7 +226,7 @@ R 编号只作为 provenance，不是论文的小节结构。
 \subsection{E1：覆盖、递归折叠和边界字段}
 
 R361 将本节的 evidence contract 固定为：claim 是两抽象模型能覆盖异构 agent traces 且不把 prompt/session/tool 边界写死；oracle 是 public dataset labels、native trajectory fields、OSWorld-Human human boundary 和 AgentNet quality labels；baseline 包括 dataset-native stacks、no-map folding、fixed-session stacks、profile-spec replay 和 trace round trip；metric 包括 operation coverage、unique-stack range、mapping compression、boundary F1/V-measure 和 replay equality；counterpoint 是这只能支持 configurable operation stack folding，不能支持完整生态兼容或自动恢复所有 latent intent。Prompt、session、tool、process 和 syscall 都只能作为 operation forms 或 operation fields 出现，not new profiler objects。
-RQ1 问的是：同一 operation layer 能否只通过改变 mappings 和 stack fields，被递归折叠成 task、phase、action、boundary 和 fixed-session 等多种 stack，而不改变输入记录、不引入第三个 profiler 抽象。
+Claim-test：E1 问的是：同一 operation layer 能否只通过改变 mappings 和 stack fields，被递归折叠成 task、phase、action、boundary 和 fixed-session 等多种 stack，而不改变输入记录、不引入第三个 profiler 抽象。
 
 核心 14 数据集产生 42,590 个 operations 和 1,497 个 unique stacks，compression ratio 为 28.45。
 加入 ScaleCUA 补充样本后，总量为 47,590 个 operations 和 1,611 个 unique stacks，compression ratio 为 29.541。
@@ -310,7 +310,7 @@ Prompt 或 session 没有参与这个抽象。
 \subsection{E2：Hidden-label localization 和 ranking}
 
 R361 将本节的 evidence contract 固定为：claim 是 operation-stack profiling 能在真实 labeled traces 上 faithful localization 和 ranking；oracle 是 6 个 oracle-backed tasks 中 34,539 个 operations 和 3,699 个 hidden positives；baseline 包括 flat summary、fixed-session drilldown、dataset-native hierarchy、raw-action stack、operation-stack width、operation-stack query-aware、label-drilldown 和 oracle upper bound；metric 包括 precision@k、recall、F1、AUPRC-style AP、nDCG、recall/F1@work budget、work-to-first-positive 和 group count；counterpoint 是 flat 和 dataset-native 可以赢 broad-recall 或 nDCG 目标，所以主 claim 是 Pareto tradeoff，不是 metric dominance。
-RQ2 问的是：hot stacks 和 top-ranked groups 是否真的对应 hidden positives，并且相对 flat summary 需要更少 inspection work、相对 fixed-session drilldown 产生更少 fragmentation。
+Claim-test：E2 问的是：hot stacks 和 top-ranked groups 是否真的对应 hidden positives，并且相对 flat summary 需要更少 inspection work、相对 fixed-session drilldown 产生更少 fragmentation。
 
 本节的主实验不是重新定义一个 agent benchmark，而是把真实标注轨迹中的 failure、safety、quality 和 human-boundary labels 当作 profiler localization oracle。
 6 个任务覆盖 AgentRewardBench looping/side-effect、SATraj unsafe、AgentNet incorrect/redundant steps 和 OSWorld-Human group starts，总计 34,539 个 operations、3,699 个 positives。
@@ -322,7 +322,30 @@ R320 把每个 view/ranker 的 hot groups 当作 ranked localization result，�
 表~\ref{tab:r320-accuracy} 给出主要 policies 的 median 结果：operation-stack query-aware 在 top-5 groups 中只检查 0.0937 operation fraction，而 flat summary 必须检查 1.0；相对 fixed-session query-aware drilldown，operation-stack top-5 recall 在 5/6 tasks 上更高，并把 median group count 从 285.0 降到 157.5。
 这支持的是 inspection-work/fragmentation Pareto tradeoff，而不是 metric dominance：dataset-native hierarchy 的 median top-5 recall 达到 0.8665 但 work 为 0.8539；fixed-session 的 work-to-first-positive 只有 0.0044，但 top-5 recall 只有 0.0233。
 
-R330--R334 和 R355 是同一个 RQ2 的稳健性和边界审计，而不是额外小实验。
+R363 把同一批 scored outputs 组织成五个 paper-facing views，而不是只输出 flamegraph。
+表~\ref{tab:visualization-portfolio} 给出论文中使用的 compact 版本；artifact 还生成对应 SVG、CSV、HTML、JSON 和 LaTeX fragment。
+这些 view 不是新的 profiler object，也不是第五个实验，只是对 operation-stack 输出及其 baseline counterpoints 的不同 inspection surface。
+
+\begin{table*}[t]
+  \centering
+  \scriptsize
+  \setlength{\tabcolsep}{3pt}
+  \caption{R363 paper-facing visualization portfolio。所有 view 都从 tracked artifacts 生成，用于展示 E2/E3 tradeoff；R363 不是新的 empirical result。}
+  \label{tab:visualization-portfolio}
+  \begin{tabular}{p{0.16\linewidth}p{0.19\linewidth}p{0.45\linewidth}p{0.09\linewidth}}
+    \toprule
+    View & Artifact & Paper-facing evidence & Role \\
+    \midrule
+    Baseline tradeoff & \texttt{baseline-tradeoff.svg} & Op-stack query Work@5 0.0937 vs flat 1.0；R@30\% 0.3900 vs fixed-session 0.3559；groups 157.5 vs 285.0。 & E2 \\
+    Metric heatmap & \texttt{metric-heatmap.svg} & 展示 AP 0.3117、R@30\% 0.3900、Work@5 0.0937，以及 fixed-session WTFP 0.0044 这个 counterpoint。 & E2 \\
+    Diagnostic lenses & \texttt{diagnostic-lenses.svg} & 6 个 lenses 覆盖 36 个 objective rows：operation-stack-family views 赢 11/36，baseline counterpoints 赢 25/36。 & E3 \\
+    Actionability knobs & \texttt{actionability-knobs.svg} & 27/36 objective rows 需要 non-default actions；R354 接受 5/6 profile-spec patches；R358 boundary fields 带来 AP +0.0181。 & E3 \\
+    Oracle-depth adequacy & \texttt{oracle-depth-adequacy.svg} & 24/24 rows 的 top-5 unit work 低于 flat；20/24 rows 的 fixed-session unit recall 更高；22/24 rows 用更少 groups 到达 50\% positives。 & E2/E3 \\
+    \bottomrule
+  \end{tabular}
+\end{table*}
+
+R330--R334 和 R355 是同一个 E2 主实验的稳健性和边界审计，而不是额外小实验。
 R330 在 6 个 task families 上做 10,000 次 paired bootstrap：相对 flat width，operation-stack query-aware 的 AP mean delta 为 0.1219，top-5 inspected-work delta 为 -0.8168，30\% budget recall delta 为 0.4510，四项都是 6/6 tasks 同向；相对 fixed-session query-aware，它的 top-5 recall、top-5 F1 和 group count delta 也给出稳定方向。
 R331 的 2,000 次 label-permutation negative control 进一步说明，operation-stack query-aware 的 AP 在 6/6 tasks 上超过 95\% null，30\% budget recall 在 5/6 tasks 上超过 null，因此主要 AP/预算召回信号不能只由 prevalence 或 group size 解释。
 R333/R334 把 work 和 fragmentation 拆开：在 30\% inspected-work 内，operation-stack query-aware 的 median recall 为 0.3900，高于 fixed-session query-aware 的 0.3559；相同 budget 下它在 5/6 tasks 上检查更少 groups，median group delta 为 -54.0，但 work-to-first-positive 更低只有 2/6 tasks。
@@ -334,7 +357,7 @@ E2 的结论因此是 scoped profiler result：operation-stack profiling 在真�
 \subsection{E3：机制隔离和 actionability}
 
 R361 将本节的 evidence contract 固定为：claim 是 profiler 通过 stack fields、mapping/tagging rules、ranking policies、profile specs 和 boundary-derived operation fields 暴露 actionable optimization knobs；oracle 是 hidden labels only after profiling，R358 还用 held-out OSWorld-Human boundary positives 评分；baseline 包括 default semantic-width specs、patched specs、visible feature rankers、transfer policies、learned-boundary stacks、fixed-session 和 semantic-width stacks；metric 包括 accepted patches、AP delta、top-5 lift delta、first-positive-work delta、group reduction 和 top-5 work counterpoint；counterpoint 是 OSWorld-Human 需要 boundary-derived fields，因此这是 actionable mechanism evidence，not automatic boundary discovery、not automatic patch selection。
-RQ3 问的是：localization gain 来自哪些机制，profile-guided 的 stack fields、rank features、mappings 或 boundary-derived fields 能否在不把 hidden labels 泄漏进 profiler input 的前提下改善输出。
+Claim-test：E3 问的是：localization gain 来自哪些机制，profile-guided 的 stack fields、rank features、mappings 或 boundary-derived fields 能否在不把 hidden labels 泄漏进 profiler input 的前提下改善输出。
 
 R320 首先把 localization 分数解释成任务级诊断，而不是只给 policy 排名。
 SATraj unsafe 说明 \texttt{environment,phase,action} 和 risky/write-action ranking 对安全问题有效；looping 说明 \texttt{repeat\_signal} 有用但需要 prevalence-aware ranking；side-effect 指向更深的 write/input mapping；AgentNet step-quality 需要 action-family 定位后再进入 fixed-session examples；OSWorld-Human 则需要 boundary-derived fields。
@@ -369,9 +392,9 @@ R358 支持 boundary-derived fields 是 actionable operation-field knob，不支
 \subsection{E4：可复现性和 artifact hygiene}
 
 R361 将本节的 evidence contract 固定为：claim 是 offline profiler path 可以在 tracked inputs 上低成本 replay；oracle 是 tracked profile specs、tracked operation inputs、repeated profile outputs、runtime logs 和 source-status rows；baseline 包括 default output versus deterministic-output replay、semantic profile hashes versus raw-byte profile hashes；metric 包括 deterministic spec pass rate、profiler invocations、median/p95 runtime、sample equality、stack equality 和 raw-byte output equality；counterpoint 是 not live eBPF overhead、not human utility、not complete ecosystem compatibility、not universal selector。Claim-integrity、rubric 和 reviewer-style checks 是 artifact hygiene，不是 empirical evidence。
-RQ4 问的是：reviewer 能否 replay offline profile-spec path，并验证 source provenance、paper numbers、two-abstraction wording 和 non-claims 都保持一致。
+Claim-test：E4 问的是：reviewer 能否 replay offline profile-spec path，并验证 source provenance、paper numbers、two-abstraction wording 和 non-claims 都保持一致。
 
-R338 再把 paper claim 本身纳入审计：它复用 R320--R350 的 tracked-clean artifacts，不重新排名、不下载或重标数据集，只检查论文数字、source policy、must-not-claim guardrails 和 operation/operation-stack 边界是否一致。因此它支持“论文表述与证据一致”这个提交前 gate，而不是新的 profiler accuracy 结果。
+R338 再把 paper claim 本身纳入审计：它复用 R320--R350 的 tracked-clean artifacts，不重新排名、不下载、不同步、不创建、不重标数据集，只检查论文数字、source policy、must-not-claim guardrails 和 operation/operation-stack 边界是否一致。因此它支持“论文表述与证据一致”这个提交前 gate，而不是新的 profiler accuracy 结果。
 R352 再把当前结果集映射到 OSDI-style profiling-paper rubric：它复用 tracked R320--R351 artifacts 和当前论文文本，不下载、不同步、不重跑 profiler，也不运行 human/agent analyst task。26/26 required checks 和 10/10 rubric areas 通过，覆盖 fidelity/accuracy、actionability、baseline tradeoff、generality、mechanism isolation、robustness/statistics、reproducibility/overhead 和 claim-scope guardrails。因此它支持“当前 scoped profiling claim 的证据形态达到 profiler paper gate”，不是新的 empirical result。
 R327 则检查 profile-spec 本身是否可复现、成本是否可报告：所有 76 个 profile specs 在重复运行中保持 semantic profile content、samples 和 unique stacks 稳定，median 每个 spec 运行时间为 1.581s，p95 为 2.719s；默认 JSON profile 的 raw-byte determinism 只有 4/76，因为输出带生成时间戳。
 R328 再启用 deterministic artifact mode，固定 JSON \texttt{generated\_at} 和 pprof profile time；同一 76 个 specs 的 semantic 与 raw-byte determinism 均为 76/76，clean rerun 记录空的 git/code status，median 每个 spec 运行时间为 1.601s，p95 为 2.767s。
@@ -455,7 +478,7 @@ R328 再启用 deterministic artifact mode，固定 JSON \texttt{generated\_at} 
 
 R360 把表~\ref{tab:results} 的核心数字做成可复现 artifact：脚本只读取 R360 source-status 中列出的 tracked upstream results 和当前 paper/docs，输出 JSON、CSV、Markdown、HTML 和 LaTeX table fragment；7/7 checks 通过，其中包括 fixed-session drilldown 作为当前 trace-tree-shaped baseline 的 scope 检查。R360 不是新的 empirical result，也不重新排名或同步数据集；R338/R352/R356/R357/R359/R361 只作为 artifact hygiene 和 claim-scope gate，不作为主表的 scientific evidence。
 R361 进一步把 E1--E4 表格整理成 claim-evidence ledger：每个核心实验都必须给出 claim、research question、oracle、baselines、primary metrics、headline result、actionable insight、counterpoint、scoped wording 和 source runs。该 gate 10/10 checks 通过，覆盖 hidden-label scale/metric surface、baseline tradeoff 而不是 metric dominance、oracle-depth/fragmentation、mechanism/actionability counterpoints、reproducibility guardrails、two-abstraction boundary 和 must-not-claim guardrails。R361 仍然只是 paper-structure artifact，不是新的实验，不重新跑 profiler，也不做 dataset sync、creation 或 relabeling。
-R363 再把这些证据组织成五个 paper views：baseline-tradeoff scatter、metric heatmap、diagnostic lenses、actionability knobs 和 oracle-depth adequacy。该 portfolio 7/7 checks 通过，作用是把 E2/E3 的 tradeoff 和 actionability 用多种分析视图展示出来，而不是新增第五个实验、把论文降格为单一 flamegraph，或引入 operation/operation-stack 之外的新抽象。
+R363 再把这些证据组织成表~\ref{tab:visualization-portfolio} 中的五个 paper views：baseline-tradeoff scatter、metric heatmap、diagnostic lenses、actionability knobs 和 oracle-depth adequacy。该 portfolio 7/7 checks 通过，作用是把 E2/E3 的 tradeoff 和 actionability 用多种分析视图展示出来，而不是新增第五个实验、把论文降格为单一 flamegraph，或引入 operation/operation-stack 之外的新抽象。
 
 \section{哪些数据集最适合}
 

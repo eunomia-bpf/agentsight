@@ -196,8 +196,10 @@ def build_checks(texts: dict[str, str], r358: dict[str, Any], r358_run: dict[str
         "legacy_rq_structure_removed_from_papers",
         "\\subsection{RQ" not in zh
         and "\\subsection{RQ" not in en
+        and not any(token in zh for token in ["RQ1", "RQ2", "RQ3", "RQ4"])
+        and not any(token in en for token in ["RQ1", "RQ2", "RQ3", "RQ4"])
         and "seven research questions" not in en,
-        "No paper-facing RQ subsection or seven-research-question framing remains.",
+        "No paper-facing RQ subsection, RQ-number token, or seven-research-question framing remains.",
     )
     add_check(
         checks,
