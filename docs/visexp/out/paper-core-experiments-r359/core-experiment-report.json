@@ -1,0 +1,152 @@
+{
+  "checks": [
+    {
+      "check": "evaluation_has_four_core_experiment_table",
+      "evidence": "docs/evaluation.md has the paper-facing E1-E4 table.",
+      "expected": "pass",
+      "status": "pass"
+    },
+    {
+      "check": "claim_setup_has_four_core_experiment_table",
+      "evidence": "Chinese claim setup separates E1-E4 from the run/artifact provenance map.",
+      "expected": "pass",
+      "status": "pass"
+    },
+    {
+      "check": "english_results_use_e1_e4_subsections",
+      "evidence": "English paper has E1-E4 result subsections.",
+      "expected": "pass",
+      "status": "pass"
+    },
+    {
+      "check": "chinese_results_use_e1_e4_subsections",
+      "evidence": "Chinese paper has E1-E4 result subsections.",
+      "expected": "pass",
+      "status": "pass"
+    },
+    {
+      "check": "legacy_rq_structure_removed_from_papers",
+      "evidence": "No paper-facing RQ subsection or seven-research-question framing remains.",
+      "expected": "pass",
+      "status": "pass"
+    },
+    {
+      "check": "chinese_main_result_table_is_core_experiment_table",
+      "evidence": "Chinese tab:results is now a four-row core-experiment table.",
+      "expected": "pass",
+      "status": "pass"
+    },
+    {
+      "check": "r_runs_are_provenance_not_main_structure",
+      "evidence": "Evaluation ledger, claim setup, Chinese paper, and English paper state that R runs are provenance.",
+      "expected": "pass",
+      "status": "pass"
+    },
+    {
+      "check": "r358_is_e3_mechanism_not_fifth_experiment",
+      "evidence": "R358 is described as an E3 mechanism/actionability ablation and no E5 core experiment exists.",
+      "expected": "pass",
+      "status": "pass"
+    },
+    {
+      "check": "r358_artifact_numbers_match_paper_tokens",
+      "evidence": "R358 report/run-result pass and paper-facing texts include the AP/group tokens.",
+      "expected": "pass",
+      "status": "pass"
+    },
+    {
+      "check": "r358_counterpoints_are_visible",
+      "evidence": "R358 AP/group improvements and work counterpoints are both represented.",
+      "expected": "pass",
+      "status": "pass"
+    },
+    {
+      "check": "two_abstraction_boundary_preserved",
+      "evidence": "All paper-facing texts keep operation and operation stack as the core abstractions.",
+      "expected": "pass",
+      "status": "pass"
+    },
+    {
+      "check": "must_not_claim_guardrails_visible",
+      "evidence": "The four-experiment framing preserves must-not-claim guardrails.",
+      "expected": "pass",
+      "status": "pass"
+    },
+    {
+      "check": "source_policy_visible",
+      "evidence": "The paper keeps the no-new-dataset/no-resync source policy visible.",
+      "expected": "pass",
+      "status": "pass"
+    }
+  ],
+  "claim": "paper evaluation is organized around four core experiments, not chronological R-run history",
+  "elapsed_s": 0.0287,
+  "non_claims": [
+    "not a new empirical result",
+    "not a human or agent analyst study",
+    "not a fifth core experiment",
+    "not automatic boundary discovery",
+    "not an automatic action or patch selector"
+  ],
+  "run_id": "R359",
+  "schema": "agentsight.paper_core_experiments.v1",
+  "source_status": [
+    {
+      "path": "docs/evaluation.md",
+      "sha256": "1a8682f218dac68879cd11a40f9966fa02113897473899fe239463bd192a485c",
+      "source": "evaluation_ledger",
+      "status": "tracked_hashed_dirty"
+    },
+    {
+      "path": "docs/visexp/paper/evaluation-claims-setup.zh-CN.md",
+      "sha256": "6e835f363ab6f2730f45e1580db186ea294c8da42f96d70ae57895ffcf48e796",
+      "source": "chinese_claim_setup",
+      "status": "tracked_hashed_dirty"
+    },
+    {
+      "path": "docs/visexp/paper/main.tex",
+      "sha256": "32dc0abe00eaf57f54db23ea01a0470870eef11cc346b988cfdb6b2b26820ce0",
+      "source": "chinese_paper",
+      "status": "tracked_hashed_dirty"
+    },
+    {
+      "path": "docs/agentpprof-paper/main.tex",
+      "sha256": "60766286e9380e10d30c8fe9be4499039768024f04d22b98403dab027f7d895d",
+      "source": "english_paper",
+      "status": "untracked"
+    },
+    {
+      "path": "docs/visexp/out/operation-boundary-profile-patch-r358/boundary-profile-patch-report.json",
+      "sha256": "3a73b69d7e4be423506edf9350b3c0c9db393520d79c3698b85d9024463597a7",
+      "source": "r358_report",
+      "status": "tracked_hashed"
+    },
+    {
+      "path": "docs/visexp/out/operation-boundary-profile-patch-r358/run-result.json",
+      "sha256": "4ceada72976563463e06bf9b33d2f373e20a2f02f7aef8e2d22fb07b793079e8",
+      "source": "r358_run_result",
+      "status": "tracked_hashed"
+    }
+  ],
+  "status": "pass",
+  "summary": {
+    "checks_passed": 13,
+    "checks_total": 13,
+    "core_experiments": [
+      "E1",
+      "E2",
+      "E3",
+      "E4"
+    ],
+    "network_access_required": false,
+    "not_a_human_study_result": true,
+    "not_an_agent_analyst_task_result": true,
+    "not_new_dataset": true,
+    "not_new_empirical_result": true,
+    "r358_delta_first_positive_work_vs_semantic": 0.1581,
+    "r358_delta_top5_work_vs_semantic": 0.0813,
+    "r358_learned_boundary_ap": 0.2583,
+    "r358_learned_boundary_groups": 74,
+    "r358_semantic_width_ap": 0.2402
+  }
+}

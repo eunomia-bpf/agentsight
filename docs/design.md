@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-06
 Stage at update: stage 5 analyze / stage 6 claim gate / stage 9 paper integration
-Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agent-session`, `script/agent_trace_to_operations.py`, `script/agent_trace_convert.py`, `script/agent_trace_exchange_eval.py`, `script/agent_trace_chrome_trace.py`, `script/agent_trace_chrome_exchange_eval.py`, `script/operation_boundary_backend_eval.py`, `script/boundary_family_calibration_eval.py`, `script/operation_query_utility_eval.py`, `script/operation_analyst_task_eval.py`, `script/operation_analyst_ranking_eval.py`, `script/operation_case_study_eval.py`, `script/operation_case_baseline_eval.py`, `script/operation_analyst_outcome_eval.py`, `script/operation_problem_value_synthesis.py`, `script/operation_where_filter_eval.py`, `script/operation_rust_rank_rule_eval.py`, `script/operation_rank_mode_eval.py`, `script/operation_rank_feature_eval.py`, `script/operation_rank_feature_ablation_eval.py`, `script/operation_rank_feature_robustness_eval.py`, `script/operation_profile_patch_eval.py`, `script/operation_boundary_profile_patch_eval.py`, `script/operation_oracle_depth_adequacy_eval.py`, `script/paper_claim_integrity_r356.py`, `script/paper_claim_synthesis.py`, `script/reviewer_evidence_packet.py`, `script/paper_value_novelty_synthesis.py`, `script/paper_claim_readiness_synthesis.py`, `script/paper_evidence_matrix_synthesis.py`, `script/paper_robustness_audit.py`, `docs/evaluation.md`, `agentpprof --profile-spec`
+Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agent-session`, `script/agent_trace_to_operations.py`, `script/agent_trace_convert.py`, `script/agent_trace_exchange_eval.py`, `script/agent_trace_chrome_trace.py`, `script/agent_trace_chrome_exchange_eval.py`, `script/operation_boundary_backend_eval.py`, `script/boundary_family_calibration_eval.py`, `script/operation_query_utility_eval.py`, `script/operation_analyst_task_eval.py`, `script/operation_analyst_ranking_eval.py`, `script/operation_case_study_eval.py`, `script/operation_case_baseline_eval.py`, `script/operation_analyst_outcome_eval.py`, `script/operation_problem_value_synthesis.py`, `script/operation_where_filter_eval.py`, `script/operation_rust_rank_rule_eval.py`, `script/operation_rank_mode_eval.py`, `script/operation_rank_feature_eval.py`, `script/operation_rank_feature_ablation_eval.py`, `script/operation_rank_feature_robustness_eval.py`, `script/operation_profile_patch_eval.py`, `script/operation_boundary_profile_patch_eval.py`, `script/operation_oracle_depth_adequacy_eval.py`, `script/paper_core_experiment_consolidation_audit.py`, `script/paper_claim_integrity_r356.py`, `script/paper_claim_synthesis.py`, `script/reviewer_evidence_packet.py`, `script/paper_value_novelty_synthesis.py`, `script/paper_claim_readiness_synthesis.py`, `script/paper_evidence_matrix_synthesis.py`, `script/paper_robustness_audit.py`, `docs/evaluation.md`, `agentpprof --profile-spec`
 Completeness: partial
 
 ## Current State And Blocking Gate
@@ -285,6 +285,14 @@ boundary. It reads the R354/R355 artifacts and the current papers, then checks
 that profile-spec patches, oracle-depth unit rows, case packets, and audit
 reports remain wrappers around operation fields and operation stack queries.
 It is a claim-integrity layer, not another profiler abstraction.
+
+R359 audits the paper-facing experiment structure against that same boundary.
+It checks that the evaluation is organized as four core experiments, E1-E4,
+while R-numbered runs remain provenance, ablations, counterpoints, or audit
+gates. It also checks that R358 is an E3 mechanism/actionability ablation, not
+a fifth experiment or an automatic boundary detector. This keeps the design
+claim centered on operation and operation stack rather than on a collection of
+one-off artifacts.
 
 R304 evaluates the presentation boundary for those ranked groups. It writes
 `visible-case-packet.json` with stack frames, visible feature rates, hashed

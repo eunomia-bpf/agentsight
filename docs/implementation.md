@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-06
 Stage at update: stage 4 execute / stage 8 audit / stage 11 reproducibility prep
-Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agentpprof/src/standard_trace.rs`, `agentpprof/tests/standard_trace_cli.rs`, `agentpprof/tests/profile_spec_cli.rs`, `script/operation_*.py`, `script/agent_trace_datasets.py sample tau-bench-trajectories`, `script/agent_trace_datasets.py sample agent-reward-bench`, `script/agent_trace_datasets.py sample satraj-os-safety`, `script/agent_trace_datasets.py sample osworld-human`, `script/agent_trace_datasets.py sample agentnet`, `script/agent_trace_datasets.py sample scalecua-navigation`, `script/agent_trace_exchange_eval.py`, `script/agent_trace_chrome_exchange_eval.py`, `script/operation_standard_trace_exchange_eval.py`, `script/operation_where_filter_eval.py`, `script/operation_rust_rank_rule_eval.py`, `script/operation_rank_mode_eval.py`, `script/operation_rank_feature_eval.py`, `script/operation_rank_feature_ablation_eval.py`, `script/operation_rank_feature_robustness_eval.py`, `script/operation_profile_spec_composition_eval.py`, `script/operation_profile_patch_eval.py`, `script/operation_boundary_profile_patch_eval.py`, `script/operation_oracle_depth_adequacy_eval.py`, `script/paper_claim_integrity_r356.py`, `script/implementation_consistency_audit.py`, `cargo test --manifest-path agentpprof/Cargo.toml --test profile_spec_cli`, `cargo test --manifest-path agentpprof/Cargo.toml`
+Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agentpprof/src/standard_trace.rs`, `agentpprof/tests/standard_trace_cli.rs`, `agentpprof/tests/profile_spec_cli.rs`, `script/operation_*.py`, `script/agent_trace_datasets.py sample tau-bench-trajectories`, `script/agent_trace_datasets.py sample agent-reward-bench`, `script/agent_trace_datasets.py sample satraj-os-safety`, `script/agent_trace_datasets.py sample osworld-human`, `script/agent_trace_datasets.py sample agentnet`, `script/agent_trace_datasets.py sample scalecua-navigation`, `script/agent_trace_exchange_eval.py`, `script/agent_trace_chrome_exchange_eval.py`, `script/operation_standard_trace_exchange_eval.py`, `script/operation_where_filter_eval.py`, `script/operation_rust_rank_rule_eval.py`, `script/operation_rank_mode_eval.py`, `script/operation_rank_feature_eval.py`, `script/operation_rank_feature_ablation_eval.py`, `script/operation_rank_feature_robustness_eval.py`, `script/operation_profile_spec_composition_eval.py`, `script/operation_profile_patch_eval.py`, `script/operation_boundary_profile_patch_eval.py`, `script/operation_oracle_depth_adequacy_eval.py`, `script/paper_core_experiment_consolidation_audit.py`, `script/paper_claim_integrity_r356.py`, `script/implementation_consistency_audit.py`, `cargo test --manifest-path agentpprof/Cargo.toml --test profile_spec_cli`, `cargo test --manifest-path agentpprof/Cargo.toml`
 Completeness: partial
 
 ## Repository Layout Relevant To Semantic Profiling
@@ -36,6 +36,7 @@ Purpose: identify the maintained implementation boundary.
 | `script/operation_profile_patch_eval.py` | R354 executable profile-spec patch audit; reruns default and patched Rust profiles over tracked R324 visible operations and scores with hidden labels after profiling. | research harness |
 | `script/operation_boundary_profile_patch_eval.py` | R358 boundary-derived profile patch audit; reruns Rust profile specs over R297 held-out OSWorld-Human boundary fields as ordinary operation fields and scores hidden labels after profiling. | research harness |
 | `script/operation_oracle_depth_adequacy_eval.py` | R355 oracle-depth adequacy audit; scores visible-ranked profile groups at session, operation/step, positive-run, and task-specific oracle depths over tracked labeled outputs. | research harness |
+| `script/paper_core_experiment_consolidation_audit.py` | R359 paper-facing core-experiment consolidation audit; checks that evaluation is organized as E1-E4, R-runs are provenance, and R358 remains an E3 mechanism ablation. | paper hygiene harness |
 | `script/paper_claim_integrity_r356.py` | R356 claim-integrity refresh over R354/R355 plus the R338 R320-R350 gate; checks paper numbers, source provenance, guardrails, and the two-abstraction boundary. | paper hygiene harness |
 | `script/profile_artifact_relocation_audit.py` | R343 relocated-checkout audit for historical profile specs that contain absolute artifact paths; verifies R342/R338 path normalization over existing tracked outputs. | reproducibility harness |
 | `script/operation_metric_consistency_eval.py` | R344 multi-metric consistency audit over R320 scored policy outputs; checks AP, nDCG, top-k, budget, work, and fragmentation support/counterpoints. | research harness |
@@ -149,6 +150,14 @@ hidden labels only after Rust emits groups. Learned-boundary folding improves
 AP and reduces groups, while increasing top-5 operation work and
 first-positive work. This is a boundary-field mechanism ablation, not
 automatic boundary discovery or an automatic patch selector.
+
+R359 makes the paper organization check executable.
+`script/paper_core_experiment_consolidation_audit.py` reads the evaluation
+ledger, Chinese claim setup, Chinese paper, English paper submodule, and R358
+artifacts. It confirms the paper-facing evaluation is E1-E4, not a chronological
+R-run list; R-runs remain provenance, ablations, counterpoints, or audit gates;
+and R358 stays an E3 mechanism/actionability ablation. This is a paper hygiene
+gate, not a profiler rerun or new empirical result.
 
 R355 then closes the main R339 depth-scoring gap without adding another
 runtime object. `script/operation_oracle_depth_adequacy_eval.py` reuses tracked
@@ -285,6 +294,7 @@ python3 -m py_compile script/agent_trace_datasets.py script/operation_split.py \
   script/operation_profile_spec_composition_eval.py \
   script/operation_profile_patch_eval.py \
   script/operation_boundary_profile_patch_eval.py \
+  script/paper_core_experiment_consolidation_audit.py \
   script/agent_trace_exchange_eval.py script/agent_trace_chrome_exchange_eval.py \
   script/operation_standard_trace_exchange_eval.py \
   script/implementation_consistency_audit.py
