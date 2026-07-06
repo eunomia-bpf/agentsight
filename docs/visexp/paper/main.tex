@@ -443,6 +443,8 @@ Hidden labels 只在 profiling 之后用于 scoring；visible inputs 仍然是 s
 表~\ref{tab:actionability} 是 E3 的主显示：它把 task-card evidence 压缩成 paper-facing diagnosis table，而 source artifacts 只作为 provenance。
 SATraj unsafe 说明 \texttt{environment,phase,action} 和 risky/write-action ranking 对安全问题有效；looping 说明 \texttt{repeat\_signal} 有用但需要 prevalence-aware ranking；side-effect 指向更深的 write/input mapping；AgentNet step-quality 需要 action-family 定位后再进入 fixed-session examples；OSWorld-Human 则需要 boundary-derived fields。
 因此 actionability 的第一层结论是：profiler 指出该调 stack field、mapping、ranker、profile spec、boundary field 还是 drilldown，而不是给出唯一默认 view。
+Task-level verdict synthesis 给出 claim gate：6/6 任务都是 ``supports with counterpoints''，不是 unconditional win。
+其中 5/6 任务有 accepted executable profile-spec patch；剩下的 OSWorld-Human row 指向 boundary-derived fields，并保留 top-five 与 first-positive work 反例。
 
 机制消融说明这些诊断来自可复现的 profiler 配置，而不是来自又一组独立小实验。
 Stack-text rank rules 和 rank mode 可以从 profile spec 复现，但它们对 safety/side-effect 过粗；operation-level rank features 在 folding 前匹配 visible mapped operation tokens，semantic stack 的 feature ranking 在 AP 上赢 5/6 tasks、top-5 lift 赢 4/6、first-positive work 赢 5/6，coarse depth 在 4/6 tasks 上改善 AP 并减少 groups。
@@ -474,18 +476,18 @@ Held-out boundary-derived fields 随后作为普通 operation fields 折叠，AP
   \scriptsize
   \setlength{\tabcolsep}{2.5pt}
   \renewcommand{\arraystretch}{0.92}
-  \caption{E3 task diagnosis cards。每行把 hidden-label localization 信号、可执行 profile 配置动作和反例放在一起；它是 task-card evidence 的压缩主文版本，不是新增实验。}
+  \caption{E3 diagnosis/actionability claim gate。每行把 hidden-label localization 信号、可执行 profile 配置动作和 scoped verdict/counterpoint 放在一起；它压缩 task-card 和 verdict evidence，不是新增实验。}
   \label{tab:actionability}
-  \begin{tabular}{p{0.14\linewidth}p{0.20\linewidth}p{0.38\linewidth}p{0.20\linewidth}}
+  \begin{tabular}{p{0.13\linewidth}p{0.18\linewidth}p{0.36\linewidth}p{0.25\linewidth}}
     \toprule
-    Task & Localization signal & Profile action & Counterpoint \\
+    Task & Localization signal & Profile action & Gate / counterpoint \\
     \midrule
-    Looping & Work@5 0.4938, R@5 0.6508, patch AP +0.1155 & 保留 \texttt{repeat\_signal}，但加入 prevalence-aware ranking，因为 positives 很常见。 & Raw-action first-positive work 更低。 \\
-    Side-effect & Work@5 0.1454, R@5 0.1139, patch AP +0.0591 & 提高 write/input 权重，或在 ranking 前使用更深的 side-effect mapping。 & Fixed-session groups 更少；raw-action top-five lift 更好。 \\
-    Unsafe operation & Work@5 0.0420, R@5 0.2621, patch AP +0.5081 & 使用 environment、phase、action stack fields，并优先 risky environment 和 write actions。 & Fixed-session first-positive work 更低。 \\
-    Incorrect step & Work@5 0.0014, R@5 0.0034, patch AP +0.0160 & 使用 desktop environment、phase、repeat 和 action fields，再进入 fixed-session examples。 & Fixed-session 仍是 drilldown baseline。 \\
-    Redundant step & Work@5 0.0089, R@5 0.0177, patch AP +0.0011 & 使用 desktop environment、phase、repeat 和 action fields，再进入 fixed-session examples。 & Fixed-session first-positive work 更低。 \\
-    Group start & Work@5 0.4074, R@5 0.3874, boundary AP 0.2583 & 使用 group-depth 或 boundary-derived fields；action-depth alone 会 fragment starts。 & Boundary fields 把 groups 降到 74，但 top-five 和 first-positive work 变差。 \\
+    Looping & Work@5 0.4938, R@5 0.6508, patch AP +0.1155 & 保留 \texttt{repeat\_signal}，但加入 prevalence-aware ranking，因为 positives 很常见。 & 支持但有反例：raw-action first-positive work 更低。 \\
+    Side-effect & Work@5 0.1454, R@5 0.1139, patch AP +0.0591 & 提高 write/input 权重，或在 ranking 前使用更深的 side-effect mapping。 & 支持但有反例：fixed-session groups 更少；raw-action top-five lift 更好。 \\
+    Unsafe operation & Work@5 0.0420, R@5 0.2621, patch AP +0.5081 & 使用 environment、phase、action stack fields，并优先 risky environment 和 write actions。 & 支持但有反例：fixed-session first-positive work 更低。 \\
+    Incorrect step & Work@5 0.0014, R@5 0.0034, patch AP +0.0160 & 使用 desktop environment、phase、repeat 和 action fields，再进入 fixed-session examples。 & 支持但有反例：fixed-session 仍是 drilldown baseline。 \\
+    Redundant step & Work@5 0.0089, R@5 0.0177, patch AP +0.0011 & 使用 desktop environment、phase、repeat 和 action fields，再进入 fixed-session examples。 & 支持但有反例：fixed-session first-positive work 更低。 \\
+    Group start & Work@5 0.4074, R@5 0.3874, boundary AP 0.2583 & 使用 group-depth 或 boundary-derived fields；action-depth alone 会 fragment starts。 & 支持但有反例：boundary fields 把 groups 降到 74，但 top-five 和 first-positive work 变差。 \\
     \bottomrule
   \end{tabular}
 \end{table*}
