@@ -308,7 +308,7 @@ OSWorld-Human exact-aligned tasks &
 
 \paragraph{递归 stack-depth sweep。}
 
-R286 在同一批 13,265 个 operations 上扫过 8 个 stack depths。
+Depth-sweep 主结果在同一批 13,265 个 operations 上扫过 8 个 stack depths。
 只保留 dataset 时有 9 个 stacks；加入 task 后为 11 个；phase depth 为 57 个；tool/semantic depth 为 226 个；action depth 为 455 个；加入固定 session 后膨胀到 3,757 个。
 相对于 dataset depth，固定 session 的 unique stacks 增加 417.4 倍。
 这个结果直接反驳把 session 或 prompt 作为默认 profiling 边界的设计。
@@ -566,7 +566,7 @@ Claim-integrity 和 OSDI-style profiling-paper rubric checks 复用 tracked-clea
 第四类是 GUI-Odyssey/tau-bench/ToolBench 这组跨域补充，它们覆盖移动 GUI、user-agent-tool dialogue 和 API/tool traces，证明 operation abstraction 不局限于桌面。
 
 ScaleCUA 是有用补充，但不是当前主证据。
-R292 流式采样 5,000 个 Ubuntu navigation rows，覆盖 131 个 sessions，最大 step 为 48。
+补充 ScaleCUA stream sample 含 5,000 个 Ubuntu navigation rows，覆盖 131 个 sessions，最大 step 为 48。
 该子集的 action taxonomy 主要是 click 和 terminate，所以 phase/action 指标达到 1.0 并不表示强泛化。
 它更适合证明 multi-step GUI history context 可以被投影为 \texttt{history\_state} 和 \texttt{history\_depth} fields，而不是证明复杂边界 detector。
 
