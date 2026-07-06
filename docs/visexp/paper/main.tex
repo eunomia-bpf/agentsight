@@ -262,6 +262,12 @@ R375 把完整 claim-gate 表保留在 artifact ledger，而不在主文继续�
 仍然不能 claim 的范围包括 metric dominance、human/agent analyst productivity、automatic boundary discovery、automatic patch selection 和 full trace-ecosystem compatibility。
 R375 只读取 tracked R361/R364/R370/R373/R374 artifacts 和当前论文文本，不下载、不同步、不创建、不重标数据，也不重跑 profiler。
 
+R377 进一步把中心 profiling claim 物化为五个可审计的 evidence facets，但不把 evaluation 拆成五个更小的研究。
+论文面向 reviewer 的结构仍然是 RQ1/E1--RQ4/E4：hidden-label localization/ranking、相对 flat summary 的更低 inspection work、相对 fixed-session drilldown proxy 的 fragmentation tradeoff 都归入 E2；profile-configuration actionability 和 mechanism isolation 归入 E3；E1 提供 two-abstraction guardrail，E4 只提供 replayability 和 artifact hygiene。
+R377 只读取 tracked R320、R333、R334、R354、R355、R358、R366、R375 和 R376 artifacts。
+这个 packet 给 reviewer 一条从 claim sentence 到具体指标的路径：R320 给出 6 tasks / 4 datasets / 34,539 operations / 3,699 positives 的 benchmark；R333/R334 给出 top-five work 0.0937 versus flat summaries 和 fixed-session counterpoints；R355 给出 20/24 positive-unit recall wins over fixed-session 和 22/24 groups-to-50\% positive-unit wins over fixed-session；R354/R358/R366 给出 executable patch、boundary-field 和 mechanism evidence。
+它同时保留 scope：不 claim metric dominance、不 claim human utility、不 claim automatic boundary 或 patch selector，也不 claim complete trace-ecosystem compatibility。
+
 \subsection{RQ1/E1：泛化覆盖、递归折叠和边界字段}
 
 R361 将本节的 evidence contract 固定为：claim 是两抽象模型能覆盖异构 agent traces 且不把 prompt/session/tool 边界写死；oracle 是 public dataset labels、native trajectory fields、OSWorld-Human human boundary 和 AgentNet quality labels；baseline 包括 dataset-native stacks、no-map folding、fixed-session stacks、profile-spec replay 和 trace round trip；metric 包括 operation coverage、unique-stack range、mapping compression、boundary F1/V-measure 和 replay equality；counterpoint 是这只能支持 configurable operation stack folding，不能支持完整生态兼容或自动恢复所有 latent intent。Prompt、tool、process 和 syscall 可以是 operation records 或 fields；session/span 是字段、容器或 baseline shape，not new profiler objects。

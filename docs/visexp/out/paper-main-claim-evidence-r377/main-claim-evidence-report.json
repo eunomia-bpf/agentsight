@@ -1,0 +1,236 @@
+{
+  "checks": [
+    {
+      "check": "real_labeled_trace_scale_preserved",
+      "detail": "R320 totals={'datasets': 4, 'group_views': 36, 'policy_scores': 144, 'positive_operations': 3699, 'task_operations': 34539, 'tasks': 6}",
+      "passed": true
+    },
+    {
+      "check": "fidelity_metric_surface_present",
+      "detail": "R320 records the profiler-paper metric surface.",
+      "passed": true
+    },
+    {
+      "check": "flat_work_claim_supported",
+      "detail": "Top-5 work, budget-30 recall, and work-to-first-positive all improve over flat on 6/6 tasks.",
+      "passed": true
+    },
+    {
+      "check": "fixed_session_tradeoff_not_dominance",
+      "detail": "Operation stacks improve fragmentation/localization metrics while preserving fixed-session work counterpoints.",
+      "passed": true
+    },
+    {
+      "check": "actionability_claim_supported",
+      "detail": "Executable patches, boundary-field repair, and rank-feature ablations support actionability.",
+      "passed": true
+    },
+    {
+      "check": "mechanism_isolation_supported",
+      "detail": "R366 isolates mapping/ranking/boundary mechanisms, and R375/R376 preserve claim scope.",
+      "passed": true
+    },
+    {
+      "check": "paper_mentions_r377",
+      "detail": "Both papers and the evaluation ledger mention the R377 main-claim evidence packet.",
+      "passed": true
+    },
+    {
+      "check": "claim_elements_not_extra_experiments",
+      "detail": "The five R377 claim elements are paper-routing facets inside E1-E3, not additional experiments.",
+      "passed": true
+    },
+    {
+      "check": "non_claims_preserved",
+      "detail": "The evidence packet keeps human utility, automatic detection/selection, metric dominance, and ecosystem compatibility out of scope.",
+      "passed": true
+    },
+    {
+      "check": "no_new_data_or_profiler_rerun",
+      "detail": "R377 reads tracked artifacts and paper text only; it does not sync data, relabel traces, or invoke agentpprof.",
+      "passed": true
+    },
+    {
+      "check": "english_submodule_input_committed",
+      "detail": "The English paper input must be clean inside docs/agentpprof-paper, and the parent index must point at the same submodule commit before R377 reports pass.",
+      "passed": true
+    },
+    {
+      "check": "source_status_tracked",
+      "detail": "All R377 sources are tracked or intentionally dirty/staged.",
+      "passed": true
+    }
+  ],
+  "claim_rows": [
+    {
+      "allowed_wording": "Operation-stack profiles are valid ranked localization outputs against dataset-provided hidden labels.",
+      "claim_element": "Faithful hidden-label localization and ranking",
+      "counterpoint": "Flat and dataset-native views still win broad-recall or some nDCG/top-k objectives; the claim is a Pareto tradeoff, not metric dominance.",
+      "evidence": "R320 scores 144 policies over 6 tasks, 4 datasets, 34,539 operations, and 3,699 positives using precision@k, recall@budget, F1, AP/AUPRC-style score, nDCG, work-to-first-positive, and group metrics.",
+      "must_not_claim": "Human productivity, automatic anomaly detection, or dominance on every metric.",
+      "paper_block": "RQ2/E2",
+      "sources": "R320/R375/R376"
+    },
+    {
+      "allowed_wording": "For the evaluated tasks, operation-stack query-aware profiles reduce inspection work relative to flat summaries.",
+      "claim_element": "Less inspection work than flat summaries",
+      "counterpoint": "Flat summaries retain full-recall behavior only by forcing inspection of the whole task.",
+      "evidence": "R333/R334 show top-5 operation work improves over flat on 6/6 tasks with median ratio 0.0937; budget-30 recall improves on 6/6 tasks; work-to-first-positive improves on 6/6 tasks.",
+      "must_not_claim": "Flat summaries are useless or dominated for every objective.",
+      "paper_block": "RQ2/E2",
+      "sources": "R333/R334/R320"
+    },
+    {
+      "allowed_wording": "Operation stacks improve the median fragmentation/localization tradeoff versus fixed-session drilldown.",
+      "claim_element": "Less fragmentation than fixed-session drilldown proxy",
+      "counterpoint": "Fixed-session still wins top-5 work on 4/6 tasks and often finds the first positive earlier, so it remains a drilldown baseline.",
+      "evidence": "R334 reports fewer groups than fixed-session on 4/6 tasks (median ratio 0.5543) and fewer groups-to-50%-recall on 5/6 tasks. R355 extends this below session scope: budget-30 positive-unit recall improves on 20/24 task-depth rows and groups-to-50%-positive-units improves on 22/24.",
+      "must_not_claim": "Complete superiority over session/span trees or real OpenTelemetry/Phoenix/LangSmith/Perfetto imports.",
+      "paper_block": "RQ2/E2",
+      "sources": "R334/R355/R368"
+    },
+    {
+      "allowed_wording": "Profiler output identifies stack fields, mappings, rankers, and profile specs that guide concrete configuration changes.",
+      "claim_element": "Actionable optimization insight",
+      "counterpoint": "Boundary-derived fields improve AP and reduce groups, but they increase top-5 operation work and first-positive work on this held-out subset.",
+      "evidence": "R354 accepts profile-guided patches on 5/6 tasks, with median AP delta 0.0376 and top-5 lift delta 0.575. R358 repairs the OSWorld-Human rejection with boundary-derived fields: AP 0.2583 vs 0.2402 and groups 74 vs 108. R366 identifies 7 critical and 3 misleading rank-feature rows.",
+      "must_not_claim": "Automatic patch selection, label-free universal policy selection, or human analyst utility.",
+      "paper_block": "RQ3/E3",
+      "sources": "R354/R358/R366"
+    },
+    {
+      "allowed_wording": "The gains are attributable to operation-stack abstraction, field derivation, and query-aware ranking under scoped labels.",
+      "claim_element": "Mechanism isolation and two-abstraction boundary",
+      "counterpoint": "Boundary backends beat simple baselines on 4/5 rows, but AgentRewardBench looping is explained by repeat_signal_change.",
+      "evidence": "R366 passes 6/6 mechanism checks: mapping, tagging/rank features, profile specs, and supervised boundary backends write operation fields that operation stacks fold. R375/R376 keep E4 out of hidden-label accuracy evidence and preserve the operation / operation-stack abstraction boundary.",
+      "must_not_claim": "A third profiler object, automatic intent discovery, or complete trace-ecosystem compatibility.",
+      "paper_block": "RQ1/E1 + RQ3/E3",
+      "sources": "R342/R366/R375/R376"
+    }
+  ],
+  "data_sync": false,
+  "interpretation": "The current paper can claim faithful hidden-label profiler localization/ranking with less flat inspection work, a better fixed-session fragmentation tradeoff, and actionable configuration insight. These are evidence facets inside the three empirical profiling experiments, not separate experiments, and they preserve non-dominance and non-human-utility scope.",
+  "network_access_required": false,
+  "not_new_empirical_result": true,
+  "profiler_rerun": false,
+  "run_id": "R377",
+  "schema": "agentsight.paper_main_claim_evidence_gate.v1",
+  "source_status": [
+    {
+      "path": "script/paper_main_claim_evidence_gate.py",
+      "sha256": "d30ceac56d945747abae2885882f21954bb3e16ed262d41b66bf6d31c4472f3f",
+      "source": "generator script",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/out/operation-profile-accuracy-r320/profile-accuracy-report.json",
+      "sha256": "4baf9e91f444ec47a4d8d843ffc210e11fabf51b18dbc6113c7a2b2532a35786",
+      "source": "R320 profile accuracy",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-profile-accuracy-r320/task-accuracy.csv",
+      "sha256": "266f49e9bd78f304f53c7c855fe90f799b21740a635a27c09b2b02f38c154cc6",
+      "source": "R320 task accuracy",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-inspection-frontier-r333/default-vs-baselines.csv",
+      "sha256": "d8fdf910801ba970972772e363b3f4398f67988c45b378b15df330512b93bce9",
+      "source": "R333 inspection frontier",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-fragmentation-tradeoff-r334/default-fragmentation-comparisons.csv",
+      "sha256": "236de439175b848d8c788bfb304cd9070f5d1cc578eb255308fb6b34ab5be7f1",
+      "source": "R334 fragmentation tradeoff",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-profile-patch-r354/profile-patch-report.json",
+      "sha256": "6585af0a77956fa56b8aadec29f822714789b5bfcdf1769fcd61ba3d0c1994ad",
+      "source": "R354 profile patch",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-oracle-depth-adequacy-r355/depth-policy-comparisons.csv",
+      "sha256": "01142990045d58e889c036566262af006f6adf2e27727ccc659a4e9209fc4a48",
+      "source": "R355 oracle depth",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-boundary-profile-patch-r358/boundary-profile-patch-report.json",
+      "sha256": "3a73b69d7e4be423506edf9350b3c0c9db393520d79c3698b85d9024463597a7",
+      "source": "R358 boundary patch",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-field-derivation-mechanism-r366/field-derivation-mechanism-report.json",
+      "sha256": "c29010e8f008498962dccf5c5494ed739a19020935739eb66db358e76afeb870",
+      "source": "R366 mechanism audit",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-field-derivation-mechanism-r366/mechanism-rows.csv",
+      "sha256": "29e1549340686ad9d159045fc22ef80aeff7d3fee6a94abdb537988c7cbcf5e9",
+      "source": "R366 mechanism rows",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/paper-core-claim-gate-r375/core-claim-gate-report.json",
+      "sha256": "ef0085eb95e71921df924b6209eee1d3925cec402325b8feee84695b9cc624dc",
+      "source": "R375 claim gate",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/paper-three-plus-one-r376/three-plus-one-report.json",
+      "sha256": "60c5cf618fed7f013b9641eb72ad3c06a966cfb13f570cca718adf737eba9a3f",
+      "source": "R376 three-plus-one gate",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/agentpprof-paper/main.tex",
+      "sha256": "4257be013723245a7903e0d09a2404756b286dd1b0badc98476f3fcc6ecd6b07",
+      "source": "English paper",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/paper/main.tex",
+      "sha256": "966a0e2a162ab855e92f781d233892df413994e537f7ee29b8165c84a12d9c58",
+      "source": "Chinese paper",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/evaluation.md",
+      "sha256": "d2491d1ac1715b06371b48b4673860627cb3373203233a3bfccd836bd07ad275",
+      "source": "evaluation ledger",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/agentpprof-paper",
+      "sha256": "submodule_head=7ba326f45cf790336c19f5d1659da82a407df936;parent_index=7ba326f45cf790336c19f5d1659da82a407df936",
+      "source": "English paper submodule gitlink",
+      "status": "tracked_dirty_allowed"
+    }
+  ],
+  "status": "pass",
+  "summary": {
+    "artifact_blocks": 1,
+    "checks_passed": 12,
+    "checks_total": 12,
+    "claim_elements": 5,
+    "empirical_profiling_experiments": 3,
+    "paper_facing_blocks": 4,
+    "source_runs": [
+      "R320",
+      "R333",
+      "R334",
+      "R354",
+      "R355",
+      "R358",
+      "R366",
+      "R375",
+      "R376"
+    ]
+  }
+}

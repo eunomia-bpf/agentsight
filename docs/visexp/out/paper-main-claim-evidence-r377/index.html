@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>R377 Main Claim Evidence Gate</title>
+<style>
+body { font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.45; }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+th, td { border: 1px solid #d0d7de; padding: 0.45rem; vertical-align: top; }
+th { background: #f6f8fa; }
+.status { font-weight: 700; }
+</style>
+<h1>R377 Main Claim Evidence Gate</h1>
+<p class="status">Status: pass; checks 12/12.</p>
+<p>Paper-facing organization: 3 empirical profiling experiments + 1 artifact/reproducibility block.</p>
+<p>The current paper can claim faithful hidden-label profiler localization/ranking with less flat inspection work, a better fixed-session fragmentation tradeoff, and actionable configuration insight. These are evidence facets inside the three empirical profiling experiments, not separate experiments, and they preserve non-dominance and non-human-utility scope.</p>
+<h2>Claim Elements</h2>
+<table><tr><th>Claim element</th><th>Paper block</th><th>Evidence</th><th>Counterpoint</th><th>Allowed wording</th><th>Must not claim</th></tr><tr><td>Faithful hidden-label localization and ranking</td><td>RQ2/E2</td><td>R320 scores 144 policies over 6 tasks, 4 datasets, 34,539 operations, and 3,699 positives using precision@k, recall@budget, F1, AP/AUPRC-style score, nDCG, work-to-first-positive, and group metrics.</td><td>Flat and dataset-native views still win broad-recall or some nDCG/top-k objectives; the claim is a Pareto tradeoff, not metric dominance.</td><td>Operation-stack profiles are valid ranked localization outputs against dataset-provided hidden labels.</td><td>Human productivity, automatic anomaly detection, or dominance on every metric.</td></tr>
+<tr><td>Less inspection work than flat summaries</td><td>RQ2/E2</td><td>R333/R334 show top-5 operation work improves over flat on 6/6 tasks with median ratio 0.0937; budget-30 recall improves on 6/6 tasks; work-to-first-positive improves on 6/6 tasks.</td><td>Flat summaries retain full-recall behavior only by forcing inspection of the whole task.</td><td>For the evaluated tasks, operation-stack query-aware profiles reduce inspection work relative to flat summaries.</td><td>Flat summaries are useless or dominated for every objective.</td></tr>
+<tr><td>Less fragmentation than fixed-session drilldown proxy</td><td>RQ2/E2</td><td>R334 reports fewer groups than fixed-session on 4/6 tasks (median ratio 0.5543) and fewer groups-to-50%-recall on 5/6 tasks. R355 extends this below session scope: budget-30 positive-unit recall improves on 20/24 task-depth rows and groups-to-50%-positive-units improves on 22/24.</td><td>Fixed-session still wins top-5 work on 4/6 tasks and often finds the first positive earlier, so it remains a drilldown baseline.</td><td>Operation stacks improve the median fragmentation/localization tradeoff versus fixed-session drilldown.</td><td>Complete superiority over session/span trees or real OpenTelemetry/Phoenix/LangSmith/Perfetto imports.</td></tr>
+<tr><td>Actionable optimization insight</td><td>RQ3/E3</td><td>R354 accepts profile-guided patches on 5/6 tasks, with median AP delta 0.0376 and top-5 lift delta 0.575. R358 repairs the OSWorld-Human rejection with boundary-derived fields: AP 0.2583 vs 0.2402 and groups 74 vs 108. R366 identifies 7 critical and 3 misleading rank-feature rows.</td><td>Boundary-derived fields improve AP and reduce groups, but they increase top-5 operation work and first-positive work on this held-out subset.</td><td>Profiler output identifies stack fields, mappings, rankers, and profile specs that guide concrete configuration changes.</td><td>Automatic patch selection, label-free universal policy selection, or human analyst utility.</td></tr>
+<tr><td>Mechanism isolation and two-abstraction boundary</td><td>RQ1/E1 + RQ3/E3</td><td>R366 passes 6/6 mechanism checks: mapping, tagging/rank features, profile specs, and supervised boundary backends write operation fields that operation stacks fold. R375/R376 keep E4 out of hidden-label accuracy evidence and preserve the operation / operation-stack abstraction boundary.</td><td>Boundary backends beat simple baselines on 4/5 rows, but AgentRewardBench looping is explained by repeat_signal_change.</td><td>The gains are attributable to operation-stack abstraction, field derivation, and query-aware ranking under scoped labels.</td><td>A third profiler object, automatic intent discovery, or complete trace-ecosystem compatibility.</td></tr></table>
+<h2>Checks</h2>
+<table><tr><th>Check</th><th>Passed</th><th>Detail</th></tr><tr><td>real_labeled_trace_scale_preserved</td><td>True</td><td>R320 totals={&#x27;datasets&#x27;: 4, &#x27;group_views&#x27;: 36, &#x27;policy_scores&#x27;: 144, &#x27;positive_operations&#x27;: 3699, &#x27;task_operations&#x27;: 34539, &#x27;tasks&#x27;: 6}</td></tr>
+<tr><td>fidelity_metric_surface_present</td><td>True</td><td>R320 records the profiler-paper metric surface.</td></tr>
+<tr><td>flat_work_claim_supported</td><td>True</td><td>Top-5 work, budget-30 recall, and work-to-first-positive all improve over flat on 6/6 tasks.</td></tr>
+<tr><td>fixed_session_tradeoff_not_dominance</td><td>True</td><td>Operation stacks improve fragmentation/localization metrics while preserving fixed-session work counterpoints.</td></tr>
+<tr><td>actionability_claim_supported</td><td>True</td><td>Executable patches, boundary-field repair, and rank-feature ablations support actionability.</td></tr>
+<tr><td>mechanism_isolation_supported</td><td>True</td><td>R366 isolates mapping/ranking/boundary mechanisms, and R375/R376 preserve claim scope.</td></tr>
+<tr><td>paper_mentions_r377</td><td>True</td><td>Both papers and the evaluation ledger mention the R377 main-claim evidence packet.</td></tr>
+<tr><td>claim_elements_not_extra_experiments</td><td>True</td><td>The five R377 claim elements are paper-routing facets inside E1-E3, not additional experiments.</td></tr>
+<tr><td>non_claims_preserved</td><td>True</td><td>The evidence packet keeps human utility, automatic detection/selection, metric dominance, and ecosystem compatibility out of scope.</td></tr>
+<tr><td>no_new_data_or_profiler_rerun</td><td>True</td><td>R377 reads tracked artifacts and paper text only; it does not sync data, relabel traces, or invoke agentpprof.</td></tr>
+<tr><td>english_submodule_input_committed</td><td>True</td><td>The English paper input must be clean inside docs/agentpprof-paper, and the parent index must point at the same submodule commit before R377 reports pass.</td></tr>
+<tr><td>source_status_tracked</td><td>True</td><td>All R377 sources are tracked or intentionally dirty/staged.</td></tr></table>
