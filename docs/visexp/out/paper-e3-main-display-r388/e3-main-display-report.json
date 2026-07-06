@@ -1,0 +1,123 @@
+{
+  "checks": [
+    {
+      "check": "e3_tables_present_once",
+      "detail": "Both drafts have exactly one E3 task diagnosis-card table.",
+      "passed": true
+    },
+    {
+      "check": "tables_live_inside_rq3_sections",
+      "detail": "Both actionability tables are located inside RQ3/E3 before RQ4/E4.",
+      "passed": true
+    },
+    {
+      "check": "six_task_rows_preserved",
+      "detail": "Missing task rows=[]; English rows=6; Chinese rows=6.",
+      "passed": true
+    },
+    {
+      "check": "task_card_numbers_preserved",
+      "detail": "Missing table tokens=[].",
+      "passed": true
+    },
+    {
+      "check": "section_actionability_numbers_preserved",
+      "detail": "Missing English=[]; missing Chinese=[].",
+      "passed": true
+    },
+    {
+      "check": "source_artifact_role_visible",
+      "detail": "R365/R373 are framed as provenance for the E3 main display, not new main experiments.",
+      "passed": true
+    },
+    {
+      "check": "no_hidden_label_leakage_or_auto_selector_claim",
+      "detail": "E3 keeps hidden-label no-leakage and automatic-selector/boundary/patch non-claims visible.",
+      "passed": true
+    },
+    {
+      "check": "ledger_records_r388_as_focus_gate_when_present",
+      "detail": "If R388 is present in the ledger, it is a paper-focus gate, not a profiler experiment.",
+      "passed": true
+    },
+    {
+      "check": "no_data_or_profiler_rerun",
+      "detail": "Runtime commands=['git_stdout(args)', 'git ls-files --error-unmatch -- <dynamic>', 'git diff --quiet -- <dynamic>', 'git diff --cached --quiet -- <dynamic>', 'git_stdout call: git rev-parse HEAD', 'git_stdout call: git ls-files -s -- <dynamic>']; forbidden hits=[]; non-git commands=[].",
+      "passed": true
+    }
+  ],
+  "claim": "RQ3/E3 presents task diagnosis cards as the main mechanism/actionability display with R365/R373 recorded as provenance.",
+  "generated_at_unix": 1783359998.3007653,
+  "run_id": "R388",
+  "source_status": [
+    {
+      "path": "script/paper_e3_main_display_r388.py",
+      "sha256": "e5e2b59c0d90c240149fd53cc3d140f5014019dc0321131e9c932d7260da67f1",
+      "source": "generator script",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/agentpprof-paper/main.tex",
+      "sha256": "c12e22f4f03219d28372696f9b185baad2c6f258c318ed8fd788b39a1c5fa317",
+      "source": "English paper",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/paper/main.tex",
+      "sha256": "d13f208ba479c2b5f0c9d16c7613ef4056704e41b6a3df99df9923678484efcc",
+      "source": "Chinese paper",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/evaluation.md",
+      "sha256": "5a2ff9cf2b73f0ce5056b3f94e133b1d8982fc425da7e7f8fa9228133fa5d02a",
+      "source": "evaluation ledger",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/agentpprof-paper",
+      "sha256": "submodule_head=d1681bf0ee33a005b245f565ae0aabf45c9437d0;parent_index=d1681bf0ee33a005b245f565ae0aabf45c9437d0",
+      "source": "English paper submodule gitlink",
+      "status": "tracked_dirty_allowed"
+    }
+  ],
+  "status": "pass",
+  "tables": {
+    "chinese_row_count": 6,
+    "english_row_count": 6,
+    "required_section_tokens": [
+      "5/6",
+      "36/36",
+      "27/36",
+      "25/36",
+      "35/60",
+      "7/60",
+      "2/42",
+      "0.0376",
+      "0.5750",
+      "0.2402",
+      "0.2583",
+      "108",
+      "74"
+    ],
+    "required_table_tokens": [
+      "Work@5 0.4938",
+      "R@5 0.6508",
+      "patch AP +0.1155",
+      "patch AP +0.0591",
+      "patch AP +0.5081",
+      "patch AP +0.0160",
+      "patch AP +0.0011",
+      "boundary AP 0.2583",
+      "groups to 74"
+    ],
+    "required_task_rows": [
+      "Looping",
+      "Side-effect",
+      "Unsafe operation",
+      "Incorrect step",
+      "Redundant step",
+      "Group start"
+    ]
+  }
+}
