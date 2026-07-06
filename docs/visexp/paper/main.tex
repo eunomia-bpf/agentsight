@@ -389,9 +389,9 @@ R365 进一步把 E2/E3 的同一证据压缩成 headline rows 和 task case car
 方便论文主文引用而不是展开 R-run 历史。它只读取 tracked artifacts，不下载
 数据、不重新标注、不重跑 profiler；因此 R365 是 paper-integration artifact，
 不是第五个实验，也不是 operation/operation-stack 之外的新 profiler object。
-表~\ref{tab:r365-headlines} 给出主文可引用的 compact 版本；case cards 则为
-6 个任务分别保留 best visible policy、operation-stack top-5 work/recall/lift、
-profile-spec patch verdict、optimization action 和 counterpoint。
+表~\ref{tab:r365-headlines} 给出主文可引用的 compact 版本。
+表~\ref{tab:r365-cases} 进一步展开 6 个任务的 case cards：每行保留 best visible policy、operation-stack top-5 work/recall/lift、profile-spec patch verdict、optimization action 和 counterpoint。
+这张表的作用是把 actionability claim 从 aggregate 数字落到真实任务：profiler 不只是排序 hot groups，还指出应该改 stack fields、ranker、mapping、profile spec，或者承认 flat/fixed-session/raw-action 是当前任务的反例视图。
 
 \begin{table*}[t]
   \centering
@@ -409,7 +409,16 @@ profile-spec patch verdict、optimization action 和 counterpoint。
     H4 & actionability & 27/36 objective rows need non-default actions；25/36 require view changes；R354 accepts 5/6 patches with median AP delta 0.0376 and lift delta 0.5750。 & 不是 automatic patch selector 或 human-productivity result。 \\
     H5 & boundary mechanism & Learned-boundary AP 0.2583 vs semantic-width 0.2402；groups 74 vs 108；top-5 recall delta +0.1111。 & Top-5 work 和 first-positive work 变差，说明它是 scoped repair。 \\
     \bottomrule
-  \end{tabular}
+\end{tabular}
+\end{table*}
+
+\begin{table*}[t]
+  \centering
+  \tiny
+  \setlength{\tabcolsep}{2pt}
+  \caption{R365 六个真实标注任务的 task-level case cards。每行只读取 tracked R320/R345/R348/R354 artifacts；hidden labels 只用于 scoring，不进入 visible policy 或 optimization action。}
+  \label{tab:r365-cases}
+  \input{../out/paper-headline-case-studies-r365/case-table.tex}
 \end{table*}
 
 R330--R334 和 R355 是同一个 E2 主实验的稳健性和边界审计，而不是额外小实验。
