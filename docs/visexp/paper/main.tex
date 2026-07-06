@@ -637,11 +637,10 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld/OSWorld-Human、OpenCUA/AgentNet、SA
 	当前证据支持 deterministic mappings、label-derived rules 和部分 supervised boundary backends 能派生 stackable operation fields，但不证明无监督或 LLM-backed intent detector 已经解决，也不证明一个 backend 能跨所有标签家族工作。
 	AgentRewardBench looping 被简单 \texttt{repeat\_signal\_change} baseline 完全解释，这说明每个 family 都需要 suitability、calibration 和 simple-baseline gate。
 
-	第二，R320 支持 profiler-localization claim，但不支持人类效用 claim。
-	R320 已经把 failure、safety、quality 和 human-boundary 问题转成 hidden-label ranking/localization benchmark，并证明 operation-stack profiling 对 flat summary 和 fixed-session drilldown 有 accuracy/work/fragmentation tradeoff。
-	R332 进一步显示这个 tradeoff 是 task- 和 metric-specific 的：最佳 visible view 不由单一 hierarchy 垄断，source-task selector 也不能稳定自动选中最优 view。
-	R333 进一步显示 20\%/30\% inspection budget 下 operation-stack query-aware 的 median recall 更高，但 fixed-session 仍保留 first-positive 低成本反例。
-	R334 把 fixed-session fragmentation 与 operation-work 成本拆开：它支持更少 group fragmentation 和同预算更少 groups，但同时确认 first-positive/work 指标仍不由 operation-stack 支配。
+	第二，E2 支持 profiler-localization claim，但不支持人类效用 claim。
+	E2 把 failure、safety、quality 和 human-boundary 问题转成 hidden-label ranking/localization benchmark，并证明 operation-stack profiling 相对 flat summary 和 fixed-session drilldown 有 accuracy/work/fragmentation tradeoff。
+	这个 tradeoff 是 task- 和 metric-specific 的：最佳 visible view 不由单一 hierarchy 垄断，source-task selector 不能稳定自动选中最优 view，20\%/30\% inspection budget 下 operation-stack query-aware 的 median recall 更高，但 fixed-session 仍保留 first-positive 低成本反例。
+	Fixed-session fragmentation 与 operation-work 成本也必须分开解释：operation-stack 支持更少 group fragmentation 和同预算更少 groups，但 first-positive/work 指标仍不由 operation-stack 支配。
 		Related-work/baseline audit 只把 grounding 转成可失败检查，不增加新的实证结果。
 		Protocol artifact 仍然有用，因为它把现有 visible packets 和 hidden answer key 固化为 6 个 tasks、3 个 views、24 个 participant slots 和 144 个 trials 的 balanced analyst-study protocol，并通过 visible-packet leakage check。
 		但该 study 现在只是可选增强，用来验证开发者或 agent analyst 是否更快或更准。
@@ -650,12 +649,11 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld/OSWorld-Human、OpenCUA/AgentNet、SA
 
 	第三，数据和互操作范围是轻量采样。
 	本文避免同步完整测试集、图片归档和 gated 数据，因此有些来源只覆盖前缀、子配置或 redacted rows。
-	Chrome Trace Event 和 agent-session exchange 当前是 exchange/reproducibility smoke；R306 覆盖本地 session fixture，R353 覆盖 tracked real labeled operation prefix。它们证明 trace 可以作为 exchange container，但不证明完整 OpenTelemetry/Chrome trace-ecosystem、Perfetto producer 或图像密集 benchmark 兼容。
+	Chrome Trace Event 和 agent-session exchange 当前只是 exchange/reproducibility smoke：它们覆盖本地 session fixture 和 tracked real labeled operation prefix，证明 trace 可以作为 exchange container，但不证明完整 OpenTelemetry/Chrome trace-ecosystem、Perfetto producer 或图像密集 benchmark 兼容。
 
-	第四，audit artifacts 是 claim-control surface，不是额外实证结果。
-			R338 进一步把 R320--R350 的论文数字、source policy、guardrails 和两抽象边界做成机械检查；result invariants、source-policy checks 和 guardrail checks 均通过。
-			R352 再把这些底层结果映射到 profiling-paper rubric，26/26 required checks 通过。
-		这些 audit artifacts 提高了论文表述、source path、负结果、related-work grounding、evaluation-rubric coverage 和 must-not-claim 边界的一致性，但它们只能审计底层 empirical artifacts。
+	第四，E4 和 audit artifacts 是 claim-control surface，不是额外实证结果。
+	Replay、paper-number、source-policy、guardrail 和两抽象边界检查提高了论文表述、source path、负结果、related-work grounding、evaluation-rubric coverage 和 must-not-claim 边界的一致性；当前 profiling-paper rubric coverage 为 26/26 required checks。
+	但这些 checks 只能审计底层 empirical artifacts。
 	如果底层采样或 oracle 本身有偏差，audit 能暴露并收窄 claim，不能消除偏差。
 	因此本文最终主张应固定为 two-abstraction mechanism 和 hidden-label profiler fidelity/work tradeoff，而不是 universal fixed-session dominance、automatic anomaly detection 或完整 human utility。
 
