@@ -4,7 +4,7 @@ R319 checks that the maintained Rust semantic-profiler path, canonical docs, and
 
 - Overall: `implementation_consistent`
 - Checks passed: 15 / 15
-- Commit at generation: `dc1f69f423bd22bb2e68f95438a4cd79cc65c732`
+- Commit at generation: `62aef13f5d680c5a13cf52b60305effb1e36377c`
 
 ## Checks
 

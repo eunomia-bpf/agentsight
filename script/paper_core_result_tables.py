@@ -22,6 +22,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT_ROOT = ROOT / "docs" / "visexp" / "out"
+SUBMODULE_ROOT = ROOT / "docs" / "agentpprof-paper"
 DEFAULT_OUT_DIR = OUT_ROOT / "paper-core-result-tables-r360"
 RUN_ID = "R360"
 
@@ -68,6 +69,7 @@ PAPER_SOURCES = {
     "evaluation ledger": ROOT / "docs" / "evaluation.md",
     "Chinese claim setup": ROOT / "docs" / "visexp" / "paper" / "evaluation-claims-setup.zh-CN.md",
     "Chinese paper": ROOT / "docs" / "visexp" / "paper" / "main.tex",
+    "English paper": SUBMODULE_ROOT / "main.tex",
 }
 
 
@@ -101,21 +103,27 @@ def sha256(path: Path) -> str:
 
 
 def git_status(path: Path) -> str:
+    repo_root = ROOT
     try:
-        display = str(path.resolve().relative_to(ROOT))
+        path.resolve().relative_to(SUBMODULE_ROOT)
+        repo_root = SUBMODULE_ROOT
+    except ValueError:
+        pass
+    try:
+        display = str(path.resolve().relative_to(repo_root))
     except ValueError:
         display = str(path)
     tracked = subprocess.run(
         ["git", "ls-files", "--error-unmatch", "--", display],
-        cwd=ROOT,
+        cwd=repo_root,
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
     if tracked.returncode != 0:
         return "untracked_or_missing"
-    unstaged = subprocess.run(["git", "diff", "--quiet", "--", display], cwd=ROOT)
-    staged = subprocess.run(["git", "diff", "--cached", "--quiet", "--", display], cwd=ROOT)
+    unstaged = subprocess.run(["git", "diff", "--quiet", "--", display], cwd=repo_root)
+    staged = subprocess.run(["git", "diff", "--cached", "--quiet", "--", display], cwd=repo_root)
     return "tracked_clean" if unstaged.returncode == 0 and staged.returncode == 0 else "tracked_dirty_allowed"
 
 

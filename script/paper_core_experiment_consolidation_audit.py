@@ -78,13 +78,19 @@ def sha256(path: Path) -> str:
 
 
 def git_status(path: Path) -> str:
+    repo_root = ROOT
     try:
-        rel = path.relative_to(ROOT)
+        path.resolve().relative_to(SUBMODULE_ROOT)
+        repo_root = SUBMODULE_ROOT
+    except ValueError:
+        pass
+    try:
+        rel = path.resolve().relative_to(repo_root)
     except ValueError:
         rel = path
     tracked = subprocess.run(
         ["git", "ls-files", "--error-unmatch", str(rel)],
-        cwd=ROOT,
+        cwd=repo_root,
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -94,10 +100,15 @@ def git_status(path: Path) -> str:
         return "untracked"
     dirty = subprocess.run(
         ["git", "diff", "--quiet", "--", str(rel)],
-        cwd=ROOT,
+        cwd=repo_root,
         check=False,
     )
-    if dirty.returncode != 0:
+    staged = subprocess.run(
+        ["git", "diff", "--cached", "--quiet", "--", str(rel)],
+        cwd=repo_root,
+        check=False,
+    )
+    if dirty.returncode != 0 or staged.returncode != 0:
         return "tracked_hashed_dirty"
     return "tracked_hashed"
 
