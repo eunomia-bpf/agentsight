@@ -350,10 +350,10 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | evaluation | R348 action counterfactual | R348 / 36 objective rows / 27/36 / 0.1447 | pass | 29,33,123,124,129,130,131,132 |
 | evaluation | R349 held-out action transfer | R349 / 60 aligned / 35/60 / 7/60 / 2/42 | pass | 29,131,132,133,134,459,460,461 |
 | evaluation | R350 evidence packet budget | R350 / 6/6 / 4/6 / 27/36 / 35/60 | pass | 29,64,68,76,77,93,95,108 |
-| zh_main | core experiment organization | 四个核心实验 / E1 / E2 / E3 / E4 | pass | 46,47,50,54,57,223,226,229 |
-| zh_main | E2 headline | 34,539 / 3,699 / 0.0937 / 285.0 / 157.5 | pass | 51,52,312,316,322,339,340,381 |
-| zh_main | E3 actionability headline | profile-configuration / 5/6 / 0.2402 / 0.2583 | pass | 52,54,56,147,149,184,322,342 |
-| zh_main | E4 guardrails | 76 / two-abstraction / 不声称 / human productivity | pass | 57,60,138,146,151,152,387,395 |
+| zh_main | core experiment organization | 四个核心实验 / E1 / E2 / E3 / E4 | pass | 46,47,50,54,57,223,237,238 |
+| zh_main | E2 headline | 34,539 / 3,699 / 0.0937 / 285.0 / 157.5 | pass | 51,52,238,331,335,341,358,359 |
+| zh_main | E3 actionability headline | profile-configuration / 5/6 / 0.2402 / 0.2583 | pass | 52,54,56,147,149,184,238,239 |
+| zh_main | E4 guardrails | 76 / two-abstraction / 不声称 / human productivity | pass | 57,60,138,146,151,152,240,406 |
 | en_main | core experiment organization | four paper-facing experiments / E1 / E2 / E3 / E4 | pass | 39,43,51,58,115,117,118,119 |
 | en_main | E2 headline | 34,539 / 3,699 / 0.0937 / 285.0 / 157.5 | pass | 45,46,47,49,237,238,239,354 |
 | en_main | E3 actionability headline | profile-configuration / 5 of 6 / 0.2402 / 0.2583 | pass | 49,51,57,247,307,308,317,425 |
@@ -682,11 +682,11 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | zh_claim_setup | automatic_boundary | pass | 12 | 23,25,26,47,48,50,51,52,53,78,150,152 | none |
 | zh_claim_setup | ecosystem_compatibility | pass | 8 | 22,96,114,181,228,265,266,267 | none |
 | zh_claim_setup | universal_selector | pass | 12 | 26,34,36,37,38,41,42,43,44,45,46,47 | none |
-| zh_main | human_utility | pass | 8 | 60,180,355,394,474,554,565,587 | none |
-| zh_main | automatic_boundary | pass | 3 | 359,390,473 | none |
-| zh_main | ecosystem_compatibility | pass | 12 | 138,355,501,509,510,513,558,585,588,597,607,608 | none |
-| zh_main | universal_selector | pass | 7 | 384,390,394,472,547,581,587 | none |
-| en_main | human_utility | pass | 7 | 69,99,112,242,256,617,716 | none |
-| en_main | automatic_boundary | pass | 4 | 250,569,605,832 | none |
-| en_main | ecosystem_compatibility | pass | 12 | 68,750,752,760,762,763,764,771,833,834,864,869 | none |
-| en_main | universal_selector | pass | 8 | 250,460,463,519,592,618,832,863 | none |
+| zh_main | human_utility | pass | 8 | 60,180,240,374,413,554,565,587 | none |
+| zh_main | automatic_boundary | pass | 3 | 239,378,409 | none |
+| zh_main | ecosystem_compatibility | pass | 12 | 138,374,501,509,510,513,558,585,588,597,607,608 | none |
+| zh_main | universal_selector | pass | 7 | 238,403,409,413,547,581,587 | none |
+| en_main | human_utility | pass | 7 | 69,99,112,242,256,638,717 | none |
+| en_main | automatic_boundary | pass | 4 | 250,569,605,833 | none |
+| en_main | ecosystem_compatibility | pass | 12 | 68,751,753,761,763,764,765,772,834,835,865,870 | none |
+| en_main | universal_selector | pass | 8 | 250,460,463,519,592,639,833,864 | none |

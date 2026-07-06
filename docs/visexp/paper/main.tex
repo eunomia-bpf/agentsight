@@ -223,6 +223,25 @@ R328 在同一 76 个 specs 上启用 \texttt{--deterministic-output}，使 raw-
 论文主体收敛为四个核心实验：E1 验证 operation coverage、递归 stack folding、field derivation 和人工边界都能落在同一个两抽象模型中；E2 是 hidden-label localization/ranking 主实验；E3 通过 ranker、stack、mapping、transfer、case 和 profile-spec patch 消融隔离机制与 actionability；E4 检查 profile-spec 可复现性和离线成本，claim-integrity guardrails 只作为 artifact hygiene。
 R 编号只作为 provenance，不是论文的小节结构。
 
+\begin{table*}[t]
+  \centering
+  \tiny
+  \setlength{\tabcolsep}{2.2pt}
+  \renewcommand{\arraystretch}{0.92}
+  \caption{四个 paper-facing 核心实验。R 编号只作为 provenance、ablation、counterpoint 或 audit gate 保留在 evaluation ledger；R360 从 tracked artifacts 重新生成该表的 headline metrics。}
+  \label{tab:results}
+  \begin{tabular}{p{0.18\linewidth}p{0.22\linewidth}p{0.28\linewidth}p{0.24\linewidth}}
+    \toprule
+    Core experiment & Workload / oracle & Main evidence & Scoped conclusion \\
+    \midrule
+    E1: coverage, recursive folding, and field derivation & 15 public labeled trace families / 47,590 operations, plus local-session and standard-trace exchange fixtures. OSWorld-Human and AgentNet provide the strongest boundary and step-quality oracles. & Core sources contain 42,590 operations, ScaleCUA brings the smoke set to 47,590, and the same R286 operations fold from 9 dataset stacks to 57 phase, 226 semantic, 455 action, or 3,757 fixed-session stacks. AgentNet profile-spec override changes 608 stacks to 83 without changing input operations. Held-out mapping improves compression from 14.049 to 19.091; OSWorld-Human learned boundary F1 reaches 0.7735 on held-out pairs. & Heterogeneous traces enter one operation layer, and stack depth is a recursive query over fields. Mapping, tagging, and boundary backends derive fields before folding; they do not add prompt/session/tool/safety-specific profiler objects. \\
+    E2: hidden-label localization and ranking & Six failure, safety, quality, and boundary tasks over AgentRewardBench, SATraj-OS, AgentNet, and OSWorld-Human; 34,539 operations / 3,699 positives. & R320 scores 144 view/ranker policies. Query-aware operation-stack top-5 groups inspect median 0.0937 work versus 1.0 for flat, improve top-5 recall over fixed-session on 5/6 tasks, and reduce median groups from 285.0 to 157.5. R333/R334/R337/R339/R355 add work-budget, fragmentation, fixed-recall, sequence-scope, and oracle-depth checks; R330/R331/R344 add uncertainty, permutation negative control, and multi-metric guardrails. & Operation-stack profiling is faithful to dataset-provided hidden labels under this benchmark and gives a better inspection-work/fragmentation Pareto point than flat or fixed-session alone. It is not a universal detector, a single best hierarchy, or a work-dominant replacement for drilldown views. \\
+    E3: mechanism and actionability & The same six labeled tasks, plus held-out OSWorld-Human boundary-backend operations from R297. & R324/R325/R326 show operation-level rank features, leave-one-feature ablations, and equal/global policies expose useful and misleading fields. R340/R341/R345-R350 show policy transfer, mechanism attribution, diagnostic lenses, casebook, baseline contrast, action counterfactuals, and evidence packets. R354 materializes 5/6 profile-spec patches; R358 shows learned-boundary fields improve OSWorld-Human AP to 0.2583 and reduce groups to 74, but increase top-5 work and first-positive work. & The profiler produces profile-configuration actionability: which stack fields, mappings, rankers, lenses, and drilldown depths to tune. R349/R354/R358 keep automatic action selection, automatic patch selection, and automatic boundary discovery out of scope. \\
+    E4: reproducibility and offline cost & 76 tracked profile specs over tracked operation JSONL inputs; no dataset sync or human/agent analyst task. & R327/R328 repeat the specs twice for 152 profiler invocations. Semantic determinism is 76/76 in both modes; deterministic output makes raw-byte determinism 76/76 with median runtime 1.601s and p95 2.767s in the clean rerun. & The offline profiling artifact is replayable and cheap enough for artifact evaluation; this does not measure live capture overhead, human productivity, or trace-ecosystem compatibility. \\
+    \bottomrule
+  \end{tabular}
+\end{table*}
+
 \subsection{E1：覆盖、递归折叠和边界字段}
 
 R361 将本节的 evidence contract 固定为：claim 是两抽象模型能覆盖异构 agent traces 且不把 prompt/session/tool 边界写死；oracle 是 public dataset labels、native trajectory fields、OSWorld-Human human boundary 和 AgentNet quality labels；baseline 包括 dataset-native stacks、no-map folding、fixed-session stacks、profile-spec replay 和 trace round trip；metric 包括 operation coverage、unique-stack range、mapping compression、boundary F1/V-measure 和 replay equality；counterpoint 是这只能支持 configurable operation stack folding，不能支持完整生态兼容或自动恢复所有 latent intent。Prompt、session、tool、process 和 syscall 都只能作为 operation forms 或 operation fields 出现，not new profiler objects。
@@ -456,25 +475,6 @@ R352 再把当前结果集映射到 OSDI-style profiling-paper rubric：它复�
     \bottomrule
   \end{tabular}
 \end{table}
-
-\begin{table*}[t]
-  \centering
-  \tiny
-  \setlength{\tabcolsep}{2.2pt}
-  \renewcommand{\arraystretch}{0.92}
-  \caption{四个 paper-facing 核心实验。R 编号只作为 provenance、ablation、counterpoint 或 audit gate 保留在 evaluation ledger；R360 从 tracked artifacts 重新生成该表的 headline metrics。}
-  \label{tab:results}
-  \begin{tabular}{p{0.18\linewidth}p{0.22\linewidth}p{0.28\linewidth}p{0.24\linewidth}}
-    \toprule
-    Core experiment & Workload / oracle & Main evidence & Scoped conclusion \\
-    \midrule
-    E1: coverage, recursive folding, and field derivation & 15 public labeled trace families / 47,590 operations, plus local-session and standard-trace exchange fixtures. OSWorld-Human and AgentNet provide the strongest boundary and step-quality oracles. & Core sources contain 42,590 operations, ScaleCUA brings the smoke set to 47,590, and the same R286 operations fold from 9 dataset stacks to 57 phase, 226 semantic, 455 action, or 3,757 fixed-session stacks. AgentNet profile-spec override changes 608 stacks to 83 without changing input operations. Held-out mapping improves compression from 14.049 to 19.091; OSWorld-Human learned boundary F1 reaches 0.7735 on held-out pairs. & Heterogeneous traces enter one operation layer, and stack depth is a recursive query over fields. Mapping, tagging, and boundary backends derive fields before folding; they do not add prompt/session/tool/safety-specific profiler objects. \\
-    E2: hidden-label localization and ranking & Six failure, safety, quality, and boundary tasks over AgentRewardBench, SATraj-OS, AgentNet, and OSWorld-Human; 34,539 operations / 3,699 positives. & R320 scores 144 view/ranker policies. Query-aware operation-stack top-5 groups inspect median 0.0937 work versus 1.0 for flat, improve top-5 recall over fixed-session on 5/6 tasks, and reduce median groups from 285.0 to 157.5. R333/R334/R337/R339/R355 add work-budget, fragmentation, fixed-recall, sequence-scope, and oracle-depth checks; R330/R331/R344 add uncertainty, permutation negative control, and multi-metric guardrails. & Operation-stack profiling is faithful to dataset-provided hidden labels under this benchmark and gives a better inspection-work/fragmentation Pareto point than flat or fixed-session alone. It is not a universal detector, a single best hierarchy, or a work-dominant replacement for drilldown views. \\
-    E3: mechanism and actionability & The same six labeled tasks, plus held-out OSWorld-Human boundary-backend operations from R297. & R324/R325/R326 show operation-level rank features, leave-one-feature ablations, and equal/global policies expose useful and misleading fields. R340/R341/R345-R350 show policy transfer, mechanism attribution, diagnostic lenses, casebook, baseline contrast, action counterfactuals, and evidence packets. R354 materializes 5/6 profile-spec patches; R358 shows learned-boundary fields improve OSWorld-Human AP to 0.2583 and reduce groups to 74, but increase top-5 work and first-positive work. & The profiler produces profile-configuration actionability: which stack fields, mappings, rankers, lenses, and drilldown depths to tune. R349/R354/R358 keep automatic action selection, automatic patch selection, and automatic boundary discovery out of scope. \\
-    E4: reproducibility and offline cost & 76 tracked profile specs over tracked operation JSONL inputs; no dataset sync or human/agent analyst task. & R327/R328 repeat the specs twice for 152 profiler invocations. Semantic determinism is 76/76 in both modes; deterministic output makes raw-byte determinism 76/76 with median runtime 1.601s and p95 2.767s in the clean rerun. & The offline profiling artifact is replayable and cheap enough for artifact evaluation; this does not measure live capture overhead, human productivity, or trace-ecosystem compatibility. \\
-    \bottomrule
-  \end{tabular}
-\end{table*}
 
 R360 把表~\ref{tab:results} 的核心数字做成可复现 artifact：脚本只读取 R360 source-status 中列出的 tracked upstream results 和当前 paper/docs，输出 JSON、CSV、Markdown、HTML 和 LaTeX table fragment；7/7 checks 通过，其中包括 fixed-session drilldown 作为当前 trace-tree-shaped baseline 的 scope 检查。R360 不是新的 empirical result，也不重新排名或同步数据集；R338/R352/R356/R357/R359/R361 只作为 artifact hygiene 和 claim-scope gate，不作为主表的 scientific evidence。
 R361 进一步把 E1--E4 表格整理成 claim-evidence ledger：每个核心实验都必须给出 claim、research question、oracle、baselines、primary metrics、headline result、actionable insight、counterpoint、scoped wording 和 source runs。该 gate 10/10 checks 通过，覆盖 hidden-label scale/metric surface、baseline tradeoff 而不是 metric dominance、oracle-depth/fragmentation、mechanism/actionability counterpoints、reproducibility guardrails、two-abstraction boundary 和 must-not-claim guardrails。R361 仍然只是 paper-structure artifact，不是新的实验，不重新跑 profiler，也不做 dataset sync、creation 或 relabeling。
