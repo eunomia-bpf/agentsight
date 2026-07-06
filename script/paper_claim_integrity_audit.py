@@ -31,6 +31,8 @@ RUN_ID = "R338"
 ABSTRACTIONS = ["operation", "operation stack"]
 
 R320_DIR = OUT_ROOT / "operation-profile-accuracy-r320"
+R327_DIR = OUT_ROOT / "operation-profile-cost-r327"
+R328_DIR = OUT_ROOT / "operation-profile-deterministic-output-r328"
 R333_DIR = OUT_ROOT / "operation-inspection-frontier-r333"
 R334_DIR = OUT_ROOT / "operation-fragmentation-tradeoff-r334"
 R335_DIR = OUT_ROOT / "operation-actionability-synthesis-r335"
@@ -51,6 +53,8 @@ R350_DIR = OUT_ROOT / "operation-evidence-packet-r350"
 SOURCE_ARTIFACTS = {
     "R320 report": R320_DIR / "profile-accuracy-report.json",
     "R320 policy scores": R320_DIR / "policy-scores.csv",
+    "R327 report": R327_DIR / "profile-cost-report.json",
+    "R328 report": R328_DIR / "deterministic-output-report.json",
     "R333 report": R333_DIR / "inspection-frontier-report.json",
     "R333 curve summary": R333_DIR / "policy-curve-summary.csv",
     "R334 report": R334_DIR / "fragmentation-tradeoff-report.json",
@@ -593,6 +597,8 @@ def validate_source_policies(reports: dict[str, dict[str, Any]]) -> list[dict[st
 
 def build_number_checks(
     reports: dict[str, dict[str, Any]],
+    r327_report: dict[str, Any],
+    r328_report: dict[str, Any],
     r320_scores: list[dict[str, str]],
     r333_summary: list[dict[str, str]],
     r334_default: list[dict[str, str]],
@@ -634,6 +640,33 @@ def build_number_checks(
     r350_budget_summary: list[dict[str, str]],
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
+    r327 = r327_report["summary"]
+    r328 = r328_report["summary"]
+    add_check(rows, run_id="R327", key="status", actual=r327_report["status"], expected="pass", source="R327 profile-cost-report.json", paper_token="R327")
+    add_check(rows, run_id="R327", key="source_check", actual=r327_report["source_check"]["status"], expected="pass", source="R327 source_check.status", paper_token="tracked")
+    add_check(rows, run_id="R327", key="specs", actual=r327["specs"], expected=76, source="R327 summary.specs", paper_token="76")
+    add_check(rows, run_id="R327", key="profiler_invocations", actual=r327["profiler_invocations"], expected=152, source="R327 summary.profiler_invocations", paper_token="152")
+    add_check(rows, run_id="R327", key="semantic_deterministic_specs", actual=r327["semantic_deterministic_specs"], expected="76/76", source="R327 summary.semantic_deterministic_specs", paper_token="76/76")
+    add_check(rows, run_id="R327", key="raw_byte_deterministic_specs", actual=r327["raw_byte_deterministic_specs"], expected="4/76", source="R327 summary.raw_byte_deterministic_specs", paper_token="4/76")
+    add_check(rows, run_id="R327", key="median_runtime_s", actual=round(r327["median_runtime_ms"] / 1000, 3), expected=1.581, source="R327 summary.median_runtime_ms", paper_token="1.581")
+    add_check(rows, run_id="R327", key="p95_runtime_s", actual=round(r327["p95_runtime_ms"] / 1000, 3), expected=2.719, source="R327 summary.p95_runtime_ms", paper_token="2.719")
+    add_check(rows, run_id="R327", key="max_runtime_s", actual=round(r327["max_runtime_ms"] / 1000, 3), expected=4.273, source="R327 summary.max_runtime_ms", paper_token="4.273")
+    add_check(rows, run_id="R327", key="median_output_bytes", actual=round(r327["median_output_bytes"]), expected=37546, source="R327 summary.median_output_bytes", paper_token="37,546")
+    add_check(rows, run_id="R327", key="max_unique_stacks", actual=r327["max_unique_stacks"], expected=2012, source="R327 summary.max_unique_stacks", paper_token="2,012")
+    add_check(rows, run_id="R328", key="status", actual=r328_report["status"], expected="pass", source="R328 deterministic-output-report.json", paper_token="R328")
+    add_check(rows, run_id="R328", key="source_check", actual=r328_report["source_check"]["status"], expected="pass", source="R328 source_check.status", paper_token="tracked")
+    add_check(rows, run_id="R328", key="git_status_short", actual=r328_report["source_status"]["git_status_short"], expected="", source="R328 source_status.git_status_short", paper_token="git/code status")
+    add_check(rows, run_id="R328", key="code_status_short", actual=r328_report["source_status"]["code_status_short"], expected="", source="R328 source_status.code_status_short", paper_token="git/code status")
+    add_check(rows, run_id="R328", key="specs", actual=r328["specs"], expected=76, source="R328 summary.specs", paper_token="76")
+    add_check(rows, run_id="R328", key="profiler_invocations", actual=r328["profiler_invocations"], expected=152, source="R328 summary.profiler_invocations", paper_token="152")
+    add_check(rows, run_id="R328", key="semantic_deterministic_specs", actual=r328["semantic_deterministic_specs"], expected="76/76", source="R328 summary.semantic_deterministic_specs", paper_token="76/76")
+    add_check(rows, run_id="R328", key="raw_byte_deterministic_specs", actual=r328["raw_byte_deterministic_specs"], expected="76/76", source="R328 summary.raw_byte_deterministic_specs", paper_token="76/76")
+    add_check(rows, run_id="R328", key="median_runtime_s", actual=round(r328["median_runtime_ms"] / 1000, 3), expected=1.601, source="R328 summary.median_runtime_ms", paper_token="1.601")
+    add_check(rows, run_id="R328", key="p95_runtime_s", actual=round(r328["p95_runtime_ms"] / 1000, 3), expected=2.767, source="R328 summary.p95_runtime_ms", paper_token="2.767")
+    add_check(rows, run_id="R328", key="max_runtime_s", actual=round(r328["max_runtime_ms"] / 1000, 3), expected=4.34, source="R328 summary.max_runtime_ms", paper_token="4.340")
+    add_check(rows, run_id="R328", key="median_output_bytes", actual=round(r328["median_output_bytes"]), expected=37546, source="R328 summary.median_output_bytes", paper_token="37,546")
+    add_check(rows, run_id="R328", key="max_unique_stacks", actual=r328["max_unique_stacks"], expected=2012, source="R328 summary.max_unique_stacks", paper_token="2,012")
+
     r320 = reports["R320"]
     totals = r320["totals"]
     add_check(rows, run_id="R320", key="datasets", actual=totals["datasets"], expected=4, source="R320 totals")
@@ -1950,6 +1983,8 @@ def build_payload() -> dict[str, Any]:
         "R349": load_json(SOURCE_ARTIFACTS["R349 report"]),
         "R350": load_json(SOURCE_ARTIFACTS["R350 report"]),
     }
+    r327_report = load_json(SOURCE_ARTIFACTS["R327 report"])
+    r328_report = load_json(SOURCE_ARTIFACTS["R328 report"])
     r320_scores = read_csv(SOURCE_ARTIFACTS["R320 policy scores"])
     r333_summary = read_csv(SOURCE_ARTIFACTS["R333 curve summary"])
     r334_default = read_csv(SOURCE_ARTIFACTS["R334 default comparisons"])
@@ -1991,6 +2026,8 @@ def build_payload() -> dict[str, Any]:
 
     number_checks = build_number_checks(
         reports,
+        r327_report,
+        r328_report,
         r320_scores,
         r333_summary,
         r334_default,
