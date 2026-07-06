@@ -1147,6 +1147,7 @@ cargo run --manifest-path agentpprof/Cargo.toml -- \
 | E2 main-display gate over the hidden-label localization benchmark table, baseline rows, headline numbers, and scoped non-claims is implemented and tracked under R387. | done |
 | E3 main-display gate over the task diagnosis cards, actionability numbers, source-artifact role, and non-claim boundaries is implemented and tracked under R388. | done |
 | E4 main-display gate over replayability/cost, deterministic-output repair, source-artifact role, and artifact-hygiene non-claims is implemented and tracked under R389. | done |
+| Novelty-positioning and core-experiment organization gate over the Chinese/English drafts, related-work map, idea story, and evaluation ledger is implemented and tracked under R390. | done |
 | Flat/fixed/mapped stack ablation is tracked under R277. | done |
 | Operation-stack quality scorer is implemented and tracked under R280. | done |
 | Learned-from-labeled-fields op-map generation is implemented and tracked under R281. | done |

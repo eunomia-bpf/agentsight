@@ -44,6 +44,7 @@ AI agent 的执行历史已经不再只是一次 prompt 或一棵 trace tree。
 \op{} 是带字段和权重的观测，prompt、tool call、process、syscall、GUI action 和 plan step 可以是 operation 记录或派生字段；session、span、task 和 trace id 是 operation fields、交换容器或 baseline shape，不是新的 profiler 对象。
 \opstack{} 是用户从字段中选择的递归投影，mapping 和 tagging 在 stack 构造前派生字段，而不是创建第三种 profiler 对象。
 关键点是聚合不是第三个对象，也不是固定 trace tree；聚合由 query time 选择的 stack 形态决定。
+这不是单纯的 query-time aggregation 或 flamegraph renderer claim；scoped novelty 是 agent-operation record、recursive multi-field operation-stack projection 和 hidden-label profile-group scoring 的组合。
 我们在 Rust \toolname{} 中实现该模型，并把论文评估组织成三个核心经验性 profiling 实验（RQ1/E1 到 RQ3/E3）加一个 artifact/reproducibility block（RQ4/E4），而不是按 R 编号罗列小实验。
 RQ1/E1 验证泛化覆盖和递归 operation-stack 形成：在 15 个轻量采样的公开标注轨迹来源上，\toolname{} 把 47,590 个 samples 投影到同一 operation layer；同一批 13,265 个 operations 可以从 9 个 dataset stacks 折叠为 57 个 phase stacks、226 个 semantic stacks、455 个 action stacks，或 3,757 个 fixed-session stacks，而不改变输入 operation。
 这说明 prompt、tool、GUI action、process 和人工边界都进入 operation layer；session/span 只作为字段、容器或对照视图参与 stack 查询，不是新的 profiler 抽象。
@@ -669,6 +670,7 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld/OSWorld-Human、OpenCUA/AgentNet、SA
 Executable profile-spec patch 进一步证明这种 profile-configuration actionability 可以落到 Rust profiler 配置上：5/6 patches 改善 AP、top-5 lift 和 first-positive work；OSWorld-Human reject 再由 boundary-derived operation fields 改善 AP 和 groups，但保留 work 反例。
 
 	因此本文的新意不在单个 flamegraph，而在两个抽象形成的统一接口。
+	它也不在通用 query-time aggregation、trace schema 或 observability dashboard 本身；这些能力已经由 pprof、Perfetto、OpenTelemetry/OpenInference 和 LLM observability systems 覆盖到不同程度。
 	Mapping、tagging、profile specs、agent-session trace、Chrome/Perfetto-style trace exchange、boundary backends 和 reviewer evidence packets 都只围绕 operation fields 与 operation-stack queries 工作。
 	它们让用户和实验者能在同一批 operations 上选择不同 view、派生不同 fields、折叠不同深度，并审计每个 claim 的证据来源。
 	当前 value claim 是相对 dataset-provided hidden labels 的 profiler fidelity、label-scored ranking/localization、inspection-cost/fragmentation tradeoff 和 profile-configuration actionability；不是 detector、human utility、baseline dominance、automatic patch selector 或 ecosystem compatibility。
