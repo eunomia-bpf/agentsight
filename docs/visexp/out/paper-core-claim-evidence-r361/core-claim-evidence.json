@@ -31,8 +31,8 @@
       "status": "pass"
     },
     {
-      "check": "reproducibility_and_review_gates",
-      "evidence": "R352/R357/R359/R360 pass the current paper-facing gates.",
+      "check": "artifact_hygiene_gates_available",
+      "evidence": "R352/R357/R359/R360 pass as artifact-hygiene gates, not empirical profiler evidence.",
       "status": "pass"
     },
     {
@@ -51,8 +51,8 @@
       "status": "pass"
     }
   ],
-  "commit": "c306ee407aedc1e515a5d6ca277cbef275df835d",
-  "elapsed_s": 0.114,
+  "commit": "0cf44a17d3062c985c0f60409802f774ea2872c8",
+  "elapsed_s": 0.117,
   "input_policy": {
     "dataset_creation": "none",
     "dataset_relabeling": "none",
@@ -102,17 +102,17 @@
       "research_question": "Which mechanisms explain localization improvements, and can profile-guided changes improve outputs without leaking hidden labels into the profiler input?"
     },
     {
-      "actionable_insight": "The artifact path is replayable without dataset sync, relabeling, or hidden human-study assumptions, so reviewers can audit paper numbers from tracked outputs.",
-      "baselines": "deterministic versus raw replay, source-status checks, paper-number checks, rubric checks, reviewer acceptance checks, and two-abstraction guardrails.",
-      "claim": "The offline profiling path and paper claims are reproducible, low-cost enough for artifact evaluation, and guarded against overclaiming.",
-      "core_experiment": "E4: reproducibility, cost, and claim integrity",
+      "actionable_insight": "The artifact path is replayable without dataset sync, relabeling, or hidden human-study assumptions.",
+      "baselines": "default output versus deterministic-output replay, semantic profile hashes versus raw-byte profile hashes, and tracked-clean source-status checks.",
+      "claim": "The offline profiling path is replayable over tracked inputs at low local cost.",
+      "core_experiment": "E4: reproducibility and artifact hygiene",
       "counterpoint_or_scope": "This is offline artifact reproducibility, not live eBPF overhead, full OpenTelemetry/Phoenix/LangSmith/Langfuse/Perfetto compatibility, or human productivity evidence.",
-      "headline_result": "deterministic_profile_specs=76/76 semantic, 76/76 raw-byte, 152 invocations (R328); offline_runtime=median 1.6011s, p95 2.7672s (R328); claim_integrity_gate=350/350 numbers, 16/16 guardrails (R338); evaluation_rubric_and_reviewer_gate=R352 level_4_scoped_profile_benchmark; R357 4/4 ACCEPT; R359 13/13 core-table checks (R352/R357/R359); R352 rubric level level_4_scoped_profile_benchmark; R357 reviewer ACCEPT 4/4; R359 core checks 13/13.",
-      "oracle": "Tracked profile specs, tracked operation inputs, paper/doc hashes, claim-integrity audits, and four independent reviewer-style acceptance checks.",
-      "paper_wording": "Supported as scoped profiling-paper evidence with explicit must-not-claim guardrails.",
-      "primary_metrics": "deterministic spec pass rate, profiler invocations, median/p95 runtime, number-check pass rate, guardrail pass rate, rubric level, reviewer ACCEPT count, and core-table checks.",
-      "primary_sources": "R328; R338; R352; R356; R357; R359; R360",
-      "research_question": "Can reviewers rerun the profile-spec path and verify that paper numbers, source provenance, two-abstraction wording, and non-claims remain aligned?"
+      "headline_result": "deterministic_profile_specs=76/76 semantic, 76/76 raw-byte, 152 invocations (R328); offline_runtime=median 1.6011s, p95 2.7672s (R328)",
+      "oracle": "Tracked profile specs, tracked operation inputs, repeated profiler outputs, runtime logs, and source-status rows.",
+      "paper_wording": "Supported as replayable offline profiling artifact evidence; claim-integrity, rubric, and reviewer-style gates are artifact hygiene rather than scientific evidence.",
+      "primary_metrics": "deterministic spec pass rate, profiler invocations, median/p95 runtime, sample equality, stack equality, and raw-byte output equality.",
+      "primary_sources": "R328; R360",
+      "research_question": "Can reviewers rerun the profile-spec path and reproduce stable profile outputs without dataset sync, relabeling, or hidden human-study assumptions?"
     }
   ],
   "not_a_human_study_result": true,
@@ -127,7 +127,7 @@
   "source_status": [
     {
       "path": "script/paper_core_claim_evidence.py",
-      "sha256": "3ed4ece9ccd029388a7d62f88661dabb865d378c6d617d12130122df2d22277c",
+      "sha256": "42be97651b27c0497ba14caf8659926c9cbb16f909ea4509395f2a1d5bc1840c",
       "source": "generator script",
       "status": "tracked_dirty_allowed"
     },
@@ -139,7 +139,7 @@
     },
     {
       "path": "docs/visexp/out/paper-evaluation-rubric-r352/evaluation-rubric-report.json",
-      "sha256": "04a19e1ec2646d5ef1f575afce2394c9e5adda7c2c52cb6a48aee4915bc017e9",
+      "sha256": "96745ea628de49c4f9055f5bd9c6bbe93d95ee65315af6a40def25919201dc60",
       "source": "R352 evaluation rubric",
       "status": "tracked_dirty_allowed"
     },
@@ -157,7 +157,7 @@
     },
     {
       "path": "docs/visexp/out/paper-reviewer-acceptance-r357/reviewer-acceptance-r357.json",
-      "sha256": "867719385bce17d654f6c7454c58e95978249c553ad6e96bcc3b9ffcc80e539f",
+      "sha256": "185021d6c803c484b0882e8bc91e93f60077b00c8ddfe88eba09b17474d85f7e",
       "source": "R357 reviewer acceptance",
       "status": "tracked_dirty_allowed"
     },
@@ -175,27 +175,27 @@
     },
     {
       "path": "docs/visexp/out/paper-core-result-tables-r360/core-result-tables.json",
-      "sha256": "af511b1eacd3494c602d6dde7b3f205510c8e02263b9319c0de5e7992f92bf0b",
+      "sha256": "ee1f2be512f888e75b5e625cd887714b6ad290b61443f72de532414aea487e1a",
       "source": "R360 core result table",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/evaluation.md",
-      "sha256": "6d3b8dbfa5d833b128f2ee7ba0e7024874a98fbf470f3c6dd788cb5800395f61",
+      "sha256": "cc1ab4c7c2a58298cbb8699d15fcdb38be7c573e9345fb5c0362712e9504d4f9",
       "source": "evaluation ledger",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/paper/main.tex",
-      "sha256": "816e57ab9e570a6cbde7b0453d5eac314abfdf1e52174dc40a70a6ba1e2a54a5",
+      "sha256": "89268779eae8caa720ba456f4be2a104dd030fc1b14164fbfbc9babfcff5b1fe",
       "source": "Chinese paper",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/agentpprof-paper/main.tex",
-      "sha256": "9a42da19c067610f83dbb17ca35c0c3ab7897ea88cc5d1ef446778f15381baac",
+      "sha256": "0c7b7294638251174c4d4c0a9cdc27f76d90e216fcb5a54500281f5fe4495f03",
       "source": "English paper",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     }
   ],
   "status": "pass",

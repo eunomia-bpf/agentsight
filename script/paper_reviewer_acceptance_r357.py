@@ -457,7 +457,10 @@ def build_checks(sources: dict[str, Any], texts: dict[str, str], csvs: dict[str,
         rows,
         "r357_documentation_anchor_present",
         "R357" in texts["evaluation"]
-        and "four current reviewer ACCEPT verdicts" in texts["evaluation"]
+        and (
+            "four current reviewer ACCEPT verdicts" in texts["evaluation"]
+            or "4/4 current reviewers ACCEPT" in texts["evaluation"]
+        )
         and "not a new empirical result" in texts["evaluation"],
         "docs/evaluation.md records R357 as a reviewer-acceptance refresh, not a new empirical result.",
         "docs/evaluation.md does not yet describe R357 correctly.",

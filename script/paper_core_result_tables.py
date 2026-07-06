@@ -322,22 +322,6 @@ def metric_rows(data: dict[str, dict[str, Any]]) -> list[dict[str, str]]:
             "baseline_or_comparator": "76 tracked profile specs",
             "evidence": "R328",
         },
-        {
-            "experiment": "E4",
-            "metric": "claim_integrity_gate",
-            "value": f"{r338['number_checks_passed']}/{r338['number_checks_total']} numbers, "
-            f"{r338['guardrail_checks_passed']}/{r338['guardrail_checks_total']} guardrails",
-            "baseline_or_comparator": "paper text vs artifact hashes",
-            "evidence": "R338",
-        },
-        {
-            "experiment": "E4",
-            "metric": "evaluation_rubric_and_reviewer_gate",
-            "value": f"R352 {r357['r352_rubric_level']}; R357 {r357['final_accepts']}/{r357['reviewers']} ACCEPT; "
-            f"R359 {r359['checks_passed']}/{r359['checks_total']} core-table checks",
-            "baseline_or_comparator": "claim-scope gates",
-            "evidence": "R352/R357/R359",
-        },
     ]
     return rows
 
@@ -366,10 +350,10 @@ def experiment_rows(metrics: list[dict[str, str]]) -> list[dict[str, str]]:
             "conclusion": "Supported as actionable profile-spec and field/ranker guidance, not an automatic selector or boundary detector.",
         },
         "E4": {
-            "core_experiment": "E4: reproducibility, cost, and claim integrity",
-            "claim": "The offline profiler path is reproducible, auditable, and scoped by explicit non-claims.",
-            "workload": "Tracked profile specs, current paper/docs hashes, and claim-scope gates.",
-            "conclusion": "Supported as reproducible offline profiling-paper evidence, not live overhead or complete trace-ecosystem compatibility.",
+            "core_experiment": "E4: reproducibility and offline cost",
+            "claim": "The offline profiler path is replayable over tracked inputs at low local cost.",
+            "workload": "76 tracked profile specs over tracked operation JSONL inputs.",
+            "conclusion": "Supported as replayable offline profiling artifact evidence, not live overhead, human productivity, or trace-ecosystem compatibility.",
         },
     }
     rows: list[dict[str, str]] = []
@@ -421,7 +405,7 @@ def build_checks(data: dict[str, dict[str, Any]], metrics: list[dict[str, str]],
             "evidence": "R354/R358 actionability and boundary-field tokens are present.",
         },
         {
-            "check": "reproducibility_tokens_present",
+            "check": "artifact_hygiene_gates_available",
             "status": "pass"
             if r328["semantic_deterministic_specs"] == "76/76"
             and r338["number_checks_passed"] == r338["number_checks_total"] == 350
@@ -429,7 +413,7 @@ def build_checks(data: dict[str, dict[str, Any]], metrics: list[dict[str, str]],
             and r357["overall"] == "accepted"
             and r359["status"] == "pass"
             else "fail",
-            "evidence": "R328/R338/R352/R357/R359 gates are all represented.",
+            "evidence": "R338/R352/R357/R359 remain artifact-hygiene gates, not main empirical evidence.",
         },
         {
             "check": "two_abstractions_and_nonclaims_visible",
@@ -437,6 +421,14 @@ def build_checks(data: dict[str, dict[str, Any]], metrics: list[dict[str, str]],
             if all(token in paper_blob for token in ["operation", "operation stack", "human utility", "automatic boundary discovery"])
             else "fail",
             "evidence": "Current paper/docs preserve abstraction and must-not-claim text.",
+        },
+        {
+            "check": "span_tree_proxy_scope_visible",
+            "status": "pass"
+            if "fixed-session drilldown/span-tree proxy" in paper_blob
+            and "complete trace-ecosystem compatibility" in paper_blob
+            else "fail",
+            "evidence": "Current paper/docs scope fixed-session as a span-tree proxy and exclude complete ecosystem compatibility.",
         },
     ]
     return checks

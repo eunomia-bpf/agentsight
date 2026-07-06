@@ -39,7 +39,7 @@ SECTION_LABELS = {
     "E1": ["coverage", "recursive", "folding", "field derivation"],
     "E2": ["hidden-label", "localization", "ranking"],
     "E3": ["mechanism", "actionability"],
-    "E4": ["reproducibility", "cost", "claim integrity"],
+    "E4": ["reproducibility", "cost", "artifact hygiene"],
 }
 REQUIRED_SECTION_TOKENS = {
     "E1": ["RQ1", "claim", "oracle", "baseline", "metric", "counterpoint", "operation stack"],

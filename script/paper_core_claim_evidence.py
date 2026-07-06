@@ -205,17 +205,17 @@ def build_ledger(data: dict[str, dict[str, Any]]) -> list[dict[str, str]]:
             "primary_sources": "R324; R342; R345-R350; R354; R358; R360",
         },
         {
-            "core_experiment": "E4: reproducibility, cost, and claim integrity",
-            "claim": "The offline profiling path and paper claims are reproducible, low-cost enough for artifact evaluation, and guarded against overclaiming.",
-            "research_question": "Can reviewers rerun the profile-spec path and verify that paper numbers, source provenance, two-abstraction wording, and non-claims remain aligned?",
-            "oracle": "Tracked profile specs, tracked operation inputs, paper/doc hashes, claim-integrity audits, and four independent reviewer-style acceptance checks.",
-            "baselines": "deterministic versus raw replay, source-status checks, paper-number checks, rubric checks, reviewer acceptance checks, and two-abstraction guardrails.",
-            "primary_metrics": "deterministic spec pass rate, profiler invocations, median/p95 runtime, number-check pass rate, guardrail pass rate, rubric level, reviewer ACCEPT count, and core-table checks.",
-            "headline_result": f"{r360_evidence['E4']}; R352 rubric level {r352['rubric_level']}; R357 reviewer ACCEPT {r357['final_accepts']}/{r357['reviewers']}; R359 core checks {r359['checks_passed']}/{r359['checks_total']}.",
-            "actionable_insight": "The artifact path is replayable without dataset sync, relabeling, or hidden human-study assumptions, so reviewers can audit paper numbers from tracked outputs.",
+            "core_experiment": "E4: reproducibility and artifact hygiene",
+            "claim": "The offline profiling path is replayable over tracked inputs at low local cost.",
+            "research_question": "Can reviewers rerun the profile-spec path and reproduce stable profile outputs without dataset sync, relabeling, or hidden human-study assumptions?",
+            "oracle": "Tracked profile specs, tracked operation inputs, repeated profiler outputs, runtime logs, and source-status rows.",
+            "baselines": "default output versus deterministic-output replay, semantic profile hashes versus raw-byte profile hashes, and tracked-clean source-status checks.",
+            "primary_metrics": "deterministic spec pass rate, profiler invocations, median/p95 runtime, sample equality, stack equality, and raw-byte output equality.",
+            "headline_result": r360_evidence["E4"],
+            "actionable_insight": "The artifact path is replayable without dataset sync, relabeling, or hidden human-study assumptions.",
             "counterpoint_or_scope": "This is offline artifact reproducibility, not live eBPF overhead, full OpenTelemetry/Phoenix/LangSmith/Langfuse/Perfetto compatibility, or human productivity evidence.",
-            "paper_wording": "Supported as scoped profiling-paper evidence with explicit must-not-claim guardrails.",
-            "primary_sources": "R328; R338; R352; R356; R357; R359; R360",
+            "paper_wording": "Supported as replayable offline profiling artifact evidence; claim-integrity, rubric, and reviewer-style gates are artifact hygiene rather than scientific evidence.",
+            "primary_sources": "R328; R360",
         },
     ]
 
@@ -292,15 +292,15 @@ def build_checks(data: dict[str, dict[str, Any]], ledger: list[dict[str, str]]) 
             "evidence": "E3 records executable profile patches, learned-boundary AP gain, and inspection-cost counterpoints.",
         },
         {
-            "check": "reproducibility_and_review_gates",
+            "check": "artifact_hygiene_gates_available",
             "status": "pass"
             if r352["rubric_level"] == "level_4_scoped_profile_benchmark"
             and r357["final_accepts"] == 4
             and r357["blocking_issues"] == 0
             and r359["checks_passed"] == r359["checks_total"] == 13
-            and r360["checks_passed"] == r360["checks_total"] == 6
+            and r360["checks_passed"] == r360["checks_total"] == 7
             else "fail",
-            "evidence": "R352/R357/R359/R360 pass the current paper-facing gates.",
+            "evidence": "R352/R357/R359/R360 pass as artifact-hygiene gates, not empirical profiler evidence.",
         },
         {
             "check": "two_abstraction_boundary_preserved",

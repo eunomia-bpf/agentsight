@@ -21,18 +21,23 @@
       "status": "pass"
     },
     {
-      "check": "reproducibility_tokens_present",
-      "evidence": "R328/R338/R352/R357/R359 gates are all represented.",
+      "check": "artifact_hygiene_gates_available",
+      "evidence": "R338/R352/R357/R359 remain artifact-hygiene gates, not main empirical evidence.",
       "status": "pass"
     },
     {
       "check": "two_abstractions_and_nonclaims_visible",
       "evidence": "Current paper/docs preserve abstraction and must-not-claim text.",
       "status": "pass"
+    },
+    {
+      "check": "span_tree_proxy_scope_visible",
+      "evidence": "Current paper/docs scope fixed-session as a span-tree proxy and exclude complete ecosystem compatibility.",
+      "status": "pass"
     }
   ],
-  "commit": "c306ee407aedc1e515a5d6ca277cbef275df835d",
-  "elapsed_s": 0.083,
+  "commit": "0cf44a17d3062c985c0f60409802f774ea2872c8",
+  "elapsed_s": 0.086,
   "experiments": [
     {
       "claim": "Heterogeneous agent traces enter one operation layer, and operation stacks are query-time recursive projections over fields.",
@@ -56,11 +61,11 @@
       "workload": "The same six labeled tasks plus held-out OSWorld-Human boundary-backend operations."
     },
     {
-      "claim": "The offline profiler path is reproducible, auditable, and scoped by explicit non-claims.",
-      "conclusion": "Supported as reproducible offline profiling-paper evidence, not live overhead or complete trace-ecosystem compatibility.",
-      "core_experiment": "E4: reproducibility, cost, and claim integrity",
-      "evidence": "deterministic_profile_specs=76/76 semantic, 76/76 raw-byte, 152 invocations (R328); offline_runtime=median 1.6011s, p95 2.7672s (R328); claim_integrity_gate=350/350 numbers, 16/16 guardrails (R338); evaluation_rubric_and_reviewer_gate=R352 level_4_scoped_profile_benchmark; R357 4/4 ACCEPT; R359 13/13 core-table checks (R352/R357/R359)",
-      "workload": "Tracked profile specs, current paper/docs hashes, and claim-scope gates."
+      "claim": "The offline profiler path is replayable over tracked inputs at low local cost.",
+      "conclusion": "Supported as replayable offline profiling artifact evidence, not live overhead, human productivity, or trace-ecosystem compatibility.",
+      "core_experiment": "E4: reproducibility and offline cost",
+      "evidence": "deterministic_profile_specs=76/76 semantic, 76/76 raw-byte, 152 invocations (R328); offline_runtime=median 1.6011s, p95 2.7672s (R328)",
+      "workload": "76 tracked profile specs over tracked operation JSONL inputs."
     }
   ],
   "input_policy": {
@@ -197,20 +202,6 @@
       "experiment": "E4",
       "metric": "offline_runtime",
       "value": "median 1.6011s, p95 2.7672s"
-    },
-    {
-      "baseline_or_comparator": "paper text vs artifact hashes",
-      "evidence": "R338",
-      "experiment": "E4",
-      "metric": "claim_integrity_gate",
-      "value": "350/350 numbers, 16/16 guardrails"
-    },
-    {
-      "baseline_or_comparator": "claim-scope gates",
-      "evidence": "R352/R357/R359",
-      "experiment": "E4",
-      "metric": "evaluation_rubric_and_reviewer_gate",
-      "value": "R352 level_4_scoped_profile_benchmark; R357 4/4 ACCEPT; R359 13/13 core-table checks"
     }
   ],
   "not_a_human_study_result": true,
@@ -225,7 +216,7 @@
   "source_status": [
     {
       "path": "script/paper_core_result_tables.py",
-      "sha256": "d8b6c570a5f346fee85fa74dd9568fd4bddd6428fbc1d900acfe4e8e837c14cd",
+      "sha256": "e8ed91fff9f3fe07f20e89d868dcf96fc3b87718f261dfc6a3ca675bfaac6982",
       "source": "generator script",
       "status": "tracked_dirty_allowed"
     },
@@ -255,7 +246,7 @@
     },
     {
       "path": "docs/visexp/out/paper-claim-integrity-r338/claim-integrity-report.json",
-      "sha256": "692711e88e3f1a8c1ddb8221aa81e484143dd42e45e78746fb5773b047af740a",
+      "sha256": "f808f6d1f1e55765a4ae2e0ab0231c1e984cea0a7eb5df3bb669a5a5b7310b48",
       "source": "R338 paper claim integrity",
       "status": "tracked_dirty_allowed"
     },
@@ -285,7 +276,7 @@
     },
     {
       "path": "docs/visexp/out/paper-reviewer-acceptance-r357/reviewer-acceptance-r357.json",
-      "sha256": "867719385bce17d654f6c7454c58e95978249c553ad6e96bcc3b9ffcc80e539f",
+      "sha256": "185021d6c803c484b0882e8bc91e93f60077b00c8ddfe88eba09b17474d85f7e",
       "source": "R357 reviewer acceptance",
       "status": "tracked_dirty_allowed"
     },
@@ -303,7 +294,7 @@
     },
     {
       "path": "docs/evaluation.md",
-      "sha256": "6d3b8dbfa5d833b128f2ee7ba0e7024874a98fbf470f3c6dd788cb5800395f61",
+      "sha256": "cc1ab4c7c2a58298cbb8699d15fcdb38be7c573e9345fb5c0362712e9504d4f9",
       "source": "evaluation ledger",
       "status": "tracked_dirty_allowed"
     },
@@ -315,23 +306,23 @@
     },
     {
       "path": "docs/visexp/paper/main.tex",
-      "sha256": "816e57ab9e570a6cbde7b0453d5eac314abfdf1e52174dc40a70a6ba1e2a54a5",
+      "sha256": "89268779eae8caa720ba456f4be2a104dd030fc1b14164fbfbc9babfcff5b1fe",
       "source": "Chinese paper",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/agentpprof-paper/main.tex",
-      "sha256": "9a42da19c067610f83dbb17ca35c0c3ab7897ea88cc5d1ef446778f15381baac",
+      "sha256": "0c7b7294638251174c4d4c0a9cdc27f76d90e216fcb5a54500281f5fe4495f03",
       "source": "English paper",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     }
   ],
   "status": "pass",
   "summary": {
-    "checks_passed": 6,
-    "checks_total": 6,
+    "checks_passed": 7,
+    "checks_total": 7,
     "core_experiments": 4,
-    "metrics": 20,
+    "metrics": 18,
     "status": "pass"
   }
 }
