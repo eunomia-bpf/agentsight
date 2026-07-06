@@ -296,7 +296,7 @@ It is a claim-integrity layer, not another profiler abstraction.
 
 R359 audits the paper-facing experiment structure against that same boundary.
 It checks that the evaluation is organized as three empirical profiling
-experiments plus one replayability/overhead experiment, while R-numbered runs
+experiments plus one artifact/reproducibility block, while R-numbered runs
 remain provenance, ablations, counterpoints, or audit gates. It also checks
 that R358 is an E3 mechanism/actionability ablation, not a fifth experiment or
 an automatic boundary detector. This keeps the design claim centered on

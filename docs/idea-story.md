@@ -13,7 +13,7 @@ Draft paragraph: AgentSight's semantic profiling work is now in paper-integratio
 
 Evidence/claim dependency: The primary empirical gate is R320 over 6 tasks, 4 oracle-rich datasets, 34,539 operations, 3,699 positives, and 144 view/ranker policies. R333/R334/R337/R339/R344/R355 add work-budget, fragmentation, fixed-recall, sequence-scope, metric-surface, and oracle-depth checks. R354/R358 add executable profile-spec patch and boundary-derived-field actionability evidence. R327/R328 cover replayability and offline cost. R338/R352/R356/R357/R359/R360/R361/R362/R364 are artifact, rubric, reviewer, structure, or claim-scope gates, not new empirical profiler evidence.
 
-Completeness: Partial. The main paper evidence is organized into four core experiments, but the next gate is an independent reviewer pass on the canonical docs and draft after this story file is added.
+Completeness: Partial. The main paper evidence is organized into three empirical profiling experiments plus one artifact/reproducibility block, but the next gate is an independent reviewer pass on the canonical docs and draft after this story file is updated.
 
 ## Downstream Document Index
 
@@ -67,9 +67,9 @@ Completeness: Supported for the offline artifact path. Live eBPF overhead and fu
 
 ## Intro P5: Claims And Evaluation Promise
 
-Purpose: Tie the thesis to four paper-facing experiments.
+Purpose: Tie the thesis to three empirical profiling experiments plus one artifact/reproducibility block.
 
-Draft paragraph: The evaluation is organized around four core experiments. E1 tests whether one operation layer can cover heterogeneous labeled agent trajectories and be recursively folded into multiple stack depths. E2 is the main hidden-label localization/ranking benchmark over real labeled traces. E3 isolates mechanism and actionability through ranker, mapping, stack-depth, transfer, case, and profile-spec patch evidence. E4 checks replayability and offline cost, while claim-integrity and reviewer gates remain artifact hygiene rather than empirical profiler evidence.
+Draft paragraph: The evaluation is organized around three core empirical profiling experiments plus one artifact/reproducibility block. E1 tests whether one operation layer can cover heterogeneous labeled agent trajectories and be recursively folded into multiple stack depths. E2 is the main hidden-label localization/ranking benchmark over real labeled traces. E3 isolates mechanism and actionability through ranker, mapping, stack-depth, transfer, case, and profile-spec patch evidence. E4 checks replayability and offline cost as an artifact block, while claim-integrity and reviewer gates remain artifact hygiene rather than empirical profiler evidence.
 
 Evidence/claim dependency: E1 uses R279-R292/R286/R290/R291/R293/R321/R342 plus exchange checks. E2 uses R320 plus R330/R331/R333/R334/R337/R339/R344/R355. E3 uses R324-R326/R335/R336/R340/R341/R345-R350/R354/R358. E4 uses R327/R328 plus source-status and guardrail checks.
 
@@ -120,7 +120,7 @@ Completeness: Current claim is supported; larger claim is a future expansion hyp
 
 | Item | Status | Next action |
 |---|---|---|
-| Independent reviewer pass after the latest four-experiment consolidation. | open | Ask subagents to review `docs/idea-story.md`, `docs/evaluation.md`, and both paper drafts against the scoped claim and non-claims. |
+| Independent reviewer pass after the latest three-plus-one consolidation. | open | Ask subagents to review `docs/idea-story.md`, `docs/evaluation.md`, and both paper drafts against the scoped claim and non-claims. |
 | Full real span-tree baseline import. | out of current claim | Import a real OpenTelemetry/OpenInference/Phoenix-style trace only before making ecosystem-specific or real span-tree superiority claims. |
 | Broader oracle-rich tool/API/mobile families. | optional expansion | Add only if the paper needs wider generality beyond the current four oracle-rich sources. |
 | Human or agent analyst study. | optional future work | Use R315/R316 protocol only for human-utility or time-to-answer claims. |
