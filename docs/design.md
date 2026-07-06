@@ -7,10 +7,10 @@ Completeness: partial
 
 ## Current State And Blocking Gate
 
-Purpose: keep the current semantic-profiler design aligned with the active
+Purpose: keep the current operation-stack profiler design aligned with the active
 implementation.
 
-AgentSight's semantic profiler should expose only two core abstractions:
+AgentSight's profiler should expose only two core abstractions:
 `operation` and `operation stack`. Prompt, session, tool call, process, file
 event, network event, syscall, plan step, and subagent event are concrete
 operation shapes or operation fields, not separate profiler abstractions.

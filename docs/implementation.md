@@ -309,7 +309,7 @@ grouped-action labels while still exposing how many pairs were excluded.
 
 The Python scripts are experiment harnesses. They download or normalize
 third-party traces, generate mapping files, call the Rust CLI, and score
-outputs. They are not an alternate semantic-profiler implementation.
+outputs. They are not an alternate operation-stack profiler implementation.
 
 ## Build And Test Commands
 
