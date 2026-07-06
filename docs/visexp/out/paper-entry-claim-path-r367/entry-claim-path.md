@@ -3,7 +3,7 @@
 - Status: `pass`.
 - Checks: 11/11.
 - This is a paper-integration gate, not a new empirical result.
-- It keeps the paper organized as E1--E4 rather than a scattered R-run list.
+- It keeps the paper organized as RQ1/E1--RQ4/E4 rather than a scattered R-run list.
 
 ## Entry Token Matrix
 
@@ -21,7 +21,7 @@
 | Check | Status | Evidence |
 |---|---|---|
 | `entry_sections_share_e1_e4_structure` | pass | 6/6 entry token rows pass. |
-| `paper_uses_three_plus_one_not_scattered_experiments` | pass | Chinese and English entry text present three empirical profiling experiments plus one systems/reproducibility block, not a chronological run list. |
+| `paper_uses_three_plus_one_not_scattered_experiments` | pass | Chinese and English entry text present RQ1/E1-RQ4/E4 as three empirical profiling questions plus one systems/reproducibility question, not a chronological run list. |
 | `only_two_profiler_abstractions_in_entry_path` | pass | Prompt/session/tool/process/syscall are presented as operation forms or fields under operation and operation stack. |
 | `r_runs_are_provenance_not_paper_structure` | pass | R-numbered artifacts remain provenance and no E5 paper-facing experiment is introduced. |
 | `e2_hidden_label_localization_numbers_visible` | pass | Entry path keeps the E2 hidden-label scale and flat/fixed-session tradeoff numbers visible. |

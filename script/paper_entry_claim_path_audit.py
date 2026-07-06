@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""R367: audit the paper entry claim path for the E1--E4 structure.
+"""R367: audit the paper entry claim path for the RQ1/E1--RQ4/E4 structure.
 
 This is a paper-integration gate, not a new empirical result. It checks that
 the abstract, introduction/problem statement, and main result table present the
@@ -145,6 +145,18 @@ def extract_between(text: str, start: str, end: str) -> str:
     return text[start_idx:] if end_idx < 0 else text[start_idx:end_idx]
 
 
+def first_result_subsection_marker(text: str, language: str) -> str:
+    if language == "en":
+        for marker in [r"\subsection{RQ1/E1:", r"\subsection{E1:"]:
+            if marker in text:
+                return marker
+        return r"\subsection{E1:"
+    for marker in [r"\subsection{RQ1/E1：", r"\subsection{E1："]:
+        if marker in text:
+            return marker
+    return r"\subsection{E1："
+
+
 def extract_abstract(text: str) -> str:
     match = re.search(r"\\begin\{abstract\}(.*?)\\end\{abstract\}", text, re.DOTALL)
     return match.group(1) if match else ""
@@ -158,13 +170,13 @@ def extract_language_sections(text: str, language: str) -> dict[str, str]:
             "main_result_framing": extract_between(
                 text,
                 r"Table~\ref{tab:core-results} gives the paper-facing evaluation structure.",
-                r"\subsection{E1:",
+                first_result_subsection_marker(text, "en"),
             ),
         }
     return {
         "abstract": extract_abstract(text),
         "intro_or_problem": extract_between(text, r"\section{问题}", r"\section{设计}"),
-        "main_result_framing": extract_between(text, r"\section{结果}", r"\subsection{E1："),
+        "main_result_framing": extract_between(text, r"\section{结果}", first_result_subsection_marker(text, "zh")),
     }
 
 
@@ -190,6 +202,10 @@ def token_matrix(zh_sections: dict[str, str], en_sections: dict[str, str]) -> li
             "E2",
             "E3",
             "E4",
+            "RQ1",
+            "RQ2",
+            "RQ3",
+            "RQ4",
             "not",
         ],
         "intro_or_problem": [
@@ -200,21 +216,26 @@ def token_matrix(zh_sections: dict[str, str], en_sections: dict[str, str]) -> li
             "three empirical",
             "systems/reproducibility",
             "R-runs",
+            "RQ1/E1",
         ],
         "main_result_framing": [
+            "RQ1/E1",
+            "RQ2/E2",
+            "RQ3/E3",
+            "RQ4/E4",
             "E1",
             "E2",
             "E3",
             "E4",
-            "Core experiment",
+            "RQ / core experiment",
             "R360",
             "provenance",
         ],
     }
     zh_overrides = {
-        "abstract": ["operation", "operation-stack", "三个经验性", "系统/复现实验", "E1", "E2", "E3", "E4", "不声称"],
+        "abstract": ["operation", "operation-stack", "三个经验性", "系统/复现", "RQ1", "RQ2", "RQ3", "RQ4", "不声称"],
         "intro_or_problem": ["operation", "operation fields", "递归折叠", "stack", "两个系统挑战"],
-        "main_result_framing": ["E1", "E2", "E3", "E4", "Core experiment", "R360", "provenance"],
+        "main_result_framing": ["RQ1/E1", "RQ2/E2", "RQ3/E3", "RQ4/E4", "RQ / core experiment", "R360", "provenance"],
     }
     rows: list[dict[str, str]] = []
     for language, sections, reqs in [
@@ -261,11 +282,11 @@ def build_checks(
     add_check(
         checks,
         "paper_uses_three_plus_one_not_scattered_experiments",
-        contains_any(combined, ["three empirical profiling experiments plus one systems/reproducibility experiment"])
-        and "三个经验性 profiling 实验加一个系统/复现实验" in combined
+        contains_any(combined, ["three empirical profiling questions plus one systems/reproducibility question"])
+        and "三个经验性 profiling 问题加一个系统/复现问题" in combined
         and "零散 probe" in combined
-        and "chronological run list" in combined,
-        "Chinese and English entry text present three empirical profiling experiments plus one systems/reproducibility block, not a chronological run list.",
+        and "chronological run list" in combined_norm,
+        "Chinese and English entry text present RQ1/E1-RQ4/E4 as three empirical profiling questions plus one systems/reproducibility question, not a chronological run list.",
     )
     add_check(
         checks,
@@ -367,7 +388,7 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
         f"- Status: `{payload['status']}`.",
         f"- Checks: {payload['summary']['checks_passed']}/{payload['summary']['checks_total']}.",
         "- This is a paper-integration gate, not a new empirical result.",
-        "- It keeps the paper organized as E1--E4 rather than a scattered R-run list.",
+        "- It keeps the paper organized as RQ1/E1--RQ4/E4 rather than a scattered R-run list.",
         "",
         "## Entry Token Matrix",
         "",

@@ -37,14 +37,14 @@ Purpose: identify the maintained implementation boundary.
 | `script/operation_boundary_profile_patch_eval.py` | R358 boundary-derived profile patch audit; reruns Rust profile specs over R297 held-out OSWorld-Human boundary fields as ordinary operation fields and scores hidden labels after profiling. | research harness |
 | `script/operation_oracle_depth_adequacy_eval.py` | R355 oracle-depth adequacy audit; scores visible-ranked profile groups at session, operation/step, positive-run proxy, and task-specific oracle depths over tracked labeled outputs. | research harness |
 | `script/operation_field_derivation_mechanism_eval.py` | R366 field-derivation mechanism audit; consolidates deterministic mapping, profile-spec composition, rank-feature ablation, supervised boundary backends, and boundary-derived profile patches from tracked artifacts without rerunning the profiler. | paper hygiene harness |
-| `script/paper_entry_claim_path_audit.py` | R367 entry claim-path audit; checks that abstract, introduction/problem framing, and main result table present three empirical profiling experiments plus one systems/reproducibility experiment, with R-runs as provenance and only operation/operation-stack profiler abstractions. | paper hygiene harness |
+| `script/paper_entry_claim_path_audit.py` | R367 entry claim-path audit; checks that abstract, introduction/problem framing, and main result table present RQ1/E1-RQ4/E4 as three empirical profiling questions plus one systems/reproducibility question, with R-runs as provenance and only operation/operation-stack profiler abstractions. | paper hygiene harness |
 | `script/paper_trace_tree_baseline_audit.py` | R368 trace-tree-shaped baseline audit; reads existing R320/R355 hidden-label scoring outputs and makes the flat/fixed-session/dataset-native/raw-action baseline tradeoffs explicit without importing ecosystem traces or rerunning the profiler. | paper hygiene harness |
-| `script/paper_core_experiment_consolidation_audit.py` | R359 paper-facing core-experiment consolidation audit; checks that evaluation is organized as E1-E4, R-runs are provenance, and R358 remains an E3 mechanism ablation. | paper hygiene harness |
-| `script/paper_core_result_tables.py` | R360 paper core-result table generator; regenerates the E1-E4 headline table and metric rows from tracked artifacts, now folding R366 field-derivation evidence into E1/E3 without rerunning the profiler. | paper hygiene harness |
-| `script/paper_core_claim_evidence.py` | R361 core-claim evidence ledger; binds each E1-E4 experiment to claim, oracle, baselines, primary metrics, actionability, counterpoints, scoped wording, and R366 field-derivation scope. | paper hygiene harness |
-| `script/paper_core_section_readiness.py` | R362 section-readiness audit; checks that Chinese/English E1-E4 result sections carry claim, oracle, baseline, metric, counterpoint/scope, and two-abstraction guardrails. | paper hygiene harness |
-| `script/paper_visualization_portfolio.py` | R363 paper visualization portfolio; turns tracked E1-E4 evidence artifacts into baseline-tradeoff, metric-heatmap, diagnostic-lens, actionability-knob, and oracle-depth SVG/CSV/HTML views plus a LaTeX table fragment without rerunning the profiler. | paper hygiene harness |
-| `script/paper_headline_case_studies.py` | R365 paper headline/case-study selector; compresses E2/E3 evidence into five headline rows and six task cards from tracked artifacts without rerunning the profiler. | paper hygiene harness |
+| `script/paper_core_experiment_consolidation_audit.py` | R359 paper-facing core-experiment consolidation audit; checks that evaluation is organized as RQ1/E1-RQ4/E4, R-runs are provenance, and R358 remains an RQ3/E3 mechanism ablation. | paper hygiene harness |
+| `script/paper_core_result_tables.py` | R360 paper core-result table generator; regenerates the RQ1/E1-RQ4/E4 headline table and metric rows from tracked artifacts, now folding R366 field-derivation evidence into RQ1/E1 and RQ3/E3 without rerunning the profiler. | paper hygiene harness |
+| `script/paper_core_claim_evidence.py` | R361 core-claim evidence ledger; binds each RQ/E experiment to claim, oracle, baselines, primary metrics, actionability, counterpoints, scoped wording, and R366 field-derivation scope. | paper hygiene harness |
+| `script/paper_core_section_readiness.py` | R362 section-readiness audit; checks that Chinese/English RQ1/E1-RQ4/E4 result sections carry claim, oracle, baseline, metric, counterpoint/scope, and two-abstraction guardrails. | paper hygiene harness |
+| `script/paper_visualization_portfolio.py` | R363 paper visualization portfolio; turns tracked RQ1/E1-RQ4/E4 evidence artifacts into baseline-tradeoff, metric-heatmap, diagnostic-lens, actionability-knob, and oracle-depth SVG/CSV/HTML views plus a LaTeX table fragment without rerunning the profiler. | paper hygiene harness |
+| `script/paper_headline_case_studies.py` | R365 paper headline/case-study selector; compresses RQ2/E2 and RQ3/E3 evidence into five headline rows and six task cards from tracked artifacts without rerunning the profiler. | paper hygiene harness |
 | `script/paper_claim_integrity_r356.py` | R356 claim-integrity refresh over R354/R355 plus the R338 R320-R350 gate; checks paper numbers, source provenance, guardrails, and the two-abstraction boundary. | paper hygiene harness |
 | `script/profile_artifact_relocation_audit.py` | R343 relocated-checkout audit for historical profile specs that contain absolute artifact paths; verifies R342/R338 path normalization over existing tracked outputs. | reproducibility harness |
 | `script/operation_metric_consistency_eval.py` | R344 multi-metric consistency audit over R320 scored policy outputs; checks AP, nDCG, top-k, budget, work, and fragmentation support/counterpoints. | research harness |
@@ -162,13 +162,13 @@ automatic boundary discovery or an automatic patch selector.
 R359 makes the paper organization check executable.
 `script/paper_core_experiment_consolidation_audit.py` reads the evaluation
 ledger, Chinese claim setup, Chinese paper, English paper submodule, and R358
-artifacts. It confirms the paper-facing evaluation is E1-E4, not a chronological
+artifacts. It confirms the paper-facing evaluation is RQ1/E1-RQ4/E4, not a chronological
 R-run list; R-runs remain provenance, ablations, counterpoints, or audit gates;
-and R358 stays an E3 mechanism/actionability ablation. This is a paper hygiene
+and R358 stays an RQ3/E3 mechanism/actionability ablation. This is a paper hygiene
 gate, not a profiler rerun or new empirical result.
 
 R360 then makes the paper result table itself executable.
-`script/paper_core_result_tables.py` reads tracked E1-E4 artifacts, including
+`script/paper_core_result_tables.py` reads tracked RQ1/E1-RQ4/E4 artifacts, including
 R285/R286/R320/R328/R338/R342/R353/R354/R355/R357/R358/R359/R366, and writes a
 four-row table, twenty metric rows, Markdown/HTML, and a LaTeX fragment. This
 is table provenance over existing results, not a runtime component, profiler
@@ -176,7 +176,7 @@ rerun, or new empirical result.
 
 R361 turns that table into a claim-evidence ledger.
 `script/paper_core_claim_evidence.py` reads tracked R320/R352/R354/R355/R357/
-R358/R359/R360/R366 artifacts and records, for each E1-E4 block, the claim,
+R358/R359/R360/R366 artifacts and records, for each RQ/E block, the claim,
 research question, oracle, baselines, primary metrics, headline result,
 actionable insight, counterpoint, and scoped wording. The ledger is a reviewer
 navigation artifact over operation/operation-stack evidence; it is not a third
@@ -184,13 +184,13 @@ profiler abstraction, a new result source, or a human/agent analyst study.
 
 R362 checks that the main result sections themselves follow that ledger.
 `script/paper_core_section_readiness.py` parses the Chinese and English papers,
-extracts the E1-E4 subsections, and verifies that each section states the
+extracts the RQ1/E1-RQ4/E4 subsections, and verifies that each section states the
 claim, oracle, baseline, metric, counterpoint/scope, and the relevant
 must-not-claim guardrails. This prevents the paper from relying on a
 chronological R-run list for the reviewer-facing argument; it is still a paper
 hygiene gate, not a profiler run or a new experiment.
 
-R363 adds the paper visualization portfolio for that same E1-E4 structure.
+R363 adds the paper visualization portfolio for that same RQ1/E1-RQ4/E4 structure.
 `script/paper_visualization_portfolio.py` reads tracked R320/R345/R348/R354/
 R355/R358/R361/R362 artifacts and emits five paper views plus a LaTeX table
 fragment: baseline tradeoff, metric heatmap, diagnostic lenses, actionability
@@ -199,7 +199,7 @@ operation and operation-stack outputs; it does not introduce a flamegraph-only
 framing, a new profiler abstraction, a profiler rerun, or a new empirical
 result.
 
-R365 adds the headline/case-study selector for the same E2/E3 evidence.
+R365 adds the headline/case-study selector for the same RQ2/E2 and RQ3/E3 evidence.
 `script/paper_headline_case_studies.py` reads tracked R320/R333/R334/R345/
 R348/R354/R355/R358/R363 artifacts and emits five headline rows, six task
 cards, a LaTeX table fragment, Markdown, HTML, JSON, CSV checks, and source
@@ -218,23 +218,23 @@ fields can beat a learned backend, and boundary-derived profile patches can
 improve AP/groups while increasing some inspection-work metrics. This is a
 mechanism guardrail, not a new dataset, profiler rerun, human/agent analyst
 task, automatic boundary detector, or third profiler abstraction.
-R360/R361/R364 now consume this R366 audit as internal E1/E3 evidence, so the
-paper-facing structure remains three empirical profiling experiments plus one
-systems/reproducibility experiment rather than adding a fifth block.
+R360/R361/R364 now consume this R366 audit as internal RQ1/E1 and RQ3/E3 evidence, so the
+paper-facing structure remains three empirical profiling questions plus one
+systems/reproducibility question rather than adding a fifth block.
 
 R367 checks the paper entry path for that same structure.
 `script/paper_entry_claim_path_audit.py` reads the Chinese paper, English
 submodule paper, evaluation ledger, implementation doc, and tracked
 R360/R361/R364/R366 ledgers. It parses the abstract, introduction/problem
-statement, and main-result framing, then checks that they all present E1-E4 as
+statement, and main-result framing, then checks that they all present RQ1/E1-RQ4/E4 as
 the paper-facing experiment structure, keep R-runs as provenance, preserve the
-two-abstraction boundary, carry the E2/E3/E4 headline numbers, and avoid human
+two-abstraction boundary, carry the RQ2/E2, RQ3/E3, and RQ4/E4 headline numbers, and avoid human
 productivity, automatic-boundary, metric-dominance, live-overhead, or ecosystem
 compatibility claims. It passed 11/11 checks with 6/6 entry-token rows. R367 is
 a paper-integration guardrail, not a new dataset, profiler run, empirical
 result, or fifth experiment.
 
-R368 makes the E2 trace-tree-shaped baseline scope explicit.
+R368 makes the RQ2/E2 trace-tree-shaped baseline scope explicit.
 `script/paper_trace_tree_baseline_audit.py` reads the existing R320 policy
 scores, R355 oracle-depth comparisons, R361/R364/R367 paper ledgers, and the
 current Chinese/English paper text. It compares operation-stack query-aware
@@ -244,7 +244,7 @@ counterpoints. The gate passes 10/10 checks: operation-stack improves top-5
 recall/F1 over fixed-session on 5/6 tasks, reduces median groups from 285.0 to
 157.5, and R355 preserves 20/24 fixed-session unit-recall wins plus 22/24
 groups-to-50%-positive-unit wins; fixed-session still wins top-5 work and
-first-positive work on 4/6 tasks. R368 is an E2 baseline-scope guardrail, not a
+first-positive work on 4/6 tasks. R368 is an RQ2/E2 baseline-scope guardrail, not a
 real OpenTelemetry/Phoenix/LangSmith/Perfetto import, new dataset, profiler
 rerun, human/agent analyst task, or metric-dominance claim.
 

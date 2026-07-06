@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""R361: generate a reviewer-facing core-claim evidence ledger.
+"""R361: generate a reviewer-facing RQ/core-claim evidence ledger.
 
 This is a paper-structure and claim-gating artifact, not a new empirical
 experiment. It reads existing tracked artifacts for three empirical profiling
-experiments plus one replayability/overhead experiment and records, for each
-core block, the claim, oracle, baselines, primary metrics, headline result,
-actionable insight, counterpoint, and scoped paper wording.
+research questions plus one replayability/overhead research question and
+records, for each core block, the claim, oracle, baselines, primary metrics,
+headline result, actionable insight, counterpoint, and scoped paper wording.
 """
 
 from __future__ import annotations
@@ -152,7 +152,7 @@ def source_rows() -> list[dict[str, str]]:
 def evidence_by_experiment(r360: dict[str, Any]) -> dict[str, str]:
     evidence: dict[str, str] = {}
     for row in r360["experiments"]:
-        eid = row["core_experiment"].split(":", 1)[0]
+        eid = row["core_experiment"].split(":", 1)[0].split("/")[-1]
         evidence[eid] = row["evidence"]
     return evidence
 
@@ -171,9 +171,9 @@ def build_ledger(data: dict[str, dict[str, Any]]) -> list[dict[str, str]]:
 
     return [
         {
-            "core_experiment": "E1: generality, recursive folding, and field derivation",
+            "core_experiment": "RQ1/E1: generality, recursive folding, and field derivation",
             "claim": "A two-object profiler model, operation plus operation stack, covers heterogeneous agent traces without binding profiling units to prompt/session/tool boundaries.",
-            "research_question": "Can the same operation layer be folded recursively into task-, phase-, action-, boundary-, and fixed-session-shaped stacks by changing mappings and stack fields?",
+            "research_question": "RQ1: Can the same operation layer be folded recursively into task-, phase-, action-, boundary-, and fixed-session-shaped stacks by changing mappings and stack fields?",
             "oracle": "Public dataset labels and native trajectory fields; OSWorld-Human and AgentNet provide the strongest boundary and quality labels.",
             "baselines": "Dataset-native stacks, no-map folding, fixed-session stacks, profile-spec replay, and direct operation-file versus standard-trace import/export.",
             "primary_metrics": "operation coverage, unique-stack range across depths, mapping compression/reduction, boundary F1/V-measure, prompt/session-free profile-spec replay, and trace round-trip equality.",
@@ -184,9 +184,9 @@ def build_ledger(data: dict[str, dict[str, Any]]) -> list[dict[str, str]]:
             "primary_sources": "R285; R286; R342; R353; R360; R366",
         },
         {
-            "core_experiment": "E2: hidden-label localization and ranking",
+            "core_experiment": "RQ2/E2: hidden-label localization and ranking",
             "claim": "Operation-stack profiling can faithfully localize and rank task-relevant failures, safety issues, quality problems, and semantic boundaries on real labeled traces.",
-            "research_question": "Do hot stacks and top-ranked groups correspond to hidden positives while requiring less inspection work than flat summaries and less fragmentation than fixed-session drilldown?",
+            "research_question": "RQ2: Do hot stacks and top-ranked groups correspond to hidden positives while requiring less inspection work than flat summaries and less fragmentation than fixed-session drilldown?",
             "oracle": f"{r320['totals']['positive_operations']} hidden positives over {r320['totals']['task_operations']} operations from {r320['totals']['tasks']} oracle-backed tasks and {r320['totals']['datasets']} datasets.",
             "baselines": "flat summary, fixed-session drilldown, dataset-native hierarchy, raw-action stack, operation-stack width, operation-stack query-aware, label drilldown, and oracle upper bound.",
             "primary_metrics": "AP/AUPRC-style score, precision@k, recall@k, F1@k, nDCG, recall/F1@work budget, top-k work, work-to-first-positive, group count, and oracle-depth unit recall.",
@@ -197,9 +197,9 @@ def build_ledger(data: dict[str, dict[str, Any]]) -> list[dict[str, str]]:
             "primary_sources": "R320; R333; R334; R337; R339; R355; R360",
         },
         {
-            "core_experiment": "E3: mechanism and actionability",
+            "core_experiment": "RQ3/E3: mechanism and actionability",
             "claim": "The profiler exposes actionable optimization knobs through stack fields, mapping/tagging rules, ranking policies, profile specs, and boundary-derived operation fields.",
-            "research_question": "Which mechanisms explain localization improvements, and can profile-guided changes improve outputs without leaking hidden labels into the profiler input?",
+            "research_question": "RQ3: Which mechanisms explain localization improvements, and can profile-guided changes improve outputs without leaking hidden labels into the profiler input?",
             "oracle": "The same hidden labels are used only after profiling for scoring; R358 additionally uses held-out OSWorld-Human boundary positives after learned boundary fields are visible operation fields.",
             "baselines": "default semantic-width specs, patched profile specs, visible feature rankers, equal/global/transfer policies, learned-boundary stacks, fixed-session stacks, and semantic-width stacks.",
             "primary_metrics": "accepted patches, AP delta, top-5 lift delta, first-positive-work delta, group reduction, top-5 work counterpoint, critical/misleading field rows, boundary-family suitability wins, and held-out transfer tolerance.",
@@ -210,9 +210,9 @@ def build_ledger(data: dict[str, dict[str, Any]]) -> list[dict[str, str]]:
             "primary_sources": "R324; R342; R345-R350; R354; R358; R360; R366",
         },
         {
-            "core_experiment": "E4: replayability, offline cost, and artifact hygiene",
+            "core_experiment": "RQ4/E4: replayability, offline cost, and artifact hygiene",
             "claim": "The offline profiling path is replayable over tracked inputs at low local cost.",
-            "research_question": "Can reviewers rerun the profile-spec path and reproduce stable profile outputs without dataset sync, relabeling, or hidden human-study assumptions?",
+            "research_question": "RQ4: Can reviewers rerun the profile-spec path and reproduce stable profile outputs without dataset sync, relabeling, or hidden human-study assumptions?",
             "oracle": "Tracked profile specs, tracked operation inputs, repeated profiler outputs, runtime logs, and source-status rows.",
             "baselines": "default output versus deterministic-output replay, semantic profile hashes versus raw-byte profile hashes, and tracked-clean source-status checks.",
             "primary_metrics": "deterministic spec pass rate, profiler invocations, median/p95 runtime, sample equality, stack equality, and raw-byte output equality.",
@@ -252,8 +252,12 @@ def build_checks(data: dict[str, dict[str, Any]], ledger: list[dict[str, str]]) 
     checks = [
         {
             "check": "four_substantial_core_experiments",
-            "status": "pass" if len(ledger) == 4 and all(f"E{i}:" in ledger[i - 1]["core_experiment"] for i in range(1, 5)) else "fail",
-            "evidence": f"{len(ledger)} ledger rows, ordered E1-E4.",
+            "status": "pass"
+            if len(ledger) == 4
+            and all(f"E{i}:" in ledger[i - 1]["core_experiment"] for i in range(1, 5))
+            and all(ledger[i - 1]["research_question"].startswith(f"RQ{i}:") for i in range(1, 5))
+            else "fail",
+            "evidence": f"{len(ledger)} ledger rows, ordered RQ1/E1-RQ4/E4.",
         },
         {
             "check": "every_core_row_has_claim_oracle_baseline_metric_scope",
@@ -364,7 +368,7 @@ def write_csv(path: Path, rows: list[dict[str, Any]], fields: list[str]) -> None
 
 def markdown_table(rows: list[dict[str, str]]) -> str:
     lines = [
-        "| Core experiment | Claim | Oracle | Baselines | Primary metrics | Headline result | Counterpoint / scope |",
+        "| RQ / core experiment | Claim | Oracle | Baselines | Primary metrics | Headline result | Counterpoint / scope |",
         "|---|---|---|---|---|---|---|",
     ]
     for row in rows:
@@ -401,7 +405,7 @@ def latex_table(rows: list[dict[str, str]]) -> str:
         "% Generated by script/paper_core_claim_evidence.py (R361).",
         "\\begin{tabular}{p{0.16\\linewidth}p{0.20\\linewidth}p{0.20\\linewidth}p{0.24\\linewidth}p{0.14\\linewidth}}",
         "  \\toprule",
-        "  Core experiment & Claim & Oracle/baselines & Headline evidence & Scope \\\\",
+        "  RQ / core experiment & Claim & Oracle/baselines & Headline evidence & Scope \\\\",
         "  \\midrule",
     ]
     for row in rows:
@@ -485,7 +489,7 @@ th {{ background: #f5f5f5; text-align: left; }}
 checks: {payload['summary']['checks_passed']}/{payload['summary']['checks_total']}.</p>
 <h2>Evidence Ledger</h2>
 <table>
-<tr><th>Core experiment</th><th>Claim</th><th>Oracle</th><th>Baselines</th><th>Metrics</th><th>Headline</th><th>Scope</th></tr>
+<tr><th>RQ / core experiment</th><th>Claim</th><th>Oracle</th><th>Baselines</th><th>Metrics</th><th>Headline</th><th>Scope</th></tr>
 {table_rows}
 </table>
 <h2>Checks</h2>

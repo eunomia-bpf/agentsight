@@ -22,7 +22,7 @@
 | Check | Status | Evidence |
 |---|---|---|
 | `r361_core_claim_ledger_is_current_and_passing` | pass | R361 has 4 ledger rows and 11/11 checks passing. |
-| `both_papers_have_e1_e4_sections` | pass | Chinese and English papers both expose E1-E4 result subsections. |
+| `both_papers_have_e1_e4_sections` | pass | Chinese and English papers both expose RQ1/E1-RQ4/E4 result subsections. |
 | `zh_e1_claim_oracle_baseline_metric_scope_tokens` | pass | zh E1 has all section-readiness tokens. |
 | `en_e1_claim_oracle_baseline_metric_scope_tokens` | pass | en E1 has all section-readiness tokens. |
 | `zh_e2_claim_oracle_baseline_metric_scope_tokens` | pass | zh E2 has all section-readiness tokens. |

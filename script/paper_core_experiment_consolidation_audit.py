@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""R359: paper-facing core experiment consolidation audit.
+"""R359: paper-facing RQ/core-experiment consolidation audit.
 
 This is a paper-organization gate, not a new empirical result. It verifies that
-the current paper presents the evaluation as three empirical profiling
-experiments plus one replayability/overhead experiment, while the R-numbered
-runs remain provenance, ablations, counterpoints, or audit gates. It also
-checks that R358 is positioned as an E3 mechanism/actionability ablation rather
-than a fifth main experiment.
+the current paper presents the evaluation as RQ1/E1 through RQ4/E4: three
+empirical profiling research questions plus one replayability/overhead research
+question. The R-numbered runs remain provenance, ablations, counterpoints, or
+audit gates. It also checks that R358 is positioned as an E3
+mechanism/actionability ablation rather than a fifth main experiment.
 """
 
 from __future__ import annotations
@@ -43,6 +43,12 @@ CORE_TOKENS = {
     "E2": ["E2", "Hidden-Label", "hidden-label", "localization", "ranking"],
     "E3": ["E3", "Mechanism", "mechanism", "actionability"],
     "E4": ["E4", "Replayability", "replayability", "artifact hygiene", "claim-integrity"],
+}
+RQ_TOKENS = {
+    "E1": "RQ1",
+    "E2": "RQ2",
+    "E3": "RQ3",
+    "E4": "RQ4",
 }
 
 MUST_NOT_CLAIM = [
@@ -167,48 +173,49 @@ def build_checks(texts: dict[str, str], r358: dict[str, Any], r358_run: dict[str
 
     add_check(
         checks,
-        "evaluation_has_four_paper_facing_blocks",
-        "## Paper-Facing Core Experiments" in evaluation
-        and all(f"| {eid}:" in evaluation for eid in CORE_TOKENS),
-        "docs/evaluation.md has the paper-facing E1-E4 table with three empirical blocks plus one replayability/overhead block.",
+        "evaluation_has_four_paper_facing_rq_blocks",
+        "## Paper-Facing Research Questions And Core Experiments" in evaluation
+        and all(f"| {rq} / {eid}:" in evaluation for eid, rq in RQ_TOKENS.items()),
+        "docs/evaluation.md has the paper-facing RQ1/E1-RQ4/E4 table with three empirical blocks plus one replayability/overhead block.",
     )
     add_check(
         checks,
-        "claim_setup_has_four_paper_facing_blocks",
-        "## Paper-Facing Core Experiments" in claim_setup
+        "claim_setup_has_four_paper_facing_rq_blocks",
+        "## Paper-Facing Research Questions And Core Experiments" in claim_setup
         and "## Run/Artifact Provenance Map" in claim_setup
-        and all(f"| {eid}：" in claim_setup for eid in CORE_TOKENS),
-        "Chinese claim setup separates E1-E4 from the run/artifact provenance map.",
+        and all(f"| {rq} / {eid}：" in claim_setup for eid, rq in RQ_TOKENS.items()),
+        "Chinese claim setup separates RQ1/E1-RQ4/E4 from the run/artifact provenance map.",
     )
     add_check(
         checks,
-        "english_results_use_e1_e4_subsections",
-        all(f"\\subsection{{{eid}:" in en for eid in CORE_TOKENS),
-        "English paper has E1-E4 result subsections.",
+        "english_results_use_rq_e1_e4_subsections",
+        all(f"\\subsection{{{rq}/{eid}:" in en for eid, rq in RQ_TOKENS.items()),
+        "English paper has RQ1/E1-RQ4/E4 result subsections.",
     )
     add_check(
         checks,
-        "chinese_results_use_e1_e4_subsections",
-        all(f"\\subsection{{{eid}：" in zh for eid in CORE_TOKENS),
-        "Chinese paper has E1-E4 result subsections.",
+        "chinese_results_use_rq_e1_e4_subsections",
+        all(f"\\subsection{{{rq}/{eid}：" in zh for eid, rq in RQ_TOKENS.items()),
+        "Chinese paper has RQ1/E1-RQ4/E4 result subsections.",
     )
     add_check(
         checks,
-        "legacy_rq_structure_removed_from_papers",
-        "\\subsection{RQ" not in zh
-        and "\\subsection{RQ" not in en
-        and not any(token in zh for token in ["RQ1", "RQ2", "RQ3", "RQ4"])
-        and not any(token in en for token in ["RQ1", "RQ2", "RQ3", "RQ4"])
+        "only_four_rq_aliases_and_legacy_scatter_removed",
+        all(rq in zh and rq in en and rq in evaluation and rq in claim_setup for rq in RQ_TOKENS.values())
+        and "\\subsection{RQ5" not in zh
+        and "\\subsection{RQ5" not in en
+        and "RQ5" not in evaluation
+        and "RQ5" not in claim_setup
         and "seven research questions" not in en,
-        "No paper-facing RQ subsection, RQ-number token, or seven-research-question framing remains.",
+        "Exactly RQ1-RQ4 are used as aliases for E1-E4; legacy scattered RQ framing and any RQ5 are absent.",
     )
     add_check(
         checks,
-        "chinese_main_result_table_is_core_experiment_table",
-        "Core experiment & Workload / oracle & Main evidence & Scoped conclusion" in zh
+        "chinese_main_result_table_is_rq_core_experiment_table",
+        "RQ / core experiment & Workload / oracle & Main evidence & Scoped conclusion" in zh
         and "Paper question &" not in zh
-        and count_regex(zh, r"^\s+E[1-4]:",) >= 4,
-        "Chinese tab:results is now a four-row paper-facing block table.",
+        and count_regex(zh, r"^\s+RQ[1-4]/E[1-4]:",) >= 4,
+        "Chinese tab:results is now a four-row paper-facing RQ/core-experiment table.",
     )
     add_check(
         checks,
@@ -230,7 +237,7 @@ def build_checks(texts: dict[str, str], r358: dict[str, Any], r358_run: dict[str
         and "E5" not in claim_setup
         and "E5" not in zh
         and "E5" not in en,
-        "R358 is described as an E3 mechanism/actionability ablation and no E5 core experiment exists.",
+        "R358 is described as an RQ3/E3 mechanism/actionability ablation and no E5/RQ5 core experiment exists.",
     )
     add_check(
         checks,
@@ -288,7 +295,7 @@ def build_checks(texts: dict[str, str], r358: dict[str, Any], r358_run: dict[str
 
 def write_csv(path: Path, rows: list[dict[str, Any]], fields: list[str]) -> None:
     with path.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=fields)
+        writer = csv.DictWriter(f, fieldnames=fields, lineterminator="\n")
         writer.writeheader()
         for row in rows:
             writer.writerow({field: row.get(field, "") for field in fields})
@@ -394,7 +401,7 @@ def main() -> None:
         "schema": "agentsight.paper_core_experiments.v1",
         "status": status,
         "elapsed_s": round(time.time() - start, 4),
-        "claim": "paper evaluation is organized around three empirical profiling experiments plus one replayability/overhead experiment, not chronological R-run history",
+        "claim": "paper evaluation is organized around RQ1/E1-RQ4/E4: three empirical profiling questions plus one replayability/overhead question, not chronological R-run history",
         "summary": summary,
         "checks": checks,
         "source_status": sources,

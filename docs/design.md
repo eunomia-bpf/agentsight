@@ -301,13 +301,13 @@ an automatic boundary detector. This keeps the design claim centered on
 operation and operation stack rather than on a collection of one-off artifacts.
 
 R360 audits the paper table that summarizes those four paper-facing blocks. It reads
-tracked artifacts and emits the E1-E4 headline table plus metric rows. The
+tracked artifacts and emits the RQ1/E1-RQ4/E4 headline table plus metric rows. The
 table is a provenance view over existing operation/operation-stack evidence,
 not another profiler abstraction, visualization primitive, or result source.
 
 R361 audits the claim-evidence layer for those same four paper-facing blocks. It reads
 tracked R320/R352/R354/R355/R357/R358/R359/R360 artifacts and emits a ledger
-that binds each E1-E4 block to its claim, research question, oracle, baselines,
+that binds each RQ/E block to its claim, research question, oracle, baselines,
 primary metrics, headline result, actionable insight, counterpoint, and scoped
 paper wording. The ledger is a reviewer-facing report over operation and
 operation-stack evidence. Prompt, session, tool, process, syscall, safety, and
@@ -315,13 +315,13 @@ human-boundary concepts remain operation fields, labels, or baselines rather
 than profiler objects.
 
 R362 audits that this ledger is visible in the paper body, not only in generated
-tables. It extracts the Chinese and English E1-E4 result sections and checks for
+tables. It extracts the Chinese and English RQ1/E1-RQ4/E4 result sections and checks for
 claim/oracle/baseline/metric/counterpoint structure, localization metrics,
 actionability language, and must-not-claim guardrails. This is a narrative
 readiness gate over existing operation/operation-stack evidence. It does not
 introduce a section, claim, or table as a profiler abstraction.
 
-R363 packages the same E1-E4 evidence into multiple paper visualizations:
+R363 packages the same RQ1/E1-RQ4/E4 evidence into multiple paper visualizations:
 baseline tradeoff, metric heatmap, diagnostic lenses, actionability knobs, and
 oracle-depth adequacy. The design point is that visualization choice is another
 report projection over operations and operation stacks. Flamegraphs, heatmaps,

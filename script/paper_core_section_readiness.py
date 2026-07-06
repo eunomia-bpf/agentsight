@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""R362: audit section-level readiness for the E1--E4 paper narrative.
+"""R362: audit section-level readiness for the RQ1/E1--RQ4/E4 paper narrative.
 
 This is a paper-structure gate. It verifies that the Chinese and English result
-sections no longer depend on a chronological run log: each E1--E4 section must
+sections no longer depend on a chronological run log: each RQ/E section must
 state the claim, oracle, baselines, metrics, counterpoint/scope, and supported
 wording implied by R361.
 """
@@ -35,6 +35,7 @@ PAPER_SOURCES = {
 }
 
 SECTION_IDS = ["E1", "E2", "E3", "E4"]
+SECTION_RQ = {"E1": "RQ1", "E2": "RQ2", "E3": "RQ3", "E4": "RQ4"}
 SECTION_LABELS = {
     "E1": ["generality", "recursive", "folding", "field derivation"],
     "E2": ["hidden-label", "localization", "ranking"],
@@ -161,13 +162,14 @@ def normalize(text: str) -> str:
 
 
 def section_regex(eid: str, language: str) -> re.Pattern[str]:
+    rq = SECTION_RQ[eid]
     if language == "zh":
         return re.compile(
-            rf"\\subsection\{{{eid}：(?P<title>.*?)\}}(?P<body>.*?)(?=\\subsection\{{E[1-4]：|\\section\{{|\\begin\{{table\*\}}|\Z)",
+            rf"\\subsection\{{(?:{rq}/)?{eid}：(?P<title>.*?)\}}(?P<body>.*?)(?=\\subsection\{{(?:RQ[1-4]/)?E[1-4]：|\\section\{{|\\begin\{{table\*\}}|\Z)",
             re.DOTALL,
         )
     return re.compile(
-        rf"\\subsection\{{{eid}:(?P<title>.*?)\}}(?P<body>.*?)(?=\\subsection\{{E[1-4]:|\\section\{{|\\begin\{{table\*\}}|\Z)",
+        rf"\\subsection\{{(?:{rq}/)?{eid}:(?P<title>.*?)\}}(?P<body>.*?)(?=\\subsection\{{(?:RQ[1-4]/)?E[1-4]:|\\section\{{|\\begin\{{table\*\}}|\Z)",
         re.DOTALL,
     )
 
@@ -203,7 +205,7 @@ def build_checks(r361: dict[str, Any], zh: str, en: str, eval_text: str) -> tupl
         checks,
         "both_papers_have_e1_e4_sections",
         all(eid in zh_sections for eid in SECTION_IDS) and all(eid in en_sections for eid in SECTION_IDS),
-        "Chinese and English papers both expose E1-E4 result subsections.",
+        "Chinese and English papers both expose RQ1/E1-RQ4/E4 result subsections.",
     )
 
     for eid in SECTION_IDS:

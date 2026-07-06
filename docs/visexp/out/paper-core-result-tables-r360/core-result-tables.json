@@ -41,34 +41,34 @@
       "status": "pass"
     }
   ],
-  "commit": "19b9d66e7b2d245d976db90e8ede38c83c49afa6",
-  "elapsed_s": 0.083,
+  "commit": "e9e5bb8ddeec6cfe71c8e63e490d623cfecdc9de",
+  "elapsed_s": 0.09,
   "experiments": [
     {
       "claim": "Heterogeneous agent traces enter one operation layer, and operation stacks are query-time recursive projections over fields.",
       "conclusion": "Supported as operation/operation-stack coverage and configurability, not a new trace ecosystem compatibility claim.",
-      "core_experiment": "E1: generality, recursive folding, and field derivation",
+      "core_experiment": "RQ1/E1: generality, recursive folding, and field derivation",
       "evidence": "recursive_depth_sweep_operations=13265 (R286); stack_depths_and_unique_stack_range=8 depths, 9->3757 stacks (R286); leave_dataset_out_positive_stack_reductions=6/9 (R285); prompt_session_free_profile_specs=12/12 (R342); real_operation_standard_trace_roundtrip=512 ops, 512 samples, 11 stacks, equal=True (R353); field_derivation_mechanism_rows=6 mechanism rows, 5 boundary-family rows, 4/5 boundary backends beat the best simple baseline (R366)",
       "workload": "15 public labeled trace families / 47,590 operations, plus local-session and standard-trace exchange fixtures."
     },
     {
       "claim": "Profile groups can be scored as ranked localization outputs against real hidden labels.",
       "conclusion": "Supported as a hidden-label profiler benchmark with baseline tradeoffs, not human utility.",
-      "core_experiment": "E2: hidden-label localization and ranking",
+      "core_experiment": "RQ2/E2: hidden-label localization and ranking",
       "evidence": "labeled_profile_benchmark_scale=6 tasks / 4 datasets / 34539 ops / 3699 positives / 144 policy scores (R320); top5_inspection_work=0.0937 vs 1 (R320); top5_recall_wins_vs_fixed_session=5/6 (R320); median_group_fragmentation=157.5 vs 285 (R320); budget30_recall_wins_vs_flat=6/6 (R320); oracle_depth_unit_recall=0.4342; 20/24 rows beat fixed-session (R355)",
       "workload": "Six oracle-backed tasks over AgentRewardBench, SATraj-OS, AgentNet, and OSWorld-Human."
     },
     {
       "claim": "Stack fields, mapping/tagging, rankers, and profile specs expose actionable optimization knobs.",
       "conclusion": "Supported as actionable profile-spec and field/ranker guidance, not an automatic selector or boundary detector.",
-      "core_experiment": "E3: mechanism and actionability",
+      "core_experiment": "RQ3/E3: mechanism and actionability",
       "evidence": "profile_spec_patch_acceptance=5/6 (R354); patch_median_delta_ap_top5_lift_wtfp=0.0376 AP, 0.575 lift, -0.0859 first-positive work (R354); recursive_depth_actionability=9/12 AP variants, 6/6 tasks reduce groups (R342); boundary_field_patch=AP 0.2583 vs 0.2402; groups 74 vs 108 (R358); boundary_counterpoint=top5 work +0.0813; first-positive work +0.1581 (R358); field_rank_boundary_mechanism_audit=7 critical feature rows, 3 misleading feature rows, 4/5 boundary-family rows beat the best simple baseline (R366)",
       "workload": "The same six labeled tasks plus held-out OSWorld-Human boundary-backend operations."
     },
     {
       "claim": "The offline profiler path is replayable over tracked inputs at low local cost.",
       "conclusion": "Supported as systems/reproducibility evidence, not a hidden-label accuracy result, live overhead, human productivity, or trace-ecosystem compatibility.",
-      "core_experiment": "E4: replayability, offline cost, and artifact hygiene",
+      "core_experiment": "RQ4/E4: replayability, offline cost, and artifact hygiene",
       "evidence": "deterministic_profile_specs=76/76 semantic, 76/76 raw-byte, 152 invocations (R328); offline_runtime=median 1.6011s, p95 2.7672s (R328)",
       "workload": "76 tracked profile specs over tracked operation JSONL inputs."
     }
@@ -235,7 +235,7 @@
   "source_status": [
     {
       "path": "script/paper_core_result_tables.py",
-      "sha256": "6b154071ed99574e2a818361fa8709f3875d55b2140c7653e1746f9b39bdee83",
+      "sha256": "54492ca155241cdaa4e0aff56b9a13ecc567cd5e6a282044c405e22a6b12ae82",
       "source": "generator script",
       "status": "tracked_dirty_allowed"
     },
@@ -265,7 +265,7 @@
     },
     {
       "path": "docs/visexp/out/paper-claim-integrity-r338/claim-integrity-report.json",
-      "sha256": "9461fd35e30f0b8f197dc2fa23f2d20458e0c07eed4ed6d21a7cd91c672d2472",
+      "sha256": "054e04093004904c3b35fda42eb531d363bc3dfda3d06449c65c60f98a798e9b",
       "source": "R338 paper claim integrity",
       "status": "tracked_clean"
     },
@@ -295,7 +295,7 @@
     },
     {
       "path": "docs/visexp/out/paper-reviewer-acceptance-r357/reviewer-acceptance-r357.json",
-      "sha256": "441ad77854f781656281a731eeb749cca50ff423567a1207f8555d9f9caf514c",
+      "sha256": "d3be8e954a91a1e44322bece5803542a96a4b8bbb4e363aa0566f2e59af3b1ab",
       "source": "R357 reviewer acceptance",
       "status": "tracked_clean"
     },
@@ -307,7 +307,7 @@
     },
     {
       "path": "docs/visexp/out/paper-core-experiments-r359/core-experiment-report.json",
-      "sha256": "b5a4f05d35777a4570ce4501d6edeffaac3cd7f5be9e9833091194473d43b69e",
+      "sha256": "a5abe126977bccd32c4bd3d39a7b103470f3398e3d21a86a372bb6e05143ff37",
       "source": "R359 core-experiment consolidation",
       "status": "tracked_dirty_allowed"
     },
@@ -315,31 +315,31 @@
       "path": "docs/visexp/out/operation-field-derivation-mechanism-r366/field-derivation-mechanism-report.json",
       "sha256": "505fc5962a6e7aa3fcbb71a66fbd3dc46970c7e013312f23ef25961c6135dae9",
       "source": "R366 field derivation mechanism",
-      "status": "tracked_dirty_allowed"
+      "status": "tracked_clean"
     },
     {
       "path": "docs/evaluation.md",
-      "sha256": "394358afe09ce0fc9974e45d3a428f70ec67f7ed2dfaf30ee27f7a24aef9e4ac",
+      "sha256": "074c76bc6212cf5afeee3d3ea8989691e97eff9436a6018d281ade300cc8bb4d",
       "source": "evaluation ledger",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/paper/evaluation-claims-setup.zh-CN.md",
-      "sha256": "2c62bef9dce7192bf672c2ae9e449e15caf7d87a83d5db23bba9a77150bf475a",
+      "sha256": "f8e1530f208977afc82761218904f0b5358b4071912d356172befb771f157111",
       "source": "Chinese claim setup",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/paper/main.tex",
-      "sha256": "fee7c19c469183c31fcc4994a3519aa09d087b63890ad7abc7c6f16b759216d8",
+      "sha256": "42bd5522c3a5cef45160c6ade89f11b5796917d215e520bd6b89dcf8f71ec305",
       "source": "Chinese paper",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/agentpprof-paper/main.tex",
-      "sha256": "bdbf3554eab05d73936ddc74d39fc14011289843521f21f983f806462062875a",
+      "sha256": "62603b2749933d8e472285a45f1f06b66bd612690009a5a7079228216db21147",
       "source": "English paper",
-      "status": "tracked_dirty_allowed"
+      "status": "tracked_clean"
     }
   ],
   "status": "pass",

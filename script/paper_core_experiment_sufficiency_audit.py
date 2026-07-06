@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""R364: audit the core experiment blocks for reviewer sufficiency.
+"""R364: audit the RQ/core experiment blocks for reviewer sufficiency.
 
 This is a paper-organization and claim-gating artifact, not a new empirical
-result. It verifies that the paper is organized as three empirical profiling
-experiments plus one replayability/overhead experiment, and that each block has
-a primary experiment, oracle, named baselines, metrics, quantified success
-criterion, negative/scope condition, and figure/table target. It reads tracked
-artifacts only and does not fetch, sync, create, or relabel datasets.
+result. It verifies that the paper is organized as four core research questions
+(three empirical profiling RQs plus one replayability/overhead RQ), and that
+each block has a primary experiment, oracle, named baselines, metrics,
+quantified success criterion, negative/scope condition, and figure/table
+target. It reads tracked artifacts only and does not fetch, sync, create, or
+relabel datasets.
 """
 
 from __future__ import annotations
@@ -147,7 +148,7 @@ def source_rows() -> list[dict[str, str]]:
 def ledger_by_id(r361: dict[str, Any]) -> dict[str, dict[str, str]]:
     rows: dict[str, dict[str, str]] = {}
     for row in r361["ledger"]:
-        eid = row["core_experiment"].split(":", 1)[0]
+        eid = row["core_experiment"].split(":", 1)[0].split("/")[-1]
         rows[eid] = row
     return rows
 
@@ -155,7 +156,7 @@ def ledger_by_id(r361: dict[str, Any]) -> dict[str, dict[str, str]]:
 def experiment_by_id(r360: dict[str, Any]) -> dict[str, dict[str, str]]:
     rows: dict[str, dict[str, str]] = {}
     for row in r360["experiments"]:
-        eid = row["core_experiment"].split(":", 1)[0]
+        eid = row["core_experiment"].split(":", 1)[0].split("/")[-1]
         rows[eid] = row
     return rows
 
@@ -175,7 +176,7 @@ def build_rows(data: dict[str, dict[str, Any]]) -> list[dict[str, str]]:
 
     return [
         {
-            "core_experiment": "E1: generality, recursive folding, and field derivation",
+            "core_experiment": "RQ1/E1: generality, recursive folding, and field derivation",
             "primary_experiment": "R286 recursive stack-depth sweep, with R342 profile-spec composition, R353 trace exchange, and R366 field-derivation synthesis as support.",
             "claim_test": r361["E1"]["research_question"],
             "oracle": r361["E1"]["oracle"],
@@ -189,7 +190,7 @@ def build_rows(data: dict[str, dict[str, Any]]) -> list[dict[str, str]]:
             "source_artifacts": "R285; R286; R342; R353; R360; R361; R366",
         },
         {
-            "core_experiment": "E2: hidden-label localization and ranking",
+            "core_experiment": "RQ2/E2: hidden-label localization and ranking",
             "primary_experiment": "R320 hidden-label profile accuracy, with R333/R334/R355 budget, fragmentation, and oracle-depth slices.",
             "claim_test": r361["E2"]["research_question"],
             "oracle": r361["E2"]["oracle"],
@@ -203,7 +204,7 @@ def build_rows(data: dict[str, dict[str, Any]]) -> list[dict[str, str]]:
             "source_artifacts": "R320; R333; R334; R337; R339; R355; R360; R361; R363",
         },
         {
-            "core_experiment": "E3: mechanism and actionability",
+            "core_experiment": "RQ3/E3: mechanism and actionability",
             "primary_experiment": "R354 executable profile-spec patches, with R358 boundary-derived-field ablation for the OSWorld-Human rejection.",
             "claim_test": r361["E3"]["research_question"],
             "oracle": r361["E3"]["oracle"],
@@ -217,7 +218,7 @@ def build_rows(data: dict[str, dict[str, Any]]) -> list[dict[str, str]]:
             "source_artifacts": "R324; R342; R345-R350; R354; R358; R360; R361; R363; R366",
         },
         {
-            "core_experiment": "E4: replayability, offline cost, and artifact hygiene",
+            "core_experiment": "RQ4/E4: replayability, offline cost, and artifact hygiene",
             "primary_experiment": "R328 deterministic replay over 76 tracked profile specs; R338/R352/R356/R357/R359/R360/R361/R363 remain artifact-hygiene and paper-structure gates, not hidden-label accuracy results.",
             "claim_test": r361["E4"]["research_question"],
             "oracle": r361["E4"]["oracle"],
@@ -262,8 +263,11 @@ def build_checks(
     add_check(
         checks,
         "three_empirical_plus_one_reproducibility_block",
-        len(rows) == 4 and all(rows[i - 1]["core_experiment"].startswith(f"E{i}:") for i in range(1, 5)) and "E5" not in paper_text,
-        "Exactly E1-E4 are represented, E1-E3 are empirical profiling blocks, E4 is replayability/overhead/artifact hygiene, and no paper-facing E5 is present.",
+        len(rows) == 4
+        and all(rows[i - 1]["core_experiment"].startswith(f"RQ{i}/E{i}:") for i in range(1, 5))
+        and "E5" not in paper_text
+        and "RQ5" not in paper_text,
+        "Exactly RQ1/E1-RQ4/E4 are represented, RQ1/E1-RQ3/E3 are empirical profiling blocks, RQ4/E4 is replayability/overhead/artifact hygiene, and no paper-facing E5/RQ5 is present.",
     )
     add_check(
         checks,
@@ -276,7 +280,7 @@ def build_checks(
         "primary_experiments_are_substantial",
         has_all(row_blob, ["R286", "R320", "R354", "R328"])
         and all("primary_experiment" in row for row in rows),
-        "Primary experiments are named for all E1-E4 and are not chronological run lists.",
+        "Primary experiments are named for all RQ1/E1-RQ4/E4 and are not chronological run lists.",
     )
     add_check(
         checks,
@@ -475,7 +479,7 @@ def main() -> None:
         "status": status,
         "commit": git_commit(),
         "elapsed_s": round(time.time() - start, 4),
-        "claim": "E1-E4 are substantial reviewer-facing experiments rather than a chronological run list",
+        "claim": "RQ1/E1-RQ4/E4 are substantial reviewer-facing experiments rather than a chronological run list",
         "summary": {
             "status": status,
             "checks_passed": checks_passed,

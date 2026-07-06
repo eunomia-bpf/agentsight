@@ -110,7 +110,7 @@ Completeness: Current claim is supported; larger claim is a future expansion hyp
 | Attack | Current answer | Remaining risk |
 |---|---|---|
 | This is just flamegraphs with labels. | The novelty is agent operation records plus recursive multi-field operation-stack projections plus hidden-label localization scoring; flamegraphs are only one output. | Need keep related work precise around pprof tag frames and Perfetto SQL. |
-| The evaluation is a long run log. | The paper is organized as E1-E4; R-runs are provenance, ablations, counterpoints, or gates. | `docs/evaluation.md` remains long and should stay a ledger, not the paper narrative. |
+| The evaluation is a long run log. | The paper is organized as RQ1/E1-RQ4/E4; R-runs are provenance, ablations, counterpoints, or gates. | `docs/evaluation.md` remains long and should stay a ledger, not the paper narrative. |
 | Query-aware ranking leaks labels. | Rust visible inputs scrub oracle fields; hidden labels are used only for offline scoring; oracle policies are upper bounds. | Keep source-status and visible/hidden separation checks in every new run. |
 | Fixed sessions sometimes cost less. | The claim is Pareto tradeoff, not metric dominance; fixed-session counterpoints remain explicit. | Do not write "always better" or "replaces drilldown." |
 | Boundary detection is overclaimed. | Mappings and supervised boundary fields are field derivations; automatic discovery of all intent boundaries is not claimed. | Need stronger true subtask/solution-path oracles for broader boundary claims. |
