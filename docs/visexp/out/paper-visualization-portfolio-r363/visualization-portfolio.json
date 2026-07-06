@@ -93,7 +93,7 @@
     },
     {
       "check": "source_policy_no_new_data_or_profiler_rerun",
-      "evidence": "R363 reads tracked clean upstream artifacts only.",
+      "evidence": "R363 reads tracked upstream artifacts only; regenerated R361/R362 artifacts may be dirty before this step is committed.",
       "status": "pass"
     },
     {
@@ -102,8 +102,8 @@
       "status": "pass"
     }
   ],
-  "commit": "8df0ebf272ab3e0c72fcee4c62ef235549a1b0ee",
-  "elapsed_s": 0.056,
+  "commit": "19b9d66e7b2d245d976db90e8ede38c83c49afa6",
+  "elapsed_s": 0.051,
   "heatmap_rows": [
     {
       "hidden": false,
@@ -615,9 +615,9 @@
   "source_status": [
     {
       "path": "script/paper_visualization_portfolio.py",
-      "sha256": "098fdc80fe38040dd66b1769485cc74f298086248d129e28d166055e2ba123b6",
+      "sha256": "202b6ee8071e1ffd5f13993cf557de766b5f636c3e8181b32b65743eb495fa42",
       "source": "generator script",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/out/operation-profile-accuracy-r320/profile-accuracy-report.json",
@@ -663,15 +663,15 @@
     },
     {
       "path": "docs/visexp/out/paper-core-claim-evidence-r361/core-claim-evidence.json",
-      "sha256": "704d320768b8e8685d4469dcaf4ab568f559eee16b8fe4fa34cb71206c574103",
+      "sha256": "db39c864378eecc3a7286b9f2ce22bf584897155175aab93af1cd77cb295ec7f",
       "source": "R361 claim evidence",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/out/paper-core-section-readiness-r362/section-readiness.json",
-      "sha256": "bab9f3888c406365c1ee204aa772d1e3dfb37a445003d04bf8e02bdec369d21a",
+      "sha256": "33043a0ee85f2e671f88507676a28d2ac5495ba2fbb83abb4393bea476537875",
       "source": "R362 section readiness",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     }
   ],
   "status": "pass",
@@ -789,7 +789,7 @@
   ],
   "upstream_gates": {
     "r361": "pass",
-    "r361_checks": "10/10",
+    "r361_checks": "11/11",
     "r362": "pass",
     "r362_checks": "16/16"
   },

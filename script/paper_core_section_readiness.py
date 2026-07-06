@@ -195,9 +195,9 @@ def build_checks(r361: dict[str, Any], zh: str, en: str, eval_text: str) -> tupl
         checks,
         "r361_core_claim_ledger_is_current_and_passing",
         r361["status"] == "pass"
-        and r361["summary"]["checks_passed"] == r361["summary"]["checks_total"] == 10
+        and r361["summary"]["checks_passed"] == r361["summary"]["checks_total"]
         and len(r361["ledger"]) == 4,
-        "R361 has 4 ledger rows and 10/10 checks passing.",
+        f"R361 has 4 ledger rows and {r361['summary']['checks_passed']}/{r361['summary']['checks_total']} checks passing.",
     )
     add_check(
         checks,

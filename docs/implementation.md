@@ -38,8 +38,8 @@ Purpose: identify the maintained implementation boundary.
 | `script/operation_oracle_depth_adequacy_eval.py` | R355 oracle-depth adequacy audit; scores visible-ranked profile groups at session, operation/step, positive-run proxy, and task-specific oracle depths over tracked labeled outputs. | research harness |
 | `script/operation_field_derivation_mechanism_eval.py` | R366 field-derivation mechanism audit; consolidates deterministic mapping, profile-spec composition, rank-feature ablation, supervised boundary backends, and boundary-derived profile patches from tracked artifacts without rerunning the profiler. | paper hygiene harness |
 | `script/paper_core_experiment_consolidation_audit.py` | R359 paper-facing core-experiment consolidation audit; checks that evaluation is organized as E1-E4, R-runs are provenance, and R358 remains an E3 mechanism ablation. | paper hygiene harness |
-| `script/paper_core_result_tables.py` | R360 paper core-result table generator; regenerates the E1-E4 headline table and metric rows from tracked artifacts without rerunning the profiler. | paper hygiene harness |
-| `script/paper_core_claim_evidence.py` | R361 core-claim evidence ledger; binds each E1-E4 experiment to claim, oracle, baselines, primary metrics, actionability, counterpoints, and scoped wording. | paper hygiene harness |
+| `script/paper_core_result_tables.py` | R360 paper core-result table generator; regenerates the E1-E4 headline table and metric rows from tracked artifacts, now folding R366 field-derivation evidence into E1/E3 without rerunning the profiler. | paper hygiene harness |
+| `script/paper_core_claim_evidence.py` | R361 core-claim evidence ledger; binds each E1-E4 experiment to claim, oracle, baselines, primary metrics, actionability, counterpoints, scoped wording, and R366 field-derivation scope. | paper hygiene harness |
 | `script/paper_core_section_readiness.py` | R362 section-readiness audit; checks that Chinese/English E1-E4 result sections carry claim, oracle, baseline, metric, counterpoint/scope, and two-abstraction guardrails. | paper hygiene harness |
 | `script/paper_visualization_portfolio.py` | R363 paper visualization portfolio; turns tracked E1-E4 evidence artifacts into baseline-tradeoff, metric-heatmap, diagnostic-lens, actionability-knob, and oracle-depth SVG/CSV/HTML views plus a LaTeX table fragment without rerunning the profiler. | paper hygiene harness |
 | `script/paper_headline_case_studies.py` | R365 paper headline/case-study selector; compresses E2/E3 evidence into five headline rows and six task cards from tracked artifacts without rerunning the profiler. | paper hygiene harness |
@@ -167,14 +167,14 @@ gate, not a profiler rerun or new empirical result.
 
 R360 then makes the paper result table itself executable.
 `script/paper_core_result_tables.py` reads tracked E1-E4 artifacts, including
-R285/R286/R320/R328/R338/R342/R353/R354/R355/R357/R358/R359, and writes a
+R285/R286/R320/R328/R338/R342/R353/R354/R355/R357/R358/R359/R366, and writes a
 four-row table, twenty metric rows, Markdown/HTML, and a LaTeX fragment. This
 is table provenance over existing results, not a runtime component, profiler
 rerun, or new empirical result.
 
 R361 turns that table into a claim-evidence ledger.
 `script/paper_core_claim_evidence.py` reads tracked R320/R352/R354/R355/R357/
-R358/R359/R360 artifacts and records, for each E1-E4 block, the claim,
+R358/R359/R360/R366 artifacts and records, for each E1-E4 block, the claim,
 research question, oracle, baselines, primary metrics, headline result,
 actionable insight, counterpoint, and scoped wording. The ledger is a reviewer
 navigation artifact over operation/operation-stack evidence; it is not a third
@@ -216,6 +216,9 @@ fields can beat a learned backend, and boundary-derived profile patches can
 improve AP/groups while increasing some inspection-work metrics. This is a
 mechanism guardrail, not a new dataset, profiler rerun, human/agent analyst
 task, automatic boundary detector, or third profiler abstraction.
+R360/R361/R364 now consume this R366 audit as internal E1/E3 evidence, so the
+paper-facing structure remains three empirical profiling experiments plus one
+systems/reproducibility experiment rather than adding a fifth block.
 
 R355 then closes the main R339 depth-scoring gap without adding another
 runtime object. `script/operation_oracle_depth_adequacy_eval.py` reuses tracked

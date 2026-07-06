@@ -32,12 +32,17 @@
     },
     {
       "check": "boundary_backend_is_supervised_ablation",
-      "evidence": "R358 is scoped to supervised held-out boundary-derived fields, not automatic boundary discovery.",
+      "evidence": "R358/R366 are scoped to supervised held-out boundary-derived fields and suitability checks, not automatic boundary discovery.",
       "status": "pass"
     },
     {
       "check": "actionability_has_executable_and_boundary_mechanisms",
-      "evidence": "E3 includes executable profile-spec patches and the OSWorld-Human boundary-field ablation.",
+      "evidence": "E3 includes executable profile-spec patches, OSWorld-Human boundary-field ablation, and field/ranker mechanism counterpoints.",
+      "status": "pass"
+    },
+    {
+      "check": "field_derivation_is_internal_to_e1_e3",
+      "evidence": "R366 field-derivation evidence is represented inside E1/E3, with no fifth paper-facing experiment.",
       "status": "pass"
     },
     {
@@ -72,8 +77,8 @@
     }
   ],
   "claim": "E1-E4 are substantial reviewer-facing experiments rather than a chronological run list",
-  "commit": "9bef26e11120fa76e0dc85596323daa2a3fac28a",
-  "elapsed_s": 0.0566,
+  "commit": "19b9d66e7b2d245d976db90e8ede38c83c49afa6",
+  "elapsed_s": 0.063,
   "input_policy": {
     "hidden_labels_only_for_scoring": true,
     "no_dataset_creation": true,
@@ -92,69 +97,75 @@
   "source_status": [
     {
       "path": "script/paper_core_experiment_sufficiency_audit.py",
-      "sha256": "233dcb7688f37ffb15c1eb2a23a74319752625100e6742c539c0800612f9c5bb",
+      "sha256": "4583f4fec5d855d5eb421e352b86e21657caeb443773818017718880e5f8dc9a",
       "source": "generator script",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/out/paper-claim-integrity-r338/claim-integrity-report.json",
       "sha256": "9461fd35e30f0b8f197dc2fa23f2d20458e0c07eed4ed6d21a7cd91c672d2472",
       "source": "R338 paper claim integrity",
-      "status": "tracked_dirty_allowed"
+      "status": "tracked_clean"
     },
     {
       "path": "docs/visexp/out/paper-evaluation-rubric-r352/evaluation-rubric-report.json",
       "sha256": "9f470e3aad9b44ecef7a21bcbfd5c953e004c2f3d095150720ba3d7a418e0356",
       "source": "R352 evaluation rubric",
-      "status": "tracked_dirty_allowed"
+      "status": "tracked_clean"
     },
     {
       "path": "docs/visexp/out/paper-claim-integrity-r356/claim-integrity-r356-report.json",
       "sha256": "6e06146b82a7432626601079015ef9b69fc941523aa082429b9f71bc2fdcf35d",
       "source": "R356 claim integrity refresh",
-      "status": "tracked_dirty_allowed"
+      "status": "tracked_clean"
     },
     {
       "path": "docs/visexp/out/paper-reviewer-acceptance-r357/reviewer-acceptance-r357.json",
       "sha256": "441ad77854f781656281a731eeb749cca50ff423567a1207f8555d9f9caf514c",
       "source": "R357 reviewer acceptance",
-      "status": "tracked_dirty_allowed"
+      "status": "tracked_clean"
     },
     {
       "path": "docs/visexp/out/paper-core-result-tables-r360/core-result-tables.json",
-      "sha256": "88b1c4c9452538d6fc5cf4316e2f9206b04f481adb3f00fa7e5fdefc7e9bba5a",
+      "sha256": "66a731954f5214ff0c21d2e54ea5300bda468acc712c7c5977ea9cebc3aaa1df",
       "source": "R360 core result table",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/out/paper-core-claim-evidence-r361/core-claim-evidence.json",
-      "sha256": "704d320768b8e8685d4469dcaf4ab568f559eee16b8fe4fa34cb71206c574103",
+      "sha256": "db39c864378eecc3a7286b9f2ce22bf584897155175aab93af1cd77cb295ec7f",
       "source": "R361 claim evidence",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/out/paper-visualization-portfolio-r363/visualization-portfolio.json",
-      "sha256": "3a0f5ee1f7d837b87c629e5415952eaa2010dfd40f3c86fe346799a272162f37",
+      "sha256": "ee737cd16704cdcbb2ecdd9c3c5f3811785eb68b4e0f2d99150ea6736797bf81",
       "source": "R363 visualization portfolio",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/out/operation-field-derivation-mechanism-r366/field-derivation-mechanism-report.json",
+      "sha256": "505fc5962a6e7aa3fcbb71a66fbd3dc46970c7e013312f23ef25961c6135dae9",
+      "source": "R366 field derivation mechanism",
+      "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/evaluation.md",
-      "sha256": "a9a70edcaeb4624116e8be90e3ecdfe7ee13e986778931ae0b0169c330cd8631",
+      "sha256": "394358afe09ce0fc9974e45d3a428f70ec67f7ed2dfaf30ee27f7a24aef9e4ac",
       "source": "evaluation ledger",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/paper/main.tex",
-      "sha256": "8d11a3f0dc1cbc0aa35e89ceb665e66e8ab5976a2129946ca49f80d79bb24ab7",
+      "sha256": "fee7c19c469183c31fcc4994a3519aa09d087b63890ad7abc7c6f16b759216d8",
       "source": "Chinese paper",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/agentpprof-paper/main.tex",
-      "sha256": "0d017d2c936e14099c70d01734c52ea002626695f49e67cf3c3e7a430cbeda5a",
+      "sha256": "bdbf3554eab05d73936ddc74d39fc14011289843521f21f983f806462062875a",
       "source": "English paper",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     }
   ],
   "status": "pass",
@@ -166,12 +177,12 @@
       "core_experiment": "E1: generality, recursive folding, and field derivation",
       "failure_interpretation": "If stack depth cannot change without changing operation input, the two-abstraction model collapses back into fixed prompt/session/tool objects.",
       "figure_table_target": "Table core-results plus dataset/coverage table; E1 is table-first because the key claim is coverage and foldability rather than a ranking curve.",
-      "negative_or_scope_condition": "This supports configurable operation-stack folding, not complete ecosystem compatibility or automatic latent-intent recovery.",
+      "negative_or_scope_condition": "This supports configurable operation-stack folding and first-class field derivation, not complete ecosystem compatibility, automatic latent-intent recovery, or automatic boundary discovery.",
       "oracle": "Public dataset labels and native trajectory fields; OSWorld-Human and AgentNet provide the strongest boundary and quality labels.",
-      "primary_experiment": "R286 recursive stack-depth sweep, with R342 profile-spec composition and R353 trace exchange as support.",
+      "primary_experiment": "R286 recursive stack-depth sweep, with R342 profile-spec composition, R353 trace exchange, and R366 field-derivation synthesis as support.",
       "primary_metrics": "operation coverage, unique-stack range across depths, mapping compression/reduction, boundary F1/V-measure, prompt/session-free profile-spec replay, and trace round-trip equality.",
-      "source_artifacts": "R285; R286; R342; R353; R360; R361",
-      "success_criterion": "The same operation input folds across depths (9->3757 stacks), profile specs stay prompt/session-free (12/12), and standard-trace import/export preserves 512 samples and 11 stacks."
+      "source_artifacts": "R285; R286; R342; R353; R360; R361; R366",
+      "success_criterion": "The same operation input folds across depths (9->3757 stacks), profile specs stay prompt/session-free (12/12), standard-trace import/export preserves 512 samples and 11 stacks, and R366 records 6 mechanism rows plus 5 boundary-family rows without adding a new profiler object."
     },
     {
       "baselines": "flat summary, fixed-session drilldown, dataset-native hierarchy, raw-action stack, operation-stack width, operation-stack query-aware, label drilldown, and oracle upper bound.",
@@ -194,12 +205,12 @@
       "core_experiment": "E3: mechanism and actionability",
       "failure_interpretation": "If profile-guided specs or boundary-derived fields do not improve scored groups, the profiler gives descriptions but not actionable optimization knobs.",
       "figure_table_target": "R363 diagnostic-lenses.svg and actionability-knobs.svg; actionability table and E3 row in Table core-results.",
-      "negative_or_scope_condition": "OSWorld-Human needs boundary-derived fields; learned-boundary folding increases top-5 work by 0.0813 and first-positive work by 0.1581, so this is not automatic boundary discovery or a universal selector. R358 is a supervised held-out boundary-field ablation, not unsupervised boundary discovery.",
+      "negative_or_scope_condition": "OSWorld-Human needs boundary-derived fields; learned-boundary folding increases top-5 work by 0.0813 and first-positive work by 0.1581. R366 also preserves 3 misleading feature rows and a simple-field boundary counterpoint, so this is not automatic boundary discovery or a universal selector. R358 is a supervised held-out boundary-field ablation, not unsupervised boundary discovery.",
       "oracle": "The same hidden labels are used only after profiling for scoring; R358 additionally uses held-out OSWorld-Human boundary positives after learned boundary fields are visible operation fields.",
       "primary_experiment": "R354 executable profile-spec patches, with R358 boundary-derived-field ablation for the OSWorld-Human rejection.",
-      "primary_metrics": "accepted patches, AP delta, top-5 lift delta, first-positive-work delta, group reduction, top-5 work counterpoint, and held-out transfer tolerance.",
-      "source_artifacts": "R324; R342; R345-R350; R354; R358; R360; R361; R363",
-      "success_criterion": "R354 accepts 5/6 patches with median AP delta 0.0376 and top-5 lift delta 0.5750; R358 improves held-out OSWorld-Human AP from 0.2402 to 0.2583 and groups from 108 to 74 using supervised boundary-derived fields as visible operation fields."
+      "primary_metrics": "accepted patches, AP delta, top-5 lift delta, first-positive-work delta, group reduction, top-5 work counterpoint, critical/misleading field rows, boundary-family suitability wins, and held-out transfer tolerance.",
+      "source_artifacts": "R324; R342; R345-R350; R354; R358; R360; R361; R363; R366",
+      "success_criterion": "R354 accepts 5/6 patches with median AP delta 0.0376 and top-5 lift delta 0.5750; R358 improves held-out OSWorld-Human AP from 0.2402 to 0.2583 and groups from 108 to 74 using supervised boundary-derived fields as visible operation fields; R366 folds 7 critical and 3 misleading feature rows into the same E3 mechanism story."
     },
     {
       "baselines": "default output versus deterministic-output replay, semantic profile hashes versus raw-byte profile hashes, and tracked-clean source-status checks.",
@@ -217,8 +228,8 @@
     }
   ],
   "summary": {
-    "checks_passed": 14,
-    "checks_total": 14,
+    "checks_passed": 15,
+    "checks_total": 15,
     "core_experiments": 4,
     "network_access_required": false,
     "paper_visualizations": 5,

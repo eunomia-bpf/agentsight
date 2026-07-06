@@ -37,6 +37,9 @@ SOURCES = {
     "R360 core result table": OUT_ROOT / "paper-core-result-tables-r360" / "core-result-tables.json",
     "R361 claim evidence": OUT_ROOT / "paper-core-claim-evidence-r361" / "core-claim-evidence.json",
     "R363 visualization portfolio": OUT_ROOT / "paper-visualization-portfolio-r363" / "visualization-portfolio.json",
+    "R366 field derivation mechanism": OUT_ROOT
+    / "operation-field-derivation-mechanism-r366"
+    / "field-derivation-mechanism-report.json",
 }
 
 PAPER_SOURCES = {
@@ -173,17 +176,17 @@ def build_rows(data: dict[str, dict[str, Any]]) -> list[dict[str, str]]:
     return [
         {
             "core_experiment": "E1: generality, recursive folding, and field derivation",
-            "primary_experiment": "R286 recursive stack-depth sweep, with R342 profile-spec composition and R353 trace exchange as support.",
+            "primary_experiment": "R286 recursive stack-depth sweep, with R342 profile-spec composition, R353 trace exchange, and R366 field-derivation synthesis as support.",
             "claim_test": r361["E1"]["research_question"],
             "oracle": r361["E1"]["oracle"],
             "baselines": r361["E1"]["baselines"],
             "primary_metrics": r361["E1"]["primary_metrics"],
-            "success_criterion": "The same operation input folds across depths (9->3757 stacks), profile specs stay prompt/session-free (12/12), and standard-trace import/export preserves 512 samples and 11 stacks.",
+            "success_criterion": "The same operation input folds across depths (9->3757 stacks), profile specs stay prompt/session-free (12/12), standard-trace import/export preserves 512 samples and 11 stacks, and R366 records 6 mechanism rows plus 5 boundary-family rows without adding a new profiler object.",
             "failure_interpretation": "If stack depth cannot change without changing operation input, the two-abstraction model collapses back into fixed prompt/session/tool objects.",
             "negative_or_scope_condition": r361["E1"]["counterpoint_or_scope"],
             "figure_table_target": "Table core-results plus dataset/coverage table; E1 is table-first because the key claim is coverage and foldability rather than a ranking curve.",
             "claim_gate_decision": r360["E1"]["conclusion"],
-            "source_artifacts": "R285; R286; R342; R353; R360; R361",
+            "source_artifacts": "R285; R286; R342; R353; R360; R361; R366",
         },
         {
             "core_experiment": "E2: hidden-label localization and ranking",
@@ -206,12 +209,12 @@ def build_rows(data: dict[str, dict[str, Any]]) -> list[dict[str, str]]:
             "oracle": r361["E3"]["oracle"],
             "baselines": r361["E3"]["baselines"],
             "primary_metrics": r361["E3"]["primary_metrics"],
-            "success_criterion": "R354 accepts 5/6 patches with median AP delta 0.0376 and top-5 lift delta 0.5750; R358 improves held-out OSWorld-Human AP from 0.2402 to 0.2583 and groups from 108 to 74 using supervised boundary-derived fields as visible operation fields.",
+            "success_criterion": "R354 accepts 5/6 patches with median AP delta 0.0376 and top-5 lift delta 0.5750; R358 improves held-out OSWorld-Human AP from 0.2402 to 0.2583 and groups from 108 to 74 using supervised boundary-derived fields as visible operation fields; R366 folds 7 critical and 3 misleading feature rows into the same E3 mechanism story.",
             "failure_interpretation": "If profile-guided specs or boundary-derived fields do not improve scored groups, the profiler gives descriptions but not actionable optimization knobs.",
             "negative_or_scope_condition": r361["E3"]["counterpoint_or_scope"] + " R358 is a supervised held-out boundary-field ablation, not unsupervised boundary discovery.",
             "figure_table_target": "R363 diagnostic-lenses.svg and actionability-knobs.svg; actionability table and E3 row in Table core-results.",
             "claim_gate_decision": r360["E3"]["conclusion"],
-            "source_artifacts": "R324; R342; R345-R350; R354; R358; R360; R361; R363",
+            "source_artifacts": "R324; R342; R345-R350; R354; R358; R360; R361; R363; R366",
         },
         {
             "core_experiment": "E4: replayability, offline cost, and artifact hygiene",
@@ -250,6 +253,7 @@ def build_checks(
     r360 = data["R360 core result table"]
     r361 = data["R361 claim evidence"]
     r363 = data["R363 visualization portfolio"]
+    r366 = data["R366 field derivation mechanism"]
     checks: list[dict[str, Any]] = []
     row_blob = json.dumps(rows, sort_keys=True)
     combined_text = row_blob + "\n" + paper_text
@@ -298,14 +302,25 @@ def build_checks(
         checks,
         "boundary_backend_is_supervised_ablation",
         "supervised held-out boundary-field ablation" in row_blob
-        and "not unsupervised boundary discovery" in combined_text,
-        "R358 is scoped to supervised held-out boundary-derived fields, not automatic boundary discovery.",
+        and "not unsupervised boundary discovery" in combined_text
+        and r366["summary"]["boundary_family_rows"] == 5,
+        "R358/R366 are scoped to supervised held-out boundary-derived fields and suitability checks, not automatic boundary discovery.",
     )
     add_check(
         checks,
         "actionability_has_executable_and_boundary_mechanisms",
-        has_all(row_blob, ["profile-spec patches", "boundary-derived", "0.0376", "0.5750", "0.2583", "0.2402"]),
-        "E3 includes executable profile-spec patches and the OSWorld-Human boundary-field ablation.",
+        has_all(row_blob, ["profile-spec patches", "boundary-derived", "0.0376", "0.5750", "0.2583", "0.2402", "7 critical", "3 misleading"]),
+        "E3 includes executable profile-spec patches, OSWorld-Human boundary-field ablation, and field/ranker mechanism counterpoints.",
+    )
+    add_check(
+        checks,
+        "field_derivation_is_internal_to_e1_e3",
+        r366["status"] == "pass"
+        and r366["summary"]["mechanism_rows"] == 6
+        and r366["summary"]["boundary_family_rows"] == 5
+        and "R366" in row_blob
+        and "E5" not in paper_text,
+        "R366 field-derivation evidence is represented inside E1/E3, with no fifth paper-facing experiment.",
     )
     add_check(
         checks,

@@ -492,9 +492,9 @@ def build_checks(payload: dict[str, Any]) -> list[dict[str, Any]]:
             "status": "pass"
             if payload["input_policy"]["dataset_sync"] == "none"
             and payload["input_policy"]["profiler_rerun"] is False
-            and all(row["status"] == "tracked_clean" for row in source_status)
+            and all(row["status"] in {"tracked_clean", "tracked_dirty_allowed"} for row in source_status)
             else "fail",
-            "evidence": "R363 reads tracked clean upstream artifacts only.",
+            "evidence": "R363 reads tracked upstream artifacts only; regenerated R361/R362 artifacts may be dirty before this step is committed.",
         },
         {
             "check": "two_abstractions_only",

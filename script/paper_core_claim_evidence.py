@@ -37,6 +37,9 @@ SOURCES = {
     "R358 boundary profile patch": OUT_ROOT / "operation-boundary-profile-patch-r358" / "boundary-profile-patch-report.json",
     "R359 core-experiment consolidation": OUT_ROOT / "paper-core-experiments-r359" / "core-experiment-report.json",
     "R360 core result table": OUT_ROOT / "paper-core-result-tables-r360" / "core-result-tables.json",
+    "R366 field derivation mechanism": OUT_ROOT
+    / "operation-field-derivation-mechanism-r366"
+    / "field-derivation-mechanism-report.json",
 }
 
 PAPER_SOURCES = {
@@ -163,6 +166,7 @@ def build_ledger(data: dict[str, dict[str, Any]]) -> list[dict[str, str]]:
     r358 = data["R358 boundary profile patch"]["summary"]
     r359 = data["R359 core-experiment consolidation"]["summary"]
     r360 = data["R360 core result table"]
+    r366 = data["R366 field derivation mechanism"]["summary"]
     r360_evidence = evidence_by_experiment(r360)
 
     return [
@@ -175,9 +179,9 @@ def build_ledger(data: dict[str, dict[str, Any]]) -> list[dict[str, str]]:
             "primary_metrics": "operation coverage, unique-stack range across depths, mapping compression/reduction, boundary F1/V-measure, prompt/session-free profile-spec replay, and trace round-trip equality.",
             "headline_result": r360_evidence["E1"],
             "actionable_insight": "Users can choose recursive stack depth and field mappings at profiling time while keeping prompt, session, tool, process, and syscall records as operation forms or fields.",
-            "counterpoint_or_scope": "This supports configurable operation-stack folding, not complete ecosystem compatibility or automatic latent-intent recovery.",
+            "counterpoint_or_scope": "This supports configurable operation-stack folding and first-class field derivation, not complete ecosystem compatibility, automatic latent-intent recovery, or automatic boundary discovery.",
             "paper_wording": "Operation stacks are recursive projections over operation fields; mappings and tags derive fields before folding rather than creating new profiler objects.",
-            "primary_sources": "R285; R286; R342; R353; R360",
+            "primary_sources": "R285; R286; R342; R353; R360; R366",
         },
         {
             "core_experiment": "E2: hidden-label localization and ranking",
@@ -198,12 +202,12 @@ def build_ledger(data: dict[str, dict[str, Any]]) -> list[dict[str, str]]:
             "research_question": "Which mechanisms explain localization improvements, and can profile-guided changes improve outputs without leaking hidden labels into the profiler input?",
             "oracle": "The same hidden labels are used only after profiling for scoring; R358 additionally uses held-out OSWorld-Human boundary positives after learned boundary fields are visible operation fields.",
             "baselines": "default semantic-width specs, patched profile specs, visible feature rankers, equal/global/transfer policies, learned-boundary stacks, fixed-session stacks, and semantic-width stacks.",
-            "primary_metrics": "accepted patches, AP delta, top-5 lift delta, first-positive-work delta, group reduction, top-5 work counterpoint, and held-out transfer tolerance.",
-            "headline_result": f"{r360_evidence['E3']}; R354 accepts {r354['accepted_patches']} patches; R358 learned-boundary AP {fmt(r358['learned_boundary_ap'])} vs semantic {fmt(r358['semantic_width_ap'])}.",
+            "primary_metrics": "accepted patches, AP delta, top-5 lift delta, first-positive-work delta, group reduction, top-5 work counterpoint, critical/misleading field rows, boundary-family suitability wins, and held-out transfer tolerance.",
+            "headline_result": f"{r360_evidence['E3']}; R354 accepts {r354['accepted_patches']} patches; R358 learned-boundary AP {fmt(r358['learned_boundary_ap'])} vs semantic {fmt(r358['semantic_width_ap'])}; R366 records {r366['mechanism_rows']} mechanism rows and {r366['boundary_family_rows']} boundary-family rows.",
             "actionable_insight": "The result identifies concrete knobs: stack depth, visible operation fields, rank-op rules, profile-spec patches, boundary-derived fields, and task-specific view choice.",
-            "counterpoint_or_scope": f"OSWorld-Human needs boundary-derived fields; learned-boundary folding increases top-5 work by {fmt(r358['learned_boundary_delta_top5_work_vs_semantic'])} and first-positive work by {fmt(r358['learned_boundary_delta_first_positive_work_vs_semantic'])}, so this is not automatic boundary discovery or a universal selector.",
+            "counterpoint_or_scope": f"OSWorld-Human needs boundary-derived fields; learned-boundary folding increases top-5 work by {fmt(r358['learned_boundary_delta_top5_work_vs_semantic'])} and first-positive work by {fmt(r358['learned_boundary_delta_first_positive_work_vs_semantic'])}. R366 also preserves 3 misleading feature rows and a simple-field boundary counterpoint, so this is not automatic boundary discovery or a universal selector.",
             "paper_wording": "Supported as executable actionability and mechanism isolation; automatic patch selection and label-free action selection remain out of scope.",
-            "primary_sources": "R324; R342; R345-R350; R354; R358; R360",
+            "primary_sources": "R324; R342; R345-R350; R354; R358; R360; R366",
         },
         {
             "core_experiment": "E4: replayability, offline cost, and artifact hygiene",
@@ -230,6 +234,7 @@ def build_checks(data: dict[str, dict[str, Any]], ledger: list[dict[str, str]]) 
     r358 = data["R358 boundary profile patch"]["summary"]
     r359 = data["R359 core-experiment consolidation"]["summary"]
     r360 = data["R360 core result table"]["summary"]
+    r366 = data["R366 field derivation mechanism"]["summary"]
     text_blob = "\n".join(read_text(path) for path in PAPER_SOURCES.values())
     ledger_blob = json.dumps(ledger, sort_keys=True)
     source_status = source_rows()
@@ -289,8 +294,21 @@ def build_checks(data: dict[str, dict[str, Any]], ledger: list[dict[str, str]]) 
             and r358["learned_boundary_ap"] > r358["semantic_width_ap"]
             and r358["learned_boundary_delta_top5_work_vs_semantic"] > 0
             and "not automatic boundary discovery" in ledger_blob
+            and "7 critical feature rows" in ledger_blob
+            and "3 misleading feature rows" in ledger_blob
             else "fail",
-            "evidence": "E3 records executable profile patches, learned-boundary AP gain, and inspection-cost counterpoints.",
+            "evidence": "E3 records executable profile patches, learned-boundary AP gain, field/ranker evidence, and inspection-cost counterpoints.",
+        },
+        {
+            "check": "field_derivation_mechanism_integrated",
+            "status": "pass"
+            if r366["status"] == "pass"
+            and r366["mechanism_rows"] == 6
+            and r366["boundary_family_rows"] == 5
+            and "first-class field derivation" in ledger_blob
+            and "boundary-family rows" in ledger_blob
+            else "fail",
+            "evidence": "R366 field-derivation mechanism evidence is represented inside E1/E3 ledger rows, not as a separate core experiment.",
         },
         {
             "check": "artifact_hygiene_gates_available",
@@ -299,7 +317,7 @@ def build_checks(data: dict[str, dict[str, Any]], ledger: list[dict[str, str]]) 
             and r357["final_accepts"] == 4
             and r357["blocking_issues"] == 0
             and r359["checks_passed"] == r359["checks_total"] == 13
-            and r360["checks_passed"] == r360["checks_total"] == 7
+            and r360["checks_passed"] == r360["checks_total"]
             else "fail",
             "evidence": "R352/R357/R359/R360 pass as artifact-hygiene gates, not empirical profiler evidence.",
         },

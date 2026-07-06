@@ -228,7 +228,7 @@ R 编号只作为 provenance，不是论文的小节结构。
   \tiny
   \setlength{\tabcolsep}{2.2pt}
   \renewcommand{\arraystretch}{0.92}
-  \caption{四个 paper-facing 核心实验。R 编号只作为 provenance、ablation、counterpoint 或 audit gate 保留在 evaluation ledger；R360 从 tracked artifacts 重新生成该表的 headline metrics。}
+  \caption{三个经验性 profiling 实验加一个系统/复现实验。R 编号只作为 provenance、ablation、counterpoint 或 audit gate 保留在 evaluation ledger；R360 从 tracked artifacts 重新生成该表的 headline metrics。}
   \label{tab:results}
   \begin{tabular}{p{0.18\linewidth}p{0.22\linewidth}p{0.28\linewidth}p{0.24\linewidth}}
     \toprule
@@ -510,8 +510,8 @@ R352 再把当前结果集映射到 OSDI-style profiling-paper rubric：它复�
   \end{tabular}
 \end{table}
 
-R360 把表~\ref{tab:results} 的核心数字做成可复现 artifact：脚本只读取 R360 source-status 中列出的 tracked upstream results 和当前 paper/docs，输出 JSON、CSV、Markdown、HTML 和 LaTeX table fragment；7/7 checks 通过，其中包括 fixed-session drilldown 作为当前 trace-tree-shaped baseline 的 scope 检查。R360 不是新的 empirical result，也不重新排名或同步数据集；R338/R352/R356/R357/R359/R361 只作为 artifact hygiene 和 claim-scope gate，不作为主表的 scientific evidence。
-R361 进一步把 E1--E4 表格整理成 claim-evidence ledger：每个核心实验都必须给出 claim、research question、oracle、baselines、primary metrics、headline result、actionable insight、counterpoint、scoped wording 和 source runs。该 gate 10/10 checks 通过，覆盖 hidden-label scale/metric surface、baseline tradeoff 而不是 metric dominance、oracle-depth/fragmentation、mechanism/actionability counterpoints、reproducibility guardrails、two-abstraction boundary 和 must-not-claim guardrails。R361 仍然只是 paper-structure artifact，不是新的实验，不重新跑 profiler，也不做 dataset sync、creation 或 relabeling。
+R360 把表~\ref{tab:results} 的核心数字做成可复现 artifact：脚本只读取 R360 source-status 中列出的 tracked upstream results 和当前 paper/docs，输出 JSON、CSV、Markdown、HTML 和 LaTeX table fragment；8/8 checks 通过，其中包括 fixed-session drilldown 作为当前 trace-tree-shaped baseline 的 scope 检查，以及 R366 被内联进 E1/E3 而不是成为新增主实验的结构检查。R360 生成 4 个 core rows 和 20 个 metric rows；R360 不是新的 empirical result，也不重新排名或同步数据集；R338/R352/R356/R357/R359/R361/R366 只作为 artifact hygiene、claim-scope gate 或主实验内部机制证据，不作为额外主实验。
+R361 进一步把 E1--E4 表格整理成 claim-evidence ledger：每个核心实验都必须给出 claim、research question、oracle、baselines、primary metrics、headline result、actionable insight、counterpoint、scoped wording 和 source runs。该 gate 11/11 checks 通过，覆盖 hidden-label scale/metric surface、baseline tradeoff 而不是 metric dominance、oracle-depth/fragmentation、R366 field-derivation integration、mechanism/actionability counterpoints、reproducibility guardrails、two-abstraction boundary 和 must-not-claim guardrails。R361 仍然只是 paper-structure artifact，不是新的实验，不重新跑 profiler，也不做 dataset sync、creation 或 relabeling。
 R363 再把这些证据组织成表~\ref{tab:visualization-portfolio} 中的五个 paper views：baseline-tradeoff scatter、metric heatmap、diagnostic lenses、actionability knobs 和 oracle-depth adequacy。该 portfolio 7/7 checks 通过，作用是把 E2/E3 的 tradeoff 和 actionability 用多种分析视图展示出来，而不是新增第五个实验、把论文降格为单一 flamegraph，或引入 operation/operation-stack 之外的新抽象。
 R365 最后把同一批 E2/E3 证据整理成表~\ref{tab:r365-headlines} 的 five headline rows 和 six task case cards：它保留 Work@5、R@30\%、group count、oracle-depth、non-default action、profile-spec patch 和 boundary-field counterpoints，但仍然只是 paper-integration artifact，不下载数据、不重跑 profiler、不引入新实验。
 R366 再把 C3/E3 的 field derivation 机制证据整理成 6 个 mechanism rows 和 5 个 boundary-family rows：它保留 mapping compression、action-label coarsening、profile-spec composition、critical/misleading rank features、4/5 boundary-backend suitability wins，以及 R358 的 AP/group improvement 和 inspection-work counterpoints；R366 仍然只是 mechanism guardrail，不下载数据、不重跑 profiler，也不支持 automatic intent boundary discovery。

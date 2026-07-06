@@ -65,6 +65,9 @@ SOURCES = {
     "R359 core-experiment consolidation": OUT_ROOT
     / "paper-core-experiments-r359"
     / "core-experiment-report.json",
+    "R366 field derivation mechanism": OUT_ROOT
+    / "operation-field-derivation-mechanism-r366"
+    / "field-derivation-mechanism-report.json",
 }
 
 PAPER_SOURCES = {
@@ -177,6 +180,8 @@ def metric_rows(data: dict[str, dict[str, Any]]) -> list[dict[str, str]]:
     r357 = data["R357 reviewer acceptance"]["summary"]
     r358 = data["R358 boundary profile patch"]["summary"]
     r359 = data["R359 core-experiment consolidation"]["summary"]
+    r366 = data["R366 field derivation mechanism"]
+    r366_summary = r366["summary"]
 
     policy_summary = r320["policy_summary"]
     paired = r320["paired_comparisons"]
@@ -222,6 +227,15 @@ def metric_rows(data: dict[str, dict[str, Any]]) -> list[dict[str, str]]:
             f"{r353['direct_profile']['unique_stacks']} stacks, equal={r353['folded_outputs_equal']}",
             "baseline_or_comparator": "direct operation-file profile vs imported standard trace",
             "evidence": "R353",
+        },
+        {
+            "experiment": "E1",
+            "metric": "field_derivation_mechanism_rows",
+            "value": f"{r366_summary['mechanism_rows']} mechanism rows, "
+            f"{r366_summary['boundary_family_rows']} boundary-family rows, "
+            "4/5 boundary backends beat the best simple baseline",
+            "baseline_or_comparator": "mapping/tagging/boundary-field derivation vs simple baselines",
+            "evidence": "R366",
         },
         {
             "experiment": "E2",
@@ -309,6 +323,14 @@ def metric_rows(data: dict[str, dict[str, Any]]) -> list[dict[str, str]]:
             "evidence": "R358",
         },
         {
+            "experiment": "E3",
+            "metric": "field_rank_boundary_mechanism_audit",
+            "value": "7 critical feature rows, 3 misleading feature rows, "
+            "4/5 boundary-family rows beat the best simple baseline",
+            "baseline_or_comparator": "field/ranker/boundary mechanisms with suitability counterpoints",
+            "evidence": "R366",
+        },
+        {
             "experiment": "E4",
             "metric": "deterministic_profile_specs",
             "value": f"{r328['semantic_deterministic_specs']} semantic, {r328['raw_byte_deterministic_specs']} raw-byte, "
@@ -373,7 +395,9 @@ def build_checks(data: dict[str, dict[str, Any]], metrics: list[dict[str, str]],
     r352_status = read_json(OUT_ROOT / "paper-evaluation-rubric-r352" / "evaluation-rubric-report.json")
     r357 = data["R357 reviewer acceptance"]
     r359 = data["R359 core-experiment consolidation"]
+    r366 = data["R366 field derivation mechanism"]["summary"]
     metric_blob = json.dumps(metrics, sort_keys=True)
+    experiment_blob = json.dumps(experiments, sort_keys=True)
     paper_blob = "\n".join(read_text(path) for path in PAPER_SOURCES.values())
     checks = [
         {
@@ -401,9 +425,20 @@ def build_checks(data: dict[str, dict[str, Any]], metrics: list[dict[str, str]],
         {
             "check": "actionability_tokens_present",
             "status": "pass"
-            if all(token in metric_blob for token in ["5/6", "0.0376", "0.575", "0.2583", "0.2402", "74"])
+            if all(token in metric_blob for token in ["5/6", "0.0376", "0.575", "0.2583", "0.2402", "74", "7 critical", "3 misleading"])
             else "fail",
-            "evidence": "R354/R358 actionability and boundary-field tokens are present.",
+            "evidence": "R354/R358/R366 actionability and boundary-field tokens are present.",
+        },
+        {
+            "check": "r366_is_integrated_inside_e1_e3_not_e5",
+            "status": "pass"
+            if r366["status"] == "pass"
+            and r366["mechanism_rows"] == 6
+            and r366["boundary_family_rows"] == 5
+            and "R366" in metric_blob
+            and "E5" not in experiment_blob
+            else "fail",
+            "evidence": "R366 field-derivation evidence is folded into E1/E3 metrics while the generated table remains four rows.",
         },
         {
             "check": "artifact_hygiene_gates_available",

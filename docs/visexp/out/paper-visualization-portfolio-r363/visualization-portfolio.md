@@ -24,5 +24,5 @@
 | `diagnostic_lens_view_preserves_counterpoints` | pass | Six diagnostic lenses are present and at least one lens is a non-operation-stack counterpoint. |
 | `actionability_view_has_nondefault_knobs` | pass | Actionability rows include objective-level counterfactuals plus executable profile-spec and boundary-field knobs. |
 | `oracle_depth_view_preserves_depth_support` | pass | Oracle-depth rows preserve 24/24 flat-work and >=20/24 fixed-session recall/group support. |
-| `source_policy_no_new_data_or_profiler_rerun` | pass | R363 reads tracked clean upstream artifacts only. |
+| `source_policy_no_new_data_or_profiler_rerun` | pass | R363 reads tracked upstream artifacts only; regenerated R361/R362 artifacts may be dirty before this step is committed. |
 | `two_abstractions_only` | pass | Visualization portfolio is over operation/operation-stack outputs, not new profiler objects. |

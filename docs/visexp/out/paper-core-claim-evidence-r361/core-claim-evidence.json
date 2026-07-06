@@ -27,7 +27,12 @@
     },
     {
       "check": "actionability_mechanism_and_counterpoints",
-      "evidence": "E3 records executable profile patches, learned-boundary AP gain, and inspection-cost counterpoints.",
+      "evidence": "E3 records executable profile patches, learned-boundary AP gain, field/ranker evidence, and inspection-cost counterpoints.",
+      "status": "pass"
+    },
+    {
+      "check": "field_derivation_mechanism_integrated",
+      "evidence": "R366 field-derivation mechanism evidence is represented inside E1/E3 ledger rows, not as a separate core experiment.",
       "status": "pass"
     },
     {
@@ -51,8 +56,8 @@
       "status": "pass"
     }
   ],
-  "commit": "c1d08184936189c7b8a1e90176ccbca5bc6a8b60",
-  "elapsed_s": 0.108,
+  "commit": "19b9d66e7b2d245d976db90e8ede38c83c49afa6",
+  "elapsed_s": 0.119,
   "input_policy": {
     "dataset_creation": "none",
     "dataset_relabeling": "none",
@@ -67,12 +72,12 @@
       "baselines": "Dataset-native stacks, no-map folding, fixed-session stacks, profile-spec replay, and direct operation-file versus standard-trace import/export.",
       "claim": "A two-object profiler model, operation plus operation stack, covers heterogeneous agent traces without binding profiling units to prompt/session/tool boundaries.",
       "core_experiment": "E1: generality, recursive folding, and field derivation",
-      "counterpoint_or_scope": "This supports configurable operation-stack folding, not complete ecosystem compatibility or automatic latent-intent recovery.",
-      "headline_result": "recursive_depth_sweep_operations=13265 (R286); stack_depths_and_unique_stack_range=8 depths, 9->3757 stacks (R286); leave_dataset_out_positive_stack_reductions=6/9 (R285); prompt_session_free_profile_specs=12/12 (R342); real_operation_standard_trace_roundtrip=512 ops, 512 samples, 11 stacks, equal=True (R353)",
+      "counterpoint_or_scope": "This supports configurable operation-stack folding and first-class field derivation, not complete ecosystem compatibility, automatic latent-intent recovery, or automatic boundary discovery.",
+      "headline_result": "recursive_depth_sweep_operations=13265 (R286); stack_depths_and_unique_stack_range=8 depths, 9->3757 stacks (R286); leave_dataset_out_positive_stack_reductions=6/9 (R285); prompt_session_free_profile_specs=12/12 (R342); real_operation_standard_trace_roundtrip=512 ops, 512 samples, 11 stacks, equal=True (R353); field_derivation_mechanism_rows=6 mechanism rows, 5 boundary-family rows, 4/5 boundary backends beat the best simple baseline (R366)",
       "oracle": "Public dataset labels and native trajectory fields; OSWorld-Human and AgentNet provide the strongest boundary and quality labels.",
       "paper_wording": "Operation stacks are recursive projections over operation fields; mappings and tags derive fields before folding rather than creating new profiler objects.",
       "primary_metrics": "operation coverage, unique-stack range across depths, mapping compression/reduction, boundary F1/V-measure, prompt/session-free profile-spec replay, and trace round-trip equality.",
-      "primary_sources": "R285; R286; R342; R353; R360",
+      "primary_sources": "R285; R286; R342; R353; R360; R366",
       "research_question": "Can the same operation layer be folded recursively into task-, phase-, action-, boundary-, and fixed-session-shaped stacks by changing mappings and stack fields?"
     },
     {
@@ -93,12 +98,12 @@
       "baselines": "default semantic-width specs, patched profile specs, visible feature rankers, equal/global/transfer policies, learned-boundary stacks, fixed-session stacks, and semantic-width stacks.",
       "claim": "The profiler exposes actionable optimization knobs through stack fields, mapping/tagging rules, ranking policies, profile specs, and boundary-derived operation fields.",
       "core_experiment": "E3: mechanism and actionability",
-      "counterpoint_or_scope": "OSWorld-Human needs boundary-derived fields; learned-boundary folding increases top-5 work by 0.0813 and first-positive work by 0.1581, so this is not automatic boundary discovery or a universal selector.",
-      "headline_result": "profile_spec_patch_acceptance=5/6 (R354); patch_median_delta_ap_top5_lift_wtfp=0.0376 AP, 0.575 lift, -0.0859 first-positive work (R354); recursive_depth_actionability=9/12 AP variants, 6/6 tasks reduce groups (R342); boundary_field_patch=AP 0.2583 vs 0.2402; groups 74 vs 108 (R358); boundary_counterpoint=top5 work +0.0813; first-positive work +0.1581 (R358); R354 accepts 5/6 patches; R358 learned-boundary AP 0.2583 vs semantic 0.2402.",
+      "counterpoint_or_scope": "OSWorld-Human needs boundary-derived fields; learned-boundary folding increases top-5 work by 0.0813 and first-positive work by 0.1581. R366 also preserves 3 misleading feature rows and a simple-field boundary counterpoint, so this is not automatic boundary discovery or a universal selector.",
+      "headline_result": "profile_spec_patch_acceptance=5/6 (R354); patch_median_delta_ap_top5_lift_wtfp=0.0376 AP, 0.575 lift, -0.0859 first-positive work (R354); recursive_depth_actionability=9/12 AP variants, 6/6 tasks reduce groups (R342); boundary_field_patch=AP 0.2583 vs 0.2402; groups 74 vs 108 (R358); boundary_counterpoint=top5 work +0.0813; first-positive work +0.1581 (R358); field_rank_boundary_mechanism_audit=7 critical feature rows, 3 misleading feature rows, 4/5 boundary-family rows beat the best simple baseline (R366); R354 accepts 5/6 patches; R358 learned-boundary AP 0.2583 vs semantic 0.2402; R366 records 6 mechanism rows and 5 boundary-family rows.",
       "oracle": "The same hidden labels are used only after profiling for scoring; R358 additionally uses held-out OSWorld-Human boundary positives after learned boundary fields are visible operation fields.",
       "paper_wording": "Supported as executable actionability and mechanism isolation; automatic patch selection and label-free action selection remain out of scope.",
-      "primary_metrics": "accepted patches, AP delta, top-5 lift delta, first-positive-work delta, group reduction, top-5 work counterpoint, and held-out transfer tolerance.",
-      "primary_sources": "R324; R342; R345-R350; R354; R358; R360",
+      "primary_metrics": "accepted patches, AP delta, top-5 lift delta, first-positive-work delta, group reduction, top-5 work counterpoint, critical/misleading field rows, boundary-family suitability wins, and held-out transfer tolerance.",
+      "primary_sources": "R324; R342; R345-R350; R354; R358; R360; R366",
       "research_question": "Which mechanisms explain localization improvements, and can profile-guided changes improve outputs without leaking hidden labels into the profiler input?"
     },
     {
@@ -127,9 +132,9 @@
   "source_status": [
     {
       "path": "script/paper_core_claim_evidence.py",
-      "sha256": "706e18954abac54d943b8f23def0df6a34511db188a1b0ca9403d9e2270b0c8e",
+      "sha256": "2821d9a146a4f527c12a2107882316b2a81e71661c0610824a8758cca366c293",
       "source": "generator script",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/out/operation-profile-accuracy-r320/profile-accuracy-report.json",
@@ -139,9 +144,9 @@
     },
     {
       "path": "docs/visexp/out/paper-evaluation-rubric-r352/evaluation-rubric-report.json",
-      "sha256": "2b3725a3a397fd5cac8f2d9bbab314d62e7aae40b088b8208a8bb49594e5e85e",
+      "sha256": "9f470e3aad9b44ecef7a21bcbfd5c953e004c2f3d095150720ba3d7a418e0356",
       "source": "R352 evaluation rubric",
-      "status": "tracked_dirty_allowed"
+      "status": "tracked_clean"
     },
     {
       "path": "docs/visexp/out/operation-profile-patch-r354/profile-patch-report.json",
@@ -157,9 +162,9 @@
     },
     {
       "path": "docs/visexp/out/paper-reviewer-acceptance-r357/reviewer-acceptance-r357.json",
-      "sha256": "5b94f7f4b601a65b58aaed9337539ddc4e38fe7b5e567bdb03ddd27020c147c3",
+      "sha256": "441ad77854f781656281a731eeb749cca50ff423567a1207f8555d9f9caf514c",
       "source": "R357 reviewer acceptance",
-      "status": "tracked_dirty_allowed"
+      "status": "tracked_clean"
     },
     {
       "path": "docs/visexp/out/operation-boundary-profile-patch-r358/boundary-profile-patch-report.json",
@@ -169,39 +174,45 @@
     },
     {
       "path": "docs/visexp/out/paper-core-experiments-r359/core-experiment-report.json",
-      "sha256": "a2b5d1c899ca2ea35fec112534f1737617ecf4e16b98daa8680bbe27de0af3a9",
+      "sha256": "b5a4f05d35777a4570ce4501d6edeffaac3cd7f5be9e9833091194473d43b69e",
       "source": "R359 core-experiment consolidation",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/out/paper-core-result-tables-r360/core-result-tables.json",
-      "sha256": "88b1c4c9452538d6fc5cf4316e2f9206b04f481adb3f00fa7e5fdefc7e9bba5a",
+      "sha256": "66a731954f5214ff0c21d2e54ea5300bda468acc712c7c5977ea9cebc3aaa1df",
       "source": "R360 core result table",
       "status": "tracked_dirty_allowed"
     },
     {
+      "path": "docs/visexp/out/operation-field-derivation-mechanism-r366/field-derivation-mechanism-report.json",
+      "sha256": "505fc5962a6e7aa3fcbb71a66fbd3dc46970c7e013312f23ef25961c6135dae9",
+      "source": "R366 field derivation mechanism",
+      "status": "tracked_dirty_allowed"
+    },
+    {
       "path": "docs/evaluation.md",
-      "sha256": "1245092189bd16fc262441b858a2b26173a15243e4090cb597f77e33c2a92f50",
+      "sha256": "394358afe09ce0fc9974e45d3a428f70ec67f7ed2dfaf30ee27f7a24aef9e4ac",
       "source": "evaluation ledger",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/paper/main.tex",
-      "sha256": "3cf83ac5632601005b9c98ddd526b35ddac736973e7bb0e48dde807c5c39ec90",
+      "sha256": "fee7c19c469183c31fcc4994a3519aa09d087b63890ad7abc7c6f16b759216d8",
       "source": "Chinese paper",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/agentpprof-paper/main.tex",
-      "sha256": "b762eff791a7ab9f955606c97a8db833c572e32a1b2d9ac6674d9d22514a567b",
+      "sha256": "bdbf3554eab05d73936ddc74d39fc14011289843521f21f983f806462062875a",
       "source": "English paper",
       "status": "tracked_dirty_allowed"
     }
   ],
   "status": "pass",
   "summary": {
-    "checks_passed": 10,
-    "checks_total": 10,
+    "checks_passed": 11,
+    "checks_total": 11,
     "core_experiments": 4,
     "status": "pass"
   }
