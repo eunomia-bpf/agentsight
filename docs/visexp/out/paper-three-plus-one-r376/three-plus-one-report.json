@@ -1,0 +1,140 @@
+{
+  "checks": [
+    {
+      "check": "upstream_gates_pass",
+      "detail": "R374=pass; R375=pass",
+      "passed": true
+    },
+    {
+      "check": "english_three_plus_one",
+      "detail": "English paper names three empirical profiling experiments plus one artifact/reproducibility block.",
+      "passed": true
+    },
+    {
+      "check": "chinese_three_plus_one",
+      "detail": "Chinese paper names three empirical profiling experiments plus one artifact/reproducibility block.",
+      "passed": true
+    },
+    {
+      "check": "main_tables_are_paper_blocks",
+      "detail": "Main result tables label rows as paper blocks rather than homogeneous fourth-experiment framing.",
+      "passed": true
+    },
+    {
+      "check": "role_and_claim_tables_are_paper_blocks",
+      "detail": "R374/R375 generated tables use paper-block terminology and label RQ4 as artifact replayability.",
+      "passed": true
+    },
+    {
+      "check": "role_and_claim_json_contracts_are_paper_blocks",
+      "detail": "R374/R375 generated JSON contracts use paper-block keys rather than legacy homogeneous-experiment keys.",
+      "passed": true
+    },
+    {
+      "check": "r375_r374_source_hash_is_fresh",
+      "detail": "R375 provenance records the current R374 report hash, preventing stale three-plus-one claim tables.",
+      "passed": true
+    },
+    {
+      "check": "no_four_core_research_question_framing",
+      "detail": "Current paper text avoids framing E4 as a fourth core empirical experiment.",
+      "passed": true
+    },
+    {
+      "check": "evaluation_top_map_uses_three_plus_one",
+      "detail": "Evaluation ledger top map records the 3+1 structure.",
+      "passed": true
+    },
+    {
+      "check": "evaluation_has_no_stale_four_core_framing",
+      "detail": "No stale homogeneous-experiment ledger terms remain; present=none",
+      "passed": true
+    },
+    {
+      "check": "chinese_user_doc_deemphasizes_flamegraph",
+      "detail": "Chinese user doc no longer frames novelty as flamegraph-only.",
+      "passed": true
+    },
+    {
+      "check": "no_new_data_or_profiler_rerun",
+      "detail": "R376 reads only paper text and existing guardrails; upstream gates did not sync data or rerun the profiler.",
+      "passed": true
+    },
+    {
+      "check": "source_status_tracked",
+      "detail": "All R376 sources are tracked or dirty in this intentional edit.",
+      "passed": true
+    }
+  ],
+  "data_sync": false,
+  "interpretation": "E1-E3 are the scientific profiling experiments; E4 is replayability/artifact evidence and must not be used as hidden-label accuracy evidence.",
+  "network_access_required": false,
+  "not_new_empirical_result": true,
+  "profiler_rerun": false,
+  "run_id": "R376",
+  "schema": "agentsight.paper_three_plus_one_gate.v1",
+  "source_status": [
+    {
+      "path": "script/paper_three_plus_one_gate.py",
+      "sha256": "4d26dd7fec33a8fa8fa132e57011f059ea4a66dd7cf53dacb79e32d7a1670875",
+      "source": "generator script",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/agentpprof-paper/main.tex",
+      "sha256": "d80a80b2ada5be4b92b37914e70a7c948b2e7bda8e2da30f74902ba7c34a9cfb",
+      "source": "English paper",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/paper/main.tex",
+      "sha256": "75a6fb25d2c0e1daf75496cd712ec371a008c834ef81c1452aebafa1717b343d",
+      "source": "Chinese paper",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/agentpprof-zh.md",
+      "sha256": "34f810dfb2e3acd2336ef01b4e8d53f0d08f36844d6a7407dbe66892420f81ea",
+      "source": "Chinese user doc",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/evaluation.md",
+      "sha256": "cbaf35b0796a90cc479872488a03a2ae322e1aff93b8b42ef039fa824f771bb7",
+      "source": "evaluation ledger",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/out/paper-core-experiment-weight-r374/core-experiment-weight-report.json",
+      "sha256": "751960cfd257cae5b92bd08b9f646a7808e641a0d278d597378b75df8b0c9193",
+      "source": "R374 report",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/agentpprof-paper/figures/experiment-role-table.tex",
+      "sha256": "273d841d92489233114ffe968992540eba34b4ead709c0c61d2350c01c4d8b36",
+      "source": "R374 submodule table",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/out/paper-core-claim-gate-r375/core-claim-gate-report.json",
+      "sha256": "ef0085eb95e71921df924b6209eee1d3925cec402325b8feee84695b9cc624dc",
+      "source": "R375 report",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/agentpprof-paper/figures/claim-gate-table.tex",
+      "sha256": "d292fd9a29fc154a4ffdffb2bb32b2e2d192a4023733ef697252e8f613b93b5b",
+      "source": "R375 submodule table",
+      "status": "tracked_dirty_allowed"
+    }
+  ],
+  "status": "pass",
+  "summary": {
+    "artifact_reproducibility_blocks": 1,
+    "checks_passed": 13,
+    "checks_total": 13,
+    "empirical_profiling_experiments": 3,
+    "paper_blocks": 4
+  }
+}

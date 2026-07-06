@@ -6,7 +6,7 @@
       "passed": true
     },
     {
-      "check": "exactly_four_claim_gate_rows",
+      "check": "exactly_three_plus_one_claim_gate_rows",
       "detail": "rows=4",
       "passed": true
     },
@@ -60,35 +60,35 @@
   "gate_rows": [
     {
       "allowed_claim": "A two-object model covers heterogeneous public labeled traces, and mappings/tags derive operation fields before query-time recursive stack folding.",
-      "core_experiment": "RQ1/E1: generality and recursive folding",
       "evidence_sources": "R286/R290/R342/R353/R366 plus R361/R364/R370/R374 gates.",
       "failure_interpretation": "If a dataset needs a new profiler object or a fixed prompt/session hierarchy to obtain useful groups, narrow C1/C2/C3 to the covered families and fields.",
       "gate_decision": "Supported with scoped limits.",
-      "must_not_claim": "Complete trace-ecosystem compatibility; automatic discovery of every latent intent boundary."
+      "must_not_claim": "Complete trace-ecosystem compatibility; automatic discovery of every latent intent boundary.",
+      "paper_block": "RQ1/E1: generality and recursive folding"
     },
     {
       "allowed_claim": "Operation-stack profiling localizes dataset-provided positives with less inspection work than flat summaries and a better median-fragmentation tradeoff than fixed-session drilldown proxy.",
-      "core_experiment": "RQ2/E2: hidden-label localization and ranking",
       "evidence_sources": "R320/R333/R334/R337/R339/R344/R355/R368 plus R373 task verdict.",
       "failure_interpretation": "If flat or fixed-session dominates the Pareto surface on a task or metric, keep that counterpoint visible and narrow the claim to the supported budget, recall, and fragmentation objectives.",
       "gate_decision": "Supported as a hidden-label profiler benchmark.",
-      "must_not_claim": "Metric dominance; human or agent analyst productivity; superiority over imported OpenTelemetry/Phoenix/LangSmith/Langfuse/Perfetto traces."
+      "must_not_claim": "Metric dominance; human or agent analyst productivity; superiority over imported OpenTelemetry/Phoenix/LangSmith/Langfuse/Perfetto traces.",
+      "paper_block": "RQ2/E2: hidden-label localization and ranking"
     },
     {
       "allowed_claim": "Stack fields, mapping/tagging rules, rankers, profile specs, and boundary-derived fields expose actionable configuration knobs and explain task-specific wins and failures.",
-      "core_experiment": "RQ3/E3: mechanism and actionability",
       "evidence_sources": "R324/R325/R335/R340/R341/R345-R350/R354/R358/R366 plus R373 task verdict.",
       "failure_interpretation": "If one default view wins everywhere, remove configurable actionability; if transfer fails, keep the result as post-hoc profile-guided configuration rather than automatic selection.",
       "gate_decision": "Supported as profile-configuration actionability.",
-      "must_not_claim": "Automatic patch selection; label-free universal view/ranker selection; automatic boundary detection."
+      "must_not_claim": "Automatic patch selection; label-free universal view/ranker selection; automatic boundary detection.",
+      "paper_block": "RQ3/E3: mechanism and actionability"
     },
     {
       "allowed_claim": "Tracked profile specs replay deterministically over tracked operation inputs at low local cost, and paper guardrails keep evidence, wording, and non-claims aligned.",
-      "core_experiment": "RQ4/E4: replayability, offline cost, and artifact hygiene",
       "evidence_sources": "R327/R328 plus R338/R352/R356/R357/R359-R375 guardrails.",
       "failure_interpretation": "If replay is nondeterministic or paper wording outruns evidence, block artifact readiness and narrow the abstract until source, number, and claim gates pass again.",
       "gate_decision": "Supported as offline artifact replayability.",
-      "must_not_claim": "Live eBPF overhead; hidden-label accuracy evidence; human utility; complete ecosystem compatibility."
+      "must_not_claim": "Live eBPF overhead; hidden-label accuracy evidence; human utility; complete ecosystem compatibility.",
+      "paper_block": "RQ4/E4: artifact replayability, offline cost, and hygiene"
     }
   ],
   "network_access_required": false,
@@ -99,80 +99,82 @@
   ],
   "profiler_rerun": false,
   "run_id": "R375",
-  "schema": "agentsight.paper_core_claim_gate.v1",
+  "schema": "agentsight.paper_three_plus_one_claim_gate.v1",
   "source_status": [
     {
       "path": "script/paper_core_claim_gate.py",
-      "sha256": "0991796ca9875efb990d3c97620580b4e4aa981b00fcbce8796ce92682b76599",
+      "sha256": "0afb7a69da648cf54da53fd00ca7bffedd75b58d51520e5594dbc9b7508c87dc",
       "source": "generator script",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/out/paper-core-claim-evidence-r361/core-claim-evidence.json",
       "sha256": "64cf9a781df9edd594ae1c8b1f18a1b73e2e9a2a007830441d80fcff294b694e",
-      "source": "R361 core claim evidence",
-      "status": "tracked_dirty_allowed"
+      "source": "R361 claim evidence ledger",
+      "status": "tracked_clean"
     },
     {
       "path": "docs/visexp/out/paper-core-experiment-sufficiency-r364/core-experiment-sufficiency.json",
       "sha256": "48a74d476c6aee5bebcbced6381701b387d9eb6d814e47926345c78c05a7f913",
-      "source": "R364 core experiment sufficiency",
-      "status": "tracked_dirty_allowed"
+      "source": "R364 sufficiency audit",
+      "status": "tracked_clean"
     },
     {
       "path": "docs/visexp/out/paper-main-experiment-contract-r370/main-experiment-contract.json",
       "sha256": "20eac8b31b68c5f10fb790147b1a5039b094642a5948353c3b94cc0635032355",
       "source": "R370 main experiment contract",
-      "status": "tracked_dirty_allowed"
+      "status": "tracked_clean"
     },
     {
       "path": "docs/visexp/out/paper-task-claim-verdict-r373/task-claim-verdict-report.json",
       "sha256": "717aecb6299bcab8a075ca756642219c4689e351230494dd7085e8b0db07e44f",
       "source": "R373 task claim verdict",
-      "status": "tracked_dirty_allowed"
+      "status": "tracked_clean"
     },
     {
       "path": "docs/visexp/out/paper-core-experiment-weight-r374/core-experiment-weight-report.json",
-      "sha256": "e9a5defb3242e31f453807467ef7c7221fdbbdd01b065e107c0e6e16656376db",
-      "source": "R374 core experiment weight",
+      "sha256": "751960cfd257cae5b92bd08b9f646a7808e641a0d278d597378b75df8b0c9193",
+      "source": "R374 three-plus-one role gate",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/agentpprof-paper/main.tex",
-      "sha256": "65e9df18c70dcd3f164e0d606171087a2c3f17e72d6efe16a6a195e0ea5374a0",
+      "sha256": "d80a80b2ada5be4b92b37914e70a7c948b2e7bda8e2da30f74902ba7c34a9cfb",
       "source": "English paper",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/paper/main.tex",
-      "sha256": "dd1e738153bdfd9067855d1fff0fd234997b13c7805de2bbe7dfd70415399048",
+      "sha256": "75a6fb25d2c0e1daf75496cd712ec371a008c834ef81c1452aebafa1717b343d",
       "source": "Chinese paper",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/evaluation.md",
-      "sha256": "def396085e5ec4f3f1d4b4c987276821c775f4311be80869149ea6aac3b46014",
+      "sha256": "cbaf35b0796a90cc479872488a03a2ae322e1aff93b8b42ef039fa824f771bb7",
       "source": "evaluation ledger",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/out/paper-core-claim-gate-r375/claim-gate-table.tex",
-      "sha256": "4524471ca3e777479887e26f13ea5e2c313d124797e2d381088c1d01375d9c2d",
+      "sha256": "d292fd9a29fc154a4ffdffb2bb32b2e2d192a4023733ef697252e8f613b93b5b",
       "source": "generated claim-gate table",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/agentpprof-paper/figures/claim-gate-table.tex",
-      "sha256": "4524471ca3e777479887e26f13ea5e2c313d124797e2d381088c1d01375d9c2d",
+      "sha256": "d292fd9a29fc154a4ffdffb2bb32b2e2d192a4023733ef697252e8f613b93b5b",
       "source": "generated claim-gate table",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     }
   ],
   "status": "pass",
   "summary": {
+    "artifact_reproducibility_blocks": 1,
     "checks_passed": 11,
     "checks_total": 11,
-    "core_experiments": 4,
+    "empirical_profiling_experiments": 3,
+    "paper_blocks": 4,
     "upstream_gates": [
       "R361",
       "R364",

@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""R374: core-experiment weight and role gate.
+"""R374: three-plus-one experiment weight and role gate.
 
 This paper-organization guardrail checks that the evaluation remains organized
-as four substantial reviewer-facing experiments. It separates each RQ's primary
-evidence from support runs, presentation artifacts, and hygiene gates. It reads
-tracked paper/docs/artifacts only; it does not download data, relabel traces, or
-rerun the profiler.
+as three empirical profiling experiments plus one artifact/reproducibility
+block. It separates each paper-facing block's primary evidence from support
+runs, presentation artifacts, and hygiene gates. It reads tracked
+paper/docs/artifacts only; it does not download data, relabel traces, or rerun
+the profiler.
 """
 
 from __future__ import annotations
@@ -39,7 +40,7 @@ SOURCES = {
 }
 
 ROLE_FIELDS = [
-    "core_experiment",
+    "paper_block",
     "primary_anchor",
     "supporting_evidence",
     "presentation_or_guardrail",
@@ -148,28 +149,28 @@ def add_check(checks: list[dict[str, Any]], name: str, passed: bool, detail: str
 def build_role_rows() -> list[dict[str, str]]:
     return [
         {
-            "core_experiment": "RQ1/E1: generality and recursive folding",
+            "paper_block": "RQ1/E1: generality and recursive folding",
             "primary_anchor": "One operation layer over 47,590 operations, recursive stack-depth sweep, profile-spec override, standard-trace round trip, and field derivation (sources: R286/R290/R342/R353/R366).",
             "supporting_evidence": "Dataset coverage, deterministic mapping, leave-dataset-out mapping, and supervised boundary backend probes (sources: R279-R285/R297/R299).",
             "presentation_or_guardrail": "Paper-structure gates keep RQ1 as abstraction evidence rather than ranker/actionability evidence (sources: R359-R364/R367/R370-R372).",
             "non_claim": "Not complete trace-ecosystem compatibility and not automatic discovery of every latent intent boundary.",
         },
         {
-            "core_experiment": "RQ2/E2: hidden-label localization and ranking",
+            "paper_block": "RQ2/E2: hidden-label localization and ranking",
             "primary_anchor": "Hidden-label localization benchmark over six real labeled tasks, 34,539 operations, 3,699 positives, and 144 policies, scored only after profiling (source: R320).",
             "supporting_evidence": "Uncertainty, negative control, work budgets, fragmentation, sequence scope, metric surface, oracle depth, and trace-tree-shaped baseline scope (sources: R330/R331/R333/R334/R337/R339/R344/R355/R368).",
             "presentation_or_guardrail": "Scored outputs become tradeoff plots, headline rows, case cards, and task-level claim verdicts (sources: R363/R365/R373).",
             "non_claim": "Not metric dominance, not human or agent analyst productivity, and not superiority over imported ecosystem traces.",
         },
         {
-            "core_experiment": "RQ3/E3: mechanism and actionability",
+            "paper_block": "RQ3/E3: mechanism and actionability",
             "primary_anchor": "Rank-feature mechanisms, feature ablations, executable profile-spec patches, boundary-field repair, and field-derivation mechanism audit (sources: R324/R325/R354/R358/R366).",
             "supporting_evidence": "View/ranker actionability, transfer, mechanism attribution, diagnostic lenses, case packets, baseline contrast, and action counterfactuals (sources: R335/R340/R341/R345-R350).",
             "presentation_or_guardrail": "Actionability knobs and task verdicts expose configuration guidance without making a new profiler object or experiment (sources: R363/R365/R373).",
             "non_claim": "Not an automatic patch selector, label-free universal selector, or automatic boundary detector.",
         },
         {
-            "core_experiment": "RQ4/E4: replayability, offline cost, and artifact hygiene",
+            "paper_block": "RQ4/E4: artifact replayability, offline cost, and hygiene",
             "primary_anchor": "Profile-spec replay over 76 tracked specs executed twice, 152 invocations, deterministic semantic/raw-byte outputs, median 1.601s and p95 2.767s per spec (sources: R327/R328).",
             "supporting_evidence": "Source provenance, number alignment, rubric coverage, reviewer gates, and paper-organization hygiene (sources: R338/R352/R356/R357/R359-R374).",
             "presentation_or_guardrail": "Optional future human-study protocol artifacts are not used for the main claim (sources: R315/R316).",
@@ -205,13 +206,13 @@ def build_report(out_dir: Path, table_paths: list[Path]) -> dict[str, Any]:
     )
     add_check(
         checks,
-        "exactly_four_weighted_core_experiments",
-        [row["core_experiment"].split(":", 1)[0] for row in rows] == ["RQ1/E1", "RQ2/E2", "RQ3/E3", "RQ4/E4"],
-        f"rows={len(rows)}",
+        "three_empirical_plus_one_artifact_block",
+        [row["paper_block"].split(":", 1)[0] for row in rows] == ["RQ1/E1", "RQ2/E2", "RQ3/E3", "RQ4/E4"],
+        f"rows={len(rows)}; RQ1-E3 are empirical profiling experiments and RQ4 is artifact/reproducibility.",
     )
     add_check(
         checks,
-        "each_core_has_primary_anchor",
+        "each_block_has_primary_anchor",
         all("R" in row["primary_anchor"] and row["supporting_evidence"] for row in rows),
         "Every RQ has a named primary anchor and supporting evidence.",
     )
@@ -263,8 +264,8 @@ def build_report(out_dir: Path, table_paths: list[Path]) -> dict[str, Any]:
     add_check(
         checks,
         "evaluation_records_three_plus_one",
-        "three empirical profiling" in eval_blob and "one systems/reproducibility" in eval_blob,
-        "The evaluation ledger records the three-empirical-plus-one-systems organization.",
+        "three empirical profiling" in eval_blob and "one artifact/reproducibility" in eval_blob,
+        "The evaluation ledger records the three-empirical-plus-one-artifact organization.",
     )
     add_check(
         checks,
@@ -282,7 +283,7 @@ def build_report(out_dir: Path, table_paths: list[Path]) -> dict[str, Any]:
     return {
         "run_id": RUN_ID,
         "status": "pass" if all(check["passed"] for check in checks) else "fail",
-        "schema": "agentsight.paper_core_experiment_weight.v1",
+        "schema": "agentsight.paper_three_plus_one_role_gate.v1",
         "not_new_empirical_result": True,
         "network_access_required": False,
         "profiler_rerun": False,
@@ -292,7 +293,9 @@ def build_report(out_dir: Path, table_paths: list[Path]) -> dict[str, Any]:
         "paper_tables": [rel(path) for path in table_paths],
         "source_status": source_status,
         "summary": {
-            "core_experiments": len(rows),
+            "paper_blocks": len(rows),
+            "empirical_profiling_experiments": 3,
+            "artifact_reproducibility_blocks": 1,
             "checks_passed": sum(1 for check in checks if check["passed"]),
             "checks_total": len(checks),
             "upstream_gates": ["R370", "R371", "R372", "R373"],
@@ -316,13 +319,13 @@ def write_latex_table(path: Path, rows: list[dict[str, str]]) -> None:
     lines = [
         r"\begin{tabular}{p{0.14\linewidth}p{0.26\linewidth}p{0.28\linewidth}p{0.22\linewidth}}",
         r"\toprule",
-        r"Core experiment & Primary anchor & Support / presentation roles & Non-claim boundary \\",
+        r"Paper block & Primary anchor & Support / presentation roles & Non-claim boundary \\",
         r"\midrule",
     ]
     for row in rows:
         support = f"{row['supporting_evidence']} {row['presentation_or_guardrail']}"
         lines.append(
-            f"{latex_escape(row['core_experiment'])} & {latex_escape(row['primary_anchor'])} & {latex_escape(support)} & {latex_escape(row['non_claim'])} \\\\"
+            f"{latex_escape(row['paper_block'])} & {latex_escape(row['primary_anchor'])} & {latex_escape(support)} & {latex_escape(row['non_claim'])} \\\\"
         )
     lines.extend([r"\bottomrule", r"\end{tabular}", ""])
     path.write_text("\n".join(lines), encoding="utf-8")
@@ -330,12 +333,12 @@ def write_latex_table(path: Path, rows: list[dict[str, str]]) -> None:
 
 def write_markdown(path: Path, report: dict[str, Any]) -> None:
     lines = [
-        "# R374 Core-Experiment Weight Gate",
+        "# R374 Three-Plus-One Role Gate",
         "",
         f"Status: `{report['status']}`",
         f"Checks: {report['summary']['checks_passed']}/{report['summary']['checks_total']}",
         "",
-        "R374 is a paper-organization gate. It assigns every main result to one of four core experiments and downgrades non-primary R-runs to support, presentation, guardrail, or future-protocol roles.",
+        "R374 is a paper-organization gate. It assigns every main result to one of three empirical profiling experiments plus one artifact/reproducibility block and downgrades non-primary R-runs to support, presentation, guardrail, or future-protocol roles.",
         "",
         "## Checks",
         "",
@@ -344,9 +347,9 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
     ]
     for check in report["checks"]:
         lines.append(f"| {check['check']} | {check['passed']} | {check['detail']} |")
-    lines.extend(["", "## Role Map", "", "| Core experiment | Primary anchor | Non-claim |", "|---|---|---|"])
+    lines.extend(["", "## Role Map", "", "| Paper block | Primary anchor | Non-claim |", "|---|---|---|"])
     for row in report["role_rows"]:
-        lines.append(f"| {row['core_experiment']} | {row['primary_anchor']} | {row['non_claim']} |")
+        lines.append(f"| {row['paper_block']} | {row['primary_anchor']} | {row['non_claim']} |")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
@@ -357,7 +360,7 @@ def write_html(path: Path, report: dict[str, Any]) -> None:
     )
     role_rows = "\n".join(
         "<tr>"
-        f"<td>{html.escape(row['core_experiment'])}</td>"
+        f"<td>{html.escape(row['paper_block'])}</td>"
         f"<td>{html.escape(row['primary_anchor'])}</td>"
         f"<td>{html.escape(row['supporting_evidence'])}</td>"
         f"<td>{html.escape(row['presentation_or_guardrail'])}</td>"
@@ -368,7 +371,7 @@ def write_html(path: Path, report: dict[str, Any]) -> None:
     path.write_text(
         f"""<!doctype html>
 <meta charset="utf-8">
-<title>{RUN_ID} Core-Experiment Weight Gate</title>
+<title>{RUN_ID} Three-Plus-One Role Gate</title>
 <style>
 body {{ font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.45; }}
 table {{ border-collapse: collapse; width: 100%; margin: 1rem 0; }}
@@ -376,13 +379,13 @@ th, td {{ border: 1px solid #d0d7de; padding: 0.45rem; vertical-align: top; }}
 th {{ background: #f6f8fa; }}
 .status {{ font-weight: 700; }}
 </style>
-<h1>{RUN_ID} Core-Experiment Weight Gate</h1>
+<h1>{RUN_ID} Three-Plus-One Role Gate</h1>
 <p class="status">Status: {html.escape(report['status'])}; checks {report['summary']['checks_passed']}/{report['summary']['checks_total']}.</p>
 <p>This is a paper-organization guardrail, not a new empirical result.</p>
 <h2>Checks</h2>
 <table><tr><th>Check</th><th>Passed</th><th>Detail</th></tr>{check_rows}</table>
 <h2>Role Map</h2>
-<table><tr><th>Core experiment</th><th>Primary anchor</th><th>Supporting evidence</th><th>Presentation / guardrail</th><th>Non-claim</th></tr>{role_rows}</table>
+<table><tr><th>Paper block</th><th>Primary anchor</th><th>Supporting evidence</th><th>Presentation / guardrail</th><th>Non-claim</th></tr>{role_rows}</table>
 """,
         encoding="utf-8",
     )
@@ -405,7 +408,9 @@ def main() -> int:
     checks_summary = {
         "checks_passed": report["summary"]["checks_passed"],
         "checks_total": report["summary"]["checks_total"],
-        "core_experiments": report["summary"]["core_experiments"],
+        "paper_blocks": report["summary"]["paper_blocks"],
+        "empirical_profiling_experiments": report["summary"]["empirical_profiling_experiments"],
+        "artifact_reproducibility_blocks": report["summary"]["artifact_reproducibility_blocks"],
     }
     run_result = {
         "run_id": RUN_ID,

@@ -6,12 +6,12 @@
       "passed": true
     },
     {
-      "check": "exactly_four_weighted_core_experiments",
-      "detail": "rows=4",
+      "check": "three_empirical_plus_one_artifact_block",
+      "detail": "rows=4; RQ1-E3 are empirical profiling experiments and RQ4 is artifact/reproducibility.",
       "passed": true
     },
     {
-      "check": "each_core_has_primary_anchor",
+      "check": "each_block_has_primary_anchor",
       "detail": "Every RQ has a named primary anchor and supporting evidence.",
       "passed": true
     },
@@ -47,7 +47,7 @@
     },
     {
       "check": "evaluation_records_three_plus_one",
-      "detail": "The evaluation ledger records the three-empirical-plus-one-systems organization.",
+      "detail": "The evaluation ledger records the three-empirical-plus-one-artifact organization.",
       "passed": true
     },
     {
@@ -71,103 +71,105 @@
   "profiler_rerun": false,
   "role_rows": [
     {
-      "core_experiment": "RQ1/E1: generality and recursive folding",
       "non_claim": "Not complete trace-ecosystem compatibility and not automatic discovery of every latent intent boundary.",
+      "paper_block": "RQ1/E1: generality and recursive folding",
       "presentation_or_guardrail": "Paper-structure gates keep RQ1 as abstraction evidence rather than ranker/actionability evidence (sources: R359-R364/R367/R370-R372).",
       "primary_anchor": "One operation layer over 47,590 operations, recursive stack-depth sweep, profile-spec override, standard-trace round trip, and field derivation (sources: R286/R290/R342/R353/R366).",
       "supporting_evidence": "Dataset coverage, deterministic mapping, leave-dataset-out mapping, and supervised boundary backend probes (sources: R279-R285/R297/R299)."
     },
     {
-      "core_experiment": "RQ2/E2: hidden-label localization and ranking",
       "non_claim": "Not metric dominance, not human or agent analyst productivity, and not superiority over imported ecosystem traces.",
+      "paper_block": "RQ2/E2: hidden-label localization and ranking",
       "presentation_or_guardrail": "Scored outputs become tradeoff plots, headline rows, case cards, and task-level claim verdicts (sources: R363/R365/R373).",
       "primary_anchor": "Hidden-label localization benchmark over six real labeled tasks, 34,539 operations, 3,699 positives, and 144 policies, scored only after profiling (source: R320).",
       "supporting_evidence": "Uncertainty, negative control, work budgets, fragmentation, sequence scope, metric surface, oracle depth, and trace-tree-shaped baseline scope (sources: R330/R331/R333/R334/R337/R339/R344/R355/R368)."
     },
     {
-      "core_experiment": "RQ3/E3: mechanism and actionability",
       "non_claim": "Not an automatic patch selector, label-free universal selector, or automatic boundary detector.",
+      "paper_block": "RQ3/E3: mechanism and actionability",
       "presentation_or_guardrail": "Actionability knobs and task verdicts expose configuration guidance without making a new profiler object or experiment (sources: R363/R365/R373).",
       "primary_anchor": "Rank-feature mechanisms, feature ablations, executable profile-spec patches, boundary-field repair, and field-derivation mechanism audit (sources: R324/R325/R354/R358/R366).",
       "supporting_evidence": "View/ranker actionability, transfer, mechanism attribution, diagnostic lenses, case packets, baseline contrast, and action counterfactuals (sources: R335/R340/R341/R345-R350)."
     },
     {
-      "core_experiment": "RQ4/E4: replayability, offline cost, and artifact hygiene",
       "non_claim": "Not hidden-label accuracy evidence, not live eBPF overhead, not human utility, and not complete ecosystem compatibility.",
+      "paper_block": "RQ4/E4: artifact replayability, offline cost, and hygiene",
       "presentation_or_guardrail": "Optional future human-study protocol artifacts are not used for the main claim (sources: R315/R316).",
       "primary_anchor": "Profile-spec replay over 76 tracked specs executed twice, 152 invocations, deterministic semantic/raw-byte outputs, median 1.601s and p95 2.767s per spec (sources: R327/R328).",
       "supporting_evidence": "Source provenance, number alignment, rubric coverage, reviewer gates, and paper-organization hygiene (sources: R338/R352/R356/R357/R359-R374)."
     }
   ],
   "run_id": "R374",
-  "schema": "agentsight.paper_core_experiment_weight.v1",
+  "schema": "agentsight.paper_three_plus_one_role_gate.v1",
   "source_status": [
     {
       "path": "script/paper_core_experiment_weight_gate.py",
-      "sha256": "67cac39aaf2649e697d66b89e8281624512c7c7552cedf4f0395737a89571ad8",
+      "sha256": "ea7a16bf575449d53b229a6d2eaf5a28b814fe91905af966782b0b22e4892377",
       "source": "generator script",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/out/paper-main-experiment-contract-r370/main-experiment-contract.json",
       "sha256": "20eac8b31b68c5f10fb790147b1a5039b094642a5948353c3b94cc0635032355",
       "source": "R370 main-experiment contract",
-      "status": "tracked_dirty_allowed"
+      "status": "tracked_clean"
     },
     {
       "path": "docs/visexp/out/paper-evaluation-narrative-focus-r371/narrative-focus-report.json",
       "sha256": "5be566d2499902b7d2511041004d372c918f8aac4a96af376271301f2ba84075",
       "source": "R371 narrative focus",
-      "status": "tracked_dirty_allowed"
+      "status": "tracked_clean"
     },
     {
       "path": "docs/visexp/out/paper-main-body-concision-r372/main-body-concision-report.json",
       "sha256": "ef0940bffc86190a64da4d9dcbcc64cae7b06980d58ea6d47d3f397bb75c5231",
       "source": "R372 main-body concision",
-      "status": "tracked_dirty_allowed"
+      "status": "tracked_clean"
     },
     {
       "path": "docs/visexp/out/paper-task-claim-verdict-r373/task-claim-verdict-report.json",
       "sha256": "717aecb6299bcab8a075ca756642219c4689e351230494dd7085e8b0db07e44f",
       "source": "R373 task claim verdict",
-      "status": "tracked_dirty_allowed"
-    },
-    {
-      "path": "docs/agentpprof-paper/main.tex",
-      "sha256": "65e9df18c70dcd3f164e0d606171087a2c3f17e72d6efe16a6a195e0ea5374a0",
-      "source": "English paper",
       "status": "tracked_clean"
     },
     {
+      "path": "docs/agentpprof-paper/main.tex",
+      "sha256": "d80a80b2ada5be4b92b37914e70a7c948b2e7bda8e2da30f74902ba7c34a9cfb",
+      "source": "English paper",
+      "status": "tracked_dirty_allowed"
+    },
+    {
       "path": "docs/visexp/paper/main.tex",
-      "sha256": "dd1e738153bdfd9067855d1fff0fd234997b13c7805de2bbe7dfd70415399048",
+      "sha256": "75a6fb25d2c0e1daf75496cd712ec371a008c834ef81c1452aebafa1717b343d",
       "source": "Chinese paper",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/evaluation.md",
-      "sha256": "def396085e5ec4f3f1d4b4c987276821c775f4311be80869149ea6aac3b46014",
+      "sha256": "cbaf35b0796a90cc479872488a03a2ae322e1aff93b8b42ef039fa824f771bb7",
       "source": "evaluation ledger",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/out/paper-core-experiment-weight-r374/experiment-role-table.tex",
-      "sha256": "fc1380a207a233943ec259f37be875c651f33adf3d3aa4c5afeef0104e517f39",
+      "sha256": "273d841d92489233114ffe968992540eba34b4ead709c0c61d2350c01c4d8b36",
       "source": "generated role table",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/agentpprof-paper/figures/experiment-role-table.tex",
-      "sha256": "fc1380a207a233943ec259f37be875c651f33adf3d3aa4c5afeef0104e517f39",
+      "sha256": "273d841d92489233114ffe968992540eba34b4ead709c0c61d2350c01c4d8b36",
       "source": "generated role table",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     }
   ],
   "status": "pass",
   "summary": {
+    "artifact_reproducibility_blocks": 1,
     "checks_passed": 12,
     "checks_total": 12,
-    "core_experiments": 4,
+    "empirical_profiling_experiments": 3,
+    "paper_blocks": 4,
     "upstream_gates": [
       "R370",
       "R371",

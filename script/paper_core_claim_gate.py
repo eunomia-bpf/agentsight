@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""R375: core-experiment claim gate.
+"""R375: three-plus-one claim gate.
 
-This paper-integration guardrail turns the four core experiments into explicit
-claim decisions. It records, for each RQ/E block, the allowed paper wording, the
-failure interpretation that would narrow the claim, and the wording that remains
-out of scope. It reads tracked paper/docs/artifacts only; it does not download
-data, relabel traces, or rerun the profiler.
+This paper-integration guardrail turns three empirical profiling experiments
+plus one artifact/reproducibility block into explicit claim decisions. It
+records, for each RQ/E block, the allowed paper wording, the failure
+interpretation that would narrow the claim, and the wording that remains out of
+scope. It reads tracked paper/docs/artifacts only; it does not download data,
+relabel traces, or rerun the profiler.
 """
 
 from __future__ import annotations
@@ -29,18 +30,18 @@ RUN_ID = "R375"
 SCRIPT_PATH = Path(__file__).resolve()
 
 SOURCES = {
-    "R361 core claim evidence": OUT_ROOT / "paper-core-claim-evidence-r361" / "core-claim-evidence.json",
-    "R364 core experiment sufficiency": OUT_ROOT / "paper-core-experiment-sufficiency-r364" / "core-experiment-sufficiency.json",
+    "R361 claim evidence ledger": OUT_ROOT / "paper-core-claim-evidence-r361" / "core-claim-evidence.json",
+    "R364 sufficiency audit": OUT_ROOT / "paper-core-experiment-sufficiency-r364" / "core-experiment-sufficiency.json",
     "R370 main experiment contract": OUT_ROOT / "paper-main-experiment-contract-r370" / "main-experiment-contract.json",
     "R373 task claim verdict": OUT_ROOT / "paper-task-claim-verdict-r373" / "task-claim-verdict-report.json",
-    "R374 core experiment weight": OUT_ROOT / "paper-core-experiment-weight-r374" / "core-experiment-weight-report.json",
+    "R374 three-plus-one role gate": OUT_ROOT / "paper-core-experiment-weight-r374" / "core-experiment-weight-report.json",
     "English paper": SUBMODULE_ROOT / "main.tex",
     "Chinese paper": ROOT / "docs" / "visexp" / "paper" / "main.tex",
     "evaluation ledger": ROOT / "docs" / "evaluation.md",
 }
 
 GATE_FIELDS = [
-    "core_experiment",
+    "paper_block",
     "gate_decision",
     "allowed_claim",
     "failure_interpretation",
@@ -150,7 +151,7 @@ def add_check(checks: list[dict[str, Any]], name: str, passed: bool, detail: str
 def build_gate_rows() -> list[dict[str, str]]:
     return [
         {
-            "core_experiment": "RQ1/E1: generality and recursive folding",
+            "paper_block": "RQ1/E1: generality and recursive folding",
             "gate_decision": "Supported with scoped limits.",
             "allowed_claim": "A two-object model covers heterogeneous public labeled traces, and mappings/tags derive operation fields before query-time recursive stack folding.",
             "failure_interpretation": "If a dataset needs a new profiler object or a fixed prompt/session hierarchy to obtain useful groups, narrow C1/C2/C3 to the covered families and fields.",
@@ -158,7 +159,7 @@ def build_gate_rows() -> list[dict[str, str]]:
             "evidence_sources": "R286/R290/R342/R353/R366 plus R361/R364/R370/R374 gates.",
         },
         {
-            "core_experiment": "RQ2/E2: hidden-label localization and ranking",
+            "paper_block": "RQ2/E2: hidden-label localization and ranking",
             "gate_decision": "Supported as a hidden-label profiler benchmark.",
             "allowed_claim": "Operation-stack profiling localizes dataset-provided positives with less inspection work than flat summaries and a better median-fragmentation tradeoff than fixed-session drilldown proxy.",
             "failure_interpretation": "If flat or fixed-session dominates the Pareto surface on a task or metric, keep that counterpoint visible and narrow the claim to the supported budget, recall, and fragmentation objectives.",
@@ -166,7 +167,7 @@ def build_gate_rows() -> list[dict[str, str]]:
             "evidence_sources": "R320/R333/R334/R337/R339/R344/R355/R368 plus R373 task verdict.",
         },
         {
-            "core_experiment": "RQ3/E3: mechanism and actionability",
+            "paper_block": "RQ3/E3: mechanism and actionability",
             "gate_decision": "Supported as profile-configuration actionability.",
             "allowed_claim": "Stack fields, mapping/tagging rules, rankers, profile specs, and boundary-derived fields expose actionable configuration knobs and explain task-specific wins and failures.",
             "failure_interpretation": "If one default view wins everywhere, remove configurable actionability; if transfer fails, keep the result as post-hoc profile-guided configuration rather than automatic selection.",
@@ -174,7 +175,7 @@ def build_gate_rows() -> list[dict[str, str]]:
             "evidence_sources": "R324/R325/R335/R340/R341/R345-R350/R354/R358/R366 plus R373 task verdict.",
         },
         {
-            "core_experiment": "RQ4/E4: replayability, offline cost, and artifact hygiene",
+            "paper_block": "RQ4/E4: artifact replayability, offline cost, and hygiene",
             "gate_decision": "Supported as offline artifact replayability.",
             "allowed_claim": "Tracked profile specs replay deterministically over tracked operation inputs at low local cost, and paper guardrails keep evidence, wording, and non-claims aligned.",
             "failure_interpretation": "If replay is nondeterministic or paper wording outruns evidence, block artifact readiness and narrow the abstract until source, number, and claim gates pass again.",
@@ -185,11 +186,11 @@ def build_gate_rows() -> list[dict[str, str]]:
 
 
 def build_report(out_dir: Path, table_paths: list[Path]) -> dict[str, Any]:
-    r361 = read_json(SOURCES["R361 core claim evidence"])
-    r364 = read_json(SOURCES["R364 core experiment sufficiency"])
+    r361 = read_json(SOURCES["R361 claim evidence ledger"])
+    r364 = read_json(SOURCES["R364 sufficiency audit"])
     r370 = read_json(SOURCES["R370 main experiment contract"])
     r373 = read_json(SOURCES["R373 task claim verdict"])
-    r374 = read_json(SOURCES["R374 core experiment weight"])
+    r374 = read_json(SOURCES["R374 three-plus-one role gate"])
     english = read_text(SOURCES["English paper"])
     chinese = read_text(SOURCES["Chinese paper"])
     evaluation = read_text(SOURCES["evaluation ledger"])
@@ -211,8 +212,8 @@ def build_report(out_dir: Path, table_paths: list[Path]) -> dict[str, Any]:
     )
     add_check(
         checks,
-        "exactly_four_claim_gate_rows",
-        [row["core_experiment"].split(":", 1)[0] for row in rows] == ["RQ1/E1", "RQ2/E2", "RQ3/E3", "RQ4/E4"],
+        "exactly_three_plus_one_claim_gate_rows",
+        [row["paper_block"].split(":", 1)[0] for row in rows] == ["RQ1/E1", "RQ2/E2", "RQ3/E3", "RQ4/E4"],
         f"rows={len(rows)}",
     )
     add_check(
@@ -302,7 +303,7 @@ def build_report(out_dir: Path, table_paths: list[Path]) -> dict[str, Any]:
     return {
         "run_id": RUN_ID,
         "status": "pass" if all(check["passed"] for check in checks) else "fail",
-        "schema": "agentsight.paper_core_claim_gate.v1",
+        "schema": "agentsight.paper_three_plus_one_claim_gate.v1",
         "not_new_empirical_result": True,
         "network_access_required": False,
         "profiler_rerun": False,
@@ -312,7 +313,9 @@ def build_report(out_dir: Path, table_paths: list[Path]) -> dict[str, Any]:
         "paper_tables": [rel(path) for path in table_paths],
         "source_status": source_status,
         "summary": {
-            "core_experiments": len(rows),
+            "paper_blocks": len(rows),
+            "empirical_profiling_experiments": 3,
+            "artifact_reproducibility_blocks": 1,
             "checks_passed": sum(1 for check in checks if check["passed"]),
             "checks_total": len(checks),
             "upstream_gates": ["R361", "R364", "R370", "R373", "R374"],
@@ -336,12 +339,12 @@ def write_latex_table(path: Path, rows: list[dict[str, str]]) -> None:
     lines = [
         r"\begin{tabular}{p{0.15\linewidth}p{0.17\linewidth}p{0.25\linewidth}p{0.20\linewidth}p{0.18\linewidth}}",
         r"\toprule",
-        r"Core experiment & Gate decision & Allowed paper claim & Failure / narrowing rule & Must not claim \\",
+        r"Paper block & Gate decision & Allowed paper claim & Failure / narrowing rule & Must not claim \\",
         r"\midrule",
     ]
     for row in rows:
         lines.append(
-            f"{latex_escape(row['core_experiment'])} & {latex_escape(row['gate_decision'])} & {latex_escape(row['allowed_claim'])} & {latex_escape(row['failure_interpretation'])} & {latex_escape(row['must_not_claim'])} \\\\"
+            f"{latex_escape(row['paper_block'])} & {latex_escape(row['gate_decision'])} & {latex_escape(row['allowed_claim'])} & {latex_escape(row['failure_interpretation'])} & {latex_escape(row['must_not_claim'])} \\\\"
         )
     lines.extend([r"\bottomrule", r"\end{tabular}", ""])
     path.write_text("\n".join(lines), encoding="utf-8")
@@ -349,12 +352,12 @@ def write_latex_table(path: Path, rows: list[dict[str, str]]) -> None:
 
 def write_markdown(path: Path, report: dict[str, Any]) -> None:
     lines = [
-        "# R375 Core-Experiment Claim Gate",
+        "# R375 Three-Plus-One Claim Gate",
         "",
         f"Status: `{report['status']}`",
         f"Checks: {report['summary']['checks_passed']}/{report['summary']['checks_total']}",
         "",
-        "R375 is a paper-integration gate. It converts the four core experiments into explicit claim decisions and keeps broader wording as future expansion rather than paper claims.",
+        "R375 is a paper-integration gate. It converts three empirical profiling experiments plus one artifact/reproducibility block into explicit claim decisions and keeps broader wording as future expansion rather than paper claims.",
         "",
         "## Checks",
         "",
@@ -368,13 +371,13 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
             "",
             "## Claim Gates",
             "",
-            "| Core experiment | Gate decision | Allowed claim | Must not claim |",
+            "| Paper block | Gate decision | Allowed claim | Must not claim |",
             "|---|---|---|---|",
         ]
     )
     for row in report["gate_rows"]:
         lines.append(
-            f"| {row['core_experiment']} | {row['gate_decision']} | {row['allowed_claim']} | {row['must_not_claim']} |"
+            f"| {row['paper_block']} | {row['gate_decision']} | {row['allowed_claim']} | {row['must_not_claim']} |"
         )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -386,7 +389,7 @@ def write_html(path: Path, report: dict[str, Any]) -> None:
     )
     gate_rows = "\n".join(
         "<tr>"
-        f"<td>{html.escape(row['core_experiment'])}</td>"
+        f"<td>{html.escape(row['paper_block'])}</td>"
         f"<td>{html.escape(row['gate_decision'])}</td>"
         f"<td>{html.escape(row['allowed_claim'])}</td>"
         f"<td>{html.escape(row['failure_interpretation'])}</td>"
@@ -398,7 +401,7 @@ def write_html(path: Path, report: dict[str, Any]) -> None:
     path.write_text(
         f"""<!doctype html>
 <meta charset="utf-8">
-<title>{RUN_ID} Core-Experiment Claim Gate</title>
+<title>{RUN_ID} Three-Plus-One Claim Gate</title>
 <style>
 body {{ font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.45; }}
 table {{ border-collapse: collapse; width: 100%; margin: 1rem 0; }}
@@ -406,13 +409,13 @@ th, td {{ border: 1px solid #d0d7de; padding: 0.45rem; vertical-align: top; }}
 th {{ background: #f6f8fa; }}
 .status {{ font-weight: 700; }}
 </style>
-<h1>{RUN_ID} Core-Experiment Claim Gate</h1>
+<h1>{RUN_ID} Three-Plus-One Claim Gate</h1>
 <p class="status">Status: {html.escape(report['status'])}; checks {report['summary']['checks_passed']}/{report['summary']['checks_total']}.</p>
 <p>This is a paper-integration guardrail, not a new empirical result.</p>
 <h2>Checks</h2>
 <table><tr><th>Check</th><th>Passed</th><th>Detail</th></tr>{check_rows}</table>
 <h2>Claim Gates</h2>
-<table><tr><th>Core experiment</th><th>Gate decision</th><th>Allowed claim</th><th>Failure / narrowing rule</th><th>Must not claim</th><th>Evidence sources</th></tr>{gate_rows}</table>
+<table><tr><th>Paper block</th><th>Gate decision</th><th>Allowed claim</th><th>Failure / narrowing rule</th><th>Must not claim</th><th>Evidence sources</th></tr>{gate_rows}</table>
 """,
         encoding="utf-8",
     )
@@ -438,7 +441,9 @@ def main() -> int:
         "checks": {
             "checks_passed": report["summary"]["checks_passed"],
             "checks_total": report["summary"]["checks_total"],
-            "core_experiments": report["summary"]["core_experiments"],
+            "paper_blocks": report["summary"]["paper_blocks"],
+            "empirical_profiling_experiments": report["summary"]["empirical_profiling_experiments"],
+            "artifact_reproducibility_blocks": report["summary"]["artifact_reproducibility_blocks"],
         },
         "out_dir": rel(out_dir),
         "elapsed_s": round(time.time() - start, 3),

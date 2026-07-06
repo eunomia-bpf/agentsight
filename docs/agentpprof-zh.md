@@ -1,12 +1,12 @@
-# agentpprof: 用语义 flamegraph 分析 AI agent intent
+# agentpprof: 用 operation stack 剖析 AI agent 轨迹
 
-月底账单显示 agent 花了 $3000。哪些类型的工作消耗了这些预算？代码审查占多少、debug 占多少、文档生成占多少？这个问题看似简单，但现有的 agent 可观测性工具都无法直接回答。
+月底账单显示 agent 花了 $3000。哪些类型的工作消耗了这些预算？代码审查占多少、debug 占多少、文档生成占多少？这个问题看似简单，但在缺少任务特定的 operation fields 和 profile query 时，现有 agent 可观测性工具通常很难直接回答。
 
-`agentpprof` 正是为回答这类问题而设计的分析工具。它读取本地 agent 的 trace 历史，按语义意图将 prompt 和工具调用聚合成 flamegraph：宽度代表 token 消耗、执行时间或操作次数的占比。一眼就能看出预算花在了哪类工作上。当前支持 Codex 和 Claude Code 的本地 trace 文件，其他 agent 可通过 `agent-session` 解析器扩展。
+`agentpprof` 正是为回答这类问题而设计的分析工具。它读取本地 agent 的 trace 历史或外部已标注 agent 轨迹，把 prompt、tool call、GUI action、process/syscall、plan/subagent 等事件统一成 `operation`，再按用户指定的 `operation stack` 递归折叠。输出可以是 flamegraph，也可以是 JSON ranking、stack tree、boundary/actionability report 或 profile-spec replay 结果；flamegraph 只是序列化形式之一，不是核心抽象。当前支持 Codex 和 Claude Code 的本地 trace 文件，也支持外部 operation JSONL 和标准 trace exchange。
 
 ## 现有工具的局限
 
-LangSmith、Langfuse、Phoenix 这类 LLM 可观测性平台能展示每次调用的 token 数和 latency，但当你有 80000 次调用时，它们只能按时间戳排列成 timeline。你可以逐条检查「这次调用花了 500 tokens」，但无法回答「审查类任务总共花了多少」。这些工具的设计目标是单次 trace 调试：timeline view 帮你定位 14:03 那个失败的 span，span tree 展示调用层级，waterfall chart 显示并行度。它们在回答「发生了什么」这个问题上表现出色，但对于「预算花在哪类工作上」这种聚合问题，逐条检查 80000 个 span 显然行不通。
+LangSmith、Langfuse、Phoenix 这类 LLM 可观测性平台能展示 trace、span、token、latency、dataset 和 evaluation 信息。问题不在于它们不能展示 trace，而在于如果只使用默认的 trace/span/timeline 维度，80000 次调用仍然需要分析者自己定义任务字段、聚合规则和 profile query。你可以逐条检查「这次调用花了 500 tokens」，但很难直接得到「审查类任务总共花了多少」。这些工具的设计目标更偏向单次 trace 调试：timeline view 帮你定位 14:03 那个失败的 span，span tree 展示调用层级，waterfall chart 显示并行度。它们在回答「发生了什么」这个问题上表现出色，但对于「预算花在哪类工作上」这种聚合问题，逐条检查 80000 个 span 显然行不通。
 
 Datadog 和 Laminar 开始尝试语义分类。Datadog 用 topic clustering 对用户消息做聚类，Laminar 用 Signals 从 trace 中提取结构化事件。这是正确的方向，但这类聚类刻画的是用户输入的分布，并不产生「宽度代表预算占比」的聚合视图。你能看到「30% 的用户在问代码问题」，但看不到「代码审查消耗了 40% 的 token 预算」。
 
@@ -14,20 +14,20 @@ CPU profiler 早就解决了类似的聚合问题。Flamegraph 把百万次函�
 
 Agent trace 打破了这个假设。Prompt 是自然语言：非确定性的、长度可变的、多语言的、往往还是对话式的。「Fix the bug」和「修一下这个 error」表达相同的意图，但字符串完全不同。如果直接用原始 prompt 文本作为 frame 标签，flamegraph 会宽得无法阅读，每个 prompt 都是独立的一条，失去了聚合的意义。而且原始 prompt 往往包含敏感信息，也不适合分享。
 
-## 语义 flamegraph
+## Operation-stack profiler
 
-`agentpprof` 通过**意图识别**来恢复聚合能力：将自由格式的 prompt 归类为简短、稳定的意图标签，如 `debug`、`review`、`paper` 或 `misc`。打上标签之后，prompt 就获得了和函数名一样的性质：每条轨迹和它触发的活动被关联成堆栈折叠起来，相同的栈合并成更宽的条带，flamegraph 重新变得可读。
+`agentpprof` 通过**字段派生和 stack 查询**来恢复聚合能力：将自由格式 prompt、工具动作、进程事件和 benchmark 标签归一成稳定的 operation fields，如 `task=debug`、`phase=inspect`、`op=tool`、`status=failure` 或 `human_group=...`。这些字段可以来自 regex/LLM tagging、deterministic mapping、profile spec 或已有数据集标签。随后用户用 `--stack` 选择递归折叠深度；相同 stack 合并成更宽的条带或更高的 ranked group。
 
-Flamegraph 的价值不只是聚合，还在于**用堆栈表达因果关联**。传统 CPU flamegraph 的堆栈是函数调用链：`main → parse → tokenize`，表示 tokenize 是被 parse 调用的，parse 是被 main 调用的。语义 flamegraph 的堆栈是 agent 行为的因果链：`prompt:debug → call:llm/analysis → tool:bash → file:src/main.rs`，表示这次文件修改是由 bash 工具触发的，bash 是 LLM 决定调用的，LLM 是在响应一个 debug 类型的 prompt。
+Operation stack 的价值不只是聚合，还在于**用可配置栈表达归因关联**。传统 CPU flamegraph 的堆栈是函数调用链：`main → parse → tokenize`，表示 tokenize 是被 parse 调用的，parse 是被 main 调用的。Agent 的 operation stack 是分析者选择的归因链：`task:debug → phase:execute → op:tool → tool:bash → status:error`。同一批 operations 可以换成 `dataset,task,human_group,action` 或 `task,phase,op,step_correct`，用不同深度定位同一问题。
 
-| | 传统 CPU Flamegraph | 语义 Flamegraph |
+| | 传统 CPU Flamegraph | Agent operation stack |
 | --- | --- | --- |
-| **堆栈含义** | 函数调用链 | prompt → LLM → tool → effect 因果链 |
-| **聚合方式** | 相同函数名合并 | 相同语义标签合并 |
+| **堆栈含义** | 函数调用链 | 用户选择的 operation-field 归因链 |
+| **聚合方式** | 相同函数名合并 | 相同 operation stack 合并 |
 | **宽度含义** | CPU 时间占比 | token / 时间 / 操作次数占比 |
-| **回答问题** | 程序在哪里花 CPU | agent 在哪类工作上花预算 |
+| **回答问题** | 程序在哪里花 CPU | agent 的失败、成本、质量和边界问题集中在哪里 |
 
-这种因果关联让你能从任意一层回溯或下钻：从某个文件被修改，追溯到是哪个工具、哪个 LLM 决策、哪个用户意图导致的；或者从某类 prompt 出发，看它触发了什么 LLM 调用、什么工具执行、什么系统效果。
+这种可配置的归因投影让你能从任意一层回溯或下钻：从某个文件被修改，定位到同一投影下关联的工具、模型调用上下文和用户任务字段；或者从某类 prompt 出发，看它关联了什么 LLM 调用、什么工具执行、什么系统效果。
 
 在这个模型里，视图不是固定的图，而是对同一批数据的查询：选哪些事件、栈怎么排、宽度算什么，换一个问题只需换一组投影。`agentpprof` 内置了几个这样的视图，每种回答不同的问题：
 

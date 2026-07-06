@@ -1,6 +1,6 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>R374 Core-Experiment Weight Gate</title>
+<title>R374 Three-Plus-One Role Gate</title>
 <style>
 body { font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.45; }
 table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
@@ -8,24 +8,24 @@ th, td { border: 1px solid #d0d7de; padding: 0.45rem; vertical-align: top; }
 th { background: #f6f8fa; }
 .status { font-weight: 700; }
 </style>
-<h1>R374 Core-Experiment Weight Gate</h1>
+<h1>R374 Three-Plus-One Role Gate</h1>
 <p class="status">Status: pass; checks 12/12.</p>
 <p>This is a paper-organization guardrail, not a new empirical result.</p>
 <h2>Checks</h2>
 <table><tr><th>Check</th><th>Passed</th><th>Detail</th></tr><tr><td>upstream_organization_gates_pass</td><td>True</td><td>R370=pass; R371=pass; R372=pass; R373=pass</td></tr>
-<tr><td>exactly_four_weighted_core_experiments</td><td>True</td><td>rows=4</td></tr>
-<tr><td>each_core_has_primary_anchor</td><td>True</td><td>Every RQ has a named primary anchor and supporting evidence.</td></tr>
+<tr><td>three_empirical_plus_one_artifact_block</td><td>True</td><td>rows=4; RQ1-E3 are empirical profiling experiments and RQ4 is artifact/reproducibility.</td></tr>
+<tr><td>each_block_has_primary_anchor</td><td>True</td><td>Every RQ has a named primary anchor and supporting evidence.</td></tr>
 <tr><td>primary_anchors_are_substantial</td><td>True</td><td>Primary anchors include operation scale, hidden positives, and replay invocations.</td></tr>
 <tr><td>support_runs_are_downgraded_to_roles</td><td>True</td><td>Non-primary R-runs are assigned support, presentation, guardrail, or future-protocol roles.</td></tr>
 <tr><td>fidelity_actionability_tradeoff_covered</td><td>True</td><td>The role map covers fidelity/work, fragmentation, and actionability mechanisms.</td></tr>
 <tr><td>non_claims_preserved</td><td>True</td><td>Human utility, automatic-boundary, metric-dominance, and ecosystem-compatibility limits remain explicit.</td></tr>
 <tr><td>paper_mentions_r374</td><td>True</td><td>Both papers and the evaluation ledger mention the core-experiment weight gate.</td></tr>
 <tr><td>paper_has_role_table</td><td>True</td><td>Both papers include the R374 primary/support/guardrail role table.</td></tr>
-<tr><td>evaluation_records_three_plus_one</td><td>True</td><td>The evaluation ledger records the three-empirical-plus-one-systems organization.</td></tr>
+<tr><td>evaluation_records_three_plus_one</td><td>True</td><td>The evaluation ledger records the three-empirical-plus-one-artifact organization.</td></tr>
 <tr><td>no_new_data_or_profiler_rerun</td><td>True</td><td>R374 reads tracked artifacts and paper text only; it does not sync data, relabel traces, or invoke agentpprof.</td></tr>
 <tr><td>source_status_tracked</td><td>True</td><td>All R374 sources and generated role tables are tracked or staged as intent-to-add.</td></tr></table>
 <h2>Role Map</h2>
-<table><tr><th>Core experiment</th><th>Primary anchor</th><th>Supporting evidence</th><th>Presentation / guardrail</th><th>Non-claim</th></tr><tr><td>RQ1/E1: generality and recursive folding</td><td>One operation layer over 47,590 operations, recursive stack-depth sweep, profile-spec override, standard-trace round trip, and field derivation (sources: R286/R290/R342/R353/R366).</td><td>Dataset coverage, deterministic mapping, leave-dataset-out mapping, and supervised boundary backend probes (sources: R279-R285/R297/R299).</td><td>Paper-structure gates keep RQ1 as abstraction evidence rather than ranker/actionability evidence (sources: R359-R364/R367/R370-R372).</td><td>Not complete trace-ecosystem compatibility and not automatic discovery of every latent intent boundary.</td></tr>
+<table><tr><th>Paper block</th><th>Primary anchor</th><th>Supporting evidence</th><th>Presentation / guardrail</th><th>Non-claim</th></tr><tr><td>RQ1/E1: generality and recursive folding</td><td>One operation layer over 47,590 operations, recursive stack-depth sweep, profile-spec override, standard-trace round trip, and field derivation (sources: R286/R290/R342/R353/R366).</td><td>Dataset coverage, deterministic mapping, leave-dataset-out mapping, and supervised boundary backend probes (sources: R279-R285/R297/R299).</td><td>Paper-structure gates keep RQ1 as abstraction evidence rather than ranker/actionability evidence (sources: R359-R364/R367/R370-R372).</td><td>Not complete trace-ecosystem compatibility and not automatic discovery of every latent intent boundary.</td></tr>
 <tr><td>RQ2/E2: hidden-label localization and ranking</td><td>Hidden-label localization benchmark over six real labeled tasks, 34,539 operations, 3,699 positives, and 144 policies, scored only after profiling (source: R320).</td><td>Uncertainty, negative control, work budgets, fragmentation, sequence scope, metric surface, oracle depth, and trace-tree-shaped baseline scope (sources: R330/R331/R333/R334/R337/R339/R344/R355/R368).</td><td>Scored outputs become tradeoff plots, headline rows, case cards, and task-level claim verdicts (sources: R363/R365/R373).</td><td>Not metric dominance, not human or agent analyst productivity, and not superiority over imported ecosystem traces.</td></tr>
 <tr><td>RQ3/E3: mechanism and actionability</td><td>Rank-feature mechanisms, feature ablations, executable profile-spec patches, boundary-field repair, and field-derivation mechanism audit (sources: R324/R325/R354/R358/R366).</td><td>View/ranker actionability, transfer, mechanism attribution, diagnostic lenses, case packets, baseline contrast, and action counterfactuals (sources: R335/R340/R341/R345-R350).</td><td>Actionability knobs and task verdicts expose configuration guidance without making a new profiler object or experiment (sources: R363/R365/R373).</td><td>Not an automatic patch selector, label-free universal selector, or automatic boundary detector.</td></tr>
-<tr><td>RQ4/E4: replayability, offline cost, and artifact hygiene</td><td>Profile-spec replay over 76 tracked specs executed twice, 152 invocations, deterministic semantic/raw-byte outputs, median 1.601s and p95 2.767s per spec (sources: R327/R328).</td><td>Source provenance, number alignment, rubric coverage, reviewer gates, and paper-organization hygiene (sources: R338/R352/R356/R357/R359-R374).</td><td>Optional future human-study protocol artifacts are not used for the main claim (sources: R315/R316).</td><td>Not hidden-label accuracy evidence, not live eBPF overhead, not human utility, and not complete ecosystem compatibility.</td></tr></table>
+<tr><td>RQ4/E4: artifact replayability, offline cost, and hygiene</td><td>Profile-spec replay over 76 tracked specs executed twice, 152 invocations, deterministic semantic/raw-byte outputs, median 1.601s and p95 2.767s per spec (sources: R327/R328).</td><td>Source provenance, number alignment, rubric coverage, reviewer gates, and paper-organization hygiene (sources: R338/R352/R356/R357/R359-R374).</td><td>Optional future human-study protocol artifacts are not used for the main claim (sources: R315/R316).</td><td>Not hidden-label accuracy evidence, not live eBPF overhead, not human utility, and not complete ecosystem compatibility.</td></tr></table>
