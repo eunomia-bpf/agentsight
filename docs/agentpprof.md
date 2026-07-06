@@ -1,35 +1,40 @@
-# agentpprof: profiling AI agents with semantic flamegraphs
+# agentpprof: profiling AI agents with operation stacks
 
 End of month, the bill shows the agent spent $3000. What types of work consumed
 that budget? How much went to code review, how much to debugging, how much to
 documentation? This question seems simple, but none of the existing agent
-observability tools can answer it directly.
+observability tools directly expose it as a query-time profiling problem.
 
-`agentpprof` is a profiling tool built for exactly this question. It reads local
-agent trace history and aggregates prompts and tool calls by semantic intent
-into flamegraphs: width represents token consumption, execution time, or
-operation count. At a glance, you can see where the budget went by category.
-Currently supports Codex and Claude Code local trace files; other agents can be
-added via the `agent-session` parser.
+`agentpprof` is a profiling tool built around two abstractions: operations and
+operation stacks. An operation is a weighted record with fields; a prompt, LLM
+call, tool call, process event, file effect, network event, or imported
+benchmark action is just one operation shape. An operation stack is a
+user-chosen list of fields used to recursively fold the same operations at
+different task, phase, action, session, or boundary depths. SVG flamegraphs are
+one output format; the same stack query can also produce pprof, folded-stack,
+or JSON profiles.
+
+For local history, `agentpprof` currently supports Codex and Claude Code trace
+files through the `agent-session` parser. For public agent benchmarks or other
+tools, it reads normalized operation JSONL through `--operation-file`.
 
 ## Limitations of existing tools
 
 LLM observability platforms like LangSmith, Langfuse, and Phoenix can show token
-counts and latency for each call, but when you have 80000 calls, they can only
-arrange them by timestamp into a timeline. You can inspect each one and see
-"this call used 500 tokens," but you cannot answer "how much did review tasks
-cost in total." These tools are designed for single-trace debugging: timeline
-views help you locate the failing span at 14:03, span trees show call hierarchy,
-waterfall charts reveal parallelism. They excel at answering "what happened" but
-for the question "where did the budget go by category," inspecting 80000 spans
-one by one simply does not scale.
+counts and latency for each call. They are strong single-trace debugging tools:
+timeline views help you locate the failing span at 14:03, span trees show call
+hierarchy, and waterfall charts reveal parallelism. Their default hierarchy,
+however, is usually the recorded trace/session/span tree. For profiling
+questions such as "which task family consumed the budget" or "which semantic
+boundary should be inspected first," that fixed tree is often the wrong
+aggregation boundary.
 
 Datadog and Laminar are starting to move in the right direction with semantic
 classification. Datadog uses topic clustering to group user messages, Laminar
-uses Signals to extract structured events from traces. But their clustering
-primarily targets the distribution of user inputs, not "width represents budget
-share" aggregate views. You can see "30% of users asked about code," but not
-"code review consumed 40% of the token budget."
+uses Signals to extract structured events from traces. Those mechanisms are
+compatible with operation fields, but `agentpprof` makes the profiling step
+explicit: derive fields with mapping/tagging, choose a query subset, and fold
+the operations by the stack fields that answer the current question.
 
 CPU profilers solved a similar aggregation problem long ago. Flamegraphs
 compress millions of function calls into one chart, width representing time
@@ -46,32 +51,35 @@ read, with each prompt as an isolated bar, losing the point of aggregation. And
 raw prompts often contain sensitive information, making them unsuitable for
 sharing.
 
-## Semantic flamegraphs
+## Operation-stack profiles
 
-`agentpprof` restores aggregation by introducing **semantic tagging**: assigning
-free-form prompts to short, stable labels like `debug`, `review`, `paper`, or
-`misc`. Once tagged, prompts behave like function names, and repeated activities
-merge, and the flamegraph becomes readable.
+`agentpprof` restores aggregation by deriving stable operation fields before
+folding. Semantic tagging is one field-derivation mechanism for free-form local
+prompts; mapping rules and imported dataset labels are the same kind of input to
+the stack query. Once an operation has fields such as `task=debug`,
+`phase=inspect`, `action=click`, or `repeat_signal=loop-like`, repeated
+activities merge under the selected operation stack.
 
-The value of flamegraphs is not just aggregation but also **stack-based causal
-linking**. Traditional CPU flamegraph stacks are function call chains:
+The value of stack profiles is not just aggregation but also **stack-based
+context linking**. Traditional CPU flamegraph stacks are function call chains:
 `main → parse → tokenize` means tokenize was called by parse, which was called
-by main. Semantic flamegraph stacks are agent behavior causal chains:
+by main. Operation stacks are agent behavior projections:
 `prompt:debug → call:llm/analysis → tool:bash → file:src/main.rs` means this
-file modification was triggered by bash, bash was decided by the LLM, and the
-LLM was responding to a debug-type prompt.
+file modification is counted under a debug prompt, an LLM analysis step, and a
+shell tool action. The stack is a chosen projection over operation fields, not a
+new prompt/session/tool object hierarchy.
 
-| | Traditional CPU Flamegraph | Semantic Flamegraph |
+| | Traditional CPU Flamegraph | Operation-Stack Profile |
 | --- | --- | --- |
-| **Stack meaning** | Function call chain | prompt → LLM → tool → effect causal chain |
-| **Aggregation** | Same function name merges | Same semantic tag merges |
+| **Stack meaning** | Function call chain | selected operation fields |
+| **Aggregation** | Same function name merges | Same operation stack merges |
 | **Width meaning** | CPU time share | token / time / operation count share |
 | **Question answered** | Where does the program spend CPU | Where does the agent spend budget by category |
 
-This causal linking lets you trace back or drill down from any layer: from a
-file being modified, trace back to which tool, which LLM decision, which user
-intent caused it; or from a prompt category, see what LLM calls, tool
-executions, and system effects it triggered.
+This projection lets you drill down from any layer: from a file being modified,
+inspect which task, phase, tool, or status field it folded under; or from a
+task category, see what LLM calls, tool executions, and system effects share
+that stack prefix.
 
 `agentpprof` exposes several projections over the same data, each answering a
 different question:
@@ -393,8 +401,8 @@ agentpprof -o tokens.svg --prompt-tag review
 
 ## The stack model
 
-The semantic flamegraph stack is a projection, not a literal function call
-stack. Operations are the only profiled entities: a prompt, inferred task, LLM
+The operation stack is a projection, not a literal function call stack.
+Operations are the only profiled entities: a prompt, inferred task, LLM
 call, tool call, process, path, or domain is just an operation at a different
 granularity. `--view` chooses which operations are sampled and how they are
 weighted. `--op-map` derives reusable operation fields, and `--stack` chooses

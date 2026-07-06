@@ -1,15 +1,25 @@
 # agentpprof
 
-`agentpprof` turns local AI coding-agent sessions into pprof-compatible semantic
-profiles. It reads Codex and Claude Code JSONL history, assigns short semantic
-tags to sessions, prompts, LLM calls, and effects, and writes outputs that can
-be inspected with standard pprof or flamegraph tooling.
-It can also read normalized operation JSONL from third-party trajectory
-datasets via `--operation-file`.
+`agentpprof` turns AI-agent activity into pprof-compatible operation-stack
+profiles. It has two core profiling abstractions:
+
+- An operation is a weighted record with fields. A prompt, LLM call, tool call,
+  process event, file effect, network event, or imported benchmark action is one
+  operation shape.
+- An operation stack is the user-chosen list of fields used to recursively fold
+  operations. Session, prompt, tool, process, and span identifiers can appear as
+  fields, but they are not separate profiler objects.
+
+For local history, `agentpprof` reads Codex and Claude Code JSONL sessions,
+derives operation fields through deterministic tags and mappings, and writes
+outputs that can be inspected with standard pprof or flamegraph tooling. For
+third-party trajectory datasets, pass normalized operation JSONL through
+`--operation-file`.
 
 The profiles are not CPU profiles. They are projections over agent activity:
-token usage, tool events, file effects, network effects, or elapsed session
-time.
+token usage, operation counts, file effects, network effects, or elapsed
+session time. SVG flamegraphs are one output; pprof, folded stacks, and JSON
+groups use the same operation-stack query.
 
 ## Install
 
@@ -78,13 +88,17 @@ agentpprof -o network.pb.gz --view network
 agentpprof -o time.pb.gz --view time
 ```
 
-Widths mean different things by view:
+`--view` chooses which operation samples are measured and how they are weighted:
 
 - `operations`: operation count across prompts, LLM calls, tools, or external operation JSONL.
 - `tokens`: token count when reported by the agent log.
 - `files`: file/path effect count.
 - `network`: network/domain effect count.
 - `time`: elapsed session time.
+
+The view is independent from `--stack`. For example, the same operations can be
+weighted by tokens and folded by prompt tags, or weighted by operation count and
+folded by dataset/task/phase/action fields.
 
 ## Other Formats
 
@@ -108,18 +122,18 @@ are grouped into stable `external/*` buckets so home-directory names are not
 emitted in public profiles. See `../docs/flamegraph/` for a public fixture
 gallery and view-by-view usage examples.
 
-## Tags
+## Field Derivation
 
-The default tagger is deterministic:
+For local free-form prompts, the default tagger deterministically derives stable
+operation fields such as prompt tags:
 
 ```bash
 agentpprof -o tokens.pb.gz --tagger regex
 ```
 
-Add project-specific deterministic rules with repeated `--tag-rule`
-arguments. Rules use `KIND:TAG=REGEX`, are tried in command-line order before
-the built-in rules, and support `session`, `prompt`, `llm`, or `all` as
-`KIND`:
+Add project-specific deterministic rules with repeated `--tag-rule` arguments.
+Rules use `KIND:TAG=REGEX`, are tried in command-line order before the built-in
+rules, and support `session`, `prompt`, `llm`, or `all` as `KIND`:
 
 ```bash
 agentpprof -o tokens.svg \
@@ -138,6 +152,10 @@ agentpprof -o tokens.pb.gz --tagger llm --llama-url http://127.0.0.1:8080
 LLM tags are cached under the user cache directory by default, for example
 `$XDG_CACHE_HOME/agentpprof/tags.json`. Override with `--cache`, or pass
 `--no-cache` to avoid saving new entries.
+
+For external operations and reproducible experiments, prefer `--op-map`,
+`--op-map-file`, and `--profile-spec`. These mechanisms derive operation fields
+before stack construction without adding another profiler abstraction.
 
 ## Selecting Sessions
 
@@ -181,9 +199,10 @@ Each JSONL line is one sampled operation:
 Field values may be strings, numbers, booleans, arrays, or JSON objects. The
 chosen `--stack` decides which fields become stack frames. `--op-map` can derive
 or overwrite operation fields before stacking, and `--stack-rule` can override a
-single frame while building the stack. `--op-map-file` reads the same
-`FIELD:LABEL=REGEX` rules from a text file, one rule per line; blank lines and
-`#` comments are ignored.
+single frame while building the stack. `--where` selects a query subset after
+mapping and before folding. `--op-map-file` reads the same `FIELD:LABEL=REGEX`
+rules from a text file, one rule per line; blank lines and `#` comments are
+ignored.
 Use `script/agent_trace_datasets.py` to sample known labeled datasets into this
 format without committing raw external data.
 
@@ -280,7 +299,7 @@ The export writes:
 - `files.pb.gz`
 - `network.pb.gz`
 - matching folded stacks
-- `*.flame.svg` semantic flamegraphs
+- `*.flame.svg` operation-stack SVG profiles
 - `agentpprof.json`
 - optional `*.top.txt` reports when `go tool pprof` is available
 
