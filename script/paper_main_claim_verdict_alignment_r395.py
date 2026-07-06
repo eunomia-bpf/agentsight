@@ -300,9 +300,9 @@ def build_report() -> dict[str, Any]:
         and contains_all(
             normalized["Chinese paper"],
             [
-                "三个核心经验性 profiling 实验加一个 artifact/reproducibility block",
-                "E2 是唯一的 hidden-label accuracy 与 baseline tradeoff 主比较",
-                "E4 只证明 replayability 和 hygiene",
+                "前三个问题是 empirical profiling experiments",
+                "RQ2 是 hidden-label localization/ranking 主实验",
+                "RQ4 检查 profile-spec 可复现性、离线成本和 claim scope",
             ],
         )
         and contains_all(
@@ -365,8 +365,8 @@ def build_report() -> dict[str, Any]:
         and contains_all(
             normalized["Chinese paper"],
             [
-                "not a hidden-label accuracy result",
-                "not human utility",
+                "不作为第四个 empirical accuracy result",
+                "不覆盖 live eBPF overhead、human utility",
             ],
         )
         and contains_all(

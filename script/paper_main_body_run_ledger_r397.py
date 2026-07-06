@@ -41,6 +41,19 @@ SOURCES = {
 }
 
 RUN_ID_RE = re.compile(r"\bR\d{3}\b")
+INTERNAL_STYLE_PATTERNS = [
+    "Claim synthesis",
+    "reviewer evidence packet",
+    "reviewer evidence packets",
+    "paper value/novelty synthesis",
+    "paper evidence matrix",
+    "submission audit",
+    "Claim test",
+    "Claim-test",
+    "实验契约",
+    "artifact ledger",
+    "paper gates",
+]
 
 
 def parse_args() -> argparse.Namespace:
@@ -152,6 +165,15 @@ def run_id_hits(path: Path) -> list[dict[str, Any]]:
     return rows
 
 
+def internal_style_hits(path: Path) -> list[dict[str, Any]]:
+    rows = []
+    for line_no, line in enumerate(read_text(path).splitlines(), start=1):
+        matches = [pattern for pattern in INTERNAL_STYLE_PATTERNS if pattern in line]
+        if matches:
+            rows.append({"path": rel(path), "line": line_no, "patterns": " | ".join(matches), "text": line.strip()})
+    return rows
+
+
 def add_check(checks: list[dict[str, Any]], name: str, passed: bool, detail: str) -> None:
     checks.append({"check": name, "passed": bool(passed), "detail": detail})
 
@@ -169,12 +191,19 @@ def build_report() -> dict[str, Any]:
     r396 = read_json(SOURCES["R396 paper build smoke"])
 
     hits = run_id_hits(SOURCES["Chinese paper"]) + run_id_hits(SOURCES["English paper"])
+    chinese_internal_style_hits = internal_style_hits(SOURCES["Chinese paper"])
     checks: list[dict[str, Any]] = []
     add_check(
         checks,
         "main_papers_have_no_run_ids",
         not hits,
         f"Found {len(hits)} R-numbered run-id mentions in main papers.",
+    )
+    add_check(
+        checks,
+        "chinese_main_avoids_internal_checklist_terms",
+        not chinese_internal_style_hits,
+        f"Found {len(chinese_internal_style_hits)} internal checklist-style terms in the Chinese main paper.",
     )
     add_check(
         checks,
@@ -187,7 +216,7 @@ def build_report() -> dict[str, Any]:
     add_check(
         checks,
         "chinese_three_plus_one_visible",
-        "三个核心经验性 profiling 实验" in chinese_norm
+        ("三个核心经验性 profiling 实验" in chinese_norm or "前三个问题是 empirical profiling experiments" in chinese_norm)
         and "artifact/reproducibility block" in chinese_norm
         and "不会形成额外主实验" in chinese_norm,
         "Chinese draft frames E1-E3 plus E4 and demotes support artifacts from main experiments.",
@@ -206,7 +235,11 @@ def build_report() -> dict[str, Any]:
             "not treated as a fourth hidden-label accuracy result" in english_l
             or "do not add a new accuracy experiment" in english_l
         )
-        and ("不是第四个经验性 profiling 实验" in chinese_norm or "不作为第四个经验性 profiling 实验" in chinese_norm)
+        and (
+            "不是第四个经验性 profiling 实验" in chinese_norm
+            or "不作为第四个经验性 profiling 实验" in chinese_norm
+            or "不作为第四个 empirical accuracy result" in chinese_norm
+        )
         and "not a fifth" in evaluation_l,
         "E4 is artifact/reproducibility hygiene, not another hidden-label accuracy experiment.",
     )
@@ -250,12 +283,14 @@ def build_report() -> dict[str, Any]:
         "profiler_rerun": False,
         "human_or_agent_analyst_task": False,
         "run_id_hits": hits,
+        "chinese_internal_style_hits": chinese_internal_style_hits,
         "checks": checks,
         "source_status": source_status,
         "summary": {
             "checks_passed": sum(1 for check in checks if check["passed"]),
             "checks_total": len(checks),
             "main_paper_run_id_hits": len(hits),
+            "chinese_internal_style_hits": len(chinese_internal_style_hits),
         },
         "interpretation": (
             "The main paper bodies now present E1/E2/E3/E4 as the reviewer-facing "
@@ -284,6 +319,7 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
         f"Status: `{report['status']}`",
         f"Checks: {report['summary']['checks_passed']}/{report['summary']['checks_total']}",
         f"Main-paper run-id hits: {report['summary']['main_paper_run_id_hits']}",
+        f"Chinese internal-style hits: {report['summary']['chinese_internal_style_hits']}",
         "",
         report["interpretation"],
         "",
@@ -345,6 +381,11 @@ def main() -> int:
     (out_dir / "run-result.json").write_text(json.dumps(run_result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     write_csv(out_dir / "main-body-run-ledger-checks.csv", report["checks"])
     write_csv(out_dir / "run-id-hits.csv", report["run_id_hits"], ["path", "line", "run_ids", "text"])
+    write_csv(
+        out_dir / "chinese-internal-style-hits.csv",
+        report["chinese_internal_style_hits"],
+        ["path", "line", "patterns", "text"],
+    )
     write_csv(out_dir / "source-status.csv", report["source_status"], ["source", "path", "status", "sha256"])
     write_markdown(out_dir / "main-body-run-ledger.md", report)
     write_html(out_dir / "index.html", report)

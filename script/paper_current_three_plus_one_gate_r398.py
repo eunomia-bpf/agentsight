@@ -44,6 +44,19 @@ SOURCES = {
 RQ_RE = re.compile(r"\\subsection\{(RQ\d+/E\d+)")
 RUN_ID_RE = re.compile(r"\bR\d{3}\b")
 EXPECTED_RQS = ["RQ1/E1", "RQ2/E2", "RQ3/E3", "RQ4/E4"]
+INTERNAL_STYLE_PATTERNS = [
+    "Claim synthesis",
+    "reviewer evidence packet",
+    "reviewer evidence packets",
+    "paper value/novelty synthesis",
+    "paper evidence matrix",
+    "submission audit",
+    "Claim test",
+    "Claim-test",
+    "实验契约",
+    "artifact ledger",
+    "paper gates",
+]
 SELF_UNDERCUT_PATTERNS = [
     re.compile(r"不是\s*(?:OSDI|NeurIPS|NIPS)[^。\\]*(?:最终接收|接受级|完整证据)"),
     re.compile(r"证据不足[^。\\]*(?:OSDI|NeurIPS|NIPS|接收|接受)"),
@@ -169,6 +182,15 @@ def run_id_hits(path: Path) -> list[dict[str, Any]]:
     return hits
 
 
+def internal_style_hits(path: Path) -> list[dict[str, Any]]:
+    hits = []
+    for line_no, line in enumerate(read_text(path).splitlines(), start=1):
+        matches = [pattern for pattern in INTERNAL_STYLE_PATTERNS if pattern in line]
+        if matches:
+            hits.append({"path": rel(path), "line": line_no, "patterns": " | ".join(matches), "text": line.strip()})
+    return hits
+
+
 def self_undercut_hits(path: Path) -> list[dict[str, Any]]:
     hits = []
     for line_no, line in enumerate(read_text(path).splitlines(), start=1):
@@ -198,6 +220,7 @@ def build_report() -> dict[str, Any]:
     chinese_rqs = subsection_rqs(chinese)
     english_rqs = subsection_rqs(english)
     paper_run_hits = run_id_hits(SOURCES["Chinese paper"]) + run_id_hits(SOURCES["English paper"])
+    chinese_internal_style_hits = internal_style_hits(SOURCES["Chinese paper"])
     paper_self_undercut_hits = self_undercut_hits(SOURCES["Chinese paper"]) + self_undercut_hits(
         SOURCES["English paper"]
     )
@@ -226,7 +249,10 @@ def build_report() -> dict[str, Any]:
         "three core empirical profiling experiments" in english_l
         and "artifact/reproducibility block" in english_l
         and "not additional main experiments" in english_l
-        and "三个核心经验性 profiling 实验" in chinese_norm
+        and (
+            "三个核心经验性 profiling 实验" in chinese_norm
+            or "前三个问题是 empirical profiling experiments" in chinese_norm
+        )
         and "artifact/reproducibility block" in chinese_norm
         and "不会形成额外主实验" in chinese_norm,
         "Both drafts state E1-E3 as core empirical profiling experiments and E4 as artifact/reproducibility.",
@@ -236,8 +262,14 @@ def build_report() -> dict[str, Any]:
         "e2_is_single_hidden_label_accuracy_block",
         "e2 is the single hidden-label localization/ranking experiment" in english_l
         and "e2 is the only primary hidden-label accuracy" in english_l
-        and "E2 是唯一的 hidden-label localization/ranking 主实验" in chinese_norm
-        and "E2 是唯一的 hidden-label accuracy" in chinese_norm,
+        and (
+            "E2 是唯一的 hidden-label localization/ranking 主实验" in chinese_norm
+            or "RQ2 是 hidden-label localization/ranking 主实验" in chinese_norm
+        )
+        and (
+            "E2 是唯一的 hidden-label accuracy" in chinese_norm
+            or "主 accuracy claim 仍然来自统一的 hidden-label scoring" in chinese_norm
+        ),
         "Hidden-label profiler accuracy is concentrated in E2 rather than split into many small experiments.",
     )
     add_check(
@@ -245,8 +277,11 @@ def build_report() -> dict[str, Any]:
         "e3_is_mechanism_actionability_not_fifth_experiment",
         "which stack fields, mappings, rankers, and profile specs explain or repair the e2 results" in english_l
         and "not a fifth core experiment" in english_l
-        and "哪些 stack fields、mappings、rankers 和 profile specs 造成或修复 E2 的结果" in chinese_norm
-        and "不是第五个核心实验" in chinese_norm,
+        and (
+            "哪些 stack fields、mappings、rankers 和 profile specs 造成或修复 E2 的结果" in chinese_norm
+            or "Rank-feature、mapping、stack-depth、boundary-field、profile-spec patch" in chinese_norm
+        )
+        and ("不是第五个核心实验" in chinese_norm or "不是新增实验" in chinese_norm),
         "Mechanism, actionability, patches, and boundary-field evidence remain inside E3.",
     )
     add_check(
@@ -256,8 +291,14 @@ def build_report() -> dict[str, Any]:
         and "not treated as a fourth hidden-label accuracy result" in english_l
         and "not a human-productivity claim" in english_l
         and re.search(r"not [^.\\]*trace-ecosystem compatibility result", english_l) is not None
-        and "E4 只负责 reproducibility 和 claim hygiene" in chinese_norm
-        and "不是新的 accuracy benchmark" in chinese_norm
+        and (
+            "E4 只负责 reproducibility 和 claim hygiene" in chinese_norm
+            or "RQ4 检查 offline profiler path 能否在 tracked inputs 上低成本 replay" in chinese_norm
+        )
+        and (
+            "不是新的 accuracy benchmark" in chinese_norm
+            or "不是新的 hidden-label accuracy experiment" in chinese_norm
+        )
         and "不是人工 analyst" in chinese_norm
         and re.search(r"不是[^。\\]*trace-ecosystem compatibility claim", chinese_norm) is not None,
         "E4 remains an artifact/reproducibility block with explicit non-claims.",
@@ -267,6 +308,12 @@ def build_report() -> dict[str, Any]:
         "main_papers_stay_free_of_run_ids",
         not paper_run_hits,
         f"Found {len(paper_run_hits)} R-numbered run-id mentions in main paper bodies.",
+    )
+    add_check(
+        checks,
+        "chinese_main_avoids_internal_checklist_terms",
+        not chinese_internal_style_hits,
+        f"Found {len(chinese_internal_style_hits)} internal checklist-style terms in the Chinese main paper.",
     )
     add_check(
         checks,
@@ -295,8 +342,16 @@ def build_report() -> dict[str, Any]:
         and "primary comparison, ablation, stress/counterpoint, provenance check, or hygiene gate" in evaluation_l
         and "new runs enter the main evidence path only if they strengthen e1--e4" in english_l
         and "primary comparison, ablation, stress/counterpoint, provenance check, or hygiene" in english_l
-        and "新的 run 只有在能作为 E1--E4" in chinese_norm
-        and "主比较、消融、stress/counterpoint、provenance check 或 hygiene gate" in chinese_norm,
+        and (
+            (
+                "新的 run 只有在能作为 E1--E4" in chinese_norm
+                and "主比较、消融、stress/counterpoint、provenance check 或 hygiene gate" in chinese_norm
+            )
+            or (
+                "只保留能够支撑 claim 的比较、消融、反例和复现实验" in chinese_norm
+                and "其他生成物只作为补充材料中的证据来源" in chinese_norm
+            )
+        ),
         "New runs must be assigned a role inside E1-E4 instead of becoming scattered paper experiments.",
     )
     add_check(
@@ -307,11 +362,14 @@ def build_report() -> dict[str, Any]:
         and "provide hidden-label fidelity and baseline tradeoff evidence" in english_l
         and "provide mechanism/actionability evidence" in english_l
         and "stay in the artifact ledger as provenance, counterpoints, or hygiene checks" in english_l
-        and "主文图表按这条路径阅读" in chinese_norm
+        and ("主文图表按这条路径阅读" in chinese_norm or "主文图表形成一条固定证据路径" in chinese_norm)
         and "表~\\ref{tab:results} 是四个 block 的 claim map" in chinese_norm
         and "hidden-label fidelity 和 baseline tradeoff" in chinese_norm
         and "mechanism/actionability" in chinese_norm
-        and "artifact ledger，只作为这些主显示的 provenance、counterpoint 或 hygiene checks" in chinese_norm,
+        and (
+            "artifact ledger，只作为这些主显示的 provenance、counterpoint 或 hygiene checks" in chinese_norm
+            or "补充的 portfolio、case、verdict 和 consistency tables 只用于解释这些主图表的 data sources、counterpoints 或 scope checks" in chinese_norm
+        ),
         "The papers expose a compact display path from workload provenance through E1-E4 main displays.",
     )
     add_check(
@@ -342,6 +400,7 @@ def build_report() -> dict[str, Any]:
         "profiler_rerun": False,
         "human_or_agent_analyst_task": False,
         "paper_run_id_hits": paper_run_hits,
+        "chinese_internal_style_hits": chinese_internal_style_hits,
         "paper_self_undercut_hits": paper_self_undercut_hits,
         "checks": checks,
         "source_status": source_status,
@@ -351,6 +410,7 @@ def build_report() -> dict[str, Any]:
             "chinese_rq_subsections": chinese_rqs,
             "english_rq_subsections": english_rqs,
             "main_paper_run_id_hits": len(paper_run_hits),
+            "chinese_internal_style_hits": len(chinese_internal_style_hits),
             "paper_self_undercut_hits": len(paper_self_undercut_hits),
         },
         "interpretation": (
@@ -381,6 +441,7 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
         f"Status: `{report['status']}`",
         f"Checks: {report['summary']['checks_passed']}/{report['summary']['checks_total']}",
         f"Main-paper run-id hits: {report['summary']['main_paper_run_id_hits']}",
+        f"Chinese internal-style hits: {report['summary']['chinese_internal_style_hits']}",
         f"Paper-facing self-undercut hits: {report['summary']['paper_self_undercut_hits']}",
         "",
         report["interpretation"],
@@ -443,6 +504,11 @@ def main() -> int:
     (out_dir / "run-result.json").write_text(json.dumps(run_result, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     write_csv(out_dir / "current-three-plus-one-checks.csv", report["checks"])
     write_csv(out_dir / "paper-run-id-hits.csv", report["paper_run_id_hits"], ["path", "line", "run_ids", "text"])
+    write_csv(
+        out_dir / "chinese-internal-style-hits.csv",
+        report["chinese_internal_style_hits"],
+        ["path", "line", "patterns", "text"],
+    )
     write_csv(
         out_dir / "paper-self-undercut-hits.csv",
         report["paper_self_undercut_hits"],

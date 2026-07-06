@@ -41,12 +41,12 @@ SOURCES = {
 }
 
 CHINESE_SOURCE_TOKENS = [
-    "主文图表按这条路径阅读",
+    "主文图表形成一条固定证据路径",
     "表~\\ref{tab:results} 是四个 block 的 claim map",
     "hidden-label fidelity 和 baseline tradeoff",
     "mechanism/actionability",
     "replay/cost 证据",
-    "artifact ledger，只作为这些主显示的 provenance、counterpoint 或 hygiene checks",
+    "补充的 portfolio、case、verdict 和 consistency tables 只用于解释这些主图表的 data sources、counterpoints 或 scope checks",
 ]
 
 ENGLISH_SOURCE_TOKENS = [
@@ -59,12 +59,12 @@ ENGLISH_SOURCE_TOKENS = [
 ]
 
 CHINESE_PDF_TOKENS = [
-    "主文图表按这条路径阅读",
+    "主文图表形成一条固定证据路径",
     "四个 block 的 claim map",
     "hidden-label fidelity 和 baseline tradeoff",
     "mechanism/actionability",
     "replay/cost 证据",
-    "artifact ledger",
+    "consistency tables",
 ]
 
 ENGLISH_PDF_TOKENS = [

@@ -45,18 +45,20 @@ AI agent 的执行历史已经不再只是一次 prompt 或一棵 trace tree。
 \opstack{} 是用户从字段中选择的递归投影，mapping 和 tagging 在 stack 构造前派生字段，而不是创建第三种 profiler 对象。
 关键点是聚合不是第三个对象，也不是固定 trace tree；聚合由 query time 选择的 stack 形态决定。
 这不是单纯的 query-time aggregation 或 flamegraph renderer claim；scoped novelty 是 agent-operation record、recursive multi-field operation-stack projection 和 hidden-label profile-group scoring 的组合。
-我们在 Rust \toolname{} 中实现该模型，并把论文评估组织成三个核心经验性 profiling 实验（RQ1/E1 到 RQ3/E3）加一个 artifact/reproducibility block（RQ4/E4），而不是按 R 编号罗列小实验。
-RQ1/E1 验证泛化覆盖和递归 operation-stack 形成：在 15 个轻量采样的公开标注轨迹来源上，\toolname{} 把 47,590 个 samples 投影到同一 operation layer；同一批 13,265 个 operations 可以从 9 个 dataset stacks 折叠为 57 个 phase stacks、226 个 semantic stacks、455 个 action stacks，或 3,757 个 fixed-session stacks，而不改变输入 operation。
+我们在 Rust \toolname{} 中实现该模型，并围绕四个问题评估它。
+RQ1 验证泛化覆盖和递归 operation-stack 形成。
+在 15 个轻量采样的公开标注轨迹来源上，\toolname{} 把 47,590 个 samples 投影到同一 operation layer；同一批 13,265 个 operations 可以从 9 个 dataset stacks 折叠为 57 个 phase stacks、226 个 semantic stacks、455 个 action stacks，或 3,757 个 fixed-session stacks，而不改变输入 operation。
 这说明 prompt、tool、GUI action、process 和人工边界都进入 operation layer；session/span 只作为字段、容器或对照视图参与 stack 查询，不是新的 profiler 抽象。
 
-RQ2/E2 是 hidden-label localization/ranking 主实验。
+RQ2 是 hidden-label localization/ranking 主实验。
 在 AgentRewardBench、SATraj-OS、AgentNet 和 OSWorld-Human 的 4 个 oracle-rich 数据集、6 个任务、34,539 个 operations 和 3,699 个 positives 上，我们把 profile groups 当作 ranked localization outputs，比较 flat、fixed-session drilldown、dataset-native、raw-action 和 operation-stack views。
 Task-query operation-stack profiling 的 top-5 median work 为 0.0937，而 flat summary 为 1.0；相对 fixed-session drilldown，它在 5/6 tasks 上提高 top-5 recall，并把 median groups 从 285.0 降到 157.5。
 
-RQ3/E3 隔离机制和 profile-configuration actionability。
+RQ3 隔离机制和 profile-configuration actionability。
 Rank feature、stack depth、mapping、transfer、diagnostic lens、case packet 和 counterfactual 分析显示：有效配置随 task 和 objective 变化，operation-stack 是 Pareto point，不是 universal default。
 Executable profile-spec patches 在 5/6 tasks 上改善 AP、top-5 lift 和 first-positive work；supervised held-out boundary-field ablation 把 OSWorld-Human AP 从 0.2402 提到 0.2583，并把 groups 从 108 降到 74，但保留 work 反例。
-RQ4/E4 则验证 replayability、offline cost 和 artifact hygiene：76 个 tracked profile specs 可确定性 replay；profile-spec input regressions 覆盖 local-session、agent-trace 和 standard-trace replay；source status、数字、guardrails、rubric coverage 和 two-abstraction boundary 检查只作为 artifact hygiene，不作为第四个经验性 profiling 实验或 profiler 的 empirical accuracy evidence。
+RQ4 验证 replayability、offline cost 和复现边界。
+76 个 tracked profile specs 可以确定性 replay；profile-spec input regressions 覆盖 local-session、agent-trace 和 standard-trace replay；论文中的一致性检查只约束数字、source policy 和 claim scope，不作为第四个 empirical accuracy result。
 
 因此本文支持的是 scoped profiling claim：operation-stack profiling 能在公开真实标注 trace 的 dataset-provided hidden labels 下定位、排序和解释任务相关 failure、quality problem 和 dataset-provided semantic boundary，并相对 flat summary 减少 inspection work、相对 fixed-session drilldown proxy 改善 median fragmentation tradeoff。
 本文不声称提升 human productivity，不声称自动发现所有 intent boundary，不声称 metric dominance，也不声称完整兼容现有 trace ecosystem。
@@ -145,12 +147,12 @@ Stack 结构分析脚本位于 \texttt{script/operation\_stack\_analysis.py}，�
 它不像 jq 那样完整表达 JSON 查询语言，但它已经把 profiler 的关键自由度暴露为 flags 和可提交配置：数据源由 \texttt{--trace-file} 或 \texttt{--operation-file} 选择，权重由 \texttt{--view} 选择，查询子集由 \texttt{--where} 选择，字段派生由 \texttt{--op-map} 选择，递归边界由 \texttt{--stack} 选择，JSON group 排序由 \texttt{--rank-rule}、\texttt{--rank-op-rule} 和 \texttt{--rank-mode} 选择，复现实验由 \texttt{--profile-spec} 固化。
 实现证据只作为 E1--E4 的接口验证进入论文，而不是形成额外主实验。
 Profile-spec predicate 证明 mapping-derived \texttt{where\_rules} 可以在 folding 前选择 729/729、714/714 和 4,285/4,285 个预期 operations；profile-spec composition 证明 operation source、predicate、visible rank rule、rank mode 和显式 stack depth 可以在 12/12 variants 中组合，且不引入 prompt/session frame；standard-trace exchange 证明 tracked real labeled operation prefix 经 trace container 往返后仍保持 512 samples 和 11 stacks。
-这些检查只作为 E1 的接口 provenance，而不是新的 experiment block。
+这些检查只作为 E1 的接口复查材料，而不是新的 experiment block。
 
 Ranker 和 actionability 的实现证据被归入 E3。
 Stack-text rule 与 rank-mode variants 可以从 profile spec 复现，但对 safety/side-effect 过粗；operation-level visible feature density 在 folding 前匹配 mapped operation token，并在 semantic stack 上使 AP 赢 5/6 tasks、top-5 lift 赢 4/6、first-positive work 赢 5/6，coarse stack 也在 AP 上赢 4/6。
 Leave-one-feature、robustness 和 transfer checks 说明 \texttt{repeat\_signal}、write-action、\texttt{status=success} 等字段在不同 family 中作用不同，误导性 safety-like 或 input-phase features 会伤害 AP 或 first-positive work；global/equal feature banks 常能保留收益，但 guided repair 使用离线评分反馈，因此不是 label-free automatic ranker。
-这些检查只作为一个 E3 mechanism/actionability block 的 provenance。
+这些检查只作为 E3 mechanism/actionability 的实现复查材料。
 
 Profile-spec replay、input-source replay 和 deterministic output 归入 E4。
 同一批 76 个 tracked specs 覆盖 view specs、rank-feature specs 和 robustness specs；Rust \texttt{agentpprof --profile-spec} 重复运行两次后 semantic profile hash 全部稳定，默认 raw-byte hash 只有 4/76 稳定，因为 JSON profile 包含生成时间戳。
@@ -169,14 +171,14 @@ Profile-spec replay、input-source replay 和 deterministic output 归入 E4。
 第三，负结果保留在论文中。
 例如 AgentNet 的 task status 很弱地预测 per-step correctness，repeat signal 也很弱地预测 step redundancy。
 这说明 profiler 能承载这些诊断字段，但简单 mapping 不能替代专门质量模型。
-	第四，论文 claim 必须从 artifact 机械回溯。
-	Claim synthesis、reviewer evidence packet、paper value/novelty synthesis、paper evidence matrix 和 submission audit 都只读取 tracked/clean result files，并输出 claim verdict、paper-ready wording、must-not-claim 和 source paths。
-	这些文件不是新实验，也不是 profiler object。
-	它们的作用是防止摘要、结果、局限和结论在数字、scope 或 unsupported claim 上漂移。
+		第四，论文 claim 必须能从 tracked results 回溯。
+		我们只从可复现结果文件派生 paper claims、limitations 和 source paths。
+		这些一致性检查不是新实验，也不是 profiler object。
+		它们的作用是防止摘要、结果、局限和结论在数字、scope 或 unsupported claim 上漂移。
 	第五，boundary backend 必须仍然服从两个抽象。
 	监督式 adjacent-boundary backend 只写回 \texttt{learned\_group\_pattern}、\texttt{learned\_segment\_pattern}、\texttt{learned\_segment\_position} 和 \texttt{learned\_boundary\_prev} 等 operation fields。
 	递归折叠仍由 \toolname{} 使用普通 \texttt{--profile-spec} 和 \texttt{--stack} 完成。
-	每个候选标签家族还必须先通过 suitability 和 simple-baseline gate，防止把 safety、history context 或 repetition proxy 错当作语义边界。
+		每个候选标签家族还必须先通过 suitability 和 simple-baseline 检查，防止把 safety、history context 或 repetition proxy 错当作语义边界。
 	第六，真实问题价值必须先通过可复现 proxy 任务收敛。
 	我们从 AgentRewardBench、SATraj-OS、AgentNet 和 OSWorld-Human 的已有 operation JSONL 构造 6 个 oracle-backed analysis tasks，比较 flat、fixed-session、semantic operation-stack 和 label-drilldown 四种 stack specs。
 	指标包括 positive lift、覆盖 50\% positives 的 inspection fraction、group count、top-group session support、selected recall 和 selected work。
@@ -226,46 +228,45 @@ Profile-spec replay、input-source replay 和 deterministic output 归入 E4。
 
 \section{结果}
 
-本文的结果不应按 R 编号或零散 probe 展开。
-论文主体收敛为三个核心经验性 profiling 实验加一个 artifact/reproducibility block：RQ1/E1、RQ2/E2、RQ3/E3 是三个经验性 profiling 实验，RQ4/E4 是系统/复现和 artifact hygiene block。RQ1/E1 验证 operation generality、递归 stack folding、field derivation 和人工边界都能落在同一个两抽象模型中；RQ2/E2 是 hidden-label localization/ranking 主实验；RQ3/E3 通过 ranker、stack、mapping、transfer、case 和 profile-spec patch 消融隔离机制与 actionability；RQ4/E4 检查 profile-spec 可复现性、离线成本和 claim hygiene，claim-integrity guardrails 只作为 artifact hygiene，不作为第四个 accuracy result 或第四个经验性 profiling 实验。
-R 编号只作为 provenance，不是论文的小节结构。
-新的 run 只有在能作为 E1--E4 的主比较、消融、stress/counterpoint、provenance check 或 hygiene gate 时才进入主证据路径；否则它应该留在 artifact ledger，而不是变成另一个小实验。
+本文按四个研究问题呈现结果，而不是按实验执行顺序展开。
+前三个问题是 empirical profiling experiments。
+RQ1 检查 operation generality、递归 stack folding、field derivation 和人工边界能否落在同一个两抽象模型中。
+RQ2 是 hidden-label localization/ranking 主实验。
+RQ3 用 ranker、stack、mapping、transfer、case 和 profile-spec patch 消融解释机制与 actionability。
+RQ4 检查 profile-spec 可复现性、离线成本和 claim scope。
+这种组织方式让主文只保留能够支撑 claim 的比较、消融、反例和复现实验，其他生成物只作为补充材料中的证据来源。
 
 \begin{table*}[t]
   \centering
   \tiny
   \setlength{\tabcolsep}{2.2pt}
   \renewcommand{\arraystretch}{0.92}
-  \caption{三个经验性 profiling 实验加一个 artifact/reproducibility block。R 编号只作为 provenance、ablation、counterpoint 或 audit gate 保留在 evaluation ledger；该表从 tracked artifacts 重新生成。}
+  \caption{三个 empirical profiling experiments 加一个 artifact/reproducibility block。每行给出 workload、oracle、主要证据和该证据允许的 scoped conclusion。}
   \label{tab:results}
   \begin{tabular}{p{0.18\linewidth}p{0.22\linewidth}p{0.28\linewidth}p{0.24\linewidth}}
     \toprule
     RQ / paper block & Workload / oracle & Main evidence & Scoped conclusion \\
     \midrule
     RQ1/E1: generality, recursive folding, and field derivation & 15 public labeled trace families / 47,590 operations, plus local-session and standard-trace exchange fixtures. OSWorld-Human and AgentNet provide the strongest boundary and step-quality oracles. & Core sources contain 42,590 operations; ScaleCUA brings the smoke set to 47,590; the same operations fold from 9 dataset stacks to 57 phase, 226 semantic, 455 action, or 3,757 fixed-session stacks. AgentNet profile-spec override changes 608 stacks to 83 without changing input operations. Held-out mapping improves compression from 14.049 to 19.091; OSWorld-Human learned boundary F1 reaches 0.7735; boundary backends beat the best simple baseline on 4/5 rows. & Heterogeneous traces enter one operation layer, and stack depth is a recursive query over fields. Mapping, tagging, and boundary backends derive fields before folding; they do not add prompt/session/tool/safety-specific profiler objects or automatic intent boundary discovery. \\
-    RQ2/E2: hidden-label localization and ranking & Six failure, safety, quality, and boundary tasks over AgentRewardBench, SATraj-OS, AgentNet, and OSWorld-Human; 34,539 operations / 3,699 positives. & The benchmark scores 144 view/ranker policies. Query-aware operation-stack top-5 groups inspect median 0.0937 work versus 1.0 for flat, improve top-5 recall over fixed-session on 5/6 tasks, and reduce median groups from 285.0 to 157.5. Work-budget、fragmentation、fixed-recall、sequence-scope、oracle-depth、uncertainty、negative-control 和 multi-metric slices are support audits, not separate experiments. & Operation-stack profiling is faithful to dataset-provided hidden labels under this benchmark and gives a better inspection-work/median-fragmentation Pareto point than flat or fixed-session alone. It is not a universal detector, a single best hierarchy, or a work-dominant replacement for drilldown views. \\
+    RQ2/E2: hidden-label localization and ranking & Six failure, safety, quality, and boundary tasks over AgentRewardBench, SATraj-OS, AgentNet, and OSWorld-Human; 34,539 operations / 3,699 positives. & The benchmark scores 144 view/ranker policies. Query-aware operation-stack top-5 groups inspect median 0.0937 work versus 1.0 for flat, improve top-5 recall over fixed-session on 5/6 tasks, and reduce median groups from 285.0 to 157.5. Work-budget、fragmentation、fixed-recall、sequence-scope、oracle-depth、uncertainty、negative-control 和 multi-metric slices test robustness rather than define separate experiments. & Operation-stack profiling is faithful to dataset-provided hidden labels under this benchmark and gives a better inspection-work/median-fragmentation Pareto point than flat or fixed-session alone. It is not a universal detector, a single best hierarchy, or a work-dominant replacement for drilldown views. \\
     RQ3/E3: mechanism and actionability & The same six labeled tasks, plus held-out OSWorld-Human boundary-backend operations. & Operation-level rank features and ablations expose useful and misleading fields; profile-spec patches improve 5/6 tasks with median AP delta 0.0376 and lift delta 0.5750. Learned-boundary fields improve OSWorld-Human AP to 0.2583 and reduce groups to 74, but increase top-5 work and first-positive work. & The profiler produces profile-configuration actionability: which stack fields, mappings, rankers, lenses, and drilldown depths to tune. It keeps automatic action selection, automatic patch selection, and automatic boundary discovery out of scope. \\
-    RQ4/E4: artifact replayability, offline cost, and hygiene & 76 tracked operation-JSONL profile specs, plus local-session、agent-trace 和 standard-trace profile-spec input replay regressions; no dataset sync or human/agent analyst task. & Deterministic replay covers 152 profiler invocations. Semantic determinism is 76/76 in both modes; deterministic output makes raw-byte determinism 76/76 with median runtime 1.601s and p95 2.767s in the clean rerun. Source selection、regex tags、trace inputs 和 effective standard-trace args 都通过同一 operation-stack path replay。 & The offline profiling artifact is replayable and cheap enough for artifact evaluation; this is an artifact/reproducibility block, not a hidden-label accuracy result, live capture overhead result, human productivity result, or trace-ecosystem compatibility result. \\
+    RQ4/E4: replayability, offline cost, and scope control & 76 tracked operation-JSONL profile specs, plus local-session、agent-trace 和 standard-trace profile-spec input replay regressions. & Deterministic replay covers 152 profiler invocations. Semantic determinism is 76/76 in both modes; deterministic output makes raw-byte determinism 76/76 with median runtime 1.601s and p95 2.767s in the clean rerun. Source selection、regex tags、trace inputs 和 effective standard-trace args 都通过同一 operation-stack path replay。 & The offline profiler path is replayable and cheap enough for artifact evaluation. This result does not measure live eBPF overhead, human productivity, or full trace-ecosystem compatibility. \\
     \bottomrule
 \end{tabular}
 \end{table*}
 
-主文图表按这条路径阅读：表~\ref{tab:datasets} 给出 workload provenance；表~\ref{tab:results} 是四个 block 的 claim map；表~\ref{tab:e1-claim-test} 检查两抽象和递归折叠；表~\ref{tab:e2-localization} 与图~\ref{fig:e2e3-portfolio} 左图给出 hidden-label fidelity 和 baseline tradeoff；表~\ref{tab:actionability} 与图~\ref{fig:e2e3-portfolio} 右图给出 mechanism/actionability；表~\ref{tab:e4-replay-cost} 和表~\ref{tab:e4-determinism} 给出 replay/cost 证据。
-其他 generated portfolio、case、verdict 和 guardrail tables 留在 artifact ledger，只作为这些主显示的 provenance、counterpoint 或 hygiene checks。
-
-后续 evaluation 继续保持这个结构。
-E1 证明两个 profiler objects 足以表达异构轨迹和递归折叠选择。
-E2 是唯一的 hidden-label localization/ranking 主实验。
-E3 解释哪些 stack fields、mappings、rankers 和 profile specs 造成或修复 E2 的结果。
-E4 只负责 reproducibility 和 claim hygiene。
-完整 run-role map、claim gates、reviewer evidence packets、negative controls 和 table-generation checks 保留在 artifact ledger；它们只能支撑或约束 E1--E4，不形成额外主实验。
-Reviewer 应该沿着这条 evidence path 读本文：E1 先证明两个对象能表达 workload 和递归折叠选择；E2 是唯一的 hidden-label accuracy 与 baseline tradeoff 主比较；E3 解释哪些机制和 profile configuration 让 E2 的结果变成 actionable；E4 只证明 replayability 和 hygiene。
-如果 E2 的 Pareto 条件或 E3 的 mechanism/actionability 条件不成立，本文应该收窄 claim，而不是再增加一个 R 编号结果。
+主文图表形成一条固定证据路径。
+表~\ref{tab:datasets} 给出 workload sources，表~\ref{tab:results} 是四个 block 的 claim map，表~\ref{tab:e1-abstraction-evidence} 检查两抽象和递归折叠，表~\ref{tab:e2-localization} 与图~\ref{fig:e2e3-portfolio} 左图给出 hidden-label fidelity 和 baseline tradeoff，表~\ref{tab:actionability} 与图~\ref{fig:e2e3-portfolio} 右图给出 mechanism/actionability，表~\ref{tab:e4-replay-cost} 和表~\ref{tab:e4-determinism} 给出 replay/cost 证据。
+补充的 portfolio、case、verdict 和 consistency tables 只用于解释这些主图表的 data sources、counterpoints 或 scope checks。
+如果 RQ2 的 Pareto 条件或 RQ3 的 mechanism/actionability 条件不成立，本文应该收窄 claim，而不是扩大实验叙事。
 
 \subsection{RQ1/E1：泛化覆盖、递归折叠和边界字段}
 
-实验契约：RQ1/E1 的 claim 是两抽象模型能覆盖异构 agent traces 且不把 prompt/session/tool 边界写死；oracle 是 public dataset labels、native trajectory fields、OSWorld-Human human boundary 和 AgentNet quality labels；baseline 包括 dataset-native stacks、no-map folding、fixed-session stacks、profile-spec replay 和 trace round trip；metric 包括 operation coverage、unique-stack range、mapping compression、boundary F1/V-measure 和 replay equality；counterpoint 是这只能支持 configurable operation stack folding，不能支持完整生态兼容或自动恢复所有 latent intent。Prompt、tool、process 和 syscall 可以是 operation records 或 fields；session/span 是字段、容器或 baseline shape，not new profiler objects。
-Claim-test：RQ1/E1 问的是：同一 operation layer 能否只通过改变 mappings 和 stack fields，被递归折叠成 task、phase、action、boundary 和 fixed-session 等多种 stack，而不改变输入记录、不引入第三个 profiler 抽象。
+RQ1 检查同一个 operation layer 能否覆盖异构 agent traces，并避免把 prompt、session 或 tool 边界写死成 profiler 层级。
+它使用 public dataset labels、native trajectory fields、OSWorld-Human human boundary 和 AgentNet quality labels 作为 oracle，比较 dataset-native stacks、no-map folding、fixed-session stacks、profile-spec replay 和 trace round trip。
+主要指标包括 operation coverage、unique-stack range、mapping compression、boundary F1/V-measure 和 replay equality。
+这个问题只支持 configurable operation-stack folding，不支持完整生态兼容或自动恢复所有 latent intent。
+Prompt、tool、process 和 syscall 可以是 operation records 或 fields；session/span 是字段、容器或 baseline shape，not new profiler objects。
 
 核心 14 数据集产生 42,590 个 operations 和 1,497 个 unique stacks，compression ratio 为 28.45。
 加入 ScaleCUA 补充样本后，总量为 47,590 个 operations 和 1,611 个 unique stacks，compression ratio 为 29.541。
@@ -278,17 +279,17 @@ Claim-test：RQ1/E1 问的是：同一 operation layer 能否只通过改变 map
 适合该方法的轨迹通常具备四个特征：有有序 step 或 turn，有稳定 session/task id，有动作或阶段标签，有 outcome、quality、group 或 safety 等较高层 oracle。
 只有静态截图 grounding、缺少顺序、缺少 action label、强依赖大图片归档或 gated access 的数据源更适合作为后续扩展，而不是当前主证据。
 
-表~\ref{tab:e1-claim-test} 是 E1 的主证据表；后文只展开这些行，不新增主实验。
+表~\ref{tab:e1-abstraction-evidence} 是 E1 的主证据表；后文只展开这些行，不新增主实验。
 
 \begin{table*}[t]
 \centering
 \scriptsize
 \setlength{\tabcolsep}{3pt}
 \caption{E1 主证据表：同一个 operation layer 可以被递归折叠、mapping、tagging 和 boundary scoring，而不引入 prompt/session/tool-specific profiler object。}
-\label{tab:e1-claim-test}
+\label{tab:e1-abstraction-evidence}
 \begin{tabular}{p{0.17\linewidth}p{0.22\linewidth}p{0.28\linewidth}p{0.25\linewidth}}
 \toprule
-Claim test & Workload/oracle & Main evidence & Counterpoint / scope \\
+Evaluation question & Workload/oracle & Main evidence & Counterpoint / scope \\
 \midrule
 异构 operation layer &
 15 个 public labeled trace families / 47,590 operations &
@@ -334,7 +335,7 @@ Profile spec 把这个 query 自由度变成可复现实验配置。
 第一，异构轨迹和本地 session 可以先进入同一 operation layer，再用用户选择的 stack 折叠。
 第二，recursive stacks 能表达 dataset、task、phase、tool、action、human-group、safety 和 quality-label 等多种深度，但不能声称恢复所有真实意图边界。
 第三，field derivation 是可扩展接口，因为 mapping 和 supervised backend 只写入 operation fields，profiler 仍按 operation stack 折叠。
-这些机制结果给出 paper novelty，但 user-utility、通用 boundary detector 和完整 trace-platform compatibility 仍是后续 gate。
+这些机制结果给出 paper novelty，但 user-utility、通用 boundary detector 和完整 trace-platform compatibility 仍是后续工作。
 
 \paragraph{Field derivation 和 boundary probes。}
 
@@ -366,10 +367,11 @@ Prompt 或 session 没有参与这个抽象。
 
 \subsection{RQ2/E2：Hidden-label localization 和 ranking}
 
-实验契约：RQ2/E2 检验 operation-stack profiling 能否在真实 labeled traces 上完成 faithful localization 和 ranking。
-它的 oracle 是 6 个 oracle-backed tasks 中的 34,539 个 operations 和 3,699 个 hidden positives；baseline 包括 flat summary、fixed-session drilldown、dataset-native hierarchy、raw-action stack、operation-stack width、operation-stack query-aware、label-drilldown 和 oracle upper bound；metric 包括 precision@k、recall、F1、AUPRC-style AP、nDCG、recall/F1@work budget、work-to-first-positive 和 group count。
-关键 counterpoint 是 flat 和 dataset-native 可以赢 broad-recall 或 nDCG 目标，因此主 claim 必须是 Pareto tradeoff，而不是 metric dominance。
-Claim-test：RQ2/E2 问的是 hot stacks 和 top-ranked groups 是否真的对应 hidden positives，并且是否能相对 flat summary 降低 inspection work、相对 fixed-session drilldown proxy 改善 localization-budget/fragmentation tradeoff。
+RQ2 检验 operation-stack profiling 能否在真实 labeled traces 上完成 faithful localization 和 ranking。
+我们把 6 个 oracle-backed tasks 中的 34,539 个 operations 和 3,699 个 hidden positives 作为评分对象，并比较 flat summary、fixed-session drilldown、dataset-native hierarchy、raw-action stack、operation-stack width、operation-stack query-aware、label-drilldown 和 oracle upper bound。
+评分指标包括 precision@k、recall、F1、AUPRC-style AP、nDCG、recall/F1@work budget、work-to-first-positive 和 group count。
+Flat 和 dataset-native 可以赢 broad-recall 或 nDCG 目标，因此主 claim 必须是 Pareto tradeoff，而不是 metric dominance。
+这一节的核心问题是 hot stacks 和 top-ranked groups 是否真的对应 hidden positives，并且是否能相对 flat summary 降低 inspection work、相对 fixed-session drilldown proxy 改善 localization-budget/fragmentation tradeoff。
 
 本节的主比较和成功条件是 reviewer 应先看的结果。
 E2 把每个 profile group 当作 inspection target，检查 ranked targets 能否用比 flat summary 更少的 work 找到 hidden positives，并比 fixed-session trace-tree proxy 更少碎片化。
@@ -387,7 +389,9 @@ Fixed-session drilldown 是当前已评估的 trace-tree-shaped baseline；这�
 在同一批 scored rows 上，operation-stack query-aware 相对 fixed-session 在 5/6 tasks 上提高 top-5 recall 和 F1，在 4/6 tasks 上提高 budget-30 recall，并在 4/6 tasks 上减少 group count；同时 fixed-session 在 4/6 tasks 上保留更低 top-5 work 和 first-positive work。
 Depth-aware slice 给出同一 claim 的更细版本：operation-stack rankings 在 20/24 task-depth rows 上超过 fixed-session budget-30 positive-unit recall，并在 22/24 rows 上用更少 groups 到达 50\% positive units。
 如果这些反例从论文里消失，claim 就会被写过头；保留它们后，E2 支持的是更好的 localization-budget/fragmentation tradeoff，不是对所有 trace-tree-shaped objectives 的 dominance。
-Setup 和 case-packet artifacts 只作为 E2 provenance：它们验证 visible packet 与 hidden answer key 分离、top-ranked operation-stack groups 能形成 reviewer-facing cases，并暴露 flat full-recall 与 fixed-session early-hit 反例；主 accuracy claim 由统一的 hidden-label scoring 产生。
+Setup 和 case-packet outputs 只解释实验可复查性。
+它们验证 visible packet 与 hidden answer key 分离，说明 top-ranked operation-stack groups 能形成 reviewer-facing cases，并保留 flat full-recall 与 fixed-session early-hit 反例。
+主 accuracy claim 仍然来自统一的 hidden-label scoring。
 
 \begin{table*}[t]
   \centering
@@ -412,50 +416,50 @@ Setup 和 case-packet artifacts 只作为 E2 provenance：它们验证 visible p
   \end{tabular}
 \end{table*}
 
-同一批 scored outputs 被组织成非 flamegraph 的 paper-facing views，而不是只输出 flamegraph。
-主文只保留一个代表性图：左图服务 E2，展示 localization/work/fragmentation tradeoff；右图服务 E3，展示 profile-configuration knobs。
-其余 portfolio table、headline rows、task case cards 和 verdict matrix 保留在 artifact ledger，作为 paper-integration material，而不是主文中的额外实验。
+同一批 scored outputs 也可以组织成 flamegraph 之外的分析视图。
+主文只保留一个代表性图。
+左图服务 E2，展示 localization/work/fragmentation tradeoff；右图服务 E3，展示 profile-configuration knobs。
+其余 portfolio table、headline rows、task case cards 和 verdict matrix 作为补充材料保留，不作为主文中的额外实验。
 
 \begin{figure*}[t]
   \centering
   \includegraphics[width=0.48\linewidth]{../out/paper-visualization-portfolio-r363/baseline-tradeoff.png}
   \hfill
   \includegraphics[width=0.48\linewidth]{../out/paper-visualization-portfolio-r363/actionability-knobs.png}
-  \caption{两个 paper-facing 非 flamegraph 视图。左图把 RQ2/E2 的核心 tradeoff 放在同一坐标系中：operation-stack query-aware 位于 flat summary 的低 work 区域，同时保留 fixed-session 和 oracle 上界反例。右图把 RQ3/E3 的 actionability 展开为 profile-configuration knobs：多数 objective rows 需要改变 view、ranker、profile spec 或 boundary-derived fields，而不是使用一个固定默认视图。}
+  \caption{两个非 flamegraph 分析视图。左图把 RQ2/E2 的核心 tradeoff 放在同一坐标系中：operation-stack query-aware 位于 flat summary 的低 work 区域，同时保留 fixed-session 和 oracle 上界反例。右图把 RQ3/E3 的 actionability 展开为 profile-configuration knobs：多数 objective rows 需要改变 view、ranker、profile spec 或 boundary-derived fields，而不是使用一个固定默认视图。}
   \label{fig:e2e3-portfolio}
 \end{figure*}
 
-这些生成的 case 和 verdict artifacts 仍然有用，但现在只作为三个核心实验的检查材料，而不是主文表格。
+这些生成的 case 和 verdict outputs 仍然有用，但它们只解释三个核心实验的任务级结论，而不是主文中的新实验。
 它们显示：6/6 tasks 相比 flat summary 改善 AP 和 top-five inspected work；5/6 tasks 相比 fixed-session drilldown 改善 top-five recall；4/6 tasks 降低 fixed-session group fragmentation；6/6 tasks 都有 actionable configuration result，即 profile-spec patch 或 boundary-field repair。
 同时它们保留负证据：fixed-session 在若干任务上仍然是 first-positive 或 group-count counterpoint，OSWorld-Human 需要 boundary-derived fields，而不是 visible phase/action ranking alone。
 
-E2 的 support audits 只用于检验这个 Pareto 结论是否稳健，而不是形成新的主实验。
+E2 的支持性分析只用于检验这个 Pareto 结论是否稳健，而不是形成新的主实验。
 Bootstrap 和 label-permutation checks 显示，operation-stack query-aware 的 AP、top-5 work、budget recall 和 group-count deltas 在 6/6 tasks 上方向稳定；AP 在 6/6 tasks 上超过 95\% prevalence/group-size null，30\% budget recall 在 5/6 tasks 上超过 null。
 Work-budget、fragmentation 和 oracle-depth slices 再把收益拆到 reviewer 关心的检查成本上：30\% work budget 下 median recall 为 0.3900，高于 fixed-session 的 0.3559 和 flat 的 0.0000；相同 budget 下它在 5/6 tasks 上检查更少 groups，同时保留 fixed-session first-positive-work 反例；在 24 个 task-depth rows 中，它有 20 个提高 fixed-session budget-30 positive-unit recall，并在 22 个 rows 用更少 groups 达到 50\% positive units。
 这些 slices 合起来支持 faithful localization surface 和 inspection-work/fragmentation tradeoff；它们不支持 single best hierarchy、human productivity 或对所有 trace-tree-shaped objectives 的 dominance。
 
 E2 的结论因此是 scoped profiler result：operation-stack profiling 在真实标注轨迹上能把 hot groups 排成对 hidden positives 有信号的 localization surface，相比 flat summary 明显减少 inspection work，相比 fixed-session drilldown 通常改善 median fragmentation tradeoff 或提高同预算 recall。
 它不能写成 automatic detector、single best hierarchy、human/agent analyst productivity，或对真实 OpenTelemetry/Phoenix/LangSmith/Perfetto span tree 的完整兼容和支配。
-Work-budget、fragmentation、fixed-recall、sequence-scope、oracle-depth、uncertainty、negative-control 和 multi-metric slices 都是同一个 E2 主实验的 support audits，不是额外的小实验。
+Work-budget、fragmentation、fixed-recall、sequence-scope、oracle-depth、uncertainty、negative-control 和 multi-metric slices 都服务于同一个 E2 主实验，不是额外的小实验。
 
 \subsection{RQ3/E3：机制隔离和 actionability}
 
-实验契约：RQ3/E3 检验 profiler 是否能通过 stack fields、mapping/tagging rules、ranking policies、profile specs 和 boundary-derived operation fields 暴露 actionable optimization knobs。
-它的 oracle 仍然只在 profiling 之后使用 hidden labels；boundary-derived fields 还用 held-out OSWorld-Human boundary positives 评分。
-baseline 包括 default semantic-width specs、patched specs、visible feature rankers、transfer policies、learned-boundary stacks、fixed-session 和 semantic-width stacks；metric 包括 accepted patches、AP delta、top-5 lift delta、first-positive-work delta、group reduction 和 top-5 work counterpoint。
-关键 counterpoint 是 OSWorld-Human 需要 boundary-derived fields，因此这是 actionable mechanism evidence，不是自动边界发现，也不是自动 patch 选择。
-Claim-test：RQ3/E3 问的是 localization gain 来自哪些机制，以及 profile-guided 的 stack fields、rank features、mappings 或 boundary-derived fields 能否在不把 hidden labels 泄漏进 profiler input 的前提下改善输出。
-E3 mechanism block 解释 rank-feature、mapping、stack-depth 和 boundary-field 机制；E3 actionability block 解释 profile-spec patch、case packet、diagnostic lens 和 transfer counterpoint。
-这两者共同支撑同一个 RQ3/E3 claim，不是第五个核心实验。
+RQ3 检验 profiler 是否能通过 stack fields、mapping/tagging rules、ranking policies、profile specs 和 boundary-derived operation fields 暴露 actionable optimization knobs。
+Hidden labels 仍然只在 profiling 之后用于 scoring，boundary-derived fields 还用 held-out OSWorld-Human boundary positives 评分。
+我们比较 default semantic-width specs、patched specs、visible feature rankers、transfer policies、learned-boundary stacks、fixed-session 和 semantic-width stacks，并报告 accepted patches、AP delta、top-5 lift delta、first-positive-work delta、group reduction 和 top-5 work counterpoint。
+OSWorld-Human 需要 boundary-derived fields，这说明 RQ3 评估的是可操作机制证据，而不是自动边界发现或自动 patch 选择。
+这一节的问题是 localization gain 来自哪些机制，以及 profile-guided 的 stack fields、rank features、mappings 或 boundary-derived fields 能否在不把 hidden labels 泄漏进 profiler input 的前提下改善输出。
+Rank-feature、mapping、stack-depth、boundary-field、profile-spec patch、case packet、diagnostic lens 和 transfer counterpoint 共同支撑同一个 RQ3 claim。
 
 主要机制问题是：E2 的 ranked outputs 能不能解释应该怎样改 profile configuration。
 Hidden labels 只在 profiling 之后用于 scoring；visible inputs 仍然是 stack fields、mapping/tagging rules、rank features、profile specs 和 boundary-derived operation fields。
 成功条件是 actionable、replayable diagnosis：每个任务应该指向具体的 stack、field、ranker、mapping、profile-spec 或 drilldown change，并且 executable patches 能改善 scored output，但不能把结果写成 automatic selector。
 
-表~\ref{tab:actionability} 是 E3 的主显示：它把 task-card evidence 压缩成 paper-facing diagnosis table，而 source artifacts 只作为 provenance。
+表~\ref{tab:actionability} 是 E3 的主显示，它把 task-card evidence 压缩成 diagnosis table。
 SATraj unsafe 说明 \texttt{environment,phase,action} 和 risky/write-action ranking 对安全问题有效；looping 说明 \texttt{repeat\_signal} 有用但需要 prevalence-aware ranking；side-effect 指向更深的 write/input mapping；AgentNet step-quality 需要 action-family 定位后再进入 fixed-session examples；OSWorld-Human 则需要 boundary-derived fields。
 因此 actionability 的第一层结论是：profiler 指出该调 stack field、mapping、ranker、profile spec、boundary field 还是 drilldown，而不是给出唯一默认 view。
-Task-level verdict synthesis 给出 claim gate：6/6 任务都是 ``supports with counterpoints''，不是无条件胜出。
+Task-level verdict synthesis 给出任务级结论：6/6 任务都是支持但有反例，不是无条件胜出。
 其中 5/6 任务有 accepted executable profile-spec patch；剩下的 OSWorld-Human row 指向 boundary-derived fields，并保留 top-five 与 first-positive work 反例。
 
 机制消融说明这些诊断来自可复现的 profiler 配置，而不是来自又一组独立小实验。
@@ -488,11 +492,11 @@ Held-out boundary-derived fields 随后作为普通 operation fields 折叠，AP
   \scriptsize
   \setlength{\tabcolsep}{2.5pt}
   \renewcommand{\arraystretch}{0.92}
-  \caption{E3 diagnosis/actionability claim gate。每行把 hidden-label localization 信号、可执行 profile 配置动作和 scoped verdict/counterpoint 放在一起；它压缩 task-card 和 verdict evidence，不是新增实验。}
+  \caption{E3 diagnosis/actionability summary。每行把 hidden-label localization 信号、可执行 profile 配置动作和 scoped verdict/counterpoint 放在一起；它压缩 task-card 和 verdict evidence，不是新增实验。}
   \label{tab:actionability}
   \begin{tabular}{p{0.13\linewidth}p{0.18\linewidth}p{0.36\linewidth}p{0.25\linewidth}}
     \toprule
-    Task & Localization signal & Profile action & Gate / counterpoint \\
+    Task & Localization signal & Profile action & Verdict / counterpoint \\
     \midrule
     Looping & Work@5 0.4938, R@5 0.6508, patch AP +0.1155 & 保留 \texttt{repeat\_signal}，但加入 prevalence-aware ranking，因为 positives 很常见。 & 支持但有反例：raw-action first-positive work 更低。 \\
     Side-effect & Work@5 0.1454, R@5 0.1139, patch AP +0.0591 & 提高 write/input 权重，或在 ranking 前使用更深的 side-effect mapping。 & 支持但有反例：fixed-session groups 更少；raw-action top-five lift 更好。 \\
@@ -504,30 +508,33 @@ Held-out boundary-derived fields 随后作为普通 operation fields 折叠，AP
   \end{tabular}
 \end{table*}
 
-\subsection{RQ4/E4：Replayability、离线成本和 artifact hygiene}
+\subsection{RQ4/E4：Replayability、离线成本和 scope control}
 
-实验契约：RQ4/E4 的 claim 是 offline profiler path 可以在 tracked inputs 上低成本 replay；oracle 是 tracked profile specs、tracked operation inputs、profile-spec input replay regressions、repeated profile outputs、runtime logs 和 source-status rows；baseline 包括 default output versus deterministic-output replay、semantic profile hashes versus raw-byte profile hashes，以及 effective input metadata versus silently ignored source paths；metric 包括 deterministic spec pass rate、profiler invocations、median/p95 runtime、sample equality、stack equality、raw-byte output equality 和 input-source replay coverage；counterpoint 是 not live eBPF overhead、not human utility、not complete ecosystem compatibility、not universal selector。Claim-integrity、rubric 和 reviewer-style checks 是 artifact hygiene，不是 empirical evidence。
-Claim-test：RQ4/E4 问的是：reviewer 能否 replay offline profile-spec path，并验证 source provenance、paper numbers、two-abstraction wording 和 non-claims 都保持一致。
+RQ4 检查 offline profiler path 能否在 tracked inputs 上低成本 replay。
+它使用 tracked profile specs、tracked operation inputs、profile-spec input replay regressions、repeated profile outputs、runtime logs 和 source-status rows 作为复现实验对象。
+我们比较 default output 与 deterministic-output replay、semantic profile hashes 与 raw-byte profile hashes，以及 effective input metadata 与 silently ignored source paths。
+主要指标包括 deterministic spec pass rate、profiler invocations、median/p95 runtime、sample equality、stack equality、raw-byte output equality 和 input-source replay coverage。
+这个问题只覆盖离线路径复现，不覆盖 live eBPF overhead、human utility、complete ecosystem compatibility 或 automatic universal selection。
 
-本节的 empirical content 只有一个 replayability/cost block。
+本节的 empirical content 是一个 replayability/cost block。
 它在 tracked operation JSONL inputs 上重复执行 76 个 profile specs，共 152 次 profiler invocations。
 默认模式下所有 specs 在重复运行中保持 semantic profile content、samples 和 unique stacks 稳定，median 每个 spec 运行时间为 1.581s，p95 为 2.719s；raw-byte determinism 只有 4/76，因为输出带生成时间戳。
 Deterministic artifact mode 固定 JSON \texttt{generated\_at} 和 pprof profile time 后，同一 76 个 specs 的 semantic 与 raw-byte determinism 均为 76/76，clean rerun 记录空的 git/code status，median 每个 spec 运行时间为 1.601s，p95 为 2.767s。
-这些 source artifacts 支持 artifact/reproducibility claim，但不等价于 live capture overhead，也不形成另一个经验性 profiling 实验。
-Profile-spec replay、determinism、source-status 和 claim-hygiene checks 都属于 E4 replayability block，而不是新的 accuracy block。
+这些结果支持 artifact/reproducibility claim，但不等价于 live capture overhead，也不形成另一个经验性 profiling 实验。
+Profile-spec replay、determinism、source-status 和 claim-scope checks 都属于 E4 replayability block，而不是新的 accuracy block。
 
-Input-source replay guardrail 属于同一个 E4 block。
+Input-source replay 属于同一个 E4 block。
 Rust profile-spec path 现在可以携带 \texttt{session\_files}、\texttt{trace\_files}、\texttt{standard\_trace\_files}、regex \texttt{tag\_rules}、predicates、rank rules、stack overrides 和 \texttt{include\_standard\_trace\_args}。
 回归测试把同一个 public Codex fixture 作为 local session 和 exported agent-session trace replay，并把一个 generic Chrome Trace Event 中的非 AgentSight \texttt{protocol} arg 导入为 operation field 后折叠。
-这些检查证明 profile spec 不会只 replay operation JSONL，也不会把输入源静默忽略；但它们仍然是 E4 replay/hygiene evidence，不是新的 hidden-label accuracy experiment、第三个 profiler object 或完整 trace-ecosystem compatibility claim。
-表~\ref{tab:e4-replay-cost} 和表~\ref{tab:e4-determinism} 是 E4 的两个主显示：前者呈现 replayability/cost result，后者呈现 deterministic-output repair；表中的 labels 只标识 source-spec families，不是新的 accuracy 实验。
+这些检查证明 profile spec 不会只 replay operation JSONL，也不会把输入源静默忽略。
+它们仍然只支持 E4 replay/scope evidence，不是新的 hidden-label accuracy experiment、第三个 profiler object 或完整 trace-ecosystem compatibility claim。
+表~\ref{tab:e4-replay-cost} 和表~\ref{tab:e4-determinism} 是 E4 的两个主显示。
+前者呈现 replayability/cost result，后者呈现 deterministic-output repair；表中的 labels 只标识 source-spec families，不是新的 accuracy 实验。
 
-其余 paper gates 是 artifact hygiene，不是新的 empirical evidence。
-Claim-integrity 和 OSDI-style profiling-paper rubric checks 复用 tracked-clean artifacts 和当前论文文本，不重新排名、不下载、不同步、不创建、不重标数据集、不重跑 profiler，也不运行 human/agent analyst task。
-它们只检查论文数字、source policy、must-not-claim guardrails、operation/operation-stack 边界和 profiling-paper 证据覆盖是否一致。
-26/26 required checks 和 10/10 rubric areas 通过，覆盖 fidelity/accuracy、actionability、baseline tradeoff、generality、mechanism isolation、robustness/statistics、reproducibility/overhead 和 claim-scope guardrails。
-上一节的 actionability 结论依赖这些可复现 profile specs 和 tracked operation inputs；本节只证明 reviewer 能重放这些 artifacts 并检查 source provenance、paper numbers 和 non-claims。
-因此 RQ4/E4 是 replayability/claim-hygiene 证据，不是人工 analyst 主观解释、live overhead 或新的 profiler accuracy 结果。
+论文数字和 claim-scope 的一致性检查复用 tracked-clean artifacts 和当前论文文本，不重新排名、不下载、不同步、不创建、不重标数据集、不重跑 profiler，也不运行 human/agent analyst task。
+这些检查覆盖 fidelity/accuracy、actionability、baseline tradeoff、generality、mechanism isolation、robustness/statistics、reproducibility/overhead 和 claim scope。
+上一节的 actionability 结论依赖这些可复现 profile specs 和 tracked operation inputs；本节只证明 reviewer 能重放这些 artifacts，并检查 source paths、paper numbers 和 non-claims。
+因此 RQ4/E4 是 replayability/scope evidence，不是人工 analyst 主观解释、live overhead 或新的 profiler accuracy 结果。
 
 \begin{table}[t]
   \centering
@@ -561,10 +568,10 @@ Claim-integrity 和 OSDI-style profiling-paper rubric checks 复用 tracked-clea
   \end{tabular}
 \end{table}
 
-剩余 paper gates 是 artifact hygiene，不是新的 empirical evidence。
-它们检查表格生成、claim wording、source provenance、non-claims 和 operation/operation-stack boundary 是否与 tracked outputs 对齐。
-我们把这些检查保留在 evaluation ledger，方便 reviewer 审计一致性；但它们不增加 localization、actionability 或 overhead claim。
-表格生成器、visualization portfolios、headline selectors 和 reviewer gates 可以支持 E1--E4，但不会形成额外主实验。
+剩余一致性检查不是新的 empirical evidence。
+它们检查表格生成、claim wording、source paths、non-claims 和 operation/operation-stack boundary 是否与 tracked outputs 对齐。
+这些检查方便 reviewer 审计论文和 artifacts 的一致性，但它们不增加 localization、actionability 或 overhead claim。
+表格生成器、visualization portfolios 和 headline selectors 可以支持 E1--E4，但不会形成额外主实验。
 
 \section{哪些数据集最适合}
 
@@ -627,7 +634,7 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld/OSWorld-Human、OpenCUA/AgentNet、SA
 	本节界定哪些结论可以写进主 claim，哪些只能作为 future work 或扩展实验。
 	第一，field derivation 和 boundary recovery 的范围仍然有限。
 	当前证据支持 deterministic mappings、label-derived rules 和部分 supervised boundary backends 能派生 stackable operation fields，但不证明无监督或 LLM-backed intent detector 已经解决，也不证明一个 backend 能跨所有标签家族工作。
-	AgentRewardBench looping 被简单 \texttt{repeat\_signal\_change} baseline 完全解释，这说明每个 family 都需要 suitability、calibration 和 simple-baseline gate。
+		AgentRewardBench looping 被简单 \texttt{repeat\_signal\_change} baseline 完全解释，这说明每个 family 都需要 suitability、calibration 和 simple-baseline 检查。
 
 	第二，E2 支持 profiler-localization claim，但不支持人类效用 claim。
 	E2 把 failure、safety、quality 和 human-boundary 问题转成 hidden-label ranking/localization benchmark，并证明 operation-stack profiling 相对 flat summary 和 fixed-session drilldown 有 accuracy/work/fragmentation tradeoff。
@@ -643,10 +650,10 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld/OSWorld-Human、OpenCUA/AgentNet、SA
 	本文避免同步完整测试集、图片归档和 gated 数据，因此有些来源只覆盖前缀、子配置或 redacted rows。
 	Chrome Trace Event 和 agent-session exchange 当前只是 exchange/reproducibility smoke：它们覆盖本地 session fixture 和 tracked real labeled operation prefix，证明 trace 可以作为 exchange container，但不证明完整 OpenTelemetry/Chrome trace-ecosystem、Perfetto producer 或图像密集 benchmark 兼容。
 
-	第四，E4 和 audit artifacts 是 claim-control surface，不是额外实证结果。
-	Replay、paper-number、source-policy、guardrail 和两抽象边界检查提高了论文表述、source path、负结果、related-work grounding、evaluation-rubric coverage 和 must-not-claim 边界的一致性；当前 profiling-paper rubric coverage 为 26/26 required checks。
-	但这些 checks 只能审计底层 empirical artifacts。
-	如果底层采样或 oracle 本身有偏差，audit 能暴露并收窄 claim，不能消除偏差。
+		第四，E4 是复现和范围控制结果，不是额外的 profiler accuracy 结果。
+		Replay、paper-number、source-policy 和两抽象边界检查提高了论文表述、source path、负结果、related-work grounding 和 must-not-claim 边界的一致性。
+		但这些检查只能审计底层 empirical artifacts。
+		如果底层采样或 oracle 本身有偏差，复现检查能暴露并收窄 claim，不能消除偏差。
 	因此本文最终主张应固定为 two-abstraction mechanism 和 hidden-label profiler fidelity/work tradeoff，而不是 universal fixed-session dominance、automatic anomaly detection 或完整 human utility。
 
 \section{结论}
@@ -661,14 +668,15 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld/OSWorld-Human、OpenCUA/AgentNet、SA
 	OSWorld-Human 证明同一动作序列可以折叠到人工 grouped-action 深度；AgentNet 证明 step correctness 和 redundancy 可以作为普通 operation fields 进入 profiling；AgentRewardBench 和 SATraj-OS 证明 failure、looping、side-effect、安全和 attack-type diagnostics 可以用同一机制表达。
 	6 个 label-hidden tasks 构成主 hidden-label profiler benchmark：query-aware operation-stack top-5 groups 用 median 0.0937 work 取得 0.188 recall，flat summary 用 1.0 work 才取得 full recall，fixed-session 用 0.0163 work 但 top-5 recall 只有 0.0233；相对 fixed-session，operation-stack top-5 recall 在 5/6 tasks 上更高，并把 median groups 从 285.0 降到 157.5。
 
-	后续证据不是新的主实验，而是解释这个 profiler claim 何时成立。
-	Task-paired uncertainty、label-permutation negative controls、view/depth task-fit、inspection-budget curves、fixed-recall target、sequence-scope scoring 和 oracle-depth scoring 共同说明：operation-stack 的主要优势是 AP/work/fragmentation tradeoff，而不是所有指标支配。
-	Actionability 证据进一步显示 36/36 objective rows 有具体 optimization action，27/36 best visible policies 不是默认 operation-stack query-aware；diagnostic lenses、case packets、baseline contrasts、action counterfactuals 和 held-out transfer guardrails 说明 profiler 暴露的是可调分析 surface，而不是 automatic universal selector。
+		后续证据不是新的主实验，而是解释这个 profiler claim 何时成立。
+		Task-paired uncertainty、label-permutation negative controls、view/depth task-fit、inspection-budget curves、fixed-recall target、sequence-scope scoring 和 oracle-depth scoring 共同说明：operation-stack 的主要优势是 AP/work/fragmentation tradeoff，而不是所有指标支配。
+		Actionability 证据进一步显示 36/36 objective rows 有具体 optimization action，27/36 best visible policies 不是默认 operation-stack query-aware。
+		Diagnostic lenses、case packets、baseline contrasts、action counterfactuals 和 held-out transfer checks 说明 profiler 暴露的是可调分析 surface，而不是 automatic universal selector。
 	Executable profile-spec patch 进一步证明这种 profile-configuration actionability 可以落到 Rust profiler 配置上：5/6 patches 改善 AP、top-5 lift 和 first-positive work；OSWorld-Human reject 再由 boundary-derived operation fields 改善 AP 和 groups，但保留 work 反例。
 
 	因此本文的新意不在单个 flamegraph，而在两个抽象形成的统一接口。
 	它也不在通用 query-time aggregation、trace schema 或 observability dashboard 本身；这些能力已经由 pprof、Perfetto、OpenTelemetry/OpenInference 和 LLM observability systems 覆盖到不同程度。
-	Mapping、tagging、profile specs、agent-session trace、Chrome/Perfetto-style trace exchange、boundary backends 和 reviewer evidence packets 都只围绕 operation fields 与 operation-stack queries 工作。
+	Mapping、tagging、profile specs、agent-session trace、Chrome/Perfetto-style trace exchange 和 boundary backends 都只围绕 operation fields 与 operation-stack queries 工作。
 	它们让用户和实验者能在同一批 operations 上选择不同 view、派生不同 fields、折叠不同深度，并审计每个 claim 的证据来源。
 	当前 value claim 是相对 dataset-provided hidden labels 的 profiler fidelity、label-scored ranking/localization、inspection-cost/fragmentation tradeoff 和 profile-configuration actionability；不是 detector、human utility、baseline dominance、automatic patch selector 或 ecosystem compatibility。
 	下一步不应无差别增加数据集，而应沿两个方向提高 claim 强度：一是把 field-derivation backend 做到跨家族 calibration 并稳定胜过简单 sequence-derived baselines，二是在已有或新增真实 trace 中补更强的 instruction-step、solution-path 或 human subtask oracle；只有在要写 ecosystem baseline claim 时才导入真实 OTel/Phoenix/LangSmith/Langfuse/Perfetto span-tree trace。
