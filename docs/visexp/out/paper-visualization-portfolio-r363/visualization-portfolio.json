@@ -1,0 +1,816 @@
+{
+  "action_rows": [
+    {
+      "action_class": "drill_down_fixed_session",
+      "max_gain_over_default": 16.0,
+      "median_gain_over_default": 0.6021,
+      "objective_rows": 7,
+      "source": "R348",
+      "tasks": 3
+    },
+    {
+      "action_class": "keep_default_operation_stack",
+      "max_gain_over_default": 0.0,
+      "median_gain_over_default": 0.0,
+      "objective_rows": 9,
+      "source": "R348",
+      "tasks": 5
+    },
+    {
+      "action_class": "retune_operation_stack_ranker",
+      "max_gain_over_default": 0.127,
+      "median_gain_over_default": 0.0655,
+      "objective_rows": 2,
+      "source": "R348",
+      "tasks": 2
+    },
+    {
+      "action_class": "use_dataset_native_hierarchy",
+      "max_gain_over_default": 61.0,
+      "median_gain_over_default": 0.2723,
+      "objective_rows": 5,
+      "source": "R348",
+      "tasks": 3
+    },
+    {
+      "action_class": "use_flat_full_recall_counterpoint",
+      "max_gain_over_default": 288.0,
+      "median_gain_over_default": 141.0,
+      "objective_rows": 7,
+      "source": "R348",
+      "tasks": 6
+    },
+    {
+      "action_class": "use_raw_action_mapping_counterpoint",
+      "max_gain_over_default": 185.0,
+      "median_gain_over_default": 1.1022,
+      "objective_rows": 6,
+      "source": "R348",
+      "tasks": 3
+    },
+    {
+      "action_class": "executable_profile_spec_patch",
+      "max_gain_over_default": 0.575,
+      "median_gain_over_default": 0.0376,
+      "objective_rows": 5,
+      "source": "R354",
+      "tasks": 6
+    },
+    {
+      "action_class": "boundary_derived_fields",
+      "max_gain_over_default": 0.3148,
+      "median_gain_over_default": 0.0181,
+      "objective_rows": 1,
+      "source": "R358",
+      "tasks": 1
+    }
+  ],
+  "checks": [
+    {
+      "check": "multi_view_portfolio_not_flamegraph_only",
+      "evidence": "5 paper views generated.",
+      "status": "pass"
+    },
+    {
+      "check": "baseline_tradeoff_view_preserves_main_claim",
+      "evidence": "Operation-stack query-aware remains lower work than flat and at least fixed-session budget recall in the median summary.",
+      "status": "pass"
+    },
+    {
+      "check": "diagnostic_lens_view_preserves_counterpoints",
+      "evidence": "Six diagnostic lenses are present and at least one lens is a non-operation-stack counterpoint.",
+      "status": "pass"
+    },
+    {
+      "check": "actionability_view_has_nondefault_knobs",
+      "evidence": "Actionability rows include objective-level counterfactuals plus executable profile-spec and boundary-field knobs.",
+      "status": "pass"
+    },
+    {
+      "check": "oracle_depth_view_preserves_depth_support",
+      "evidence": "Oracle-depth rows preserve 24/24 flat-work and >=20/24 fixed-session recall/group support.",
+      "status": "pass"
+    },
+    {
+      "check": "source_policy_no_new_data_or_profiler_rerun",
+      "evidence": "R363 reads tracked clean upstream artifacts only.",
+      "status": "pass"
+    },
+    {
+      "check": "two_abstractions_only",
+      "evidence": "Visualization portfolio is over operation/operation-stack outputs, not new profiler objects.",
+      "status": "pass"
+    }
+  ],
+  "commit": "669a3729dcc29d3f757950f60ef8b94346952a01",
+  "elapsed_s": 0.046,
+  "heatmap_rows": [
+    {
+      "hidden": false,
+      "label": "Flat",
+      "metric": "AP",
+      "policy": "flat:width",
+      "raw_value": 0.1678,
+      "score": 0.1678
+    },
+    {
+      "hidden": false,
+      "label": "Flat",
+      "metric": "R@30%",
+      "policy": "flat:width",
+      "raw_value": 0.0,
+      "score": 0.0
+    },
+    {
+      "hidden": false,
+      "label": "Flat",
+      "metric": "P@5 recall",
+      "policy": "flat:width",
+      "raw_value": 1.0,
+      "score": 1.0
+    },
+    {
+      "hidden": false,
+      "label": "Flat",
+      "metric": "1-Work@5",
+      "policy": "flat:width",
+      "raw_value": 1.0,
+      "score": 0.0
+    },
+    {
+      "hidden": false,
+      "label": "Flat",
+      "metric": "1-WTFP",
+      "policy": "flat:width",
+      "raw_value": 1.0,
+      "score": 0.0
+    },
+    {
+      "hidden": false,
+      "label": "Flat",
+      "metric": "1-logGroups",
+      "policy": "flat:width",
+      "raw_value": 1.0,
+      "score": 0.8774490480636903
+    },
+    {
+      "hidden": false,
+      "label": "Fixed-session",
+      "metric": "AP",
+      "policy": "fixed_session:query_aware",
+      "raw_value": 0.3476,
+      "score": 0.3476
+    },
+    {
+      "hidden": false,
+      "label": "Fixed-session",
+      "metric": "R@30%",
+      "policy": "fixed_session:query_aware",
+      "raw_value": 0.3559,
+      "score": 0.3559
+    },
+    {
+      "hidden": false,
+      "label": "Fixed-session",
+      "metric": "P@5 recall",
+      "policy": "fixed_session:query_aware",
+      "raw_value": 0.0233,
+      "score": 0.0233
+    },
+    {
+      "hidden": false,
+      "label": "Fixed-session",
+      "metric": "1-Work@5",
+      "policy": "fixed_session:query_aware",
+      "raw_value": 0.0163,
+      "score": 0.9837
+    },
+    {
+      "hidden": false,
+      "label": "Fixed-session",
+      "metric": "1-WTFP",
+      "policy": "fixed_session:query_aware",
+      "raw_value": 0.0044,
+      "score": 0.9956
+    },
+    {
+      "hidden": false,
+      "label": "Fixed-session",
+      "metric": "1-logGroups",
+      "policy": "fixed_session:query_aware",
+      "raw_value": 285.0,
+      "score": 0.0
+    },
+    {
+      "hidden": false,
+      "label": "Dataset-native",
+      "metric": "AP",
+      "policy": "dataset_native:query_aware",
+      "raw_value": 0.3572,
+      "score": 0.3572
+    },
+    {
+      "hidden": false,
+      "label": "Dataset-native",
+      "metric": "R@30%",
+      "policy": "dataset_native:query_aware",
+      "raw_value": 0.3377,
+      "score": 0.3377
+    },
+    {
+      "hidden": false,
+      "label": "Dataset-native",
+      "metric": "P@5 recall",
+      "policy": "dataset_native:query_aware",
+      "raw_value": 0.8665,
+      "score": 0.8665
+    },
+    {
+      "hidden": false,
+      "label": "Dataset-native",
+      "metric": "1-Work@5",
+      "policy": "dataset_native:query_aware",
+      "raw_value": 0.8539,
+      "score": 0.1461
+    },
+    {
+      "hidden": false,
+      "label": "Dataset-native",
+      "metric": "1-WTFP",
+      "policy": "dataset_native:query_aware",
+      "raw_value": 0.0582,
+      "score": 0.9418
+    },
+    {
+      "hidden": false,
+      "label": "Dataset-native",
+      "metric": "1-logGroups",
+      "policy": "dataset_native:query_aware",
+      "raw_value": 7.5,
+      "score": 0.6216284897367873
+    },
+    {
+      "hidden": false,
+      "label": "Raw-action",
+      "metric": "AP",
+      "policy": "raw_action_stack:query_aware",
+      "raw_value": 0.2744,
+      "score": 0.2744
+    },
+    {
+      "hidden": false,
+      "label": "Raw-action",
+      "metric": "R@30%",
+      "policy": "raw_action_stack:query_aware",
+      "raw_value": 0.3325,
+      "score": 0.3325
+    },
+    {
+      "hidden": false,
+      "label": "Raw-action",
+      "metric": "P@5 recall",
+      "policy": "raw_action_stack:query_aware",
+      "raw_value": 0.2442,
+      "score": 0.2442
+    },
+    {
+      "hidden": false,
+      "label": "Raw-action",
+      "metric": "1-Work@5",
+      "policy": "raw_action_stack:query_aware",
+      "raw_value": 0.1507,
+      "score": 0.8492999999999999
+    },
+    {
+      "hidden": false,
+      "label": "Raw-action",
+      "metric": "1-WTFP",
+      "policy": "raw_action_stack:query_aware",
+      "raw_value": 0.0374,
+      "score": 0.9626
+    },
+    {
+      "hidden": false,
+      "label": "Raw-action",
+      "metric": "1-logGroups",
+      "policy": "raw_action_stack:query_aware",
+      "raw_value": 24.5,
+      "score": 0.42738982649005564
+    },
+    {
+      "hidden": false,
+      "label": "Op-stack width",
+      "metric": "AP",
+      "policy": "operation_stack:width",
+      "raw_value": 0.161,
+      "score": 0.161
+    },
+    {
+      "hidden": false,
+      "label": "Op-stack width",
+      "metric": "R@30%",
+      "policy": "operation_stack:width",
+      "raw_value": 0.3372,
+      "score": 0.3372
+    },
+    {
+      "hidden": false,
+      "label": "Op-stack width",
+      "metric": "P@5 recall",
+      "policy": "operation_stack:width",
+      "raw_value": 0.4746,
+      "score": 0.4746
+    },
+    {
+      "hidden": false,
+      "label": "Op-stack width",
+      "metric": "1-Work@5",
+      "policy": "operation_stack:width",
+      "raw_value": 0.5424,
+      "score": 0.4576
+    },
+    {
+      "hidden": false,
+      "label": "Op-stack width",
+      "metric": "1-WTFP",
+      "policy": "operation_stack:width",
+      "raw_value": 0.1694,
+      "score": 0.8306
+    },
+    {
+      "hidden": false,
+      "label": "Op-stack width",
+      "metric": "1-logGroups",
+      "policy": "operation_stack:width",
+      "raw_value": 157.5,
+      "score": 0.1043560947831289
+    },
+    {
+      "hidden": false,
+      "label": "Op-stack query",
+      "metric": "AP",
+      "policy": "operation_stack:query_aware",
+      "raw_value": 0.3117,
+      "score": 0.3117
+    },
+    {
+      "hidden": false,
+      "label": "Op-stack query",
+      "metric": "R@30%",
+      "policy": "operation_stack:query_aware",
+      "raw_value": 0.39,
+      "score": 0.39
+    },
+    {
+      "hidden": false,
+      "label": "Op-stack query",
+      "metric": "P@5 recall",
+      "policy": "operation_stack:query_aware",
+      "raw_value": 0.188,
+      "score": 0.188
+    },
+    {
+      "hidden": false,
+      "label": "Op-stack query",
+      "metric": "1-Work@5",
+      "policy": "operation_stack:query_aware",
+      "raw_value": 0.0937,
+      "score": 0.9063
+    },
+    {
+      "hidden": false,
+      "label": "Op-stack query",
+      "metric": "1-WTFP",
+      "policy": "operation_stack:query_aware",
+      "raw_value": 0.0378,
+      "score": 0.9621999999999999
+    },
+    {
+      "hidden": false,
+      "label": "Op-stack query",
+      "metric": "1-logGroups",
+      "policy": "operation_stack:query_aware",
+      "raw_value": 157.5,
+      "score": 0.1043560947831289
+    },
+    {
+      "hidden": true,
+      "label": "Op-stack oracle",
+      "metric": "AP",
+      "policy": "operation_stack:oracle_upper_bound",
+      "raw_value": 0.5993,
+      "score": 0.5993
+    },
+    {
+      "hidden": true,
+      "label": "Op-stack oracle",
+      "metric": "R@30%",
+      "policy": "operation_stack:oracle_upper_bound",
+      "raw_value": 0.564,
+      "score": 0.564
+    },
+    {
+      "hidden": true,
+      "label": "Op-stack oracle",
+      "metric": "P@5 recall",
+      "policy": "operation_stack:oracle_upper_bound",
+      "raw_value": 0.3004,
+      "score": 0.3004
+    },
+    {
+      "hidden": true,
+      "label": "Op-stack oracle",
+      "metric": "1-Work@5",
+      "policy": "operation_stack:oracle_upper_bound",
+      "raw_value": 0.0441,
+      "score": 0.9559
+    },
+    {
+      "hidden": true,
+      "label": "Op-stack oracle",
+      "metric": "1-WTFP",
+      "policy": "operation_stack:oracle_upper_bound",
+      "raw_value": 0.0122,
+      "score": 0.9878
+    },
+    {
+      "hidden": true,
+      "label": "Op-stack oracle",
+      "metric": "1-logGroups",
+      "policy": "operation_stack:oracle_upper_bound",
+      "raw_value": 157.5,
+      "score": 0.1043560947831289
+    },
+    {
+      "hidden": true,
+      "label": "Label drilldown",
+      "metric": "AP",
+      "policy": "label_drilldown:oracle_upper_bound",
+      "raw_value": 1.0,
+      "score": 1.0
+    },
+    {
+      "hidden": true,
+      "label": "Label drilldown",
+      "metric": "R@30%",
+      "policy": "label_drilldown:oracle_upper_bound",
+      "raw_value": 1.0,
+      "score": 1.0
+    },
+    {
+      "hidden": true,
+      "label": "Label drilldown",
+      "metric": "P@5 recall",
+      "policy": "label_drilldown:oracle_upper_bound",
+      "raw_value": 0.6703,
+      "score": 0.6703
+    },
+    {
+      "hidden": true,
+      "label": "Label drilldown",
+      "metric": "1-Work@5",
+      "policy": "label_drilldown:oracle_upper_bound",
+      "raw_value": 0.115,
+      "score": 0.885
+    },
+    {
+      "hidden": true,
+      "label": "Label drilldown",
+      "metric": "1-WTFP",
+      "policy": "label_drilldown:oracle_upper_bound",
+      "raw_value": 0.0377,
+      "score": 0.9623
+    },
+    {
+      "hidden": true,
+      "label": "Label drilldown",
+      "metric": "1-logGroups",
+      "policy": "label_drilldown:oracle_upper_bound",
+      "raw_value": 86.5,
+      "score": 0.20939793710284882
+    }
+  ],
+  "input_policy": {
+    "dataset_creation": "none",
+    "dataset_relabeling": "none",
+    "dataset_sync": "none",
+    "hidden_label_use": "only through already-scored upstream artifacts",
+    "network_access_required": false,
+    "profiler_rerun": false
+  },
+  "lens_rows": [
+    {
+      "default_operation_stack_best_tasks": 3,
+      "distinct_best_views": 3,
+      "interpretation": "Operation-stack query-aware is often the AP-faithful ranking view, but fixed-session and dataset-native remain task-specific counterpoints.",
+      "lens": "ranked-stack table",
+      "non_operation_stack_best_tasks": 3,
+      "objective": "ranking_fidelity_ap",
+      "operation_stack_family_best_tasks": 3,
+      "visualization": "ranked table sorted by visible rank score with AP/AUPRC-style score"
+    },
+    {
+      "default_operation_stack_best_tasks": 1,
+      "distinct_best_views": 5,
+      "interpretation": "Hot-group F1 is the most fragmented lens: raw-action, dataset-native, fixed-session, flat, and operation-stack each win at least one task.",
+      "lens": "hot-stack table",
+      "non_operation_stack_best_tasks": 5,
+      "objective": "top5_localization_f1",
+      "operation_stack_family_best_tasks": 1,
+      "visualization": "top-k hot-stack table with precision/recall/F1@5"
+    },
+    {
+      "default_operation_stack_best_tasks": 3,
+      "distinct_best_views": 3,
+      "interpretation": "Budgeted recall mostly favors operation stacks, but a width variant and dataset-native hierarchy win on boundary/safety tasks.",
+      "lens": "budgeted inspection curve",
+      "non_operation_stack_best_tasks": 2,
+      "objective": "budget30_recall",
+      "operation_stack_family_best_tasks": 4,
+      "visualization": "recall vs. inspected-operation-work curve"
+    },
+    {
+      "default_operation_stack_best_tasks": 2,
+      "distinct_best_views": 3,
+      "interpretation": "First-positive search is a drilldown counterpoint: fixed-session or raw-action can surface an example earlier even when operation stacks rank better overall.",
+      "lens": "first-positive drilldown",
+      "non_operation_stack_best_tasks": 3,
+      "objective": "first_positive_work",
+      "operation_stack_family_best_tasks": 3,
+      "visualization": "ranked drilldown to first positive operation"
+    },
+    {
+      "default_operation_stack_best_tasks": 0,
+      "distinct_best_views": 3,
+      "interpretation": "Coverage at 50% positives often prefers raw-action or dataset-native groups, exposing mapping/depth tuning needs.",
+      "lens": "recall-fragmentation curve",
+      "non_operation_stack_best_tasks": 6,
+      "objective": "groups_to_50pct",
+      "operation_stack_family_best_tasks": 0,
+      "visualization": "groups required to reach 50% positive recall"
+    },
+    {
+      "default_operation_stack_best_tasks": 0,
+      "distinct_best_views": 1,
+      "interpretation": "Flat has the lowest group count by construction, so group count alone is a counterpoint metric, not a localization metric.",
+      "lens": "group-fragmentation overview",
+      "non_operation_stack_best_tasks": 6,
+      "objective": "total_group_fragmentation",
+      "operation_stack_family_best_tasks": 0,
+      "visualization": "group-count summary by view and stack depth"
+    }
+  ],
+  "not_a_human_study_result": true,
+  "not_an_agent_analyst_task_result": true,
+  "not_new_empirical_result": true,
+  "oracle_depth_rows": [
+    {
+      "comparison": "operation_stack:query_aware vs flat:width",
+      "direction": "lower",
+      "improved_rows": 24,
+      "median_delta": -0.8693,
+      "metric": "top5_unit_work",
+      "task_depth_rows": 24,
+      "tied_rows": 0,
+      "worse_rows": 0
+    },
+    {
+      "comparison": "operation_stack:query_aware vs fixed_session:query_aware",
+      "direction": "higher",
+      "improved_rows": 20,
+      "median_delta": 0.0428,
+      "metric": "budget30_positive_unit_recall",
+      "task_depth_rows": 24,
+      "tied_rows": 0,
+      "worse_rows": 4
+    },
+    {
+      "comparison": "operation_stack:query_aware vs fixed_session:query_aware",
+      "direction": "higher",
+      "improved_rows": 18,
+      "median_delta": 0.0213,
+      "metric": "budget30_positive_unit_f1",
+      "task_depth_rows": 24,
+      "tied_rows": 0,
+      "worse_rows": 6
+    },
+    {
+      "comparison": "operation_stack:query_aware vs fixed_session:query_aware",
+      "direction": "lower",
+      "improved_rows": 22,
+      "median_delta": -45.5,
+      "metric": "groups_to_50pct_positive_units",
+      "task_depth_rows": 24,
+      "tied_rows": 0,
+      "worse_rows": 2
+    }
+  ],
+  "profiler_abstractions": [
+    "operation",
+    "operation stack"
+  ],
+  "run_id": "R363",
+  "schema": "agentsight.paper-visualization-portfolio.v1",
+  "source_status": [
+    {
+      "path": "docs/visexp/out/operation-profile-accuracy-r320/profile-accuracy-report.json",
+      "sha256": "4baf9e91f444ec47a4d8d843ffc210e11fabf51b18dbc6113c7a2b2532a35786",
+      "source": "R320 profile accuracy",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-profile-accuracy-r320/policy-scores.csv",
+      "sha256": "459cfa19fde3144fa6d51a4bbc8e643d78b81e19f6caf4c478bd52ca2217e111",
+      "source": "R320 policy scores",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-diagnostic-lens-portfolio-r345/diagnostic-lens-report.json",
+      "sha256": "36c3f83661b6ca190aeb28cfb6f3ac47572df0220c3c1a2d24cf18160cc380d8",
+      "source": "R345 diagnostic lens",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-action-counterfactual-r348/action-counterfactual-report.json",
+      "sha256": "4eeb9beb6acc17a711cff394a5f4e365dc9df610ef0396261572a742d1449c7f",
+      "source": "R348 action counterfactual",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-profile-patch-r354/profile-patch-report.json",
+      "sha256": "6585af0a77956fa56b8aadec29f822714789b5bfcdf1769fcd61ba3d0c1994ad",
+      "source": "R354 executable profile patch",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-oracle-depth-adequacy-r355/oracle-depth-adequacy-report.json",
+      "sha256": "59b32c9cb9f00000984ae19376ac9aa411ad7b1c9a679ef3d0306017e5def00a",
+      "source": "R355 oracle depth",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-boundary-profile-patch-r358/boundary-profile-patch-report.json",
+      "sha256": "3a73b69d7e4be423506edf9350b3c0c9db393520d79c3698b85d9024463597a7",
+      "source": "R358 boundary profile patch",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/paper-core-claim-evidence-r361/core-claim-evidence.json",
+      "sha256": "0d34815cd49c25eb66bb837a5a90c3e64e6f214f6eb1687e346ce9ca3b349dbb",
+      "source": "R361 claim evidence",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/paper-core-section-readiness-r362/section-readiness.json",
+      "sha256": "7bdbe76d2290c9f49010146d5d1130ebd49892ef04e031d8bf5122e31c005d59",
+      "source": "R362 section readiness",
+      "status": "tracked_clean"
+    }
+  ],
+  "status": "pass",
+  "summary": {
+    "checks_passed": 7,
+    "checks_total": 7,
+    "status": "pass",
+    "visualizations": 5
+  },
+  "tradeoff_rows": [
+    {
+      "ap": 0.1678,
+      "budget30_recall": 0.0,
+      "groups": 1.0,
+      "hidden": false,
+      "label": "Flat",
+      "policy": "flat:width",
+      "ranker": "width",
+      "top5_recall": 1.0,
+      "top5_work": 1.0,
+      "view": "flat",
+      "work_to_first_positive": 1.0
+    },
+    {
+      "ap": 0.3476,
+      "budget30_recall": 0.3559,
+      "groups": 285.0,
+      "hidden": false,
+      "label": "Fixed-session",
+      "policy": "fixed_session:query_aware",
+      "ranker": "query_aware",
+      "top5_recall": 0.0233,
+      "top5_work": 0.0163,
+      "view": "fixed_session",
+      "work_to_first_positive": 0.0044
+    },
+    {
+      "ap": 0.3572,
+      "budget30_recall": 0.3377,
+      "groups": 7.5,
+      "hidden": false,
+      "label": "Dataset-native",
+      "policy": "dataset_native:query_aware",
+      "ranker": "query_aware",
+      "top5_recall": 0.8665,
+      "top5_work": 0.8539,
+      "view": "dataset_native",
+      "work_to_first_positive": 0.0582
+    },
+    {
+      "ap": 0.2744,
+      "budget30_recall": 0.3325,
+      "groups": 24.5,
+      "hidden": false,
+      "label": "Raw-action",
+      "policy": "raw_action_stack:query_aware",
+      "ranker": "query_aware",
+      "top5_recall": 0.2442,
+      "top5_work": 0.1507,
+      "view": "raw_action_stack",
+      "work_to_first_positive": 0.0374
+    },
+    {
+      "ap": 0.161,
+      "budget30_recall": 0.3372,
+      "groups": 157.5,
+      "hidden": false,
+      "label": "Op-stack width",
+      "policy": "operation_stack:width",
+      "ranker": "width",
+      "top5_recall": 0.4746,
+      "top5_work": 0.5424,
+      "view": "operation_stack",
+      "work_to_first_positive": 0.1694
+    },
+    {
+      "ap": 0.3117,
+      "budget30_recall": 0.39,
+      "groups": 157.5,
+      "hidden": false,
+      "label": "Op-stack query",
+      "policy": "operation_stack:query_aware",
+      "ranker": "query_aware",
+      "top5_recall": 0.188,
+      "top5_work": 0.0937,
+      "view": "operation_stack",
+      "work_to_first_positive": 0.0378
+    },
+    {
+      "ap": 0.5993,
+      "budget30_recall": 0.564,
+      "groups": 157.5,
+      "hidden": true,
+      "label": "Op-stack oracle",
+      "policy": "operation_stack:oracle_upper_bound",
+      "ranker": "oracle_upper_bound",
+      "top5_recall": 0.3004,
+      "top5_work": 0.0441,
+      "view": "operation_stack",
+      "work_to_first_positive": 0.0122
+    },
+    {
+      "ap": 1.0,
+      "budget30_recall": 1.0,
+      "groups": 86.5,
+      "hidden": true,
+      "label": "Label drilldown",
+      "policy": "label_drilldown:oracle_upper_bound",
+      "ranker": "oracle_upper_bound",
+      "top5_recall": 0.6703,
+      "top5_work": 0.115,
+      "view": "label_drilldown",
+      "work_to_first_positive": 0.0377
+    }
+  ],
+  "upstream_gates": {
+    "r361": "pass",
+    "r361_checks": "10/10",
+    "r362": "pass",
+    "r362_checks": "16/16"
+  },
+  "visualizations": [
+    {
+      "claim_role": "E2 baseline superiority/tradeoff: work, recall, and oracle upper bounds.",
+      "name": "baseline-tradeoff",
+      "path": "docs/visexp/out/paper-visualization-portfolio-r363/baseline-tradeoff.svg"
+    },
+    {
+      "claim_role": "E2 fidelity and counterpoints across AP, recall, work, WTFP, and fragmentation.",
+      "name": "metric-heatmap",
+      "path": "docs/visexp/out/paper-visualization-portfolio-r363/metric-heatmap.svg"
+    },
+    {
+      "claim_role": "E3 multi-lens analysis: ranked stacks, hot groups, budget curves, drilldown, and fragmentation.",
+      "name": "diagnostic-lenses",
+      "path": "docs/visexp/out/paper-visualization-portfolio-r363/diagnostic-lenses.svg"
+    },
+    {
+      "claim_role": "E3 actionable optimization knobs from view/ranker/stack/profile-spec/boundary changes.",
+      "name": "actionability-knobs",
+      "path": "docs/visexp/out/paper-visualization-portfolio-r363/actionability-knobs.svg"
+    },
+    {
+      "claim_role": "E2/E3 depth-aware localization against task-specific oracle units.",
+      "name": "oracle-depth-adequacy",
+      "path": "docs/visexp/out/paper-visualization-portfolio-r363/oracle-depth-adequacy.svg"
+    }
+  ]
+}

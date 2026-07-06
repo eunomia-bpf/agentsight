@@ -1,0 +1,28 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>R363 Paper Visualization Portfolio</title>
+<style>
+body { font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.45; }
+section { margin: 1.5rem 0; }
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid #ddd; padding: 0.45rem; vertical-align: top; }
+th { background: #f5f5f5; text-align: left; }
+</style>
+</head>
+<body>
+<h1>R363 Paper Visualization Portfolio</h1>
+<p>Status: <code>pass</code>; checks:
+7/7.</p>
+<section><h2>baseline-tradeoff</h2><p>E2 baseline superiority/tradeoff: work, recall, and oracle upper bounds.</p><img src="baseline-tradeoff.svg" alt="baseline-tradeoff" style="max-width:100%;border:1px solid #ddd"></section><section><h2>metric-heatmap</h2><p>E2 fidelity and counterpoints across AP, recall, work, WTFP, and fragmentation.</p><img src="metric-heatmap.svg" alt="metric-heatmap" style="max-width:100%;border:1px solid #ddd"></section><section><h2>diagnostic-lenses</h2><p>E3 multi-lens analysis: ranked stacks, hot groups, budget curves, drilldown, and fragmentation.</p><img src="diagnostic-lenses.svg" alt="diagnostic-lenses" style="max-width:100%;border:1px solid #ddd"></section><section><h2>actionability-knobs</h2><p>E3 actionable optimization knobs from view/ranker/stack/profile-spec/boundary changes.</p><img src="actionability-knobs.svg" alt="actionability-knobs" style="max-width:100%;border:1px solid #ddd"></section><section><h2>oracle-depth-adequacy</h2><p>E2/E3 depth-aware localization against task-specific oracle units.</p><img src="oracle-depth-adequacy.svg" alt="oracle-depth-adequacy" style="max-width:100%;border:1px solid #ddd"></section>
+<h2>Checks</h2>
+<table><tr><th>Check</th><th>Status</th><th>Evidence</th></tr><tr><td>multi_view_portfolio_not_flamegraph_only</td><td>pass</td><td>5 paper views generated.</td></tr>
+<tr><td>baseline_tradeoff_view_preserves_main_claim</td><td>pass</td><td>Operation-stack query-aware remains lower work than flat and at least fixed-session budget recall in the median summary.</td></tr>
+<tr><td>diagnostic_lens_view_preserves_counterpoints</td><td>pass</td><td>Six diagnostic lenses are present and at least one lens is a non-operation-stack counterpoint.</td></tr>
+<tr><td>actionability_view_has_nondefault_knobs</td><td>pass</td><td>Actionability rows include objective-level counterfactuals plus executable profile-spec and boundary-field knobs.</td></tr>
+<tr><td>oracle_depth_view_preserves_depth_support</td><td>pass</td><td>Oracle-depth rows preserve 24/24 flat-work and &gt;=20/24 fixed-session recall/group support.</td></tr>
+<tr><td>source_policy_no_new_data_or_profiler_rerun</td><td>pass</td><td>R363 reads tracked clean upstream artifacts only.</td></tr>
+<tr><td>two_abstractions_only</td><td>pass</td><td>Visualization portfolio is over operation/operation-stack outputs, not new profiler objects.</td></tr></table>
+</body>
+</html>
