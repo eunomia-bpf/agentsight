@@ -23,4 +23,4 @@
 | `actionability_tokens_present` | pass | R354/R358 actionability and boundary-field tokens are present. |
 | `artifact_hygiene_gates_available` | pass | R338/R352/R357/R359 remain artifact-hygiene gates, not main empirical evidence. |
 | `two_abstractions_and_nonclaims_visible` | pass | Current paper/docs preserve abstraction and must-not-claim text. |
-| `span_tree_proxy_scope_visible` | pass | Current paper/docs scope fixed-session as a span-tree proxy and exclude complete ecosystem compatibility. |
+| `fixed_session_baseline_scope_visible` | pass | Current paper/docs use fixed-session drilldown as the evaluated baseline and leave real span-tree imports for future ecosystem baselines. |

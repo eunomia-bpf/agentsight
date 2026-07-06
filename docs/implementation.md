@@ -35,7 +35,7 @@ Purpose: identify the maintained implementation boundary.
 | `script/operation_profile_spec_composition_eval.py` | R342 profile-spec composition audit over tracked R324 real-trace Rust outputs; checks predicates, operation-level rank rules, rank mode, and recursive stack depth without prompt/session frames. | research harness |
 | `script/operation_profile_patch_eval.py` | R354 executable profile-spec patch audit; reruns default and patched Rust profiles over tracked R324 visible operations and scores with hidden labels after profiling. | research harness |
 | `script/operation_boundary_profile_patch_eval.py` | R358 boundary-derived profile patch audit; reruns Rust profile specs over R297 held-out OSWorld-Human boundary fields as ordinary operation fields and scores hidden labels after profiling. | research harness |
-| `script/operation_oracle_depth_adequacy_eval.py` | R355 oracle-depth adequacy audit; scores visible-ranked profile groups at session, operation/step, positive-run, and task-specific oracle depths over tracked labeled outputs. | research harness |
+| `script/operation_oracle_depth_adequacy_eval.py` | R355 oracle-depth adequacy audit; scores visible-ranked profile groups at session, operation/step, positive-run proxy, and task-specific oracle depths over tracked labeled outputs. | research harness |
 | `script/paper_core_experiment_consolidation_audit.py` | R359 paper-facing core-experiment consolidation audit; checks that evaluation is organized as E1-E4, R-runs are provenance, and R358 remains an E3 mechanism ablation. | paper hygiene harness |
 | `script/paper_core_result_tables.py` | R360 paper core-result table generator; regenerates the E1-E4 headline table and metric rows from tracked artifacts without rerunning the profiler. | paper hygiene harness |
 | `script/paper_core_claim_evidence.py` | R361 core-claim evidence ledger; binds each E1-E4 experiment to claim, oracle, baselines, primary metrics, actionability, counterpoints, and scoped wording. | paper hygiene harness |
@@ -197,15 +197,16 @@ abstraction, a profiler rerun, or a new empirical result.
 R355 then closes the main R339 depth-scoring gap without adding another
 runtime object. `script/operation_oracle_depth_adequacy_eval.py` reuses tracked
 R300 operation JSONL plus R320/R339 scored artifacts and evaluates the same
-visible-ranked groups at session, operation/step, positive-run, and
+visible-ranked groups at session, operation/step, positive-run proxy, and
 task-specific oracle depths such as OSWorld-Human `human_group`. Hidden labels
 are used only for offline scoring after ranking. The result is a paper-facing
 adequacy scorer for recursive operation-stack outputs: operation-stack
 query-aware has median 0.4342 budget-30 positive oracle-unit recall over 24
 task-depth rows and beats fixed-session recall on 20/24, while preserving the
 depth-gap counterpoint. Unit-depth rows are scoring oracles, not profiler
-abstractions, and R355 does not claim automatic boundary discovery or latent
-intent recovery.
+abstractions; positive-run proxy units are derived episode units, not human
+intent, and R355 does not claim automatic boundary discovery or latent intent
+recovery.
 
 R356 refreshes the paper-integrity layer for R354/R355. The script reuses the
 R338 R320-R350 gate, then hashes the tracked R354 profile-spec patch artifacts
@@ -375,7 +376,7 @@ Purpose: name work still needed before a paper-ready artifact.
 |---|---|---|
 | Add deeper boundary scorers for step instructions, solution paths, and failure labels. | Action-label F1 is too shallow for final recursive-boundary claims. | pending |
 | Add a non-rule or model-backed boundary backend for OSWorld-Human and AgentNet. | The paper can currently claim configurable deterministic mapping, not automatic boundary discovery. | pending |
-| Execute the controlled human/agent analyst study from R315/R316/R317. | The current C4 evidence is an automated proxy; productivity, accuracy, time-to-answer, and user utility remain unsupported. | pending |
+| Execute the controlled human/agent analyst study from R315/R316/R317. | The current C4 evidence is an automated hidden-label profiler benchmark; analyst productivity, analyst accuracy, time-to-answer, and user utility remain unsupported. | pending |
 | Import one real OpenTelemetry GenAI, OpenInference, or Perfetto trace from another agent tool. | R306/R353 prove standard-trace container round trips for session and operation-file inputs, not compatibility with real producer traces. | pending |
 | Add converters for the best next trajectory sources: UI-Vision, OSWorld-Verified/OSWorld 2.0 trajectories, and VisualWebArena trajectories. | Future expansion beyond the current 15 sources should be driven by stronger oracles, not dataset count alone. | pending |
 | Scale tau-bench beyond the R287 `gpt-4o-mini` 50-episode sample. | Multi-model tau-bench trajectories can support outcome/failure and model-comparison analysis. | pending |

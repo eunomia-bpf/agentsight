@@ -181,9 +181,9 @@ def build_ledger(data: dict[str, dict[str, Any]]) -> list[dict[str, str]]:
         {
             "core_experiment": "E2: hidden-label localization and ranking",
             "claim": "Operation-stack profiling can faithfully localize and rank task-relevant failures, safety issues, quality problems, and semantic boundaries on real labeled traces.",
-            "research_question": "Do hot stacks and top-ranked groups correspond to hidden positives while requiring less inspection work than flat summaries and less fragmentation than fixed-session drilldown used as a span-tree proxy?",
+            "research_question": "Do hot stacks and top-ranked groups correspond to hidden positives while requiring less inspection work than flat summaries and less fragmentation than fixed-session drilldown?",
             "oracle": f"{r320['totals']['positive_operations']} hidden positives over {r320['totals']['task_operations']} operations from {r320['totals']['tasks']} oracle-backed tasks and {r320['totals']['datasets']} datasets.",
-            "baselines": "flat summary, fixed-session drilldown/span-tree proxy, dataset-native hierarchy, raw-action stack, operation-stack width, operation-stack query-aware, label drilldown, and oracle upper bound.",
+            "baselines": "flat summary, fixed-session drilldown, dataset-native hierarchy, raw-action stack, operation-stack width, operation-stack query-aware, label drilldown, and oracle upper bound.",
             "primary_metrics": "AP/AUPRC-style score, precision@k, recall@k, F1@k, nDCG, recall/F1@work budget, top-k work, work-to-first-positive, group count, and oracle-depth unit recall.",
             "headline_result": r360_evidence["E2"],
             "actionable_insight": "The strongest supported tradeoff is lower inspection work and lower fixed-session fragmentation while retaining hidden-label hits under budgeted inspection.",

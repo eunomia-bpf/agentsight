@@ -423,12 +423,13 @@ def build_checks(data: dict[str, dict[str, Any]], metrics: list[dict[str, str]],
             "evidence": "Current paper/docs preserve abstraction and must-not-claim text.",
         },
         {
-            "check": "span_tree_proxy_scope_visible",
+            "check": "fixed_session_baseline_scope_visible",
             "status": "pass"
-            if "fixed-session drilldown/span-tree proxy" in paper_blob
+            if "fixed-session drilldown" in paper_blob
+            and "real span-tree imports remain future" in paper_blob
             and "complete trace-ecosystem compatibility" in paper_blob
             else "fail",
-            "evidence": "Current paper/docs scope fixed-session as a span-tree proxy and exclude complete ecosystem compatibility.",
+            "evidence": "Current paper/docs use fixed-session drilldown as the evaluated baseline and leave real span-tree imports for future ecosystem baselines.",
         },
     ]
     return checks

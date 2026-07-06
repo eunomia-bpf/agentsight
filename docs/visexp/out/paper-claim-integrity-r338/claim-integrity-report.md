@@ -354,10 +354,10 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | zh_main | E2 headline | 34,539 / 3,699 / 0.0937 / 285.0 / 157.5 | pass | 51,52,312,316,322,358,398,449 |
 | zh_main | E3 actionability headline | profile-configuration / 5/6 / 0.2402 / 0.2583 | pass | 52,54,56,147,149,184,322,327 |
 | zh_main | E4 guardrails | 76 / two-abstraction / 不声称 / human productivity | pass | 57,60,138,146,151,152,364,372 |
-| en_main | core experiment organization | four paper-facing experiments / E1 / E2 / E3 / E4 | pass | 39,43,51,58,114,116,117,118 |
-| en_main | E2 headline | 34,539 / 3,699 / 0.0937 / 285.0 / 157.5 | pass | 45,46,47,49,236,237,238,353 |
-| en_main | E3 actionability headline | profile-configuration / 5 of 6 / 0.2402 / 0.2583 | pass | 49,51,57,246,306,307,316,396 |
-| en_main | E4 guardrails | 76 / two-abstraction / does not claim / human-productivity | pass | 59,60,67,97,244,251,252,253 |
+| en_main | core experiment organization | four paper-facing experiments / E1 / E2 / E3 / E4 | pass | 39,43,51,58,115,117,118,119 |
+| en_main | E2 headline | 34,539 / 3,699 / 0.0937 / 285.0 / 157.5 | pass | 45,46,47,49,237,238,239,354 |
+| en_main | E3 actionability headline | profile-configuration / 5 of 6 / 0.2402 / 0.2583 | pass | 49,51,57,247,307,308,317,397 |
+| en_main | E4 guardrails | 76 / two-abstraction / does not claim / human-productivity | pass | 59,60,69,99,245,252,253,254 |
 | zh_claim_setup | two abstractions | 两个核心抽象 / operation stack | pass | 7,23,25,75,99,102,103,104 |
 | zh_claim_setup | R337 result | R337 / 0.2000 / 16.0 | pass | 35,36,76,137,139 |
 | zh_claim_setup | R339 result | R339 / 0.4669 / 0.9103 | pass | 36,37,50,76,139,140,287 |
@@ -676,7 +676,7 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 |---|---|---|---:|---|---|
 | evaluation | human_utility | pass | 12 | 15,30,144,536,608,612,712,715,717,718,722,726 | none |
 | evaluation | automatic_boundary | pass | 10 | 29,30,229,483,536,711,712,734,743,848 | none |
-| evaluation | ecosystem_compatibility | pass | 7 | 12,53,536,607,711,729,842 | none |
+| evaluation | ecosystem_compatibility | pass | 8 | 12,15,53,536,607,711,729,842 | none |
 | evaluation | universal_selector | pass | 12 | 29,30,123,131,229,412,536,638,728,729,731,735 | none |
 | zh_claim_setup | human_utility | pass | 12 | 26,28,36,42,43,47,49,51,52,53,78,102 | none |
 | zh_claim_setup | automatic_boundary | pass | 12 | 23,25,26,47,48,50,51,52,53,78,150,152 | none |
@@ -686,7 +686,7 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | zh_main | automatic_boundary | pass | 3 | 336,367,450 | none |
 | zh_main | ecosystem_compatibility | pass | 12 | 138,332,478,486,487,490,535,562,565,574,584,585 | none |
 | zh_main | universal_selector | pass | 7 | 361,367,371,449,524,558,564 | none |
-| en_main | human_utility | pass | 7 | 67,97,111,241,255,588,687 | none |
-| en_main | automatic_boundary | pass | 5 | 68,249,540,576,802 | none |
-| en_main | ecosystem_compatibility | pass | 12 | 721,723,731,733,734,735,741,742,803,804,834,839 | none |
-| en_main | universal_selector | pass | 8 | 249,431,434,490,563,589,802,833 | none |
+| en_main | human_utility | pass | 7 | 69,99,112,242,256,589,688 | none |
+| en_main | automatic_boundary | pass | 4 | 250,541,577,804 | none |
+| en_main | ecosystem_compatibility | pass | 12 | 68,722,724,732,734,735,736,743,805,806,836,841 | none |
+| en_main | universal_selector | pass | 8 | 250,432,435,491,564,590,804,835 | none |

@@ -6,7 +6,7 @@ tracked R320-R351 artifacts and current paper text, then checks whether the
 current evidence supports a scoped top-conference profiling claim:
 operation/operation-stack profiling faithfully localizes, ranks, and explains
 task-relevant problems in real labeled agent traces with less inspection work
-or less fragmentation than flat summaries and fixed session/span-tree proxies.
+or less fragmentation than flat summaries and fixed-session drilldown.
 """
 
 from __future__ import annotations
@@ -851,7 +851,7 @@ def main() -> None:
         "claim": (
             "Operation/operation-stack profiling can accurately localize task-relevant failures, "
             "quality problems, and semantic boundaries in real labeled agent traces while requiring "
-            "less inspection work than flat summaries and less fragmentation than fixed session/span trees."
+            "less inspection work than flat summaries and less fragmentation than fixed-session drilldown."
         ),
         "source_status": source_status,
         "checks": checks,

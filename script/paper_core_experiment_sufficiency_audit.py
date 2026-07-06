@@ -281,11 +281,10 @@ def build_checks(
     )
     add_check(
         checks,
-        "span_tree_baseline_is_scoped_proxy",
-        "span-tree proxy" in row_blob
-        and "fixed-session drilldown used as a span-tree proxy" in combined_text
+        "fixed_session_baseline_scope",
+        "fixed-session drilldown" in row_blob
         and "real span-tree imports remain future baselines" in combined_text,
-        "The current baseline is fixed-session drilldown as a span-tree proxy; real span-tree imports remain future work.",
+        "The evaluated baseline is fixed-session drilldown; real span-tree imports remain future work.",
     )
     add_check(
         checks,

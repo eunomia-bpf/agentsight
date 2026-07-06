@@ -21,8 +21,8 @@
       "status": "pass"
     },
     {
-      "check": "span_tree_baseline_is_scoped_proxy",
-      "evidence": "The current baseline is fixed-session drilldown as a span-tree proxy; real span-tree imports remain future work.",
+      "check": "fixed_session_baseline_scope",
+      "evidence": "The evaluated baseline is fixed-session drilldown; real span-tree imports remain future work.",
       "status": "pass"
     },
     {
@@ -72,8 +72,8 @@
     }
   ],
   "claim": "E1-E4 are substantial reviewer-facing experiments rather than a chronological run list",
-  "commit": "7caa5d97c1819e8200dfba3e55ae0a9b0e8e4f13",
-  "elapsed_s": 0.0527,
+  "commit": "fc7a1121c274c7a7e145f859a2546edfae84b264",
+  "elapsed_s": 0.0668,
   "input_policy": {
     "hidden_labels_only_for_scoring": true,
     "no_dataset_creation": true,
@@ -92,45 +92,45 @@
   "source_status": [
     {
       "path": "script/paper_core_experiment_sufficiency_audit.py",
-      "sha256": "2831c00fa8dce4865193312984ac5702a261f06b0aa283c1b3fe90117e84fa85",
+      "sha256": "cf9f58ac6e2c54ffacb8eb8ba3803a5e7b874a7a2a4fd25906e4e62a689c0de5",
       "source": "generator script",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/out/paper-claim-integrity-r338/claim-integrity-report.json",
-      "sha256": "ebbb85914bca04a9d939f83017b78637bcc06c8b108386d0eeff414e13ea859d",
+      "sha256": "338b9f1a53d8052b9f924ca17a398e674ab544f6b7e099d1ef4628b8793d7eca",
       "source": "R338 paper claim integrity",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/out/paper-evaluation-rubric-r352/evaluation-rubric-report.json",
-      "sha256": "2fd42e25493b534a0da0201fbe00f2c8ad01ffa8c28c3973e99ea0631d3e9687",
+      "sha256": "60c7f1a70810ff336277229da498904facd2a23d47fd569ad3080cf81aeea4ba",
       "source": "R352 evaluation rubric",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/out/paper-claim-integrity-r356/claim-integrity-r356-report.json",
-      "sha256": "26638390f8fb700b52ed5aa5f82405575136d44b466f0f8bb7c5304cad320db6",
+      "sha256": "1f6eb185d902e90caf79b5fe2558cdd324a66ae50844a13990827c69d73ee29c",
       "source": "R356 claim integrity refresh",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/out/paper-reviewer-acceptance-r357/reviewer-acceptance-r357.json",
-      "sha256": "4c8593278141ebf6c011c577c2332c5b63e85e13021d5b5497b582b64ec9580d",
+      "sha256": "8488e8054f47948479abbbe2bc7323b24cc3e4419ea4905734756e7f8cdbee45",
       "source": "R357 reviewer acceptance",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/out/paper-core-result-tables-r360/core-result-tables.json",
-      "sha256": "af9312531173cccc2b109cef0f2fac9c2b692ea3652a61f8325905c4730a8803",
+      "sha256": "068e280b550612393087df83ad7806786d8b3f35d5f9f12c49fe357acedb707e",
       "source": "R360 core result table",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/out/paper-core-claim-evidence-r361/core-claim-evidence.json",
-      "sha256": "689589b5ad34c1bdc8059a84d94a21fd45e5a55122e68b01d326806faaf09edb",
+      "sha256": "6cc6faf161175d80464366c4550fca79954ed81e92c0f50fddc8b190b39eb810",
       "source": "R361 claim evidence",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/out/paper-visualization-portfolio-r363/visualization-portfolio.json",
@@ -140,21 +140,21 @@
     },
     {
       "path": "docs/evaluation.md",
-      "sha256": "cc1ab4c7c2a58298cbb8699d15fcdb38be7c573e9345fb5c0362712e9504d4f9",
+      "sha256": "0199ff75919c92189bb927341cf11766af17f375e259968a4de8c53bd08f950c",
       "source": "evaluation ledger",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/paper/main.tex",
-      "sha256": "edb802dfaa944a10d8b73e0652ae0c2666cd41ecbce8233ee6ea46cc0a9c95ec",
+      "sha256": "b7c65781994d02da55879715c71ff9516aacba6cb9b356c8fa279c29f30b97ed",
       "source": "Chinese paper",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/agentpprof-paper/main.tex",
-      "sha256": "624bbf1b542ad14b9c9951d1d67155a2fcf09265af7a9c2f8a81640f061e0767",
+      "sha256": "4be2385cf7b3662b921e2e6ebe677e227b490bc9798700788411c139d2329ea9",
       "source": "English paper",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     }
   ],
   "status": "pass",
@@ -174,9 +174,9 @@
       "success_criterion": "The same operation input folds across depths (9->3757 stacks), profile specs stay prompt/session-free (12/12), and standard-trace import/export preserves 512 samples and 11 stacks."
     },
     {
-      "baselines": "flat summary, fixed-session drilldown/span-tree proxy, dataset-native hierarchy, raw-action stack, operation-stack width, operation-stack query-aware, label drilldown, and oracle upper bound.",
+      "baselines": "flat summary, fixed-session drilldown, dataset-native hierarchy, raw-action stack, operation-stack width, operation-stack query-aware, label drilldown, and oracle upper bound.",
       "claim_gate_decision": "Supported as a hidden-label profiler benchmark with baseline tradeoffs, not human utility.",
-      "claim_test": "Do hot stacks and top-ranked groups correspond to hidden positives while requiring less inspection work than flat summaries and less fragmentation than fixed-session drilldown used as a span-tree proxy?",
+      "claim_test": "Do hot stacks and top-ranked groups correspond to hidden positives while requiring less inspection work than flat summaries and less fragmentation than fixed-session drilldown?",
       "core_experiment": "E2: hidden-label localization and ranking",
       "failure_interpretation": "If flat, fixed-session, or dataset-native views dominate the Pareto frontier, the claim narrows to a visualization option rather than a profiler-localization method.",
       "figure_table_target": "R363 baseline-tradeoff.svg, metric-heatmap.svg, and oracle-depth-adequacy.svg; Table R320 accuracy and Table core-results.",
