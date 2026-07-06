@@ -301,6 +301,21 @@ def build_report() -> dict[str, Any]:
     )
     add_check(
         checks,
+        "main_display_path_visible",
+        "the main-paper displays follow this path" in english_l
+        and "table~\\ref{tab:core-results} is the four-block claim map" in english_l
+        and "provide hidden-label fidelity and baseline tradeoff evidence" in english_l
+        and "provide mechanism/actionability evidence" in english_l
+        and "stay in the artifact ledger as provenance, counterpoints, or hygiene checks" in english_l
+        and "主文图表按这条路径阅读" in chinese_norm
+        and "表~\\ref{tab:results} 是四个 block 的 claim map" in chinese_norm
+        and "hidden-label fidelity 和 baseline tradeoff" in chinese_norm
+        and "mechanism/actionability" in chinese_norm
+        and "artifact ledger，只作为这些主显示的 provenance、counterpoint 或 hygiene checks" in chinese_norm,
+        "The papers expose a compact display path from workload provenance through E1-E4 main displays.",
+    )
+    add_check(
+        checks,
         "canonical_next_action_rejects_small_experiment_sprawl",
         "the next gate is prose and figure/table polish, not more small experiments" in idea_l
         and "do not add another empirical block unless it strengthens e1, e2, e3, or e4 directly" in idea_l
