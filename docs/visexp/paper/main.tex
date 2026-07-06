@@ -43,52 +43,21 @@ AI agent 的执行历史已经不再只是一次 prompt 或一棵 trace tree。
 \op{} 是带字段和权重的观测，prompt、session、tool call、process、syscall、GUI action 和 plan step 都只是 operation 的不同形态或字段。
 \opstack{} 是用户从字段中选择的递归投影，mapping 和 tagging 在 stack 构造前派生字段，而不是创建第三种 profiler 对象。
 关键点是聚合不是第三个对象，也不是固定 trace tree；聚合由 query time 选择的 stack 形态决定。
-		我们在 Rust \toolname{} 中实现该模型，支持 \texttt{--view}、\texttt{--where}、\texttt{--stack}、\texttt{--op-map}、\texttt{--op-map-file}、\texttt{--trace-file}、\texttt{--standard-trace-file}、\texttt{--deterministic-output} 和可复现实验用的 \texttt{--profile-spec}，并把 15 个公开标注 agent 轨迹数据源投影为同一类 operation JSONL。
+我们在 Rust \toolname{} 中实现该模型，并把论文评估组织成四个核心实验，而不是按 R 编号罗列小实验。
+E1 验证覆盖和递归折叠：在 15 个轻量采样的公开标注轨迹来源上，\toolname{} 把 47,590 个 samples 投影到同一 operation layer；同一批 13,265 个 operations 可以从 9 个 dataset stacks 折叠为 57 个 phase stacks、226 个 semantic stacks、455 个 action stacks，或 3,757 个 fixed-session stacks，而不改变输入 operation。
+这说明 prompt、session、tool、GUI action、process 和人工边界都只是 operation 字段或 stack 查询，不是新的 profiler 抽象。
 
-	我们在 15 个轻量采样的公开标注轨迹来源上评估该模型，不同步完整测试集、图片归档或 gated corpus。
-	核心结果显示，Web、mobile、desktop、software、API、tool-dialogue、failure、安全、human group 和 step-quality 轨迹都可以进入同一 operation layer，核心 14 个数据集包含 42,590 个 operations，补充 ScaleCUA 后为 47,590 个 operations。
-	同一批 13,265 个 operations 可以从 9 个 dataset stacks 递归展开到 57 个 phase stacks、226 个 tool/semantic stacks 和 455 个 action stacks，而把固定 session 加入默认层级会膨胀到 3,757 个 stacks。
-	本地 agent session、Chrome/Perfetto-style trace 和 operation-file standard-trace path 只作为 exchange/reproducibility smoke 使用，完整 benchmark conversion、image-heavy corpora 和真实 OpenTelemetry/Perfetto producer 兼容性仍是后续工作。
+E2 是 hidden-label localization/ranking 主实验。
+在 AgentRewardBench、SATraj-OS、AgentNet 和 OSWorld-Human 的 4 个 oracle-rich 数据集、6 个任务、34,539 个 operations 和 3,699 个 positives 上，我们把 profile groups 当作 ranked localization outputs，比较 flat、fixed-session/span-tree proxy、dataset-native、raw-action 和 operation-stack views。
+Task-query operation-stack profiling 的 top-5 median work 为 0.0937，而 flat summary 为 1.0；相对 fixed-session drilldown，它在 5/6 tasks 上提高 top-5 recall，并把 median groups 从 285.0 降到 157.5。
 
-	第二组结果验证 stack 不是 prompt/session/span 的别名。
-	OSWorld-Human 的单动作轨迹可以按人工 grouped-action 边界折叠，保守边界 F1 为 0.627 且 precision 为 1.0。
-	AgentNet 的 1,000 个 Ubuntu 人工桌面任务产生 16,741 个 PyAutoGUI operations，并把 step correctness 和 redundancy 作为普通字段保留下来。
-	Mapping/backend 的可支持范围是 deterministic 或 supervised field derivation：4 个标签家族可训练，但 AgentRewardBench looping 被更简单的 \texttt{repeat\_signal\_change} baseline 完全解释，所以当前证据不支持通用无监督 intent detector。
+E3 隔离机制和 profile-configuration actionability。
+Rank feature、stack depth、mapping、transfer、diagnostic lens、case packet 和 counterfactual 分析显示：有效配置随 task 和 objective 变化，operation-stack 是 Pareto point，不是 universal default。
+Executable profile-spec patches 在 5/6 tasks 上改善 AP、top-5 lift 和 first-positive work；supervised held-out boundary-field ablation 把 OSWorld-Human AP 从 0.2402 提到 0.2583，并把 groups 从 108 降到 74，但保留 work 反例。
+E4 则验证可复现性和 claim integrity：76 个 tracked profile specs 可确定性 replay，paper gates 检查 source status、数字、guardrails、rubric coverage 和 two-abstraction boundary。
 
-	第三组结果把 value claim 提升为真实标注 trace 上的 profiler localization 和 ranking claim，但仍不声称用户效用。
-		在 AgentRewardBench、SATraj-OS、AgentNet 和 OSWorld-Human 的 4 个数据集、6 个 oracle-backed tasks、34,539 个 operations 和 3,699 个 positives 上，operation-stack packet 比 flat summary 更 selective 的任务为 6/6，含 positive group 的任务为 6/6，含 high-lift evidence 的任务为 5/6。
-		相对 fixed-session，operation-stack selected recall 更高的任务为 5/6，但 selected work 更低的任务只有 2/6，fixed-session 在 4/6 tasks 上 selected work 更低。
-		把 162 个非 oracle view/ranker/budget points 放入 Pareto frontier 后，operation-stack 在 6/6 tasks 上 nondominated，在 4/6 tasks 上取得 best lift，并在 4/6 tasks 上取得 30\% work 内 best recall；flat 和 fixed-session 也在 6/6 tasks 上保留 frontier counterpoints。
-		R320 进一步把 profiler 输出当作 ranking/localization result，用隐藏标签计算 precision@k、recall@budget、F1、AUPRC-style AP、nDCG 和 work-to-first-positive。
-		Top-5 query-aware operation-stack profiling 的 median work 为 0.0937，而 flat summary 为 1.0；相对 fixed-session query-aware drilldown，operation stack 在 5/6 tasks 上提高 top-5 recall，并把 median groups 从 285.0 降到 157.5。
-		Query-aware visible ranking 相比 width-only operation-stack ranking 在 6/6 tasks 上提高 AP，但 top-5 F1 和 work 仍暴露 prevalence 与 calibration 反例。
-			R330 对 R320 的 6 个任务做成对 bootstrap 不确定性审计：operation-stack query-aware 相比 flat 的 AP、top-5 work、30\% budget recall 和 work-to-first-positive 方向稳定；相比 fixed-session 的 top-5 recall、top-5 F1 和 group 数方向稳定；相比 width-only operation-stack 的 AP、top-5 work 和 work-to-first-positive 方向稳定，同时保留 flat top-5 recall 与 fixed-session first-positive work 反例。
-			R331 再做 prevalence/group-size 负控：固定 visible ranking 顺序，只把 hidden positives 随机重分配到同样大小的 groups。Operation-stack query-aware 的 AP 在 6/6 tasks 上超过 95\% permutation null，median AP delta 为 0.0759；30\% budget recall 在 5/6 tasks 上超过 null，但 top-5 precision 只有 3/6、work-to-first-positive 为 0/6，因此不能把所有 hot-group 指标都归因给 ranking。
-			R332 再审计 view/depth task fit：best visible AP 分散在 operation-stack、fixed-session 和 dataset-native 三类视图，best top-5 F1 分散在 raw-action、dataset-native、fixed-session、flat 和 operation-stack；operation-stack query-aware 只在 AP 和 30\% budget recall 上各为 3/6 tasks 最优，因此 view/depth 必须是 query-time knob，而不是固定 hierarchy 或自动 selector。
-			R333 进一步导出 inspection-efficiency curves：在 30\% inspected-work 内，operation-stack query-aware 的 median recall 为 0.3900，而 flat、fixed-session、dataset-native 和 raw-action 分别为 0、0.3559、0.3377 和 0.3325；相对 fixed-session，它 top-5 recall 更高为 5/6 tasks、groups 更少为 4/6 tasks，但 work-to-first-positive 更低只有 2/6 tasks。
-			R334 再把 fixed-session fragmentation 和 operation work 分开：operation-stack query-aware 在 5/6 tasks 上用更少 ranked groups 覆盖 50\% positives，并在同一 30\% work budget 下用更少 groups，但 lower work-to-first-positive 仍只有 2/6 tasks。
-			R335 把 actionability 做成六个任务级 cards：6/6 都有具体 optimization action 且 query-aware ranking 相比 width 提高 AP；mapping 只在 2/6 有正收益并在 4/6 伤害结果，critical features 出现在 4/6，misleading features 出现在 2/6，coarse depth 在 6/6 减少 groups 但 AP-preferred 只有 2/6。
-			R336 再把 actionability 转成 objective-specific selection audit：15 个 visible policies、6 个 tasks、6 个 diagnostic objectives 中，operation-stack query-aware 在 6/6 tasks 上属于 Pareto frontier，top-5 work 低于 flat 为 6/6，top-5 recall 高于 fixed-session 为 5/6，groups-to-50\% positives 低于 fixed-session 为 5/6；但每个 task 都有多个 objective-specific best policies，lower work-to-first-positive 仍只有 2/6。
-			R337 进一步把曲线转成 fixed-recall cost：25\% recall target 下 operation-stack query-aware 覆盖 6/6 tasks，median work 为 0.2000、median groups 为 16.0；flat 需要 median work 1.0000，fixed-session 需要 median groups 50.0；50\% target 下它只覆盖 5/6，保留其他 view/ranker 反例。
-			R339 再把 ranked groups 转成 trajectory/session scope 指标：top-5 下 operation-stack query-aware 的 median work 为 0.0937、positive-session recall 为 0.2629，而 fixed-session positive-session recall 为 0.0160、flat work 为 1.0000；30\% work 下它的 positive-session recall 为 0.4669，高于 fixed-session 的 0.3230，并且 session work 为 0.3467，低于 raw-action 的 0.9103。
-			R355 继续把同一批 visible-ranked profiles 按 dataset-provided oracle depth 评分：在 24 个 task-depth rows 上，operation-stack query-aware 的 median top-5 oracle-unit work 为 0.1307、budget-30 positive-unit recall 为 0.4342、unit F1 为 0.4484、positive-run recall 为 0.4908；它相对 flat 在 24/24 rows 降低 top-5 unit work，相对 fixed-session 在 20/24 rows 提高 budget-30 unit recall、18/24 rows 提高 unit F1、22/24 rows 用更少 groups 达到 50\% positive units，但 depth-gap 相对 fixed-session 仍是反例。
-			R340 再把 policy selection 做成 cross-task/cross-dataset audit：selection 只用非目标任务或非目标数据集的 visible policy scores，目标 hidden labels 只用于 held-out scoring；R338 检查 selected/best policies 在 96/96 decisions 上都是 visible 且 non-oracle，leave-task/leave-dataset train scopes 在 96/96 decisions 上排除了目标任务或目标数据集；96 个 decisions 中有 62/96 within tolerance，且相对 width、fixed-session、flat 分别 strict win 72/96、69/96、41/96。Operation-stack 只被选中 16/96 次，所以结论是 objective-specific policy transfer 和 stack/view 调参，而不是默认 operation-stack 单一支配。
-			R341 再把 actionability 做成 mechanism/error attribution：36/36 objective rows 都有 optimization action，27/36 best visible policies 不是默认 operation-stack，34/96 transfer misses 被归类为 view/ranker 或 baseline-counterpoint explanations，其中 32/34 需要换 view、26/34 需要换 ranker。
-			R342 再把 profile-spec composition 和递归 stack-depth tradeoff 做成机制审计：它复用 tracked-clean R324/R300 real labeled Rust outputs，12/12 variants 都能组合 operation files、\texttt{where\_rules}、\texttt{rank\_op\_rules}、\texttt{rank\_mode=rule-score} 和 explicit stack depth，且 12/12 不含 prompt/session frames；visible operation-feature ranking 在 9/12 variants 上提高 AP，coarse depth 在 6/6 tasks 上减少 groups，median reduction 为 0.8267。
-			R344 再把 R320 的 metric surface 做成一致性审计：50 个 baseline-metric comparisons 中有 30 个支持 operation-stack query-aware，16 个是明确 counterpoints，4 个 mixed/weak；AP、30\% work-budget recall/F1、inspection work、work-to-first-positive 和 groups 支撑主 tradeoff，而 nDCG 与 coarse top-k recall 只能作为 secondary/counterpoint metrics。
-			R345 再把 actionability 和 metric counterpoints 组织成 diagnostic-lens portfolio：6 diagnostic lenses 覆盖 36 objective rows，operation-stack-family views 赢 11/36 objectives，非 operation-stack counterpoints 赢 25/36，且 6/6 tasks 至少需要 3 种 best views。这个结果说明 profiler 的价值来自按任务选择 ranked-stack、hot-stack、budgeted-inspection、first-positive 和 fragmentation lenses，而不是单一 flamegraph 或 automatic universal selector。
-			R346 再把 top-ranked operation-stack groups 做成 diagnostic casebook：30 个 case groups 中 top-5 groups 在 6/6 tasks 上命中 positive，top-1 groups 在 5/6 tasks 上命中 positive；median top-5 lift 为 1.6508、median top-5 work 为 0.0937，并且 6/6 case cards 都连接到 optimization action 和 counterpoint。
-			R347 再把 case-level evidence 放回 baseline contrast：5 个 visible views 覆盖 flat、fixed-session、dataset-native、raw-action 和 operation-stack，30 个 view-task rows 都用同一 top-5 visible ranking 协议评分。Operation-stack 在 6/6 tasks 上胜过 flat top-5 work、在 5/6 tasks 上胜过 fixed-session top-5 recall、在 4/6 tasks 上胜过 fixed-session group count，同时 fixed-session first-positive 和 flat full-work recall 仍是 counterpoints。
-			R348 再把 actionability 做成 objective-level counterfactual audit：36/36 best rows 都是 visible non-oracle，27/36 objective rows 需要非默认动作，25/36 需要换 view，2/36 需要 operation-stack ranker tuning；median gain over default 为 0.1447，且 6/6 tasks 都至少有 3 类 action 和 case counterpoints。因此 profiler 暴露的是可审计 tuning surface，不是 label-free universal selector。
-			R350 再把 R346--R349 组合成 evidence-packet budget audit：6/6 tasks 的 top-5 operation-stack packet 都含 positive，5/6 top-1 含 positive，4/6 在严格 30\% operation-work budget 内，median top-5 work/recall/lift 为 0.0937/0.188/1.6508；同一 packet 还保留 27/36 non-default objective rows、6/6 baseline counterpoints 和 R349 的 35/60 within-tolerance、7/60 exact-action guardrail。因此 actionability 的结论是 bounded evidence packet 和可审计反例，而不是自动 action selector。
-			R338 最后把这些结果变成论文级 claim-integrity audit：它读取 tracked-clean 的 R320--R350 profiler-evidence artifacts，并哈希当前中英文稿；result invariants、source-policy checks、guardrail checks 和 two-abstraction boundary 均通过。这个 audit 不增加新的 empirical claim，只防止论文越界到 human utility、automatic boundary discovery、trace-ecosystem compatibility 或 automatic universal selector。
-			R352 再把同一证据映射到 OSDI-style profiling-paper rubric：它读取 tracked R320--R351 artifacts 和当前论文文本，不下载、不同步、不重跑 profiler；26/26 required checks 和 10/10 rubric areas 通过，结论是当前 claim 达到 scoped profiler-benchmark evidence gate，而不是 human/agent analyst utility、automatic boundary discovery 或完整 trace-ecosystem compatibility。
-			R326 进一步说明 rank policy 的收益不只是某一组手调权重：global equal visible features 在 semantic/coarse stack 上分别赢 4/6 和 5/6 tasks，equal-weight task policy 在 8/12 variants 上接近 weighted policy；但 repaired policy 使用 R325 离线评分结果，因此只支持 actionability，不支持已部署的 label-free universal ranker。
-		R329 把 rank-policy selection 做成目标任务标签留出的 transfer probe：选择 policy 时不看目标任务 hidden labels；leave-task 和 leave-dataset 在 semantic/coarse stack 上 AP 均为 4/6 胜过 width，semantic first-positive work 均为 6/6 改善，7/12 variants 不低于 target-equal policy 超过 0.02 AP。
-		R327 复用 R300/R324/R326 已提交的 76 个 profile specs 和已提交 operation JSONL，执行 152 次 Rust profiler 调用：去除 JSON \texttt{generated\_at} 后，semantic profile hash、samples 和 unique stacks 均为 76/76 稳定；median runtime 为 1.581s，p95 为 2.719s，最大为 4.273s。
-		R328 在同一 workload 上启用 \texttt{--deterministic-output}，把 JSON \texttt{generated\_at} 和 pprof profile time 固定为可复现值，使 semantic 与 raw-byte determinism 均达到 76/76；clean rerun 记录空的 git/code status，该 run 的 median runtime 为 1.601s，p95 为 2.767s。
-		Task-level narrative 进一步显示，SATraj safety 是最强 selective win，AgentNet quality 是 high-lift/low-recall，AgentRewardBench looping 是 prevalence aggregation，side-effect 和 OSWorld-Human boundary 对 ranker 与 depth 敏感。
-		因此本文支持的 claim 是 operation-stack profiling 能在这些真实标注 trace 的 dataset-provided hidden labels 下定位、排序和归因任务相关问题，并提供可审计的 accuracy/work/fragmentation tradeoff，而不是人类用户效用、自动异常检测或相对 fixed-session 的无条件支配。
+因此本文支持的是 scoped profiling claim：operation-stack profiling 能在公开真实标注 trace 的 dataset-provided hidden labels 下定位、排序和解释任务相关 failure、quality problem 和 semantic boundary，并相对 flat summary 减少 inspection work、相对 fixed-session/span-tree proxy 减少 fragmentation。
+本文不声称提升 human productivity，不声称自动发现所有 intent boundary，不声称 metric dominance，也不声称完整兼容现有 trace ecosystem。
 	\end{abstract}
 
 \section{问题}
@@ -212,7 +181,7 @@ R328 在同一 76 个 specs 上启用 \texttt{--deterministic-output}，使 raw-
 	第八，R320 把 profiler 输出直接当作 ranking/localization result。
 	它在同一 6 个真实标注任务上比较 flat、fixed-session、dataset-native hierarchy、raw action stack、operation-stack、label-drilldown oracle view，以及 width、visible-risk、query-aware 和 oracle-upper-bound rankers。
 	非 oracle policies 只使用可见 operation fields，隐藏标签只用于 scoring。
-	指标包括 precision@k、recall@operation-budget、F1@k、AUPRC-style average precision、nDCG、work-to-first-positive、groups-to-50\% recall、group count 和 task-level optimization insight。
+	指标包括 precision@k、recall@operation-budget、F1@k、AUPRC-style average precision、nDCG、work-to-first-positive、groups-to-50\% recall、group count 和 task-level profile-configuration insight。
 	这个设置把 profiling paper 的主 claim 从“analyst 是否更快”改为“profiler 自身是否能在真实 workload 上相对 dataset-provided hidden labels 定位、排序并指导优化”。
 
 	\subsection{Hierarchy ablation baselines}
@@ -489,11 +458,11 @@ Best AP 和 best top-5 F1 分散在 operation-stack、fixed-session、dataset-na
 但 operation-stack query-aware 在 6/6 tasks 上进入 Pareto frontier，相对 flat 在 6/6 tasks 降低 top-5 work，相对 fixed-session 在 5/6 tasks 提高 top-5 recall，并在 5/6 tasks 用更少 groups 达到 50\% positives。
 25\% recall target 下它覆盖 6/6 tasks，median work 为 0.2000 而 flat 为 1.0000，median groups 为 16.0 而 fixed-session 为 50.0；50\% recall 和 first-positive work 仍保留 fixed-session、dataset-native 或 raw-action counterpoints。
 Sequence-scope 和 oracle-depth 审计进一步说明：30\% work budget 下 positive-session recall 为 0.4669，高于 fixed-session 的 0.3230；24 个 oracle-depth rows 上 budget-30 positive-unit recall median 为 0.4342，并在 20/24 rows 提高 fixed-session unit recall、22/24 rows 用更少 groups 达到 50\% positive units。
-但 \texttt{positive-session-without-unit} depth gap 没有胜过 fixed-session，所以这只是 depth-aware triage，不是自动发现所有 latent subtask 或 intent boundary。
+Positive-run proxy units 是 episode-derived proxy units，不是 human intent；\texttt{positive-session-without-unit} fixed-session depth-gap counterpoint 仍然保留，所以这只是 depth-aware triage，不是自动发现所有 latent subtask 或 intent boundary。
 R344 也保留多指标反例：30 个 baseline-metric comparisons 支持 operation-stack query-aware，16 个是明确 counterpoints，nDCG 场景下 flat 或 dataset-native 可能胜出。
 
 Actionability portfolio 把这些比较变成 reviewer 可以检查的优化建议。
-R335/R341 显示 36/36 objective rows 都有具体 action，但 27/36 best visible policies 不是默认 operation-stack query-aware；transfer miss 多数对应 view 或 ranker 变化，而不是不可解释错误。
+R335/R341 显示 36/36 objective rows 都有具体 profile-configuration action，但 27/36 best visible policies 不是默认 operation-stack query-aware；transfer miss 多数对应 view 或 ranker 变化，而不是不可解释错误。
 R345/R346/R347 把同一证据组织成 diagnostic lenses、case packets 和 baseline contrasts：6 个 lenses 覆盖 36 objectives，top-5 case groups 在 6/6 tasks 命中 positive，top-1 在 5/6 命中，median top-5 lift 为 1.6508 且 work 为 0.0937；operation-stack 在 6/6 tasks 胜过 flat top-5 work、在 5/6 胜过 fixed-session top-5 recall，同时保留 fixed-session first-positive 和 flat full-recall 反例。
 R348/R349 则把 visible counterfactual 与目标标签泄漏分开：36/36 best rows 是 visible non-oracle，27/36 需要 non-default action，25/36 需要 view change；held-out action transfer 在 35/60 aligned decisions 上 within tolerance，但 exact action-class transfer 只有 7/60，在 non-default target action 上只有 2/42。
 R350 最终把证据合成 bounded packets：6/6 tasks top-5 含 positive，5/6 top-1 含 positive，4/6 满足严格 30\% work budget，同时保留 transfer guardrail。
@@ -507,7 +476,7 @@ R358 支持 boundary-derived fields 是 actionable operation-field knob，不支
 
 \subsection{E4：可复现性、成本和 claim integrity}
 
-R361 将本节的 evidence contract 固定为：claim 是 offline profiler path 和 paper claims 可复现、低成本且有 guardrails；oracle 是 tracked profile specs、tracked operation inputs、paper/doc hashes、claim-integrity audits 和 reviewer-style acceptance checks；baseline 包括 deterministic versus raw replay、source-status checks、paper-number checks、rubric checks、reviewer gates 和 two-abstraction guardrails；metric 包括 deterministic spec pass rate、runtime、number-check pass rate、guardrail pass rate、rubric level 和 reviewer ACCEPT count；counterpoint 是 not live eBPF overhead、not human utility、not complete ecosystem compatibility、not universal selector。
+R361 将本节的 evidence contract 固定为：claim 是 offline profiler path 和 paper claims 可复现、低成本且有 guardrails；oracle 是 tracked profile specs、tracked operation inputs、paper/doc hashes、claim-integrity audits 和 reviewer-style artifact checks；baseline 包括 deterministic versus raw replay、source-status checks、paper-number checks、rubric checks、artifact-review gates 和 two-abstraction guardrails；metric 包括 deterministic spec pass rate、runtime、number-check pass rate、guardrail pass rate、rubric level 和 artifact-review gate count；counterpoint 是 not live eBPF overhead、not human utility、not complete ecosystem compatibility、not universal selector。
 
 R338 再把 paper claim 本身纳入审计：它复用 R320--R350 的 tracked-clean artifacts，不重新排名、不下载或重标数据集，只检查论文数字、source policy、must-not-claim guardrails 和 operation/operation-stack 边界是否一致。因此它支持“论文表述与证据一致”这个提交前 gate，而不是新的 profiler accuracy 结果。
 R352 再把当前结果集映射到 OSDI-style profiling-paper rubric：它复用 tracked R320--R351 artifacts 和当前论文文本，不下载、不同步、不重跑 profiler，也不运行 human/agent analyst task。26/26 required checks 和 10/10 rubric areas 通过，覆盖 fidelity/accuracy、actionability、baseline tradeoff、generality、mechanism isolation、robustness/statistics、reproducibility/overhead 和 claim-scope guardrails。因此它支持“当前 scoped profiling claim 的证据形态达到 profiler paper gate”，不是新的 empirical result。
@@ -585,7 +554,7 @@ R328 再启用 deterministic artifact mode，固定 JSON \texttt{generated\_at} 
     \midrule
     E1: coverage, recursive folding, and field derivation & 15 public labeled trace families / 47,590 operations, plus local-session and standard-trace exchange fixtures. OSWorld-Human and AgentNet provide the strongest boundary and step-quality oracles. & Core sources contain 42,590 operations, ScaleCUA brings the smoke set to 47,590, and the same R286 operations fold from 9 dataset stacks to 57 phase, 226 semantic, 455 action, or 3,757 fixed-session stacks. AgentNet profile-spec override changes 608 stacks to 83 without changing input operations. Held-out mapping improves compression from 14.049 to 19.091; OSWorld-Human learned boundary F1 reaches 0.7735 on held-out pairs. & Heterogeneous traces enter one operation layer, and stack depth is a recursive query over fields. Mapping, tagging, and boundary backends derive fields before folding; they do not add prompt/session/tool/safety-specific profiler objects. \\
     E2: hidden-label localization and ranking & Six failure, safety, quality, and boundary tasks over AgentRewardBench, SATraj-OS, AgentNet, and OSWorld-Human; 34,539 operations / 3,699 positives. & R320 scores 144 view/ranker policies. Query-aware operation-stack top-5 groups inspect median 0.0937 work versus 1.0 for flat, improve top-5 recall over fixed-session on 5/6 tasks, and reduce median groups from 285.0 to 157.5. R333/R334/R337/R339/R355 add work-budget, fragmentation, fixed-recall, sequence-scope, and oracle-depth checks; R330/R331/R344 add uncertainty, permutation negative control, and multi-metric guardrails. & Operation-stack profiling is faithful to dataset-provided hidden labels under this benchmark and gives a better inspection-work/fragmentation Pareto point than flat or fixed-session alone. It is not a universal detector, a single best hierarchy, or a work-dominant replacement for drilldown views. \\
-    E3: mechanism and actionability & The same six labeled tasks, plus held-out OSWorld-Human boundary-backend operations from R297. & R324/R325/R326 show operation-level rank features, leave-one-feature ablations, and equal/global policies expose useful and misleading fields. R340/R341/R345-R350 show policy transfer, mechanism attribution, diagnostic lenses, casebook, baseline contrast, action counterfactuals, and evidence packets. R354 materializes 5/6 profile-spec patches; R358 shows learned-boundary fields improve OSWorld-Human AP to 0.2583 and reduce groups to 74, but increase top-5 work and first-positive work. & The profiler produces actionable optimization insight: which stack fields, mappings, rankers, lenses, and drilldown depths to tune. R349/R354/R358 keep automatic action selection, automatic patch selection, and automatic boundary discovery out of scope. \\
+    E3: mechanism and actionability & The same six labeled tasks, plus held-out OSWorld-Human boundary-backend operations from R297. & R324/R325/R326 show operation-level rank features, leave-one-feature ablations, and equal/global policies expose useful and misleading fields. R340/R341/R345-R350 show policy transfer, mechanism attribution, diagnostic lenses, casebook, baseline contrast, action counterfactuals, and evidence packets. R354 materializes 5/6 profile-spec patches; R358 shows learned-boundary fields improve OSWorld-Human AP to 0.2583 and reduce groups to 74, but increase top-5 work and first-positive work. & The profiler produces profile-configuration actionability: which stack fields, mappings, rankers, lenses, and drilldown depths to tune. R349/R354/R358 keep automatic action selection, automatic patch selection, and automatic boundary discovery out of scope. \\
     E4: reproducibility, cost, and claim integrity & Tracked profile specs, tracked operation inputs, current paper/docs hashes, and no dataset sync or human/agent analyst task. & R327/R328 repeat 76 profile specs over tracked operation JSONL inputs. Semantic determinism is 76/76 in both modes; deterministic output makes raw-byte determinism 76/76 with median runtime 1.601s and p95 2.767s in the clean rerun. R319/R338/R352/R356/R357 audit implementation consistency, paper numbers, source provenance, rubric coverage, reviewer acceptance, and the two-abstraction boundary. R360 regenerates the 4-row core result table and 20 metric rows from tracked artifacts. & The artifact path is replayable and cheap enough for offline profiling-paper evidence. The current claim gates support scoped profiler-benchmark readiness, not live eBPF overhead, human productivity, full ecosystem compatibility, or universal selectors. \\
     \bottomrule
   \end{tabular}
@@ -628,6 +597,15 @@ LangSmith、Langfuse、Phoenix 和 AgentOps 等系统进一步把 LLM call、too
 R320 实际评估的是 fixed-session drilldown 作为 span-tree proxy；真实 OpenTelemetry/OpenInference/Phoenix span-tree import 仍是后续互操作 baseline，不是当前已完成结果。
 本文关注跨轨迹 semantic profiling，把异构标注轨迹或本地 agent 历史统一为 operations，并允许用户选择 stack 深度、mappings、tagging 和 ranker。
 R314 专门检查这些 closest systems 是否进入 novelty map 和 baseline guard。
+
+\textbf{Agent failure 和 span localization。}
+2026 年的 AgentRx、TELBench/DRIFT、Holistic Evaluation and Failure Diagnosis 和 AgentAtlas 是最接近的同问题威胁~[23--26]。
+AgentRx 发布带 critical failure step 和 failure category 的失败轨迹，并用 constraint checking 与 LLM judge 做 root-cause localization。
+TELBench/DRIFT 把 deep-research agent 轨迹转成 semantic spans，并标注 harmful error spans。
+Holistic Diagnosis 把 agent-level diagnosis 和 span-level evaluation 结合起来；AgentAtlas 则强调 outcome leaderboard 不能覆盖 trajectory quality 和 control-decision quality。
+因此本文不能把 novelty 写成 failure localization、trajectory diagnosis 或 span-level evaluation 本身。
+本文的差异更窄：把 profile groups 当作 profiler 输出，在同一批 operations 上比较 flat、fixed-session proxy、dataset-native、raw-action 和 operation-stack views，并用 AP、nDCG、inspection budget recall、work-to-first-positive、fragmentation 和 profile-configuration actionability 评分。
+AgentRx/TELBench-style traces 是后续 oracle/baseline 候选，不是当前已完成的 broader span-localization 证据。
 
 \textbf{Computer-use 和 tool-use benchmarks.}
 WebLINX、Mind2Web、GUI-Odyssey、OSWorld/OSWorld-Human、OpenCUA/AgentNet、SATraj-OS、AgentRewardBench、ToolBench 和 tau-bench 为本文提供真实标注轨迹~[3--10,19--22]。
@@ -685,12 +663,12 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld/OSWorld-Human、OpenCUA/AgentNet、SA
 	后续证据不是新的主实验，而是解释这个 profiler claim 何时成立。
 	Task-paired uncertainty、label-permutation negative controls、view/depth task-fit、inspection-budget curves、fixed-recall target、sequence-scope scoring 和 oracle-depth scoring 共同说明：operation-stack 的主要优势是 AP/work/fragmentation tradeoff，而不是所有指标支配。
 	Actionability 证据进一步显示 36/36 objective rows 有具体 optimization action，27/36 best visible policies 不是默认 operation-stack query-aware；diagnostic lenses、case packets、baseline contrasts、action counterfactuals 和 held-out transfer guardrails 说明 profiler 暴露的是可调分析 surface，而不是 automatic universal selector。
-	Executable profile-spec patch 进一步证明这种 actionability 可以落到 Rust profiler 配置上：5/6 patches 改善 AP、top-5 lift 和 first-positive work；OSWorld-Human reject 再由 boundary-derived operation fields 改善 AP 和 groups，但保留 work 反例。
+Executable profile-spec patch 进一步证明这种 profile-configuration actionability 可以落到 Rust profiler 配置上：5/6 patches 改善 AP、top-5 lift 和 first-positive work；OSWorld-Human reject 再由 boundary-derived operation fields 改善 AP 和 groups，但保留 work 反例。
 
 	因此本文的新意不在单个 flamegraph，而在两个抽象形成的统一接口。
 	Mapping、tagging、profile specs、agent-session trace、Chrome/Perfetto-style trace exchange、boundary backends 和 reviewer evidence packets 都只围绕 operation fields 与 operation-stack queries 工作。
 	它们让用户和实验者能在同一批 operations 上选择不同 view、派生不同 fields、折叠不同深度，并审计每个 claim 的证据来源。
-	当前 value claim 是相对 dataset-provided hidden labels 的 profiler fidelity、label-scored ranking/localization、inspection-cost/fragmentation tradeoff 和 actionable optimization insight；不是 detector、human utility、baseline dominance、automatic patch selector 或 ecosystem compatibility。
+	当前 value claim 是相对 dataset-provided hidden labels 的 profiler fidelity、label-scored ranking/localization、inspection-cost/fragmentation tradeoff 和 profile-configuration actionability；不是 detector、human utility、baseline dominance、automatic patch selector 或 ecosystem compatibility。
 	下一步不应无差别增加数据集，而应沿两个方向提高 claim 强度：一是把 field-derivation backend 做到跨家族 calibration 并稳定胜过简单 sequence-derived baselines，二是在已有或新增真实 trace 中补更强的 instruction-step、solution-path 或 human subtask oracle；只有在要写 ecosystem baseline claim 时才导入真实 OTel/Phoenix/LangSmith/Langfuse/Perfetto span-tree trace。
 	Controlled human 或 agent analyst study 可以作为后续增强，但不再是本文主 profiling claim 的前置条件。
 
@@ -720,6 +698,10 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld/OSWorld-Human、OpenCUA/AgentNet、SA
 \noindent [19] AgentRewardBench: Evaluating Automatic Evaluations of Web Agent Trajectories. \url{https://arxiv.org/abs/2504.08942}.\par
 \noindent [20] OSWorld: Benchmarking Multimodal Agents for Open-Ended Tasks in Real Computer Environments. \url{https://arxiv.org/abs/2404.07972}.\par
 \noindent [21] OpenCUA: Open Foundations for Computer-Use Agents. \url{https://arxiv.org/abs/2508.09123}.\par
-\noindent [22] Safactory: A Scalable Agentic Infrastructure for Training Trustworthy Autonomous Intelligence. \url{https://arxiv.org/abs/2605.06230}.
+\noindent [22] Safactory: A Scalable Agentic Infrastructure for Training Trustworthy Autonomous Intelligence. \url{https://arxiv.org/abs/2605.06230}.\par
+\noindent [23] AgentRx: Diagnosing AI Agent Failures from Execution Trajectories. \url{https://arxiv.org/abs/2602.02475}.\par
+\noindent [24] Where Do Deep-Research Agents Go Wrong? Span-Level Error Localization in Agent Trajectories. \url{https://arxiv.org/abs/2606.02060}.\par
+\noindent [25] Holistic Evaluation and Failure Diagnosis of AI Agents. \url{https://arxiv.org/abs/2605.14865}.\par
+\noindent [26] AgentAtlas: Beyond Outcome Leaderboards for LLM Agents. \url{https://arxiv.org/abs/2605.20530}.
 
 \end{document}

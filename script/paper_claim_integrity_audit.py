@@ -1530,34 +1530,14 @@ def build_text_coverage(
         ("evaluation", "R348 action counterfactual", ["R348", "36 objective rows", "27/36", "0.1447"], "R348"),
         ("evaluation", "R349 held-out action transfer", ["R349", "60 aligned", "35/60", "7/60", "2/42"], "R349"),
         ("evaluation", "R350 evidence packet budget", ["R350", "6/6", "4/6", "27/36", "35/60"], "R350"),
-        ("zh_main", "R320 headline", ["0.0937", "9.37", "285.0", "157.5"], "R320"),
-        ("zh_main", "R333 headline", ["0.3900", "0.390"], "R333"),
-        ("zh_main", "R337 headline", ["0.2000", "16.0", "50.0"], "R337"),
-        ("zh_main", "R339 headline", ["0.4669", "0.9103", "0.3467"], "R339"),
-        ("zh_main", "R340 headline", ["R340", "62/96", "72/96", "69/96"], "R340"),
-        ("zh_main", "R341 headline", ["R341", "36/36", "27/36", "34/96"], "R341"),
-        ("zh_main", "R342 headline", ["R342", "12/12", "9/12", "0.8267"], "R342"),
-        ("zh_main", "R344 headline", ["R344", "30", "16", "nDCG"], "R344"),
-        ("zh_main", "R345 headline", ["R345", "6", "11/36", "25/36"], "R345"),
-        ("zh_main", "R346 headline", ["R346", "30", "5/6", "1.6508"], "R346"),
-        ("zh_main", "R347 headline", ["R347", "5", "6/6", "5/6", "4/6"], "R347"),
-        ("zh_main", "R348 headline", ["R348", "36", "27/36", "0.1447"], "R348"),
-        ("zh_main", "R349 headline", ["R349", "60", "35/60", "7/60", "2/42"], "R349"),
-        ("zh_main", "R350 headline", ["R350", "6/6", "4/6", "27/36", "35/60"], "R350"),
-        ("en_main", "R320 headline", ["0.0937", "9.37", "285.0", "157.5"], "R320"),
-        ("en_main", "R333 headline", ["0.3900", "0.390"], "R333"),
-        ("en_main", "R337 headline", ["0.2000", "16.0", "50.0"], "R337"),
-        ("en_main", "R339 headline", ["0.4669", "0.9103", "0.3467"], "R339"),
-        ("en_main", "R340 headline", ["R340", "62 of 96", "72 of 96", "69 of 96"], "R340"),
-        ("en_main", "R341 headline", ["R341", "36 of 36", "27 of 36", "34 of 96"], "R341"),
-        ("en_main", "R342 headline", ["R342", "12/12", "9/12", "0.8267"], "R342"),
-        ("en_main", "R344 headline", ["R344", "30", "16", "nDCG"], "R344"),
-        ("en_main", "R345 headline", ["R345", "6", "11/36", "25/36"], "R345"),
-        ("en_main", "R346 headline", ["R346", "30", "5/6", "1.6508"], "R346"),
-        ("en_main", "R347 headline", ["R347", "5", "6/6", "5/6", "4/6"], "R347"),
-        ("en_main", "R348 headline", ["R348", "36", "27/36", "0.1447"], "R348"),
-        ("en_main", "R349 headline", ["R349", "60", "35 of 60", "7 of 60", "2 of 42"], "R349"),
-        ("en_main", "R350 headline", ["R350", "6 of 6", "4 of 6", "27 of 36", "35 of 60"], "R350"),
+        ("zh_main", "core experiment organization", ["四个核心实验", "E1", "E2", "E3", "E4"], "CORE"),
+        ("zh_main", "E2 headline", ["34,539", "3,699", "0.0937", "285.0", "157.5"], "CORE"),
+        ("zh_main", "E3 actionability headline", ["profile-configuration", "5/6", "0.2402", "0.2583"], "CORE"),
+        ("zh_main", "E4 guardrails", ["76", "two-abstraction", "不声称", "human productivity"], "CORE"),
+        ("en_main", "core experiment organization", ["four paper-facing experiments", "E1", "E2", "E3", "E4"], "CORE"),
+        ("en_main", "E2 headline", ["34,539", "3,699", "0.0937", "285.0", "157.5"], "CORE"),
+        ("en_main", "E3 actionability headline", ["profile-configuration", "5 of 6", "0.2402", "0.2583"], "CORE"),
+        ("en_main", "E4 guardrails", ["76", "two-abstraction", "does not claim", "human-productivity"], "CORE"),
         ("zh_claim_setup", "two abstractions", ["两个核心抽象", "operation stack"], "C2"),
         ("zh_claim_setup", "R337 result", ["R337", "0.2000", "16.0"], "R337"),
         ("zh_claim_setup", "R339 result", ["R339", "0.4669", "0.9103"], "R339"),
@@ -1572,10 +1552,11 @@ def build_text_coverage(
         ("zh_claim_setup", "R349 result", ["R349", "60", "35/60", "7/60", "2/42"], "R349"),
         ("zh_claim_setup", "R350 result", ["R350", "6/6", "4/6", "27/36", "35/60"], "R350"),
     ]
+    require_all_sources = {"CORE", "R341", "R342", "R344", "R345", "R346", "R347", "R348", "R349", "R350"}
     rows: list[dict[str, Any]] = []
     for doc, key, tokens, source in required:
         text = texts[doc]
-        status = "pass" if (contains_all(text, tokens) if source in {"R341", "R342", "R344", "R345", "R346", "R347", "R348", "R349", "R350"} else contains_any(text, tokens)) else "fail"
+        status = "pass" if (contains_all(text, tokens) if source in require_all_sources else contains_any(text, tokens)) else "fail"
         rows.append(
             {
                 "doc": doc,

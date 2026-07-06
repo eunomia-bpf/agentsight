@@ -25,6 +25,7 @@ OUT_ROOT = ROOT / "docs" / "visexp" / "out"
 SUBMODULE_ROOT = ROOT / "docs" / "agentpprof-paper"
 DEFAULT_OUT_DIR = OUT_ROOT / "paper-core-result-tables-r360"
 RUN_ID = "R360"
+SCRIPT_PATH = Path(__file__).resolve()
 
 SOURCES = {
     "R285 leave-dataset-out mapping": OUT_ROOT
@@ -150,7 +151,7 @@ def ratio(numerator: Any, denominator: Any) -> str:
 
 def source_rows() -> list[dict[str, str]]:
     rows: list[dict[str, str]] = []
-    for name, path in {**SOURCES, **PAPER_SOURCES}.items():
+    for name, path in {"generator script": SCRIPT_PATH, **SOURCES, **PAPER_SOURCES}.items():
         rows.append(
             {
                 "source": name,
@@ -443,7 +444,7 @@ def build_checks(data: dict[str, dict[str, Any]], metrics: list[dict[str, str]],
 
 def write_csv(path: Path, rows: list[dict[str, Any]], fields: list[str]) -> None:
     with path.open("w", encoding="utf-8", newline="") as f:
-        writer = csv.DictWriter(f, fieldnames=fields)
+        writer = csv.DictWriter(f, fieldnames=fields, lineterminator="\n")
         writer.writeheader()
         for row in rows:
             writer.writerow({field: row.get(field, "") for field in fields})

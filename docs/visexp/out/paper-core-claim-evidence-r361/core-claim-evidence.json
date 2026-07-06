@@ -51,8 +51,8 @@
       "status": "pass"
     }
   ],
-  "commit": "d3a5ef7bffbcec6ccefb0462ae378b78c2df8d1e",
-  "elapsed_s": 0.11,
+  "commit": "c306ee407aedc1e515a5d6ca277cbef275df835d",
+  "elapsed_s": 0.114,
   "input_policy": {
     "dataset_creation": "none",
     "dataset_relabeling": "none",
@@ -77,7 +77,7 @@
     },
     {
       "actionable_insight": "The strongest supported tradeoff is lower inspection work and lower fixed-session fragmentation while retaining hidden-label hits under budgeted inspection.",
-      "baselines": "flat summary, fixed-session/span-tree proxy, dataset-native hierarchy, raw-action stack, operation-stack width, operation-stack query-aware, label drilldown, and oracle upper bound.",
+      "baselines": "flat summary, fixed-session drilldown/span-tree proxy, dataset-native hierarchy, raw-action stack, operation-stack width, operation-stack query-aware, label drilldown, and oracle upper bound.",
       "claim": "Operation-stack profiling can faithfully localize and rank task-relevant failures, safety issues, quality problems, and semantic boundaries on real labeled traces.",
       "core_experiment": "E2: hidden-label localization and ranking",
       "counterpoint_or_scope": "Flat and dataset-native views can win broad-recall or nDCG-style objectives; the claim is Pareto tradeoff, not metric dominance.",
@@ -86,7 +86,7 @@
       "paper_wording": "Supported as a hidden-label profiler benchmark, not a human-utility, productivity, or automatic-analysis claim.",
       "primary_metrics": "AP/AUPRC-style score, precision@k, recall@k, F1@k, nDCG, recall/F1@work budget, top-k work, work-to-first-positive, group count, and oracle-depth unit recall.",
       "primary_sources": "R320; R333; R334; R337; R339; R355; R360",
-      "research_question": "Do hot stacks and top-ranked groups correspond to hidden positives while requiring less inspection work than flat summaries and less fragmentation than fixed-session trees?"
+      "research_question": "Do hot stacks and top-ranked groups correspond to hidden positives while requiring less inspection work than flat summaries and less fragmentation than fixed-session drilldown used as a span-tree proxy?"
     },
     {
       "actionable_insight": "The result identifies concrete knobs: stack depth, visible operation fields, rank-op rules, profile-spec patches, boundary-derived fields, and task-specific view choice.",
@@ -126,6 +126,12 @@
   "schema": "agentsight.paper-core-claim-evidence.v1",
   "source_status": [
     {
+      "path": "script/paper_core_claim_evidence.py",
+      "sha256": "3ed4ece9ccd029388a7d62f88661dabb865d378c6d617d12130122df2d22277c",
+      "source": "generator script",
+      "status": "tracked_dirty_allowed"
+    },
+    {
       "path": "docs/visexp/out/operation-profile-accuracy-r320/profile-accuracy-report.json",
       "sha256": "4baf9e91f444ec47a4d8d843ffc210e11fabf51b18dbc6113c7a2b2532a35786",
       "source": "R320 profile accuracy",
@@ -133,7 +139,7 @@
     },
     {
       "path": "docs/visexp/out/paper-evaluation-rubric-r352/evaluation-rubric-report.json",
-      "sha256": "f4e602be0596a47dbc92ebc1503f0f483a5671a2f7ba1be9540f323c576b5a72",
+      "sha256": "04a19e1ec2646d5ef1f575afce2394c9e5adda7c2c52cb6a48aee4915bc017e9",
       "source": "R352 evaluation rubric",
       "status": "tracked_dirty_allowed"
     },
@@ -151,7 +157,7 @@
     },
     {
       "path": "docs/visexp/out/paper-reviewer-acceptance-r357/reviewer-acceptance-r357.json",
-      "sha256": "004e266ecbc645a25c96ea69769f0fdfb9d6a8c1187c1ac5074f2ff7703b8c1f",
+      "sha256": "867719385bce17d654f6c7454c58e95978249c553ad6e96bcc3b9ffcc80e539f",
       "source": "R357 reviewer acceptance",
       "status": "tracked_dirty_allowed"
     },
@@ -165,31 +171,31 @@
       "path": "docs/visexp/out/paper-core-experiments-r359/core-experiment-report.json",
       "sha256": "f119124c71ce0ebd1fc800dde9ef65efd2f6a46cc7ce0895c0c0cac91cc345de",
       "source": "R359 core-experiment consolidation",
-      "status": "tracked_dirty_allowed"
+      "status": "tracked_clean"
     },
     {
       "path": "docs/visexp/out/paper-core-result-tables-r360/core-result-tables.json",
-      "sha256": "bd1c3ead316350489ef9801d562c4a1eda6e106f8c8c2b12e3faaf1c3576529c",
+      "sha256": "af511b1eacd3494c602d6dde7b3f205510c8e02263b9319c0de5e7992f92bf0b",
       "source": "R360 core result table",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/evaluation.md",
-      "sha256": "4449caff42163d0e6076e3f2df9d60b8e9ac253095709f26046ac81eee2981e5",
+      "sha256": "6d3b8dbfa5d833b128f2ee7ba0e7024874a98fbf470f3c6dd788cb5800395f61",
       "source": "evaluation ledger",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/paper/main.tex",
-      "sha256": "e256cb197e7ab93781bfc4cc3dc74e17167ed9e1542c263f313cea910dff6da0",
+      "sha256": "816e57ab9e570a6cbde7b0453d5eac314abfdf1e52174dc40a70a6ba1e2a54a5",
       "source": "Chinese paper",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/agentpprof-paper/main.tex",
-      "sha256": "b1c91dccfc12bca07bcfe5dd0826d920b5faa5ca1e619a8cb8ea3bfc6747b730",
+      "sha256": "9a42da19c067610f83dbb17ca35c0c3ab7897ea88cc5d1ef446778f15381baac",
       "source": "English paper",
-      "status": "tracked_dirty_allowed"
+      "status": "tracked_clean"
     }
   ],
   "status": "pass",

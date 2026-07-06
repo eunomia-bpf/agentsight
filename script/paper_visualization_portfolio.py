@@ -26,6 +26,7 @@ ROOT = Path(__file__).resolve().parents[1]
 OUT_ROOT = ROOT / "docs" / "visexp" / "out"
 DEFAULT_OUT_DIR = OUT_ROOT / "paper-visualization-portfolio-r363"
 RUN_ID = "R363"
+SCRIPT_PATH = Path(__file__).resolve()
 
 SOURCES = {
     "R320 profile accuracy": OUT_ROOT / "operation-profile-accuracy-r320" / "profile-accuracy-report.json",
@@ -147,7 +148,7 @@ def source_rows() -> list[dict[str, str]]:
             "status": git_status(path),
             "sha256": sha256(path),
         }
-        for name, path in SOURCES.items()
+        for name, path in {"generator script": SCRIPT_PATH, **SOURCES}.items()
     ]
 
 

@@ -25,6 +25,7 @@ OUT_ROOT = ROOT / "docs" / "visexp" / "out"
 SUBMODULE_ROOT = ROOT / "docs" / "agentpprof-paper"
 DEFAULT_OUT_DIR = OUT_ROOT / "paper-core-claim-evidence-r361"
 RUN_ID = "R361"
+SCRIPT_PATH = Path(__file__).resolve()
 
 SOURCES = {
     "R320 profile accuracy": OUT_ROOT / "operation-profile-accuracy-r320" / "profile-accuracy-report.json",
@@ -132,7 +133,7 @@ def fmt(value: Any) -> str:
 
 def source_rows() -> list[dict[str, str]]:
     rows: list[dict[str, str]] = []
-    for name, path in {**SOURCES, **PAPER_SOURCES}.items():
+    for name, path in {"generator script": SCRIPT_PATH, **SOURCES, **PAPER_SOURCES}.items():
         rows.append(
             {
                 "source": name,
@@ -180,9 +181,9 @@ def build_ledger(data: dict[str, dict[str, Any]]) -> list[dict[str, str]]:
         {
             "core_experiment": "E2: hidden-label localization and ranking",
             "claim": "Operation-stack profiling can faithfully localize and rank task-relevant failures, safety issues, quality problems, and semantic boundaries on real labeled traces.",
-            "research_question": "Do hot stacks and top-ranked groups correspond to hidden positives while requiring less inspection work than flat summaries and less fragmentation than fixed-session trees?",
+            "research_question": "Do hot stacks and top-ranked groups correspond to hidden positives while requiring less inspection work than flat summaries and less fragmentation than fixed-session drilldown used as a span-tree proxy?",
             "oracle": f"{r320['totals']['positive_operations']} hidden positives over {r320['totals']['task_operations']} operations from {r320['totals']['tasks']} oracle-backed tasks and {r320['totals']['datasets']} datasets.",
-            "baselines": "flat summary, fixed-session/span-tree proxy, dataset-native hierarchy, raw-action stack, operation-stack width, operation-stack query-aware, label drilldown, and oracle upper bound.",
+            "baselines": "flat summary, fixed-session drilldown/span-tree proxy, dataset-native hierarchy, raw-action stack, operation-stack width, operation-stack query-aware, label drilldown, and oracle upper bound.",
             "primary_metrics": "AP/AUPRC-style score, precision@k, recall@k, F1@k, nDCG, recall/F1@work budget, top-k work, work-to-first-positive, group count, and oracle-depth unit recall.",
             "headline_result": r360_evidence["E2"],
             "actionable_insight": "The strongest supported tradeoff is lower inspection work and lower fixed-session fragmentation while retaining hidden-label hits under budgeted inspection.",

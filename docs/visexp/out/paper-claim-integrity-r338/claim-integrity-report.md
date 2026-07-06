@@ -334,7 +334,7 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 |---|---|---|---|---|
 | evaluation | R320 headline operations | 34,539 / 34539 | pass | 15,28,262,285,347,369,503,535 |
 | evaluation | R320 top5 work | 0.0937 / 9.37% | pass | 15,126,128,134,263,370,426,469 |
-| evaluation | R333 budget30 recall | 0.3900 / 0.39 | pass | 429,535,630,717 |
+| evaluation | R333 budget30 recall | 0.3900 / 0.39 | pass | 429,535,630,718 |
 | evaluation | R334 fragmentation | 5/6 / -54.0 / fewer groups | pass | 15,76,77,94,122,126,128,132 |
 | evaluation | R335 actionability | actionability / 6/6 / optimization | pass | 5,15,29,35,37,80,99,108 |
 | evaluation | R336 visible policies | 15 visible / 15 个 / 6 diagnostic | pass | 124,535,633,637,642 |
@@ -350,34 +350,14 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | evaluation | R348 action counterfactual | R348 / 36 objective rows / 27/36 / 0.1447 | pass | 15,29,33,123,124,129,130,131 |
 | evaluation | R349 held-out action transfer | R349 / 60 aligned / 35/60 / 7/60 / 2/42 | pass | 15,29,131,132,133,134,457,458 |
 | evaluation | R350 evidence packet budget | R350 / 6/6 / 4/6 / 27/36 / 35/60 | pass | 15,29,64,68,76,77,93,95 |
-| zh_main | R320 headline | 0.0937 / 9.37 / 285.0 / 157.5 | pass | 63,73,80,83,414,421,431,432 |
-| zh_main | R333 headline | 0.3900 / 0.390 | pass | 68,409,461,536 |
-| zh_main | R337 headline | 0.2000 / 16.0 / 50.0 | pass | 72,490 |
-| zh_main | R339 headline | 0.4669 / 0.9103 / 0.3467 | pass | 73,491 |
-| zh_main | R340 headline | R340 / 62/96 / 72/96 / 69/96 | pass | 75,588 |
-| zh_main | R341 headline | R341 / 36/36 / 27/36 / 34/96 | pass | 76,82,83,496,498,588,687 |
-| zh_main | R342 headline | R342 / 12/12 / 9/12 / 0.8267 | pass | 77 |
-| zh_main | R344 headline | R344 / 30 / 16 / nDCG | pass | 55,61,62,65,66,67,68,69 |
-| zh_main | R345 headline | R345 / 6 / 11/36 / 25/36 | pass | 3,16,17,18,30,50,54,55 |
-| zh_main | R346 headline | R346 / 30 / 5/6 / 1.6508 | pass | 59,60,61,63,65,66,67,68 |
-| zh_main | R347 headline | R347 / 5 / 6/6 / 5/6 / 4/6 | pass | 12,22,46,48,49,50,59,60 |
-| zh_main | R348 headline | R348 / 36 / 27/36 / 0.1447 | pass | 71,76,79,82,83,259,347,356 |
-| zh_main | R349 headline | R349 / 60 / 35/60 / 7/60 / 2/42 | pass | 73,83,89,182,286,498,515,554 |
-| zh_main | R350 headline | R350 / 6/6 / 4/6 / 27/36 / 35/60 | pass | 59,60,61,64,66,68,70,71 |
-| en_main | R320 headline | 0.0937 / 9.37 / 285.0 / 157.5 | pass | 45,48,135,345,346,470,472,490 |
-| en_main | R333 headline | 0.3900 / 0.390 | pass | 70,471,490,557 |
-| en_main | R337 headline | 0.2000 / 16.0 / 50.0 | pass | 89,90,91,627,628 |
-| en_main | R339 headline | 0.4669 / 0.9103 / 0.3467 | pass | 94,95,96,631 |
-| en_main | R340 headline | R340 / 62 of 96 / 72 of 96 / 69 of 96 | pass | 148 |
-| en_main | R341 headline | R341 / 36 of 36 / 27 of 36 / 34 of 96 | pass | 113,114,115,158,642 |
-| en_main | R342 headline | R342 / 12/12 / 9/12 / 0.8267 | pass | 118,121,122,336 |
-| en_main | R344 headline | R344 / 30 / 16 / nDCG | pass | 69,76,90,93,95,101,110,124 |
-| en_main | R345 headline | R345 / 6 / 11/36 / 25/36 | pass | 42,47,51,52,56,75,76,77 |
-| en_main | R346 headline | R346 / 30 / 5/6 / 1.6508 | pass | 69,76,93,95,101,124,132,133 |
-| en_main | R347 headline | R347 / 5 / 6/6 / 5/6 / 4/6 | pass | 39,40,42,47,48,51,70,71 |
-| en_main | R348 headline | R348 / 36 / 27/36 / 0.1447 | pass | 113,114,128,129,142,143,144,145 |
-| en_main | R349 headline | R349 / 60 / 35 of 60 / 7 of 60 / 2 of 42 | pass | 148,149,150,158,159,315,324,361 |
-| en_main | R350 headline | R350 / 6 of 6 / 4 of 6 / 27 of 36 / 35 of 60 | pass | 56,114,154,156,157,158,164,405 |
+| zh_main | core experiment organization | 四个核心实验 / E1 / E2 / E3 / E4 | pass | 46,47,50,54,57,223,226,342 |
+| zh_main | E2 headline | 34,539 / 3,699 / 0.0937 / 285.0 / 157.5 | pass | 51,52,344,364,383,390,400,401 |
+| zh_main | E3 actionability headline | profile-configuration / 5/6 / 0.2402 / 0.2583 | pass | 52,54,56,147,149,184,270,401 |
+| zh_main | E4 guardrails | 76 / two-abstraction / 不声称 / human productivity | pass | 57,60,138,146,151,152,431,472 |
+| en_main | core experiment organization | four paper-facing experiments / E1 / E2 / E3 / E4 | pass | 39,43,51,58,113,115,116,117 |
+| en_main | E2 headline | 34,539 / 3,699 / 0.0937 / 285.0 / 157.5 | pass | 45,46,47,49,234,235,236,348 |
+| en_main | E3 actionability headline | profile-configuration / 5 of 6 / 0.2402 / 0.2583 | pass | 49,51,57,244,301,302,311,388 |
+| en_main | E4 guardrails | 76 / two-abstraction / does not claim / human-productivity | pass | 59,60,66,96,242,250,251,297 |
 | zh_claim_setup | two abstractions | 两个核心抽象 / operation stack | pass | 7,23,25,75,99,102,103,104 |
 | zh_claim_setup | R337 result | R337 / 0.2000 / 16.0 | pass | 35,36,76,137,139 |
 | zh_claim_setup | R339 result | R339 / 0.4669 / 0.9103 | pass | 36,37,50,76,139,140,287 |
@@ -398,8 +378,8 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | evaluation | R320:policies | 144 | pass | 15,130,262,368,535,615,620,630 |
 | evaluation | R320:operation_stack_top5_work_median | 0.0937 | pass | 15,126,128,134,263,426,469,535 |
 | evaluation | R320:flat_top5_work_median | 1.0 | pass | 15,263,415,427,535,599,602,616 |
-| evaluation | R320:operation_stack_groups_median | 157.5 | pass | 15,373,535,620,657,733 |
-| evaluation | R320:fixed_session_groups_median | 285.0 | pass | 15,373,535,620,733 |
+| evaluation | R320:operation_stack_groups_median | 157.5 | pass | 15,373,535,620,657,734 |
+| evaluation | R320:fixed_session_groups_median | 285.0 | pass | 15,373,535,620,734 |
 | evaluation | R320:top5_recall_wins_vs_fixed | 5/6 | pass | 15,76,77,94,122,126,128,132 |
 | evaluation | R320:ap_wins_vs_width | 6/6 | pass | 15,108,122,123,124,126,128,129 |
 | evaluation | R333:operation_stack:query_aware_budget30_median_recall | 0.3900 | pass | 429,535,630 |
@@ -487,38 +467,38 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | evaluation | R341:misleading_feature_tasks | misleading features on 2/6 | pass | 638 |
 | evaluation | R341:tasks_with_three_or_more_mechanism_labels | three or more mechanism labels on 6/6 | pass | 638 |
 | evaluation | R342:overall | R342 | pass | 12,27,29,101,255,532,535,537 |
-| evaluation | R342:tasks | 6 tasks | pass | 535,639,640,741 |
-| evaluation | R342:profile_spec_variants | 12 profile-spec variants | pass | 639,741 |
+| evaluation | R342:tasks | 6 tasks | pass | 535,639,640,742 |
+| evaluation | R342:profile_spec_variants | 12 profile-spec variants | pass | 639,742 |
 | evaluation | R342:composition_variants | 12/12 compose | pass | 639 |
 | evaluation | R342:prompt_session_free_variants | 12/12 prompt/session-free | pass | 639 |
-| evaluation | R342:rule_score_rank_policy_variants | rank_mode=rule-score | pass | 639,741 |
-| evaluation | R342:ap_improves_vs_width_variants | 9/12 variants | pass | 639,741 |
+| evaluation | R342:rule_score_rank_policy_variants | rank_mode=rule-score | pass | 639,742 |
+| evaluation | R342:ap_improves_vs_width_variants | 9/12 variants | pass | 639,742 |
 | evaluation | R342:top5_lift_improves_vs_width_variants | 8/12 | pass | 639 |
-| evaluation | R342:first_positive_work_improves_vs_width_variants | 10/12 | pass | 639,741 |
+| evaluation | R342:first_positive_work_improves_vs_width_variants | 10/12 | pass | 639,742 |
 | evaluation | R342:tasks_with_ap_improvement_any_depth | 5/6 | pass | 535,657 |
-| evaluation | R342:tasks_with_first_positive_improvement_any_depth | 6/6 | pass | 535,639,657,741 |
-| evaluation | R342:tasks_where_coarse_reduces_groups | 6/6 tasks | pass | 535,639,741 |
-| evaluation | R342:median_coarse_group_reduction | 0.8267 | pass | 639,741 |
+| evaluation | R342:tasks_with_first_positive_improvement_any_depth | 6/6 | pass | 535,639,657,742 |
+| evaluation | R342:tasks_where_coarse_reduces_groups | 6/6 tasks | pass | 535,639,742 |
+| evaluation | R342:median_coarse_group_reduction | 0.8267 | pass | 639,742 |
 | evaluation | R342:tasks_where_depth_choice_changes_objective | 3/6 tasks | pass | 639 |
-| evaluation | R342:best_ap_semantic_depth_tasks | semantic 4 / coarse 2 | pass | 639,741 |
-| evaluation | R342:best_ap_coarse_depth_tasks | semantic 4 / coarse 2 | pass | 639,741 |
-| evaluation | R342:committed_variant_csv_matches_sources | 12/12 | pass | 12,532,639,640,741 |
-| evaluation | R342:committed_task_csv_matches_sources | 6/6 | pass | 535,639,657,741 |
+| evaluation | R342:best_ap_semantic_depth_tasks | semantic 4 / coarse 2 | pass | 639,742 |
+| evaluation | R342:best_ap_coarse_depth_tasks | semantic 4 / coarse 2 | pass | 639,742 |
+| evaluation | R342:committed_variant_csv_matches_sources | 12/12 | pass | 12,532,639,640,742 |
+| evaluation | R342:committed_task_csv_matches_sources | 6/6 | pass | 535,639,657,742 |
 | evaluation | R344:overall | R344 | pass | 28,111,122,123,535,635,641,642 |
 | evaluation | R344:tasks | 6 tasks | pass | 123,535,641,642 |
-| evaluation | R344:metric_comparisons | 50 baseline-metric comparisons | pass | 535,641,734 |
+| evaluation | R344:metric_comparisons | 50 baseline-metric comparisons | pass | 535,641,735 |
 | evaluation | R344:task_metric_delta_rows | 300 task-metric deltas | pass | 641 |
-| evaluation | R344:support_verdicts | 30 support verdicts | pass | 641,734 |
-| evaluation | R344:counterpoint_verdicts | 16 counterpoints | pass | 641,734 |
-| evaluation | R344:mixed_or_weak_verdicts | 4 mixed/weak | pass | 641,734 |
-| evaluation | R344:required_metric_count | groups | pass | 28,122,123,535,734 |
-| evaluation | R344:required_groups_metric_present | groups | pass | 28,122,123,535,734 |
-| evaluation | R344:metric_summary_rows | 50 | pass | 535,635,641,734,827 |
+| evaluation | R344:support_verdicts | 30 support verdicts | pass | 641,735 |
+| evaluation | R344:counterpoint_verdicts | 16 counterpoints | pass | 641,735 |
+| evaluation | R344:mixed_or_weak_verdicts | 4 mixed/weak | pass | 641,735 |
+| evaluation | R344:required_metric_count | groups | pass | 28,122,123,535,735 |
+| evaluation | R344:required_groups_metric_present | groups | pass | 28,122,123,535,735 |
+| evaluation | R344:metric_summary_rows | 50 | pass | 535,635,641,735,828 |
 | evaluation | R344:task_delta_rows | 300 | pass | 28,535,641 |
-| evaluation | R344:summary_support_verdicts | 30 support verdicts | pass | 641,734 |
-| evaluation | R344:summary_counterpoint_verdicts | 16 counterpoints | pass | 641,734 |
-| evaluation | R344:summary_mixed_or_weak_verdicts | 4 mixed/weak | pass | 641,734 |
-| evaluation | R344:required_metric_groups_in_summary | groups | pass | 28,122,123,535,734 |
+| evaluation | R344:summary_support_verdicts | 30 support verdicts | pass | 641,735 |
+| evaluation | R344:summary_counterpoint_verdicts | 16 counterpoints | pass | 641,735 |
+| evaluation | R344:summary_mixed_or_weak_verdicts | 4 mixed/weak | pass | 641,735 |
+| evaluation | R344:required_metric_groups_in_summary | groups | pass | 28,122,123,535,735 |
 | evaluation | R344:flat_ap_wins | flat AP 6/6 | pass | 122 |
 | evaluation | R344:flat_budget30_recall_wins | budget30 recall 6/6 | pass | 122 |
 | evaluation | R344:flat_work_to_first_positive_wins | work-to-first-positive 6/6 | pass | 122 |
@@ -526,8 +506,8 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | evaluation | R344:fixed_session_group_wins | groups 4/6 | pass | 122 |
 | evaluation | R344:width_ap_wins | width AP 6/6 | pass | 122 |
 | evaluation | R344:width_budget30_recall_wins | budget30 recall 5/6 | pass | 122 |
-| evaluation | R344:flat_ndcg_losses | nDCG | pass | 28,535,641,734,812 |
-| evaluation | R344:flat_top5_recall_losses | top-k recall | pass | 535,641,734 |
+| evaluation | R344:flat_ndcg_losses | nDCG | pass | 28,535,641,735,813 |
+| evaluation | R344:flat_top5_recall_losses | top-k recall | pass | 535,641,735 |
 | evaluation | R345:overall | R345 | pass | 15,29,33,123,124,125,306,535 |
 | evaluation | R345:tasks | 6 tasks | pass | 15,123,124,535,642,643 |
 | evaluation | R345:datasets | 4 datasets | pass | 15,124,642,643 |
@@ -694,19 +674,19 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 
 | Doc | Guardrail | Status | Occurrences | Occurrence lines | Unguarded overclaim lines |
 |---|---|---|---:|---|---|
-| evaluation | human_utility | pass | 12 | 15,30,144,535,607,611,710,713,715,716,720,724 | none |
-| evaluation | automatic_boundary | pass | 11 | 15,29,30,229,482,535,709,710,732,741,845 | none |
-| evaluation | ecosystem_compatibility | pass | 7 | 12,53,535,606,709,727,839 | none |
-| evaluation | universal_selector | pass | 12 | 29,30,123,131,229,411,535,637,726,727,729,733 | none |
+| evaluation | human_utility | pass | 12 | 15,30,144,535,607,611,711,714,716,717,721,725 | none |
+| evaluation | automatic_boundary | pass | 11 | 15,29,30,229,482,535,710,711,733,742,847 | none |
+| evaluation | ecosystem_compatibility | pass | 7 | 12,53,535,606,710,728,841 | none |
+| evaluation | universal_selector | pass | 12 | 29,30,123,131,229,411,535,637,727,728,730,734 | none |
 | zh_claim_setup | human_utility | pass | 12 | 26,28,36,42,43,47,49,51,52,53,78,102 | none |
 | zh_claim_setup | automatic_boundary | pass | 12 | 23,25,26,47,48,50,51,52,53,78,150,152 | none |
 | zh_claim_setup | ecosystem_compatibility | pass | 8 | 22,96,114,181,228,265,266,267 | none |
 | zh_claim_setup | universal_selector | pass | 12 | 26,34,36,37,38,41,42,43,44,45,46,47 | none |
-| zh_main | human_utility | pass | 9 | 84,211,399,442,510,589,660,671,693 | none |
-| zh_main | automatic_boundary | pass | 5 | 84,85,476,506,588 | none |
-| zh_main | ecosystem_compatibility | pass | 12 | 51,169,616,624,625,628,664,691,694,703,713,714 | none |
-| zh_main | universal_selector | pass | 11 | 79,82,84,500,506,510,587,589,653,687,693 | none |
-| en_main | human_utility | pass | 6 | 136,206,220,349,684,783 | none |
-| en_main | automatic_boundary | pass | 6 | 173,357,636,672,693,879 | none |
-| en_main | ecosystem_compatibility | pass | 12 | 817,819,827,829,830,831,837,838,880,881,911,916 | none |
-| en_main | universal_selector | pass | 10 | 131,357,533,536,591,659,685,699,879,910 | none |
+| zh_main | human_utility | pass | 9 | 60,180,368,411,479,558,638,649,671 | none |
+| zh_main | automatic_boundary | pass | 3 | 445,475,557 | none |
+| zh_main | ecosystem_compatibility | pass | 12 | 138,585,593,594,597,642,669,672,681,691,692,693 | none |
+| zh_main | universal_selector | pass | 8 | 469,475,479,556,558,631,665,671 | none |
+| en_main | human_utility | pass | 6 | 66,96,110,239,576,675 | none |
+| en_main | automatic_boundary | pass | 6 | 67,247,528,564,585,790 | none |
+| en_main | ecosystem_compatibility | pass | 12 | 709,711,719,721,722,723,729,730,791,792,822,827 | none |
+| en_main | universal_selector | pass | 9 | 247,423,426,482,551,577,591,790,821 | none |
