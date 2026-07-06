@@ -1,0 +1,391 @@
+{
+  "checks": [
+    {
+      "actual": "4",
+      "check": "r357_four_current_reviewers_accept",
+      "evidence": "All four current reviewers returned ACCEPT.",
+      "expected": "4",
+      "source": "REVIEW_EVENTS",
+      "status": "pass"
+    },
+    {
+      "actual": "0",
+      "check": "r357_no_current_reviewer_blockers",
+      "evidence": "Current reviewer closure has zero blocking issues.",
+      "expected": "0",
+      "source": "REVIEW_EVENTS",
+      "status": "pass"
+    },
+    {
+      "actual": "3",
+      "check": "r357_non_blocking_notes_recorded",
+      "evidence": "Three non-blocking notes are recorded as traceability/provenance polish, not claim blockers.",
+      "expected": "3",
+      "source": "REVIEW_EVENTS",
+      "status": "pass"
+    },
+    {
+      "actual": "{\"blocking\": [], \"overall\": \"pass\", \"warnings\": []}",
+      "check": "r356_report_overall_pass_no_warnings",
+      "evidence": "R356 passes with no blockers or warnings.",
+      "expected": "{\"blocking\": [], \"overall\": \"pass\", \"warnings\": []}",
+      "source": "r356_report",
+      "status": "pass"
+    },
+    {
+      "actual": "{\"blocking\": [], \"overall\": \"pass\", \"warnings\": []}",
+      "check": "r356_run_overall_pass_no_warnings",
+      "evidence": "R356 passes with no blockers or warnings.",
+      "expected": "{\"blocking\": [], \"overall\": \"pass\", \"warnings\": []}",
+      "source": "r356_run",
+      "status": "pass"
+    },
+    {
+      "actual": "{\"base_r338_overall\": \"pass\", \"blocking\": [], \"guardrail_checks_passed\": 54, \"guardrail_checks_total\": 54, \"guardrails\": \"pass\", \"network_access_required\": false, \"number_checks_passed\": 69, \"number_checks_total\": 69, \"overall\": \"pass\", \"paper_sources_hashed\": 6, \"paper_text_coverage\": \"pass\", \"profiler_abstractions\": [\"operation\", \"operation stack\"], \"r354_r355_result_invariants\": \"pass\", \"source_artifacts_tracked_clean\": true, \"text_checks_passed\": 18, \"text_checks_total\": 18, \"two_abstraction_boundary\": \"pass\", \"warnings\": []}",
+      "check": "r356_number_text_guardrail_counts_pass",
+      "evidence": "R356 passes 69/69 number checks, 18/18 text checks, and 54/54 guardrail checks.",
+      "expected": "69/69, 18/18, 54/54",
+      "source": "claim-integrity-r356-report.json",
+      "status": "pass"
+    },
+    {
+      "actual": "{\"abstractions\": \"24/24\", \"guardrails\": \"54/54\", \"numbers\": \"69/69\", \"text\": \"18/18\"}",
+      "check": "r356_csv_rows_all_pass",
+      "evidence": "R356 CSV outputs parse cleanly and all rows pass.",
+      "expected": "all pass",
+      "source": "R356 CSV outputs",
+      "status": "pass"
+    },
+    {
+      "actual": "{\"base_r338_overall\": \"pass\", \"blocking\": [], \"guardrail_checks_passed\": 54, \"guardrail_checks_total\": 54, \"guardrails\": \"pass\", \"network_access_required\": false, \"number_checks_passed\": 69, \"number_checks_total\": 69, \"overall\": \"pass\", \"paper_sources_hashed\": 6, \"paper_text_coverage\": \"pass\", \"profiler_abstractions\": [\"operation\", \"operation stack\"], \"r354_r355_result_invariants\": \"pass\", \"source_artifacts_tracked_clean\": true, \"text_checks_passed\": 18, \"text_checks_total\": 18, \"two_abstraction_boundary\": \"pass\", \"warnings\": []}",
+      "check": "r356_two_abstraction_and_source_gate",
+      "evidence": "R356 confirms tracked-clean sources, no network requirement, and only operation plus operation stack abstractions.",
+      "expected": "tracked clean, network false, operation/operation stack",
+      "source": "claim-integrity-r356-report.json",
+      "status": "pass"
+    },
+    {
+      "actual": "{\"accepted_patches\": \"5/6\", \"ap_improved_tasks\": \"5/6\", \"first_positive_work_improved_tasks\": \"5/6\", \"groups_reduced_tasks\": \"2/6\", \"median_delta_ap\": 0.0376, \"median_delta_first_positive_work\": -0.0859, \"median_delta_top5_lift\": 0.575, \"median_group_reduction\": 0.0, \"rejected_or_needs_mapping\": \"1/6\", \"top5_lift_improved_tasks\": \"5/6\"}",
+      "check": "r354_profile_patch_actionability_supported",
+      "evidence": "R354 supports executable profile-spec actionability with 5/6 accepted patches and the accepted AP/lift/work deltas.",
+      "expected": "5/6 accepted, 1/6 rejected, 0.0376 AP, 0.5750 lift, -0.0859 WTFP",
+      "source": "profile-patch-report.json",
+      "status": "pass"
+    },
+    {
+      "actual": "[\"This is not a human or agent analyst study.\", \"This is not an automatic label-free patch selector.\", \"Rejected patches remain evidence of where a new mapping or boundary backend is needed.\", \"The only profiler objects are operations and operation stacks; profile specs are reproducibility wrappers.\"]",
+      "check": "r354_nonclaims_preserved",
+      "evidence": "R354 non-claims rule out human utility, automatic patch selection, and extra profiler abstractions.",
+      "expected": "human/agent analyst false, auto patch selector false, two abstractions",
+      "source": "profile-patch-report.json",
+      "status": "pass"
+    },
+    {
+      "actual": "{\"claim\": {\"accuracy_unit_depth_rows\": 24, \"context_only_rows\": 1, \"counterpoints\": [\"session-level AgentRewardBench labels do not prove latent subtask boundaries\", \"positive-run units are a cross-dataset proxy, not human intent annotations\", \"AgentNet/SATraj step units are often operation-equivalent controls\", \"OSWorld human_group is the strongest true subtask oracle and remains boundary-field sensitive\", \"ScaleCUA history_depth is context-only in this tracked sample and excluded from accuracy claims\"], \"datasets\": 4, \"default_all_depth_medians\": {\"budget30_positive_unit_f1\": 0.4484, \"budget30_positive_unit_recall\": 0.4342, \"budget30_spillover_operation_fraction\": 0.729, \"groups_to_50pct_positive_units\": 27.5, \"top5_unit_work\": 0.1307}, \"default_policy\": \"operation_stack:query_aware\", \"paired_checks\": {\"budget30_unit_f1_gt_fixed_rows\": 18, \"budget30_unit_recall_gt_fixed_rows\": 20, \"depth_gap_lt_fixed_rows\": 0, \"groups_to_50pct_units_lt_fixed_rows\": 22, \"positive_units_per_group_lt_raw_rows\": 24, \"top5_unit_work_lt_flat_rows\": 24}, \"positive_run_medians\": {\"budget30_positive_unit_f1\": 0.3753, \"budget30_positive_unit_recall\": 0.4908, \"groups_to_50pct_positive_units\": 37.5}, \"subtask_eligible_medians\": {\"budget30_positive_unit_f1\": 0.3627, \"budget30_positive_unit_recall\": 0.4342}, \"subtask_eligible_unit_depth_rows\": 16, \"supported_wording\": \"On existing labeled traces, the profiler can be evaluated at the oracle depth provided by each dataset. Operation-stack rankings give a measurable depth-aware triage surface across session, operation/step, positive-run, and OSWorld human-group units, while preserving explicit baseline and oracle-depth counterpoints.\", \"tasks\": 6, \"true_subtask_oracle_medians\": {\"budget30_positive_unit_f1\": 0.2308, \"budget30_positive_unit_recall\": 0.4382}, \"true_subtask_oracle_rows\": 5, \"unit_depths\": [\"agentnet_step\", \"agentreward_turn\", \"operation\", \"osworld_human_group\", \"positive_run\", \"satraj_step\", \"session\"]}, \"paired\": {\"budget30_unit_f1_gt_fixed_rows\": 18, \"budget30_unit_recall_gt_fixed_rows\": 20, \"depth_gap_lt_fixed_rows\": 0, \"groups_to_50pct_units_lt_fixed_rows\": 22, \"positive_units_per_group_lt_raw_rows\": 24, \"top5_unit_work_lt_flat_rows\": 24}}",
+      "check": "r355_oracle_depth_adequacy_supported",
+      "evidence": "R355 supports oracle-depth triage while preserving the fixed-session depth-gap counterpoint.",
+      "expected": "24 rows, 0.4342 recall, 0.4484 F1, 0.4908 positive-run recall, 20/24, 18/24, 22/24, depth gap 0",
+      "source": "oracle-depth-adequacy-report.json",
+      "status": "pass"
+    },
+    {
+      "actual": "[\"This is not a human or agent analyst study.\", \"This does not fetch, sync, create, or relabel datasets.\", \"This does not claim automatic discovery of all intent boundaries.\", \"Positive-run units are derived proxy episodes, not human intent annotations.\", \"ScaleCUA history_depth is context-only in this tracked sample and excluded from accuracy claims.\", \"Session-level labels do not prove subtask-boundary recovery.\"]",
+      "check": "r355_nonclaims_preserved",
+      "evidence": "R355 non-claims rule out automatic boundary discovery, identify positive-run as proxy, and avoid human-study claims.",
+      "expected": "auto boundary false, positive-run proxy, no human study",
+      "source": "oracle-depth-adequacy-report.json",
+      "status": "pass"
+    },
+    {
+      "actual": "{\"by_area\": {\"actionability\": {\"checks\": 3, \"passed\": 3, \"required\": 3}, \"baseline_tradeoff\": {\"checks\": 3, \"passed\": 3, \"required\": 3}, \"claim_evidence_alignment\": {\"checks\": 3, \"passed\": 3, \"required\": 3}, \"claim_scope_guardrails\": {\"checks\": 2, \"passed\": 2, \"required\": 2}, \"fidelity_accuracy\": {\"checks\": 3, \"passed\": 3, \"required\": 3}, \"generality\": {\"checks\": 2, \"passed\": 2, \"required\": 2}, \"mechanism_isolation\": {\"checks\": 3, \"passed\": 3, \"required\": 3}, \"reproducibility_overhead\": {\"checks\": 2, \"passed\": 2, \"required\": 2}, \"robustness_statistics\": {\"checks\": 2, \"passed\": 2, \"required\": 2}, \"workload_and_setup\": {\"checks\": 3, \"passed\": 3, \"required\": 3}}, \"checks_passed\": 26, \"checks_total\": 26, \"datasets\": 4, \"empirical_sources_tracked_clean\": true, \"exact_action_transfer_decisions\": 7, \"network_access_required\": false, \"objective_rows\": 36, \"overall\": \"pass\", \"required_checks_passed\": 26, \"required_checks_total\": 26, \"rubric_areas_passed\": 10, \"rubric_areas_total\": 10, \"rubric_level\": \"level_4_scoped_profile_benchmark\", \"strict_30pct_packets\": 4, \"tasks\": 6, \"top5_positive_packets\": 6, \"within_tolerance_transfer_decisions\": 35}",
+      "check": "r352_rubric_gate_still_passes",
+      "evidence": "R352 still classifies the evidence as a level_4_scoped_profile_benchmark with 26/26 required checks.",
+      "expected": "level_4_scoped_profile_benchmark, 26/26",
+      "source": "evaluation-rubric-report.json",
+      "status": "pass"
+    },
+    {
+      "actual": "{\"blocking_issues\": 0, \"checks_passed\": 11, \"checks_total\": 11, \"final_accepts\": 4, \"r328_code_status_short\": \"\", \"r328_git_status_short\": \"\", \"r328_raw_byte_deterministic_specs\": \"76/76\", \"r328_semantic_deterministic_specs\": \"76/76\", \"r338_guardrail_checks\": 16, \"r338_number_checks\": 350, \"r338_source_policy_checks\": 78, \"r350_datasets\": 4, \"r350_strict_30pct_packets\": 4, \"r350_tasks\": 6, \"r350_top5_positive_packets\": 6, \"residual_risks\": 12, \"resolved_residual_risks\": 1, \"reviewers\": 4}",
+      "check": "r351_prior_reviewer_gate_still_accepted",
+      "evidence": "R351 prior reviewer gate remains accepted with 4 accepts, zero blockers, and all checks passing.",
+      "expected": "4 accepts, 0 blockers, all checks pass",
+      "source": "reviewer-acceptance-r351.json",
+      "status": "pass"
+    },
+    {
+      "actual": "{\"automatic boundary discovery\": true, \"automatic patch selector\": true, \"complete compatibility\": true, \"ecosystem compatibility\": true, \"human utility\": true, \"human-productivity\": true, \"universal selector\": true}",
+      "check": "must_not_claim_boundaries_visible",
+      "evidence": "Current docs/papers visibly preserve human-utility, automatic-boundary, automatic-selector, ecosystem-compatibility, and universal-selector guardrails.",
+      "expected": "{\"automatic boundary discovery\": true, \"automatic patch selector\": true, \"complete compatibility\": true, \"ecosystem compatibility\": true, \"human utility\": true, \"human-productivity\": true, \"universal selector\": true}",
+      "source": "paper and docs text",
+      "status": "pass"
+    },
+    {
+      "actual": "True",
+      "check": "r357_documentation_anchor_present",
+      "evidence": "docs/evaluation.md records R357 as a reviewer-acceptance refresh, not a new empirical result.",
+      "expected": "True",
+      "source": "docs/evaluation.md",
+      "status": "pass"
+    },
+    {
+      "actual": "operation stack present",
+      "check": "two_abstraction_language_visible",
+      "evidence": "Current drafts and evaluation docs keep operation and operation stack as the profiler abstractions.",
+      "expected": "operation and operation stack",
+      "source": "paper and docs text",
+      "status": "pass"
+    }
+  ],
+  "claim_scope": {
+    "does_not_support": [
+      "human or agent analyst accuracy/productivity/time-to-answer improvement",
+      "automatic discovery of all intent or subtask boundaries",
+      "complete OpenTelemetry/Phoenix/LangSmith/Langfuse/Perfetto compatibility",
+      "automatic label-free patch or action selection",
+      "universal dominance over flat, fixed-session/span-tree, dataset-native, or raw-action views"
+    ],
+    "supports": [
+      "current reviewer acceptance of the scoped R356 paper state",
+      "submission-readiness for a profiler-localization paper claim",
+      "continued alignment between R354/R355/R356 evidence and the two-abstraction operation/operation-stack design"
+    ]
+  },
+  "commit": "36c21e7550b204e3b4ae91aa56f31b3c2b292de1",
+  "input_policy": {
+    "dataset_creation": "none",
+    "dataset_relabeling": "none",
+    "dataset_sync": "none",
+    "human_or_agent_analyst_task": "none",
+    "network_access_required": false,
+    "profiler_rerun": "none inside R357",
+    "sources": "current paper/docs plus tracked R351/R352/R354/R355/R356 artifacts"
+  },
+  "network_access_required": false,
+  "not_a_human_study_result": true,
+  "not_an_agent_analyst_task_result": true,
+  "not_new_empirical_result": true,
+  "outputs": {
+    "checks_csv": "docs/visexp/out/paper-reviewer-acceptance-r357/acceptance-checks.csv",
+    "html": "docs/visexp/out/paper-reviewer-acceptance-r357/index.html",
+    "json": "docs/visexp/out/paper-reviewer-acceptance-r357/reviewer-acceptance-r357.json",
+    "markdown": "docs/visexp/out/paper-reviewer-acceptance-r357/reviewer-acceptance-r357.md",
+    "reviewer_csv": "docs/visexp/out/paper-reviewer-acceptance-r357/reviewer-verdicts.csv",
+    "run_result": "docs/visexp/out/paper-reviewer-acceptance-r357/run-result.json",
+    "source_csv": "docs/visexp/out/paper-reviewer-acceptance-r357/source-status.csv"
+  },
+  "overall": "accepted",
+  "profiler_abstractions": [
+    "operation",
+    "operation stack"
+  ],
+  "review_events": [
+    {
+      "agent_id": "019f35f7-af07-7fd1-bc74-975191ba11f9",
+      "blocking_issues": [],
+      "final_verdict": "ACCEPT",
+      "focus": "OSDI/SOSP systems profiling claim and tradeoff review",
+      "non_blocking_notes": [
+        "The paper preserves flat full-recall, fixed-session first-positive, dataset-native recall, metric, and depth-gap counterpoints."
+      ],
+      "rationale": "The scoped claim is label-scored profiler localization/ranking, not human utility or universal automation; baselines, metrics, R354/R355 supplements, and tradeoffs are represented without blocking drift.",
+      "reviewer": "Linnaeus"
+    },
+    {
+      "agent_id": "019f35f7-ca48-7f23-bca8-412091f9197c",
+      "blocking_issues": [],
+      "final_verdict": "ACCEPT",
+      "focus": "NeurIPS/ML hidden-label evaluation and leakage review",
+      "non_blocking_notes": [
+        "One R356 text-coverage line hit is marked missing because tokens are split across nearby English lines, but the full R355 protocol and counterpoint are present."
+      ],
+      "rationale": "R356 keeps labels out of visible profiling/ranking, uses hidden labels only for offline scoring, reports the right baselines and metrics, and keeps R354/R355 non-claims explicit.",
+      "reviewer": "Meitner"
+    },
+    {
+      "agent_id": "019f35f7-e3a3-7280-b428-6c45447b3c60",
+      "blocking_issues": [],
+      "final_verdict": "ACCEPT",
+      "focus": "Artifact provenance, source cleanliness, and reproducibility review",
+      "non_blocking_notes": [
+        "Some R356 text-coverage rows can have status pass with line hits missing because line tracing requires all tokens on one line; this is traceability polish, not provenance failure."
+      ],
+      "rationale": "The top-level and submodule worktrees were clean at review time, R356 is an audit rather than a new empirical result, source provenance is tracked clean or hashed, and R356 CSV outputs parse with all checks passing.",
+      "reviewer": "Volta"
+    },
+    {
+      "agent_id": "019f35f7-fe67-7312-a0e2-e6ba65f9bb23",
+      "blocking_issues": [],
+      "final_verdict": "ACCEPT",
+      "focus": "Claim-safety and must-not-claim boundary review",
+      "non_blocking_notes": [],
+      "rationale": "The paper scopes value to profiler fidelity and actionable tradeoffs over operation and operation stack, while excluding human utility, automatic selectors, complete boundary discovery, and full trace-ecosystem compatibility.",
+      "reviewer": "Beauvoir"
+    }
+  ],
+  "run_id": "R357",
+  "schema": "agentsight.paper-reviewer-acceptance-r357.v1",
+  "source_status": [
+    {
+      "path": "docs/agentpprof-paper/main.tex",
+      "role": "paper_or_doc",
+      "sha256": "04934c05073c6ea96d1d8b7bbab31ad674b5532917c52501c1310a6960b7094d",
+      "source": "english_paper",
+      "status": "tracked_hashed"
+    },
+    {
+      "path": "docs/visexp/paper/main.tex",
+      "role": "paper_or_doc",
+      "sha256": "7512469d2901282bf156e6e75e66e3f5c98366fc3e467a6d15b019c89ba78e0a",
+      "source": "chinese_paper",
+      "status": "tracked_hashed"
+    },
+    {
+      "path": "docs/visexp/paper/evaluation-claims-setup.zh-CN.md",
+      "role": "paper_or_doc",
+      "sha256": "2be7ae4c2d350317d02788ecd6fc67034d05374040122bb410175920459b92fe",
+      "source": "claim_setup",
+      "status": "tracked_hashed"
+    },
+    {
+      "path": "docs/design.md",
+      "role": "paper_or_doc",
+      "sha256": "822602a046705741dccee2632d0e0ac02a908131be907f7cbe249b942fd0373b",
+      "source": "design",
+      "status": "tracked_hashed"
+    },
+    {
+      "path": "docs/implementation.md",
+      "role": "paper_or_doc",
+      "sha256": "ab7a0e42ba5279d66bdc39bd2b0a51059bb13224092b810dec99c94ef3233c39",
+      "source": "implementation",
+      "status": "tracked_hashed"
+    },
+    {
+      "path": "docs/evaluation.md",
+      "role": "paper_or_doc",
+      "sha256": "36ef32cb764ecd50ef518c76a38f522d36a1492bcecc10aab703be725162da95",
+      "source": "evaluation",
+      "status": "tracked_hashed"
+    },
+    {
+      "path": "docs/visexp/out/paper-reviewer-acceptance-r351/reviewer-acceptance.json",
+      "role": "tracked_hashed_audit_artifact",
+      "sha256": "be1d9b36b997e05a63d54211435951f5d5f785c59927127bb41346e2ac11b966",
+      "source": "r351",
+      "status": "tracked_hashed"
+    },
+    {
+      "path": "docs/visexp/out/paper-reviewer-acceptance-r351/run-result.json",
+      "role": "tracked_hashed_audit_artifact",
+      "sha256": "bbec5a781b54f793c450d06bc9d81326de0173deb4070578100993960c42726b",
+      "source": "r351_run",
+      "status": "tracked_hashed"
+    },
+    {
+      "path": "docs/visexp/out/paper-evaluation-rubric-r352/evaluation-rubric-report.json",
+      "role": "tracked_hashed_audit_artifact",
+      "sha256": "8bc78662fd1d5b97508a491658dfd03fa5314950f37266a3191f3281e5fc5102",
+      "source": "r352",
+      "status": "tracked_hashed"
+    },
+    {
+      "path": "docs/visexp/out/paper-evaluation-rubric-r352/run-result.json",
+      "role": "tracked_hashed_audit_artifact",
+      "sha256": "ecbeae587f117544d4e288ef2aa23250cbfec5d77a28864bce5ed7758d790fa4",
+      "source": "r352_run",
+      "status": "tracked_hashed"
+    },
+    {
+      "path": "docs/visexp/out/operation-profile-patch-r354/profile-patch-report.json",
+      "role": "tracked_clean_empirical_artifact",
+      "sha256": "6585af0a77956fa56b8aadec29f822714789b5bfcdf1769fcd61ba3d0c1994ad",
+      "source": "r354",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-profile-patch-r354/run-result.json",
+      "role": "tracked_clean_empirical_artifact",
+      "sha256": "e6198c6ff607254991550adebf412d948f36d13916cbdf72c0487e653a81aacf",
+      "source": "r354_run",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-oracle-depth-adequacy-r355/oracle-depth-adequacy-report.json",
+      "role": "tracked_clean_empirical_artifact",
+      "sha256": "59b32c9cb9f00000984ae19376ac9aa411ad7b1c9a679ef3d0306017e5def00a",
+      "source": "r355",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-oracle-depth-adequacy-r355/run-result.json",
+      "role": "tracked_clean_empirical_artifact",
+      "sha256": "b118f397e38b5a443556c2c77709aecb045cf9e4e5b6c8615ec1c5e5a9eb8eac",
+      "source": "r355_run",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/paper-claim-integrity-r356/claim-integrity-r356-report.json",
+      "role": "tracked_hashed_audit_artifact",
+      "sha256": "c3302c1ecca5996df406fca79ee8d335274ce9c05418296f4686672b2cb02856",
+      "source": "r356",
+      "status": "tracked_hashed"
+    },
+    {
+      "path": "docs/visexp/out/paper-claim-integrity-r356/run-result.json",
+      "role": "tracked_hashed_audit_artifact",
+      "sha256": "bffa0162f2b5f12a89887cab0b4036c66cca674b2908d29488aad851a09a8192",
+      "source": "r356_run",
+      "status": "tracked_hashed"
+    },
+    {
+      "path": "docs/visexp/out/paper-claim-integrity-r356/number-checks.csv",
+      "role": "tracked_hashed_audit_artifact",
+      "sha256": "59e68c56f45f0d421d42febec66bc9607fc5914694acdac483d81dc0771bd604",
+      "source": "r356_numbers",
+      "status": "tracked_hashed"
+    },
+    {
+      "path": "docs/visexp/out/paper-claim-integrity-r356/text-coverage.csv",
+      "role": "tracked_hashed_audit_artifact",
+      "sha256": "883f89c97a955c0e0fa8d9d73e4fce39b972b819a74fbec6860257dd43bf3e09",
+      "source": "r356_text",
+      "status": "tracked_hashed"
+    },
+    {
+      "path": "docs/visexp/out/paper-claim-integrity-r356/guardrail-checks.csv",
+      "role": "tracked_hashed_audit_artifact",
+      "sha256": "070cc62eb0f25916ea9c9b4d9e5c7c1592670a33f3c122148092d6ae0918bb82",
+      "source": "r356_guardrails",
+      "status": "tracked_hashed"
+    },
+    {
+      "path": "docs/visexp/out/paper-claim-integrity-r356/abstraction-text-checks.csv",
+      "role": "tracked_hashed_audit_artifact",
+      "sha256": "cdf14b506e3bb02dad78c32a3bcc9f8ea99e82369a9c14a3901f8e1d9ef5d3aa",
+      "source": "r356_abstractions",
+      "status": "tracked_hashed"
+    }
+  ],
+  "status": "ok",
+  "summary": {
+    "blocking_issues": 0,
+    "checks_passed": 17,
+    "checks_total": 17,
+    "final_accepts": 4,
+    "non_blocking_notes": 3,
+    "r351_final_accepts": 4,
+    "r352_rubric_level": "level_4_scoped_profile_benchmark",
+    "r354_accepted_patches": "5/6",
+    "r354_median_delta_ap": 0.0376,
+    "r354_median_delta_top5_lift": 0.575,
+    "r355_accuracy_task_depth_rows": 24,
+    "r355_budget30_unit_recall": 0.4342,
+    "r355_fixed_recall_wins": 20,
+    "r356_guardrail_checks": "54/54",
+    "r356_number_checks": "69/69",
+    "r356_text_checks": "18/18",
+    "reviewers": 4,
+    "source_gate": "pass"
+  }
+}
