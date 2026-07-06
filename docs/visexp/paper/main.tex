@@ -155,7 +155,7 @@ Leave-one-feature、robustness 和 transfer checks 说明 \texttt{repeat\_signal
 Profile-spec replay、input-source replay 和 deterministic output 归入 E4。
 同一批 76 个 tracked specs 覆盖 R300 views、R324 rank-feature specs 和 R326 robustness specs；Rust \texttt{agentpprof --profile-spec} 重复运行两次后 semantic profile hash 全部稳定，默认 raw-byte hash 只有 4/76 稳定，因为 JSON profile 包含生成时间戳。
 启用 \texttt{--deterministic-output} 后 raw-byte hash 达到 76/76。
-R392 进一步验证 profile spec 可以 replay \texttt{session\_files}、\texttt{trace\_files}、\texttt{standard\_trace\_files}、regex \texttt{tag\_rules}、\texttt{where\_rules}、rank rules、stack override 和 \texttt{include\_standard\_trace\_args}；这些输入源最后仍归一成 operations 并由 operation stack 折叠。
+同一个 E4 block 进一步验证 profile spec 可以 replay \texttt{session\_files}、\texttt{trace\_files}、\texttt{standard\_trace\_files}、regex \texttt{tag\_rules}、\texttt{where\_rules}、rank rules、stack override 和 \texttt{include\_standard\_trace\_args}；这些输入源最后仍归一成 operations 并由 operation stack 折叠。
 这关闭的是 artifact byte-stability 缺口，不是新的 accuracy benchmark、live overhead benchmark 或第五个主实验。
 因此 prompt、session、toolcall、process、syscall、plan 和 subagent 都可以在同一套 mechanism 中出现，而不是成为互不兼容的 object model。
 
@@ -244,7 +244,7 @@ R 编号只作为 provenance，不是论文的小节结构。
     RQ1/E1: generality, recursive folding, and field derivation & 15 public labeled trace families / 47,590 operations, plus local-session and standard-trace exchange fixtures. OSWorld-Human and AgentNet provide the strongest boundary and step-quality oracles. & Core sources contain 42,590 operations; ScaleCUA brings the smoke set to 47,590; the same operations fold from 9 dataset stacks to 57 phase, 226 semantic, 455 action, or 3,757 fixed-session stacks. AgentNet profile-spec override changes 608 stacks to 83 without changing input operations. Held-out mapping improves compression from 14.049 to 19.091; OSWorld-Human learned boundary F1 reaches 0.7735; boundary backends beat the best simple baseline on 4/5 rows. & Heterogeneous traces enter one operation layer, and stack depth is a recursive query over fields. Mapping, tagging, and boundary backends derive fields before folding; they do not add prompt/session/tool/safety-specific profiler objects or automatic intent boundary discovery. \\
     RQ2/E2: hidden-label localization and ranking & Six failure, safety, quality, and boundary tasks over AgentRewardBench, SATraj-OS, AgentNet, and OSWorld-Human; 34,539 operations / 3,699 positives. & The benchmark scores 144 view/ranker policies. Query-aware operation-stack top-5 groups inspect median 0.0937 work versus 1.0 for flat, improve top-5 recall over fixed-session on 5/6 tasks, and reduce median groups from 285.0 to 157.5. Work-budget、fragmentation、fixed-recall、sequence-scope、oracle-depth、uncertainty、negative-control 和 multi-metric slices are support, not separate experiments. & Operation-stack profiling is faithful to dataset-provided hidden labels under this benchmark and gives a better inspection-work/median-fragmentation Pareto point than flat or fixed-session alone. It is not a universal detector, a single best hierarchy, or a work-dominant replacement for drilldown views. \\
     RQ3/E3: mechanism and actionability & The same six labeled tasks, plus held-out OSWorld-Human boundary-backend operations. & Operation-level rank features and ablations expose useful and misleading fields; profile-spec patches improve 5/6 tasks with median AP delta 0.0376 and lift delta 0.5750. Learned-boundary fields improve OSWorld-Human AP to 0.2583 and reduce groups to 74, but increase top-5 work and first-positive work. & The profiler produces profile-configuration actionability: which stack fields, mappings, rankers, lenses, and drilldown depths to tune. It keeps automatic action selection, automatic patch selection, and automatic boundary discovery out of scope. \\
-    RQ4/E4: artifact replayability, offline cost, and hygiene & 76 tracked operation-JSONL profile specs, plus local-session、agent-trace 和 standard-trace profile-spec input replay regressions; no dataset sync or human/agent analyst task. & Deterministic replay covers 152 profiler invocations. Semantic determinism is 76/76 in both modes; deterministic output makes raw-byte determinism 76/76 with median runtime 1.601s and p95 2.767s in the clean rerun. R392 confirms source selection、regex tags、trace inputs 和 effective standard-trace args 都通过同一 operation-stack path replay。 & The offline profiling artifact is replayable and cheap enough for artifact evaluation; this is an artifact/reproducibility block, not a hidden-label accuracy result, live capture overhead result, human productivity result, or trace-ecosystem compatibility result. \\
+    RQ4/E4: artifact replayability, offline cost, and hygiene & 76 tracked operation-JSONL profile specs, plus local-session、agent-trace 和 standard-trace profile-spec input replay regressions; no dataset sync or human/agent analyst task. & Deterministic replay covers 152 profiler invocations. Semantic determinism is 76/76 in both modes; deterministic output makes raw-byte determinism 76/76 with median runtime 1.601s and p95 2.767s in the clean rerun. Source selection、regex tags、trace inputs 和 effective standard-trace args 都通过同一 operation-stack path replay。 & The offline profiling artifact is replayable and cheap enough for artifact evaluation; this is an artifact/reproducibility block, not a hidden-label accuracy result, live capture overhead result, human productivity result, or trace-ecosystem compatibility result. \\
     \bottomrule
 \end{tabular}
 \end{table*}
@@ -495,21 +495,21 @@ Held-out boundary-derived fields 随后作为普通 operation fields 折叠，AP
 实验契约：RQ4/E4 的 claim 是 offline profiler path 可以在 tracked inputs 上低成本 replay；oracle 是 tracked profile specs、tracked operation inputs、profile-spec input replay regressions、repeated profile outputs、runtime logs 和 source-status rows；baseline 包括 default output versus deterministic-output replay、semantic profile hashes versus raw-byte profile hashes，以及 effective input metadata versus silently ignored source paths；metric 包括 deterministic spec pass rate、profiler invocations、median/p95 runtime、sample equality、stack equality、raw-byte output equality 和 input-source replay coverage；counterpoint 是 not live eBPF overhead、not human utility、not complete ecosystem compatibility、not universal selector。Claim-integrity、rubric 和 reviewer-style checks 是 artifact hygiene，不是 empirical evidence。
 Claim-test：RQ4/E4 问的是：reviewer 能否 replay offline profile-spec path，并验证 source provenance、paper numbers、two-abstraction wording 和 non-claims 都保持一致。
 
-本节的 empirical content 是一个 replayability/cost block。
+本节的 empirical content 只有一个 replayability/cost block。
 它在 tracked operation JSONL inputs 上重复执行 76 个 profile specs，共 152 次 profiler invocations。
 默认模式下所有 specs 在重复运行中保持 semantic profile content、samples 和 unique stacks 稳定，median 每个 spec 运行时间为 1.581s，p95 为 2.719s；raw-byte determinism 只有 4/76，因为输出带生成时间戳。
 Deterministic artifact mode 固定 JSON \texttt{generated\_at} 和 pprof profile time 后，同一 76 个 specs 的 semantic 与 raw-byte determinism 均为 76/76，clean rerun 记录空的 git/code status，median 每个 spec 运行时间为 1.601s，p95 为 2.767s。
-R327/R328 只是这个 E4 replayability block 的 provenance；这些结果支持 artifact/reproducibility claim，但不等价于 live capture overhead。
+这些 source artifacts 支持 artifact/reproducibility claim，但不等价于 live capture overhead，也不形成另一个经验性 profiling 实验。
 
-R392 补齐 input-source replay guardrail。
+Input-source replay guardrail 属于同一个 E4 block。
 Rust profile-spec path 现在可以携带 \texttt{session\_files}、\texttt{trace\_files}、\texttt{standard\_trace\_files}、regex \texttt{tag\_rules}、predicates、rank rules、stack overrides 和 \texttt{include\_standard\_trace\_args}。
 回归测试把同一个 public Codex fixture 作为 local session 和 exported agent-session trace replay，并把一个 generic Chrome Trace Event 中的非 AgentSight \texttt{protocol} arg 导入为 operation field 后折叠。
 这些检查证明 profile spec 不会只 replay operation JSONL，也不会把输入源静默忽略；但它们仍然是 E4 replay/hygiene evidence，不是新的 hidden-label accuracy experiment、第三个 profiler object 或完整 trace-ecosystem compatibility claim。
-表~\ref{tab:r327-cost} 和表~\ref{tab:r328-determinism} 是 E4 的主显示：前者呈现 replayability/cost result，后者呈现 deterministic-output repair；R327/R328 是 source artifacts，不是新的 accuracy 实验。
+表~\ref{tab:r327-cost} 和表~\ref{tab:r328-determinism} 是 E4 的两个主显示：前者呈现 replayability/cost result，后者呈现 deterministic-output repair；表中的 run IDs 只标识 source artifacts，不是新的 accuracy 实验。
 
 其余 paper gates 是 artifact hygiene，不是新的 empirical evidence。
-R338 把 paper claim 本身纳入审计：它复用 R320--R350 的 tracked-clean artifacts，不重新排名、不下载、不同步、不创建、不重标数据集，只检查论文数字、source policy、must-not-claim guardrails 和 operation/operation-stack 边界是否一致。
-R352 再把当前结果集映射到 OSDI-style profiling-paper rubric：它复用 tracked R320--R351 artifacts 和当前论文文本，不下载、不同步、不重跑 profiler，也不运行 human/agent analyst task。
+Claim-integrity 和 OSDI-style profiling-paper rubric checks 复用 tracked-clean artifacts 和当前论文文本，不重新排名、不下载、不同步、不创建、不重标数据集、不重跑 profiler，也不运行 human/agent analyst task。
+它们只检查论文数字、source policy、must-not-claim guardrails、operation/operation-stack 边界和 profiling-paper 证据覆盖是否一致。
 26/26 required checks 和 10/10 rubric areas 通过，覆盖 fidelity/accuracy、actionability、baseline tradeoff、generality、mechanism isolation、robustness/statistics、reproducibility/overhead 和 claim-scope guardrails。
 上一节的 actionability 结论依赖这些可复现 profile specs 和 tracked operation inputs；本节只证明 reviewer 能重放这些 artifacts 并检查 source provenance、paper numbers 和 non-claims。
 因此 RQ4/E4 是 replayability/claim-hygiene 证据，不是人工 analyst 主观解释、live overhead 或新的 profiler accuracy 结果。
@@ -517,7 +517,7 @@ R352 再把当前结果集映射到 OSDI-style profiling-paper rubric：它复�
 \begin{table}[t]
   \centering
   \scriptsize
-  \caption{E4 replayability/cost 主显示，来自 R327。Runtime 为 Rust binary 已存在后的每个 spec 秒数；semantic hash 去除 JSON \texttt{generated\_at} 字段，raw-byte hash 单独报告。}
+  \caption{E4 replayability/cost 主显示。Runtime 为 Rust binary 已存在后的每个 spec 秒数；semantic hash 去除 JSON \texttt{generated\_at} 字段，raw-byte hash 单独报告。}
   \label{tab:r327-cost}
   \begin{tabular}{lrrrr}
     \toprule
@@ -534,7 +534,7 @@ R352 再把当前结果集映射到 OSDI-style profiling-paper rubric：它复�
 \begin{table}[t]
   \centering
   \small
-  \caption{E4 deterministic-output 主显示，来自 R327/R328 在同一 76 个 profile specs 上的 determinism 检查。R328 使用 \texttt{--deterministic-output}。}
+  \caption{E4 deterministic-output 主显示，比较同一 76 个 profile specs 的默认输出和 \texttt{--deterministic-output} replay。}
   \label{tab:r328-determinism}
   \begin{tabular}{llrrrr}
     \toprule
