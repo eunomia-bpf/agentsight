@@ -53,9 +53,12 @@ INTERNAL_STYLE_PATTERNS = [
     "submission audit",
     "Claim test",
     "Claim-test",
+    "Experiment contract",
     "实验契约",
     "artifact ledger",
     "paper gates",
+    "Gate / counterpoint",
+    "supports-with-counterpoints",
 ]
 SELF_UNDERCUT_PATTERNS = [
     re.compile(r"不是\s*(?:OSDI|NeurIPS|NIPS)[^。\\]*(?:最终接收|接受级|完整证据)"),
@@ -221,6 +224,7 @@ def build_report() -> dict[str, Any]:
     english_rqs = subsection_rqs(english)
     paper_run_hits = run_id_hits(SOURCES["Chinese paper"]) + run_id_hits(SOURCES["English paper"])
     chinese_internal_style_hits = internal_style_hits(SOURCES["Chinese paper"])
+    main_paper_internal_style_hits = chinese_internal_style_hits + internal_style_hits(SOURCES["English paper"])
     paper_self_undercut_hits = self_undercut_hits(SOURCES["Chinese paper"]) + self_undercut_hits(
         SOURCES["English paper"]
     )
@@ -311,9 +315,9 @@ def build_report() -> dict[str, Any]:
     )
     add_check(
         checks,
-        "chinese_main_avoids_internal_checklist_terms",
-        not chinese_internal_style_hits,
-        f"Found {len(chinese_internal_style_hits)} internal checklist-style terms in the Chinese main paper.",
+        "main_papers_avoid_internal_checklist_terms",
+        not main_paper_internal_style_hits,
+        f"Found {len(main_paper_internal_style_hits)} internal checklist-style terms in the Chinese/English main papers.",
     )
     add_check(
         checks,
@@ -361,7 +365,7 @@ def build_report() -> dict[str, Any]:
         and "table~\\ref{tab:core-results} is the four-block claim map" in english_l
         and "provide hidden-label fidelity and baseline tradeoff evidence" in english_l
         and "provide mechanism/actionability evidence" in english_l
-        and "stay in the artifact ledger as provenance, counterpoints, or hygiene checks" in english_l
+        and "stay in the supporting artifact index as data sources, counterpoints, or scope checks" in english_l
         and ("主文图表按这条路径阅读" in chinese_norm or "主文图表形成一条固定证据路径" in chinese_norm)
         and "表~\\ref{tab:results} 是四个 block 的 claim map" in chinese_norm
         and "hidden-label fidelity 和 baseline tradeoff" in chinese_norm
@@ -377,7 +381,10 @@ def build_report() -> dict[str, Any]:
         "canonical_next_action_rejects_small_experiment_sprawl",
         "the next gate is prose and figure/table polish, not more small experiments" in idea_l
         and "do not add another empirical block unless it strengthens e1, e2, e3, or e4 directly" in idea_l
-        and "keep r-numbered provenance in the ledger rather than the main paper bodies" in idea_l,
+        and (
+            "keep r-numbered provenance in the ledger rather than the main paper bodies" in idea_l
+            or "keep r-numbered provenance and internal process vocabulary out of the main paper bodies" in idea_l
+        ),
         "The idea story preserves the next-action rule against scattered new empirical blocks.",
     )
     add_check(
@@ -401,6 +408,7 @@ def build_report() -> dict[str, Any]:
         "human_or_agent_analyst_task": False,
         "paper_run_id_hits": paper_run_hits,
         "chinese_internal_style_hits": chinese_internal_style_hits,
+        "main_paper_internal_style_hits": main_paper_internal_style_hits,
         "paper_self_undercut_hits": paper_self_undercut_hits,
         "checks": checks,
         "source_status": source_status,
@@ -411,6 +419,7 @@ def build_report() -> dict[str, Any]:
             "english_rq_subsections": english_rqs,
             "main_paper_run_id_hits": len(paper_run_hits),
             "chinese_internal_style_hits": len(chinese_internal_style_hits),
+            "main_paper_internal_style_hits": len(main_paper_internal_style_hits),
             "paper_self_undercut_hits": len(paper_self_undercut_hits),
         },
         "interpretation": (
@@ -441,6 +450,7 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
         f"Status: `{report['status']}`",
         f"Checks: {report['summary']['checks_passed']}/{report['summary']['checks_total']}",
         f"Main-paper run-id hits: {report['summary']['main_paper_run_id_hits']}",
+        f"Main-paper internal-style hits: {report['summary']['main_paper_internal_style_hits']}",
         f"Chinese internal-style hits: {report['summary']['chinese_internal_style_hits']}",
         f"Paper-facing self-undercut hits: {report['summary']['paper_self_undercut_hits']}",
         "",
@@ -507,6 +517,11 @@ def main() -> int:
     write_csv(
         out_dir / "chinese-internal-style-hits.csv",
         report["chinese_internal_style_hits"],
+        ["path", "line", "patterns", "text"],
+    )
+    write_csv(
+        out_dir / "main-paper-internal-style-hits.csv",
+        report["main_paper_internal_style_hits"],
         ["path", "line", "patterns", "text"],
     )
     write_csv(

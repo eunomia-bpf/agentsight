@@ -50,9 +50,12 @@ INTERNAL_STYLE_PATTERNS = [
     "submission audit",
     "Claim test",
     "Claim-test",
+    "Experiment contract",
     "实验契约",
     "artifact ledger",
     "paper gates",
+    "Gate / counterpoint",
+    "supports-with-counterpoints",
 ]
 
 
@@ -184,14 +187,15 @@ def build_report() -> dict[str, Any]:
     evaluation = read_text(SOURCES["evaluation ledger"])
     idea = read_text(SOURCES["idea story"])
     chinese_norm = normalize(chinese)
-    english_l = english.lower()
-    evaluation_l = evaluation.lower()
-    idea_l = idea.lower()
+    english_l = normalize(english).lower()
+    evaluation_l = normalize(evaluation).lower()
+    idea_l = normalize(idea).lower()
     r395 = read_json(SOURCES["R395 claim/verdict alignment"])
     r396 = read_json(SOURCES["R396 paper build smoke"])
 
     hits = run_id_hits(SOURCES["Chinese paper"]) + run_id_hits(SOURCES["English paper"])
     chinese_internal_style_hits = internal_style_hits(SOURCES["Chinese paper"])
+    main_paper_internal_style_hits = chinese_internal_style_hits + internal_style_hits(SOURCES["English paper"])
     checks: list[dict[str, Any]] = []
     add_check(
         checks,
@@ -201,9 +205,9 @@ def build_report() -> dict[str, Any]:
     )
     add_check(
         checks,
-        "chinese_main_avoids_internal_checklist_terms",
-        not chinese_internal_style_hits,
-        f"Found {len(chinese_internal_style_hits)} internal checklist-style terms in the Chinese main paper.",
+        "main_papers_avoid_internal_checklist_terms",
+        not main_paper_internal_style_hits,
+        f"Found {len(main_paper_internal_style_hits)} internal checklist-style terms in the Chinese/English main papers.",
     )
     add_check(
         checks,
@@ -284,6 +288,7 @@ def build_report() -> dict[str, Any]:
         "human_or_agent_analyst_task": False,
         "run_id_hits": hits,
         "chinese_internal_style_hits": chinese_internal_style_hits,
+        "main_paper_internal_style_hits": main_paper_internal_style_hits,
         "checks": checks,
         "source_status": source_status,
         "summary": {
@@ -291,6 +296,7 @@ def build_report() -> dict[str, Any]:
             "checks_total": len(checks),
             "main_paper_run_id_hits": len(hits),
             "chinese_internal_style_hits": len(chinese_internal_style_hits),
+            "main_paper_internal_style_hits": len(main_paper_internal_style_hits),
         },
         "interpretation": (
             "The main paper bodies now present E1/E2/E3/E4 as the reviewer-facing "
@@ -319,6 +325,7 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
         f"Status: `{report['status']}`",
         f"Checks: {report['summary']['checks_passed']}/{report['summary']['checks_total']}",
         f"Main-paper run-id hits: {report['summary']['main_paper_run_id_hits']}",
+        f"Main-paper internal-style hits: {report['summary']['main_paper_internal_style_hits']}",
         f"Chinese internal-style hits: {report['summary']['chinese_internal_style_hits']}",
         "",
         report["interpretation"],
@@ -384,6 +391,11 @@ def main() -> int:
     write_csv(
         out_dir / "chinese-internal-style-hits.csv",
         report["chinese_internal_style_hits"],
+        ["path", "line", "patterns", "text"],
+    )
+    write_csv(
+        out_dir / "main-paper-internal-style-hits.csv",
+        report["main_paper_internal_style_hits"],
         ["path", "line", "patterns", "text"],
     )
     write_csv(out_dir / "source-status.csv", report["source_status"], ["source", "path", "status", "sha256"])

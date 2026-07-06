@@ -30,9 +30,9 @@ boundary evidence is deterministic or supervised field derivation, not
 unsupervised discovery. Human or agent analyst evidence, broader automatic
 boundary detection, and real producer span-tree imports are future expansion
 gates, not blockers for the current scoped profiler-localization claim. R296
-adds a reviewer evidence packet over
-tracked/clean R282-R295 artifacts; it is a navigation layer over operation and
-operation-stack outputs, not a new profiler abstraction. R297 adds the first
+adds a reviewer navigation index over tracked/clean R282-R295 artifacts; it is
+a navigation layer over operation and operation-stack outputs, not a new
+profiler abstraction. R297 adds the first
 supervised boundary-backend expansion probe: the backend predicts
 OSWorld-Human human-group boundaries on held-out sessions, writes
 `learned_group_pattern` fields onto operations, and the existing Rust

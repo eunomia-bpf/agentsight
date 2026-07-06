@@ -12,12 +12,12 @@ The tracked Chinese and English paper PDFs contain the same main-display path th
 |---|---:|---|
 | prerequisite_gates_pass | True | Prerequisite statuses={'R396 paper build smoke': 'pass', 'R398 current three-plus-one': 'pass'} |
 | pdftotext_available | True | pdftotext=/usr/bin/pdftotext |
-| tracked_pdfs_exist | True | PDF bytes={'chinese_pdf_bytes': 589436, 'english_pdf_bytes': 595145} |
+| tracked_pdfs_exist | True | PDF bytes={'chinese_pdf_bytes': 589436, 'english_pdf_bytes': 595200} |
 | pdftotext_extraction_succeeds | True | Chinese rc=0 stderr=; English rc=0 stderr= |
 | source_display_path_tokens_present | True | Chinese and English TeX sources contain the main-display path tokens. |
 | tracked_pdfs_contain_display_path | True | Tracked Chinese and English PDFs contain the display-path text after PDF text extraction. |
 | pdf_non_claim_scope_visible | True | Tracked English PDF keeps fifth-experiment, accuracy, productivity, boundary, and ecosystem non-claims visible. |
-| english_submodule_captured_by_parent | True | submodule_head=c87fdc168a38997026bb9f6e728b18f95df1c8df; parent_index=c87fdc168a38997026bb9f6e728b18f95df1c8df |
+| english_submodule_captured_by_parent | True | submodule_head=d3b15e7faf5a0d8806b592e66b6bc09f155ac4ba; parent_index=d3b15e7faf5a0d8806b592e66b6bc09f155ac4ba |
 | source_status_tracked_or_dirty_allowed | True | All inputs are tracked or intentionally dirty while this gate is generated. |
 
 ## Token Checks
@@ -35,7 +35,7 @@ The tracked Chinese and English paper PDFs contain the same main-display path th
 | english_source | True | `provide hidden-label fidelity and baseline tradeoff evidence` |
 | english_source | True | `provide mechanism/actionability evidence` |
 | english_source | True | `provide replay and cost evidence` |
-| english_source | True | `stay in the artifact ledger as provenance, counterpoints, or hygiene checks` |
+| english_source | True | `stay in the supporting artifact index as data sources, counterpoints, or scope checks` |
 | chinese_pdf | True | `主文图表形成一条固定证据路径` |
 | chinese_pdf | True | `四个 block 的 claim map` |
 | chinese_pdf | True | `hidden-label fidelity 和 baseline tradeoff` |
@@ -47,7 +47,7 @@ The tracked Chinese and English paper PDFs contain the same main-display path th
 | english_pdf | True | `hidden-label fidelity and baseline` |
 | english_pdf | True | `mechanism/actionability evidence` |
 | english_pdf | True | `provide replay` |
-| english_pdf | True | `artifact ledger as provenance` |
+| english_pdf | True | `supporting artifact index` |
 | english_non_claims | True | `not a fifth core` |
 | english_non_claims | True | `not a hidden-label accuracy result` |
 | english_non_claims | True | `human productivity result` |

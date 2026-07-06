@@ -3,6 +3,7 @@
 Status: `pass`
 Checks: 13/13
 Main-paper run-id hits: 0
+Main-paper internal-style hits: 0
 Chinese internal-style hits: 0
 
 The main paper bodies now present E1/E2/E3/E4 as the reviewer-facing evaluation path; R-numbered runs remain provenance in the ledger and artifacts rather than main experiments.
@@ -12,7 +13,7 @@ The main paper bodies now present E1/E2/E3/E4 as the reviewer-facing evaluation 
 | Check | Passed | Detail |
 |---|---:|---|
 | main_papers_have_no_run_ids | True | Found 0 R-numbered run-id mentions in main papers. |
-| chinese_main_avoids_internal_checklist_terms | True | Found 0 internal checklist-style terms in the Chinese main paper. |
+| main_papers_avoid_internal_checklist_terms | True | Found 0 internal checklist-style terms in the Chinese/English main papers. |
 | english_three_plus_one_visible | True | English draft frames E1-E3 plus E4 and demotes support artifacts from main experiments. |
 | chinese_three_plus_one_visible | True | Chinese draft frames E1-E3 plus E4 and demotes support artifacts from main experiments. |
 | rq1_e1_present_in_both_papers | True | RQ1/E1 appears in both paper drafts. |

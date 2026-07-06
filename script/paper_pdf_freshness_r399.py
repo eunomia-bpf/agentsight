@@ -55,7 +55,7 @@ ENGLISH_SOURCE_TOKENS = [
     "provide hidden-label fidelity and baseline tradeoff evidence",
     "provide mechanism/actionability evidence",
     "provide replay and cost evidence",
-    "stay in the artifact ledger as provenance, counterpoints, or hygiene checks",
+    "stay in the supporting artifact index as data sources, counterpoints, or scope checks",
 ]
 
 CHINESE_PDF_TOKENS = [
@@ -73,7 +73,7 @@ ENGLISH_PDF_TOKENS = [
     "hidden-label fidelity and baseline",
     "mechanism/actionability evidence",
     "provide replay",
-    "artifact ledger as provenance",
+    "supporting artifact index",
 ]
 
 NON_CLAIM_TOKENS = [

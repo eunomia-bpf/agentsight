@@ -3,6 +3,7 @@
 Status: `pass`
 Checks: 14/14
 Main-paper run-id hits: 0
+Main-paper internal-style hits: 0
 Chinese internal-style hits: 0
 Paper-facing self-undercut hits: 0
 
@@ -19,7 +20,7 @@ The current paper organization remains three empirical profiling experiments plu
 | e3_is_mechanism_actionability_not_fifth_experiment | True | Mechanism, actionability, patches, and boundary-field evidence remain inside E3. |
 | e4_is_replay_hygiene_not_accuracy_or_ecosystem_claim | True | E4 remains an artifact/reproducibility block with explicit non-claims. |
 | main_papers_stay_free_of_run_ids | True | Found 0 R-numbered run-id mentions in main paper bodies. |
-| chinese_main_avoids_internal_checklist_terms | True | Found 0 internal checklist-style terms in the Chinese main paper. |
+| main_papers_avoid_internal_checklist_terms | True | Found 0 internal checklist-style terms in the Chinese/English main papers. |
 | main_papers_avoid_venue_self_undercut | True | Found 0 paper-facing venue-readiness self-undercut phrases; limitations should bound the scoped profiling claim rather than disclaiming top-tier evidence. |
 | ledger_keeps_runs_as_provenance | True | The evaluation ledger records run IDs as provenance/support/guardrails rather than main-paper structure. |
 | new_runs_must_strengthen_core_blocks | True | New runs must be assigned a role inside E1-E4 instead of becoming scattered paper experiments. |
