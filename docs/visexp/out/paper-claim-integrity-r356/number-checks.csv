@@ -1,0 +1,70 @@
+run_id,key,actual,expected,status,source,paper_token
+R338,overall,pass,pass,pass,R338 build_payload summary,R338
+R338,number_checks_total,350,350,pass,R338 build_payload summary,350
+R338,source_policy,pass,pass,pass,R338 build_payload summary,source policy
+R338,guardrails,pass,pass,pass,R338 build_payload summary,guardrails
+R338,two_abstraction_boundary,pass,pass,pass,R338 build_payload summary,two abstractions
+R354,status,pass,pass,pass,profile-patch-report.json,R354
+R354,run_result_status,pass,pass,pass,run-result.json,pass
+R354,tasks,6,6,pass,profile-patch-report.json,6 tasks
+R354,datasets,4,4,pass,profile-patch-report.json,4 datasets
+R354,summary_rows,6,6,pass,profile-patch-summary.csv,6
+R354,profile_spec_files,12,12,pass,R354 glob *-profile-spec.json,12
+R354,rust_json_profiles,12,12,pass,R354 glob profile JSON outputs,12
+R354,accepted_patches,5/6,5/6,pass,profile-patch-report.json summary,5/6
+R354,rejected_or_needs_mapping,1/6,1/6,pass,profile-patch-report.json summary,1/6
+R354,ap_improved_tasks,5/6,5/6,pass,profile-patch-report.json summary,5/6
+R354,top5_lift_improved_tasks,5/6,5/6,pass,profile-patch-report.json summary,5/6
+R354,first_positive_work_improved_tasks,5/6,5/6,pass,profile-patch-report.json summary,5/6
+R354,groups_reduced_tasks,2/6,2/6,pass,profile-patch-report.json summary,2/6
+R354,median_delta_ap,0.0376,0.0376,pass,profile-patch-report.json summary,0.0376
+R354,median_delta_top5_lift,0.575,0.575,pass,profile-patch-report.json summary,0.5750
+R354,median_delta_first_positive_work,-0.0859,-0.0859,pass,profile-patch-report.json summary,-0.0859
+R354,median_group_reduction,0.0,0.0,pass,profile-patch-report.json summary,0.0000
+R354,csv_accepted_patch_rows,5,5,pass,profile-patch-summary.csv,5/6
+R354,csv_rejected_patch_rows,1,1,pass,profile-patch-summary.csv,1/6
+R354,csv_rejected_patch_task,osworld_group_start,osworld_group_start,pass,profile-patch-summary.csv,OSWorld-Human
+R354,csv_ap_improved_rows,5,5,pass,profile-patch-summary.csv,5/6
+R354,csv_top5_lift_improved_rows,5,5,pass,profile-patch-summary.csv,5/6
+R354,csv_first_positive_improved_rows,5,5,pass,profile-patch-summary.csv,5/6
+R354,csv_groups_reduced_rows,2,2,pass,profile-patch-summary.csv,2/6
+R354,csv_median_delta_ap,0.0376,0.0376,pass,profile-patch-summary.csv,0.0376
+R354,csv_median_delta_top5_lift,0.5749,0.575,pass,profile-patch-summary.csv,0.5750
+R354,csv_median_delta_first_positive_work,-0.0859,-0.0859,pass,profile-patch-summary.csv,-0.0859
+R354,agentpprof_result_status_ok,6,6,pass,profile-patch-report.json tasks_detail,12 Rust profile-spec invocations
+R354,profile_specs_label_free,12,12,pass,R354 profile specs,hidden labels score after profiling
+R354,nonclaim_no_human_or_agent_analyst,True,True,pass,profile-patch-report.json non_claims,not a human or agent analyst study
+R354,nonclaim_not_automatic_patch_selector,True,True,pass,profile-patch-report.json non_claims,not an automatic label-free patch selector
+R354,nonclaim_two_abstractions_only,True,True,pass,profile-patch-report.json non_claims,operations and operation stacks
+R355,status,pass,pass,pass,oracle-depth-adequacy-report.json,R355
+R355,run_result_status,pass,pass,pass,run-result.json,pass
+R355,tasks,6,6,pass,claim_summary,6 tasks
+R355,datasets,4,4,pass,claim_summary,4 datasets
+R355,accuracy_unit_depth_rows,24,24,pass,claim_summary,24
+R355,subtask_eligible_unit_depth_rows,16,16,pass,claim_summary,16
+R355,true_subtask_oracle_rows,5,5,pass,claim_summary,5
+R355,context_only_rows,1,1,pass,claim_summary,1 context-only
+R355,default_policy,operation_stack:query_aware,operation_stack:query_aware,pass,claim_summary,operation_stack:query_aware
+R355,unit_depths,"['agentnet_step', 'agentreward_turn', 'operation', 'osworld_human_group', 'positive_run', 'satraj_step', 'session']","['agentnet_step', 'agentreward_turn', 'operation', 'osworld_human_group', 'positive_run', 'satraj_step', 'session']",pass,claim_summary,"session, operation/step, positive-run"
+R355,default_median_top5_unit_work,0.1307,0.1307,pass,claim_summary.default_all_depth_medians,0.1307
+R355,default_median_budget30_positive_unit_recall,0.4342,0.4342,pass,claim_summary.default_all_depth_medians,0.4342
+R355,default_median_budget30_positive_unit_f1,0.4484,0.4484,pass,claim_summary.default_all_depth_medians,0.4484
+R355,default_median_budget30_spillover_operation_fraction,0.729,0.729,pass,claim_summary.default_all_depth_medians,0.7290
+R355,default_median_groups_to_50pct_positive_units,27.5,27.5,pass,claim_summary.default_all_depth_medians,27.5000
+R355,positive_run_median_recall,0.4908,0.4908,pass,claim_summary.positive_run_medians,0.4908
+R355,top5_unit_work_lt_flat_rows,24,24,pass,claim_summary.paired_checks,24/24
+R355,budget30_unit_recall_gt_fixed_rows,20,20,pass,claim_summary.paired_checks,20/24
+R355,budget30_unit_f1_gt_fixed_rows,18,18,pass,claim_summary.paired_checks,18/24
+R355,groups_to_50pct_units_lt_fixed_rows,22,22,pass,claim_summary.paired_checks,22/24
+R355,positive_units_per_group_lt_raw_rows,24,24,pass,claim_summary.paired_checks,24/24
+R355,depth_gap_lt_fixed_rows,0,0,pass,claim_summary.paired_checks,0/24
+R355,task_depth_card_rows,24,24,pass,task-depth-cards.csv,24
+R355,oracle_depth_matrix_rows,25,25,pass,oracle-depth-matrix.csv,24 accuracy rows plus 1 context-only row
+R355,policy_depth_summary_rows,42,42,pass,policy-depth-summary.csv,42
+R355,policy_depth_adequacy_rows,144,144,pass,policy-depth-adequacy.csv,144
+R355,depth_policy_comparison_rows,50,50,pass,depth-policy-comparisons.csv,50
+R355,task_cards_default_policy_rows,10,10,pass,task-depth-cards.csv,operation-stack query-aware
+R355,nonclaim_no_human_or_agent_analyst,True,True,pass,oracle-depth-adequacy-report.json non_claims,not a human or agent analyst study
+R355,nonclaim_no_auto_all_boundaries,True,True,pass,oracle-depth-adequacy-report.json non_claims,does not claim automatic discovery of all intent boundaries
+R355,nonclaim_positive_run_proxy,True,True,pass,oracle-depth-adequacy-report.json non_claims,positive-run proxy
+R355,nonclaim_scalecua_context_only,True,True,pass,oracle-depth-adequacy-report.json non_claims,ScaleCUA context-only
