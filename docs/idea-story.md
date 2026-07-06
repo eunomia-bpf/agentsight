@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-06
 Stage at update: stage 9 paper integration / stage 10 prose polish / stage 11 reproducibility prep
-Source/command: current branch `research/semantic-flamegraph-artifacts-v2`; `docs/evaluation.md`; `docs/design.md`; `docs/implementation.md`; `docs/background-related-work.md`; R320/R328/R392/R393/R394/R352/R356/R357/R360-R364 artifacts
+Source/command: current branch `research/semantic-flamegraph-artifacts-v2`; `docs/evaluation.md`; `docs/design.md`; `docs/implementation.md`; `docs/background-related-work.md`; R320/R328/R392/R393/R394/R395/R352/R356/R357/R360-R364 artifacts
 Completeness: partial. The scoped profiling claim is paper-ready against the current labeled-trace evidence, and the post-R392 reviewer gate is closed by R393; broader human-utility, full ecosystem-compatibility, and universal boundary-discovery claims remain unsupported.
 
 ## Current State And Blocking Gate
@@ -11,9 +11,9 @@ Purpose: Give the project a single canonical entry point for the paper story, cl
 
 Draft paragraph: AgentSight's semantic profiling work is now in paper-integration mode. The design has been narrowed to two profiler abstractions, `operation` and `operation stack`. The strongest current claim is not human productivity, full automatic diagnosis, or complete trace-ecosystem compatibility. It is that operation/operation-stack profiling can localize, rank, and explain task-relevant failures, quality problems, and semantic boundaries in real labeled agent traces, while requiring less inspection work than flat summaries and less fragmentation than fixed-session drilldown. Fixed-session drilldown is the current trace-tree-shaped baseline in this benchmark; real OpenTelemetry/OpenInference/Phoenix-style span-tree imports are future baselines.
 
-Evidence/claim dependency: The primary empirical gate is R320 over 6 tasks, 4 oracle-rich datasets, 34,539 operations, 3,699 positives, and 144 view/ranker policies. R333/R334/R337/R339/R344/R355 add work-budget, fragmentation, fixed-recall, sequence-scope, metric-surface, and oracle-depth checks. R354/R358 add executable profile-spec patch and boundary-derived-field actionability evidence. R327/R328 cover replayability and offline cost; R392 covers profile-spec input-source replay for local-session, agent-trace, and standard-trace inputs. R338/R352/R356/R357/R359/R360/R361/R362/R364 are artifact, rubric, reviewer, structure, or claim-scope gates, not new empirical profiler evidence.
+Evidence/claim dependency: The primary empirical gate is R320 over 6 tasks, 4 oracle-rich datasets, 34,539 operations, 3,699 positives, and 144 view/ranker policies. R333/R334/R337/R339/R344/R355 add work-budget, fragmentation, fixed-recall, sequence-scope, metric-surface, and oracle-depth checks. R354/R358 add executable profile-spec patch and boundary-derived-field actionability evidence. R327/R328 cover replayability and offline cost; R392 covers profile-spec input-source replay for local-session, agent-trace, and standard-trace inputs. R395 checks that this main claim and the C4 verdict remain aligned across this file, the evaluation ledger, and both paper drafts after the latest three-plus-one consolidation repair. R338/R352/R356/R357/R359/R360/R361/R362/R364 are artifact, rubric, reviewer, structure, or claim-scope gates, not new empirical profiler evidence.
 
-Completeness: Partial. The main paper evidence is organized into three empirical profiling experiments plus one artifact/reproducibility block, R393 records 4/4 final reviewer ACCEPT after fixing one dataset-caption blocker, and R394 checks the maintained docs against the two-abstraction field-derivation wording. The next gate is prose and figure/table polish, not more small experiments.
+Completeness: Partial. The main paper evidence is organized into three empirical profiling experiments plus one artifact/reproducibility block, R393 records 4/4 final reviewer ACCEPT after fixing one dataset-caption blocker, R394 checks the maintained docs against the two-abstraction field-derivation wording, and R395 checks the main claim-verdict alignment. The next gate is prose and figure/table polish, not more small experiments.
 
 ## Downstream Document Index
 
@@ -124,14 +124,14 @@ Completeness: Current claim is supported; larger claim is a future expansion hyp
 | Full real span-tree baseline import. | out of current claim | Import a real OpenTelemetry/OpenInference/Phoenix-style trace only before making ecosystem-specific or real span-tree superiority claims. |
 | Broader oracle-rich tool/API/mobile families. | optional expansion | Add only if the paper needs wider generality beyond the current four oracle-rich sources. |
 | Human or agent analyst study. | optional future work | Use R315/R316 protocol only for human-utility or time-to-answer claims. |
-| Claim-complete Chinese and English prose polish. | in progress | Reduce R-run density in the main prose and keep tables as the place for provenance. |
+| Claim-complete Chinese and English prose polish. | in progress | R395 keeps the claim-verdict alignment checked; continue reducing R-run density in the main prose and keep tables as the place for provenance. |
 
 ## Next Action
 
 Purpose: Define the next concrete step.
 
-Draft paragraph: The next step is prose polish and figure/table presentation for the accepted three-plus-one paper structure. Do not add another empirical block unless it strengthens E1, E2, E3, or E4 directly; instead, reduce remaining R-run density in the main prose, keep provenance in the ledger, and preserve the R393-reviewed claim boundaries while committing and pushing each step to `research/semantic-flamegraph-artifacts-v2`.
+Draft paragraph: The next step is prose polish and figure/table presentation for the accepted three-plus-one paper structure. Do not add another empirical block unless it strengthens E1, E2, E3, or E4 directly; instead, reduce remaining R-run density in the main prose, keep provenance in the ledger, and preserve the R395-checked claim-verdict alignment while committing and pushing each step to `research/semantic-flamegraph-artifacts-v2`.
 
-Evidence/claim dependency: R393 inspected the current branch, `docs/evaluation.md`, this file, and both paper drafts after the R392 E4 input-source replay update. It records four final ACCEPT verdicts, one resolved caption blocker, and no unresolved issues.
+Evidence/claim dependency: R393 inspected the current branch, `docs/evaluation.md`, this file, and both paper drafts after the R392 E4 input-source replay update. It records four final ACCEPT verdicts, one resolved caption blocker, and no unresolved issues. R395 then checks that the central profiling claim, C4 verdict, fixed-session proxy wording, E4 non-accuracy scope, and must-not-claim boundaries still agree after the R380/R391 consolidation repair.
 
 Completeness: Review gate complete; prose polish remains.
