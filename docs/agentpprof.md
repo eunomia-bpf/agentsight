@@ -205,7 +205,8 @@ agentpprof -o tokens.svg --tagger llm --llama-url http://127.0.0.1:8080
 
 LLM tags are cached in `$XDG_CACHE_HOME/agentpprof/tags.json` by default. The
 LLM tagger output can serve as a reference for writing regex rules: observe
-what categories the LLM produces, then write a regex rule for each.
+what categories the LLM produces, then write a regex rule for each. It is
+field-derivation assistance, not an automatic boundary detector.
 
 ### Python Clustering Backend (Experimental)
 
@@ -228,7 +229,10 @@ agentpprof --project-root . --tag-cache tags.json -o flamegraph.svg
 The clustering backend automatically selects the optimal cluster count (5-25)
 and generates tag names from each cluster's keywords. This is useful for
 understanding "what natural categories exist in my prompt distribution" and
-can serve as a starting point for writing regex rules.
+can serve as a starting point for writing regex rules. Clustering is an
+exploratory way to propose operation-field candidates; make them reproducible
+through rules, profile specs, or imported dataset labels before using them in a
+paper experiment.
 
 ## Install
 

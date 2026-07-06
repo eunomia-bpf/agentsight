@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-06
 Stage at update: stage 9 paper integration / stage 10 prose polish / stage 11 reproducibility prep
-Source/command: current branch `research/semantic-flamegraph-artifacts-v2`; `docs/evaluation.md`; `docs/design.md`; `docs/implementation.md`; `docs/background-related-work.md`; R320/R328/R392/R393/R352/R356/R357/R360-R364 artifacts
+Source/command: current branch `research/semantic-flamegraph-artifacts-v2`; `docs/evaluation.md`; `docs/design.md`; `docs/implementation.md`; `docs/background-related-work.md`; R320/R328/R392/R393/R394/R352/R356/R357/R360-R364 artifacts
 Completeness: partial. The scoped profiling claim is paper-ready against the current labeled-trace evidence, and the post-R392 reviewer gate is closed by R393; broader human-utility, full ecosystem-compatibility, and universal boundary-discovery claims remain unsupported.
 
 ## Current State And Blocking Gate
@@ -13,7 +13,7 @@ Draft paragraph: AgentSight's semantic profiling work is now in paper-integratio
 
 Evidence/claim dependency: The primary empirical gate is R320 over 6 tasks, 4 oracle-rich datasets, 34,539 operations, 3,699 positives, and 144 view/ranker policies. R333/R334/R337/R339/R344/R355 add work-budget, fragmentation, fixed-recall, sequence-scope, metric-surface, and oracle-depth checks. R354/R358 add executable profile-spec patch and boundary-derived-field actionability evidence. R327/R328 cover replayability and offline cost; R392 covers profile-spec input-source replay for local-session, agent-trace, and standard-trace inputs. R338/R352/R356/R357/R359/R360/R361/R362/R364 are artifact, rubric, reviewer, structure, or claim-scope gates, not new empirical profiler evidence.
 
-Completeness: Partial. The main paper evidence is organized into three empirical profiling experiments plus one artifact/reproducibility block, and R393 records 4/4 final reviewer ACCEPT after fixing one dataset-caption blocker. The next gate is prose and figure/table polish, not more small experiments.
+Completeness: Partial. The main paper evidence is organized into three empirical profiling experiments plus one artifact/reproducibility block, R393 records 4/4 final reviewer ACCEPT after fixing one dataset-caption blocker, and R394 checks the maintained docs against the two-abstraction field-derivation wording. The next gate is prose and figure/table polish, not more small experiments.
 
 ## Downstream Document Index
 
@@ -51,7 +51,7 @@ Purpose: State the first-principles abstraction.
 
 Draft paragraph: The key insight is to separate the observed event from the profiling stack. AgentSight represents each relevant unit as an `operation`, a fielded weighted observation. An `operation stack` is an ordered recursive projection over operation fields chosen by the user, profile spec, mapping, tagger, or query. Mapping and tagging derive fields before folding; they are first-class configuration mechanisms, but they do not create a third profiler abstraction. This lets the same prompt or action sequence fold at different depths depending on the diagnostic task.
 
-Evidence/claim dependency: R281/R282/R285 validate generated mapping rules; R293/R321/R342 validate profile specs, predicates, rank rules, and explicit stack depth; R297/R358 validate boundary-derived fields as ordinary operation fields.
+Evidence/claim dependency: R281/R282/R285 validate generated mapping rules; R293/R321/R342 validate profile specs, predicates, rank rules, and explicit stack depth; R297/R358 validate boundary-derived fields as ordinary operation fields; R394 checks that the Rust CLI, user guides, canonical docs, and paper drafts describe tagging/mapping/LLM tags/clustering as field derivation before stack folding rather than a third abstraction.
 
 Completeness: Supported for deterministic and supervised field derivation. Fully unsupervised intent-boundary discovery is not supported.
 
