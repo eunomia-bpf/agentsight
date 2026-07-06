@@ -332,52 +332,52 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 
 | Doc | Key | Tokens | Status | Lines |
 |---|---|---|---|---|
-| evaluation | R320 headline operations | 34,539 / 34539 | pass | 15,159,181,315,347,412,419,421 |
-| evaluation | R320 top5 work | 0.0937 / 9.37% | pass | 15,103,105,111,182,238,281,347 |
-| evaluation | R333 budget30 recall | 0.3900 / 0.39 | pass | 241,347,442,520 |
+| evaluation | R320 headline operations | 34,539 / 34539 | pass | 15,183,205,339,371,436,443,445 |
+| evaluation | R320 top5 work | 0.0937 / 9.37% | pass | 15,103,105,111,206,262,305,371 |
+| evaluation | R333 budget30 recall | 0.3900 / 0.39 | pass | 265,371,466,545 |
 | evaluation | R334 fragmentation | 5/6 / -54.0 / fewer groups | pass | 15,53,54,71,99,103,105,109 |
 | evaluation | R335 actionability | actionability / 6/6 / optimization | pass | 5,15,57,76,85,87,99,100 |
-| evaluation | R336 visible policies | 15 visible / 15 个 / 6 diagnostic | pass | 101,347,445,449,454 |
-| evaluation | R337 fixed recall | 25% / 0.2000 / 16.0 | pass | 224,226,347,446 |
-| evaluation | R339 sequence adequacy | R339 / 0.4669 / 0.9103 | pass | 13,15,234,242,245,249,347,447 |
-| evaluation | R340 policy transfer | R340 / 96 / 62/96 / 72/96 | pass | 108,109,145,147,248,251,252,253 |
-| evaluation | R341 mechanism attribution | R341 / 36/36 / 27/36 / 34/96 | pass | 15,100,106,107,111,261,262,263 |
-| evaluation | R342 profile spec composition | R342 / 12/12 / 9/12 / 0.8267 | pass | 12,78,80,83,85,344,347,349 |
+| evaluation | R336 visible policies | 15 visible / 15 个 / 6 diagnostic | pass | 101,371,469,473,478 |
+| evaluation | R337 fixed recall | 25% / 0.2000 / 16.0 | pass | 248,250,371,470 |
+| evaluation | R339 sequence adequacy | R339 / 0.4669 / 0.9103 | pass | 13,15,129,130,258,266,269,273 |
+| evaluation | R340 policy transfer | R340 / 96 / 62/96 / 72/96 | pass | 108,109,169,171,272,275,276,277 |
+| evaluation | R341 mechanism attribution | R341 / 36/36 / 27/36 / 34/96 | pass | 15,100,106,107,111,285,286,287 |
+| evaluation | R342 profile spec composition | R342 / 12/12 / 9/12 / 0.8267 | pass | 12,78,80,83,85,368,371,373 |
 | evaluation | R344 metric consistency | R344 / 30 / 16 / groups | pass | 12,13,15,39,41,50,64,79 |
-| evaluation | R345 diagnostic lens portfolio | R345 / 6 diagnostic lenses / 11/36 / 25/36 | pass | 15,100,101,102,106,107,347,447 |
+| evaluation | R345 diagnostic lens portfolio | R345 / 6 diagnostic lenses / 11/36 / 25/36 | pass | 15,100,101,102,106,107,371,471 |
 | evaluation | R346 diagnostic casebook | R346 / 30 case groups / 5/6 / 1.6508 | pass | 15,53,54,71,99,102,103,105 |
 | evaluation | R347 case baseline contrast | R347 / 5 visible views / 6/6 / 5/6 / 4/6 | pass | 15,41,45,53,54,70,71,72 |
 | evaluation | R348 action counterfactual | R348 / 36 objective rows / 27/36 / 0.1447 | pass | 15,100,101,106,107,108,109,110 |
-| evaluation | R349 held-out action transfer | R349 / 60 aligned / 35/60 / 7/60 / 2/42 | pass | 15,108,109,110,111,269,270,271 |
+| evaluation | R349 held-out action transfer | R349 / 60 aligned / 35/60 / 7/60 / 2/42 | pass | 15,108,109,110,111,293,294,295 |
 | evaluation | R350 evidence packet budget | R350 / 6/6 / 4/6 / 27/36 / 35/60 | pass | 15,41,45,53,54,70,72,85 |
-| zh_main | R320 headline | 0.0937 / 9.37 / 285.0 / 157.5 | pass | 63,73,79,82,405,412,422,423 |
-| zh_main | R333 headline | 0.3900 / 0.390 | pass | 68,400,452,484,520,591,711 |
-| zh_main | R337 headline | 0.2000 / 16.0 / 50.0 | pass | 72,483,594,715 |
-| zh_main | R339 headline | 0.4669 / 0.9103 / 0.3467 | pass | 73,484,595,716 |
-| zh_main | R340 headline | R340 / 62/96 / 72/96 / 69/96 | pass | 74,485,486,493,581,596,610,717 |
-| zh_main | R341 headline | R341 / 36/36 / 27/36 / 34/96 | pass | 75,81,82,486,489,492,494,581 |
-| zh_main | R342 headline | R342 / 12/12 / 9/12 / 0.8267 | pass | 76,487,582,598 |
+| zh_main | R320 headline | 0.0937 / 9.37 / 285.0 / 157.5 | pass | 63,73,80,83,406,413,423,424 |
+| zh_main | R333 headline | 0.3900 / 0.390 | pass | 68,401,453,485,522,593,714 |
+| zh_main | R337 headline | 0.2000 / 16.0 / 50.0 | pass | 72,484,596,718 |
+| zh_main | R339 headline | 0.4669 / 0.9103 / 0.3467 | pass | 73,485,597,719 |
+| zh_main | R340 headline | R340 / 62/96 / 72/96 / 69/96 | pass | 75,487,488,495,583,599,613,721 |
+| zh_main | R341 headline | R341 / 36/36 / 27/36 / 34/96 | pass | 76,82,83,488,491,494,496,583 |
+| zh_main | R342 headline | R342 / 12/12 / 9/12 / 0.8267 | pass | 77,489,584,601 |
 | zh_main | R344 headline | R344 / 30 / 16 / nDCG | pass | 55,61,62,65,66,67,68,69 |
 | zh_main | R345 headline | R345 / 6 / 11/36 / 25/36 | pass | 3,16,17,18,30,50,54,55 |
 | zh_main | R346 headline | R346 / 30 / 5/6 / 1.6508 | pass | 59,60,61,63,65,66,67,68 |
 | zh_main | R347 headline | R347 / 5 / 6/6 / 5/6 / 4/6 | pass | 12,22,46,48,49,50,59,60 |
-| zh_main | R348 headline | R348 / 36 / 27/36 / 0.1447 | pass | 71,75,78,81,82,340,349,356 |
-| zh_main | R349 headline | R349 / 60 / 35/60 / 7/60 / 2/42 | pass | 73,82,88,181,279,484,493,494 |
+| zh_main | R348 headline | R348 / 36 / 27/36 / 0.1447 | pass | 71,76,79,82,83,341,350,357 |
+| zh_main | R349 headline | R349 / 60 / 35/60 / 7/60 / 2/42 | pass | 73,83,89,182,280,485,495,496 |
 | zh_main | R350 headline | R350 / 6/6 / 4/6 / 27/36 / 35/60 | pass | 59,60,61,64,66,68,70,71 |
-| en_main | R320 headline | 0.0937 / 9.37 / 285.0 / 157.5 | pass | 45,48,126,383,385,403,412,595 |
-| en_main | R333 headline | 0.3900 / 0.390 | pass | 70,384,403,470,598 |
-| en_main | R337 headline | 0.2000 / 16.0 / 50.0 | pass | 89,90,91,583,585,850,851 |
-| en_main | R339 headline | 0.4669 / 0.9103 / 0.3467 | pass | 94,95,96,599,600,601,853,854 |
-| en_main | R340 headline | R340 / 62 of 96 / 72 of 96 / 69 of 96 | pass | 139,603,665,855,957 |
-| en_main | R341 headline | R341 / 36 of 36 / 27 of 36 / 34 of 96 | pass | 104,105,106,149,613,633,656,680 |
-| en_main | R342 headline | R342 / 12/12 / 9/12 / 0.8267 | pass | 109,112,113,619,620,623,625,959 |
-| en_main | R344 headline | R344 / 30 / 16 / nDCG | pass | 69,76,90,93,95,101,115,116 |
+| en_main | R320 headline | 0.0937 / 9.37 / 285.0 / 157.5 | pass | 45,48,135,396,398,416,425,608 |
+| en_main | R333 headline | 0.3900 / 0.390 | pass | 70,397,416,483,611 |
+| en_main | R337 headline | 0.2000 / 16.0 / 50.0 | pass | 89,90,91,596,598,902,903 |
+| en_main | R339 headline | 0.4669 / 0.9103 / 0.3467 | pass | 94,95,96,612,613,614,905,906 |
+| en_main | R340 headline | R340 / 62 of 96 / 72 of 96 / 69 of 96 | pass | 148,633,695,911,1015 |
+| en_main | R341 headline | R341 / 36 of 36 / 27 of 36 / 34 of 96 | pass | 113,114,115,158,643,663,686,710 |
+| en_main | R342 headline | R342 / 12/12 / 9/12 / 0.8267 | pass | 118,121,122,649,650,653,655,1017 |
+| en_main | R344 headline | R344 / 30 / 16 / nDCG | pass | 69,76,90,93,95,101,110,124 |
 | en_main | R345 headline | R345 / 6 / 11/36 / 25/36 | pass | 42,47,51,52,56,75,76,77 |
-| en_main | R346 headline | R346 / 30 / 5/6 / 1.6508 | pass | 69,76,93,95,115,123,124,125 |
+| en_main | R346 headline | R346 / 30 / 5/6 / 1.6508 | pass | 69,76,93,95,101,124,132,133 |
 | en_main | R347 headline | R347 / 5 / 6/6 / 5/6 / 4/6 | pass | 39,40,42,47,48,51,70,71 |
-| en_main | R348 headline | R348 / 36 / 27/36 / 0.1447 | pass | 104,105,119,120,133,134,135,136 |
-| en_main | R349 headline | R349 / 60 / 35 of 60 / 7 of 60 / 2 of 42 | pass | 139,140,141,149,150,318,597,665 |
-| en_main | R350 headline | R350 / 6 of 6 / 4 of 6 / 27 of 36 / 35 of 60 | pass | 56,105,145,147,148,149,151,327 |
+| en_main | R348 headline | R348 / 36 / 27/36 / 0.1447 | pass | 113,114,128,129,142,143,144,145 |
+| en_main | R349 headline | R349 / 60 / 35 of 60 / 7 of 60 / 2 of 42 | pass | 148,149,150,158,159,331,610,695 |
+| en_main | R350 headline | R350 / 6 of 6 / 4 of 6 / 27 of 36 / 35 of 60 | pass | 56,114,154,156,157,158,164,340 |
 | zh_claim_setup | two abstractions | 两个核心抽象 / operation stack | pass | 7,23,25,81,84,85,86,88 |
 | zh_claim_setup | R337 result | R337 / 0.2000 / 16.0 | pass | 35,36,119,121 |
 | zh_claim_setup | R339 result | R339 / 0.4669 / 0.9103 | pass | 36,37,121,122,265 |
@@ -393,132 +393,132 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | zh_claim_setup | R350 result | R350 / 6/6 / 4/6 / 27/36 / 35/60 | pass | 26,33,34,35,38,39,40,41 |
 | evaluation | R320:datasets | 4 | pass | 12,13,14,15,41,45,47,53 |
 | evaluation | R320:tasks | 6 | pass | 3,4,12,13,15,32,41,42 |
-| evaluation | R320:operations | 34,539 | pass | 15,159,181,315,347,412,419,421 |
-| evaluation | R320:positives | 3,699 | pass | 15,181,422,425,429,432,443,525 |
-| evaluation | R320:policies | 144 | pass | 15,107,180,347,427,432,442,448 |
-| evaluation | R320:operation_stack_top5_work_median | 0.0937 | pass | 15,103,105,111,238,281,347,432 |
-| evaluation | R320:flat_top5_work_median | 1.0 | pass | 15,227,239,347,411,414,428,432 |
-| evaluation | R320:operation_stack_groups_median | 157.5 | pass | 15,185,347,432,536 |
-| evaluation | R320:fixed_session_groups_median | 285.0 | pass | 15,185,347,432,536 |
+| evaluation | R320:operations | 34,539 | pass | 15,183,205,339,371,436,443,445 |
+| evaluation | R320:positives | 3,699 | pass | 15,205,446,449,453,456,467,550 |
+| evaluation | R320:policies | 144 | pass | 15,107,204,371,451,456,466,472 |
+| evaluation | R320:operation_stack_top5_work_median | 0.0937 | pass | 15,103,105,111,262,305,371,456 |
+| evaluation | R320:flat_top5_work_median | 1.0 | pass | 15,251,263,371,435,438,452,456 |
+| evaluation | R320:operation_stack_groups_median | 157.5 | pass | 15,209,371,456,561 |
+| evaluation | R320:fixed_session_groups_median | 285.0 | pass | 15,209,371,456,561 |
 | evaluation | R320:top5_recall_wins_vs_fixed | 5/6 | pass | 15,53,54,71,99,103,105,109 |
 | evaluation | R320:ap_wins_vs_width | 6/6 | pass | 15,85,99,100,101,103,105,106 |
-| evaluation | R333:operation_stack:query_aware_budget30_median_recall | 0.3900 | pass | 241,347,442 |
-| evaluation | R333:flat:width_budget30_median_recall | 0.0000 | pass | 347,442 |
-| evaluation | R333:fixed_session:query_aware_budget30_median_recall | 0.3559 | pass | 347,442 |
-| evaluation | R333:dataset_native:query_aware_budget30_median_recall | 0.3377 | pass | 347,442 |
-| evaluation | R333:raw_action_stack:query_aware_budget30_median_recall | 0.3325 | pass | 347,442 |
+| evaluation | R333:operation_stack:query_aware_budget30_median_recall | 0.3900 | pass | 265,371,466 |
+| evaluation | R333:flat:width_budget30_median_recall | 0.0000 | pass | 371,466 |
+| evaluation | R333:fixed_session:query_aware_budget30_median_recall | 0.3559 | pass | 371,466 |
+| evaluation | R333:dataset_native:query_aware_budget30_median_recall | 0.3377 | pass | 371,466 |
+| evaluation | R333:raw_action_stack:query_aware_budget30_median_recall | 0.3325 | pass | 371,466 |
 | evaluation | R337:target25_tasks_reached | 6/6 | pass | 15,85,99,100,101,103,105,106 |
-| evaluation | R337:target25_median_work | 0.2000 | pass | 226,347,446 |
-| evaluation | R337:target25_median_groups | 16.0 | pass | 226,347,446 |
+| evaluation | R337:target25_median_work | 0.2000 | pass | 250,371,470 |
+| evaluation | R337:target25_median_groups | 16.0 | pass | 250,371,470 |
 | evaluation | R337:target10_tasks_reached | 6/6 | pass | 15,85,99,100,101,103,105,106 |
-| evaluation | R337:target10_median_groups | 12.5 | pass | 230,446 |
+| evaluation | R337:target10_median_groups | 12.5 | pass | 254,470 |
 | evaluation | R337:target50_tasks_reached | 5/6 | pass | 15,53,54,71,99,103,105,109 |
-| evaluation | R337:flat_target25_median_work | 1.0000 | pass | 227,239,347,446 |
-| evaluation | R337:fixed_target25_median_groups | 50.0 | pass | 228,347,446 |
-| evaluation | R337:fixed_target10_median_groups | 37.5 | pass | 230,446 |
+| evaluation | R337:flat_target25_median_work | 1.0000 | pass | 251,263,371,470 |
+| evaluation | R337:fixed_target25_median_groups | 50.0 | pass | 252,371,470 |
+| evaluation | R337:fixed_target10_median_groups | 37.5 | pass | 254,470 |
 | evaluation | R337:default_vs_flat_target25_work_wins | 6/6 | pass | 15,85,99,100,101,103,105,106 |
 | evaluation | R337:default_vs_fixed_target25_group_wins | 5/6 | pass | 15,53,54,71,99,103,105,109 |
 | evaluation | R337:default_vs_fixed_target10_group_wins | 5/6 | pass | 15,53,54,71,99,103,105,109 |
-| evaluation | R337:target25_csv_median_work | 0.2000 | pass | 226,347,446 |
+| evaluation | R337:target25_csv_median_work | 0.2000 | pass | 250,371,470 |
 | evaluation | R337:target25_csv_group_wins_vs_fixed | 5/6 | pass | 15,53,54,71,99,103,105,109 |
-| evaluation | R339:overall | pass | pass | 14,15,51,131,132,170,291,347 |
+| evaluation | R339:overall | pass | pass | 14,15,51,155,156,194,315,371 |
 | evaluation | R339:datasets | 4 | pass | 12,13,14,15,41,45,47,53 |
 | evaluation | R339:tasks | 6 | pass | 3,4,12,13,15,32,41,42 |
-| evaluation | R339:policies_scored | 144 | pass | 15,107,180,347,427,432,442,448 |
-| evaluation | R339:hidden_labels_used_only_for_scoring | hidden labels only for scoring | pass | 448,456 |
-| evaluation | R339:top5_median_operation_work | 0.0937 | pass | 15,103,105,111,238,281,347,432 |
-| evaluation | R339:top5_median_positive_session_recall | 0.2629 | pass | 239,448 |
-| evaluation | R339:top5_fixed_positive_session_recall | 0.0160 | pass | 240,448 |
-| evaluation | R339:top5_flat_operation_work | 1.0000 | pass | 227,239,347,446 |
-| evaluation | R339:budget30_median_positive_operation_recall | 0.3900 | pass | 241,347,442 |
-| evaluation | R339:budget30_median_positive_session_recall | 0.4669 | pass | 242,347,448 |
-| evaluation | R339:budget30_median_session_work | 0.3467 | pass | 243,347,448 |
-| evaluation | R339:budget30_fixed_positive_session_recall | 0.3230 | pass | 243,347,448 |
-| evaluation | R339:budget30_raw_action_positive_session_recall | 0.5147 | pass | 245,347,448 |
-| evaluation | R339:budget30_raw_action_session_work | 0.9103 | pass | 245,347,448 |
+| evaluation | R339:policies_scored | 144 | pass | 15,107,204,371,451,456,466,472 |
+| evaluation | R339:hidden_labels_used_only_for_scoring | hidden labels only for scoring | pass | 472,480 |
+| evaluation | R339:top5_median_operation_work | 0.0937 | pass | 15,103,105,111,262,305,371,456 |
+| evaluation | R339:top5_median_positive_session_recall | 0.2629 | pass | 263,472 |
+| evaluation | R339:top5_fixed_positive_session_recall | 0.0160 | pass | 264,472 |
+| evaluation | R339:top5_flat_operation_work | 1.0000 | pass | 251,263,371,470 |
+| evaluation | R339:budget30_median_positive_operation_recall | 0.3900 | pass | 265,371,466 |
+| evaluation | R339:budget30_median_positive_session_recall | 0.4669 | pass | 266,371,472 |
+| evaluation | R339:budget30_median_session_work | 0.3467 | pass | 267,371,472 |
+| evaluation | R339:budget30_fixed_positive_session_recall | 0.3230 | pass | 267,371,472 |
+| evaluation | R339:budget30_raw_action_positive_session_recall | 0.5147 | pass | 269,371,472 |
+| evaluation | R339:budget30_raw_action_session_work | 0.9103 | pass | 269,371,472 |
 | evaluation | R339:top5_operation_work_lt_flat_tasks | 6/6 | pass | 15,85,99,100,101,103,105,106 |
 | evaluation | R339:budget30_session_recall_gt_fixed_tasks | 6/6 | pass | 15,85,99,100,101,103,105,106 |
 | evaluation | R339:budget30_session_work_lt_raw_action_tasks | 5/6 | pass | 15,53,54,71,99,103,105,109 |
-| evaluation | R339:csv_default_median_top5_operation_work | 0.0937 | pass | 15,103,105,111,238,281,347,432 |
-| evaluation | R339:csv_default_median_top5_positive_session_recall | 0.2629 | pass | 239,448 |
-| evaluation | R339:csv_default_median_budget30_positive_operation_recall | 0.3900 | pass | 241,347,442 |
-| evaluation | R339:csv_default_median_budget30_positive_session_recall | 0.4669 | pass | 242,347,448 |
-| evaluation | R339:csv_default_median_budget30_session_work | 0.3467 | pass | 243,347,448 |
+| evaluation | R339:csv_default_median_top5_operation_work | 0.0937 | pass | 15,103,105,111,262,305,371,456 |
+| evaluation | R339:csv_default_median_top5_positive_session_recall | 0.2629 | pass | 263,472 |
+| evaluation | R339:csv_default_median_budget30_positive_operation_recall | 0.3900 | pass | 265,371,466 |
+| evaluation | R339:csv_default_median_budget30_positive_session_recall | 0.4669 | pass | 266,371,472 |
+| evaluation | R339:csv_default_median_budget30_session_work | 0.3467 | pass | 267,371,472 |
 | evaluation | R339:csv_budget30_session_recall_wins_vs_fixed | 6/6 | pass | 15,85,99,100,101,103,105,106 |
 | evaluation | R339:csv_budget30_session_work_wins_vs_raw_action | 5/6 | pass | 15,53,54,71,99,103,105,109 |
-| evaluation | R340:overall | pass | pass | 14,15,51,131,132,170,291,347 |
+| evaluation | R340:overall | pass | pass | 14,15,51,155,156,194,315,371 |
 | evaluation | R340:tasks | 6 | pass | 3,4,12,13,15,32,41,42 |
-| evaluation | R340:visible_policies | 15 | pass | 12,13,15,185,215,347,400,404 |
+| evaluation | R340:visible_policies | 15 | pass | 12,13,15,209,239,371,424,428 |
 | evaluation | R340:objectives | 8 | pass | 12,13,14,15,32,33,73,85 |
-| evaluation | R340:total_decisions | 96 | pass | 109,145,147,251,252,253,254,255 |
-| evaluation | R340:exact_best_decisions | 31 | pass | 129,162,164,168,170,173,195,252 |
-| evaluation | R340:within_tolerance_decisions | 62 | pass | 13,239,252,347,425,448,449,496 |
-| evaluation | R340:selected_beats_width | 72 | pass | 12,253,347,373,384,400,412,433 |
-| evaluation | R340:selected_beats_fixed | 69 | pass | 15,181,242,253,347,375,390,402 |
-| evaluation | R340:selected_beats_flat | 41 | pass | 13,100,106,254,261,347,376,390 |
-| evaluation | R340:operation_stack_selected | 16 | pass | 13,101,109,130,226,240,255,347 |
-| evaluation | R340:leave_task_decisions | 48 | pass | 106,107,108,109,110,113,269,270 |
+| evaluation | R340:total_decisions | 96 | pass | 109,169,171,275,276,277,278,279 |
+| evaluation | R340:exact_best_decisions | 31 | pass | 153,186,188,192,194,197,219,276 |
+| evaluation | R340:within_tolerance_decisions | 62 | pass | 13,263,276,371,449,472,473,521 |
+| evaluation | R340:selected_beats_width | 72 | pass | 12,277,371,397,408,424,436,457 |
+| evaluation | R340:selected_beats_fixed | 69 | pass | 15,205,266,277,371,399,414,426 |
+| evaluation | R340:selected_beats_flat | 41 | pass | 13,100,106,278,285,371,400,414 |
+| evaluation | R340:operation_stack_selected | 16 | pass | 13,101,109,145,154,250,264,279 |
+| evaluation | R340:leave_task_decisions | 48 | pass | 106,107,108,109,110,113,135,147 |
 | evaluation | R340:leave_task_within_tolerance | 32 | pass | 12,14,15,36,40,43,44,47 |
-| evaluation | R340:leave_dataset_decisions | 48 | pass | 106,107,108,109,110,113,269,270 |
-| evaluation | R340:leave_dataset_within_tolerance | 30 | pass | 12,15,39,50,79,91,99,101 |
-| evaluation | R340:decision_rows | 96 | pass | 109,145,147,251,252,253,254,255 |
-| evaluation | R340:objective_rows | 16 | pass | 13,101,109,130,226,240,255,347 |
-| evaluation | R340:selected_policy_visible_rows | 96/96 | pass | 259,260 |
-| evaluation | R340:best_policy_visible_rows | 96/96 | pass | 259,260 |
-| evaluation | R340:selected_policy_no_oracle_or_label_drilldown | 96/96 | pass | 259,260 |
-| evaluation | R340:best_policy_no_oracle_or_label_drilldown | 96/96 | pass | 259,260 |
-| evaluation | R340:leave_task_excludes_target_task | 96/96 | pass | 259,260 |
-| evaluation | R340:leave_dataset_excludes_target_dataset | 96/96 | pass | 259,260 |
-| evaluation | R341:overall | R341 | pass | 100,106,261,347,447,450,454,457 |
-| evaluation | R341:tasks | 6 tasks | pass | 100,106,347,450,454,457 |
-| evaluation | R341:objective_rows | 36 objective rows | pass | 100,106,347,450,454,457 |
-| evaluation | R341:objective_best_policy_visible_rows | 36/36 best policies visible | pass | 450 |
-| evaluation | R341:objective_best_policy_non_oracle_rows | 36/36 best policies non-oracle | pass | 450 |
-| evaluation | R341:actionable_objective_rows | 36/36 objective rows have optimization actions | pass | 347,450 |
-| evaluation | R341:nondefault_best_objective_rows | 27/36 best visible policies are non-default | pass | 347,450 |
-| evaluation | R341:transfer_decisions | 96 transfer decisions | pass | 450 |
-| evaluation | R341:transfer_misses | 34/96 transfer decisions | pass | 450 |
-| evaluation | R341:transfer_misses_with_view_change | 32/34 misses change view | pass | 450 |
-| evaluation | R341:transfer_misses_with_ranker_change | 26/34 change ranker | pass | 450 |
-| evaluation | R341:high_regret_transfer_misses | 29/34 high-regret misses | pass | 347,450 |
-| evaluation | R341:stack_depth_tradeoff_tasks | stack-depth signals on 6/6 | pass | 450 |
-| evaluation | R341:transfer_policy_signal_tasks | transfer-policy signals on 6/6 | pass | 450 |
-| evaluation | R341:critical_rank_feature_tasks | critical features on 4/6 | pass | 450 |
-| evaluation | R341:misleading_feature_tasks | misleading features on 2/6 | pass | 450 |
-| evaluation | R341:tasks_with_three_or_more_mechanism_labels | three or more mechanism labels on 6/6 | pass | 450 |
-| evaluation | R342:overall | R342 | pass | 12,78,344,347,349,447,451,452 |
-| evaluation | R342:tasks | 6 tasks | pass | 347,451,452,544 |
-| evaluation | R342:profile_spec_variants | 12 profile-spec variants | pass | 451,544 |
-| evaluation | R342:composition_variants | 12/12 compose | pass | 451 |
-| evaluation | R342:prompt_session_free_variants | 12/12 prompt/session-free | pass | 451 |
-| evaluation | R342:rule_score_rank_policy_variants | rank_mode=rule-score | pass | 451,544 |
-| evaluation | R342:ap_improves_vs_width_variants | 9/12 variants | pass | 451,544 |
-| evaluation | R342:top5_lift_improves_vs_width_variants | 8/12 | pass | 451 |
-| evaluation | R342:first_positive_work_improves_vs_width_variants | 10/12 | pass | 451,544 |
-| evaluation | R342:tasks_with_ap_improvement_any_depth | 5/6 | pass | 347 |
-| evaluation | R342:tasks_with_first_positive_improvement_any_depth | 6/6 | pass | 347,451,544 |
-| evaluation | R342:tasks_where_coarse_reduces_groups | 6/6 tasks | pass | 347,451,544 |
-| evaluation | R342:median_coarse_group_reduction | 0.8267 | pass | 451,544 |
-| evaluation | R342:tasks_where_depth_choice_changes_objective | 3/6 tasks | pass | 451 |
-| evaluation | R342:best_ap_semantic_depth_tasks | semantic 4 / coarse 2 | pass | 451,544 |
-| evaluation | R342:best_ap_coarse_depth_tasks | semantic 4 / coarse 2 | pass | 451,544 |
-| evaluation | R342:committed_variant_csv_matches_sources | 12/12 | pass | 12,344,451,452,544 |
-| evaluation | R342:committed_task_csv_matches_sources | 6/6 | pass | 347,451,544 |
-| evaluation | R344:overall | R344 | pass | 88,99,100,347,447,453,454,537 |
-| evaluation | R344:tasks | 6 tasks | pass | 100,347,453,454 |
-| evaluation | R344:metric_comparisons | 50 baseline-metric comparisons | pass | 347,453,537 |
-| evaluation | R344:task_metric_delta_rows | 300 task-metric deltas | pass | 453 |
-| evaluation | R344:support_verdicts | 30 support verdicts | pass | 453,537 |
-| evaluation | R344:counterpoint_verdicts | 16 counterpoints | pass | 453,537 |
-| evaluation | R344:mixed_or_weak_verdicts | 4 mixed/weak | pass | 453,537 |
-| evaluation | R344:required_metric_count | groups | pass | 99,100,347,537 |
-| evaluation | R344:required_groups_metric_present | groups | pass | 99,100,347,537 |
-| evaluation | R344:metric_summary_rows | 50 | pass | 347,447,453,537,629 |
-| evaluation | R344:task_delta_rows | 300 | pass | 347,453 |
-| evaluation | R344:summary_support_verdicts | 30 support verdicts | pass | 453,537 |
-| evaluation | R344:summary_counterpoint_verdicts | 16 counterpoints | pass | 453,537 |
-| evaluation | R344:summary_mixed_or_weak_verdicts | 4 mixed/weak | pass | 453,537 |
-| evaluation | R344:required_metric_groups_in_summary | groups | pass | 99,100,347,537 |
+| evaluation | R340:leave_dataset_decisions | 48 | pass | 106,107,108,109,110,113,135,147 |
+| evaluation | R340:leave_dataset_within_tolerance | 30 | pass | 12,13,15,39,50,79,91,99 |
+| evaluation | R340:decision_rows | 96 | pass | 109,169,171,275,276,277,278,279 |
+| evaluation | R340:objective_rows | 16 | pass | 13,101,109,145,154,250,264,279 |
+| evaluation | R340:selected_policy_visible_rows | 96/96 | pass | 283,284 |
+| evaluation | R340:best_policy_visible_rows | 96/96 | pass | 283,284 |
+| evaluation | R340:selected_policy_no_oracle_or_label_drilldown | 96/96 | pass | 283,284 |
+| evaluation | R340:best_policy_no_oracle_or_label_drilldown | 96/96 | pass | 283,284 |
+| evaluation | R340:leave_task_excludes_target_task | 96/96 | pass | 283,284 |
+| evaluation | R340:leave_dataset_excludes_target_dataset | 96/96 | pass | 283,284 |
+| evaluation | R341:overall | R341 | pass | 100,106,285,371,471,474,478,481 |
+| evaluation | R341:tasks | 6 tasks | pass | 100,106,371,474,478,481 |
+| evaluation | R341:objective_rows | 36 objective rows | pass | 100,106,371,474,478,481 |
+| evaluation | R341:objective_best_policy_visible_rows | 36/36 best policies visible | pass | 474 |
+| evaluation | R341:objective_best_policy_non_oracle_rows | 36/36 best policies non-oracle | pass | 474 |
+| evaluation | R341:actionable_objective_rows | 36/36 objective rows have optimization actions | pass | 371,474 |
+| evaluation | R341:nondefault_best_objective_rows | 27/36 best visible policies are non-default | pass | 371,474 |
+| evaluation | R341:transfer_decisions | 96 transfer decisions | pass | 474 |
+| evaluation | R341:transfer_misses | 34/96 transfer decisions | pass | 474 |
+| evaluation | R341:transfer_misses_with_view_change | 32/34 misses change view | pass | 474 |
+| evaluation | R341:transfer_misses_with_ranker_change | 26/34 change ranker | pass | 474 |
+| evaluation | R341:high_regret_transfer_misses | 29/34 high-regret misses | pass | 371,474 |
+| evaluation | R341:stack_depth_tradeoff_tasks | stack-depth signals on 6/6 | pass | 474 |
+| evaluation | R341:transfer_policy_signal_tasks | transfer-policy signals on 6/6 | pass | 474 |
+| evaluation | R341:critical_rank_feature_tasks | critical features on 4/6 | pass | 474 |
+| evaluation | R341:misleading_feature_tasks | misleading features on 2/6 | pass | 474 |
+| evaluation | R341:tasks_with_three_or_more_mechanism_labels | three or more mechanism labels on 6/6 | pass | 474 |
+| evaluation | R342:overall | R342 | pass | 12,78,368,371,373,471,475,476 |
+| evaluation | R342:tasks | 6 tasks | pass | 371,475,476,569 |
+| evaluation | R342:profile_spec_variants | 12 profile-spec variants | pass | 475,569 |
+| evaluation | R342:composition_variants | 12/12 compose | pass | 475 |
+| evaluation | R342:prompt_session_free_variants | 12/12 prompt/session-free | pass | 475 |
+| evaluation | R342:rule_score_rank_policy_variants | rank_mode=rule-score | pass | 475,569 |
+| evaluation | R342:ap_improves_vs_width_variants | 9/12 variants | pass | 475,569 |
+| evaluation | R342:top5_lift_improves_vs_width_variants | 8/12 | pass | 475 |
+| evaluation | R342:first_positive_work_improves_vs_width_variants | 10/12 | pass | 475,569 |
+| evaluation | R342:tasks_with_ap_improvement_any_depth | 5/6 | pass | 371 |
+| evaluation | R342:tasks_with_first_positive_improvement_any_depth | 6/6 | pass | 371,475,569 |
+| evaluation | R342:tasks_where_coarse_reduces_groups | 6/6 tasks | pass | 371,475,569 |
+| evaluation | R342:median_coarse_group_reduction | 0.8267 | pass | 475,569 |
+| evaluation | R342:tasks_where_depth_choice_changes_objective | 3/6 tasks | pass | 475 |
+| evaluation | R342:best_ap_semantic_depth_tasks | semantic 4 / coarse 2 | pass | 475,569 |
+| evaluation | R342:best_ap_coarse_depth_tasks | semantic 4 / coarse 2 | pass | 475,569 |
+| evaluation | R342:committed_variant_csv_matches_sources | 12/12 | pass | 12,368,475,476,569 |
+| evaluation | R342:committed_task_csv_matches_sources | 6/6 | pass | 371,475,569 |
+| evaluation | R344:overall | R344 | pass | 88,99,100,371,471,477,478,562 |
+| evaluation | R344:tasks | 6 tasks | pass | 100,371,477,478 |
+| evaluation | R344:metric_comparisons | 50 baseline-metric comparisons | pass | 371,477,562 |
+| evaluation | R344:task_metric_delta_rows | 300 task-metric deltas | pass | 477 |
+| evaluation | R344:support_verdicts | 30 support verdicts | pass | 477,562 |
+| evaluation | R344:counterpoint_verdicts | 16 counterpoints | pass | 477,562 |
+| evaluation | R344:mixed_or_weak_verdicts | 4 mixed/weak | pass | 477,562 |
+| evaluation | R344:required_metric_count | groups | pass | 99,100,371,562 |
+| evaluation | R344:required_groups_metric_present | groups | pass | 99,100,371,562 |
+| evaluation | R344:metric_summary_rows | 50 | pass | 371,471,477,562,655 |
+| evaluation | R344:task_delta_rows | 300 | pass | 371,477 |
+| evaluation | R344:summary_support_verdicts | 30 support verdicts | pass | 477,562 |
+| evaluation | R344:summary_counterpoint_verdicts | 16 counterpoints | pass | 477,562 |
+| evaluation | R344:summary_mixed_or_weak_verdicts | 4 mixed/weak | pass | 477,562 |
+| evaluation | R344:required_metric_groups_in_summary | groups | pass | 99,100,371,562 |
 | evaluation | R344:flat_ap_wins | flat AP 6/6 | pass | 99 |
 | evaluation | R344:flat_budget30_recall_wins | budget30 recall 6/6 | pass | 99 |
 | evaluation | R344:flat_work_to_first_positive_wins | work-to-first-positive 6/6 | pass | 99 |
@@ -526,66 +526,66 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | evaluation | R344:fixed_session_group_wins | groups 4/6 | pass | 99 |
 | evaluation | R344:width_ap_wins | width AP 6/6 | pass | 99 |
 | evaluation | R344:width_budget30_recall_wins | budget30 recall 5/6 | pass | 99 |
-| evaluation | R344:flat_ndcg_losses | nDCG | pass | 347,453,537,615 |
-| evaluation | R344:flat_top5_recall_losses | top-k recall | pass | 347,453,537 |
-| evaluation | R345:overall | R345 | pass | 15,100,101,102,347,447,454,455 |
-| evaluation | R345:tasks | 6 tasks | pass | 15,100,101,347,454,455 |
-| evaluation | R345:datasets | 4 datasets | pass | 15,101,454,455 |
-| evaluation | R345:lens_count | 6 diagnostic lenses | pass | 101,347,454 |
-| evaluation | R345:objective_rows | 36 objective rows | pass | 100,101,347,454 |
+| evaluation | R344:flat_ndcg_losses | nDCG | pass | 371,477,562,640 |
+| evaluation | R344:flat_top5_recall_losses | top-k recall | pass | 371,477,562 |
+| evaluation | R345:overall | R345 | pass | 15,100,101,102,371,471,478,479 |
+| evaluation | R345:tasks | 6 tasks | pass | 15,100,101,371,478,479 |
+| evaluation | R345:datasets | 4 datasets | pass | 15,101,478,479 |
+| evaluation | R345:lens_count | 6 diagnostic lenses | pass | 101,371,478 |
+| evaluation | R345:objective_rows | 36 objective rows | pass | 100,101,371,478 |
 | evaluation | R345:task_cards | 6/6 actionable task cards | pass | 101 |
 | evaluation | R345:actionable_task_cards | 6/6 actionable task cards | pass | 101 |
 | evaluation | R345:distinct_optimization_actions | 5 distinct optimization actions | pass | 101 |
 | evaluation | R345:default_operation_stack_best_objectives | 9/36 default operation-stack | pass | 101 |
 | evaluation | R345:operation_stack_family_best_objectives | 11/36 operation-stack family | pass | 101 |
 | evaluation | R345:non_operation_stack_best_objectives | 25/36 counterpoints | pass | 101 |
-| evaluation | R345:tasks_with_three_or_more_best_views | 6/6 tasks need at least three best views | pass | 100,101,347,454 |
+| evaluation | R345:tasks_with_three_or_more_best_views | 6/6 tasks need at least three best views | pass | 100,101,371,478 |
 | evaluation | R345:min_distinct_best_views_per_task | 3 best views | pass | 101 |
 | evaluation | R345:max_distinct_best_views_per_task | 4 best views | pass | 101 |
-| evaluation | R345:counterpoint_rows | 46 counterpoint rows | pass | 101,454 |
+| evaluation | R345:counterpoint_rows | 46 counterpoint rows | pass | 101,478 |
 | evaluation | R345:r344_support_verdicts | 30 support | pass | 101 |
 | evaluation | R345:r344_counterpoint_verdicts | 16 counterpoints | pass | 101 |
 | evaluation | R345:r344_mixed_or_weak_verdicts | 4 mixed/weak | pass | 101 |
-| evaluation | R345:lens_summary_rows | 6 diagnostic lenses | pass | 101,347,454 |
-| evaluation | R345:task_lens_card_rows | 6 tasks | pass | 15,100,101,347,454,455 |
-| evaluation | R345:counterpoint_ledger_rows | 46 counterpoint rows | pass | 101,454 |
-| evaluation | R346:overall | R346 | pass | 102,103,110,276,347,447,455,456 |
-| evaluation | R346:tasks | 6 tasks | pass | 103,347,455,456,459 |
-| evaluation | R346:datasets | 4 datasets | pass | 103,455,456,459 |
-| evaluation | R346:case_groups | 30 case groups | pass | 103,347,455 |
-| evaluation | R346:top_groups_per_task | top-5 | pass | 102,103,347,455,456,459 |
-| evaluation | R346:tasks_with_top1_positive | 5/6 top-1 | pass | 103,347 |
-| evaluation | R346:tasks_with_positive_in_top5 | 6/6 top-5 | pass | 103,347 |
-| evaluation | R346:median_top5_recall | 0.188 | pass | 103,347,455 |
-| evaluation | R346:median_top5_precision | 0.1991 | pass | 103,455 |
-| evaluation | R346:median_top5_lift | 1.6508 | pass | 103,347,455,456 |
-| evaluation | R346:median_top5_work | 0.0937 | pass | 103,347,455,456 |
-| evaluation | R346:median_first_positive_work | 0.0378 | pass | 103,455 |
-| evaluation | R346:tasks_with_actionable_case_cards | 6/6 actionable case cards | pass | 103,347 |
+| evaluation | R345:lens_summary_rows | 6 diagnostic lenses | pass | 101,371,478 |
+| evaluation | R345:task_lens_card_rows | 6 tasks | pass | 15,100,101,371,478,479 |
+| evaluation | R345:counterpoint_ledger_rows | 46 counterpoint rows | pass | 101,478 |
+| evaluation | R346:overall | R346 | pass | 102,103,110,300,371,471,479,480 |
+| evaluation | R346:tasks | 6 tasks | pass | 103,371,479,480,483 |
+| evaluation | R346:datasets | 4 datasets | pass | 103,479,480,483 |
+| evaluation | R346:case_groups | 30 case groups | pass | 103,371,479 |
+| evaluation | R346:top_groups_per_task | top-5 | pass | 102,103,371,479,480,483 |
+| evaluation | R346:tasks_with_top1_positive | 5/6 top-1 | pass | 103,371 |
+| evaluation | R346:tasks_with_positive_in_top5 | 6/6 top-5 | pass | 103,371 |
+| evaluation | R346:median_top5_recall | 0.188 | pass | 103,371,479 |
+| evaluation | R346:median_top5_precision | 0.1991 | pass | 103,479 |
+| evaluation | R346:median_top5_lift | 1.6508 | pass | 103,371,479,480 |
+| evaluation | R346:median_top5_work | 0.0937 | pass | 103,371,479,480 |
+| evaluation | R346:median_first_positive_work | 0.0378 | pass | 103,479 |
+| evaluation | R346:tasks_with_actionable_case_cards | 6/6 actionable case cards | pass | 103,371 |
 | evaluation | R346:tasks_with_counterpoints | 6/6 counterpoints | pass | 103 |
-| evaluation | R346:tasks_with_three_or_more_best_views | 6/6 tasks need at least three best views | pass | 103,347 |
+| evaluation | R346:tasks_with_three_or_more_best_views | 6/6 tasks need at least three best views | pass | 103,371 |
 | evaluation | R346:min_distinct_best_views_per_task | 3 best views | pass | 103 |
 | evaluation | R346:max_distinct_best_views_per_task | 4 best views | pass | 103 |
-| evaluation | R346:task_case_card_rows | 6 tasks | pass | 103,347,455,456,459 |
-| evaluation | R346:top_stack_evidence_rows | 30 case groups | pass | 103,347,455 |
-| evaluation | R347:overall | R347 | pass | 104,105,106,110,276,347,447,456 |
-| evaluation | R347:tasks | 6 tasks | pass | 105,106,347,456,457,459 |
-| evaluation | R347:datasets | 4 datasets | pass | 105,456,457,459 |
-| evaluation | R347:visible_views | 5 visible views | pass | 105,456 |
-| evaluation | R347:view_task_rows | 30 view-task rows | pass | 105,456 |
-| evaluation | R347:top_groups_per_view | top-5 groups | pass | 105,347,456 |
-| evaluation | R347:operation_stack_top5_positive_tasks | 6/6 top-5 positive tasks | pass | 105,347 |
-| evaluation | R347:operation_stack_top1_positive_tasks | 5/6 top-1 positive tasks | pass | 105,347 |
-| evaluation | R347:operation_stack_median_top5_recall | 0.188 | pass | 105,347 |
-| evaluation | R347:operation_stack_median_top5_lift | 1.6508 | pass | 105,347,456 |
-| evaluation | R347:operation_stack_median_top5_work | 0.0937 | pass | 105,347,456 |
+| evaluation | R346:task_case_card_rows | 6 tasks | pass | 103,371,479,480,483 |
+| evaluation | R346:top_stack_evidence_rows | 30 case groups | pass | 103,371,479 |
+| evaluation | R347:overall | R347 | pass | 104,105,106,110,300,371,471,480 |
+| evaluation | R347:tasks | 6 tasks | pass | 105,106,371,480,481,483 |
+| evaluation | R347:datasets | 4 datasets | pass | 105,480,481,483 |
+| evaluation | R347:visible_views | 5 visible views | pass | 105,480 |
+| evaluation | R347:view_task_rows | 30 view-task rows | pass | 105,480 |
+| evaluation | R347:top_groups_per_view | top-5 groups | pass | 105,371,480 |
+| evaluation | R347:operation_stack_top5_positive_tasks | 6/6 top-5 positive tasks | pass | 105,371 |
+| evaluation | R347:operation_stack_top1_positive_tasks | 5/6 top-1 positive tasks | pass | 105,371 |
+| evaluation | R347:operation_stack_median_top5_recall | 0.188 | pass | 105,371 |
+| evaluation | R347:operation_stack_median_top5_lift | 1.6508 | pass | 105,371,480 |
+| evaluation | R347:operation_stack_median_top5_work | 0.0937 | pass | 105,371,480 |
 | evaluation | R347:operation_stack_median_first_positive_work | 0.0378 | pass | 105 |
 | evaluation | R347:wins_vs_flat_top5_work | 6/6 wins vs flat top-5 work | pass | 105 |
 | evaluation | R347:wins_vs_fixed_top5_recall | 5/6 wins vs fixed-session top-5 recall | pass | 105 |
 | evaluation | R347:wins_vs_fixed_group_count | 4/6 wins vs fixed-session group count | pass | 105 |
 | evaluation | R347:tasks_with_counterpoints | 6/6 tasks with counterpoints | pass | 105 |
-| evaluation | R347:view_case_metric_rows | 30 view-task rows | pass | 105,456 |
-| evaluation | R347:task_baseline_card_rows | 6 task cards | pass | 105,347 |
+| evaluation | R347:view_case_metric_rows | 30 view-task rows | pass | 105,480 |
+| evaluation | R347:task_baseline_card_rows | 6 task cards | pass | 105,371 |
 | evaluation | R347:baseline_pair_summary_rows | 24 baseline-pair rows | pass | 105 |
 | evaluation | R347:top_group_contrast_rows | 124 top-group rows | pass | 105 |
 | evaluation | R347:flat_top5_work_wins | 6/6 wins vs flat top-5 work | pass | 105 |
@@ -593,41 +593,41 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | evaluation | R347:fixed_session_group_wins | 4/6 wins vs fixed-session group count | pass | 105 |
 | evaluation | R347:fixed_session_first_positive_losses | fixed-session first-positive counterpoint 4/6 | pass | 105 |
 | evaluation | R347:flat_top5_recall_losses | flat full-work recall counterpoint 6/6 | pass | 105 |
-| evaluation | R348:overall | R348 | pass | 106,107,108,109,110,113,269,270 |
-| evaluation | R348:tasks | 6 tasks | pass | 106,107,109,347,457,459,463 |
-| evaluation | R348:datasets | 4 datasets | pass | 107,109,457,459,463 |
-| evaluation | R348:objective_rows | 36 objective rows | pass | 106,107,347,457,459 |
+| evaluation | R348:overall | R348 | pass | 106,107,108,109,110,113,293,294 |
+| evaluation | R348:tasks | 6 tasks | pass | 106,107,109,371,481,483,487 |
+| evaluation | R348:datasets | 4 datasets | pass | 107,109,481,483,487 |
+| evaluation | R348:objective_rows | 36 objective rows | pass | 106,107,371,481,483 |
 | evaluation | R348:nondefault_action_rows | 27/36 non-default action rows | pass | 107 |
 | evaluation | R348:default_best_rows | 9/36 default-best rows | pass | 107 |
-| evaluation | R348:visible_non_oracle_best_rows | 36/36 visible non-oracle best rows | pass | 107,459 |
+| evaluation | R348:visible_non_oracle_best_rows | 36/36 visible non-oracle best rows | pass | 107,483 |
 | evaluation | R348:view_change_rows | 25/36 view-change rows | pass | 107 |
 | evaluation | R348:operation_stack_tuning_rows | 2/36 operation-stack tuning rows | pass | 107 |
 | evaluation | R348:non_operation_stack_counterpoint_rows | 25/36 non-operation-stack counterpoints | pass | 107 |
 | evaluation | R348:tasks_with_nondefault_actions | 6/6 tasks with non-default actions | pass | 107 |
 | evaluation | R348:tasks_with_three_or_more_action_classes | 6/6 tasks with at least three action classes | pass | 107 |
 | evaluation | R348:tasks_with_case_counterpoints | 6/6 tasks with case counterpoints | pass | 107 |
-| evaluation | R348:median_gain_over_default | 0.1447 | pass | 107,347,457 |
-| evaluation | R348:median_nondefault_gain_over_default | 0.6188 | pass | 107,457 |
+| evaluation | R348:median_gain_over_default | 0.1447 | pass | 107,371,481 |
+| evaluation | R348:median_nondefault_gain_over_default | 0.6188 | pass | 107,481 |
 | evaluation | R348:max_gain_over_default | 288.0 | pass | 107 |
 | evaluation | R348:r335_actionability_cards | 6 actionability cards | pass | 107 |
-| evaluation | R348:r341_actionable_objective_rows | 36 objective rows | pass | 106,107,347,457,459 |
+| evaluation | R348:r341_actionable_objective_rows | 36 objective rows | pass | 106,107,371,481,483 |
 | evaluation | R348:r347_visible_views | 5 visible views | pass | 107 |
-| evaluation | R348:objective_counterfactual_rows | 36 objective rows | pass | 106,107,347,457,459 |
+| evaluation | R348:objective_counterfactual_rows | 36 objective rows | pass | 106,107,371,481,483 |
 | evaluation | R348:action_class_summary_rows | 6 action classes | pass | 107 |
-| evaluation | R348:task_action_counterfactual_card_rows | 6 task cards | pass | 347 |
+| evaluation | R348:task_action_counterfactual_card_rows | 6 task cards | pass | 371 |
 | evaluation | R348:flat_counterpoint_action_rows | 7 flat counterpoint rows | pass | 107 |
 | evaluation | R348:fixed_session_drilldown_rows | 7 fixed-session drilldown rows | pass | 107 |
 | evaluation | R348:dataset_native_hierarchy_rows | 5 dataset-native rows | pass | 107 |
 | evaluation | R348:raw_action_counterpoint_rows | 6 raw-action rows | pass | 107 |
 | evaluation | R348:keep_default_operation_stack_rows | 9 keep-default rows | pass | 107 |
 | evaluation | R348:retune_operation_stack_ranker_rows | 2 operation-stack ranker rows | pass | 107 |
-| evaluation | R349:overall | R349 | pass | 15,108,109,110,269,273,277,283 |
-| evaluation | R349:transfer_decisions_total | 96 transfer decisions | pass | 109,458 |
-| evaluation | R349:aligned_decisions | 60 aligned decisions | pass | 109,347,458 |
+| evaluation | R349:overall | R349 | pass | 15,108,109,110,293,297,301,307 |
+| evaluation | R349:transfer_decisions_total | 96 transfer decisions | pass | 109,482 |
+| evaluation | R349:aligned_decisions | 60 aligned decisions | pass | 109,371,482 |
 | evaluation | R349:excluded_decisions | 36 excluded decisions | pass | 109 |
 | evaluation | R349:aligned_objectives | 5 aligned objectives | pass | 109 |
-| evaluation | R349:tasks | 6 tasks | pass | 15,109,347,459 |
-| evaluation | R349:datasets | 4 datasets | pass | 15,109,459 |
+| evaluation | R349:tasks | 6 tasks | pass | 15,109,371,483 |
+| evaluation | R349:datasets | 4 datasets | pass | 15,109,483 |
 | evaluation | R349:selected_visible_non_oracle_rows | 60/60 selected visible non-oracle | pass | 109 |
 | evaluation | R349:best_visible_non_oracle_rows | 60/60 best visible non-oracle | pass | 109 |
 | evaluation | R349:r340_r348_best_policy_match_rows | 50/60 best-policy matches | pass | 109 |
@@ -650,33 +650,33 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | evaluation | R349:leave_dataset_within_tolerance | leave-dataset 17/30 within tolerance | pass | 109 |
 | evaluation | R349:sequence_objective_excluded_rows | 36 sequence objective exclusions | pass | 109 |
 | evaluation | R349:r348_untransferred_objective_rows | 6 R348 untransferred objectives | pass | 109 |
-| evaluation | R349:decision_rows | 60 aligned decisions | pass | 109,347,458 |
+| evaluation | R349:decision_rows | 60 aligned decisions | pass | 109,371,482 |
 | evaluation | R349:summary_rows | 13 summary rows | pass | 109 |
 | evaluation | R349:confusion_rows | 16 action-confusion rows | pass | 109 |
 | evaluation | R349:task_card_rows | 12 task cards | pass | 109 |
 | evaluation | R349:excluded_rows | 36 excluded decisions | pass | 109 |
 | evaluation | R349:untransferred_rows | 6 R348 untransferred objectives | pass | 109 |
-| evaluation | R350:overall | R350 | pass | 15,110,111,129,130,276,285,287 |
-| evaluation | R350:tasks | 6 tasks | pass | 15,111,130,347,459 |
-| evaluation | R350:datasets | 4 datasets | pass | 15,111,130,459 |
-| evaluation | R350:objective_rows | 36 objective rows | pass | 111,347,459 |
+| evaluation | R350:overall | R350 | pass | 15,110,111,153,154,300,309,311 |
+| evaluation | R350:tasks | 6 tasks | pass | 15,111,154,371,483 |
+| evaluation | R350:datasets | 4 datasets | pass | 15,111,154,483 |
+| evaluation | R350:objective_rows | 36 objective rows | pass | 111,371,483 |
 | evaluation | R350:action_classes | 6 action classes | pass | 111 |
-| evaluation | R350:packets_with_top5_positive | 6/6 top-5 positive packets | pass | 15,111,130 |
+| evaluation | R350:packets_with_top5_positive | 6/6 top-5 positive packets | pass | 15,111,154 |
 | evaluation | R350:packets_with_top1_positive | 5/6 top-1 positive packets | pass | 15,111 |
-| evaluation | R350:packets_with_30pct_work_budget | 4/6 strict 30% work packets | pass | 15,111,130 |
+| evaluation | R350:packets_with_30pct_work_budget | 4/6 strict 30% work packets | pass | 15,111,154 |
 | evaluation | R350:packets_with_first_positive_10pct_budget | 4/6 first-positive <=10% work packets | pass | 111 |
-| evaluation | R350:packets_with_baseline_counterpoints | 6/6 baseline counterpoints | pass | 111,459 |
+| evaluation | R350:packets_with_baseline_counterpoints | 6/6 baseline counterpoints | pass | 111,483 |
 | evaluation | R350:packets_with_nondefault_actions | 6/6 non-default action packets | pass | 111 |
 | evaluation | R350:packets_with_three_or_more_action_classes | 6/6 three-action-class packets | pass | 111 |
 | evaluation | R350:operation_stack_beats_flat_work_tasks | 6/6 beats flat work | pass | 111 |
 | evaluation | R350:operation_stack_beats_fixed_recall_tasks | 5/6 beats fixed recall | pass | 111 |
 | evaluation | R350:operation_stack_fewer_groups_than_fixed_tasks | 4/6 fewer groups than fixed | pass | 111 |
-| evaluation | R350:median_top5_work | 0.0937 | pass | 15,111,347 |
+| evaluation | R350:median_top5_work | 0.0937 | pass | 15,111,371 |
 | evaluation | R350:median_first_positive_work | 0.0378 | pass | 111 |
-| evaluation | R350:median_top5_recall | 0.188 | pass | 111,347 |
-| evaluation | R350:median_top5_lift | 1.6508 | pass | 111,347 |
-| evaluation | R350:nondefault_objective_rows | 27/36 non-default objective rows | pass | 15,111,347,459 |
-| evaluation | R350:visible_non_oracle_best_rows | 36/36 visible non-oracle best rows | pass | 111,459 |
+| evaluation | R350:median_top5_recall | 0.188 | pass | 111,371 |
+| evaluation | R350:median_top5_lift | 1.6508 | pass | 111,371 |
+| evaluation | R350:nondefault_objective_rows | 27/36 non-default objective rows | pass | 15,111,371,483 |
+| evaluation | R350:visible_non_oracle_best_rows | 36/36 visible non-oracle best rows | pass | 111,483 |
 | evaluation | R350:median_nondefault_gain_over_default | 0.6188 | pass | 111 |
 | evaluation | R350:max_gain_over_default | 288.0 | pass | 111 |
 | evaluation | R350:r349_aligned_transfer_decisions | 60 aligned transfer decisions | pass | 111 |
@@ -686,27 +686,27 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | evaluation | R350:task_packet_rows | 6 task packets | pass | 111 |
 | evaluation | R350:objective_packet_rows | 36 objective packets | pass | 111 |
 | evaluation | R350:budget_summary_rows | 7 budget rows | pass | 111 |
-| evaluation | R350:budget_top5_positive | 6/6 top-5 positive packets | pass | 15,111,130 |
-| evaluation | R350:budget_30pct_packets | 4/6 strict 30% work packets | pass | 15,111,130 |
-| evaluation | R350:budget_actionable_counterfactual | 27/36 non-default objective rows | pass | 15,111,347,459 |
+| evaluation | R350:budget_top5_positive | 6/6 top-5 positive packets | pass | 15,111,154 |
+| evaluation | R350:budget_30pct_packets | 4/6 strict 30% work packets | pass | 15,111,154 |
+| evaluation | R350:budget_actionable_counterfactual | 27/36 non-default objective rows | pass | 15,111,371,483 |
 
 ## Guardrails
 
 | Doc | Guardrail | Status | Occurrences | Occurrence lines | Unguarded overclaim lines |
 |---|---|---|---:|---|---|
-| evaluation | human_utility | pass | 12 | 15,121,347,419,423,513,516,518,519,523,527,528 | none |
-| evaluation | automatic_boundary | pass | 7 | 294,347,512,513,535,544,639 | none |
-| evaluation | ecosystem_compatibility | pass | 7 | 12,30,347,418,512,530,633 | none |
-| evaluation | universal_selector | pass | 12 | 100,108,223,347,449,529,530,532,536,544,601,616 | none |
+| evaluation | human_utility | pass | 12 | 15,121,371,443,447,538,541,543,544,548,552,553 | none |
+| evaluation | automatic_boundary | pass | 7 | 318,371,537,538,560,569,665 | none |
+| evaluation | ecosystem_compatibility | pass | 7 | 12,30,371,442,537,555,659 | none |
+| evaluation | universal_selector | pass | 12 | 100,108,247,371,473,554,555,557,561,569,626,641 | none |
 | zh_claim_setup | human_utility | pass | 12 | 26,28,36,42,43,47,84,85,86,93,94,97 | none |
 | zh_claim_setup | automatic_boundary | pass | 7 | 23,25,26,47,48,132,255 | none |
 | zh_claim_setup | ecosystem_compatibility | pass | 8 | 22,78,96,159,206,243,244,245 | none |
 | zh_claim_setup | universal_selector | pass | 12 | 26,34,36,37,38,41,42,43,44,45,46,47 | none |
-| zh_main | human_utility | pass | 12 | 83,210,390,433,490,495,611,678,689,727,728,729 | none |
-| zh_main | automatic_boundary | pass | 2 | 83,84 | none |
-| zh_main | ecosystem_compatibility | pass | 12 | 51,168,634,642,643,646,682,706,732,743,753,754 | none |
-| zh_main | universal_selector | pass | 12 | 78,81,83,478,484,489,491,492,493,494,609,671 | none |
-| en_main | human_utility | pass | 5 | 127,193,207,691,758 | none |
-| en_main | automatic_boundary | pass | 3 | 160,691,889 | none |
-| en_main | ecosystem_compatibility | pass | 12 | 792,794,802,804,805,806,812,813,890,983,984,986 | none |
-| en_main | universal_selector | pass | 11 | 122,446,449,602,611,654,673,685,692,841,848 | none |
+| zh_main | human_utility | pass | 12 | 84,211,391,434,492,497,614,681,692,731,732,733 | none |
+| zh_main | automatic_boundary | pass | 2 | 84,85 | none |
+| zh_main | ecosystem_compatibility | pass | 12 | 51,169,637,645,646,649,685,709,736,738,747,757 | none |
+| zh_main | universal_selector | pass | 12 | 79,82,84,479,485,491,493,494,495,496,612,674 | none |
+| en_main | human_utility | pass | 4 | 136,206,220,810 | none |
+| en_main | automatic_boundary | pass | 4 | 173,735,742,946 | none |
+| en_main | ecosystem_compatibility | pass | 12 | 844,846,854,856,857,858,864,865,947,1043,1044,1046 | none |
+| en_main | universal_selector | pass | 10 | 131,459,462,615,641,684,703,715,893,900 | none |

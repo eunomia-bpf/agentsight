@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>R355 Oracle-Depth Adequacy Audit</title>
+<style>
+body { font-family: system-ui, sans-serif; margin: 32px; color: #1f2937; }
+table { border-collapse: collapse; width: 100%; }
+th, td { border-bottom: 1px solid #d1d5db; padding: 8px; vertical-align: top; }
+td:nth-child(4), td:nth-child(5), th:nth-child(4), th:nth-child(5) { text-align: right; }
+code { background: #f3f4f6; padding: 1px 4px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<h1>R355 Oracle-Depth Adequacy Audit</h1>
+<p>Visible-ranked profiler groups scored at dataset-provided oracle depth; no dataset sync or relabeling.</p>
+<table>
+<thead><tr><th>Task</th><th>Depth</th><th>Best policy</th><th>OS budget-30 unit recall</th><th>OS groups to 50% units</th><th>Action</th></tr></thead>
+<tbody><tr><td>agentreward_looping</td><td>session</td><td>operation_stack:query_aware</td><td>0.5294</td><td>2</td><td>Operation-stack improves oracle-unit recall over fixed-session for this depth.</td></tr>
+<tr><td>agentreward_looping</td><td>operation</td><td>operation_stack:query_aware</td><td>0.3988</td><td>3</td><td>Operation-stack improves oracle-unit recall over fixed-session for this depth.</td></tr>
+<tr><td>agentreward_looping</td><td>positive_run</td><td>operation_stack:query_aware</td><td>0.5513</td><td>2</td><td>Operation-stack improves oracle-unit recall over fixed-session for this depth.</td></tr>
+<tr><td>agentreward_looping</td><td>agentreward_turn</td><td>operation_stack:query_aware</td><td>0.4008</td><td>3</td><td>Operation-stack improves oracle-unit recall over fixed-session for this depth.</td></tr>
+<tr><td>agentreward_side_effect</td><td>session</td><td>operation_stack:width</td><td>1.0000</td><td>1</td><td>Operation-stack improves oracle-unit recall over fixed-session for this depth.</td></tr>
+<tr><td>agentreward_side_effect</td><td>operation</td><td>raw_action_stack:query_aware</td><td>0.3812</td><td>17</td><td>Operation-stack improves oracle-unit recall over fixed-session for this depth.</td></tr>
+<tr><td>agentreward_side_effect</td><td>positive_run</td><td>operation_stack:width</td><td>1.0000</td><td>1</td><td>Operation-stack improves oracle-unit recall over fixed-session for this depth.</td></tr>
+<tr><td>agentreward_side_effect</td><td>agentreward_turn</td><td>raw_action_stack:query_aware</td><td>0.8000</td><td>10</td><td>Operation-stack improves oracle-unit recall over fixed-session for this depth.</td></tr>
+<tr><td>satraj_unsafe</td><td>session</td><td>dataset_native:query_aware</td><td>1.0000</td><td>13</td><td>Operation-stack improves oracle-unit recall over fixed-session for this depth.</td></tr>
+<tr><td>satraj_unsafe</td><td>operation</td><td>dataset_native:query_aware</td><td>0.8376</td><td>38</td><td>Preserve baseline counterpoint; operation-stack is an explanation view here.</td></tr>
+<tr><td>satraj_unsafe</td><td>positive_run</td><td>dataset_native:query_aware</td><td>1.0000</td><td>13</td><td>Operation-stack improves oracle-unit recall over fixed-session for this depth.</td></tr>
+<tr><td>satraj_unsafe</td><td>satraj_step</td><td>dataset_native:query_aware</td><td>0.8376</td><td>38</td><td>Preserve baseline counterpoint; operation-stack is an explanation view here.</td></tr>
+<tr><td>agentnet_incorrect_step</td><td>session</td><td>raw_action_stack:query_aware</td><td>0.4084</td><td>186</td><td>Operation-stack improves oracle-unit recall over fixed-session for this depth.</td></tr>
+<tr><td>agentnet_incorrect_step</td><td>operation</td><td>operation_stack:query_aware</td><td>0.4382</td><td>186</td><td>Operation-stack improves oracle-unit recall over fixed-session for this depth.</td></tr>
+<tr><td>agentnet_incorrect_step</td><td>positive_run</td><td>operation_stack:query_aware</td><td>0.4302</td><td>186</td><td>Operation-stack improves oracle-unit recall over fixed-session for this depth.</td></tr>
+<tr><td>agentnet_incorrect_step</td><td>agentnet_step</td><td>operation_stack:query_aware</td><td>0.4382</td><td>186</td><td>Operation-stack improves oracle-unit recall over fixed-session for this depth.</td></tr>
+<tr><td>agentnet_redundant_step</td><td>session</td><td>raw_action_stack:query_aware</td><td>0.3539</td><td>157</td><td>Operation-stack improves oracle-unit recall over fixed-session for this depth.</td></tr>
+<tr><td>agentnet_redundant_step</td><td>operation</td><td>operation_stack:query_aware</td><td>0.3533</td><td>157</td><td>Operation-stack improves oracle-unit recall over fixed-session for this depth.</td></tr>
+<tr><td>agentnet_redundant_step</td><td>positive_run</td><td>operation_stack:query_aware</td><td>0.3535</td><td>157</td><td>Operation-stack improves oracle-unit recall over fixed-session for this depth.</td></tr>
+<tr><td>agentnet_redundant_step</td><td>agentnet_step</td><td>operation_stack:query_aware</td><td>0.3533</td><td>157</td><td>Operation-stack improves oracle-unit recall over fixed-session for this depth.</td></tr>
+<tr><td>osworld_group_start</td><td>session</td><td>raw_action_stack:query_aware</td><td>0.4180</td><td>11</td><td>Operation-stack improves oracle-unit recall over fixed-session for this depth.</td></tr>
+<tr><td>osworld_group_start</td><td>operation</td><td>operation_stack:width</td><td>0.2971</td><td>62</td><td>Raw action has higher unit recall; use operation-stack to reduce broad action groups.</td></tr>
+<tr><td>osworld_group_start</td><td>positive_run</td><td>operation_stack:width</td><td>0.2971</td><td>62</td><td>Raw action has higher unit recall; use operation-stack to reduce broad action groups.</td></tr>
+<tr><td>osworld_group_start</td><td>osworld_human_group</td><td>raw_action_stack:query_aware</td><td>0.5000</td><td>3</td><td>Operation-stack improves oracle-unit recall over fixed-session for this depth.</td></tr></tbody>
+</table>
+</body>
+</html>

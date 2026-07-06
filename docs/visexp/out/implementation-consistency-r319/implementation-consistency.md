@@ -4,7 +4,7 @@ R319 checks that the maintained Rust semantic-profiler path, canonical docs, and
 
 - Overall: `implementation_consistent`
 - Checks passed: 15 / 15
-- Commit at generation: `99aaaaa3fd8c0afa25f0e68213114e0828ed0fc2`
+- Commit at generation: `26877b48245b2ec15c7b7bcb9c1f110a5f3f032c`
 
 ## Checks
 
@@ -24,10 +24,11 @@ R319 checks that the maintained Rust semantic-profiler path, canonical docs, and
 | `profile_spec_not_stale_pending_task` | pass | Profile-spec support is no longer listed as a pending implementation task. |
 | `two_abstraction_boundary_in_docs` | pass | Design, paper, and claim setup preserve operation plus operation stack as the core model. |
 | `third_abstraction_guarded` | pass | Any third-abstraction language is guarded as a non-claim. |
-| `remaining_gates_are_real_research_gaps` | pass | Remaining implementation/evaluation gates are analyst utility, real trace producer import, and deeper boundary adequacy. |
+| `remaining_gates_are_real_research_gaps` | pass | Remaining implementation/evaluation gates are analyst utility, real trace producer import, and stronger true subtask oracles beyond R355. |
 
 ## Remaining Gates
 
 - Execute the controlled human/agent analyst study before claiming accuracy, time-to-answer, productivity, or user utility.
 - Add stronger calibrated boundary/backends before claiming automatic or universal intent-boundary discovery.
+- Add stronger true subtask, instruction-step, or solution-path oracles before broad latent-boundary claims.
 - Import a real OpenTelemetry GenAI, OpenInference, or Perfetto trace producer before claiming trace-platform compatibility.

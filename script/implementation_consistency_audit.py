@@ -324,9 +324,9 @@ def build_checks(sources: dict[str, str]) -> list[dict[str, Any]]:
         check(
             "controlled human/agent analyst study" in implementation
             and "real OpenTelemetry GenAI, OpenInference, or Perfetto" in implementation
-            and "Deeper subtask/step/sequence-level failure adequacy scorer" in evaluation,
+            and "Stronger true subtask/intent-boundary oracle expansion beyond R355" in evaluation,
             "remaining_gates_are_real_research_gaps",
-            "Remaining implementation/evaluation gates are analyst utility, real trace producer import, and deeper boundary adequacy.",
+            "Remaining implementation/evaluation gates are analyst utility, real trace producer import, and stronger true subtask oracles beyond R355.",
             "Remaining gates are not stated as research gaps in implementation/evaluation docs.",
         ),
     ]
@@ -380,6 +380,7 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
             "",
             "- Execute the controlled human/agent analyst study before claiming accuracy, time-to-answer, productivity, or user utility.",
             "- Add stronger calibrated boundary/backends before claiming automatic or universal intent-boundary discovery.",
+            "- Add stronger true subtask, instruction-step, or solution-path oracles before broad latent-boundary claims.",
             "- Import a real OpenTelemetry GenAI, OpenInference, or Perfetto trace producer before claiming trace-platform compatibility.",
         ]
     )
@@ -448,6 +449,7 @@ def main() -> None:
             "remaining_gates": [
                 "controlled human/agent analyst study",
                 "calibrated boundary backend beyond simple derived-field baselines",
+                "stronger true subtask or solution-path oracles beyond R355",
                 "real OpenTelemetry GenAI, OpenInference, or Perfetto trace import",
             ],
         },
