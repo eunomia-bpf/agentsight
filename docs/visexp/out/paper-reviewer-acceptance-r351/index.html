@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Paper Reviewer Acceptance R351</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; color: #1f2933; }
+    h1 { font-size: 1.6rem; }
+    p, li { max-width: 900px; line-height: 1.5; }
+    table { border-collapse: collapse; margin-top: 1.5rem; min-width: 920px; }
+    th, td { border: 1px solid #d8dee9; padding: 0.5rem 0.65rem; text-align: left; vertical-align: top; }
+    th { background: #f6f8fa; }
+  </style>
+</head>
+<body>
+  <h1>Paper Reviewer Acceptance R351</h1>
+  <p>Independent reviewer closure after R350/R338.</p>
+  <h2>Checks</h2>
+  <table>
+    <tr><th>Check</th><th>Status</th><th>Evidence</th></tr>
+<tr><td>four_independent_reviewers_accept</td><td>pass</td><td>All four current reviewers returned ACCEPT.</td></tr>
+<tr><td>no_reviewer_blocking_issues</td><td>pass</td><td>No reviewer reported a must-fix blocking issue.</td></tr>
+<tr><td>r338_claim_integrity_passes</td><td>pass</td><td>R338 passes number checks, source policy, guardrails, and two-abstraction boundary with no blockers.</td></tr>
+<tr><td>r350_bounded_packet_claim_supported</td><td>pass</td><td>R350 supports bounded packets over 6 tasks / 4 datasets with positives, flat-work, fixed-recall, and fragmentation tradeoff evidence.</td></tr>
+<tr><td>r350_counterpoints_preserved</td><td>pass</td><td>R350 preserves strict-budget exceptions and weak exact action transfer as guardrails.</td></tr>
+<tr><td>r320_hidden_label_leakage_check_passes</td><td>pass</td><td>R320 visible rank features do not overlap hidden oracle fields.</td></tr>
+<tr><td>r331_negative_control_provenance_passes</td><td>pass</td><td>R331 negative control reads tracked-clean sources without dataset sync.</td></tr>
+<tr><td>r350_no_dataset_sync_or_label_leak</td><td>pass</td><td>R350 records no dataset sync/creation/relabeling and hidden-label use only through offline scoring.</td></tr>
+<tr><td>paper_must_not_claim_boundaries_visible</td><td>pass</td><td>English and Chinese drafts visibly guard human utility, automatic selector, and ecosystem-compatibility claims.</td></tr>
+<tr><td>two_abstractions_only</td><td>pass</td><td>R338 and both drafts keep operation and operation stack as the two profiler abstractions.</td></tr>
+  </table>
+  <h2>Reviewers</h2>
+  <table>
+    <tr><th>Reviewer</th><th>Focus</th><th>Final</th><th>Blocking issues</th><th>Residual risks</th></tr>
+<tr><th>Cicero</th><td>OSDI/SOSP systems claim and tradeoff review</td><td>ACCEPT</td><td>0</td><td>4</td></tr>
+<tr><th>James</th><td>NeurIPS/ML hidden-label evaluation and leakage review</td><td>ACCEPT</td><td>0</td><td>4</td></tr>
+<tr><th>Galileo</th><td>Artifact provenance, reproducibility, and hidden-label discipline</td><td>ACCEPT</td><td>0</td><td>2</td></tr>
+<tr><th>Herschel</th><td>Claim-safety and must-not-claim boundary review</td><td>ACCEPT</td><td>0</td><td>2</td></tr>
+  </table>
+</body>
+</html>

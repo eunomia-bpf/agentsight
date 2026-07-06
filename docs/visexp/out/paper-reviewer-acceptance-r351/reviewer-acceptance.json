@@ -1,0 +1,168 @@
+{
+  "checks": [
+    {
+      "check": "four_independent_reviewers_accept",
+      "evidence": "All four current reviewers returned ACCEPT.",
+      "status": "pass"
+    },
+    {
+      "check": "no_reviewer_blocking_issues",
+      "evidence": "No reviewer reported a must-fix blocking issue.",
+      "status": "pass"
+    },
+    {
+      "check": "r338_claim_integrity_passes",
+      "evidence": "R338 passes number checks, source policy, guardrails, and two-abstraction boundary with no blockers.",
+      "status": "pass"
+    },
+    {
+      "check": "r350_bounded_packet_claim_supported",
+      "evidence": "R350 supports bounded packets over 6 tasks / 4 datasets with positives, flat-work, fixed-recall, and fragmentation tradeoff evidence.",
+      "status": "pass"
+    },
+    {
+      "check": "r350_counterpoints_preserved",
+      "evidence": "R350 preserves strict-budget exceptions and weak exact action transfer as guardrails.",
+      "status": "pass"
+    },
+    {
+      "check": "r320_hidden_label_leakage_check_passes",
+      "evidence": "R320 visible rank features do not overlap hidden oracle fields.",
+      "status": "pass"
+    },
+    {
+      "check": "r331_negative_control_provenance_passes",
+      "evidence": "R331 negative control reads tracked-clean sources without dataset sync.",
+      "status": "pass"
+    },
+    {
+      "check": "r350_no_dataset_sync_or_label_leak",
+      "evidence": "R350 records no dataset sync/creation/relabeling and hidden-label use only through offline scoring.",
+      "status": "pass"
+    },
+    {
+      "check": "paper_must_not_claim_boundaries_visible",
+      "evidence": "English and Chinese drafts visibly guard human utility, automatic selector, and ecosystem-compatibility claims.",
+      "status": "pass"
+    },
+    {
+      "check": "two_abstractions_only",
+      "evidence": "R338 and both drafts keep operation and operation stack as the two profiler abstractions.",
+      "status": "pass"
+    }
+  ],
+  "claim_scope": {
+    "does_not_support": [
+      "human or agent analyst accuracy/productivity",
+      "automatic discovery of all intent boundaries",
+      "complete OpenTelemetry/Phoenix/LangSmith/Langfuse/Perfetto compatibility",
+      "label-free universal action selector",
+      "universal dominance over flat, fixed-session, dataset-native, or raw-action views"
+    ],
+    "supports": [
+      "independent reviewer acceptance of the scoped R350/R338 paper state",
+      "hidden-label profiler localization/ranking/actionability claim over real labeled traces",
+      "bounded operation-stack evidence packets with explicit baseline counterpoints"
+    ]
+  },
+  "commit": "c71064497aa9053eff289c06bedb75a3a89e71c1",
+  "input_policy": "current paper plus tracked R320/R331/R338/R350 artifacts; no dataset sync, no profiler rerun, no human/agent analyst task",
+  "network_access_required": false,
+  "not_a_human_study_result": true,
+  "not_an_agent_analyst_task_result": true,
+  "not_new_empirical_result": true,
+  "outputs": {
+    "csv": "docs/visexp/out/paper-reviewer-acceptance-r351/reviewer-verdicts.csv",
+    "html": "docs/visexp/out/paper-reviewer-acceptance-r351/index.html",
+    "json": "docs/visexp/out/paper-reviewer-acceptance-r351/reviewer-acceptance.json",
+    "markdown": "docs/visexp/out/paper-reviewer-acceptance-r351/reviewer-acceptance.md",
+    "run_result": "docs/visexp/out/paper-reviewer-acceptance-r351/run-result.json"
+  },
+  "overall": "accepted",
+  "profiler_abstractions": [
+    "operation",
+    "operation stack"
+  ],
+  "review_events": [
+    {
+      "agent_id": "019f3519-2f5d-7d23-aa45-38bff947ab5a",
+      "blocking_issues": [],
+      "final_verdict": "ACCEPT",
+      "focus": "OSDI/SOSP systems claim and tradeoff review",
+      "rationale": "The current paper scopes the claim as label-scored profiling, defines profiler baselines and metrics, preserves fixed-session and flat counterpoints, and R338/R350 back the bounded packet claim.",
+      "residual_risks": [
+        "Evidence is an offline hidden-label profiler benchmark, not human productivity evidence.",
+        "Actionability means objective-level tuning guidance, not automatic action selection.",
+        "Fixed-session is a span-tree proxy; real trace ecosystem imports remain future work.",
+        "Boundary evidence does not prove automatic intent-boundary discovery."
+      ],
+      "reviewer": "Cicero"
+    },
+    {
+      "agent_id": "019f3519-4f14-7811-9e0c-624c8eb03715",
+      "blocking_issues": [],
+      "final_verdict": "ACCEPT",
+      "focus": "NeurIPS/ML hidden-label evaluation and leakage review",
+      "rationale": "R320 has named baselines, broad metrics, and a passing leakage check; R331 adds a permutation negative control; R340/R349 keep target labels out of policy selection; R350 narrows actionability to bounded evidence packets.",
+      "residual_risks": [
+        "Scope is still six tasks over four oracle-rich families.",
+        "No completed human/agent analyst study; paper correctly avoids user-utility claims.",
+        "Held-out action transfer is weak as an exact selector and is correctly treated as a guardrail.",
+        "Real OpenTelemetry/Phoenix/LangSmith-style import remains future interoperability work."
+      ],
+      "reviewer": "James"
+    },
+    {
+      "agent_id": "019f3519-6a7c-7770-907d-89126a968e40",
+      "blocking_issues": [],
+      "final_verdict": "ACCEPT",
+      "focus": "Artifact provenance, reproducibility, and hidden-label discipline",
+      "rationale": "R327/R328 cover deterministic profile specs, R338 source provenance passes, R350 avoids dataset sync/relabeling, hidden labels stay out of visible ranking, and the two-abstraction boundary is preserved.",
+      "residual_risks": [
+        "R328 records a dirty worktree at generation time despite tracked-clean source checks.",
+        "Some older upstream reports have less uniform provenance schema than R338/R350."
+      ],
+      "reviewer": "Galileo"
+    },
+    {
+      "agent_id": "019f3519-8b81-7ea3-bc69-20d08a38b983",
+      "blocking_issues": [],
+      "final_verdict": "ACCEPT",
+      "focus": "Claim-safety and must-not-claim boundary review",
+      "rationale": "Human utility, automatic boundary discovery, ecosystem compatibility, universal selector, and third-abstraction claims are guarded in both drafts and R338 reports no blockers.",
+      "residual_risks": [
+        "Chinese draft has broad all-profilable-objects language but later caveats scope it.",
+        "Accuracy and actionability appear often but are consistently tied to hidden-label profiler scoring."
+      ],
+      "reviewer": "Herschel"
+    }
+  ],
+  "run_id": "R351",
+  "schema": "agentsight.paper-reviewer-acceptance.v2",
+  "source": {
+    "chinese_paper": "docs/visexp/paper/main.tex",
+    "claim_setup": "docs/visexp/paper/evaluation-claims-setup.zh-CN.md",
+    "english_paper": "docs/agentpprof-paper/main.tex",
+    "evaluation": "docs/evaluation.md",
+    "r320_accuracy": "docs/visexp/out/operation-profile-accuracy-r320/profile-accuracy-report.json",
+    "r331_negative_control": "docs/visexp/out/operation-profile-negative-control-r331/negative-control-report.json",
+    "r338_claim_integrity": "docs/visexp/out/paper-claim-integrity-r338/claim-integrity-report.json",
+    "r350_evidence_packet": "docs/visexp/out/operation-evidence-packet-r350/evidence-packet-report.json"
+  },
+  "status": "ok",
+  "summary": {
+    "blocking_issues": 0,
+    "checks_passed": 10,
+    "checks_total": 10,
+    "final_accepts": 4,
+    "r338_guardrail_checks": 16,
+    "r338_number_checks": 326,
+    "r338_source_policy_checks": 78,
+    "r350_datasets": 4,
+    "r350_strict_30pct_packets": 4,
+    "r350_tasks": 6,
+    "r350_top5_positive_packets": 6,
+    "residual_risks": 12,
+    "reviewers": 4
+  }
+}
