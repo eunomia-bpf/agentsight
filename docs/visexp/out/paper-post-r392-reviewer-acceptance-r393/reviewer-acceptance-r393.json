@@ -1,0 +1,181 @@
+{
+  "checks": [
+    {
+      "check": "four_final_accepts",
+      "detail": "Final ACCEPT verdicts=4/4.",
+      "passed": true
+    },
+    {
+      "check": "zero_unresolved_blockers",
+      "detail": "Unresolved blocking issues=0.",
+      "passed": true
+    },
+    {
+      "check": "caption_blocker_resolved",
+      "detail": "Chinese dataset caption no longer misstates the oracle-rich source count.",
+      "passed": true
+    },
+    {
+      "check": "r383_prior_gate_accepted",
+      "detail": "R383 prior canonical reviewer gate remains accepted.",
+      "passed": true
+    },
+    {
+      "check": "r392_registered_as_e4",
+      "detail": "Evaluation ledger registers R392 as profile-spec input-source replay under E4.",
+      "passed": true
+    },
+    {
+      "check": "r392_not_accuracy_experiment",
+      "detail": "Both papers state that R392 is not a new accuracy experiment.",
+      "passed": true
+    },
+    {
+      "check": "two_abstractions_preserved",
+      "detail": "Current docs/papers preserve operation and operation stack as the only profiler abstractions.",
+      "passed": true
+    },
+    {
+      "check": "three_plus_one_preserved",
+      "detail": "English and Chinese papers preserve the 3+1 organization.",
+      "passed": true
+    },
+    {
+      "check": "must_not_claims_visible",
+      "detail": "Must-not-claim guardrails remain visible.",
+      "passed": true
+    },
+    {
+      "check": "r393_ledger_registered",
+      "detail": "Evaluation ledger records this post-R392 reviewer-acceptance closure.",
+      "passed": true
+    },
+    {
+      "check": "idea_story_gate_closed",
+      "detail": "Idea story records the independent reviewer pass as done after R393.",
+      "passed": true
+    },
+    {
+      "check": "source_status_tracked",
+      "detail": "All R393 inputs are tracked or intentionally staged/dirty.",
+      "passed": true
+    }
+  ],
+  "claim_scope": {
+    "does_not_support": [
+      "new empirical profiler accuracy evidence",
+      "human or agent analyst productivity",
+      "automatic discovery of all intent boundaries",
+      "complete trace-ecosystem compatibility",
+      "metric dominance over every baseline and task"
+    ],
+    "supports": [
+      "independent reviewer acceptance of the post-R392 paper state",
+      "R392 remains E4 input-source replay hygiene"
+    ]
+  },
+  "data_sync": false,
+  "network_access_required": false,
+  "not_human_or_agent_analyst_study": true,
+  "not_new_empirical_result": true,
+  "profiler_rerun": false,
+  "review_events": [
+    {
+      "agent_id": "019f38bc-924e-79e0-9bdf-905d830edabd",
+      "blocking_issues": [],
+      "final_verdict": "ACCEPT",
+      "focus": "post-R392 claim-scope and E4 scoping",
+      "initial_verdict": "ACCEPT",
+      "rationale": "R392 is correctly scoped as E4 input-source replay hygiene, and the main claim remains profiler fidelity rather than human utility.",
+      "resolved_blockers": [],
+      "reviewer": "Jason"
+    },
+    {
+      "agent_id": "019f38bc-61be-7400-930f-56b829e26f84",
+      "blocking_issues": [],
+      "final_verdict": "ACCEPT",
+      "focus": "three-plus-one paper and canonical-doc consistency",
+      "initial_verdict": "ACCEPT",
+      "rationale": "The current papers and docs keep E1-E3 empirical and E4 artifact/reproducibility, with R-runs as provenance.",
+      "resolved_blockers": [],
+      "reviewer": "Franklin"
+    },
+    {
+      "agent_id": "019f38bc-7958-7dc0-88d1-23a23c07d2a8",
+      "blocking_issues": [],
+      "final_verdict": "ACCEPT",
+      "focus": "abstraction boundary and anti-ledger organization",
+      "initial_verdict": "ACCEPT",
+      "rationale": "Mapping, tagging, profile specs, and trace import remain mechanisms over operation fields and operation-stack folding, not extra profiler abstractions.",
+      "resolved_blockers": [],
+      "reviewer": "McClintock"
+    },
+    {
+      "agent_id": "019f38bc-ad73-7b50-8ca3-8872653d3959",
+      "blocking_issues": [],
+      "final_verdict": "ACCEPT",
+      "focus": "dataset-scope wording and top-conference profiling readiness",
+      "initial_verdict": "BLOCK",
+      "rationale": "The prior caption blocker was fixed; the current text no longer says the first 14 sources are oracle-rich and introduces no new blocker.",
+      "resolved_blockers": [
+        "docs/visexp/paper/main.tex caption now distinguishes E1's 15 public labeled sources from RQ2's four oracle-rich hidden-label families."
+      ],
+      "reviewer": "Kant"
+    }
+  ],
+  "run_id": "R393",
+  "schema": "agentsight.paper_post_r392_reviewer_acceptance.v1",
+  "source_status": [
+    {
+      "path": "script/paper_post_r392_reviewer_acceptance_r393.py",
+      "sha256": "082522581b35120eb2a4750a9a684477f0e148556cc4880ba783108594da16e1",
+      "source": "generator script",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/out/paper-canonical-reviewer-acceptance-r383/reviewer-acceptance-r383.json",
+      "sha256": "bff6338030005407486930352e24e4cfafe82b29c07ba2b03d66ae7a312e4270",
+      "source": "R383 canonical reviewer acceptance",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/idea-story.md",
+      "sha256": "6937101b5237fe3f5590608494e4c91480c3d5dec128df2d5af07fb30505f886",
+      "source": "idea story",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/evaluation.md",
+      "sha256": "773bca96b8ae787ab5e746cd36c471888a0824f4289759b9570f8a9d138c4e3e",
+      "source": "evaluation ledger",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/agentpprof-paper/main.tex",
+      "sha256": "ad7f68c62afc75a75b0260beec323c2e1d4f05e25486a28915da69cb741a72a5",
+      "source": "English paper",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/paper/main.tex",
+      "sha256": "5afa49c04f1001a5d11c7baad939e82cbd4aba6030e697b4e854f85db7761157",
+      "source": "Chinese paper",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/agentpprof-paper",
+      "sha256": "submodule_head=9f351b73e691b1dc8417841c47867504f6c91073;parent_index=9f351b73e691b1dc8417841c47867504f6c91073",
+      "source": "English paper submodule gitlink",
+      "status": "tracked_clean"
+    }
+  ],
+  "status": "accepted",
+  "summary": {
+    "checks_passed": 12,
+    "checks_total": 12,
+    "final_accepts": 4,
+    "resolved_blockers": 1,
+    "reviewers": 4,
+    "unresolved_blockers": 0
+  }
+}

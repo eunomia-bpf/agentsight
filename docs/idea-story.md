@@ -2,8 +2,8 @@
 
 Last updated: 2026-07-06
 Stage at update: stage 9 paper integration / stage 10 prose polish / stage 11 reproducibility prep
-Source/command: current branch `research/semantic-flamegraph-artifacts-v2`; `docs/evaluation.md`; `docs/design.md`; `docs/implementation.md`; `docs/background-related-work.md`; R320/R328/R392/R352/R356/R357/R360-R364 artifacts
-Completeness: partial. The scoped profiling claim is paper-ready against the current labeled-trace evidence, but broader human-utility, full ecosystem-compatibility, and universal boundary-discovery claims remain unsupported.
+Source/command: current branch `research/semantic-flamegraph-artifacts-v2`; `docs/evaluation.md`; `docs/design.md`; `docs/implementation.md`; `docs/background-related-work.md`; R320/R328/R392/R393/R352/R356/R357/R360-R364 artifacts
+Completeness: partial. The scoped profiling claim is paper-ready against the current labeled-trace evidence, and the post-R392 reviewer gate is closed by R393; broader human-utility, full ecosystem-compatibility, and universal boundary-discovery claims remain unsupported.
 
 ## Current State And Blocking Gate
 
@@ -13,7 +13,7 @@ Draft paragraph: AgentSight's semantic profiling work is now in paper-integratio
 
 Evidence/claim dependency: The primary empirical gate is R320 over 6 tasks, 4 oracle-rich datasets, 34,539 operations, 3,699 positives, and 144 view/ranker policies. R333/R334/R337/R339/R344/R355 add work-budget, fragmentation, fixed-recall, sequence-scope, metric-surface, and oracle-depth checks. R354/R358 add executable profile-spec patch and boundary-derived-field actionability evidence. R327/R328 cover replayability and offline cost; R392 covers profile-spec input-source replay for local-session, agent-trace, and standard-trace inputs. R338/R352/R356/R357/R359/R360/R361/R362/R364 are artifact, rubric, reviewer, structure, or claim-scope gates, not new empirical profiler evidence.
 
-Completeness: Partial. The main paper evidence is organized into three empirical profiling experiments plus one artifact/reproducibility block, but the next gate is an independent reviewer pass on the canonical docs and draft after this story file is updated.
+Completeness: Partial. The main paper evidence is organized into three empirical profiling experiments plus one artifact/reproducibility block, and R393 records 4/4 final reviewer ACCEPT after fixing one dataset-caption blocker. The next gate is prose and figure/table polish, not more small experiments.
 
 ## Downstream Document Index
 
@@ -23,7 +23,7 @@ Draft paragraph: The current related-work and novelty map is in `docs/background
 
 Evidence/claim dependency: These files are referenced by R338/R356/R360-R364 source-status checks and by the current paper text.
 
-Completeness: Complete for current repo navigation; still needs independent review.
+Completeness: Complete for current repo navigation; post-R392 independent review is accepted by R393.
 
 ## Intro P1: Problem And Stakes
 
@@ -120,7 +120,7 @@ Completeness: Current claim is supported; larger claim is a future expansion hyp
 
 | Item | Status | Next action |
 |---|---|---|
-| Independent reviewer pass after the latest three-plus-one consolidation. | open | Ask subagents to review `docs/idea-story.md`, `docs/evaluation.md`, and both paper drafts against the scoped claim and non-claims. |
+| Independent reviewer pass after the latest three-plus-one consolidation. | done | R393 records 4/4 final reviewer ACCEPT after fixing the Chinese dataset-caption blocker. |
 | Full real span-tree baseline import. | out of current claim | Import a real OpenTelemetry/OpenInference/Phoenix-style trace only before making ecosystem-specific or real span-tree superiority claims. |
 | Broader oracle-rich tool/API/mobile families. | optional expansion | Add only if the paper needs wider generality beyond the current four oracle-rich sources. |
 | Human or agent analyst study. | optional future work | Use R315/R316 protocol only for human-utility or time-to-answer claims. |
@@ -130,8 +130,8 @@ Completeness: Current claim is supported; larger claim is a future expansion hyp
 
 Purpose: Define the next concrete step.
 
-Draft paragraph: The next step is to run independent subagent review on the canonical docs and paper drafts after this story file lands. If reviewers accept, focus on prose polish and figure/table presentation. If they block, revise the smallest mismatched artifact, rerun the affected gates, then commit and push each step to `research/semantic-flamegraph-artifacts-v2`.
+Draft paragraph: The next step is prose polish and figure/table presentation for the accepted three-plus-one paper structure. Do not add another empirical block unless it strengthens E1, E2, E3, or E4 directly; instead, reduce remaining R-run density in the main prose, keep provenance in the ledger, and preserve the R393-reviewed claim boundaries while committing and pushing each step to `research/semantic-flamegraph-artifacts-v2`.
 
-Evidence/claim dependency: Review should inspect the current clean branch, R360-R364 reports, `docs/evaluation.md`, `docs/design.md`, `docs/implementation.md`, `docs/background-related-work.md`, this file, and both paper drafts.
+Evidence/claim dependency: R393 inspected the current branch, `docs/evaluation.md`, this file, and both paper drafts after the R392 E4 input-source replay update. It records four final ACCEPT verdicts, one resolved caption blocker, and no unresolved issues.
 
-Completeness: Pending review.
+Completeness: Review gate complete; prose polish remains.
