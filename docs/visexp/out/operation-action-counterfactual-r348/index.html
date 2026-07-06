@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>R348 Action-Counterfactual Audit</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 32px; line-height: 1.45; }
+    table { border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 13px; }
+    th, td { border: 1px solid #d0d7de; padding: 6px 8px; text-align: left; vertical-align: top; }
+    th { background: #f6f8fa; }
+  </style>
+</head>
+<body>
+  <h1>R348 Action-Counterfactual Audit</h1>
+  <p><strong>Overall:</strong> pass</p>
+  <h2>Summary</h2>
+  <table><thead><tr><th>tasks</th><th>objective_rows</th><th>nondefault_action_rows</th><th>visible_non_oracle_best_rows</th><th>view_change_rows</th><th>operation_stack_tuning_rows</th><th>tasks_with_three_or_more_action_classes</th><th>median_gain_over_default</th></tr></thead><tbody><tr><td>6</td><td>36</td><td>27</td><td>36</td><td>25</td><td>2</td><td>6</td><td>0.14475</td></tr></tbody></table>
+  <h2>Action Classes</h2>
+  <table><thead><tr><th>action_class</th><th>objective_rows</th><th>tasks</th><th>median_gain_over_default</th><th>max_gain_over_default</th></tr></thead><tbody><tr><td>drill_down_fixed_session</td><td>7</td><td>3</td><td>0.6021</td><td>16.0</td></tr><tr><td>keep_default_operation_stack</td><td>9</td><td>5</td><td>0.0</td><td>0.0</td></tr><tr><td>retune_operation_stack_ranker</td><td>2</td><td>2</td><td>0.0655</td><td>0.127</td></tr><tr><td>use_dataset_native_hierarchy</td><td>5</td><td>3</td><td>0.2723</td><td>61.0</td></tr><tr><td>use_flat_full_recall_counterpoint</td><td>7</td><td>6</td><td>141.0</td><td>288.0</td></tr><tr><td>use_raw_action_mapping_counterpoint</td><td>6</td><td>3</td><td>1.1022</td><td>185.0</td></tr></tbody></table>
+  <h2>Task Cards</h2>
+  <table><thead><tr><th>task</th><th>nondefault_action_rows</th><th>action_class_count</th><th>action_classes</th><th>case_counterpoints</th></tr></thead><tbody><tr><td>agentnet_incorrect_step</td><td>3</td><td>3</td><td>keep_default_operation_stack; use_flat_full_recall_counterpoint; use_raw_action_mapping_counterpoint</td><td>top5_recall-&gt;flat:width</td></tr><tr><td>agentnet_redundant_step</td><td>4</td><td>4</td><td>keep_default_operation_stack; retune_operation_stack_ranker; use_flat_full_recall_counterpoint; use_raw_action_mapping_counterpoint</td><td>top5_recall-&gt;flat:width; first_positive-&gt;fixed_session:query_aware</td></tr><tr><td>agentreward_looping</td><td>4</td><td>4</td><td>keep_default_operation_stack; use_dataset_native_hierarchy; use_flat_full_recall_counterpoint; use_raw_action_mapping_counterpoint</td><td>top5_recall-&gt;flat:width; first_positive-&gt;raw_action_stack:query_aware</td></tr><tr><td>agentreward_side_effect</td><td>5</td><td>3</td><td>drill_down_fixed_session; keep_default_operation_stack; use_flat_full_recall_counterpoint</td><td>top5_recall-&gt;flat:width; top5_lift-&gt;raw_action_stack:query_aware</td></tr><tr><td>osworld_group_start</td><td>6</td><td>4</td><td>drill_down_fixed_session; retune_operation_stack_ranker; use_dataset_native_hierarchy; use_flat_full_recall_counterpoint</td><td>top5_recall-&gt;flat:width; top5_lift-&gt;fixed_session:query_aware; first_positive-&gt;fixed_session:query_aware</td></tr><tr><td>satraj_unsafe</td><td>5</td><td>4</td><td>drill_down_fixed_session; keep_default_operation_stack; use_dataset_native_hierarchy; use_flat_full_recall_counterpoint</td><td>top5_recall-&gt;flat:width; first_positive-&gt;fixed_session:query_aware</td></tr></tbody></table>
+</body>
+</html>
