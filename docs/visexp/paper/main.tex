@@ -378,9 +378,9 @@ R368 把这部分 baseline scope 单独固化：它把 fixed-session drilldown �
 R355 给出 depth-aware 版本：operation-stack rankings 在 20/24 task-depth rows 上超过 fixed-session budget-30 positive-unit recall，并在 22/24 rows 上用更少 groups 到达 50\% positive units。
 因此可以 claim 的是相对 fixed-session drilldown 这个 trace-tree-shaped proxy 的 localization-budget/fragmentation tradeoff，不是对所有真实 span-tree objective 的 metric dominance。
 
-R363 把同一批 scored outputs 组织成五个 paper-facing views，而不是只输出 flamegraph。
-表~\ref{tab:visualization-portfolio} 给出论文中使用的 compact 版本；artifact 还生成对应 SVG、CSV、HTML、JSON 和 LaTeX fragment。
-这些 view 不是新的 profiler object，也不是第五个实验，只是对 operation-stack 输出及其 baseline counterpoints 的不同 inspection surface。
+R363 把同一批 scored outputs 组织成非 flamegraph 的 paper-facing views，而不是只输出 flamegraph。
+主文只保留一个代表性图：左图服务 E2，展示 localization/work/fragmentation tradeoff；右图服务 E3，展示 profile-configuration knobs。
+其余 portfolio table、headline rows、task case cards 和 verdict matrix 保留在 artifact ledger，作为 paper-integration material，而不是主文中的额外实验。
 
 \begin{figure*}[t]
   \centering
@@ -391,72 +391,9 @@ R363 把同一批 scored outputs 组织成五个 paper-facing views，而不是�
   \label{fig:r363-portfolio}
 \end{figure*}
 
-\begin{table*}[t]
-  \centering
-  \scriptsize
-  \setlength{\tabcolsep}{3pt}
-  \caption{R363 paper-facing visualization portfolio。所有 view 都从 tracked artifacts 生成，用于展示 E2/E3 tradeoff；R363 不是新的 empirical result。}
-  \label{tab:visualization-portfolio}
-  \begin{tabular}{p{0.16\linewidth}p{0.19\linewidth}p{0.45\linewidth}p{0.09\linewidth}}
-    \toprule
-    View & Artifact & Paper-facing evidence & Role \\
-    \midrule
-    Baseline tradeoff & \texttt{baseline-tradeoff.svg} & Op-stack query Work@5 0.0937 vs flat 1.0；R@30\% 0.3900 vs fixed-session 0.3559；groups 157.5 vs 285.0。 & E2 \\
-    Metric heatmap & \texttt{metric-heatmap.svg} & 展示 AP 0.3117、R@30\% 0.3900、Work@5 0.0937，以及 fixed-session WTFP 0.0044 这个 counterpoint。 & E2 \\
-    Diagnostic lenses & \texttt{diagnostic-lenses.svg} & 6 个 lenses 覆盖 36 个 objective rows：operation-stack-family views 赢 11/36，baseline counterpoints 赢 25/36。 & E3 \\
-    Actionability knobs & \texttt{actionability-knobs.svg} & 27/36 objective rows 需要 non-default actions；R354 接受 5/6 profile-spec patches；R358 boundary fields 带来 AP +0.0181。 & E3 \\
-    Oracle-depth adequacy & \texttt{oracle-depth-adequacy.svg} & 24/24 rows 的 top-5 unit work 低于 flat；20/24 rows 的 fixed-session unit recall 更高；22/24 rows 用更少 groups 到达 50\% positives。 & E2/E3 \\
-    \bottomrule
-\end{tabular}
-\end{table*}
-
-R365 进一步把 E2/E3 的同一证据压缩成 headline rows 和 task case cards，
-方便论文主文引用而不是展开 R-run 历史。它只读取 tracked artifacts，不下载
-数据、不重新标注、不重跑 profiler；因此 R365 是 paper-integration artifact，
-不是第五个实验，也不是 operation/operation-stack 之外的新 profiler object。
-表~\ref{tab:r365-headlines} 给出主文可引用的 compact 版本。
-表~\ref{tab:r365-cases} 进一步展开 6 个任务的 case cards：每行保留 best visible policy、operation-stack top-5 work/recall/lift、profile-spec patch verdict、optimization action 和 counterpoint。
-这张表的作用是把 actionability claim 从 aggregate 数字落到真实任务：profiler 不只是排序 hot groups，还指出应该改 stack fields、ranker、mapping、profile spec，或者承认 flat/fixed-session/raw-action 是当前任务的反例视图。
-R373 再把这些 case cards 合成为 task-level claim verdict matrix。
-表~\ref{tab:r373-verdict} 对每个真实标注任务同时列出 E2 的 fidelity/work 证据、相对 fixed-session/span-tree-shaped baseline 的 tradeoff、E3 的可执行配置动作，以及必须保留的 counterpoint。
-它只读取 R320/R354/R355/R358/R365 tracked artifacts，不重跑 profiler、不下载或创建数据；作用是让 reviewer 逐任务检查主 claim，而不是只看 aggregate median。
-
-\begin{table*}[t]
-  \centering
-  \scriptsize
-  \setlength{\tabcolsep}{3pt}
-  \caption{R365 E2/E3 headline 和 case-study selector。它只读取 tracked artifacts，不下载数据、不重跑 profiler，不是第五个实验。}
-  \label{tab:r365-headlines}
-  \begin{tabular}{p{0.10\linewidth}p{0.18\linewidth}p{0.42\linewidth}p{0.20\linewidth}}
-    \toprule
-    Row & Role & Main numbers & Counterpoint \\
-    \midrule
-    H1 & localization/work & 6 tasks / 4 datasets / 34,539 operations / 3,699 positives；Work@5 0.0937 vs flat 1.0；R@30\% 0.3900 vs fixed-session 0.3559。 & Fixed-session WTFP 0.0044；dataset-native R@5 0.8665 at high work。 \\
-    H2 & fragmentation & Groups 157.5 vs fixed-session 285；top-5 recall wins 5/6；30\% budget fewer groups 5/6。 & Fixed-session 仍然是 early-hit counterpoint。 \\
-    H3 & oracle depth & 24/24 rows lower top-5 unit work than flat；20/24 beat fixed-session unit recall；22/24 use fewer groups to 50\% positives。 & Session labels 和 positive-run proxy 不能等同 human intent。 \\
-    H4 & actionability & 27/36 objective rows need non-default actions；25/36 require view changes；R354 accepts 5/6 patches with median AP delta 0.0376 and lift delta 0.5750。 & 不是 automatic patch selector 或 human-productivity result。 \\
-    H5 & boundary mechanism & Learned-boundary AP 0.2583 vs semantic-width 0.2402；groups 74 vs 108；top-5 recall delta +0.1111。 & Top-5 work 和 first-positive work 变差，说明它是 scoped repair。 \\
-    \bottomrule
-\end{tabular}
-\end{table*}
-
-\begin{table*}[t]
-  \centering
-  \tiny
-  \setlength{\tabcolsep}{2pt}
-  \caption{R365 六个真实标注任务的 task-level case cards。每行只读取 tracked R320/R345/R348/R354 artifacts；hidden labels 只用于 scoring，不进入 visible policy 或 optimization action。}
-  \label{tab:r365-cases}
-  \input{../out/paper-headline-case-studies-r365/case-table.tex}
-\end{table*}
-
-\begin{table*}[t]
-  \centering
-  \tiny
-  \setlength{\tabcolsep}{2pt}
-  \caption{R373 task-level claim verdict。每行把 E2 localization/work 证据、fixed-session tradeoff、E3 actionability 和 counterpoint 合并起来；R373 不是新实验。}
-  \label{tab:r373-verdict}
-  \input{../out/paper-task-claim-verdict-r373/task-verdict-table.tex}
-\end{table*}
+这些生成的 case 和 verdict artifacts 仍然有用，但现在只作为三个核心实验的检查材料，而不是主文表格。
+它们显示：6/6 tasks 相比 flat summary 改善 AP 和 top-five inspected work；5/6 tasks 相比 fixed-session drilldown 改善 top-five recall；4/6 tasks 降低 fixed-session group fragmentation；6/6 tasks 都有 actionable configuration result，即 R354 profile-spec patch 或 R358 boundary-field repair。
+同时它们保留负证据：fixed-session 在若干任务上仍然是 first-positive 或 group-count counterpoint，OSWorld-Human 需要 boundary-derived fields，而不是 visible phase/action ranking alone。
 
 R330--R334 和 R355 是同一个 E2 主实验的稳健性和边界审计，而不是额外小实验。
 R330 在 6 个 task families 上做 10,000 次 paired bootstrap：相对 flat width，operation-stack query-aware 的 AP mean delta 为 0.1219，top-5 inspected-work delta 为 -0.8168，30\% budget recall delta 为 0.4510，四项都是 6/6 tasks 同向；相对 fixed-session query-aware，它的 top-5 recall、top-5 F1 和 group count delta 也给出稳定方向。

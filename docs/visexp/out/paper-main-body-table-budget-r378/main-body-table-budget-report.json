@@ -1,0 +1,110 @@
+{
+  "checks": [
+    {
+      "check": "core_displays_preserved",
+      "detail": "English missing=[]; Chinese missing=[]",
+      "passed": true
+    },
+    {
+      "check": "support_artifact_tables_demoted",
+      "detail": "Demoted labels absent from main paper text: ['tab:visualization-portfolio', 'tab:r365-headlines', 'tab:r365-cases', 'tab:r373-verdict']; still_present=[]",
+      "passed": true
+    },
+    {
+      "check": "non_flamegraph_view_retained",
+      "detail": "The main body keeps one non-flamegraph E2/E3 figure while demoting the full portfolio table.",
+      "passed": true
+    },
+    {
+      "check": "task_level_evidence_retained_as_prose",
+      "detail": "Task-level case/verdict evidence remains in prose with positive and counterpoint counts.",
+      "passed": true
+    },
+    {
+      "check": "r377_claim_facets_unchanged",
+      "detail": "R378 consumes the passing R377 claim-facet packet rather than changing the evidence basis.",
+      "passed": true
+    },
+    {
+      "check": "main_body_table_budget_reduced",
+      "detail": "English table environments=7; Chinese table environments=6.",
+      "passed": true
+    },
+    {
+      "check": "evaluation_ledger_mentions_r378",
+      "detail": "The evaluation ledger records this paper-presentation guardrail.",
+      "passed": true
+    },
+    {
+      "check": "english_submodule_input_committed",
+      "detail": "The English paper input is clean in the submodule and captured by the parent gitlink.",
+      "passed": true
+    },
+    {
+      "check": "source_status_tracked",
+      "detail": "All R378 sources are tracked or intentionally dirty/staged.",
+      "passed": true
+    }
+  ],
+  "data_sync": false,
+  "interpretation": "The main papers now reserve table/figure weight for the core E1-E4 evidence, while R363/R365/R373 support artifacts remain provenance and checks rather than additional main-body experiments.",
+  "network_access_required": false,
+  "not_new_empirical_result": true,
+  "profiler_rerun": false,
+  "run_id": "R378",
+  "schema": "agentsight.paper_main_body_table_budget_gate.v1",
+  "source_status": [
+    {
+      "path": "script/paper_main_body_table_budget_gate.py",
+      "sha256": "68ceedf085f53cd859ebb9fa171fed175ea9951a5bb92ef7d9949856c998a785",
+      "source": "generator script",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/out/paper-main-claim-evidence-r377/main-claim-evidence-report.json",
+      "sha256": "d55686b4ab903e1207e839d13e4be51422aa0c4d9d2b5656abd29956c0a7d624",
+      "source": "R377 claim evidence",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/agentpprof-paper/main.tex",
+      "sha256": "76f4684ea5357bc235560242d5240b43fece5c46de05c0a808ae2b498d2719a7",
+      "source": "English paper",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/paper/main.tex",
+      "sha256": "d67cf564d3d60b582729df624cc1784922f00c3280e1168ca155ca0096605eaa",
+      "source": "Chinese paper",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/evaluation.md",
+      "sha256": "7baac29957d34686d70f9321b82f838eeecf64caa19a8f8438dcc407837259ff",
+      "source": "evaluation ledger",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/agentpprof-paper",
+      "sha256": "submodule_head=b56c5366500c3954223fbf9310ad2aefedb1a973;parent_index=b56c5366500c3954223fbf9310ad2aefedb1a973",
+      "source": "English paper submodule gitlink",
+      "status": "tracked_dirty_allowed"
+    }
+  ],
+  "status": "pass",
+  "summary": {
+    "artifact_blocks": 1,
+    "checks_passed": 9,
+    "checks_total": 9,
+    "chinese_table_environments": 6,
+    "demoted_labels": [
+      "tab:visualization-portfolio",
+      "tab:r365-headlines",
+      "tab:r365-cases",
+      "tab:r373-verdict"
+    ],
+    "empirical_profiling_experiments": 3,
+    "english_table_environments": 7,
+    "paper_facing_blocks": 4
+  }
+}
