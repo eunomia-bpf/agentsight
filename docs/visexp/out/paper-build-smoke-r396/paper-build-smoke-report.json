@@ -1,0 +1,138 @@
+{
+  "checks": [
+    {
+      "check": "build_commands_exit_zero",
+      "detail": "Return codes=[0, 0, 0]",
+      "passed": true
+    },
+    {
+      "check": "paper_pdfs_exist",
+      "detail": "English PDF bytes=594228; Chinese PDF bytes=593682",
+      "passed": true
+    },
+    {
+      "check": "english_log_has_no_unresolved_refs_or_citations",
+      "detail": "Hits=[]",
+      "passed": true
+    },
+    {
+      "check": "chinese_log_has_no_unresolved_refs",
+      "detail": "Hits=[]",
+      "passed": true
+    },
+    {
+      "check": "english_acm_image_description_warning_absent",
+      "detail": "Hits=[]",
+      "passed": true
+    },
+    {
+      "check": "r395_claim_alignment_still_passes",
+      "detail": "R395 status=pass",
+      "passed": true
+    },
+    {
+      "check": "source_status_tracked_or_dirty_allowed",
+      "detail": "All build inputs/outputs are tracked or intentionally dirty while this build gate is generated.",
+      "passed": true
+    }
+  ],
+  "commands": [
+    {
+      "command": "make",
+      "cwd": "/tmp/agentsight-r396-paper-mvqyx9in/agentpprof-paper",
+      "elapsed_s": 1.289,
+      "name": "english-make",
+      "returncode": 0,
+      "stdout_log": "docs/visexp/out/paper-build-smoke-r396/english-make.stdout.log"
+    },
+    {
+      "command": "xelatex -output-directory=/tmp/agentsight-r396-paper-mvqyx9in/chinese-build -interaction=nonstopmode main.tex",
+      "cwd": "docs/visexp/paper",
+      "elapsed_s": 0.836,
+      "name": "chinese-xelatex-1",
+      "returncode": 0,
+      "stdout_log": "docs/visexp/out/paper-build-smoke-r396/chinese-xelatex-1.stdout.log"
+    },
+    {
+      "command": "xelatex -output-directory=/tmp/agentsight-r396-paper-mvqyx9in/chinese-build -interaction=nonstopmode main.tex",
+      "cwd": "docs/visexp/paper",
+      "elapsed_s": 0.83,
+      "name": "chinese-xelatex-2",
+      "returncode": 0,
+      "stdout_log": "docs/visexp/out/paper-build-smoke-r396/chinese-xelatex-2.stdout.log"
+    }
+  ],
+  "data_sync": false,
+  "generated_outputs": {
+    "chinese_final_log": "docs/visexp/out/paper-build-smoke-r396/chinese-main.log",
+    "chinese_pdf_bytes": 593682,
+    "chinese_pdf_sha256": "9a5922b85e676e87203365c5b4e697644cf2aa2207a19c4208c8202b5a9a312d",
+    "english_final_log": "docs/visexp/out/paper-build-smoke-r396/english-main.log",
+    "english_pdf_bytes": 594228,
+    "english_pdf_sha256": "040872a95b992d48cb8cc8b7e27dd173855d5b1ffbcd202aba4b4c33c9a0451d"
+  },
+  "human_or_agent_analyst_task": false,
+  "interpretation": "Both paper drafts build locally in temporary output locations, final logs have no unresolved references/citations, and the English ACM draft has figure description metadata for the non-flamegraph portfolio figure.",
+  "network_access_required": false,
+  "profiler_rerun": false,
+  "run_id": "R396",
+  "schema": "agentsight.paper_build_smoke.v1",
+  "source_status": [
+    {
+      "path": "script/paper_build_smoke_r396.py",
+      "sha256": "8a1837bea1c2091e3a37d10dd78eb1f1826557e5ebbc7a9f28894b9ce2376103",
+      "source": "generator script",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/agentpprof-paper/main.tex",
+      "sha256": "c5f345486da053046557d404461a9e8a563fd738ff099eba3c7dbe2627725543",
+      "source": "English paper tex",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/agentpprof-paper/main.pdf",
+      "sha256": "5e7ed4e7edab71acfe5ec54c38d1bfc0e8f556af6727a050b7b5327c92c4e784",
+      "source": "English paper pdf",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/paper/main.tex",
+      "sha256": "d0cf2d426a7f87e41588421a87bb621b32ab9cf32bbbeff9ad641e0f647db22d",
+      "source": "Chinese paper tex",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/paper/main.pdf",
+      "sha256": "592062e1986367bafd42bb920e4749e44cb806bc2def71959ac6c42bba6596b0",
+      "source": "Chinese paper pdf",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/paper/.gitignore",
+      "sha256": "f68bef5aeed788f4a38e9562050a9b2946a8e61ffa957aa473db0c85844a1c20",
+      "source": "Chinese paper gitignore",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/out/paper-main-claim-verdict-alignment-r395/run-result.json",
+      "sha256": "91da8cf88b8821f70e78f407df3973fd452f1d2284a0d5b1c5d7ea46bfa84e27",
+      "source": "R395 claim/verdict alignment",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/agentpprof-paper",
+      "sha256": "submodule_head=2c12ab64396c48de0303e2c61833c6426f928c54;parent_index=2c12ab64396c48de0303e2c61833c6426f928c54",
+      "source": "English paper submodule gitlink",
+      "status": "tracked_dirty_allowed"
+    }
+  ],
+  "status": "pass",
+  "summary": {
+    "checks_passed": 7,
+    "checks_total": 7,
+    "data_sync": false,
+    "human_or_agent_analyst_task": false,
+    "profiler_rerun": false
+  }
+}
