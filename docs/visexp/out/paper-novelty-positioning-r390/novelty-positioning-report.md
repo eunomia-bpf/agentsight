@@ -25,10 +25,10 @@ The paper scopes novelty to agent-operation records, recursive operation-stack p
 
 | Source | Status | Path |
 |---|---:|---|
-| generator script | tracked_dirty_allowed | `script/paper_novelty_positioning_r390.py` |
+| generator script | tracked_clean | `script/paper_novelty_positioning_r390.py` |
 | English paper | tracked_clean | `docs/agentpprof-paper/main.tex` |
-| Chinese paper | tracked_dirty_allowed | `docs/visexp/paper/main.tex` |
+| Chinese paper | tracked_clean | `docs/visexp/paper/main.tex` |
 | related-work map | tracked_clean | `docs/background-related-work.md` |
 | idea story | tracked_clean | `docs/idea-story.md` |
-| evaluation ledger | tracked_dirty_allowed | `docs/evaluation.md` |
-| English paper submodule gitlink | tracked_dirty_allowed | `docs/agentpprof-paper` |
+| evaluation ledger | tracked_clean | `docs/evaluation.md` |
+| English paper submodule gitlink | tracked_clean | `docs/agentpprof-paper` |
