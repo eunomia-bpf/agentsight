@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""R338: paper-claim integrity audit over R320-R347 evidence.
+"""R338: paper-claim integrity audit over R320-R348 evidence.
 
 This audit does not fetch, sync, create, or relabel datasets. It reads tracked
 result artifacts from the existing profiling-paper evaluation runs and the
@@ -44,6 +44,7 @@ R344_DIR = OUT_ROOT / "operation-metric-consistency-r344"
 R345_DIR = OUT_ROOT / "operation-diagnostic-lens-portfolio-r345"
 R346_DIR = OUT_ROOT / "operation-diagnostic-casebook-r346"
 R347_DIR = OUT_ROOT / "operation-case-baseline-contrast-r347"
+R348_DIR = OUT_ROOT / "operation-action-counterfactual-r348"
 
 SOURCE_ARTIFACTS = {
     "R320 report": R320_DIR / "profile-accuracy-report.json",
@@ -86,6 +87,10 @@ SOURCE_ARTIFACTS = {
     "R347 task cards": R347_DIR / "task-baseline-contrast-cards.csv",
     "R347 pair summary": R347_DIR / "baseline-pair-summary.csv",
     "R347 top group contrast": R347_DIR / "top-group-contrast.csv",
+    "R348 report": R348_DIR / "action-counterfactual-report.json",
+    "R348 objective counterfactuals": R348_DIR / "objective-counterfactuals.csv",
+    "R348 action class summary": R348_DIR / "action-class-summary.csv",
+    "R348 task cards": R348_DIR / "task-action-counterfactual-cards.csv",
 }
 
 PAPER_SOURCES = {
@@ -602,6 +607,9 @@ def build_number_checks(
     r347_task_cards: list[dict[str, str]],
     r347_pair_summary: list[dict[str, str]],
     r347_top_group_contrast: list[dict[str, str]],
+    r348_objective_counterfactuals: list[dict[str, str]],
+    r348_action_summary: list[dict[str, str]],
+    r348_task_cards: list[dict[str, str]],
 ) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     r320 = reports["R320"]
@@ -1306,6 +1314,39 @@ def build_number_checks(
     add_check(rows, run_id="R347", key="fixed_session_group_wins", actual=as_int(r347_pair_row("fixed_session:query_aware", "groups")["operation_stack_wins"]), expected=4, source="R347 baseline-pair-summary.csv", paper_token="4/6 wins vs fixed-session group count")
     add_check(rows, run_id="R347", key="fixed_session_first_positive_losses", actual=as_int(r347_pair_row("fixed_session:query_aware", "work_to_first_positive")["operation_stack_losses"]), expected=4, source="R347 baseline-pair-summary.csv", paper_token="fixed-session first-positive counterpoint 4/6")
     add_check(rows, run_id="R347", key="flat_top5_recall_losses", actual=as_int(r347_pair_row("flat:width", "top5_recall")["operation_stack_losses"]), expected=6, source="R347 baseline-pair-summary.csv", paper_token="flat full-work recall counterpoint 6/6")
+
+    def r348_action_row(action_class: str) -> dict[str, str]:
+        return csv_lookup(r348_action_summary, action_class=action_class)
+
+    r348 = reports["R348"]["summary"]
+    add_check(rows, run_id="R348", key="overall", actual=r348["overall"], expected="pass", source="R348 report summary", paper_token="R348")
+    add_check(rows, run_id="R348", key="tasks", actual=r348["tasks"], expected=6, source="R348 report summary", paper_token="6 tasks")
+    add_check(rows, run_id="R348", key="datasets", actual=r348["datasets"], expected=4, source="R348 report summary", paper_token="4 datasets")
+    add_check(rows, run_id="R348", key="objective_rows", actual=r348["objective_rows"], expected=36, source="R348 report summary", paper_token="36 objective rows")
+    add_check(rows, run_id="R348", key="nondefault_action_rows", actual=r348["nondefault_action_rows"], expected=27, source="R348 report summary", paper_token="27/36 non-default action rows")
+    add_check(rows, run_id="R348", key="default_best_rows", actual=r348["default_best_rows"], expected=9, source="R348 report summary", paper_token="9/36 default-best rows")
+    add_check(rows, run_id="R348", key="visible_non_oracle_best_rows", actual=r348["visible_non_oracle_best_rows"], expected=36, source="R348 report summary", paper_token="36/36 visible non-oracle best rows")
+    add_check(rows, run_id="R348", key="view_change_rows", actual=r348["view_change_rows"], expected=25, source="R348 report summary", paper_token="25/36 view-change rows")
+    add_check(rows, run_id="R348", key="operation_stack_tuning_rows", actual=r348["operation_stack_tuning_rows"], expected=2, source="R348 report summary", paper_token="2/36 operation-stack tuning rows")
+    add_check(rows, run_id="R348", key="non_operation_stack_counterpoint_rows", actual=r348["non_operation_stack_counterpoint_rows"], expected=25, source="R348 report summary", paper_token="25/36 non-operation-stack counterpoints")
+    add_check(rows, run_id="R348", key="tasks_with_nondefault_actions", actual=r348["tasks_with_nondefault_actions"], expected=6, source="R348 report summary", paper_token="6/6 tasks with non-default actions")
+    add_check(rows, run_id="R348", key="tasks_with_three_or_more_action_classes", actual=r348["tasks_with_three_or_more_action_classes"], expected=6, source="R348 report summary", paper_token="6/6 tasks with at least three action classes")
+    add_check(rows, run_id="R348", key="tasks_with_case_counterpoints", actual=r348["tasks_with_case_counterpoints"], expected=6, source="R348 report summary", paper_token="6/6 tasks with case counterpoints")
+    add_check(rows, run_id="R348", key="median_gain_over_default", actual=r348["median_gain_over_default"], expected=0.1447, source="R348 report summary", paper_token="0.1447", tolerance=5e-5)
+    add_check(rows, run_id="R348", key="median_nondefault_gain_over_default", actual=r348["median_nondefault_gain_over_default"], expected=0.6188, source="R348 report summary", paper_token="0.6188", tolerance=5e-5)
+    add_check(rows, run_id="R348", key="max_gain_over_default", actual=r348["max_gain_over_default"], expected=288.0, source="R348 report summary", paper_token="288.0", tolerance=5e-5)
+    add_check(rows, run_id="R348", key="r335_actionability_cards", actual=r348["r335_actionability_cards"], expected=6, source="R348 report summary", paper_token="6 actionability cards")
+    add_check(rows, run_id="R348", key="r341_actionable_objective_rows", actual=r348["r341_actionable_objective_rows"], expected=36, source="R348 report summary", paper_token="36 objective rows")
+    add_check(rows, run_id="R348", key="r347_visible_views", actual=r348["r347_visible_views"], expected=5, source="R348 report summary", paper_token="5 visible views")
+    add_check(rows, run_id="R348", key="objective_counterfactual_rows", actual=len(r348_objective_counterfactuals), expected=36, source="R348 objective-counterfactuals.csv", paper_token="36 objective rows")
+    add_check(rows, run_id="R348", key="action_class_summary_rows", actual=len(r348_action_summary), expected=6, source="R348 action-class-summary.csv", paper_token="6 action classes")
+    add_check(rows, run_id="R348", key="task_action_counterfactual_card_rows", actual=len(r348_task_cards), expected=6, source="R348 task-action-counterfactual-cards.csv", paper_token="6 task cards")
+    add_check(rows, run_id="R348", key="flat_counterpoint_action_rows", actual=as_int(r348_action_row("use_flat_full_recall_counterpoint")["objective_rows"]), expected=7, source="R348 action-class-summary.csv", paper_token="7 flat counterpoint rows")
+    add_check(rows, run_id="R348", key="fixed_session_drilldown_rows", actual=as_int(r348_action_row("drill_down_fixed_session")["objective_rows"]), expected=7, source="R348 action-class-summary.csv", paper_token="7 fixed-session drilldown rows")
+    add_check(rows, run_id="R348", key="dataset_native_hierarchy_rows", actual=as_int(r348_action_row("use_dataset_native_hierarchy")["objective_rows"]), expected=5, source="R348 action-class-summary.csv", paper_token="5 dataset-native rows")
+    add_check(rows, run_id="R348", key="raw_action_counterpoint_rows", actual=as_int(r348_action_row("use_raw_action_mapping_counterpoint")["objective_rows"]), expected=6, source="R348 action-class-summary.csv", paper_token="6 raw-action rows")
+    add_check(rows, run_id="R348", key="keep_default_operation_stack_rows", actual=as_int(r348_action_row("keep_default_operation_stack")["objective_rows"]), expected=9, source="R348 action-class-summary.csv", paper_token="9 keep-default rows")
+    add_check(rows, run_id="R348", key="retune_operation_stack_ranker_rows", actual=as_int(r348_action_row("retune_operation_stack_ranker")["objective_rows"]), expected=2, source="R348 action-class-summary.csv", paper_token="2 operation-stack ranker rows")
     return rows
 
 
@@ -1356,6 +1397,7 @@ def build_text_coverage(
         ("evaluation", "R345 diagnostic lens portfolio", ["R345", "6 diagnostic lenses", "11/36", "25/36"], "R345"),
         ("evaluation", "R346 diagnostic casebook", ["R346", "30 case groups", "5/6", "1.6508"], "R346"),
         ("evaluation", "R347 case baseline contrast", ["R347", "5 visible views", "6/6", "5/6", "4/6"], "R347"),
+        ("evaluation", "R348 action counterfactual", ["R348", "36 objective rows", "27/36", "0.1447"], "R348"),
         ("zh_main", "R320 headline", ["0.0937", "9.37", "285.0", "157.5"], "R320"),
         ("zh_main", "R333 headline", ["0.3900", "0.390"], "R333"),
         ("zh_main", "R337 headline", ["0.2000", "16.0", "50.0"], "R337"),
@@ -1367,6 +1409,7 @@ def build_text_coverage(
         ("zh_main", "R345 headline", ["R345", "6", "11/36", "25/36"], "R345"),
         ("zh_main", "R346 headline", ["R346", "30", "5/6", "1.6508"], "R346"),
         ("zh_main", "R347 headline", ["R347", "5", "6/6", "5/6", "4/6"], "R347"),
+        ("zh_main", "R348 headline", ["R348", "36", "27/36", "0.1447"], "R348"),
         ("en_main", "R320 headline", ["0.0937", "9.37", "285.0", "157.5"], "R320"),
         ("en_main", "R333 headline", ["0.3900", "0.390"], "R333"),
         ("en_main", "R337 headline", ["0.2000", "16.0", "50.0"], "R337"),
@@ -1378,6 +1421,7 @@ def build_text_coverage(
         ("en_main", "R345 headline", ["R345", "6", "11/36", "25/36"], "R345"),
         ("en_main", "R346 headline", ["R346", "30", "5/6", "1.6508"], "R346"),
         ("en_main", "R347 headline", ["R347", "5", "6/6", "5/6", "4/6"], "R347"),
+        ("en_main", "R348 headline", ["R348", "36", "27/36", "0.1447"], "R348"),
         ("zh_claim_setup", "two abstractions", ["两个核心抽象", "operation stack"], "C2"),
         ("zh_claim_setup", "R337 result", ["R337", "0.2000", "16.0"], "R337"),
         ("zh_claim_setup", "R339 result", ["R339", "0.4669", "0.9103"], "R339"),
@@ -1388,11 +1432,12 @@ def build_text_coverage(
         ("zh_claim_setup", "R345 result", ["R345", "6", "11/36", "25/36"], "R345"),
         ("zh_claim_setup", "R346 result", ["R346", "30", "5/6", "1.6508"], "R346"),
         ("zh_claim_setup", "R347 result", ["R347", "5", "6/6", "5/6", "4/6"], "R347"),
+        ("zh_claim_setup", "R348 result", ["R348", "36", "27/36", "0.1447"], "R348"),
     ]
     rows: list[dict[str, Any]] = []
     for doc, key, tokens, source in required:
         text = texts[doc]
-        status = "pass" if (contains_all(text, tokens) if source in {"R341", "R342", "R344", "R345", "R346", "R347"} else contains_any(text, tokens)) else "fail"
+        status = "pass" if (contains_all(text, tokens) if source in {"R341", "R342", "R344", "R345", "R346", "R347", "R348"} else contains_any(text, tokens)) else "fail"
         rows.append(
             {
                 "doc": doc,
@@ -1406,10 +1451,10 @@ def build_text_coverage(
 
     eval_text = texts["evaluation"]
     for row in number_checks:
-        if row["run_id"] not in {"R320", "R333", "R337", "R339", "R340", "R341", "R342", "R344", "R345", "R346", "R347"}:
+        if row["run_id"] not in {"R320", "R333", "R337", "R339", "R340", "R341", "R342", "R344", "R345", "R346", "R347", "R348"}:
             continue
         token = str(row["paper_token"])
-        hits = line_hits_all(eval_text, [row["run_id"], token]) if row["run_id"] in {"R341", "R342", "R344", "R345", "R346", "R347"} else line_hits(eval_text, [token])
+        hits = line_hits_all(eval_text, [row["run_id"], token]) if row["run_id"] in {"R341", "R342", "R344", "R345", "R346", "R347", "R348"} else line_hits(eval_text, [token])
         status = "pass" if hits else "warn"
         rows.append(
             {
@@ -1649,7 +1694,7 @@ def build_markdown(path: Path, payload: dict[str, Any]) -> None:
     lines = [
         "# Paper Claim Integrity Audit R338",
         "",
-        "R338 mechanically audits the current profiling-paper claim against R320-R347 result artifacts and the Chinese/English paper text. It does not fetch, sync, create, or relabel datasets.",
+        "R338 mechanically audits the current profiling-paper claim against R320-R348 result artifacts and the Chinese/English paper text. It does not fetch, sync, create, or relabel datasets.",
         "",
         "## Verdict",
         "",
@@ -1672,7 +1717,7 @@ def build_markdown(path: Path, payload: dict[str, Any]) -> None:
         "|---|---|---:|---:|---|---|",
     ]
     for row in payload["number_checks"]:
-        if row["run_id"] in {"R320", "R333", "R334", "R337", "R339", "R340", "R341", "R342", "R344", "R345", "R346", "R347"}:
+        if row["run_id"] in {"R320", "R333", "R334", "R337", "R339", "R340", "R341", "R342", "R344", "R345", "R346", "R347", "R348"}:
             lines.append(
                 f"| {row['run_id']} | {row['key']} | {row['expected']} | {row['actual']} | {row['status']} | {row['source']} |"
             )
@@ -1796,6 +1841,7 @@ def build_payload() -> dict[str, Any]:
         "R345": load_json(SOURCE_ARTIFACTS["R345 report"]),
         "R346": load_json(SOURCE_ARTIFACTS["R346 report"]),
         "R347": load_json(SOURCE_ARTIFACTS["R347 report"]),
+        "R348": load_json(SOURCE_ARTIFACTS["R348 report"]),
     }
     r320_scores = read_csv(SOURCE_ARTIFACTS["R320 policy scores"])
     r333_summary = read_csv(SOURCE_ARTIFACTS["R333 curve summary"])
@@ -1823,6 +1869,9 @@ def build_payload() -> dict[str, Any]:
     r347_task_cards = read_csv(SOURCE_ARTIFACTS["R347 task cards"])
     r347_pair_summary = read_csv(SOURCE_ARTIFACTS["R347 pair summary"])
     r347_top_group_contrast = read_csv(SOURCE_ARTIFACTS["R347 top group contrast"])
+    r348_objective_counterfactuals = read_csv(SOURCE_ARTIFACTS["R348 objective counterfactuals"])
+    r348_action_summary = read_csv(SOURCE_ARTIFACTS["R348 action class summary"])
+    r348_task_cards = read_csv(SOURCE_ARTIFACTS["R348 task cards"])
 
     number_checks = build_number_checks(
         reports,
@@ -1853,6 +1902,9 @@ def build_payload() -> dict[str, Any]:
         r347_task_cards,
         r347_pair_summary,
         r347_top_group_contrast,
+        r348_objective_counterfactuals,
+        r348_action_summary,
+        r348_task_cards,
     )
     policy_checks = validate_source_policies(reports)
     text_coverage = build_text_coverage(texts, number_checks)
@@ -1897,7 +1949,7 @@ def build_payload() -> dict[str, Any]:
             "dataset_relabeling": "none",
             "network_access_required": False,
             "source_text_clean_policy": "paper text sources may be current worktree edits and are hashed; empirical source artifacts must be tracked clean",
-            "hidden_label_use": "R338 reads already-scored R320-R347 artifacts and does not form new rankings from hidden labels",
+            "hidden_label_use": "R338 reads already-scored R320-R348 artifacts and does not form new rankings from hidden labels",
         },
         "non_claims": [
             "not a human/agent analyst study",
