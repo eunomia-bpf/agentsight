@@ -461,6 +461,11 @@ SATraj unsafe 说明 \texttt{environment,phase,action} 和 risky/write-action ra
 因此 actionability 的第一层结论是：profiler 指出该调 stack field、mapping、ranker、profile spec、boundary field 还是 drilldown，而不是给出唯一默认 view。
 Task-level verdict synthesis 给出任务级结论：6/6 任务都是支持但有反例，不是无条件胜出。
 其中 5/6 任务有 accepted executable profile-spec patch；剩下的 OSWorld-Human row 指向 boundary-derived fields，并保留 top-five 与 first-positive work 反例。
+这 6 行进一步收敛成三类可复用优化模式。
+Safety 和 side-effect 任务指向 field 与 ranker 修改，因为 environment、phase/action 和 write/input fields 会把相关 positives 推到更小的 inspected region。
+Step-quality 任务指向 drilldown workflow，因为 desktop phase、repeat 和 action fields 先定位可疑区域，再由 fixed-session examples 解释单条 trace。
+Human-boundary 任务指向 representation repair，因为 action-depth stack 不够，boundary-derived operation fields 能提高 AP 并减少 groups，但仍保留 inspection-work 反例。
+这些模式给出的是 profile inputs、stack fields 和 rankers 的配置建议，不是 profiler 自动预测出的标签。
 
 机制消融说明这些诊断来自可复现的 profiler 配置，而不是来自又一组独立小实验。
 Stack-text rank rules 和 rank mode 可以从 profile spec 复现，但它们对 safety/side-effect 过粗；operation-level rank features 在 folding 前匹配 visible mapped operation tokens，semantic stack 的 feature ranking 在 AP 上赢 5/6 tasks、top-5 lift 赢 4/6、first-positive work 赢 5/6，coarse depth 在 4/6 tasks 上改善 AP 并减少 groups。
