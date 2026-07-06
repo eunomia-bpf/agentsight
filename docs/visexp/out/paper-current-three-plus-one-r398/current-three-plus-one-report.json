@@ -1,0 +1,136 @@
+{
+  "checks": [
+    {
+      "check": "prerequisite_gates_pass",
+      "detail": "Prerequisite statuses={'R395 claim/verdict alignment': 'pass', 'R396 paper build smoke': 'pass', 'R397 anti-run-ledger': 'pass'}",
+      "passed": true
+    },
+    {
+      "check": "papers_have_exactly_four_rq_subsections",
+      "detail": "Chinese RQs=['RQ1/E1', 'RQ2/E2', 'RQ3/E3', 'RQ4/E4']; English RQs=['RQ1/E1', 'RQ2/E2', 'RQ3/E3', 'RQ4/E4']",
+      "passed": true
+    },
+    {
+      "check": "three_plus_one_stated_in_both_papers",
+      "detail": "Both drafts state E1-E3 as core empirical profiling experiments and E4 as artifact/reproducibility.",
+      "passed": true
+    },
+    {
+      "check": "e2_is_single_hidden_label_accuracy_block",
+      "detail": "Hidden-label profiler accuracy is concentrated in E2 rather than split into many small experiments.",
+      "passed": true
+    },
+    {
+      "check": "e3_is_mechanism_actionability_not_fifth_experiment",
+      "detail": "Mechanism, actionability, patches, and boundary-field evidence remain inside E3.",
+      "passed": true
+    },
+    {
+      "check": "e4_is_replay_hygiene_not_accuracy_or_ecosystem_claim",
+      "detail": "E4 remains an artifact/reproducibility block with explicit non-claims.",
+      "passed": true
+    },
+    {
+      "check": "main_papers_stay_free_of_run_ids",
+      "detail": "Found 0 R-numbered run-id mentions in main paper bodies.",
+      "passed": true
+    },
+    {
+      "check": "ledger_keeps_runs_as_provenance",
+      "detail": "The evaluation ledger records run IDs as provenance/support/guardrails rather than main-paper structure.",
+      "passed": true
+    },
+    {
+      "check": "canonical_next_action_rejects_small_experiment_sprawl",
+      "detail": "The idea story preserves the next-action rule against scattered new empirical blocks.",
+      "passed": true
+    },
+    {
+      "check": "source_status_tracked_or_dirty_allowed",
+      "detail": "All inputs are tracked or intentionally dirty while this gate is generated.",
+      "passed": true
+    }
+  ],
+  "data_sync": false,
+  "human_or_agent_analyst_task": false,
+  "interpretation": "The current paper organization remains three empirical profiling experiments plus one artifact/reproducibility block. R-numbered runs are ledger provenance, support, ablations, counterpoints, or hygiene gates, not main-paper mini-experiments.",
+  "network_access_required": false,
+  "paper_run_id_hits": [],
+  "profiler_rerun": false,
+  "run_id": "R398",
+  "schema": "agentsight.paper_current_three_plus_one_gate.v1",
+  "source_status": [
+    {
+      "path": "script/paper_current_three_plus_one_gate_r398.py",
+      "sha256": "cea3c1d3313badc29b342884b6d1e3711498d2f5cceb9530b6d984602d085f2a",
+      "source": "generator script",
+      "status": "untracked_or_missing"
+    },
+    {
+      "path": "docs/visexp/paper/main.tex",
+      "sha256": "6c3e906abfc5d6a51bfc248da5eb93d4f89fc73a959a60d963f6bfbd68ecdf6a",
+      "source": "Chinese paper",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/agentpprof-paper/main.tex",
+      "sha256": "c5f345486da053046557d404461a9e8a563fd738ff099eba3c7dbe2627725543",
+      "source": "English paper",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/evaluation.md",
+      "sha256": "7bb213a5c430967cfef72357710d0a7bcacecc87382dbace7ce9e04c9c8fb635",
+      "source": "evaluation ledger",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/idea-story.md",
+      "sha256": "85e7cdae3754619da85f56a8b455b6179b53afd67e4bd63955cc29e0db230afc",
+      "source": "idea story",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/out/paper-main-claim-verdict-alignment-r395/run-result.json",
+      "sha256": "784dd8d641109043dbb78e06d787b6a39f88cde84cc5b9635a12443e348f6fc2",
+      "source": "R395 claim/verdict alignment",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/out/paper-build-smoke-r396/run-result.json",
+      "sha256": "6e9db254d19ad4c4ab755d3cce271404c6391f25e49db6c66dc3d5de156c180f",
+      "source": "R396 paper build smoke",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/out/paper-main-body-run-ledger-r397/run-result.json",
+      "sha256": "cbe17f0e31efb230e8dfcf7c746e456b6e26b693c82644ce51c621ca6593bec0",
+      "source": "R397 anti-run-ledger",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/agentpprof-paper",
+      "sha256": "submodule_head=2c12ab64396c48de0303e2c61833c6426f928c54;parent_index=2c12ab64396c48de0303e2c61833c6426f928c54",
+      "source": "English paper submodule gitlink",
+      "status": "tracked_clean"
+    }
+  ],
+  "status": "pass",
+  "summary": {
+    "checks_passed": 10,
+    "checks_total": 10,
+    "chinese_rq_subsections": [
+      "RQ1/E1",
+      "RQ2/E2",
+      "RQ3/E3",
+      "RQ4/E4"
+    ],
+    "english_rq_subsections": [
+      "RQ1/E1",
+      "RQ2/E2",
+      "RQ3/E3",
+      "RQ4/E4"
+    ],
+    "main_paper_run_id_hits": 0
+  }
+}
