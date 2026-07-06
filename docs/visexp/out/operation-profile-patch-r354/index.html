@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>R354 Profile-Guided Patch Audit</title>
+<style>
+body { font-family: system-ui, sans-serif; margin: 32px; color: #1f2937; }
+table { border-collapse: collapse; width: 100%; }
+th, td { border-bottom: 1px solid #d1d5db; padding: 8px; text-align: right; }
+th:first-child, td:first-child, th:nth-child(2), td:nth-child(2), th:last-child, td:last-child { text-align: left; }
+code { background: #f3f4f6; padding: 1px 4px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<h1>R354 Profile-Guided Patch Audit</h1>
+<p>Profiler input: <code>docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl</code>. Hidden labels score before/after profile outputs only after Rust executes each profile spec.</p>
+<table>
+<thead><tr><th>Task</th><th>Patch</th><th>Default AP</th><th>Patched AP</th><th>Delta AP</th><th>Delta top-5 lift</th><th>Delta first-positive work</th><th>Verdict</th></tr></thead>
+<tbody><tr><td>agentreward_looping</td><td>semantic->semantic</td><td>0.7653</td><td>0.8808</td><td>0.1155</td><td>0.2820</td><td>0.0000</td><td>accept_patch</td></tr>
+<tr><td>agentreward_side_effect</td><td>semantic->coarse</td><td>0.3661</td><td>0.4252</td><td>0.0591</td><td>0.1822</td><td>-0.1125</td><td>accept_patch</td></tr>
+<tr><td>satraj_unsafe</td><td>semantic->coarse</td><td>0.1000</td><td>0.6081</td><td>0.5081</td><td>2.2936</td><td>-0.5986</td><td>accept_patch</td></tr>
+<tr><td>agentnet_incorrect_step</td><td>semantic->semantic</td><td>0.0687</td><td>0.0847</td><td>0.0160</td><td>2.5010</td><td>-0.0820</td><td>accept_patch</td></tr>
+<tr><td>agentnet_redundant_step</td><td>semantic->semantic</td><td>0.0863</td><td>0.0874</td><td>0.0011</td><td>0.8679</td><td>-0.0897</td><td>accept_patch</td></tr>
+<tr><td>osworld_group_start</td><td>semantic->semantic</td><td>0.2218</td><td>0.2214</td><td>-0.0004</td><td>-0.1277</td><td>-0.0020</td><td>reject_patch_or_needs_new_mapping</td></tr></tbody>
+</table>
+</body>
+</html>

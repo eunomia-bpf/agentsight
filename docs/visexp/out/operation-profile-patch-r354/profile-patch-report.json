@@ -1,0 +1,1098 @@
+{
+  "claim": "Profile-guided changes can be materialized as executable profile-spec patches over the same operation file; hidden labels score the before/after profiles after Rust profiling.",
+  "commit": "99aaaaa3fd8c0afa25f0e68213114e0828ed0fc2",
+  "datasets": 4,
+  "elapsed_s": 39.209,
+  "non_claims": [
+    "This is not a human or agent analyst study.",
+    "This is not an automatic label-free patch selector.",
+    "Rejected patches remain evidence of where a new mapping or boundary backend is needed.",
+    "The only profiler objects are operations and operation stacks; profile specs are reproducibility wrappers."
+  ],
+  "profiler_input": "docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl",
+  "run_id": "R354",
+  "source_status": {
+    "docs/visexp/out/external-agent-trace-agentnet-r291/agentnet-operations.jsonl": "tracked_clean",
+    "docs/visexp/out/external-agent-trace-agentreward-r288/agentreward-operations.jsonl": "tracked_clean",
+    "docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-operations.jsonl": "tracked_clean",
+    "docs/visexp/out/external-agent-trace-satraj-r289/satraj-operations.jsonl": "tracked_clean",
+    "docs/visexp/out/operation-action-counterfactual-r348/action-counterfactual-report.json": "tracked_clean",
+    "docs/visexp/out/operation-action-counterfactual-r348/task-action-counterfactual-cards.csv": "tracked_clean",
+    "docs/visexp/out/operation-rank-feature-r324/rank-feature-report.json": "tracked_clean",
+    "docs/visexp/out/operation-rank-feature-r324/rank-feature-summary.csv": "tracked_clean",
+    "docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl": "tracked_clean"
+  },
+  "status": "pass",
+  "summary": {
+    "accepted_patches": "5/6",
+    "ap_improved_tasks": "5/6",
+    "first_positive_work_improved_tasks": "5/6",
+    "groups_reduced_tasks": "2/6",
+    "median_delta_ap": 0.0376,
+    "median_delta_first_positive_work": -0.0859,
+    "median_delta_top5_lift": 0.575,
+    "median_group_reduction": 0.0,
+    "rejected_or_needs_mapping": "1/6",
+    "top5_lift_improved_tasks": "5/6"
+  },
+  "tasks": 6,
+  "tasks_detail": [
+    {
+      "dataset": "agent-reward-bench",
+      "default_agentpprof_result": {
+        "deterministic_output": false,
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl"
+        ],
+        "operations": 34539,
+        "output": "docs/visexp/out/operation-profile-patch-r354/agentreward_looping-default-semantic-width.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-profile-patch-r354/agentreward_looping-default-semantic-width-profile-spec.json"
+        ],
+        "rank_mode": "width-boost",
+        "rank_op_rules": [],
+        "rank_rules": [],
+        "sample_type": "operations",
+        "samples": 729,
+        "stack": "analysis_task,dataset,benchmark,phase,action,repeat_signal,status",
+        "stack_rules": [],
+        "standard_trace_events": null,
+        "standard_trace_format": null,
+        "standard_trace_output": null,
+        "status": "ok",
+        "unique_stacks": 40,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=agentreward_looping"
+        ]
+      },
+      "default_ap": 0.7653,
+      "default_first_positive_work": 0.2058,
+      "default_groups": 40,
+      "default_profile_spec": "docs/visexp/out/operation-profile-patch-r354/agentreward_looping-default-semantic-width-profile-spec.json",
+      "default_rust_json": "docs/visexp/out/operation-profile-patch-r354/agentreward_looping-default-semantic-width.json",
+      "default_stack_kind": "semantic",
+      "default_top5_lift": 1.0359,
+      "default_top5_work": 0.6283,
+      "default_top_stacks": [
+        {
+          "operations": 150,
+          "positive_rate": 0.9067,
+          "positives": 136,
+          "rank": 1,
+          "stack": "analysis_task:agentreward_looping;dataset:agent-reward-bench;benchmark:workarena;phase:navigate;action:click;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 107,
+          "positive_rate": 0.2056,
+          "positives": 22,
+          "rank": 2,
+          "stack": "analysis_task:agentreward_looping;dataset:agent-reward-bench;benchmark:workarena;phase:navigate;action:click;repeat_signal:none;status:failure"
+        },
+        {
+          "operations": 78,
+          "positive_rate": 0.7692,
+          "positives": 60,
+          "rank": 3,
+          "stack": "analysis_task:agentreward_looping;dataset:agent-reward-bench;benchmark:visualwebarena;phase:navigate;action:click;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 76,
+          "positive_rate": 1.0,
+          "positives": 76,
+          "rank": 4,
+          "stack": "analysis_task:agentreward_looping;dataset:agent-reward-bench;benchmark:assistantbench;phase:navigate;action:click;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 47,
+          "positive_rate": 0.7234,
+          "positives": 34,
+          "rank": 5,
+          "stack": "analysis_task:agentreward_looping;dataset:agent-reward-bench;benchmark:workarena;phase:input;action:fill;repeat_signal:loop-like;status:failure"
+        }
+      ],
+      "delta_ap": 0.1155,
+      "delta_first_positive_work": 0.0,
+      "delta_top5_lift": 0.282,
+      "delta_top5_work": -0.1345,
+      "expected_role": "improve_failure_localization",
+      "patch_steps": [
+        "keep repeat_signal in the recursive stack",
+        "rank loop-like and failure operations before width"
+      ],
+      "patch_verdict": "accept_patch",
+      "patched_agentpprof_result": {
+        "deterministic_output": false,
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl"
+        ],
+        "operations": 34539,
+        "output": "docs/visexp/out/operation-profile-patch-r354/agentreward_looping-patched-semantic-op-features.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-profile-patch-r354/agentreward_looping-patched-semantic-op-features-profile-spec.json"
+        ],
+        "rank_mode": "rule-score",
+        "rank_op_rules": [
+          "loop-like:5=repeat_signal=loop-like",
+          "failure:1.5=status=(failure|error)",
+          "navigation:0.5=action=(click|left_click|goto|go_back|scroll|hover|move_to|drag)"
+        ],
+        "rank_rules": [],
+        "sample_type": "operations",
+        "samples": 729,
+        "stack": "analysis_task,dataset,benchmark,phase,action,repeat_signal,status",
+        "stack_rules": [],
+        "standard_trace_events": null,
+        "standard_trace_format": null,
+        "standard_trace_output": null,
+        "status": "ok",
+        "unique_stacks": 40,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=agentreward_looping"
+        ]
+      },
+      "patched_ap": 0.8808,
+      "patched_first_positive_work": 0.2058,
+      "patched_groups": 40,
+      "patched_profile_spec": "docs/visexp/out/operation-profile-patch-r354/agentreward_looping-patched-semantic-op-features-profile-spec.json",
+      "patched_rust_json": "docs/visexp/out/operation-profile-patch-r354/agentreward_looping-patched-semantic-op-features.json",
+      "patched_stack_kind": "semantic",
+      "patched_top5_lift": 1.3179,
+      "patched_top5_work": 0.4938,
+      "patched_top_stacks": [
+        {
+          "operations": 150,
+          "positive_rate": 0.9067,
+          "positives": 136,
+          "rank": 1,
+          "stack": "analysis_task:agentreward_looping;dataset:agent-reward-bench;benchmark:workarena;phase:navigate;action:click;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 78,
+          "positive_rate": 0.7692,
+          "positives": 60,
+          "rank": 2,
+          "stack": "analysis_task:agentreward_looping;dataset:agent-reward-bench;benchmark:visualwebarena;phase:navigate;action:click;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 76,
+          "positive_rate": 1.0,
+          "positives": 76,
+          "rank": 3,
+          "stack": "analysis_task:agentreward_looping;dataset:agent-reward-bench;benchmark:assistantbench;phase:navigate;action:click;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 29,
+          "positive_rate": 1.0,
+          "positives": 29,
+          "rank": 4,
+          "stack": "analysis_task:agentreward_looping;dataset:agent-reward-bench;benchmark:webarena;phase:navigate;action:click;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 27,
+          "positive_rate": 1.0,
+          "positives": 27,
+          "rank": 5,
+          "stack": "analysis_task:agentreward_looping;dataset:agent-reward-bench;benchmark:visualwebarena;phase:navigate;action:hover;repeat_signal:loop-like;status:failure"
+        }
+      ],
+      "query_family": "failure-looping",
+      "r348_counterpoints": "top5_recall->flat:width; first_positive->raw_action_stack:query_aware",
+      "r348_optimization_action": "Keep repeat_signal in the stack, but add prevalence-aware ranking because looping positives are common.",
+      "task": "agentreward_looping"
+    },
+    {
+      "dataset": "agent-reward-bench",
+      "default_agentpprof_result": {
+        "deterministic_output": false,
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl"
+        ],
+        "operations": 34539,
+        "output": "docs/visexp/out/operation-profile-patch-r354/agentreward_side_effect-default-semantic-width.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-profile-patch-r354/agentreward_side_effect-default-semantic-width-profile-spec.json"
+        ],
+        "rank_mode": "width-boost",
+        "rank_op_rules": [],
+        "rank_rules": [],
+        "sample_type": "operations",
+        "samples": 729,
+        "stack": "analysis_task,dataset,benchmark,phase,action,repeat_signal,status",
+        "stack_rules": [],
+        "standard_trace_events": null,
+        "standard_trace_format": null,
+        "standard_trace_output": null,
+        "status": "ok",
+        "unique_stacks": 40,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=agentreward_side_effect"
+        ]
+      },
+      "default_ap": 0.3661,
+      "default_first_positive_work": 0.2058,
+      "default_groups": 40,
+      "default_profile_spec": "docs/visexp/out/operation-profile-patch-r354/agentreward_side_effect-default-semantic-width-profile-spec.json",
+      "default_rust_json": "docs/visexp/out/operation-profile-patch-r354/agentreward_side_effect-default-semantic-width.json",
+      "default_stack_kind": "semantic",
+      "default_top5_lift": 1.0559,
+      "default_top5_work": 0.6283,
+      "default_top_stacks": [
+        {
+          "operations": 150,
+          "positive_rate": 0.26,
+          "positives": 39,
+          "rank": 1,
+          "stack": "analysis_task:agentreward_side_effect;dataset:agent-reward-bench;benchmark:workarena;phase:navigate;action:click;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 107,
+          "positive_rate": 0.7664,
+          "positives": 82,
+          "rank": 2,
+          "stack": "analysis_task:agentreward_side_effect;dataset:agent-reward-bench;benchmark:workarena;phase:navigate;action:click;repeat_signal:none;status:failure"
+        },
+        {
+          "operations": 78,
+          "positive_rate": 0.0,
+          "positives": 0,
+          "rank": 3,
+          "stack": "analysis_task:agentreward_side_effect;dataset:agent-reward-bench;benchmark:visualwebarena;phase:navigate;action:click;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 76,
+          "positive_rate": 0.0,
+          "positives": 0,
+          "rank": 4,
+          "stack": "analysis_task:agentreward_side_effect;dataset:agent-reward-bench;benchmark:assistantbench;phase:navigate;action:click;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 47,
+          "positive_rate": 0.2766,
+          "positives": 13,
+          "rank": 5,
+          "stack": "analysis_task:agentreward_side_effect;dataset:agent-reward-bench;benchmark:workarena;phase:input;action:fill;repeat_signal:loop-like;status:failure"
+        }
+      ],
+      "delta_ap": 0.0591,
+      "delta_first_positive_work": -0.1125,
+      "delta_top5_lift": 0.1822,
+      "delta_top5_work": -0.4404,
+      "expected_role": "reduce_side_effect_fragmentation",
+      "patch_steps": [
+        "coarsen the stack to benchmark and phase before ranking",
+        "rank write/input/failure operations before width"
+      ],
+      "patch_verdict": "accept_patch",
+      "patched_agentpprof_result": {
+        "deterministic_output": false,
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl"
+        ],
+        "operations": 34539,
+        "output": "docs/visexp/out/operation-profile-patch-r354/agentreward_side_effect-patched-coarse-op-features.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-profile-patch-r354/agentreward_side_effect-patched-coarse-op-features-profile-spec.json"
+        ],
+        "rank_mode": "rule-score",
+        "rank_op_rules": [
+          "write-action:3=action=(fill|type|key|hotkey|press|select_option|send_msg_to_user|clear)",
+          "input-phase:2=phase=(input|modify)",
+          "failure:1=status=(failure|error)",
+          "navigation:0.5=action=(click|left_click|goto|go_back|scroll|hover|move_to|drag)",
+          "finish-phase:-0.5=phase=finish"
+        ],
+        "rank_rules": [],
+        "sample_type": "operations",
+        "samples": 729,
+        "stack": "analysis_task,dataset,benchmark,phase",
+        "stack_rules": [],
+        "standard_trace_events": null,
+        "standard_trace_format": null,
+        "standard_trace_output": null,
+        "status": "ok",
+        "unique_stacks": 16,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=agentreward_side_effect"
+        ]
+      },
+      "patched_ap": 0.4252,
+      "patched_first_positive_work": 0.0933,
+      "patched_groups": 16,
+      "patched_profile_spec": "docs/visexp/out/operation-profile-patch-r354/agentreward_side_effect-patched-coarse-op-features-profile-spec.json",
+      "patched_rust_json": "docs/visexp/out/operation-profile-patch-r354/agentreward_side_effect-patched-coarse-op-features.json",
+      "patched_stack_kind": "coarse",
+      "patched_top5_lift": 1.2381,
+      "patched_top5_work": 0.1879,
+      "patched_top_stacks": [
+        {
+          "operations": 68,
+          "positive_rate": 0.3382,
+          "positives": 23,
+          "rank": 1,
+          "stack": "analysis_task:agentreward_side_effect;dataset:agent-reward-bench;benchmark:workarena;phase:input"
+        },
+        {
+          "operations": 29,
+          "positive_rate": 0.0,
+          "positives": 0,
+          "rank": 2,
+          "stack": "analysis_task:agentreward_side_effect;dataset:agent-reward-bench;benchmark:assistantbench;phase:input"
+        },
+        {
+          "operations": 8,
+          "positive_rate": 0.0,
+          "positives": 0,
+          "rank": 3,
+          "stack": "analysis_task:agentreward_side_effect;dataset:agent-reward-bench;benchmark:webarena;phase:input"
+        },
+        {
+          "operations": 5,
+          "positive_rate": 0.0,
+          "positives": 0,
+          "rank": 4,
+          "stack": "analysis_task:agentreward_side_effect;dataset:agent-reward-bench;benchmark:visualwebarena;phase:input"
+        },
+        {
+          "operations": 27,
+          "positive_rate": 0.8889,
+          "positives": 24,
+          "rank": 5,
+          "stack": "analysis_task:agentreward_side_effect;dataset:agent-reward-bench;benchmark:workarena;phase:browser-action"
+        }
+      ],
+      "query_family": "failure-side-effect",
+      "r348_counterpoints": "top5_recall->flat:width; top5_lift->raw_action_stack:query_aware",
+      "r348_optimization_action": "Increase weight on write/input actions or use a deeper side-effect mapping before ranking.",
+      "task": "agentreward_side_effect"
+    },
+    {
+      "dataset": "satraj-os-safety",
+      "default_agentpprof_result": {
+        "deterministic_output": false,
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl"
+        ],
+        "operations": 34539,
+        "output": "docs/visexp/out/operation-profile-patch-r354/satraj_unsafe-default-semantic-width.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-profile-patch-r354/satraj_unsafe-default-semantic-width-profile-spec.json"
+        ],
+        "rank_mode": "width-boost",
+        "rank_op_rules": [],
+        "rank_rules": [],
+        "sample_type": "operations",
+        "samples": 4285,
+        "stack": "analysis_task,dataset,environment,phase,action,repeat_signal,status",
+        "stack_rules": [],
+        "standard_trace_events": null,
+        "standard_trace_format": null,
+        "standard_trace_output": null,
+        "status": "ok",
+        "unique_stacks": 142,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=satraj_unsafe"
+        ]
+      },
+      "default_ap": 0.1,
+      "default_first_positive_work": 0.6366,
+      "default_groups": 142,
+      "default_profile_spec": "docs/visexp/out/operation-profile-patch-r354/satraj_unsafe-default-semantic-width-profile-spec.json",
+      "default_rust_json": "docs/visexp/out/operation-profile-patch-r354/satraj_unsafe-default-semantic-width.json",
+      "default_stack_kind": "semantic",
+      "default_top5_lift": 0.0,
+      "default_top5_work": 0.5181,
+      "default_top_stacks": [
+        {
+          "operations": 464,
+          "positive_rate": 0.0,
+          "positives": 0,
+          "rank": 1,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:popup;phase:navigate;action:left_click;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 455,
+          "positive_rate": 0.0,
+          "positives": 0,
+          "rank": 2,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:popup;phase:navigate;action:left_click;repeat_signal:none;status:failure"
+        },
+        {
+          "operations": 450,
+          "positive_rate": 0.0,
+          "positives": 0,
+          "rank": 3,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:account;phase:navigate;action:left_click;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 438,
+          "positive_rate": 0.0,
+          "positives": 0,
+          "rank": 4,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:induced_text;phase:navigate;action:left_click;repeat_signal:none;status:failure"
+        },
+        {
+          "operations": 413,
+          "positive_rate": 0.0,
+          "positives": 0,
+          "rank": 5,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:induced_text;phase:navigate;action:left_click;repeat_signal:loop-like;status:failure"
+        }
+      ],
+      "delta_ap": 0.5081,
+      "delta_first_positive_work": -0.5986,
+      "delta_top5_lift": 2.2936,
+      "delta_top5_work": -0.3225,
+      "expected_role": "prioritize_safety_relevant_operations",
+      "patch_steps": [
+        "coarsen the stack to environment and phase",
+        "rank risky environment and write operations before width"
+      ],
+      "patch_verdict": "accept_patch",
+      "patched_agentpprof_result": {
+        "deterministic_output": false,
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl"
+        ],
+        "operations": 34539,
+        "output": "docs/visexp/out/operation-profile-patch-r354/satraj_unsafe-patched-coarse-op-features.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-profile-patch-r354/satraj_unsafe-patched-coarse-op-features-profile-spec.json"
+        ],
+        "rank_mode": "rule-score",
+        "rank_op_rules": [
+          "risky-env:2=environment=(os|unknown_file|popup|induced_text|account|error_correction|infeasible)",
+          "write-action:2=action=(fill|type|key|hotkey|press|select_option|send_msg_to_user|left_click_drag|system_command)",
+          "input-phase:1.5=phase=(input|modify)",
+          "success:0.5=status=success",
+          "loop-like:0.5=repeat_signal=.*(loop|repeat)"
+        ],
+        "rank_rules": [],
+        "sample_type": "operations",
+        "samples": 4285,
+        "stack": "analysis_task,dataset,environment,phase",
+        "stack_rules": [],
+        "standard_trace_events": null,
+        "standard_trace_format": null,
+        "standard_trace_output": null,
+        "status": "ok",
+        "unique_stacks": 22,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=satraj_unsafe"
+        ]
+      },
+      "patched_ap": 0.6081,
+      "patched_first_positive_work": 0.038,
+      "patched_groups": 22,
+      "patched_profile_spec": "docs/visexp/out/operation-profile-patch-r354/satraj_unsafe-patched-coarse-op-features-profile-spec.json",
+      "patched_rust_json": "docs/visexp/out/operation-profile-patch-r354/satraj_unsafe-patched-coarse-op-features.json",
+      "patched_stack_kind": "coarse",
+      "patched_top5_lift": 2.2936,
+      "patched_top5_work": 0.1956,
+      "patched_top_stacks": [
+        {
+          "operations": 163,
+          "positive_rate": 0.8282,
+          "positives": 135,
+          "rank": 1,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:unknown_file;phase:input"
+        },
+        {
+          "operations": 207,
+          "positive_rate": 0.6957,
+          "positives": 144,
+          "rank": 2,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:os;phase:input"
+        },
+        {
+          "operations": 361,
+          "positive_rate": 0.0,
+          "positives": 0,
+          "rank": 3,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:account;phase:input"
+        },
+        {
+          "operations": 47,
+          "positive_rate": 0.0,
+          "positives": 0,
+          "rank": 4,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:induced_text;phase:input"
+        },
+        {
+          "operations": 60,
+          "positive_rate": 0.0,
+          "positives": 0,
+          "rank": 5,
+          "stack": "analysis_task:satraj_unsafe;dataset:satraj-os-safety;environment:popup;phase:input"
+        }
+      ],
+      "query_family": "safety",
+      "r348_counterpoints": "top5_recall->flat:width; first_positive->fixed_session:query_aware",
+      "r348_optimization_action": "Use environment + phase + action stack fields; prioritize risky environments and write actions.",
+      "task": "satraj_unsafe"
+    },
+    {
+      "dataset": "agentnet",
+      "default_agentpprof_result": {
+        "deterministic_output": false,
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl"
+        ],
+        "operations": 34539,
+        "output": "docs/visexp/out/operation-profile-patch-r354/agentnet_incorrect_step-default-semantic-width.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-profile-patch-r354/agentnet_incorrect_step-default-semantic-width-profile-spec.json"
+        ],
+        "rank_mode": "width-boost",
+        "rank_op_rules": [],
+        "rank_rules": [],
+        "sample_type": "operations",
+        "samples": 14718,
+        "stack": "analysis_task,dataset,environment,phase,action,repeat_signal,status",
+        "stack_rules": [],
+        "standard_trace_events": null,
+        "standard_trace_format": null,
+        "standard_trace_output": null,
+        "status": "ok",
+        "unique_stacks": 289,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=agentnet_incorrect_step"
+        ]
+      },
+      "default_ap": 0.0687,
+      "default_first_positive_work": 0.0821,
+      "default_groups": 289,
+      "default_profile_spec": "docs/visexp/out/operation-profile-patch-r354/agentnet_incorrect_step-default-semantic-width-profile-spec.json",
+      "default_rust_json": "docs/visexp/out/operation-profile-patch-r354/agentnet_incorrect_step-default-semantic-width.json",
+      "default_stack_kind": "semantic",
+      "default_top5_lift": 1.1075,
+      "default_top5_work": 0.2965,
+      "default_top_stacks": [
+        {
+          "operations": 1208,
+          "positive_rate": 0.0869,
+          "positives": 105,
+          "rank": 1,
+          "stack": "analysis_task:agentnet_incorrect_step;dataset:agentnet;environment:chrome;phase:navigate;action:click;repeat_signal:none;status:success"
+        },
+        {
+          "operations": 975,
+          "positive_rate": 0.0626,
+          "positives": 61,
+          "rank": 2,
+          "stack": "analysis_task:agentnet_incorrect_step;dataset:agentnet;environment:multiapp;phase:navigate;action:click;repeat_signal:none;status:success"
+        },
+        {
+          "operations": 916,
+          "positive_rate": 0.0295,
+          "positives": 27,
+          "rank": 3,
+          "stack": "analysis_task:agentnet_incorrect_step;dataset:agentnet;environment:vscode;phase:navigate;action:click;repeat_signal:none;status:success"
+        },
+        {
+          "operations": 640,
+          "positive_rate": 0.0813,
+          "positives": 52,
+          "rank": 4,
+          "stack": "analysis_task:agentnet_incorrect_step;dataset:agentnet;environment:multiapp;phase:navigate;action:click;repeat_signal:loop-like;status:success"
+        },
+        {
+          "operations": 625,
+          "positive_rate": 0.0672,
+          "positives": 42,
+          "rank": 5,
+          "stack": "analysis_task:agentnet_incorrect_step;dataset:agentnet;environment:libreoffice_impress;phase:navigate;action:click;repeat_signal:none;status:success"
+        }
+      ],
+      "delta_ap": 0.016,
+      "delta_first_positive_work": -0.082,
+      "delta_top5_lift": 2.501,
+      "delta_top5_work": -0.2955,
+      "expected_role": "prioritize_low_prevalence_quality_errors",
+      "patch_steps": [
+        "keep desktop environment, phase, action, repeat_signal, and status frames",
+        "rank failure, loop-like, risky-environment, and input operations before width"
+      ],
+      "patch_verdict": "accept_patch",
+      "patched_agentpprof_result": {
+        "deterministic_output": false,
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl"
+        ],
+        "operations": 34539,
+        "output": "docs/visexp/out/operation-profile-patch-r354/agentnet_incorrect_step-patched-semantic-op-features.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-profile-patch-r354/agentnet_incorrect_step-patched-semantic-op-features-profile-spec.json"
+        ],
+        "rank_mode": "rule-score",
+        "rank_op_rules": [
+          "failure:2=status=.*(fail|error)",
+          "loop-like:1.5=repeat_signal=.*(loop|repeat)",
+          "risky-env:1=environment=(error_correction|infeasible|unknown_file|popup|induced_text|account)",
+          "input-phase:0.5=phase=(input|modify)"
+        ],
+        "rank_rules": [],
+        "sample_type": "operations",
+        "samples": 14718,
+        "stack": "analysis_task,dataset,environment,phase,action,repeat_signal,status",
+        "stack_rules": [],
+        "standard_trace_events": null,
+        "standard_trace_format": null,
+        "standard_trace_output": null,
+        "status": "ok",
+        "unique_stacks": 289,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=agentnet_incorrect_step"
+        ]
+      },
+      "patched_ap": 0.0847,
+      "patched_first_positive_work": 0.0001,
+      "patched_groups": 289,
+      "patched_profile_spec": "docs/visexp/out/operation-profile-patch-r354/agentnet_incorrect_step-patched-semantic-op-features-profile-spec.json",
+      "patched_rust_json": "docs/visexp/out/operation-profile-patch-r354/agentnet_incorrect_step-patched-semantic-op-features.json",
+      "patched_stack_kind": "semantic",
+      "patched_top5_lift": 3.6085,
+      "patched_top5_work": 0.001,
+      "patched_top_stacks": [
+        {
+          "operations": 2,
+          "positive_rate": 0.5,
+          "positives": 1,
+          "rank": 1,
+          "stack": "analysis_task:agentnet_incorrect_step;dataset:agentnet;environment:error_correction;phase:input;action:type;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 9,
+          "positive_rate": 0.2222,
+          "positives": 2,
+          "rank": 2,
+          "stack": "analysis_task:agentnet_incorrect_step;dataset:agentnet;environment:error_correction;phase:navigate;action:click;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 1,
+          "positive_rate": 0.0,
+          "positives": 0,
+          "rank": 3,
+          "stack": "analysis_task:agentnet_incorrect_step;dataset:agentnet;environment:error_correction;phase:finish;action:terminate;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 1,
+          "positive_rate": 0.0,
+          "positives": 0,
+          "rank": 4,
+          "stack": "analysis_task:agentnet_incorrect_step;dataset:agentnet;environment:error_correction;phase:navigate;action:move_to;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 1,
+          "positive_rate": 0.0,
+          "positives": 0,
+          "rank": 5,
+          "stack": "analysis_task:agentnet_incorrect_step;dataset:agentnet;environment:error_correction;phase:observe;action:wait;repeat_signal:loop-like;status:failure"
+        }
+      ],
+      "query_family": "step-quality",
+      "r348_counterpoints": "top5_recall->flat:width",
+      "r348_optimization_action": "Use desktop environment + phase + repeat/action fields, then drill into fixed sessions for examples.",
+      "task": "agentnet_incorrect_step"
+    },
+    {
+      "dataset": "agentnet",
+      "default_agentpprof_result": {
+        "deterministic_output": false,
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl"
+        ],
+        "operations": 34539,
+        "output": "docs/visexp/out/operation-profile-patch-r354/agentnet_redundant_step-default-semantic-width.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-profile-patch-r354/agentnet_redundant_step-default-semantic-width-profile-spec.json"
+        ],
+        "rank_mode": "width-boost",
+        "rank_op_rules": [],
+        "rank_rules": [],
+        "sample_type": "operations",
+        "samples": 10067,
+        "stack": "analysis_task,dataset,environment,phase,action,repeat_signal,status",
+        "stack_rules": [],
+        "standard_trace_events": null,
+        "standard_trace_format": null,
+        "standard_trace_output": null,
+        "status": "ok",
+        "unique_stacks": 260,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=agentnet_redundant_step"
+        ]
+      },
+      "default_ap": 0.0863,
+      "default_first_positive_work": 0.0948,
+      "default_groups": 260,
+      "default_profile_spec": "docs/visexp/out/operation-profile-patch-r354/agentnet_redundant_step-default-semantic-width-profile-spec.json",
+      "default_rust_json": "docs/visexp/out/operation-profile-patch-r354/agentnet_redundant_step-default-semantic-width.json",
+      "default_stack_kind": "semantic",
+      "default_top5_lift": 1.1159,
+      "default_top5_work": 0.3215,
+      "default_top_stacks": [
+        {
+          "operations": 954,
+          "positive_rate": 0.1006,
+          "positives": 96,
+          "rank": 1,
+          "stack": "analysis_task:agentnet_redundant_step;dataset:agentnet;environment:chrome;phase:navigate;action:click;repeat_signal:none;status:success"
+        },
+        {
+          "operations": 834,
+          "positive_rate": 0.0695,
+          "positives": 58,
+          "rank": 2,
+          "stack": "analysis_task:agentnet_redundant_step;dataset:agentnet;environment:multiapp;phase:navigate;action:click;repeat_signal:none;status:success"
+        },
+        {
+          "operations": 609,
+          "positive_rate": 0.087,
+          "positives": 53,
+          "rank": 3,
+          "stack": "analysis_task:agentnet_redundant_step;dataset:agentnet;environment:multiapp;phase:navigate;action:click;repeat_signal:loop-like;status:success"
+        },
+        {
+          "operations": 450,
+          "positive_rate": 0.0778,
+          "positives": 35,
+          "rank": 4,
+          "stack": "analysis_task:agentnet_redundant_step;dataset:agentnet;environment:libreoffice_calc;phase:navigate;action:click;repeat_signal:none;status:success"
+        },
+        {
+          "operations": 390,
+          "positive_rate": 0.0538,
+          "positives": 21,
+          "rank": 5,
+          "stack": "analysis_task:agentnet_redundant_step;dataset:agentnet;environment:vscode;phase:navigate;action:click;repeat_signal:none;status:success"
+        }
+      ],
+      "delta_ap": 0.0011,
+      "delta_first_positive_work": -0.0897,
+      "delta_top5_lift": 0.8679,
+      "delta_top5_work": -0.3126,
+      "expected_role": "prioritize_redundancy_signals",
+      "patch_steps": [
+        "keep repeat_signal and action frames",
+        "rank loop-like operations before width"
+      ],
+      "patch_verdict": "accept_patch",
+      "patched_agentpprof_result": {
+        "deterministic_output": false,
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl"
+        ],
+        "operations": 34539,
+        "output": "docs/visexp/out/operation-profile-patch-r354/agentnet_redundant_step-patched-semantic-op-features.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-profile-patch-r354/agentnet_redundant_step-patched-semantic-op-features-profile-spec.json"
+        ],
+        "rank_mode": "rule-score",
+        "rank_op_rules": [
+          "loop-like:4=repeat_signal=.*(loop|repeat)",
+          "failure:1=status=.*(fail|error)",
+          "navigation:0.5=action=(click|left_click|double_click|tripleclick|move_to|drag|scroll|hover|goto|go_back)"
+        ],
+        "rank_rules": [],
+        "sample_type": "operations",
+        "samples": 10067,
+        "stack": "analysis_task,dataset,environment,phase,action,repeat_signal,status",
+        "stack_rules": [],
+        "standard_trace_events": null,
+        "standard_trace_format": null,
+        "standard_trace_output": null,
+        "status": "ok",
+        "unique_stacks": 260,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=agentnet_redundant_step"
+        ]
+      },
+      "patched_ap": 0.0874,
+      "patched_first_positive_work": 0.0051,
+      "patched_groups": 260,
+      "patched_profile_spec": "docs/visexp/out/operation-profile-patch-r354/agentnet_redundant_step-patched-semantic-op-features-profile-spec.json",
+      "patched_rust_json": "docs/visexp/out/operation-profile-patch-r354/agentnet_redundant_step-patched-semantic-op-features.json",
+      "patched_stack_kind": "semantic",
+      "patched_top5_lift": 1.9838,
+      "patched_top5_work": 0.0089,
+      "patched_top_stacks": [
+        {
+          "operations": 51,
+          "positive_rate": 0.1373,
+          "positives": 7,
+          "rank": 1,
+          "stack": "analysis_task:agentnet_redundant_step;dataset:agentnet;environment:libreoffice_impress;phase:navigate;action:click;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 13,
+          "positive_rate": 0.2308,
+          "positives": 3,
+          "rank": 2,
+          "stack": "analysis_task:agentnet_redundant_step;dataset:agentnet;environment:libreoffice_writer;phase:navigate;action:click;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 12,
+          "positive_rate": 0.0833,
+          "positives": 1,
+          "rank": 3,
+          "stack": "analysis_task:agentnet_redundant_step;dataset:agentnet;environment:libreoffice_calc;phase:navigate;action:click;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 9,
+          "positive_rate": 0.2222,
+          "positives": 2,
+          "rank": 4,
+          "stack": "analysis_task:agentnet_redundant_step;dataset:agentnet;environment:error_correction;phase:navigate;action:click;repeat_signal:loop-like;status:failure"
+        },
+        {
+          "operations": 5,
+          "positive_rate": 0.0,
+          "positives": 0,
+          "rank": 5,
+          "stack": "analysis_task:agentnet_redundant_step;dataset:agentnet;environment:libreoffice_impress;phase:navigate;action:move_to;repeat_signal:loop-like;status:failure"
+        }
+      ],
+      "query_family": "step-quality",
+      "r348_counterpoints": "top5_recall->flat:width; first_positive->fixed_session:query_aware",
+      "r348_optimization_action": "Use desktop environment + phase + repeat/action fields, then drill into fixed sessions for examples.",
+      "task": "agentnet_redundant_step"
+    },
+    {
+      "dataset": "osworld-human",
+      "default_agentpprof_result": {
+        "deterministic_output": false,
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl"
+        ],
+        "operations": 34539,
+        "output": "docs/visexp/out/operation-profile-patch-r354/osworld_group_start-default-semantic-width.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-profile-patch-r354/osworld_group_start-default-semantic-width-profile-spec.json"
+        ],
+        "rank_mode": "width-boost",
+        "rank_op_rules": [],
+        "rank_rules": [],
+        "sample_type": "operations",
+        "samples": 4011,
+        "stack": "analysis_task,dataset,app,phase,action,repeat_signal,status",
+        "stack_rules": [],
+        "standard_trace_events": null,
+        "standard_trace_format": null,
+        "standard_trace_output": null,
+        "status": "ok",
+        "unique_stacks": 173,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=osworld_group_start"
+        ]
+      },
+      "default_ap": 0.2218,
+      "default_first_positive_work": 0.1331,
+      "default_groups": 173,
+      "default_profile_spec": "docs/visexp/out/operation-profile-patch-r354/osworld_group_start-default-semantic-width-profile-spec.json",
+      "default_rust_json": "docs/visexp/out/operation-profile-patch-r354/osworld_group_start-default-semantic-width.json",
+      "default_stack_kind": "semantic",
+      "default_top5_lift": 1.0417,
+      "default_top5_work": 0.5667,
+      "default_top_stacks": [
+        {
+          "operations": 534,
+          "positive_rate": 0.2228,
+          "positives": 119,
+          "rank": 1,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:multi_apps;phase:navigate;action:click;repeat_signal:loop-like;status:gold"
+        },
+        {
+          "operations": 526,
+          "positive_rate": 0.3498,
+          "positives": 184,
+          "rank": 2,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:multi_apps;phase:input;action:type;repeat_signal:loop-like;status:gold"
+        },
+        {
+          "operations": 517,
+          "positive_rate": 0.0542,
+          "positives": 28,
+          "rank": 3,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:multi_apps;phase:input;action:press;repeat_signal:loop-like;status:gold"
+        },
+        {
+          "operations": 514,
+          "positive_rate": 0.1498,
+          "positives": 77,
+          "rank": 4,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:multi_apps;phase:input;action:hotkey;repeat_signal:loop-like;status:gold"
+        },
+        {
+          "operations": 182,
+          "positive_rate": 0.2363,
+          "positives": 43,
+          "rank": 5,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:libreoffice_impress;phase:navigate;action:click;repeat_signal:loop-like;status:gold"
+        }
+      ],
+      "delta_ap": -0.0004,
+      "delta_first_positive_work": -0.002,
+      "delta_top5_lift": -0.1277,
+      "delta_top5_work": -0.1528,
+      "expected_role": "negative_control_needs_boundary_backend",
+      "patch_steps": [
+        "try visible phase/action rank features without boundary-derived fields",
+        "reject this patch if hidden-label scoring shows it does not improve grouping"
+      ],
+      "patch_verdict": "reject_patch_or_needs_new_mapping",
+      "patched_agentpprof_result": {
+        "deterministic_output": false,
+        "format": "json",
+        "op_map_files": [],
+        "op_maps": [],
+        "operation_files": [
+          "/home/yunwei37/.codex/worktrees/922e8580-aeef-4c83-a8ae-a21deb05ec99/agentsight/docs/visexp/out/operation-rank-feature-r324/visible-query-utility-operations.jsonl"
+        ],
+        "operations": 34539,
+        "output": "docs/visexp/out/operation-profile-patch-r354/osworld_group_start-patched-semantic-op-features.json",
+        "profile_specs": [
+          "docs/visexp/out/operation-profile-patch-r354/osworld_group_start-patched-semantic-op-features-profile-spec.json"
+        ],
+        "rank_mode": "rule-score",
+        "rank_op_rules": [
+          "input-phase:1.5=phase=(input|modify)",
+          "navigate-phase:1=phase=navigate",
+          "write-action:1=action=(fill|type|key|hotkey|press|select_option|send_msg_to_user|drag)",
+          "navigation:0.5=action=(click|left_click|double_click|tripleclick|move_to|drag|scroll|hover|goto|go_back)",
+          "finish-phase:0.5=phase=finish"
+        ],
+        "rank_rules": [],
+        "sample_type": "operations",
+        "samples": 4011,
+        "stack": "analysis_task,dataset,app,phase,action,repeat_signal,status",
+        "stack_rules": [],
+        "standard_trace_events": null,
+        "standard_trace_format": null,
+        "standard_trace_output": null,
+        "status": "ok",
+        "unique_stacks": 173,
+        "unit": "count",
+        "view": "operations",
+        "warnings": [],
+        "where_rules": [
+          "analysis_task=osworld_group_start"
+        ]
+      },
+      "patched_ap": 0.2214,
+      "patched_first_positive_work": 0.1311,
+      "patched_groups": 173,
+      "patched_profile_spec": "docs/visexp/out/operation-profile-patch-r354/osworld_group_start-patched-semantic-op-features-profile-spec.json",
+      "patched_rust_json": "docs/visexp/out/operation-profile-patch-r354/osworld_group_start-patched-semantic-op-features.json",
+      "patched_stack_kind": "semantic",
+      "patched_top5_lift": 0.914,
+      "patched_top5_work": 0.4139,
+      "patched_top_stacks": [
+        {
+          "operations": 526,
+          "positive_rate": 0.3498,
+          "positives": 184,
+          "rank": 1,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:multi_apps;phase:input;action:type;repeat_signal:loop-like;status:gold"
+        },
+        {
+          "operations": 517,
+          "positive_rate": 0.0542,
+          "positives": 28,
+          "rank": 2,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:multi_apps;phase:input;action:press;repeat_signal:loop-like;status:gold"
+        },
+        {
+          "operations": 514,
+          "positive_rate": 0.1498,
+          "positives": 77,
+          "rank": 3,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:multi_apps;phase:input;action:hotkey;repeat_signal:loop-like;status:gold"
+        },
+        {
+          "operations": 64,
+          "positive_rate": 0.0,
+          "positives": 0,
+          "rank": 4,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:multi_apps;phase:navigate;action:drag;repeat_signal:loop-like;status:gold"
+        },
+        {
+          "operations": 39,
+          "positive_rate": 0.0,
+          "positives": 0,
+          "rank": 5,
+          "stack": "analysis_task:osworld_group_start;dataset:osworld-human;app:libreoffice_calc;phase:input;action:press;repeat_signal:loop-like;status:gold"
+        }
+      ],
+      "query_family": "human-boundary",
+      "r348_counterpoints": "top5_recall->flat:width; top5_lift->fixed_session:query_aware; first_positive->fixed_session:query_aware",
+      "r348_optimization_action": "Use group-depth or boundary-derived fields for higher recall; action-depth alone fragments starts.",
+      "task": "osworld_group_start"
+    }
+  ]
+}

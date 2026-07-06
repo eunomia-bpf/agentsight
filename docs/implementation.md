@@ -2,7 +2,7 @@
 
 Last updated: 2026-07-05
 Stage at update: stage 4 execute / stage 8 audit / stage 11 reproducibility prep
-Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agentpprof/src/standard_trace.rs`, `agentpprof/tests/standard_trace_cli.rs`, `agentpprof/tests/profile_spec_cli.rs`, `script/operation_*.py`, `script/agent_trace_datasets.py sample tau-bench-trajectories`, `script/agent_trace_datasets.py sample agent-reward-bench`, `script/agent_trace_datasets.py sample satraj-os-safety`, `script/agent_trace_datasets.py sample osworld-human`, `script/agent_trace_datasets.py sample agentnet`, `script/agent_trace_datasets.py sample scalecua-navigation`, `script/agent_trace_exchange_eval.py`, `script/agent_trace_chrome_exchange_eval.py`, `script/operation_standard_trace_exchange_eval.py`, `script/operation_where_filter_eval.py`, `script/operation_rust_rank_rule_eval.py`, `script/operation_rank_mode_eval.py`, `script/operation_rank_feature_eval.py`, `script/operation_rank_feature_ablation_eval.py`, `script/operation_rank_feature_robustness_eval.py`, `script/operation_profile_spec_composition_eval.py`, `script/implementation_consistency_audit.py`, `cargo test --manifest-path agentpprof/Cargo.toml --test profile_spec_cli`, `cargo test --manifest-path agentpprof/Cargo.toml`
+Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agentpprof/src/standard_trace.rs`, `agentpprof/tests/standard_trace_cli.rs`, `agentpprof/tests/profile_spec_cli.rs`, `script/operation_*.py`, `script/agent_trace_datasets.py sample tau-bench-trajectories`, `script/agent_trace_datasets.py sample agent-reward-bench`, `script/agent_trace_datasets.py sample satraj-os-safety`, `script/agent_trace_datasets.py sample osworld-human`, `script/agent_trace_datasets.py sample agentnet`, `script/agent_trace_datasets.py sample scalecua-navigation`, `script/agent_trace_exchange_eval.py`, `script/agent_trace_chrome_exchange_eval.py`, `script/operation_standard_trace_exchange_eval.py`, `script/operation_where_filter_eval.py`, `script/operation_rust_rank_rule_eval.py`, `script/operation_rank_mode_eval.py`, `script/operation_rank_feature_eval.py`, `script/operation_rank_feature_ablation_eval.py`, `script/operation_rank_feature_robustness_eval.py`, `script/operation_profile_spec_composition_eval.py`, `script/operation_profile_patch_eval.py`, `script/implementation_consistency_audit.py`, `cargo test --manifest-path agentpprof/Cargo.toml --test profile_spec_cli`, `cargo test --manifest-path agentpprof/Cargo.toml`
 Completeness: partial
 
 ## Repository Layout Relevant To Semantic Profiling
@@ -33,6 +33,7 @@ Purpose: identify the maintained implementation boundary.
 | `script/operation_rank_feature_ablation_eval.py` | R325 leave-one-feature actionability probe over R324's scrubbed visible profiler input. | research harness |
 | `script/operation_rank_feature_robustness_eval.py` | R326 equal-weight, global-bank, and ablation-repaired rank-feature robustness probe over R324's scrubbed visible profiler input. | research harness |
 | `script/operation_profile_spec_composition_eval.py` | R342 profile-spec composition audit over tracked R324 real-trace Rust outputs; checks predicates, operation-level rank rules, rank mode, and recursive stack depth without prompt/session frames. | research harness |
+| `script/operation_profile_patch_eval.py` | R354 executable profile-spec patch audit; reruns default and patched Rust profiles over tracked R324 visible operations and scores with hidden labels after profiling. | research harness |
 | `script/profile_artifact_relocation_audit.py` | R343 relocated-checkout audit for historical profile specs that contain absolute artifact paths; verifies R342/R338 path normalization over existing tracked outputs. | reproducibility harness |
 | `script/operation_metric_consistency_eval.py` | R344 multi-metric consistency audit over R320 scored policy outputs; checks AP, nDCG, top-k, budget, work, and fragmentation support/counterpoints. | research harness |
 | `script/implementation_consistency_audit.py` | R319 implementation/docs consistency audit over Rust CLI, docs, and paper wording. | paper hygiene harness |
@@ -125,6 +126,16 @@ over width on 9/12 variants and first-positive work on 10/12, while coarse
 stack depth reduces groups on 6/6 tasks with median reduction 0.8267. This is a
 real-trace mechanism/reproducibility audit for operation and operation stack,
 not a third abstraction or a human-utility result.
+
+R354 then closes an actionability execution gap. Instead of only reading
+already-scored policy tables, `script/operation_profile_patch_eval.py` writes
+before/after profile specs, reruns the maintained Rust `agentpprof
+--profile-spec` path on the tracked R324 visible-operation input, and scores
+the emitted groups with hidden labels only after profiling. The profile-guided
+patches improve AP, top-5 lift, and first-positive work on 5/6 tasks; the
+remaining OSWorld-Human row is an intentional rejected patch that points to
+boundary-derived fields. This is an executable profile-spec patch audit, not a
+human/agent analyst study or automatic patch selector.
 
 R343 closes the relocated-checkout portability gap found during review.
 `script/profile_artifact_relocation_audit.py` reads the same tracked R324/R342
@@ -239,6 +250,7 @@ python3 -m py_compile script/agent_trace_datasets.py script/operation_split.py \
   script/operation_rank_feature_ablation_eval.py \
   script/operation_rank_feature_robustness_eval.py \
   script/operation_profile_spec_composition_eval.py \
+  script/operation_profile_patch_eval.py \
   script/agent_trace_exchange_eval.py script/agent_trace_chrome_exchange_eval.py \
   script/operation_standard_trace_exchange_eval.py \
   script/implementation_consistency_audit.py
