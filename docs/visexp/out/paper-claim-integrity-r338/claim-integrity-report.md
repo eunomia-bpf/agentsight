@@ -350,19 +350,19 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | evaluation | R348 action counterfactual | R348 / 36 objective rows / 27/36 / 0.1447 | pass | 15,100,101,106,107,108,109,110 |
 | evaluation | R349 held-out action transfer | R349 / 60 aligned / 35/60 / 7/60 / 2/42 | pass | 15,108,109,110,111,249,250,251 |
 | evaluation | R350 evidence packet budget | R350 / 6/6 / 4/6 / 27/36 / 35/60 | pass | 15,41,45,53,54,70,72,85 |
-| zh_main | R320 headline | 0.0937 / 9.37 / 285.0 / 157.5 | pass | 63,73,79,82,404,411,421,422 |
-| zh_main | R333 headline | 0.3900 / 0.390 | pass | 68,399,451,483,517,588,706 |
-| zh_main | R337 headline | 0.2000 / 16.0 / 50.0 | pass | 72,482,591,710 |
-| zh_main | R339 headline | 0.4669 / 0.9103 / 0.3467 | pass | 73,483,592,711 |
-| zh_main | R340 headline | R340 / 62/96 / 72/96 / 69/96 | pass | 74,484,485,492,578,593,606,712 |
-| zh_main | R341 headline | R341 / 36/36 / 27/36 / 34/96 | pass | 75,81,82,485,488,491,493,578 |
-| zh_main | R342 headline | R342 / 12/12 / 9/12 / 0.8267 | pass | 76,486,579,595 |
+| zh_main | R320 headline | 0.0937 / 9.37 / 285.0 / 157.5 | pass | 63,73,79,82,405,412,422,423 |
+| zh_main | R333 headline | 0.3900 / 0.390 | pass | 68,400,452,484,519,590,709 |
+| zh_main | R337 headline | 0.2000 / 16.0 / 50.0 | pass | 72,483,593,713 |
+| zh_main | R339 headline | 0.4669 / 0.9103 / 0.3467 | pass | 73,484,594,714 |
+| zh_main | R340 headline | R340 / 62/96 / 72/96 / 69/96 | pass | 74,485,486,493,580,595,608,715 |
+| zh_main | R341 headline | R341 / 36/36 / 27/36 / 34/96 | pass | 75,81,82,486,489,492,494,580 |
+| zh_main | R342 headline | R342 / 12/12 / 9/12 / 0.8267 | pass | 76,487,581,597 |
 | zh_main | R344 headline | R344 / 30 / 16 / nDCG | pass | 55,61,62,65,66,67,68,69 |
 | zh_main | R345 headline | R345 / 6 / 11/36 / 25/36 | pass | 3,16,17,18,30,50,54,55 |
 | zh_main | R346 headline | R346 / 30 / 5/6 / 1.6508 | pass | 59,60,61,63,65,66,67,68 |
 | zh_main | R347 headline | R347 / 5 / 6/6 / 5/6 / 4/6 | pass | 12,22,46,48,49,50,59,60 |
-| zh_main | R348 headline | R348 / 36 / 27/36 / 0.1447 | pass | 71,75,78,81,82,339,348,355 |
-| zh_main | R349 headline | R349 / 60 / 35/60 / 7/60 / 2/42 | pass | 73,82,87,180,278,483,492,493 |
+| zh_main | R348 headline | R348 / 36 / 27/36 / 0.1447 | pass | 71,75,78,81,82,340,349,356 |
+| zh_main | R349 headline | R349 / 60 / 35/60 / 7/60 / 2/42 | pass | 73,82,88,181,279,484,493,494 |
 | zh_main | R350 headline | R350 / 6/6 / 4/6 / 27/36 / 35/60 | pass | 59,60,61,64,66,68,70,71 |
 | en_main | R320 headline | 0.0937 / 9.37 / 285.0 / 157.5 | pass | 45,48,126,377,379,397,406,589 |
 | en_main | R333 headline | 0.3900 / 0.390 | pass | 70,378,397,464,592 |
@@ -702,10 +702,10 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | zh_claim_setup | automatic_boundary | pass | 7 | 23,25,26,47,48,132,255 | none |
 | zh_claim_setup | ecosystem_compatibility | pass | 8 | 22,78,96,159,206,243,244,245 | none |
 | zh_claim_setup | universal_selector | pass | 12 | 26,34,36,37,38,41,42,43,44,45,46,47 | none |
-| zh_main | human_utility | pass | 10 | 83,209,389,432,489,607,674,684,721,722 | none |
-| zh_main | automatic_boundary | pass | 1 | 83 | none |
-| zh_main | ecosystem_compatibility | pass | 12 | 51,167,630,638,639,642,678,701,725,736,746,747 | none |
-| zh_main | universal_selector | pass | 12 | 78,81,83,477,483,488,490,491,492,493,605,667 | none |
+| zh_main | human_utility | pass | 11 | 83,210,390,433,490,609,676,687,724,725,726 | none |
+| zh_main | automatic_boundary | pass | 2 | 83,84 | none |
+| zh_main | ecosystem_compatibility | pass | 12 | 51,168,632,640,641,644,680,704,729,740,750,751 | none |
+| zh_main | universal_selector | pass | 12 | 78,81,83,478,484,489,491,492,493,494,607,669 | none |
 | en_main | human_utility | pass | 5 | 127,187,201,685,744 | none |
 | en_main | automatic_boundary | pass | 2 | 685,873 | none |
 | en_main | ecosystem_compatibility | pass | 12 | 778,780,788,790,791,792,798,799,874,965,966,968 | none |
