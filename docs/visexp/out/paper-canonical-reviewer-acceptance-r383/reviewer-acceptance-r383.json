@@ -1,0 +1,192 @@
+{
+  "checks": [
+    {
+      "check": "four_reviewers_accept",
+      "detail": "Final ACCEPT verdicts=4/4.",
+      "passed": true
+    },
+    {
+      "check": "zero_blocking_issues",
+      "detail": "Blocking issue count=0.",
+      "passed": true
+    },
+    {
+      "check": "review_notes_recorded",
+      "detail": "Non-blocking notes recorded=1; R382 elapsed_s drift was refreshed before commit.",
+      "passed": true
+    },
+    {
+      "check": "upstream_gates_pass",
+      "detail": "R380/R381/R382 all pass.",
+      "passed": true
+    },
+    {
+      "check": "r382_shape_preserved",
+      "detail": "R382 records 3 empirical profiling experiments, 1 artifact block, and 8/8 checks.",
+      "passed": true
+    },
+    {
+      "check": "canonical_docs_and_papers_match",
+      "detail": "Canonical docs and both paper drafts use the current three-plus-one wording.",
+      "passed": true
+    },
+    {
+      "check": "e4_not_empirical_accuracy",
+      "detail": "E4 remains artifact/reproducibility/hygiene, not empirical accuracy evidence; R382 also checks the fourth-experiment wording.",
+      "passed": true
+    },
+    {
+      "check": "must_not_claims_visible",
+      "detail": "Must-not-claim guardrails remain visible in current docs/papers.",
+      "passed": true
+    },
+    {
+      "check": "r383_ledger_registered",
+      "detail": "Evaluation ledger records this reviewer-acceptance closure.",
+      "passed": true
+    },
+    {
+      "check": "english_submodule_clean",
+      "detail": "English paper submodule is clean and parent gitlink is current.",
+      "passed": true
+    },
+    {
+      "check": "source_status_tracked",
+      "detail": "All R383 inputs are tracked or intentionally staged/dirty.",
+      "passed": true
+    }
+  ],
+  "claim_scope": {
+    "does_not_support": [
+      "new empirical profiler accuracy evidence",
+      "human or agent analyst productivity",
+      "automatic discovery of all intent boundaries",
+      "complete trace-ecosystem compatibility",
+      "metric dominance over every baseline and task"
+    ],
+    "supports": [
+      "independent reviewer acceptance of the R382 canonical-doc three-plus-one cleanup",
+      "paper-organization readiness for the scoped hidden-label profiling claim"
+    ]
+  },
+  "data_sync": false,
+  "network_access_required": false,
+  "not_human_or_agent_analyst_study": true,
+  "not_new_empirical_result": true,
+  "profiler_rerun": false,
+  "review_events": [
+    {
+      "agent_id": "019f3851-1c4a-7862-9dbf-d8a5389007b5",
+      "blocking_issues": [],
+      "final_verdict": "ACCEPT",
+      "focus": "canonical-doc experiment organization",
+      "non_blocking_notes": [],
+      "rationale": "Canonical docs, design text, and evaluation ledger align on three empirical profiling experiments plus one artifact/reproducibility block; R382 is registered as a consistency gate rather than a new experiment.",
+      "reviewer": "Singer"
+    },
+    {
+      "agent_id": "019f3851-349a-7f63-a05d-f6f4a2aed1d4",
+      "blocking_issues": [],
+      "final_verdict": "ACCEPT",
+      "focus": "claim-safety and non-claim boundary review",
+      "non_blocking_notes": [],
+      "rationale": "The cleanup keeps human/agent analyst productivity, automatic boundary discovery, metric dominance, complete ecosystem compatibility, and E4 accuracy evidence out of scope.",
+      "reviewer": "Dirac"
+    },
+    {
+      "agent_id": "019f3851-794b-7222-9a81-5d84bcab27b0",
+      "blocking_issues": [],
+      "final_verdict": "ACCEPT",
+      "focus": "artifact provenance and reproducibility hygiene",
+      "non_blocking_notes": [
+        "A prior local rerun changed only the elapsed_s field in the R382 run-result; the staged output was refreshed afterward."
+      ],
+      "rationale": "R382 is local-doc only, records no data sync and no profiler rerun, keeps small documentation artifacts, and has a clean English-paper submodule.",
+      "reviewer": "Erdos"
+    },
+    {
+      "agent_id": "019f3851-9330-7352-afb2-d4aff59c0466",
+      "blocking_issues": [],
+      "final_verdict": "ACCEPT",
+      "focus": "paper and ledger consistency review",
+      "non_blocking_notes": [],
+      "rationale": "R382 wording matches the English and Chinese papers, R380/R381 remain passing, and the ledger scopes R382 as documentation consistency rather than a new empirical result.",
+      "reviewer": "Cicero"
+    }
+  ],
+  "run_id": "R383",
+  "schema": "agentsight.paper_canonical_reviewer_acceptance.v1",
+  "source_status": [
+    {
+      "path": "script/paper_canonical_reviewer_acceptance_r383.py",
+      "sha256": "bc02bb46e836c32804a12f3fcc29c053f81d77007eb4fef15cfbfcf818b05d24",
+      "source": "generator script",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/out/paper-experiment-block-consolidation-r380/experiment-block-consolidation-report.json",
+      "sha256": "f9a7f37df5b9f4480a7f11547ccc51e142adcc2657bfbc64bd3009fc7860d5fa",
+      "source": "R380 experiment-block gate",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/paper-diagnosis-card-r381/diagnosis-card-report.json",
+      "sha256": "2ea642c54068d9ccf1e0abf96268fb0682d8e8278f44c0ef5a4b2a7739149780",
+      "source": "R381 diagnosis-card gate",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/paper-canonical-three-plus-one-r382/canonical-three-plus-one-report.json",
+      "sha256": "4256737a3ac02c2592bacc9bf1e2ee268b469533126d27b9c69fbfdd88ff4e58",
+      "source": "R382 canonical three-plus-one gate",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/idea-story.md",
+      "sha256": "005b2bcbf7655a48704a51bb2d0d74abe3ba21ceae3d304680f5cdc1b5863a45",
+      "source": "idea story",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/design.md",
+      "sha256": "b9f3f8c3b23287ce2679afa6d76fd233369eb2cd64c9477352a017ed9980d0e6",
+      "source": "design",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/evaluation.md",
+      "sha256": "e4851bad8ba4b766956c531daa4f43476f8dc961e4adb34f5e1e2971ca02cb51",
+      "source": "evaluation ledger",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/agentpprof-paper/main.tex",
+      "sha256": "4f80304a051607cd56ad1093a902b9355b8a994eea3fe3e841d7a602589b9e8c",
+      "source": "English paper",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/paper/main.tex",
+      "sha256": "2887494ea0262e006f419a9cd500fa794c6cb895d1846c4f2f23f4c1cf97e2ad",
+      "source": "Chinese paper",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/agentpprof-paper",
+      "sha256": "submodule_head=ac9bf9ada16ae4496ec60af476adf3dee4e03109;parent_index=ac9bf9ada16ae4496ec60af476adf3dee4e03109",
+      "source": "English paper submodule gitlink",
+      "status": "tracked_clean"
+    }
+  ],
+  "status": "accepted",
+  "summary": {
+    "artifact_reproducibility_blocks": 1,
+    "blocking_issues": 0,
+    "checks_passed": 11,
+    "checks_total": 11,
+    "empirical_profiling_experiments": 3,
+    "final_accepts": 4,
+    "non_blocking_notes": 1,
+    "reviewers": 4
+  }
+}

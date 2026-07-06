@@ -1,0 +1,32 @@
+# R383 Canonical Reviewer Acceptance
+
+Status: `accepted`
+Reviewer accepts: 4/4
+Checks: 11/11
+
+R383 records independent reviewer acceptance after R382. It is a paper-integration guardrail, not a new empirical result.
+
+## Checks
+
+| Check | Passed | Detail |
+|---|---:|---|
+| four_reviewers_accept | True | Final ACCEPT verdicts=4/4. |
+| zero_blocking_issues | True | Blocking issue count=0. |
+| review_notes_recorded | True | Non-blocking notes recorded=1; R382 elapsed_s drift was refreshed before commit. |
+| upstream_gates_pass | True | R380/R381/R382 all pass. |
+| r382_shape_preserved | True | R382 records 3 empirical profiling experiments, 1 artifact block, and 8/8 checks. |
+| canonical_docs_and_papers_match | True | Canonical docs and both paper drafts use the current three-plus-one wording. |
+| e4_not_empirical_accuracy | True | E4 remains artifact/reproducibility/hygiene, not empirical accuracy evidence; R382 also checks the fourth-experiment wording. |
+| must_not_claims_visible | True | Must-not-claim guardrails remain visible in current docs/papers. |
+| r383_ledger_registered | True | Evaluation ledger records this reviewer-acceptance closure. |
+| english_submodule_clean | True | English paper submodule is clean and parent gitlink is current. |
+| source_status_tracked | True | All R383 inputs are tracked or intentionally staged/dirty. |
+
+## Reviewers
+
+| Reviewer | Focus | Verdict | Blocking | Notes |
+|---|---|---|---:|---:|
+| Singer | canonical-doc experiment organization | ACCEPT | 0 | 0 |
+| Dirac | claim-safety and non-claim boundary review | ACCEPT | 0 | 0 |
+| Erdos | artifact provenance and reproducibility hygiene | ACCEPT | 0 | 1 |
+| Cicero | paper and ledger consistency review | ACCEPT | 0 | 0 |
