@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""R319: audit implementation/docs consistency for the semantic profiler.
+"""R319: audit implementation/docs consistency for the operation-stack profiler.
 
 This is a reproducibility and paper-hygiene gate. It does not fetch datasets,
 rerun profiler experiments, or execute a human/agent analyst task. It checks
@@ -127,6 +127,24 @@ def build_checks(sources: dict[str, str]) -> list[dict[str, Any]]:
             "rust_profile_spec_cli_present",
             "agentpprof/src/main.rs defines --profile-spec, RawProfileSpec, operation_files, op_map_files, where_rules, rank_rules, rank_op_rules, and rank_mode.",
             "Rust CLI profile-spec support is missing or renamed.",
+        ),
+        check(
+            contains_all(
+                rust_cli,
+                [
+                    "pprof-compatible operation-stack profiler for local sessions and labeled agent traces",
+                    "FIELD DERIVATION WORKFLOW",
+                    "two core profiling abstractions",
+                    "Tags and mappings derive operation fields before folding",
+                    "OPERATION STACK QUERY WORKFLOW",
+                    "cli_help_describes_operation_stack_model",
+                    "assert!(!help.contains(\"semantic profiler for local AI coding-agent sessions\"))",
+                    "assert!(!help.contains(\"Flamegraphs require semantic tags\"))",
+                ],
+            ),
+            "rust_cli_help_uses_operation_stack_model",
+            "Rust CLI help/about is operation-stack-first and has a regression test rejecting stale local-session/flamegraph-first wording.",
+            "Rust CLI help/about is missing operation-stack wording or lacks a regression test against stale semantic-profiler wording.",
         ),
         check(
             contains_all(
@@ -358,7 +376,7 @@ def write_markdown(path: Path, payload: dict[str, Any]) -> None:
     lines = [
         "# Implementation Consistency R319",
         "",
-        "R319 checks that the maintained Rust semantic-profiler path, canonical docs, and Chinese paper agree on the current implementation boundary. It is not a dataset sync, not a new profiling run, and not a human/agent analyst-task result.",
+        "R319 checks that the maintained Rust operation-stack profiler path, canonical docs, and Chinese paper agree on the current implementation boundary. It is not a dataset sync, not a new profiling run, and not a human/agent analyst-task result.",
         "",
         f"- Overall: `{payload['overall']}`",
         f"- Checks passed: {payload['summary']['passed_checks']} / {payload['summary']['total_checks']}",

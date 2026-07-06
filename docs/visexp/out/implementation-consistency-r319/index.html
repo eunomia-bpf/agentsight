@@ -14,10 +14,11 @@
 <body>
   <h1>Implementation Consistency R319</h1>
   <p>Overall: <code>implementation_consistent</code></p>
-  <p>Checks passed: 15 / 15</p>
+  <p>Checks passed: 16 / 16</p>
   <table>
     <thead><tr><th>Check</th><th>Status</th><th>Evidence</th></tr></thead>
     <tbody><tr><td><code>rust_profile_spec_cli_present</code></td><td>pass</td><td>agentpprof/src/main.rs defines --profile-spec, RawProfileSpec, operation_files, op_map_files, where_rules, rank_rules, rank_op_rules, and rank_mode.</td></tr>
+<tr><td><code>rust_cli_help_uses_operation_stack_model</code></td><td>pass</td><td>Rust CLI help/about is operation-stack-first and has a regression test rejecting stale local-session/flamegraph-first wording.</td></tr>
 <tr><td><code>rust_profile_spec_override_contract</code></td><td>pass</td><td>Profile specs provide operation inputs while CLI stack/rule overrides remain explicit.</td></tr>
 <tr><td><code>rust_standard_trace_cli_present</code></td><td>pass</td><td>Rust CLI exposes standard trace import/export and routes imports into operation records.</td></tr>
 <tr><td><code>standard_trace_cli_test_present</code></td><td>pass</td><td>agentpprof has a CLI test for standard trace export and import.</td></tr>

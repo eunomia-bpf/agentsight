@@ -1,16 +1,17 @@
 # Implementation Consistency R319
 
-R319 checks that the maintained Rust semantic-profiler path, canonical docs, and Chinese paper agree on the current implementation boundary. It is not a dataset sync, not a new profiling run, and not a human/agent analyst-task result.
+R319 checks that the maintained Rust operation-stack profiler path, canonical docs, and Chinese paper agree on the current implementation boundary. It is not a dataset sync, not a new profiling run, and not a human/agent analyst-task result.
 
 - Overall: `implementation_consistent`
-- Checks passed: 15 / 15
-- Commit at generation: `7de328eff9afb2a8fc1e8bb0631bd816e5761346`
+- Checks passed: 16 / 16
+- Commit at generation: `4dc54755b61bd8748b0d61fae6067f8632c17df8`
 
 ## Checks
 
 | Check | Status | Evidence |
 |---|---|---|
 | `rust_profile_spec_cli_present` | pass | agentpprof/src/main.rs defines --profile-spec, RawProfileSpec, operation_files, op_map_files, where_rules, rank_rules, rank_op_rules, and rank_mode. |
+| `rust_cli_help_uses_operation_stack_model` | pass | Rust CLI help/about is operation-stack-first and has a regression test rejecting stale local-session/flamegraph-first wording. |
 | `rust_profile_spec_override_contract` | pass | Profile specs provide operation inputs while CLI stack/rule overrides remain explicit. |
 | `rust_standard_trace_cli_present` | pass | Rust CLI exposes standard trace import/export and routes imports into operation records. |
 | `standard_trace_cli_test_present` | pass | agentpprof has a CLI test for standard trace export and import. |
