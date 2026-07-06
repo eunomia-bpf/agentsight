@@ -226,6 +226,7 @@ R 编号只作为 provenance，不是论文的小节结构。
 \subsection{E1：覆盖、递归折叠和边界字段}
 
 R361 将本节的 evidence contract 固定为：claim 是两抽象模型能覆盖异构 agent traces 且不把 prompt/session/tool 边界写死；oracle 是 public dataset labels、native trajectory fields、OSWorld-Human human boundary 和 AgentNet quality labels；baseline 包括 dataset-native stacks、no-map folding、fixed-session stacks、profile-spec replay 和 trace round trip；metric 包括 operation coverage、unique-stack range、mapping compression、boundary F1/V-measure 和 replay equality；counterpoint 是这只能支持 configurable operation stack folding，不能支持完整生态兼容或自动恢复所有 latent intent。Prompt、session、tool、process 和 syscall 都只能作为 operation forms 或 operation fields 出现，not new profiler objects。
+RQ1 问的是：同一 operation layer 能否只通过改变 mappings 和 stack fields，被递归折叠成 task、phase、action、boundary 和 fixed-session 等多种 stack，而不改变输入记录、不引入第三个 profiler 抽象。
 
 核心 14 数据集产生 42,590 个 operations 和 1,497 个 unique stacks，compression ratio 为 28.45。
 加入 ScaleCUA 补充样本后，总量为 47,590 个 operations 和 1,611 个 unique stacks，compression ratio 为 29.541。
@@ -263,39 +264,6 @@ Profile spec 把这个 query 自由度变成可复现实验配置。
 第二，recursive stacks 能表达 dataset、task、phase、tool、action、human-group、safety 和 quality-label 等多种深度，但不能声称恢复所有真实意图边界。
 第三，field derivation 是可扩展接口，因为 mapping 和 supervised backend 只写入 operation fields，profiler 仍按 operation stack 折叠。
 这些机制结果给出 paper novelty，但 user-utility、通用 boundary detector 和完整 trace-platform compatibility 仍是后续 gate。
-
-真实问题 proxy 把“定位 looping、side-effect、unsafe、incorrect、redundant 和 group-start positives”变成 6 个自动化分析任务，并比较 flat、fixed-session、semantic operation-stack 和 label-drilldown。
-Visible packets 不含 oracle-positive 字段，hidden answer key 单独保存 positives；query-aware rankers 只读可见字段。
-这些任务显示 operation-stack 是 flat summary 与 fixed-session drilldown 之间的中间视图：它远比 flat selective，相比 fixed-session 通常有更高 selected recall 和跨 session 聚合，但并不总是消耗更少 inspected operations。
-Paper evidence matrix 和 reviewer-stress audit 因此把 C4 固定为 automated inspectability tradeoff：operation-stack 在 6/6 tasks 上比 flat 更 selective，6/6 含 positive group，5/6 含 high-lift evidence，5/6 selected recall 高于 fixed-session；反例是 selected work 只在 2/6 tasks 低于 fixed-session。
-因此 C4 不能写成 user-utility、automatic detection 或 baseline-dominance claim。
-
-R313 将同一批 visible-field rankers 和 case-packet baselines 放进 Pareto frontier，而不是只做成对比较。
-Frontier 同时优化 recall、lift、inspected work 和 inspected groups。
-结果是 operation-stack 在 6/6 tasks 上都 nondominated，并在 4/6 tasks 上给出最高 non-oracle lift、在 4/6 tasks 上给出 30\% inspected-work budget 内最高 recall。
-但 flat 和 fixed-session 也分别在 6/6 tasks 上保留 frontier points。
-这使 C4 更像一个 systems claim：profiler 的价值是把 view、ranker 和 stack depth 暴露成可配置分析 surface，而不是替用户固定一个永远最优的层级。
-
-	\begin{table*}[t]
-	  \centering
-	  \tiny
-	  \setlength{\tabcolsep}{2pt}
-	  \renewcommand{\arraystretch}{0.86}
-	  \caption{R311 task-level reviewer-stress audit。OS 表示 operation-stack top-5 packet，FS 表示 fixed-session top-5 packet；work 和 recall 都是 selected packet 覆盖比例。}
-	  \label{tab:r311-task-stress}
-	  \begin{tabular}{p{0.17\linewidth}p{0.12\linewidth}p{0.11\linewidth}p{0.09\linewidth}p{0.09\linewidth}p{0.08\linewidth}p{0.09\linewidth}p{0.18\linewidth}}
-	    \toprule
-	    Task & 数据集 & Query family & OS work & OS recall & OS lift & FS recall & 主要结论和反例 \\
-	    \midrule
-	    incorrect step & AgentNet & step-quality & 0.0014 & 0.0034 & 2.406 & 0.0126 & 很小 work 下有 high lift，但 selected recall 极低且低于 FS。 \\
-	    redundant step & AgentNet & step-quality & 0.0089 & 0.0177 & 1.984 & 0.0123 & OS recall/lift 更高，但 FS work 略低且更早命中 positive。 \\
-	    looping & AgentRewardBench & failure & 0.4938 & 0.6508 & 1.318 & 0.2381 & Positives 过于普遍，OS recall 高但没有 $\geq$1.5x high-lift group。 \\
-	    side effect & AgentRewardBench & failure & 0.1454 & 0.1139 & 0.783 & 0.0000 & OS 找到 positives 且 work 低于 FS，但 top-5 lift 低于 prevalence。 \\
-	    group start & OSWorld-Human & boundary & 0.4074 & 0.3874 & 0.951 & 0.0327 & OS recall 高但 work 大，ranking depth 决定是否有 high-quality packet。 \\
-	    unsafe operation & SATraj-OS & safety & 0.0420 & 0.2621 & 6.238 & 0.0579 & 最强 selective win，OS recall/lift 明显高于 FS，但 FS first-positive work 更低。 \\
-	    \bottomrule
-	  \end{tabular}
-	\end{table*}
 
 	\paragraph{Field derivation 和 boundary probes。}
 
@@ -342,6 +310,7 @@ Prompt 或 session 没有参与这个抽象。
 \subsection{E2：Hidden-label localization 和 ranking}
 
 R361 将本节的 evidence contract 固定为：claim 是 operation-stack profiling 能在真实 labeled traces 上 faithful localization 和 ranking；oracle 是 6 个 oracle-backed tasks 中 34,539 个 operations 和 3,699 个 hidden positives；baseline 包括 flat summary、fixed-session/span-tree proxy、dataset-native hierarchy、raw-action stack、operation-stack width、operation-stack query-aware、label-drilldown 和 oracle upper bound；metric 包括 precision@k、recall、F1、AUPRC-style AP、nDCG、recall/F1@work budget、work-to-first-positive 和 group count；counterpoint 是 flat 和 dataset-native 可以赢 broad-recall 或 nDCG 目标，所以主 claim 是 Pareto tradeoff，不是 metric dominance。
+RQ2 问的是：hot stacks 和 top-ranked groups 是否真的对应 hidden positives，并且相对 flat summary 需要更少 inspection work、相对 fixed-session drilldown/span-tree proxy 产生更少 fragmentation。
 
 AgentRewardBench、SATraj-OS 和 AgentNet 说明 operation stack 不局限于 flamegraph 热点。
 AgentRewardBench 的 729 个 expert-reviewed web-agent operations 全部携带 success、side-effect、looping 和 optimality 字段。
@@ -443,6 +412,7 @@ R334 进一步把 ``less fragmentation'' 从 ``less work'' 中拆开审计。
 \subsection{E3：机制隔离和 actionability}
 
 R361 将本节的 evidence contract 固定为：claim 是 profiler 通过 stack fields、mapping/tagging rules、ranking policies、profile specs 和 boundary-derived operation fields 暴露 actionable optimization knobs；oracle 是 hidden labels only after profiling，R358 还用 held-out OSWorld-Human boundary positives 评分；baseline 包括 default semantic-width specs、patched specs、visible feature rankers、transfer policies、learned-boundary stacks、fixed-session 和 semantic-width stacks；metric 包括 accepted patches、AP delta、top-5 lift delta、first-positive-work delta、group reduction 和 top-5 work counterpoint；counterpoint 是 OSWorld-Human 需要 boundary-derived fields，因此这是 actionable mechanism evidence，not automatic boundary discovery、not automatic patch selection。
+RQ3 问的是：localization gain 来自哪些机制，profile-guided 的 stack fields、rank features、mappings 或 boundary-derived fields 能否在不把 hidden labels 泄漏进 profiler input 的前提下改善输出。
 
 R320 首先把 localization 分数解释成任务级诊断，而不是只给 policy 排名。
 SATraj unsafe 说明 \texttt{environment,phase,action} 和 risky/write-action ranking 对安全问题有效；looping 说明 \texttt{repeat\_signal} 有用但需要 prevalence-aware ranking；side-effect 指向更深的 write/input mapping；AgentNet step-quality 需要 action-family 定位后再进入 fixed-session examples；OSWorld-Human 则需要 boundary-derived fields。
@@ -477,6 +447,7 @@ R358 支持 boundary-derived fields 是 actionable operation-field knob，不支
 \subsection{E4：可复现性、成本和 claim integrity}
 
 R361 将本节的 evidence contract 固定为：claim 是 offline profiler path 和 paper claims 可复现、低成本且有 guardrails；oracle 是 tracked profile specs、tracked operation inputs、paper/doc hashes、claim-integrity audits 和 reviewer-style artifact checks；baseline 包括 deterministic versus raw replay、source-status checks、paper-number checks、rubric checks、artifact-review gates 和 two-abstraction guardrails；metric 包括 deterministic spec pass rate、runtime、number-check pass rate、guardrail pass rate、rubric level 和 artifact-review gate count；counterpoint 是 not live eBPF overhead、not human utility、not complete ecosystem compatibility、not universal selector。
+RQ4 问的是：reviewer 能否 replay offline profile-spec path，并验证 source provenance、paper numbers、two-abstraction wording 和 non-claims 都保持一致。
 
 R338 再把 paper claim 本身纳入审计：它复用 R320--R350 的 tracked-clean artifacts，不重新排名、不下载或重标数据集，只检查论文数字、source policy、must-not-claim guardrails 和 operation/operation-stack 边界是否一致。因此它支持“论文表述与证据一致”这个提交前 gate，而不是新的 profiler accuracy 结果。
 R352 再把当前结果集映射到 OSDI-style profiling-paper rubric：它复用 tracked R320--R351 artifacts 和当前论文文本，不下载、不同步、不重跑 profiler，也不运行 human/agent analyst task。26/26 required checks 和 10/10 rubric areas 通过，覆盖 fidelity/accuracy、actionability、baseline tradeoff、generality、mechanism isolation、robustness/statistics、reproducibility/overhead 和 claim-scope guardrails。因此它支持“当前 scoped profiling claim 的证据形态达到 profiler paper gate”，不是新的 empirical result。

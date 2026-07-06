@@ -350,14 +350,14 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | evaluation | R348 action counterfactual | R348 / 36 objective rows / 27/36 / 0.1447 | pass | 15,29,33,123,124,129,130,131 |
 | evaluation | R349 held-out action transfer | R349 / 60 aligned / 35/60 / 7/60 / 2/42 | pass | 15,29,131,132,133,134,457,458 |
 | evaluation | R350 evidence packet budget | R350 / 6/6 / 4/6 / 27/36 / 35/60 | pass | 15,29,64,68,76,77,93,95 |
-| zh_main | core experiment organization | 四个核心实验 / E1 / E2 / E3 / E4 | pass | 46,47,50,54,57,223,226,342 |
-| zh_main | E2 headline | 34,539 / 3,699 / 0.0937 / 285.0 / 157.5 | pass | 51,52,344,364,383,390,400,401 |
-| zh_main | E3 actionability headline | profile-configuration / 5/6 / 0.2402 / 0.2583 | pass | 52,54,56,147,149,184,270,401 |
-| zh_main | E4 guardrails | 76 / two-abstraction / 不声称 / human productivity | pass | 57,60,138,146,151,152,431,472 |
+| zh_main | core experiment organization | 四个核心实验 / E1 / E2 / E3 / E4 | pass | 46,47,50,54,57,223,226,310 |
+| zh_main | E2 headline | 34,539 / 3,699 / 0.0937 / 285.0 / 157.5 | pass | 51,52,312,333,352,359,369,370 |
+| zh_main | E3 actionability headline | profile-configuration / 5/6 / 0.2402 / 0.2583 | pass | 52,54,56,147,149,184,370,384 |
+| zh_main | E4 guardrails | 76 / two-abstraction / 不声称 / human productivity | pass | 57,60,138,146,151,152,400,442 |
 | en_main | core experiment organization | four paper-facing experiments / E1 / E2 / E3 / E4 | pass | 39,43,51,58,113,115,116,117 |
-| en_main | E2 headline | 34,539 / 3,699 / 0.0937 / 285.0 / 157.5 | pass | 45,46,47,49,234,235,236,348 |
-| en_main | E3 actionability headline | profile-configuration / 5 of 6 / 0.2402 / 0.2583 | pass | 49,51,57,244,301,302,311,388 |
-| en_main | E4 guardrails | 76 / two-abstraction / does not claim / human-productivity | pass | 59,60,66,96,242,250,251,297 |
+| en_main | E2 headline | 34,539 / 3,699 / 0.0937 / 285.0 / 157.5 | pass | 45,46,47,49,234,235,236,352 |
+| en_main | E3 actionability headline | profile-configuration / 5 of 6 / 0.2402 / 0.2583 | pass | 49,51,57,244,305,306,315,395 |
+| en_main | E4 guardrails | 76 / two-abstraction / does not claim / human-productivity | pass | 59,60,66,96,242,250,251,301 |
 | zh_claim_setup | two abstractions | 两个核心抽象 / operation stack | pass | 7,23,25,75,99,102,103,104 |
 | zh_claim_setup | R337 result | R337 / 0.2000 / 16.0 | pass | 35,36,76,137,139 |
 | zh_claim_setup | R339 result | R339 / 0.4669 / 0.9103 | pass | 36,37,50,76,139,140,287 |
@@ -682,11 +682,11 @@ Operation/operation-stack profiling is currently supported as a profiler localiz
 | zh_claim_setup | automatic_boundary | pass | 12 | 23,25,26,47,48,50,51,52,53,78,150,152 | none |
 | zh_claim_setup | ecosystem_compatibility | pass | 8 | 22,96,114,181,228,265,266,267 | none |
 | zh_claim_setup | universal_selector | pass | 12 | 26,34,36,37,38,41,42,43,44,45,46,47 | none |
-| zh_main | human_utility | pass | 9 | 60,180,368,411,479,558,638,649,671 | none |
-| zh_main | automatic_boundary | pass | 3 | 445,475,557 | none |
-| zh_main | ecosystem_compatibility | pass | 12 | 138,585,593,594,597,642,669,672,681,691,692,693 | none |
-| zh_main | universal_selector | pass | 8 | 469,475,479,556,558,631,665,671 | none |
-| en_main | human_utility | pass | 6 | 66,96,110,239,576,675 | none |
-| en_main | automatic_boundary | pass | 6 | 67,247,528,564,585,790 | none |
-| en_main | ecosystem_compatibility | pass | 12 | 709,711,719,721,722,723,729,730,791,792,822,827 | none |
-| en_main | universal_selector | pass | 9 | 247,423,426,482,551,577,591,790,821 | none |
+| zh_main | human_utility | pass | 9 | 60,180,337,380,449,529,609,620,642 | none |
+| zh_main | automatic_boundary | pass | 3 | 414,445,528 | none |
+| zh_main | ecosystem_compatibility | pass | 12 | 138,556,564,565,568,613,640,643,652,662,663,664 | none |
+| zh_main | universal_selector | pass | 8 | 439,445,449,527,529,602,636,642 | none |
+| en_main | human_utility | pass | 6 | 66,96,110,239,586,688 | none |
+| en_main | automatic_boundary | pass | 6 | 67,247,538,574,598,803 | none |
+| en_main | ecosystem_compatibility | pass | 12 | 722,724,732,734,735,736,742,743,804,805,835,840 | none |
+| en_main | universal_selector | pass | 9 | 247,430,433,489,561,587,604,803,834 | none |
