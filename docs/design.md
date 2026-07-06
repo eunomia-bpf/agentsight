@@ -299,6 +299,15 @@ tracked artifacts and emits the E1-E4 headline table plus metric rows. The
 table is a provenance view over existing operation/operation-stack evidence,
 not another profiler abstraction, visualization primitive, or result source.
 
+R361 audits the claim-evidence layer for those same four experiments. It reads
+tracked R320/R352/R354/R355/R357/R358/R359/R360 artifacts and emits a ledger
+that binds each E1-E4 block to its claim, research question, oracle, baselines,
+primary metrics, headline result, actionable insight, counterpoint, and scoped
+paper wording. The ledger is a reviewer-facing report over operation and
+operation-stack evidence. Prompt, session, tool, process, syscall, safety, and
+human-boundary concepts remain operation fields, labels, or baselines rather
+than profiler objects.
+
 R304 evaluates the presentation boundary for those ranked groups. It writes
 `visible-case-packet.json` with stack frames, visible feature rates, hashed
 session examples, and example operations. It writes oracle positives only to
