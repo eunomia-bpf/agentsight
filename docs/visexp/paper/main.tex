@@ -165,28 +165,27 @@ agentpprof --operation-file ops.jsonl --view operations \\
 质量评估复用 \toolname{} 的 operation mapping contract，并计算字段覆盖率、oracle V-measure 和序列相邻边界 F1。
 同一 profile output 还可以生成 flamegraph 之外的 tree、top-kind 和 transition 报告。
 
-这个实现刻意保留简单接口。
-它不像 jq 那样完整表达 JSON 查询语言，但它把 profiler 的关键自由度暴露为 flags 和可提交配置。
+这个实现刻意保留简单接口，因为论文要检验的是 operation-stack projection，而不是完整 JSON 查询语言。
+\toolname{} 仍把 profiler 的关键自由度暴露为 flags 和可提交配置。
 数据源由 \texttt{--trace-file} 或 \texttt{--operation-file} 选择，权重由 \texttt{--view} 选择，查询子集由 \texttt{--where} 选择，字段派生由 \texttt{--op-map} 选择，递归边界由 \texttt{--stack} 或 \texttt{--induce-operation-stack} 选择，JSON group 排序由 \texttt{--rank-rule}、\texttt{--rank-op-rule} 和 \texttt{--rank-mode} 选择，复现配置由 \texttt{--profile-spec} 固定。
-这些接口结果只说明 E1--E4 的实验配置可以经同一 profiler path 执行，而不是形成额外主实验。
-三类实现证据共同界定这个接口。
-Mapping-derived \texttt{where\_rules} 可以在 folding 前选择 729/729、714/714 和 4,285/4,285 个预期 operations。
-Profile specs 可以组合 operation source、predicate、visible rank rule、rank mode 和显式 stack depth，并在 12/12 variants 中保持不引入 prompt/session frame。
+接口检查回答一个实现问题，即这些自由度是否真的进入同一 operation-stack path。
+Mapping-derived \texttt{where\_rules} 在 folding 前选择 729/729、714/714 和 4,285/4,285 个预期 operations。
+Profile specs 组合 operation source、predicate、visible rank rule、rank mode 和显式 stack depth，并在 12/12 variants 中保持不引入 prompt/session frame。
 Standard-trace round trip 在真实标注 operation 前缀上保持 512 samples 和 11 stacks。
-这些结果支撑 E1 的接口边界，不另起一个 experiment block。
+这三类检查支撑 E1 的接口边界，但不另起一个 experiment block。
 
-Ranker 和 actionability 的实现证据被归入 E3。
+Ranker 和 actionability 的实现证据回答另一个问题，即 profile 配置是否能解释该调哪个字段或深度。
 Stack-text rule 与 rank-mode variants 可以从 profile spec 复现，但对 safety/side-effect 过粗。
 Operation-level visible feature density 在 folding 前匹配 mapped operation token，并在 semantic stack 上使 AP 赢 5/6 tasks、top-5 lift 赢 4/6、first-positive work 赢 5/6，coarse stack 也在 AP 上赢 4/6。
 Leave-one-feature、robustness 和 transfer results 说明 \texttt{repeat\_signal}、write-action、\texttt{status=success} 等字段在不同 family 中作用不同，误导性 safety-like 或 input-phase features 会伤害 AP 或 first-positive work。
 Global/equal feature banks 常能保留收益，但 guided repair 使用离线评分反馈，因此不是 label-free automatic ranker。
-这些结果支撑 E3 的 mechanism/actionability 解释。
+这些 ranker checks 支撑 E3 的 mechanism/actionability 解释。
 
-Profile-spec replay、输入来源 replay 和 deterministic output 归入 E4。
+Profile-spec replay、输入来源 replay 和 deterministic output 只用于界定可复现边界。
 76 个 profile specs 覆盖 view specs、rank-feature specs 和 robustness specs。
 Rust \texttt{agentpprof --profile-spec} 重复运行两次后 semantic profile hash 全部稳定，默认 raw-byte hash 只有 4/76 稳定，因为 JSON profile 包含生成时间戳。
 启用 \texttt{--deterministic-output} 后 raw-byte hash 达到 76/76。
-同一个 E4 复现检查进一步验证 profile spec 可以 replay \texttt{session\_files}、\texttt{trace\_files}、\texttt{standard\_trace\_files}、regex \texttt{tag\_rules}、\texttt{where\_rules}、rank rules、stack override 和 \texttt{include\_standard\_trace\_args}。
+同一个复现检查进一步验证 profile spec 可以 replay \texttt{session\_files}、\texttt{trace\_files}、\texttt{standard\_trace\_files}、regex \texttt{tag\_rules}、\texttt{where\_rules}、rank rules、stack override 和 \texttt{include\_standard\_trace\_args}。
 这些输入源最后仍归一成 operations，并由 operation stack 折叠。
 这关闭的是输出 byte-stability 缺口，不是新的 accuracy benchmark、live overhead benchmark 或第五个主实验。
 因此 prompt、session、toolcall、process、syscall、plan 和 subagent 都可以在同一套 mechanism 中出现，而不是成为互不兼容的 object model。
@@ -496,8 +495,8 @@ Case views 只解释 localization result 的可复查性。
 \end{figure*}
 
 任务级 views 把主实验的 aggregate result 落到具体诊断结论上。
-它们显示 6/6 tasks 相比 flat summary 改善 AP 和 top-five inspected work，5/6 tasks 相比 fixed-session drilldown 改善 top-five recall，4/6 tasks 降低 fixed-session group fragmentation，并且 6/6 tasks 都有 actionable configuration result，即 profile-spec patch 或 boundary-field repair。
-这些 views 也保留负证据：fixed-session 在若干任务上仍然是 first-positive 或 group-count counterpoint，OSWorld-Human 需要 boundary-derived fields，而不是 visible phase/action ranking alone。
+任务级汇总显示 6/6 tasks 相比 flat summary 改善 AP 和 top-five inspected work，5/6 tasks 相比 fixed-session drilldown 改善 top-five recall，4/6 tasks 降低 fixed-session group fragmentation，并且 6/6 tasks 都有 actionable configuration result，即 profile-spec patch 或 boundary-field repair。
+同一组 views 也保留负证据：fixed-session 在若干任务上仍然是 first-positive 或 group-count counterpoint，OSWorld-Human 需要 boundary-derived fields，而不是 visible phase/action ranking alone。
 
 E2 的 robustness evidence 只检验 Pareto 结论是否稳健。
 Bootstrap 和 label-permutation analyses 显示，operation-stack query-aware 的 AP、top-5 work、budget recall 和 group-count deltas 在 6/6 tasks 上方向稳定。
