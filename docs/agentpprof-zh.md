@@ -16,7 +16,7 @@ Agent trace 打破了这个假设。Prompt 是自然语言：非确定性的、�
 
 ## Operation-stack profiler
 
-`agentpprof` 通过**字段派生和 stack 查询**来恢复聚合能力：将自由格式 prompt、工具动作、进程事件和 benchmark 标签归一成稳定的 operation fields，如 `task=debug`、`phase=inspect`、`op=tool`、`status=failure` 或 `human_group=...`。这些字段可以来自 regex/LLM tagging、deterministic mapping、profile spec 或已有数据集标签。随后用户用 `--stack` 选择递归折叠深度；相同 stack 合并成更宽的条带或更高的 ranked group。
+`agentpprof` 通过**字段派生和 stack 查询**来恢复聚合能力：将自由格式 prompt、工具动作、进程事件和 benchmark 标签归一成稳定的 operation fields，如 `task=debug`、`phase=inspect`、`op=tool`、`status=failure` 或 `human_group=...`。这些字段可以来自 regex/LLM tagging、deterministic mapping、profile spec 或已有数据集标签。随后用户用 `--stack` 选择递归折叠深度；相同 stack 合并成更宽的条带或更高的 ranked group。需要区分工程能力和论文证据：当前论文验证的是 deterministic mapping、profile spec、rank features 和 supervised boundary-derived fields；free-form regex、embedding 或 LLM tagger 还缺少同一自由文本输入上的隐藏语义标签 oracle，因此不能作为已验证的准确率 claim。
 
 Operation stack 的价值不只是聚合，还在于**用可配置栈表达归因关联**。传统 CPU flamegraph 的堆栈是函数调用链：`main → parse → tokenize`，表示 tokenize 是被 parse 调用的，parse 是被 main 调用的。Agent 的 operation stack 是分析者选择的归因链：`task:debug → phase:execute → op:tool → tool:bash → status:error`。同一批 operations 可以换成 `dataset,task,human_group,action` 或 `task,phase,op,step_correct`，用不同深度定位同一问题。
 
@@ -89,7 +89,7 @@ Wall-clock 时间分布与 token 消耗相似：review（`prompt:review`）领�
 
 ### 字段派生段：从原始字段到可折叠标签
 
-解析和投影都是常规工程，真正的难点是把自由格式字段变成稳定、可复现的 operation fields。同一个项目里的 prompt 可能混合多种语言（「fix the 编译 error」），长度从单个字符（「嗯」、「ok」）到长段落不等，还有很多孤立看来没有意义的片段（「继续」、「好」、系统生成的上下文恢复消息）。`agentpprof` 的 tagger 和 mapping 后端只负责写入字段，例如 `task=debug` 或 `phase=inspect`；它们不是新的 profiler object，也不自动声称发现了真实 intent boundary。为了派生这些字段，`agentpprof` 提供了一个可插拔的标签器框架，支持多种后端：
+解析和投影都是常规工程，真正的难点是把自由格式字段变成稳定、可复现的 operation fields。同一个项目里的 prompt 可能混合多种语言（「fix the 编译 error」），长度从单个字符（「嗯」、「ok」）到长段落不等，还有很多孤立看来没有意义的片段（「继续」、「好」、系统生成的上下文恢复消息）。`agentpprof` 的 tagger 和 mapping 后端只负责写入字段，例如 `task=debug` 或 `phase=inspect`；它们不是新的 profiler object，也不自动声称发现了真实 intent boundary。降低 unmatched 率、生成 LLM 标签或得到可读聚类只能说明字段派生更可用；在没有同输入 semantic oracle 前，这些结果不是标签准确率证据。为了派生这些字段，`agentpprof` 提供了一个可插拔的标签器框架，支持多种后端：
 
 | 后端 | 方法 | 适用场景 |
 | --- | --- | --- |
