@@ -148,8 +148,9 @@ agentpprof --operation-file ops.jsonl --view operations \\
 本地 agent session 通过 \texttt{agent-session} 解析为 \texttt{agentsight.agent-session.trace.v1} trace。
 \toolname{} 可以用 \texttt{--export-trace} 写出 filesystem-normalized trace，用 \texttt{--trace-file} 读回，也可以把 trace 转成 operation JSONL 后折叠。
 这个 replay path 验证 filesystem/tool-command portability 和 folded-output equality，但不声称 prompt 或 LLM preview 已完整脱敏。
-标准 trace 也只是 exchange container：\toolname{} 可以用 \texttt{--export-standard-trace} 写出 Chrome/Perfetto-style \texttt{traceEvents}，再用 \texttt{--standard-trace-file} 导入为普通 operations 后折叠。
-在 tracked real labeled visible-operation JSONL 的 512-row prefix 上，512 operations 可以导出为 512 个 Chrome complete events，并在导入后仍得到 byte-identical 的 512-sample / 11-stack folded 输出。
+标准 trace 也只是 exchange container。
+\toolname{} 可以用 \texttt{--export-standard-trace} 写出 Chrome/Perfetto-style \texttt{traceEvents}，再用 \texttt{--standard-trace-file} 导入为普通 operations 后折叠。
+在一个真实标注 operation 前缀上，512 operations 可以导出为 512 个 Chrome complete events，并在导入后仍得到 byte-identical 的 512-sample / 11-stack folded 输出。
 这说明 exchange path 不改变 operation samples 或 stack shape，但不提供新的 accuracy claim。
 质量评估复用 \toolname{} 的 operation mapping contract，并计算字段覆盖率、oracle V-measure 和序列相邻边界 F1。
 同一 profile output 还可以生成 flamegraph 之外的 tree、top-kind 和 transition 报告。
@@ -158,7 +159,10 @@ agentpprof --operation-file ops.jsonl --view operations \\
 它不像 jq 那样完整表达 JSON 查询语言，但它把 profiler 的关键自由度暴露为 flags 和可提交配置。
 数据源由 \texttt{--trace-file} 或 \texttt{--operation-file} 选择，权重由 \texttt{--view} 选择，查询子集由 \texttt{--where} 选择，字段派生由 \texttt{--op-map} 选择，递归边界由 \texttt{--stack} 或 \texttt{--induce-operation-stack} 选择，JSON group 排序由 \texttt{--rank-rule}、\texttt{--rank-op-rule} 和 \texttt{--rank-mode} 选择，复现配置由 \texttt{--profile-spec} 固定。
 这些接口结果只说明 E1--E4 的实验配置可以经同一 profiler path 执行，而不是形成额外主实验。
-Profile-spec predicate 说明 mapping-derived \texttt{where\_rules} 可以在 folding 前选择 729/729、714/714 和 4,285/4,285 个预期 operations；profile-spec composition 说明 operation source、predicate、visible rank rule、rank mode 和显式 stack depth 可以在 12/12 variants 中组合，且不引入 prompt/session frame；standard-trace exchange 说明 tracked real labeled operation prefix 经 trace container 往返后仍保持 512 samples 和 11 stacks。
+三类实现证据共同界定这个接口。
+Mapping-derived \texttt{where\_rules} 可以在 folding 前选择 729/729、714/714 和 4,285/4,285 个预期 operations。
+Profile specs 可以组合 operation source、predicate、visible rank rule、rank mode 和显式 stack depth，并在 12/12 variants 中保持不引入 prompt/session frame。
+Standard-trace round trip 在真实标注 operation 前缀上保持 512 samples 和 11 stacks。
 这些结果支撑 E1 的接口边界，不另起一个 experiment block。
 
 Ranker 和 actionability 的实现证据被归入 E3。
@@ -166,8 +170,9 @@ Stack-text rule 与 rank-mode variants 可以从 profile spec 复现，但对 sa
 Leave-one-feature、robustness 和 transfer results 说明 \texttt{repeat\_signal}、write-action、\texttt{status=success} 等字段在不同 family 中作用不同，误导性 safety-like 或 input-phase features 会伤害 AP 或 first-positive work；global/equal feature banks 常能保留收益，但 guided repair 使用离线评分反馈，因此不是 label-free automatic ranker。
 这些结果支撑 E3 的 mechanism/actionability 解释。
 
-Profile-spec replay、input-source replay 和 deterministic output 归入 E4。
-76 个 profile specs 覆盖 view specs、rank-feature specs 和 robustness specs；Rust \texttt{agentpprof --profile-spec} 重复运行两次后 semantic profile hash 全部稳定，默认 raw-byte hash 只有 4/76 稳定，因为 JSON profile 包含生成时间戳。
+Profile-spec replay、输入来源 replay 和 deterministic output 归入 E4。
+76 个 profile specs 覆盖 view specs、rank-feature specs 和 robustness specs。
+Rust \texttt{agentpprof --profile-spec} 重复运行两次后 semantic profile hash 全部稳定，默认 raw-byte hash 只有 4/76 稳定，因为 JSON profile 包含生成时间戳。
 启用 \texttt{--deterministic-output} 后 raw-byte hash 达到 76/76。
 同一个 E4 block 进一步验证 profile spec 可以 replay \texttt{session\_files}、\texttt{trace\_files}、\texttt{standard\_trace\_files}、regex \texttt{tag\_rules}、\texttt{where\_rules}、rank rules、stack override 和 \texttt{include\_standard\_trace\_args}；这些输入源最后仍归一成 operations 并由 operation stack 折叠。
 这关闭的是输出 byte-stability 缺口，不是新的 accuracy benchmark、live overhead benchmark 或第五个主实验。
@@ -547,7 +552,7 @@ Held-out boundary-derived fields 随后作为普通 operation fields 折叠，AP
 \subsection{RQ4/E4：Replayability、离线成本和 scope control}
 
 RQ4 问 reviewer 能否重放支撑 E1--E3 的离线 profiler 输出，并看清哪些 claim 仍未被测量。
-它把 76 个 profile specs、对应 operation inputs、input-source replay regressions 和 runtime logs 当作复现对象。
+我们把 76 个 profile specs 和对应 operation inputs 当作复现单位，同时检查本地 session、agent-session trace 和 standard trace 这些输入来源是否都进入同一 folding path。
 我们比较 default output 与 deterministic-output replay，比较 semantic profile hashes 与 raw-byte profile hashes，并验证声明的 input paths 是否实际进入 operation-stack folding path。
 主要指标包括 spec pass rate、profiler invocation 数量、median/p95 runtime、sample equality、stack equality、raw-byte output equality 和 input-source coverage。
 这个问题只覆盖离线路径复现，不覆盖 live eBPF overhead、human utility、complete ecosystem compatibility 或 automatic universal selection。
@@ -559,17 +564,18 @@ Deterministic replay mode 固定 JSON \texttt{generated\_at} 和 pprof profile t
 这些结果说明 reviewer 可以重放离线 profile content，并在需要时得到 byte-stable profile files。
 它们不等价于 live capture overhead，也不形成另一个经验性 profiling 实验。
 
-Input-source replay 说明 profile spec 是真正的数据入口配置，而不是只包了一层 output path。
+输入来源 replay 说明 profile spec 是真正的数据入口配置，而不是只包了一层 output path。
 Rust profile-spec path 现在可以携带 \texttt{session\_files}、\texttt{trace\_files}、\texttt{standard\_trace\_files}、regex \texttt{tag\_rules}、predicates、rank rules、stack overrides 和 \texttt{include\_standard\_trace\_args}。
 回归测试把同一个 public Codex fixture 作为 local session 和 exported agent-session trace replay，并把一个 generic Chrome Trace Event 中的非 AgentSight \texttt{protocol} arg 导入为 operation field 后折叠。
 这些输入在导入后都归一成普通 operations，再由同一 operation-stack machinery 折叠。
 这个结果支持 trace exchange 的最低复现要求，但不支持完整 trace-ecosystem compatibility claim。
 表~\ref{tab:e4-replay-cost} 和表~\ref{tab:e4-determinism} 是 E4 的两个主显示。
-前者呈现 replayability/cost result，后者呈现 deterministic-output repair；表中的 labels 只标识 source-spec families，不是新的 accuracy 实验。
+前者呈现 replayability/cost result，后者呈现 deterministic-output repair。
+表中的 labels 只标识 profile-spec families，不是新的 accuracy 实验。
 
 除了两张主表，RQ4 还约束论文数字、数据来源选择和明确排除的主张。
 这些一致性约束只核对已经报告的 profile results 和当前论文文本，不重新排名、不下载、不同步、不创建、不重标数据集、不重跑 profiler，也不运行 human/agent analyst task。
-上一节的 actionability 结论依赖这些可复现 profile specs 和 operation inputs；本节不重新验证 fidelity/accuracy、actionability 或 baseline tradeoff，只证明 reviewer 能重放这些 specs，并核对 reported numbers、数据来源选择和主张边界。
+上一节的 actionability 结论依赖这些可复现 profile specs 和 operation inputs；本节不重新验证 fidelity/accuracy、actionability 或 baseline tradeoff，只证明 reviewer 能重放这些 specs，并核对正文数字、数据来源选择和主张边界。
 因此 RQ4/E4 是 replayability/scope evidence，不是人工 analyst 主观解释、live overhead 或新的 profiler accuracy 结果。
 
 \begin{table}[t]
@@ -684,7 +690,7 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld/OSWorld-Human、OpenCUA/AgentNet、SA
 
 	第三，数据和互操作范围是轻量采样。
 	本文避免同步完整测试集、图片归档和 gated 数据，因此有些来源只覆盖前缀、子配置或 redacted rows。
-	Chrome Trace Event 和 agent-session exchange 当前只提供 exchange/reproducibility evidence，覆盖本地 session fixture 和 tracked real labeled operation prefix。
+	Chrome Trace Event 和 agent-session exchange 当前只提供 exchange/reproducibility evidence，覆盖本地 session fixture 和真实标注 operation 前缀。
 	这说明 trace 可以作为 exchange container，但不证明完整 OpenTelemetry/Chrome trace-ecosystem、Perfetto producer 或图像密集 benchmark 兼容。
 
 		第四，E4 是复现和范围控制结果，不是额外的 profiler accuracy 结果。
