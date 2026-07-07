@@ -730,9 +730,10 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld/OSWorld-Human、OpenCUA/AgentNet、SA
 
 当前证据支持的是有范围限定的 profiling 主张，而不是不加限定的 agent-analysis 主张。
 字段派生和边界恢复仍然是第一个限制。
-当前证据支持 deterministic mappings、label-derived rules 和部分 supervised boundary backends 能派生 stackable operation fields，但没有证明无监督或 LLM-backed intent detector 已经解决。
-这些结果也没有证明一个 backend 能跨所有标签家族工作。
-Free-form prompt labeling 和 LLM taggers 仍需要在同一 hidden-label localization protocol 下与 deterministic mapping 比较，才能成为本文主张的一部分。
+本文已经验证的是把已有结构化标签、deterministic mappings、label-derived rules 和部分 supervised boundary backends 写成 stackable operation fields。
+这些结果没有证明无监督或 LLM-backed intent detector 已经解决，也没有证明一个 backend 能跨所有标签家族工作。
+因此 tagging 在当前主张中只是字段派生接口，不是已经完成准确率验证的 free-form prompt classifier。
+Free-form prompt labeling、regex taggers、embedding taggers 和 LLM taggers 仍需要在同一 hidden-label localization protocol 下与 deterministic mapping 比较，才能成为本文主张的一部分。
 这个限制来自当前证据形态，而不是单纯缺少一个表格。
 当前可复现输入中的六个 operation JSONL 覆盖 67,304 rows。
 其中 60,305 rows 带有 oracle fields，但没有一行同时包含公开可用的 free-form text fields 和 oracle semantic labels。
@@ -785,6 +786,7 @@ OSWorld-Human reject 再由 boundary-derived operation fields 改善 AP 和 grou
 因此本文的新意不在单个 flamegraph，而在把 agent 轨迹先统一成 operations，再把边界选择推迟到 operation-stack 查询。
 该接口与 pprof、Perfetto、OpenTelemetry/OpenInference 和 LLM observability systems 互补，因为它不重新定义通用 trace schema，也不把 dashboard 当作贡献。
 Mapping/tagging、profile spec、agent-session trace、Chrome/Perfetto-style trace exchange 和 boundary-derived fields 都先写回 operation fields，再由同一 operation-stack query 折叠。
+这里的 tagging 指字段派生机制，不等于已经验证同输入自由文本 tagger accuracy。
 这一限制让同一批 operations 可以按不同问题选择 view、派生字段和折叠深度，也让读者看到每个数字对应哪一类证据。
 本文的价值主张只覆盖相对 dataset-provided hidden labels 的 profiler fidelity、label-scored ranking/localization、inspection-cost/fragmentation tradeoff 和 profile-configuration actionability。
 它不覆盖 universal detector、human utility、baseline dominance、automatic patch selector 或 ecosystem compatibility。
