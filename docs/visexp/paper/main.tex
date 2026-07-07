@@ -184,7 +184,7 @@ Rust \texttt{agentpprof --profile-spec} 重复运行两次后 semantic profile h
 我们只使用公开的、别人已经标注好的 agent 轨迹或交互轨迹，并通过 Hugging Face Dataset Viewer、HF repo JSONL、公开 GitHub JSON 和公开 benchmark artifacts 做轻量采样。
 这种数据策略避免同步完整测试集、图片归档和 gated 数据，同时保留每个 claim 需要的顺序、动作、质量、安全或人工边界 oracle。
 
-每个 claim 都对应一个可执行 oracle 和一个 scoped metric。
+每个主张都对应一个可执行 oracle 和一个带范围的指标。
 Phase/action 结构用 V-measure 和相邻边界 F1 评分；grouped-action 用人工 group id 评分；looping、safety、step correctness 和 redundancy 使用数据集原生标签；递归深度使用同一批 operations 下 unique stack 和 compression 变化。
 我们从 AgentRewardBench、SATraj-OS、AgentNet 和 OSWorld-Human 的 operation JSONL 构造 6 个 oracle-backed analysis tasks，并把 flat、fixed-session、dataset-native hierarchy、raw action stack、operation-stack、label-drilldown oracle view 与 width、visible-risk、query-aware 和 oracle-upper-bound rankers 放在同一评分协议下比较。
 指标包括 precision@k、recall@operation-budget、F1@k、AUPRC-style average precision、nDCG、work-to-first-positive、groups-to-50\% recall、group count 和 task-level profile-configuration insight。
@@ -200,9 +200,9 @@ Hidden-label scoring 把答案字段从 profiler input 中隔离出来。
 AgentNet 的 task status 很弱地预测 per-step correctness，repeat signal 也很弱地预测 step redundancy。
 这些反例说明 profiler 能承载诊断字段，但简单 mapping 不能替代专门质量模型。
 
-复现约束把论文 claim 连接回可重放结果。
+复现约束把论文主张连接回可重放结果。
 我们只把可重放 profile results 中已经存在的数字和数据来源选择写进论文主张与局限，并用 profile specs 固定 operation source、mapping、ranker、stack 和 deterministic output 选项。
-这个设置把 profiling paper 的主张从“analyst 是否更快”改为“profiler 自身是否能在真实 workload 上相对 dataset-provided hidden labels 定位、排序并指导优化”。
+这个设置让论文检验 profiler 自身是否能在真实 workload 上相对 dataset-provided hidden labels 定位、排序并指导优化，而不是提前声称 analyst 使用它更快。
 
 \subsection{Hierarchy ablation baselines}
 
@@ -699,26 +699,32 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld/OSWorld-Human、OpenCUA/AgentNet、SA
 
 		第四，E4 是复现和主张边界结果，不是额外的 profiler accuracy 结果。
 		Replay、数字对齐、数据来源选择和两个抽象的表述约束让正文没有越过已有实证结果。
-		如果采样或 oracle 本身有偏差，E4 能暴露不一致并迫使 claim 收窄，但不能消除偏差。
+		如果采样或 oracle 本身有偏差，E4 能暴露不一致并迫使主张收窄，但不能消除偏差。
 		因此本文最终主张应固定为两个抽象机制和 hidden-label profiler fidelity/work tradeoff，而不是 universal fixed-session dominance、automatic anomaly detection 或完整 human utility。
 
 \section{结论}
 
-	本文把 agent semantic profiling 收敛为两个核心抽象：operation 和 operation stack。
-	Prompt、session、toolcall、process、syscall、plan、subagent、GUI action、安全标签和质量标签都只是 operation shapes 或 fields。
-	字段派生、查询过滤、权重选择、递归折叠和复现配置都围绕这两个抽象工作；profile spec 只是固定这些选择，deterministic output 只是让同一 profile 可以 byte-stable replay。
+	本文将 agent 语义 profiling 的核心数据模型收敛为 operation 和 operation stack 两个抽象。
+	Prompt、session、tool call、process、syscall、plan、subagent、GUI action 以及安全和质量标签，都以 operation 的形态或字段进入同一模型。
+	字段派生、查询过滤、权重选择、递归折叠和复现配置都只改变 operation 或查询配置。
+	Profile spec 固定这些选择，deterministic output 让同一 profile 可以 byte-stable replay。
 	在 15 个轻量采样的公开标注轨迹数据源上，这个模型统一了 web、mobile、desktop、software、API、dialogue、failure、安全、human group 和 step-quality 轨迹，并产生 flamegraph 之外的 stack tree、transition、quality、boundary、case views 和 scope reports。
-	这支持本文的核心机制 claim：agent profiling 的边界可以从 prompt/session/span tree 中释放出来，成为 query-time operation-stack projection。
+	这个结果支持本文的核心机制主张，即 agent profiling 的边界可以从 prompt/session/span tree 中释放出来，成为 query-time operation-stack projection。
 
 	当前最强经验结论来自四类 oracle-rich 轨迹。
-	OSWorld-Human 证明同一动作序列可以折叠到人工 grouped-action 深度；AgentNet 证明 step correctness 和 redundancy 可以作为普通 operation fields 进入 profiling；AgentRewardBench 和 SATraj-OS 证明 failure、looping、side-effect、安全和 attack-type diagnostics 可以用同一机制表达。
-	6 个 label-hidden tasks 构成主 hidden-label profiler benchmark：query-aware operation-stack top-5 groups 用 median 0.0937 work 取得 0.188 recall，flat summary 用 1.0 work 才取得 full recall，fixed-session 用 0.0163 work 但 top-5 recall 只有 0.0233；相对 fixed-session，operation-stack top-5 recall 在 5/6 tasks 上更高，并把 median groups 从 285.0 降到 157.5。
+	四类 oracle-rich 轨迹分别覆盖不同诊断问题。
+	OSWorld-Human 证明同一动作序列可以折叠到人工 grouped-action 深度，AgentNet 证明 step correctness 和 redundancy 可以作为普通 operation fields 进入 profiling，AgentRewardBench 和 SATraj-OS 证明 failure、looping、side-effect、安全和 attack-type diagnostics 可以用同一机制表达。
+	6 个 label-hidden tasks 构成主 hidden-label profiler benchmark。
+	Query-aware operation-stack top-5 groups 用 median 0.0937 work 取得 0.188 recall，flat summary 用 1.0 work 才取得 full recall，fixed-session 用 0.0163 work 但 top-5 recall 只有 0.0233。
+	相对 fixed-session，operation-stack top-5 recall 在 5/6 tasks 上更高，并把 median groups 从 285.0 降到 157.5。
 
-		补充分析把这个 profiler claim 的适用条件讲清楚。
-		Task-paired uncertainty、label-permutation negative controls、view/depth task-fit、inspection-budget curves、fixed-recall target、sequence-scope scoring 和 oracle-depth scoring 共同说明：operation-stack 的主要优势是 AP/work/fragmentation tradeoff，而不是所有指标支配。
+	补充分析进一步界定这个 profiler 主张的适用条件。
+	Task-paired uncertainty、label-permutation negative controls、view/depth task-fit、inspection-budget curves、fixed-recall target、sequence-scope scoring 和 oracle-depth scoring 共同说明，operation-stack 的主要优势是 AP/work/fragmentation tradeoff，而不是所有指标支配。
 		Actionability 证据进一步显示 36/36 objective rows 有具体 optimization action，27/36 best visible policies 不是默认 operation-stack query-aware。
-		Diagnostic lenses、case views、baseline contrasts、action counterfactuals 和 held-out transfer results 说明 profiler 暴露的是可调分析 surface，而不是 automatic universal selector。
-	Executable profile-spec patch 进一步证明这种 profile-configuration actionability 可以落到 Rust profiler 配置上：5/6 patches 改善 AP、top-5 lift 和 first-positive work；OSWorld-Human reject 再由 boundary-derived operation fields 改善 AP 和 groups，但保留 work 反例。
+		Diagnostic lenses、case views、baseline contrasts、action counterfactuals 和 held-out transfer results 说明 profiler 暴露的是可调分析界面，而不是 automatic universal selector。
+	Executable profile-spec patch 进一步证明这种 profile-configuration actionability 可以落到 Rust profiler 配置上。
+	在 6 个 patches 中，5 个同时改善 AP、top-5 lift 和 first-positive work。
+	OSWorld-Human reject 再由 boundary-derived operation fields 改善 AP 和 groups，但保留 work 反例。
 
 	因此本文的新意不在单个 flamegraph，而在把 agent 轨迹先统一成 operations，再把边界选择推迟到 operation-stack 查询。
 	这个接口与 pprof、Perfetto、OpenTelemetry/OpenInference 和 LLM observability systems 互补，因为它不重新定义通用 trace schema，也不把 dashboard 当作贡献。
