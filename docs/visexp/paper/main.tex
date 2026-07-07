@@ -641,10 +641,10 @@ ScaleCUA 的作用是扩大 GUI history 覆盖，而不是提供新的主证据�
 
 \textbf{Profiling、flamegraphs 和 trace analysis.}
 传统 flamegraph 和 pprof 路线把运行时调用栈折叠成热点视图~[1,16,17]。
-pprof 不只是固定 call stack：它支持 sample tags，也支持用 \texttt{tagroot}/\texttt{tagleaf} 把 tag value 作为 pseudo stack frame 可视化~[17]。
+pprof 不只是固定 call stack，因为它支持 sample tags，也支持用 \texttt{tagroot}/\texttt{tagleaf} 把 tag value 作为 pseudo stack frame 可视化~[17]。
 Perfetto 则代表系统 trace ingestion、SQL trace analysis、trace summary 和 derived events 的成熟方向~[18]。
-因此本文不能把新意写成“只有我们支持 query-time aggregation”。
-本文复用 folded-stack 表示，但贡献来自三个部分的组合：agent-operation record model、recursive multi-field operation-stack projection，以及真实标注轨迹上的 hidden-label localization benchmark。
+这些系统已经覆盖 query-time aggregation 和 trace analysis 的关键能力，所以本文的新意必须落在 agent 语义对象与标注评估的组合上。
+本文复用 folded-stack 表示，贡献来自 agent-operation record model、recursive multi-field operation-stack projection 和真实标注轨迹上的 hidden-label localization benchmark 的组合。
 Stack frame 来自 agent operation fields，而不是语言运行时函数调用或通用 trace SQL schema。
 因此同一批 operations 可以被折叠为 task、phase、tool、action、quality 或 safety 视图，也可以改成 fixed-session 或 flat baseline。
 区别不在图形样式，而在 agent 语义对象、递归多字段 stack projection 和跨数据集 hidden-label scoring。
@@ -653,18 +653,18 @@ Stack frame 来自 agent operation fields，而不是语言运行时函数调用
 OpenTelemetry GenAI 和 OpenInference 标准化 GenAI spans、LLM calls、agent reasoning steps、tool invocations、retrieval operations、MCP 和 provider-specific telemetry~[2,11]。
 LangSmith、Langfuse、Phoenix 和 AgentOps 等系统进一步把 LLM call、tool call、latency、token、trace tree、session、observation、evaluation score、goal、plan 和 agent artifact 放进单次 workflow inspection 与生产监控~[12,13,14,15]。
 这些系统是本文最接近的同问题相关工作。
-因此本文把 trace/span/session 明确当作 exchange container 或 baseline shape，而不是加成第三个 profiler 抽象。
+本文因此把 trace/span/session 明确当作 exchange container 或 baseline shape，而不是加成第三个 profiler 抽象。
 E2 实际评估的是 fixed-session drilldown 这个 trace-tree-shaped baseline；真实 OpenTelemetry/OpenInference/Phoenix span-tree import 仍是后续互操作 baseline，不是当前已完成结果。
 本文关注跨轨迹 semantic profiling，把异构标注轨迹或本地 agent 历史统一为 operations，并允许用户选择 stack 深度、mappings、tagging 和 ranker。
-因此本文把这些系统作为最接近的基线威胁，而不是声称替代现有 observability products。
+这些系统构成最接近的基线威胁，本文定位为互补的 profiler abstraction，而不是替代现有 observability products。
 
 \textbf{Agent failure 和 span localization。}
 2026 年的 AgentRx、TELBench/DRIFT、Holistic Evaluation and Failure Diagnosis 和 AgentAtlas 是最接近的同问题威胁~[23--26]。
 AgentRx 发布带 critical failure step 和 failure category 的失败轨迹，并用 constraint checking 与 LLM judge 做 root-cause localization。
 TELBench/DRIFT 把 deep-research agent 轨迹转成 semantic spans，并标注 harmful error spans。
 Holistic Diagnosis 把 agent-level diagnosis 和 span-level evaluation 结合起来；AgentAtlas 则强调 outcome leaderboard 不能覆盖 trajectory quality 和 control-decision quality。
-因此本文不能把新意写成 failure localization、trajectory diagnosis 或 span-level evaluation 本身。
-本文的差异更窄：把 profile groups 当作 profiler 输出，在同一批 operations 上比较 flat、fixed-session drilldown、dataset-native、raw-action 和 operation-stack views，并用 AP、nDCG、inspection budget recall、work-to-first-positive、fragmentation 和 profile-configuration actionability 评分。
+这些工作已经覆盖 failure localization、trajectory diagnosis 和 span-level evaluation 的问题定义。
+本文的差异更窄，把 profile groups 当作 profiler 输出，在同一批 operations 上比较 flat、fixed-session drilldown、dataset-native、raw-action 和 operation-stack views，并用 AP、nDCG、inspection budget recall、work-to-first-positive、fragmentation 和 profile-configuration actionability 评分。
 AgentRx/TELBench-style traces 是后续 oracle/baseline 候选，不是当前已完成的 broader span-localization 证据。
 
 \textbf{Computer-use 和 tool-use benchmarks.}
@@ -674,9 +674,9 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld/OSWorld-Human、OpenCUA/AgentNet、SA
 这些 benchmark 提供证据来源和原生序列对照，不是被本文替代的对象。
 
 \textbf{新意边界。}
-因此本文的新意不是“第一个 agent observability 系统”、不是“第一个 agent trajectory benchmark”、也不是“第一个 folded-stack 可视化”。
-本文可支持的新意是只用 operation 和 operation stack 两个 profiler 抽象，把 trace/session/span 作为输入容器或 baseline，在真实公开标注轨迹上把 profile groups 当成 ranking/localization outputs，并用 hidden labels 计算 accuracy、work、fragmentation 和 actionability。
-更具体地说，新意不是 query-time aggregation 本身，而是把 agent-operation record、recursive multi-field stack shape 和 hidden-label localization benchmark 绑在一起。
+本文不把新意建立在“第一个 agent observability 系统”、“第一个 agent trajectory benchmark”或“第一个 folded-stack 可视化”上。
+本文当前可支持的新意是只用 operation 和 operation stack 两个 profiler 抽象，把 trace/session/span 作为输入容器或 baseline，在真实公开标注轨迹上把 profile groups 当成 ranking/localization outputs，并用 hidden labels 计算 accuracy、work、fragmentation 和 actionability。
+更具体地说，贡献不只是 query-time aggregation，而是把 agent-operation record、recursive multi-field stack shape 和 hidden-label localization benchmark 绑在一起。
 同一批 agent operations 会因为 stack shape 不同形成不同的可定位、可排序、可检查 aggregation units。
 这不是穷尽式 2026 全量综述；它只界定当前主张的最近同问题威胁和已评估边界。
 
@@ -686,7 +686,7 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld/OSWorld-Human、OpenCUA/AgentNet、SA
 	本节界定哪些结论可以进入正文主张，哪些仍需要后续实验。
 	第一，字段派生和边界恢复的范围仍然有限。
 	当前证据支持 deterministic mappings、label-derived rules 和部分 supervised boundary backends 能派生 stackable operation fields，但不证明无监督或 LLM-backed intent detector 已经解决，也不证明一个 backend 能跨所有标签家族工作。
-		AgentRewardBench looping 被简单 \texttt{repeat\_signal\_change} baseline 完全解释，这说明每个 family 都需要 suitability、calibration 和 simple-baseline 检查。
+	AgentRewardBench looping 被简单 \texttt{repeat\_signal\_change} baseline 完全解释，这说明每个 family 都需要 suitability、calibration 和 simple-baseline 检查。
 
 	第二，E2 支持 profiler-localization 主张，但不支持人类效用主张。
 	E2 把 failure、safety、quality 和 human-boundary 问题转成 hidden-label ranking/localization benchmark，并证明 operation-stack profiling 相对 flat summary 和 fixed-session drilldown 有 accuracy/work/fragmentation tradeoff。
@@ -703,10 +703,10 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld/OSWorld-Human、OpenCUA/AgentNet、SA
 	Chrome Trace Event 和 agent-session exchange 当前只提供 exchange/reproducibility evidence，覆盖本地 session fixture 和真实标注 operation 前缀。
 	这说明 trace 可以作为 exchange container，但不证明完整 OpenTelemetry/Chrome trace-ecosystem、Perfetto producer 或图像密集 benchmark 兼容。
 
-		第四，E4 是复现和主张边界结果，不是额外的 profiler accuracy 结果。
-		Replay、数字对齐、数据来源选择和两个抽象的表述约束让正文没有越过已有实证结果。
-		如果采样或 oracle 本身有偏差，E4 能暴露不一致并迫使主张收窄，但不能消除偏差。
-		因此本文最终主张应固定为两个抽象机制和 hidden-label profiler fidelity/work tradeoff，而不是 universal fixed-session dominance、automatic anomaly detection 或完整 human utility。
+	第四，E4 是复现和主张边界结果，不是额外的 profiler accuracy 结果。
+	Replay、数字对齐、数据来源选择和两个抽象的表述约束让正文没有越过已有实证结果。
+	如果采样或 oracle 本身有偏差，E4 能暴露不一致并迫使主张收窄，但不能消除偏差。
+	因此本文最终主张应固定为两个抽象机制和 hidden-label profiler fidelity/work tradeoff，而不是 universal fixed-session dominance、automatic anomaly detection 或完整 human utility。
 
 \section{结论}
 
