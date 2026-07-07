@@ -407,6 +407,9 @@ Held-out mapping rules 在 3,990 个 operations 上把 compression 从无 mappin
 Phase/action boundary F1 为 0.777、precision 为 1.0，说明当前 mapping 保守。
 它不会制造 false positive phase changes，但会合并一些 fine-grained action changes。
 Leave-dataset-out mapping 在修正 API/tool phase precedence 后，在 9 个 held-out datasets 中的 6 个减少 unique stacks，0 个出现 negative stack-reduction regression，weighted stack reduction 为每 1,000 operations 1162.005。
+同一 leave-dataset-out 评估也给出 label-derivation 的可靠性边界。
+映射后的 phase/action V-measure 在 7/9 个 held-out datasets 上超过 0.7，范围从 AndroidControl 的 0.7157 到 Mind2Web 和 WebShop expert 的 1.0。
+API-Bank 为 0.0，ToolBench 为 0.1342，说明 API/tool family 的 action vocabulary 不能由通用 action-verb mapping 自动覆盖。
 这些结果说明 mapping 不是单个数据集的 ad hoc pretty printer，但它仍是 deterministic taxonomy-seeded field derivation，不是无监督边界发现。
 
 Boundary backend 提供更强但仍带范围的 field derivation 证据。
