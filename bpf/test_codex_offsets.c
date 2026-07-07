@@ -94,6 +94,12 @@ static void test_nonmatching_binary_misses_table(void)
 static void test_codex_01425_table_entry(void)
 {
 	const struct codex_offset_entry *entry = &codex_offset_table[0];
+	static const uint8_t expected_sha[32] = {
+		0xf0, 0xaa, 0xc9, 0x54, 0x9a, 0x69, 0x82, 0xa2,
+		0xd2, 0x9d, 0xb2, 0x03, 0x6b, 0xe7, 0x7e, 0xfe,
+		0x30, 0xed, 0x01, 0xb4, 0xcf, 0x8a, 0x91, 0x21,
+		0x94, 0x53, 0xb1, 0x79, 0x59, 0x41, 0x9b, 0x5f,
+	};
 
 	check(strcmp(entry->version, "0.142.5") == 0,
 	      "Codex 0.142.5 table entry is first");
@@ -107,7 +113,7 @@ static void test_codex_01425_table_entry(void)
 	      "Codex 0.142.5 table entry records SSL_do_handshake offset");
 	check(entry->write_is_ex && entry->read_is_ex,
 	      "Codex 0.142.5 table entry uses *_ex uprobes");
-	check(entry->head_sha256[0] == 0xf0 && entry->head_sha256[31] == 0x5f,
+	check(memcmp(entry->head_sha256, expected_sha, sizeof(expected_sha)) == 0,
 	      "Codex 0.142.5 table entry records head SHA-256");
 }
 

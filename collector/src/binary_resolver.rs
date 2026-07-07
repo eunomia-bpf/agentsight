@@ -223,15 +223,28 @@ pub(crate) fn binary_embeds_ssl(path: &str) -> bool {
 
 fn codex_native_binary_from_launcher(launcher: &std::path::Path) -> Option<String> {
     let package_root = openai_codex_package_root(launcher)?;
+
+    let nested_scope = package_root.join("node_modules").join("@openai");
+    if let Some(path) = codex_native_binary_in_scope(&nested_scope) {
+        return Some(path);
+    }
+    if let Some(scope) = package_root.parent() {
+        if let Some(path) = codex_native_binary_in_scope(scope) {
+            return Some(path);
+        }
+    }
+
+    None
+}
+
+fn codex_native_binary_in_scope(openai_scope: &std::path::Path) -> Option<String> {
     const CANDIDATES: &[(&str, &str)] = &[
         ("codex-linux-x64", "x86_64-unknown-linux-musl"),
         ("codex-linux-arm64", "aarch64-unknown-linux-musl"),
     ];
 
     for (package, target) in CANDIDATES {
-        let path = package_root
-            .join("node_modules")
-            .join("@openai")
+        let path = openai_scope
             .join(package)
             .join("vendor")
             .join(target)
@@ -502,6 +515,29 @@ mod tests {
         let package_root = dir.path().join("node_modules/@openai/codex");
         let launcher = package_root.join("bin/codex.js");
         let native = package_root.join(
+            "node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/bin/codex",
+        );
+        std::fs::create_dir_all(launcher.parent().unwrap()).unwrap();
+        std::fs::create_dir_all(native.parent().unwrap()).unwrap();
+        std::fs::write(&launcher, b"#!/usr/bin/env node\n").unwrap();
+        std::fs::write(&native, b"\x7fELFnative codex binary").unwrap();
+
+        let resolved = resolve_binary_path_for_ssl(launcher.to_str().unwrap()).unwrap();
+        let expected = native
+            .canonicalize()
+            .unwrap()
+            .to_string_lossy()
+            .into_owned();
+
+        assert_eq!(resolved.as_deref(), Some(expected.as_str()));
+    }
+
+    #[test]
+    fn resolves_codex_npm_launcher_to_sibling_native_package() {
+        let dir = tempfile::tempdir().unwrap();
+        let package_root = dir.path().join("node_modules/@openai/codex");
+        let launcher = package_root.join("bin/codex.js");
+        let native = dir.path().join(
             "node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/bin/codex",
         );
         std::fs::create_dir_all(launcher.parent().unwrap()).unwrap();
