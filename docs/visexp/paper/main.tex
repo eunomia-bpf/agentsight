@@ -28,7 +28,7 @@
 
 \title{\vspace{-1.2em}面向 AI Agent 轨迹的可配置语义剖析}
 \author{AgentSight 研究原型}
-\date{2026 年 7 月 4 日}
+\date{2026 年 7 月 7 日}
 
 \begin{document}
 \maketitle
@@ -70,7 +70,7 @@ RQ4 验证可重放性、离线成本和复现边界。
 RQ4 只说明离线证据可重放，并约束数字、数据来源选择和主张边界，不作为第四个 empirical accuracy result。
 
 因此本文支持的是有范围限定的 profiling 主张：operation-stack profiling 能在公开真实标注 trace 的 dataset-provided hidden labels 下定位、排序和解释任务相关 failure、quality problem 和 dataset-provided semantic boundary，并相对 flat summary 减少 inspection work、相对 fixed-session drilldown proxy 改善 median fragmentation tradeoff。
-本文不声称提升 human productivity，不声称自动发现所有 intent boundary，不声称 metric dominance，也不声称完整兼容现有 trace ecosystem。
+本文不声称提升 human productivity，不声称自动发现所有 intent boundary，不声称 free-form prompt/LLM tagger 已完成同输入准确率验证，不声称 metric dominance，也不声称完整兼容现有 trace ecosystem。
 \end{abstract}
 
 \section{问题}
@@ -748,6 +748,10 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld/OSWorld-Human、OpenCUA/AgentNet、SA
 当前证据支持 deterministic mappings、label-derived rules 和部分 supervised boundary backends 能派生 stackable operation fields，但没有证明无监督或 LLM-backed intent detector 已经解决。
 这些结果也没有证明一个 backend 能跨所有标签家族工作。
 Free-form prompt labeling 和 LLM taggers 仍需要在同一 hidden-label localization protocol 下与 deterministic mapping 比较，才能成为本文主张的一部分。
+这个限制来自当前证据形态，而不是单纯缺少一个表格。
+我们检查了当前纳入评估的六个 operation-JSONL sources，共 67,304 rows。
+其中 60,305 rows 带有 oracle fields，但 0 rows 同时公开可用的 free-form text fields 和 oracle semantic labels。
+因此当前结果可以评价 mapping、rank features 和 supervised boundary fields，却不能评价 regex、embedding 或 LLM tagger 在同一自由文本输入上的语义识别准确率。
 AgentRewardBench looping 被简单 \texttt{repeat\_signal\_change} baseline 完全解释，这说明每个 family 都需要 suitability、calibration 和 simple-baseline 检查。
 
 E2 支持 profiler-localization 主张，但没有测量人类效用。
@@ -801,7 +805,7 @@ Mapping/tagging、profile spec、agent-session trace、Chrome/Perfetto-style tra
 它不覆盖 universal detector、human utility、baseline dominance、automatic patch selector 或 ecosystem compatibility。
 后续工作应优先加强主张所需的 oracle，而不是无差别增加数据集。
 Field-derivation backend 需要跨家族 calibration，并稳定胜过简单 sequence-derived baselines。
-Free-form prompt/LLM tagging 也应该先通过同一 hidden-label scoring 和 simple-baseline 检查，再进入 profiler 主张。
+Free-form prompt/LLM tagging 还需要先引入同时包含自由文本和隐藏语义标签的 oracle，或单独标注这样的输入，再通过同一 hidden-label scoring 和 simple-baseline 检查进入 profiler 主张。
 已有或新增真实 trace 需要更强的 instruction-step、solution-path 或 human subtask oracle。
 只有当论文提出 ecosystem-baseline 主张时，真实 OTel/Phoenix/LangSmith/Langfuse/Perfetto span-tree trace 才成为必要基线。
 Controlled human 或 agent analyst study 可以作为后续增强，但不是本文主 profiling 主张的前置条件。
