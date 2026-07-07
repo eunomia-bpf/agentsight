@@ -1,50 +1,9 @@
 {
   "generated_at": "1970-01-01T00:00:00Z",
   "profile": {
-    "ranking": {
-      "groups": 2,
-      "limit": 2,
-      "policy": "width",
-      "rank_operation_rules": [],
-      "rank_rules": [],
-      "top": [
-        {
-          "matched_rank_rules": [],
-          "rank_score": 8897.0,
-          "stack": "task:left-segment",
-          "weight": 8897
-        },
-        {
-          "matched_rank_rules": [],
-          "rank_score": 1170.0,
-          "stack": "task:right-segment",
-          "weight": 1170
-        }
-      ]
-    },
-    "sample_type": "operations",
-    "stacks": {
-      "task:left-segment": 8897,
-      "task:right-segment": 1170
-    },
-    "summary": {
-      "compression_ratio": 5033.5,
-      "max_stack_reuse": 8897,
-      "top": [
-        {
-          "stack": "task:left-segment",
-          "weight": 8897
-        },
-        {
-          "stack": "task:right-segment",
-          "weight": 1170
-        }
-      ],
-      "total_weight": 10067,
-      "unique_stacks": 2
-    },
-    "task_stack_induction": {
+    "operation_stack_induction": {
       "allow_session": false,
+      "derived_stack_field": "operation",
       "excluded_oracle_fields": [
         "annotator",
         "attack",
@@ -110,288 +69,45 @@
       "max_majority_fraction": 0.985,
       "min_score": 0.055,
       "min_second_child": 5,
-      "policy": "query-conditioned-recursive-boundary-task-stack-induction",
-      "selected_source_fields": [
-        "domain"
-      ],
-      "split_decisions": [
+      "objective": "recursive boundary segmentation over operations; fields are evidence, not stack levels",
+      "policy": "query-conditioned-recursive-boundary-operation-stack-induction",
+      "selected_evidence_fields": [],
+      "selected_source_fields": [],
+      "split_decisions": [],
+      "stop_reasons": {
+        "no_material_split": 1
+      }
+    },
+    "ranking": {
+      "groups": 1,
+      "limit": 1,
+      "policy": "width",
+      "rank_operation_rules": [],
+      "rank_rules": [],
+      "top": [
         {
-          "candidate_scores": [
-            {
-              "balance": 0.518401,
-              "cardinality_penalty": 0.075202,
-              "changed_field_fraction": 0.8,
-              "changed_fields": [
-                "action",
-                "domain",
-                "phase",
-                "repeat_signal"
-              ],
-              "coverage": 0.116221,
-              "cut_after": 8897,
-              "evidence_fields": [
-                "domain"
-              ],
-              "field": "domain",
-              "groups": {
-                "left-segment": 8897,
-                "right-segment": 1170
-              },
-              "left_label": "left-segment",
-              "left_weight": 8897,
-              "query_bonus": 0.5,
-              "right_label": "right-segment",
-              "right_weight": 1170,
-              "score": 0.460799,
-              "semantic_shift": 0.692308,
-              "small_child_penalty": 0.0,
-              "structural_gain": 0.282935
-            },
-            {
-              "balance": 0.366779,
-              "cardinality_penalty": 0.075202,
-              "changed_field_fraction": 0.8,
-              "changed_fields": [
-                "action",
-                "domain",
-                "phase",
-                "repeat_signal"
-              ],
-              "coverage": 0.070229,
-              "cut_after": 9360,
-              "evidence_fields": [
-                "domain"
-              ],
-              "field": "domain",
-              "groups": {
-                "left-segment": 9360,
-                "right-segment": 707
-              },
-              "left_label": "left-segment",
-              "left_weight": 9360,
-              "query_bonus": 0.5,
-              "right_label": "right-segment",
-              "right_weight": 707,
-              "score": 0.453748,
-              "semantic_shift": 0.692308,
-              "small_child_penalty": 0.0,
-              "structural_gain": 0.282601
-            },
-            {
-              "balance": 0.327831,
-              "cardinality_penalty": 0.075202,
-              "changed_field_fraction": 0.8,
-              "changed_fields": [
-                "action",
-                "domain",
-                "phase",
-                "repeat_signal"
-              ],
-              "coverage": 0.060097,
-              "cut_after": 605,
-              "evidence_fields": [
-                "domain"
-              ],
-              "field": "domain",
-              "groups": {
-                "left-segment": 605,
-                "right-segment": 9462
-              },
-              "left_label": "left-segment",
-              "left_weight": 605,
-              "query_bonus": 0.5,
-              "right_label": "right-segment",
-              "right_weight": 9462,
-              "score": 0.451159,
-              "semantic_shift": 0.68,
-              "small_child_penalty": 0.0,
-              "structural_gain": 0.284424
-            },
-            {
-              "balance": 0.332151,
-              "cardinality_penalty": 0.075202,
-              "changed_field_fraction": 0.8,
-              "changed_fields": [
-                "action",
-                "domain",
-                "phase",
-                "repeat_signal"
-              ],
-              "coverage": 0.06119,
-              "cut_after": 9451,
-              "evidence_fields": [
-                "domain"
-              ],
-              "field": "domain",
-              "groups": {
-                "left-segment": 9451,
-                "right-segment": 616
-              },
-              "left_label": "left-segment",
-              "left_weight": 9451,
-              "query_bonus": 0.5,
-              "right_label": "right-segment",
-              "right_weight": 616,
-              "score": 0.445959,
-              "semantic_shift": 0.653846,
-              "small_child_penalty": 0.0,
-              "structural_gain": 0.283082
-            },
-            {
-              "balance": 0.436791,
-              "cardinality_penalty": 0.075202,
-              "changed_field_fraction": 0.6,
-              "changed_fields": [
-                "action",
-                "domain",
-                "phase"
-              ],
-              "coverage": 0.090096,
-              "cut_after": 907,
-              "evidence_fields": [
-                "domain"
-              ],
-              "field": "domain",
-              "groups": {
-                "left-segment": 907,
-                "right-segment": 9160
-              },
-              "left_label": "left-segment",
-              "left_weight": 907,
-              "query_bonus": 0.5,
-              "right_label": "right-segment",
-              "right_weight": 9160,
-              "score": 0.429795,
-              "semantic_shift": 0.541667,
-              "small_child_penalty": 0.0,
-              "structural_gain": 0.283566
-            },
-            {
-              "balance": 0.551219,
-              "cardinality_penalty": 0.075202,
-              "changed_field_fraction": 0.6,
-              "changed_fields": [
-                "action",
-                "phase",
-                "repeat_state"
-              ],
-              "coverage": 0.127744,
-              "cut_after": 8781,
-              "evidence_fields": [
-                "domain"
-              ],
-              "field": "domain",
-              "groups": {
-                "left-segment": 8781,
-                "right-segment": 1286
-              },
-              "left_label": "left-segment",
-              "left_weight": 8781,
-              "query_bonus": 0.5,
-              "right_label": "right-segment",
-              "right_weight": 1286,
-              "score": 0.255426,
-              "semantic_shift": 0.521739,
-              "small_child_penalty": 0.0,
-              "structural_gain": 0.003144
-            },
-            {
-              "balance": 0.546798,
-              "cardinality_penalty": 0.075202,
-              "changed_field_fraction": 0.6,
-              "changed_fields": [
-                "action",
-                "phase",
-                "repeat_state"
-              ],
-              "coverage": 0.126155,
-              "cut_after": 8797,
-              "evidence_fields": [
-                "domain"
-              ],
-              "field": "domain",
-              "groups": {
-                "left-segment": 8797,
-                "right-segment": 1270
-              },
-              "left_label": "left-segment",
-              "left_weight": 8797,
-              "query_bonus": 0.5,
-              "right_label": "right-segment",
-              "right_weight": 1270,
-              "score": 0.255181,
-              "semantic_shift": 0.521739,
-              "small_child_penalty": 0.0,
-              "structural_gain": 0.003234
-            },
-            {
-              "balance": 0.420341,
-              "cardinality_penalty": 0.075202,
-              "changed_field_fraction": 0.6,
-              "changed_fields": [
-                "action",
-                "phase",
-                "repeat_state"
-              ],
-              "coverage": 0.085229,
-              "cut_after": 858,
-              "evidence_fields": [
-                "domain"
-              ],
-              "field": "domain",
-              "groups": {
-                "left-segment": 858,
-                "right-segment": 9209
-              },
-              "left_label": "left-segment",
-              "left_weight": 858,
-              "query_bonus": 0.5,
-              "right_label": "right-segment",
-              "right_weight": 9209,
-              "score": 0.252931,
-              "semantic_shift": 0.545455,
-              "small_child_penalty": 0.0,
-              "structural_gain": 0.003478
-            }
-          ],
-          "node_weight": 10067,
-          "path": [],
-          "selected_score": {
-            "balance": 0.518401,
-            "cardinality_penalty": 0.075202,
-            "changed_field_fraction": 0.8,
-            "changed_fields": [
-              "action",
-              "domain",
-              "phase",
-              "repeat_signal"
-            ],
-            "coverage": 0.116221,
-            "cut_after": 8897,
-            "evidence_fields": [
-              "domain"
-            ],
-            "field": "domain",
-            "groups": {
-              "left-segment": 8897,
-              "right-segment": 1170
-            },
-            "left_label": "left-segment",
-            "left_weight": 8897,
-            "query_bonus": 0.5,
-            "right_label": "right-segment",
-            "right_weight": 1170,
-            "score": 0.460799,
-            "semantic_shift": 0.692308,
-            "small_child_penalty": 0.0,
-            "structural_gain": 0.282935
-          },
-          "source_field": "domain"
+          "matched_rank_rules": [],
+          "rank_score": 10067.0,
+          "stack": "operation:all",
+          "weight": 10067
+        }
+      ]
+    },
+    "sample_type": "operations",
+    "stacks": {
+      "operation:all": 10067
+    },
+    "summary": {
+      "compression_ratio": 10067.0,
+      "max_stack_reuse": 10067,
+      "top": [
+        {
+          "stack": "operation:all",
+          "weight": 10067
         }
       ],
-      "stop_reasons": {
-        "max_depth": 2
-      }
+      "total_weight": 10067,
+      "unique_stacks": 1
     },
     "unit": "count",
     "view": "operations"

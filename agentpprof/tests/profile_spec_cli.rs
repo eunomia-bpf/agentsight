@@ -128,7 +128,7 @@ phase:submit=(action=click.*intent=authenticate.*target=submit)
 }
 
 #[test]
-fn cli_induces_task_stack_without_user_field_order() {
+fn cli_induces_operation_stack_without_user_field_order() {
     let tmp = tempfile::tempdir().unwrap();
     let ops_path = tmp.path().join("ops.jsonl");
     let output_path = tmp.path().join("induced.json");
@@ -160,7 +160,7 @@ fn cli_induces_task_stack_without_user_field_order() {
             "dataset=agent-reward-bench",
             "--where",
             "analysis_task=agentreward_looping",
-            "--induce-task-stack",
+            "--induce-operation-stack",
             "--induce-query-term",
             "loop",
             "--deterministic-output",
@@ -175,19 +175,29 @@ fn cli_induces_task_stack_without_user_field_order() {
     );
     let status: Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(status["status"], "ok");
-    assert_eq!(status["stack"], "task");
+    assert_eq!(status["stack"], "operation");
+    assert_eq!(status["induce_operation_stack"], true);
     assert_eq!(status["induce_task_stack"], true);
+    assert_eq!(status["induced_stack_field"], "operation");
     assert_eq!(status["samples"], 18);
 
     let profile_json: Value =
         serde_json::from_str(&fs::read_to_string(&output_path).unwrap()).unwrap();
     let stacks = profile_json["profile"]["stacks"].as_object().unwrap();
     assert!(!stacks.is_empty());
+    let stack_depths = stacks
+        .keys()
+        .map(|stack| stack.split(';').count())
+        .collect::<std::collections::BTreeSet<_>>();
     assert!(
-        stacks
-            .keys()
-            .all(|stack| { stack.split(';').all(|frame| frame.starts_with("task:")) })
+        stack_depths.len() > 1,
+        "recursive induction should stop per segment and produce ragged depths, got {stack_depths:?}"
     );
+    assert!(stacks.keys().all(|stack| {
+        stack
+            .split(';')
+            .all(|frame| frame.starts_with("operation:"))
+    }));
     assert!(stacks.keys().all(|stack| {
         !stack.contains("looping")
             && !stack.contains("problem_value")
@@ -197,11 +207,17 @@ fn cli_induces_task_stack_without_user_field_order() {
             && !stack.contains("human_group")
             && !stack.contains("group_pattern")
     }));
-    let report = &profile_json["profile"]["task_stack_induction"];
+    assert!(profile_json["profile"]["task_stack_induction"].is_null());
+    let report = &profile_json["profile"]["operation_stack_induction"];
     assert_eq!(
         report["policy"],
-        "query-conditioned-recursive-boundary-task-stack-induction"
+        "query-conditioned-recursive-boundary-operation-stack-induction"
     );
+    assert_eq!(
+        report["objective"],
+        "recursive boundary segmentation over operations; fields are evidence, not stack levels"
+    );
+    assert_eq!(report["derived_stack_field"], "operation");
     assert!(
         report["split_decisions"]
             .as_array()
@@ -224,6 +240,10 @@ fn cli_induces_task_stack_without_user_field_order() {
                     .is_empty())
     );
     let selected = report["selected_source_fields"].as_array().unwrap();
+    assert_eq!(
+        selected,
+        report["selected_evidence_fields"].as_array().unwrap()
+    );
     assert!(selected.iter().any(|field| {
         matches!(
             field.as_str().unwrap(),
@@ -242,10 +262,22 @@ fn cli_induces_task_stack_without_user_field_order() {
                 | "group_pattern"
         )
     }));
+    assert!(stacks.keys().all(|stack| {
+        !stack.contains("repeat_state=")
+            && !stack.contains("repeat_signal=")
+            && !stack.contains("action=")
+    }));
+    assert!(
+        report["split_decisions"].as_array().unwrap().iter().all(
+            |decision| decision["boundary_id"].as_str().unwrap().starts_with('b')
+                && decision["primary_evidence_field"].as_str().is_some()
+                && !decision["evidence_fields"].as_array().unwrap().is_empty()
+        )
+    );
 }
 
 #[test]
-fn cli_induced_task_stack_ignores_hidden_oracle_only_boundaries() {
+fn cli_legacy_task_stack_alias_ignores_hidden_oracle_only_boundaries() {
     let tmp = tempfile::tempdir().unwrap();
     let ops_path = tmp.path().join("ops.jsonl");
     let output_path = tmp.path().join("induced.json");
@@ -289,7 +321,8 @@ fn cli_induced_task_stack_ignores_hidden_oracle_only_boundaries() {
     let stacks = profile_json["profile"]["stacks"].as_object().unwrap();
     assert_eq!(stacks.len(), 1);
     assert_eq!(stacks["task:all"], 12);
-    let report = &profile_json["profile"]["task_stack_induction"];
+    assert!(profile_json["profile"]["task_stack_induction"].is_null());
+    let report = &profile_json["profile"]["operation_stack_induction"];
     assert!(
         report["selected_source_fields"]
             .as_array()
@@ -300,7 +333,7 @@ fn cli_induced_task_stack_ignores_hidden_oracle_only_boundaries() {
 }
 
 #[test]
-fn cli_induced_task_stack_rejects_non_task_stack_override() {
+fn cli_legacy_task_stack_alias_rejects_non_task_stack_override() {
     let tmp = tempfile::tempdir().unwrap();
     let ops_path = tmp.path().join("ops.jsonl");
     let output_path = tmp.path().join("induced.json");
@@ -336,7 +369,7 @@ fn cli_induced_task_stack_rejects_non_task_stack_override() {
     assert!(!output.status.success());
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        stderr.contains("--induce-task-stack derives and folds task frames"),
+        stderr.contains("--induce-operation-stack derives a recursive operation-stack path"),
         "unexpected stderr: {stderr}"
     );
 }

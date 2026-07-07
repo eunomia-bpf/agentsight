@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Measure induced task-stack depth sensitivity on existing labeled traces.
+"""Measure induced operation-stack depth sensitivity on existing labeled traces.
 
 R404 reuses the tracked R300 operation JSONL and R320 scoring machinery. It
-runs the maintained Rust `agentpprof --induce-task-stack` implementation with
+runs the maintained Rust `agentpprof --induce-operation-stack` implementation with
 several `--induce-max-depth` caps, reconstructs per-operation stack assignments
 from Rust split decisions, and scores hidden labels only after profiling.
 """
@@ -101,7 +101,7 @@ def run_agentpprof(
         f"analysis_task={task['id']}",
         "--where",
         f"dataset={task['dataset']}",
-        "--induce-task-stack",
+        "--induce-operation-stack",
         "--induce-max-depth",
         str(max_depth),
         "--deterministic-output",
@@ -341,7 +341,7 @@ def main() -> None:
             view = f"induced_depth_{max_depth}"
             status, profile_doc = run_agentpprof(binary, task, max_depth)
             groups, summary = r403.induced_groups(task, view, operations, profile_doc)
-            selected_source_fields = summary["selected_source_fields"]
+            selected_source_fields = summary["selected_evidence_fields"]
             view_summaries.append(
                 {
                     "task": task["id"],
@@ -412,7 +412,7 @@ def main() -> None:
         "uses_tracked_r320_baselines": r403.BASELINE_SCORES.exists(),
         "covers_all_six_tasks": len({row["task"] for row in score_rows}) == 6,
         "covers_all_depths": {int(row["max_depth"]) for row in score_rows} == set(DEPTHS),
-        "all_rust_profiles_use_induction": all(row["status"].get("induce_task_stack") for row in view_summaries),
+        "all_rust_profiles_use_induction": all(row["status"].get("induce_operation_stack") for row in view_summaries),
         "all_rust_depth_caps_match": all(int(row["status"].get("induce_max_depth")) == row["max_depth"] for row in view_summaries),
         "rust_stack_reconstruction_matches": all(row["rust_stack_weight_match"] for row in view_summaries),
         "no_oracle_source_fields_selected": all(not row["oracle_source_field_overlap"] for row in view_summaries),

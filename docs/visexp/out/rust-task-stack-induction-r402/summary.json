@@ -1,36 +1,45 @@
 {
   "agentreward-overview": {
-    "all_frames_are_task": true,
+    "all_frames_are_induced_operation": true,
     "allow_session": false,
     "compression_ratio": 48.6,
+    "induce_operation_stack": true,
     "induce_task_stack": true,
-    "max_stack_reuse": 162,
+    "max_stack_reuse": 485,
     "operations": 729,
     "oracle_source_field_overlap": [],
+    "selected_evidence_fields": [
+      "action",
+      "phase",
+      "repeat_run",
+      "repeat_state",
+      "step_error"
+    ],
     "selected_source_fields": [
       "action",
+      "phase",
       "repeat_run",
-      "repeat_signal",
-      "repeat_state"
+      "repeat_state",
+      "step_error"
     ],
     "split_decision_count": 14,
     "split_evidence_field_counts": {
-      "action": 3,
-      "repeat_run": 5,
-      "repeat_signal": 5,
-      "repeat_state": 8
+      "action": 8,
+      "phase": 2,
+      "repeat_run": 7,
+      "repeat_state": 10,
+      "step_error": 1
     },
     "split_source_field_counts": {
-      "action": 3,
+      "action": 6,
       "repeat_run": 4,
-      "repeat_signal": 5,
-      "repeat_state": 2
+      "repeat_state": 4
     },
-    "stack": "task",
+    "stack": "operation",
     "stack_depth_histogram": {
       "2": 1,
-      "3": 3,
-      "4": 11
+      "3": 1,
+      "4": 13
     },
     "statuses": {
       "folded": {
@@ -48,7 +57,7 @@
           "folded",
           "--output",
           "docs/visexp/out/rust-task-stack-induction-r402/agentreward-overview.folded",
-          "--induce-task-stack",
+          "--induce-operation-stack",
           "--deterministic-output",
           "--where",
           "dataset=agent-reward-bench",
@@ -63,11 +72,13 @@
         "format": "folded",
         "induce_allow_session": false,
         "induce_max_depth": 4,
+        "induce_operation_stack": true,
         "induce_query_terms": [
           "loop",
           "repeat"
         ],
         "induce_task_stack": true,
+        "induced_stack_field": "operation",
         "op_map_files": [],
         "op_maps": [],
         "operation_files": [
@@ -81,7 +92,7 @@
         "rank_rules": [],
         "sample_type": "operations",
         "samples": 729,
-        "stack": "task",
+        "stack": "operation",
         "stack_rules": [],
         "standard_trace_events": null,
         "standard_trace_format": null,
@@ -111,7 +122,7 @@
           "json",
           "--output",
           "docs/visexp/out/rust-task-stack-induction-r402/agentreward-overview.json",
-          "--induce-task-stack",
+          "--induce-operation-stack",
           "--deterministic-output",
           "--where",
           "dataset=agent-reward-bench",
@@ -126,11 +137,13 @@
         "format": "json",
         "induce_allow_session": false,
         "induce_max_depth": 4,
+        "induce_operation_stack": true,
         "induce_query_terms": [
           "loop",
           "repeat"
         ],
         "induce_task_stack": true,
+        "induced_stack_field": "operation",
         "op_map_files": [],
         "op_maps": [],
         "operation_files": [
@@ -144,7 +157,7 @@
         "rank_rules": [],
         "sample_type": "operations",
         "samples": 729,
-        "stack": "task",
+        "stack": "operation",
         "stack_rules": [],
         "standard_trace_events": null,
         "standard_trace_format": null,
@@ -174,7 +187,7 @@
           "svg",
           "--output",
           "docs/visexp/out/rust-task-stack-induction-r402/agentreward-overview.svg",
-          "--induce-task-stack",
+          "--induce-operation-stack",
           "--deterministic-output",
           "--where",
           "dataset=agent-reward-bench",
@@ -191,11 +204,13 @@
         "format": "svg",
         "induce_allow_session": false,
         "induce_max_depth": 4,
+        "induce_operation_stack": true,
         "induce_query_terms": [
           "loop",
           "repeat"
         ],
         "induce_task_stack": true,
+        "induced_stack_field": "operation",
         "op_map_files": [],
         "op_maps": [],
         "operation_files": [
@@ -209,7 +224,7 @@
         "rank_rules": [],
         "sample_type": "operations",
         "samples": 729,
-        "stack": "task",
+        "stack": "operation",
         "stack_rules": [],
         "standard_trace_events": null,
         "standard_trace_format": null,
@@ -229,115 +244,125 @@
       "max_depth": 14,
       "no_material_split": 1
     },
-    "title": "Rust induced task stack",
+    "title": "Rust induced operation stack",
     "top_stacks": [
       {
         "matched_rank_rules": [],
-        "rank_score": 162.0,
-        "stack": "task:repeat_state_single;task:repeat_signal_loop-like;task:repeat_run_1;task:repeat_signal_loop-like",
-        "weight": 162
+        "rank_score": 485.0,
+        "stack": "operation:1+single;operation:click;operation:click+navigate;operation:single",
+        "weight": 485
       },
       {
         "matched_rank_rules": [],
-        "rank_score": 130.0,
-        "stack": "task:repeat_state_single;task:repeat_signal_none",
-        "weight": 130
+        "rank_score": 51.0,
+        "stack": "operation:1+single;operation:click;operation:click+navigate;operation:same_action_window",
+        "weight": 51
       },
       {
         "matched_rank_rules": [],
-        "rank_score": 76.0,
-        "stack": "task:repeat_state_single;task:repeat_signal_none;task:repeat_signal_loop-like",
-        "weight": 76
+        "rank_score": 51.0,
+        "stack": "operation:3plus+same_action_run;operation:1;operation:1+single;operation:1+single+ok",
+        "weight": 51
       },
       {
         "matched_rank_rules": [],
-        "rank_score": 69.0,
-        "stack": "task:repeat_state_single;task:repeat_signal_loop-like;task:repeat_run_1;task:repeat_signal_none",
-        "weight": 69
-      },
-      {
-        "matched_rank_rules": [],
-        "rank_score": 64.0,
-        "stack": "task:repeat_state_same-action-run;task:repeat_run_3plus;task:action_click;task:repeat_run_1",
-        "weight": 64
-      },
-      {
-        "matched_rank_rules": [],
-        "rank_score": 41.0,
-        "stack": "task:repeat_state_same-action-run;task:repeat_run_1;task:repeat_state_single;task:repeat_signal_loop-like",
-        "weight": 41
-      },
-      {
-        "matched_rank_rules": [],
-        "rank_score": 27.0,
-        "stack": "task:repeat_state_same-action-run;task:repeat_run_1;task:repeat_state_same-action-window;task:action_fill",
-        "weight": 27
-      },
-      {
-        "matched_rank_rules": [],
-        "rank_score": 27.0,
-        "stack": "task:repeat_state_same-action-run;task:repeat_run_3plus;task:action_hover",
-        "weight": 27
-      },
-      {
-        "matched_rank_rules": [],
-        "rank_score": 26.0,
-        "stack": "task:repeat_state_single;task:repeat_signal_loop-like;task:repeat_run_3plus",
-        "weight": 26
+        "rank_score": 25.0,
+        "stack": "operation:3plus+same_action_run;operation:same_action_run+3plus;operation:hover;operation:same_action_run+3plus+hover",
+        "weight": 25
       },
       {
         "matched_rank_rules": [],
         "rank_score": 24.0,
-        "stack": "task:repeat_state_same-action-run;task:repeat_run_3plus;task:action_click;task:repeat_run_3plus",
+        "stack": "operation:3plus+same_action_run;operation:1",
         "weight": 24
       },
       {
         "matched_rank_rules": [],
-        "rank_score": 22.0,
-        "stack": "task:repeat_state_same-action-run;task:repeat_run_3plus;task:action_hover;task:action_click",
-        "weight": 22
+        "rank_score": 19.0,
+        "stack": "operation:3plus+same_action_run;operation:same_action_run+3plus;operation:click",
+        "weight": 19
       },
       {
         "matched_rank_rules": [],
-        "rank_score": 21.0,
-        "stack": "task:repeat_state_same-action-run;task:repeat_run_1;task:repeat_state_same-action-window;task:action_click",
-        "weight": 21
+        "rank_score": 13.0,
+        "stack": "operation:1+single;operation:right-segment;operation:single;operation:go_back",
+        "weight": 13
+      },
+      {
+        "matched_rank_rules": [],
+        "rank_score": 13.0,
+        "stack": "operation:3plus+same_action_run;operation:1;operation:1+single;operation:3plus+same_action_run+error",
+        "weight": 13
+      },
+      {
+        "matched_rank_rules": [],
+        "rank_score": 11.0,
+        "stack": "operation:3plus+same_action_run;operation:same_action_run+3plus;operation:click;operation:1+single",
+        "weight": 11
+      },
+      {
+        "matched_rank_rules": [],
+        "rank_score": 9.0,
+        "stack": "operation:1+single;operation:click;operation:left-segment;operation:single",
+        "weight": 9
+      },
+      {
+        "matched_rank_rules": [],
+        "rank_score": 6.0,
+        "stack": "operation:1+single;operation:click;operation:left-segment;operation:noop+observe+same_action_run",
+        "weight": 6
+      },
+      {
+        "matched_rank_rules": [],
+        "rank_score": 6.0,
+        "stack": "operation:1+single;operation:right-segment;operation:same_action_window+goto;operation:click+same_action_window",
+        "weight": 6
       }
     ],
     "unique_stacks": 15,
     "view": "agentreward-overview"
   },
   "agentreward-session": {
-    "all_frames_are_task": true,
+    "all_frames_are_induced_operation": true,
     "allow_session": true,
-    "compression_ratio": 48.6,
+    "compression_ratio": 45.563,
+    "induce_operation_stack": true,
     "induce_task_stack": true,
-    "max_stack_reuse": 130,
+    "max_stack_reuse": 504,
     "operations": 729,
     "oracle_source_field_overlap": [],
-    "selected_source_fields": [
+    "selected_evidence_fields": [
+      "action",
+      "phase",
       "repeat_run",
-      "repeat_signal",
       "repeat_state",
       "session"
     ],
-    "split_decision_count": 14,
+    "selected_source_fields": [
+      "action",
+      "phase",
+      "repeat_run",
+      "repeat_state",
+      "session"
+    ],
+    "split_decision_count": 15,
     "split_evidence_field_counts": {
-      "repeat_run": 4,
-      "repeat_signal": 4,
-      "repeat_state": 6,
-      "session": 13
+      "action": 8,
+      "phase": 2,
+      "repeat_run": 7,
+      "repeat_state": 10,
+      "session": 8
     },
     "split_source_field_counts": {
-      "repeat_run": 1,
-      "repeat_signal": 2,
-      "session": 11
+      "action": 4,
+      "repeat_run": 2,
+      "repeat_state": 2,
+      "session": 7
     },
-    "stack": "task",
+    "stack": "operation",
     "stack_depth_histogram": {
-      "2": 7,
-      "3": 6,
-      "4": 2
+      "3": 2,
+      "4": 14
     },
     "statuses": {
       "folded": {
@@ -355,7 +380,7 @@
           "folded",
           "--output",
           "docs/visexp/out/rust-task-stack-induction-r402/agentreward-session.folded",
-          "--induce-task-stack",
+          "--induce-operation-stack",
           "--deterministic-output",
           "--where",
           "dataset=agent-reward-bench",
@@ -371,11 +396,13 @@
         "format": "folded",
         "induce_allow_session": true,
         "induce_max_depth": 4,
+        "induce_operation_stack": true,
         "induce_query_terms": [
           "loop",
           "repeat"
         ],
         "induce_task_stack": true,
+        "induced_stack_field": "operation",
         "op_map_files": [],
         "op_maps": [],
         "operation_files": [
@@ -389,13 +416,13 @@
         "rank_rules": [],
         "sample_type": "operations",
         "samples": 729,
-        "stack": "task",
+        "stack": "operation",
         "stack_rules": [],
         "standard_trace_events": null,
         "standard_trace_format": null,
         "standard_trace_output": null,
         "status": "ok",
-        "unique_stacks": 15,
+        "unique_stacks": 16,
         "unit": "count",
         "view": "operations",
         "warnings": [],
@@ -419,7 +446,7 @@
           "json",
           "--output",
           "docs/visexp/out/rust-task-stack-induction-r402/agentreward-session.json",
-          "--induce-task-stack",
+          "--induce-operation-stack",
           "--deterministic-output",
           "--where",
           "dataset=agent-reward-bench",
@@ -435,11 +462,13 @@
         "format": "json",
         "induce_allow_session": true,
         "induce_max_depth": 4,
+        "induce_operation_stack": true,
         "induce_query_terms": [
           "loop",
           "repeat"
         ],
         "induce_task_stack": true,
+        "induced_stack_field": "operation",
         "op_map_files": [],
         "op_maps": [],
         "operation_files": [
@@ -453,13 +482,13 @@
         "rank_rules": [],
         "sample_type": "operations",
         "samples": 729,
-        "stack": "task",
+        "stack": "operation",
         "stack_rules": [],
         "standard_trace_events": null,
         "standard_trace_format": null,
         "standard_trace_output": null,
         "status": "ok",
-        "unique_stacks": 15,
+        "unique_stacks": 16,
         "unit": "count",
         "view": "operations",
         "warnings": [],
@@ -483,7 +512,7 @@
           "svg",
           "--output",
           "docs/visexp/out/rust-task-stack-induction-r402/agentreward-session.svg",
-          "--induce-task-stack",
+          "--induce-operation-stack",
           "--deterministic-output",
           "--where",
           "dataset=agent-reward-bench",
@@ -501,11 +530,13 @@
         "format": "svg",
         "induce_allow_session": true,
         "induce_max_depth": 4,
+        "induce_operation_stack": true,
         "induce_query_terms": [
           "loop",
           "repeat"
         ],
         "induce_task_stack": true,
+        "induced_stack_field": "operation",
         "op_map_files": [],
         "op_maps": [],
         "operation_files": [
@@ -519,13 +550,13 @@
         "rank_rules": [],
         "sample_type": "operations",
         "samples": 729,
-        "stack": "task",
+        "stack": "operation",
         "stack_rules": [],
         "standard_trace_events": null,
         "standard_trace_format": null,
         "standard_trace_output": null,
         "status": "ok",
-        "unique_stacks": 15,
+        "unique_stacks": 16,
         "unit": "count",
         "view": "operations",
         "warnings": [],
@@ -536,85 +567,84 @@
       }
     },
     "stop_reasons": {
-      "max_depth": 14,
-      "no_material_split": 1
+      "max_depth": 16
     },
-    "title": "Rust induced task stack with session candidate",
+    "title": "Rust induced operation stack with session candidate",
     "top_stacks": [
       {
         "matched_rank_rules": [],
-        "rank_score": 130.0,
-        "stack": "task:session_workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:session_workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2",
-        "weight": 130
+        "rank_score": 504.0,
+        "stack": "operation:1+single;operation:click;operation:click+navigate;operation:single",
+        "weight": 504
       },
       {
         "matched_rank_rules": [],
-        "rank_score": 77.0,
-        "stack": "task:session_workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:session_workarena.servicenow.dashboard-retrieve-catalog-and-max-order-apple-watch-l2;task:repeat_signal_loop-like",
-        "weight": 77
-      },
-      {
-        "matched_rank_rules": [],
-        "rank_score": 61.0,
-        "stack": "task:session_visualwebarena.resized.580;task:session_assistantbench.improved.validation.17;task:session_assistantbench.improved.validation.9",
-        "weight": 61
-      },
-      {
-        "matched_rank_rules": [],
-        "rank_score": 60.0,
-        "stack": "task:session_visualwebarena.resized.580;task:session_assistantbench.improved.validation.15;task:session_visualwebarena.88",
-        "weight": 60
-      },
-      {
-        "matched_rank_rules": [],
-        "rank_score": 60.0,
-        "stack": "task:session_workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:repeat_signal_loop-like",
-        "weight": 60
-      },
-      {
-        "matched_rank_rules": [],
-        "rank_score": 60.0,
-        "stack": "task:session_workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:session_workarena.servicenow.dashboard-retrieve-catalog-and-max-order-apple-watch-l2;task:session_workarena.servicenow.two-changes-wide-basic-uniform-risk-change-request-scheduling-l2",
-        "weight": 60
-      },
-      {
-        "matched_rank_rules": [],
-        "rank_score": 48.0,
-        "stack": "task:session_visualwebarena.resized.580;task:repeat_run_1",
-        "weight": 48
-      },
-      {
-        "matched_rank_rules": [],
-        "rank_score": 39.0,
-        "stack": "task:session_workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:session_workarena.servicenow.dashboard-retrieve-catalog-and-max-order-apple-watch-l2;task:session_workarena.servicenow.two-changes-wide-basic-uniform-risk-change-request-scheduling-l2;task:session_workarena.servicenow.two-changes-wide-priority-uniform-risk-change-request-scheduling-l2",
-        "weight": 39
-      },
-      {
-        "matched_rank_rules": [],
-        "rank_score": 34.0,
-        "stack": "task:session_visualwebarena.resized.580;task:session_assistantbench.improved.validation.17",
-        "weight": 34
+        "rank_score": 32.0,
+        "stack": "operation:1+single;operation:click;operation:click+navigate;operation:workarena_servicenow_dashboard_retrieve_catalog+same_action_run",
+        "weight": 32
       },
       {
         "matched_rank_rules": [],
         "rank_score": 30.0,
-        "stack": "task:session_visualwebarena.resized.580;task:repeat_run_3plus",
+        "stack": "operation:3plus+same_action_run;operation:1;operation:assistantbench_improved_validation_15+1+single;operation:assistantbench_improved_validation_15",
         "weight": 30
       },
       {
         "matched_rank_rules": [],
-        "rank_score": 30.0,
-        "stack": "task:session_visualwebarena.resized.580;task:session_assistantbench.improved.validation.15",
-        "weight": 30
+        "rank_score": 28.0,
+        "stack": "operation:3plus+same_action_run;operation:1;operation:assistantbench_improved_validation_15+1+single;operation:assistantbench_improved_validation_16",
+        "weight": 28
       },
       {
         "matched_rank_rules": [],
-        "rank_score": 30.0,
-        "stack": "task:session_visualwebarena.resized.580;task:session_assistantbench.improved.validation.15;task:session_visualwebarena.76",
-        "weight": 30
+        "rank_score": 25.0,
+        "stack": "operation:3plus+same_action_run;operation:visualwebarena_88+same_action_run+3plus;operation:visualwebarena_88+hover;operation:same_action_run+3plus+hover",
+        "weight": 25
+      },
+      {
+        "matched_rank_rules": [],
+        "rank_score": 24.0,
+        "stack": "operation:3plus+same_action_run;operation:1;operation:visualwebarena_76+3plus+same_action_run",
+        "weight": 24
+      },
+      {
+        "matched_rank_rules": [],
+        "rank_score": 19.0,
+        "stack": "operation:3plus+same_action_run;operation:visualwebarena_88+same_action_run+3plus;operation:webarena_723+click",
+        "weight": 19
+      },
+      {
+        "matched_rank_rules": [],
+        "rank_score": 13.0,
+        "stack": "operation:1+single;operation:assistantbench_improved_validation_17;operation:single;operation:go_back",
+        "weight": 13
+      },
+      {
+        "matched_rank_rules": [],
+        "rank_score": 11.0,
+        "stack": "operation:3plus+same_action_run;operation:visualwebarena_88+same_action_run+3plus;operation:webarena_723+click;operation:1+single",
+        "weight": 11
+      },
+      {
+        "matched_rank_rules": [],
+        "rank_score": 9.0,
+        "stack": "operation:1+single;operation:click;operation:webarena_155;operation:single",
+        "weight": 9
+      },
+      {
+        "matched_rank_rules": [],
+        "rank_score": 6.0,
+        "stack": "operation:1+single;operation:assistantbench_improved_validation_17;operation:same_action_window+goto;operation:click+same_action_window",
+        "weight": 6
+      },
+      {
+        "matched_rank_rules": [],
+        "rank_score": 6.0,
+        "stack": "operation:1+single;operation:assistantbench_improved_validation_17;operation:same_action_window+goto;operation:goto+single",
+        "weight": 6
       }
     ],
-    "unique_stacks": 15,
+    "unique_stacks": 16,
     "view": "agentreward-session"
   }
 }

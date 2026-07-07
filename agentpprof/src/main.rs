@@ -13,7 +13,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use profile::{
-    OperationStackConfig, OutputFormat, ProfileView, StackRankMode, TaskStackInductionConfig,
+    OperationStackConfig, OperationStackInductionConfig, OutputFormat, ProfileView, StackRankMode,
     build_profile_from_operation_records, build_profile_with_options, infer_output_format,
     parse_operation_filters, parse_operation_rank_rules, parse_stack_rank_rules, parse_stack_rules,
     parse_stack_rules_with_flag, parse_stack_spec, profile_to_stacks, read_operation_record_values,
@@ -83,11 +83,11 @@ OPERATION STACK QUERY WORKFLOW:
 
      agentpprof --profile-spec agentnet-diagnostic-spec.json
 
-  --induce-task-stack derives a recursive multi-value task field before
+  --induce-operation-stack derives a recursive operation-stack path before
   folding. The user supplies predicates and optional query terms, not a stack
   field chain; adjacent operation boundaries are scored from visible evidence
   such as action, effect, process, prompt tags, or an explicitly allowed
-  session field, while the rendered stack is task-only.
+  session field. Evidence fields explain a boundary; they are not stack levels.
 "#;
 
 #[derive(Parser)]
@@ -141,16 +141,19 @@ struct Cli {
     /// Choose how JSON rank rules order stack groups.
     #[arg(long = "rank-mode", value_enum)]
     rank_mode: Option<CliRankMode>,
-    /// Derive a recursive task field from visible operation fields, then fold as --stack task.
+    /// Derive a recursive operation-stack path from visible operation fields.
+    #[arg(long = "induce-operation-stack")]
+    induce_operation_stack: bool,
+    /// Deprecated compatibility alias for --induce-operation-stack.
     #[arg(long = "induce-task-stack")]
     induce_task_stack: bool,
     /// Allow session/prompt-instance fields to be considered as induction split evidence.
     #[arg(long = "induce-allow-session")]
     induce_allow_session: bool,
-    /// Maximum depth for --induce-task-stack.
+    /// Maximum depth for --induce-operation-stack.
     #[arg(long = "induce-max-depth")]
     induce_max_depth: Option<usize>,
-    /// Query terms used by --induce-task-stack to prefer relevant visible splits.
+    /// Query terms used by --induce-operation-stack to prefer relevant visible splits.
     #[arg(long = "induce-query-term", value_name = "TERM")]
     induce_query_terms: Vec<String>,
     /// Write byte-stable profiles by replacing output timestamps with fixed values.
@@ -303,6 +306,7 @@ struct ProfileSpec {
     rank_rules: Vec<String>,
     rank_op_rules: Vec<String>,
     rank_mode: Option<CliRankMode>,
+    induce_operation_stack: Option<bool>,
     induce_task_stack: Option<bool>,
     induce_allow_session: Option<bool>,
     induce_max_depth: Option<usize>,
@@ -337,6 +341,7 @@ struct RawProfileSpec {
     #[serde(default)]
     rank_op_rules: Vec<String>,
     rank_mode: Option<String>,
+    induce_operation_stack: Option<bool>,
     induce_task_stack: Option<bool>,
     induce_allow_session: Option<bool>,
     induce_max_depth: Option<usize>,
@@ -396,21 +401,30 @@ fn command_export(args: Cli) -> Result<()> {
     let view = cli_view.into();
     let mut profile_options = OperationStackConfig::for_view(view);
     let stack = args.stack.as_deref().or(spec.stack.as_deref());
-    let induce_task_stack = args.induce_task_stack || spec.induce_task_stack.unwrap_or(false);
+    let requested_operation_induction =
+        args.induce_operation_stack || spec.induce_operation_stack.unwrap_or(false);
+    let requested_legacy_task_induction =
+        args.induce_task_stack || spec.induce_task_stack.unwrap_or(false);
+    let induce_operation_stack = requested_operation_induction || requested_legacy_task_induction;
+    let induced_stack_field = if requested_operation_induction {
+        "operation"
+    } else {
+        "task"
+    };
     let induce_allow_session =
         args.induce_allow_session || spec.induce_allow_session.unwrap_or(false);
     let induce_max_depth = args.induce_max_depth.or(spec.induce_max_depth).unwrap_or(4);
     let induce_query_terms = merge_cli_first(&args.induce_query_terms, &spec.induce_query_terms);
-    let effective_stack_name = if induce_task_stack {
+    let effective_stack_name = if induce_operation_stack {
         if let Some(stack) = stack
-            && stack.trim() != "task"
+            && stack.trim() != induced_stack_field
         {
             bail!(
-                "--induce-task-stack derives and folds task frames; omit --stack or use --stack task"
+                "--induce-operation-stack derives a recursive operation-stack path; omit --stack or use --stack {induced_stack_field}"
             );
         }
-        profile_options = profile_options.with_stack(parse_stack_spec("task")?);
-        "task"
+        profile_options = profile_options.with_stack(parse_stack_spec(induced_stack_field)?);
+        induced_stack_field
     } else if let Some(stack) = stack {
         profile_options = profile_options.with_stack(parse_stack_spec(stack)?);
         stack
@@ -446,9 +460,10 @@ fn command_export(args: Cli) -> Result<()> {
         .with_rank_rules(parse_stack_rank_rules(&rank_rules)?)
         .with_rank_operation_rules(parse_operation_rank_rules(&rank_op_rules)?)
         .with_rank_mode(rank_mode.into());
-    if induce_task_stack {
-        profile_options = profile_options.with_task_stack_induction(
-            TaskStackInductionConfig::new()
+    if induce_operation_stack {
+        profile_options = profile_options.with_operation_stack_induction(
+            OperationStackInductionConfig::new()
+                .with_derived_field(induced_stack_field)
                 .with_allow_session(induce_allow_session)
                 .with_max_depth(induce_max_depth)
                 .with_query_terms(induce_query_terms.clone()),
@@ -500,7 +515,9 @@ fn command_export(args: Cli) -> Result<()> {
             "unit": profile.unit,
             "profile_specs": args.profile_specs,
             "stack": effective_stack_name,
-            "induce_task_stack": induce_task_stack,
+            "induce_operation_stack": induce_operation_stack,
+            "induce_task_stack": induce_operation_stack,
+            "induced_stack_field": induced_stack_field,
             "induce_allow_session": induce_allow_session,
             "induce_max_depth": induce_max_depth,
             "induce_query_terms": induce_query_terms.clone(),
@@ -579,7 +596,9 @@ fn command_export(args: Cli) -> Result<()> {
             "unit": profile.unit,
             "profile_specs": args.profile_specs,
             "stack": effective_stack_name,
-            "induce_task_stack": induce_task_stack,
+            "induce_operation_stack": induce_operation_stack,
+            "induce_task_stack": induce_operation_stack,
+            "induced_stack_field": induced_stack_field,
             "induce_allow_session": induce_allow_session,
             "induce_max_depth": induce_max_depth,
             "induce_query_terms": induce_query_terms.clone(),
@@ -728,7 +747,9 @@ fn command_export(args: Cli) -> Result<()> {
         },
         "standard_trace_events": standard_trace_events,
         "stack": effective_stack_name,
-        "induce_task_stack": induce_task_stack,
+        "induce_operation_stack": induce_operation_stack,
+        "induce_task_stack": induce_operation_stack,
+        "induced_stack_field": induced_stack_field,
         "induce_allow_session": induce_allow_session,
         "induce_max_depth": induce_max_depth,
         "induce_query_terms": induce_query_terms.clone(),
@@ -911,6 +932,7 @@ fn normalize_profile_spec(raw: RawProfileSpec, base: &Path) -> Result<ProfileSpe
             .as_deref()
             .map(parse_spec_rank_mode)
             .transpose()?,
+        induce_operation_stack: raw.induce_operation_stack,
         induce_task_stack: raw.induce_task_stack,
         induce_allow_session: raw.induce_allow_session,
         induce_max_depth: raw.induce_max_depth,
@@ -1029,6 +1051,9 @@ impl ProfileSpec {
         }
         if next.induce_task_stack.is_some() {
             self.induce_task_stack = next.induce_task_stack;
+        }
+        if next.induce_operation_stack.is_some() {
+            self.induce_operation_stack = next.induce_operation_stack;
         }
         if next.induce_allow_session.is_some() {
             self.induce_allow_session = next.induce_allow_session;

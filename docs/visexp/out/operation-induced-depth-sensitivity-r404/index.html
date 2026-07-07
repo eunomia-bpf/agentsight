@@ -10,27 +10,27 @@ th { background: #edf2f7; }
 </style>
 <h1>R404 Induced Stack Depth Sensitivity</h1>
 <p class="note">Induced stack depth is a real profile-configuration knob: sweeping depths [1, 2, 3, 4, 5] changes hidden-label fidelity, inspection work, and fragmentation on the same six real labeled tasks without syncing new data or using hidden labels during profiling.</p>
-<p class="note">The sweep is a post-hoc mechanism analysis, not an automatic depth selector. The median-AP best depth is 4 (AP 0.3034), while the lowest median work@5 depth is 5 (work 0.1067).</p>
+<p class="note">The sweep is a post-hoc mechanism analysis, not an automatic depth selector. The median-AP best depth is 3 (AP 0.2865), while the lowest median work@5 depth is 5 (work 0.4727).</p>
 <table>
 <thead><tr><th>Depth</th><th>Ranker</th><th>Median AP</th><th>Median work@5</th><th>Median budget30 recall</th><th>Median groups</th></tr></thead>
-<tbody><tr><td>1</td><td>oracle_upper_bound</td><td>0.2086</td><td>1.0</td><td>0.0</td><td>2.0</td></tr>
-<tr><td>1</td><td>query_aware</td><td>0.1688</td><td>1.0</td><td>0.0</td><td>2.0</td></tr>
-<tr><td>1</td><td>visible_risk</td><td>0.1688</td><td>1.0</td><td>0.0</td><td>2.0</td></tr>
-<tr><td>1</td><td>width</td><td>0.2066</td><td>1.0</td><td>0.0</td><td>2.0</td></tr>
-<tr><td>2</td><td>oracle_upper_bound</td><td>0.2223</td><td>1.0</td><td>0.2709</td><td>4.0</td></tr>
-<tr><td>2</td><td>query_aware</td><td>0.1548</td><td>1.0</td><td>0.1446</td><td>4.0</td></tr>
-<tr><td>2</td><td>visible_risk</td><td>0.1537</td><td>1.0</td><td>0.1446</td><td>4.0</td></tr>
-<tr><td>2</td><td>width</td><td>0.2045</td><td>1.0</td><td>0.2709</td><td>4.0</td></tr>
-<tr><td>3</td><td>oracle_upper_bound</td><td>0.338</td><td>0.7224</td><td>0.3606</td><td>7.5</td></tr>
-<tr><td>3</td><td>query_aware</td><td>0.3009</td><td>0.7612</td><td>0.3371</td><td>7.5</td></tr>
-<tr><td>3</td><td>visible_risk</td><td>0.1572</td><td>0.7111</td><td>0.2004</td><td>7.5</td></tr>
-<tr><td>3</td><td>width</td><td>0.1855</td><td>0.8837</td><td>0.315</td><td>7.5</td></tr>
-<tr><td>4</td><td>oracle_upper_bound</td><td>0.4559</td><td>0.4721</td><td>0.3961</td><td>15.0</td></tr>
-<tr><td>4</td><td>query_aware</td><td>0.3034</td><td>0.2819</td><td>0.276</td><td>15.0</td></tr>
-<tr><td>4</td><td>visible_risk</td><td>0.1459</td><td>0.3869</td><td>0.276</td><td>15.0</td></tr>
-<tr><td>4</td><td>width</td><td>0.1377</td><td>0.744</td><td>0.3241</td><td>15.0</td></tr>
-<tr><td>5</td><td>oracle_upper_bound</td><td>0.5269</td><td>0.3772</td><td>0.4003</td><td>28.0</td></tr>
-<tr><td>5</td><td>query_aware</td><td>0.2993</td><td>0.1067</td><td>0.2795</td><td>28.0</td></tr>
-<tr><td>5</td><td>visible_risk</td><td>0.1491</td><td>0.0754</td><td>0.2789</td><td>28.0</td></tr>
-<tr><td>5</td><td>width</td><td>0.1363</td><td>0.6399</td><td>0.2602</td><td>28.0</td></tr></tbody>
+<tbody><tr><td>1</td><td>oracle_upper_bound</td><td>0.21</td><td>1.0</td><td>0.0</td><td>2.0</td></tr>
+<tr><td>1</td><td>query_aware</td><td>0.1702</td><td>1.0</td><td>0.0</td><td>2.0</td></tr>
+<tr><td>1</td><td>visible_risk</td><td>0.1702</td><td>1.0</td><td>0.0</td><td>2.0</td></tr>
+<tr><td>1</td><td>width</td><td>0.21</td><td>1.0</td><td>0.0</td><td>2.0</td></tr>
+<tr><td>2</td><td>oracle_upper_bound</td><td>0.2114</td><td>1.0</td><td>0.1243</td><td>4.0</td></tr>
+<tr><td>2</td><td>query_aware</td><td>0.1635</td><td>1.0</td><td>0.0923</td><td>4.0</td></tr>
+<tr><td>2</td><td>visible_risk</td><td>0.1624</td><td>1.0</td><td>0.0923</td><td>4.0</td></tr>
+<tr><td>2</td><td>width</td><td>0.1948</td><td>1.0</td><td>0.1243</td><td>4.0</td></tr>
+<tr><td>3</td><td>oracle_upper_bound</td><td>0.2873</td><td>0.9503</td><td>0.144</td><td>7.0</td></tr>
+<tr><td>3</td><td>query_aware</td><td>0.2865</td><td>0.8753</td><td>0.1099</td><td>7.0</td></tr>
+<tr><td>3</td><td>visible_risk</td><td>0.1573</td><td>0.8942</td><td>0.0844</td><td>7.0</td></tr>
+<tr><td>3</td><td>width</td><td>0.1856</td><td>0.9688</td><td>0.144</td><td>7.0</td></tr>
+<tr><td>4</td><td>oracle_upper_bound</td><td>0.3042</td><td>0.8095</td><td>0.1787</td><td>12.0</td></tr>
+<tr><td>4</td><td>query_aware</td><td>0.2762</td><td>0.653</td><td>0.1505</td><td>12.0</td></tr>
+<tr><td>4</td><td>visible_risk</td><td>0.1514</td><td>0.7735</td><td>0.1518</td><td>12.0</td></tr>
+<tr><td>4</td><td>width</td><td>0.1806</td><td>0.9122</td><td>0.1518</td><td>12.0</td></tr>
+<tr><td>5</td><td>oracle_upper_bound</td><td>0.3582</td><td>0.6886</td><td>0.1835</td><td>16.5</td></tr>
+<tr><td>5</td><td>query_aware</td><td>0.2478</td><td>0.4727</td><td>0.1636</td><td>16.5</td></tr>
+<tr><td>5</td><td>visible_risk</td><td>0.1505</td><td>0.4283</td><td>0.1519</td><td>16.5</td></tr>
+<tr><td>5</td><td>width</td><td>0.1786</td><td>0.876</td><td>0.1505</td><td>16.5</td></tr></tbody>
 </table>

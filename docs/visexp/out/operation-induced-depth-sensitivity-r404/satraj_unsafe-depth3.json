@@ -1,105 +1,9 @@
 {
   "generated_at": "1970-01-01T00:00:00Z",
   "profile": {
-    "ranking": {
-      "groups": 7,
-      "limit": 7,
-      "policy": "width",
-      "rank_operation_rules": [],
-      "rank_rules": [],
-      "top": [
-        {
-          "matched_rank_rules": [],
-          "rank_score": 1549.0,
-          "stack": "task:repeat_signal_none;task:repeat_signal_loop-like;task:phase_navigate",
-          "weight": 1549
-        },
-        {
-          "matched_rank_rules": [],
-          "rank_score": 1391.0,
-          "stack": "task:repeat_signal_loop-like",
-          "weight": 1391
-        },
-        {
-          "matched_rank_rules": [],
-          "rank_score": 908.0,
-          "stack": "task:repeat_signal_none;task:phase_navigate+repeat_signal_none",
-          "weight": 908
-        },
-        {
-          "matched_rank_rules": [],
-          "rank_score": 226.0,
-          "stack": "task:repeat_signal_none;task:phase_input+repeat_signal_loop-like",
-          "weight": 226
-        },
-        {
-          "matched_rank_rules": [],
-          "rank_score": 85.0,
-          "stack": "task:repeat_signal_none;task:repeat_signal_loop-like;task:phase_input",
-          "weight": 85
-        },
-        {
-          "matched_rank_rules": [],
-          "rank_score": 81.0,
-          "stack": "task:repeat_signal_loop-like;task:repeat_signal_none",
-          "weight": 81
-        },
-        {
-          "matched_rank_rules": [],
-          "rank_score": 45.0,
-          "stack": "task:repeat_signal_loop-like;task:repeat_signal_none;task:repeat_signal_loop-like",
-          "weight": 45
-        }
-      ]
-    },
-    "sample_type": "operations",
-    "stacks": {
-      "task:repeat_signal_loop-like": 1391,
-      "task:repeat_signal_loop-like;task:repeat_signal_none": 81,
-      "task:repeat_signal_loop-like;task:repeat_signal_none;task:repeat_signal_loop-like": 45,
-      "task:repeat_signal_none;task:phase_input+repeat_signal_loop-like": 226,
-      "task:repeat_signal_none;task:phase_navigate+repeat_signal_none": 908,
-      "task:repeat_signal_none;task:repeat_signal_loop-like;task:phase_input": 85,
-      "task:repeat_signal_none;task:repeat_signal_loop-like;task:phase_navigate": 1549
-    },
-    "summary": {
-      "compression_ratio": 612.143,
-      "max_stack_reuse": 1549,
-      "top": [
-        {
-          "stack": "task:repeat_signal_none;task:repeat_signal_loop-like;task:phase_navigate",
-          "weight": 1549
-        },
-        {
-          "stack": "task:repeat_signal_loop-like",
-          "weight": 1391
-        },
-        {
-          "stack": "task:repeat_signal_none;task:phase_navigate+repeat_signal_none",
-          "weight": 908
-        },
-        {
-          "stack": "task:repeat_signal_none;task:phase_input+repeat_signal_loop-like",
-          "weight": 226
-        },
-        {
-          "stack": "task:repeat_signal_none;task:repeat_signal_loop-like;task:phase_input",
-          "weight": 85
-        },
-        {
-          "stack": "task:repeat_signal_loop-like;task:repeat_signal_none",
-          "weight": 81
-        },
-        {
-          "stack": "task:repeat_signal_loop-like;task:repeat_signal_none;task:repeat_signal_loop-like",
-          "weight": 45
-        }
-      ],
-      "total_weight": 4285,
-      "unique_stacks": 7
-    },
-    "task_stack_induction": {
+    "operation_stack_induction": {
       "allow_session": false,
+      "derived_stack_field": "operation",
       "excluded_oracle_fields": [
         "annotator",
         "attack",
@@ -165,16 +69,23 @@
       "max_majority_fraction": 0.985,
       "min_score": 0.055,
       "min_second_child": 5,
-      "policy": "query-conditioned-recursive-boundary-task-stack-induction",
+      "objective": "recursive boundary segmentation over operations; fields are evidence, not stack levels",
+      "policy": "query-conditioned-recursive-boundary-operation-stack-induction",
+      "selected_evidence_fields": [
+        "phase",
+        "repeat_signal"
+      ],
       "selected_source_fields": [
         "phase",
         "repeat_signal"
       ],
       "split_decisions": [
         {
+          "boundary_id": "b1517",
           "candidate_scores": [
             {
               "balance": 0.937612,
+              "boundary_id": "b1517",
               "cardinality_penalty": 0.082882,
               "changed_field_fraction": 0.25,
               "changed_fields": [
@@ -187,21 +98,27 @@
               ],
               "field": "repeat_signal",
               "groups": {
-                "repeat_signal=loop-like": 1517,
-                "repeat_signal=none": 2768
+                "loop_like": 1517,
+                "none": 2768
               },
-              "left_label": "repeat_signal=loop-like",
+              "label_evidence": [
+                "left:repeat_signal=loop-like@0.751",
+                "right:repeat_signal=none@0.508"
+              ],
+              "label_quality": 0.594166,
+              "left_label": "loop_like",
               "left_weight": 1517,
               "query_bonus": 0.0,
-              "right_label": "repeat_signal=none",
+              "right_label": "none",
               "right_weight": 2768,
-              "score": 0.377462,
+              "score": 0.340541,
               "semantic_shift": 0.294118,
               "small_child_penalty": 0.0,
               "structural_gain": 0.314703
             },
             {
               "balance": 0.904838,
+              "boundary_id": "b1373",
               "cardinality_penalty": 0.082882,
               "changed_field_fraction": 0.25,
               "changed_fields": [
@@ -214,21 +131,27 @@
               ],
               "field": "repeat_signal",
               "groups": {
-                "repeat_signal=loop-like": 1373,
-                "repeat_signal=none": 2912
+                "loop_like": 1373,
+                "none": 2912
               },
-              "left_label": "repeat_signal=loop-like",
+              "label_evidence": [
+                "left:repeat_signal=loop-like@0.768",
+                "right:repeat_signal=none@0.504"
+              ],
+              "label_quality": 0.588564,
+              "left_label": "loop_like",
               "left_weight": 1373,
               "query_bonus": 0.0,
-              "right_label": "repeat_signal=none",
+              "right_label": "none",
               "right_weight": 2912,
-              "score": 0.370026,
+              "score": 0.332363,
               "semantic_shift": 0.294118,
               "small_child_penalty": 0.0,
               "structural_gain": 0.316803
             },
             {
               "balance": 0.907101,
+              "boundary_id": "b1382",
               "cardinality_penalty": 0.082882,
               "changed_field_fraction": 0.75,
               "changed_fields": [
@@ -243,21 +166,27 @@
               ],
               "field": "repeat_signal",
               "groups": {
-                "repeat_signal=loop-like": 1382,
-                "repeat_signal=none": 2903
+                "loop_like": 1382,
+                "none": 2903
               },
-              "left_label": "repeat_signal=loop-like",
+              "label_evidence": [
+                "left:repeat_signal=loop-like@0.763",
+                "right:repeat_signal=none@0.502"
+              ],
+              "label_quality": 0.586464,
+              "left_label": "loop_like",
               "left_weight": 1382,
               "query_bonus": 0.0,
-              "right_label": "repeat_signal=none",
+              "right_label": "none",
               "right_weight": 2903,
-              "score": 0.275027,
+              "score": 0.251551,
               "semantic_shift": 0.65,
               "small_child_penalty": 0.0,
               "structural_gain": 0.0351
             },
             {
               "balance": 0.943724,
+              "boundary_id": "b1548",
               "cardinality_penalty": 0.082882,
               "changed_field_fraction": 0.5,
               "changed_fields": [
@@ -271,21 +200,27 @@
               ],
               "field": "repeat_signal",
               "groups": {
-                "repeat_signal=loop-like": 1548,
-                "repeat_signal=none": 2737
+                "loop_like": 1548,
+                "none": 2737
               },
-              "left_label": "repeat_signal=loop-like",
+              "label_evidence": [
+                "left:repeat_signal=loop-like@0.756",
+                "right:repeat_signal=none@0.514"
+              ],
+              "label_quality": 0.6014,
+              "left_label": "loop_like",
               "left_weight": 1548,
               "query_bonus": 0.0,
-              "right_label": "repeat_signal=none",
+              "right_label": "none",
               "right_weight": 2737,
-              "score": 0.229045,
+              "score": 0.216309,
               "semantic_shift": 0.5,
               "small_child_penalty": 0.0,
               "structural_gain": 0.03802
             },
             {
               "balance": 0.717707,
+              "boundary_id": "b3437",
               "cardinality_penalty": 0.082882,
               "changed_field_fraction": 0.75,
               "changed_fields": [
@@ -300,21 +235,27 @@
               ],
               "field": "repeat_signal",
               "groups": {
-                "repeat_signal=loop-like": 3437,
-                "repeat_signal=none": 848
+                "loop_like": 3437,
+                "none": 848
               },
-              "left_label": "repeat_signal=loop-like",
+              "label_evidence": [
+                "left:repeat_signal=loop-like@0.605",
+                "right:repeat_signal=none@0.505"
+              ],
+              "label_quality": 0.585298,
+              "left_label": "loop_like",
               "left_weight": 3437,
               "query_bonus": 0.0,
-              "right_label": "repeat_signal=none",
+              "right_label": "none",
               "right_weight": 848,
-              "score": 0.228225,
+              "score": 0.209586,
               "semantic_shift": 0.636364,
               "small_child_penalty": 0.0,
               "structural_gain": 0.004137
             },
             {
               "balance": 0.934951,
+              "boundary_id": "b1504",
               "cardinality_penalty": 0.082882,
               "changed_field_fraction": 0.5,
               "changed_fields": [
@@ -328,48 +269,60 @@
               ],
               "field": "repeat_signal",
               "groups": {
-                "repeat_signal=loop-like": 1504,
-                "repeat_signal=none": 2781
+                "loop_like": 1504,
+                "none": 2781
               },
-              "left_label": "repeat_signal=loop-like",
+              "label_evidence": [
+                "left:repeat_signal=loop-like@0.757",
+                "right:repeat_signal=none@0.511"
+              ],
+              "label_quality": 0.5972,
+              "left_label": "loop_like",
               "left_weight": 1504,
               "query_bonus": 0.0,
-              "right_label": "repeat_signal=none",
+              "right_label": "none",
               "right_weight": 2781,
-              "score": 0.216042,
+              "score": 0.203639,
               "semantic_shift": 0.444444,
               "small_child_penalty": 0.0,
               "structural_gain": 0.037045
             },
             {
-              "balance": 0.92902,
+              "balance": 0.947679,
+              "boundary_id": "b1569",
               "cardinality_penalty": 0.082882,
               "changed_field_fraction": 0.25,
               "changed_fields": [
-                "action"
+                "repeat_state"
               ],
-              "coverage": 0.344457,
-              "cut_after": 1476,
+              "coverage": 0.366161,
+              "cut_after": 1569,
               "evidence_fields": [
                 "repeat_signal"
               ],
               "field": "repeat_signal",
               "groups": {
-                "repeat_signal=loop-like": 1476,
-                "repeat_signal=none": 2809
+                "loop_like": 1569,
+                "none": 2716
               },
-              "left_label": "repeat_signal=loop-like",
-              "left_weight": 1476,
+              "label_evidence": [
+                "left:repeat_signal=loop-like@0.756",
+                "right:repeat_signal=none@0.516"
+              ],
+              "label_quality": 0.603967,
+              "left_label": "loop_like",
+              "left_weight": 1569,
               "query_bonus": 0.0,
-              "right_label": "repeat_signal=none",
-              "right_weight": 2809,
-              "score": 0.156774,
-              "semantic_shift": 0.294118,
+              "right_label": "none",
+              "right_weight": 2716,
+              "score": 0.153403,
+              "semantic_shift": 0.25,
               "small_child_penalty": 0.0,
-              "structural_gain": 0.035785
+              "structural_gain": 0.038854
             },
             {
               "balance": 0.954283,
+              "boundary_id": "b1606",
               "cardinality_penalty": 0.082882,
               "changed_field_fraction": 0.25,
               "changed_fields": [
@@ -382,24 +335,34 @@
               ],
               "field": "repeat_signal",
               "groups": {
-                "repeat_signal=loop-like": 1606,
-                "repeat_signal=none": 2679
+                "loop_like": 1606,
+                "none": 2679
               },
-              "left_label": "repeat_signal=loop-like",
+              "label_evidence": [
+                "left:repeat_signal=loop-like@0.746",
+                "right:repeat_signal=none@0.514"
+              ],
+              "label_quality": 0.600934,
+              "left_label": "loop_like",
               "left_weight": 1606,
               "query_bonus": 0.0,
-              "right_label": "repeat_signal=none",
+              "right_label": "none",
               "right_weight": 2679,
-              "score": 0.156305,
+              "score": 0.153255,
               "semantic_shift": 0.25,
               "small_child_penalty": 0.0,
               "structural_gain": 0.035659
             }
           ],
+          "evidence_fields": [
+            "repeat_signal"
+          ],
           "node_weight": 4285,
           "path": [],
+          "primary_evidence_field": "repeat_signal",
           "selected_score": {
             "balance": 0.937612,
+            "boundary_id": "b1517",
             "cardinality_penalty": 0.082882,
             "changed_field_fraction": 0.25,
             "changed_fields": [
@@ -412,15 +375,20 @@
             ],
             "field": "repeat_signal",
             "groups": {
-              "repeat_signal=loop-like": 1517,
-              "repeat_signal=none": 2768
+              "loop_like": 1517,
+              "none": 2768
             },
-            "left_label": "repeat_signal=loop-like",
+            "label_evidence": [
+              "left:repeat_signal=loop-like@0.751",
+              "right:repeat_signal=none@0.508"
+            ],
+            "label_quality": 0.594166,
+            "left_label": "loop_like",
             "left_weight": 1517,
             "query_bonus": 0.0,
-            "right_label": "repeat_signal=none",
+            "right_label": "none",
             "right_weight": 2768,
-            "score": 0.377462,
+            "score": 0.340541,
             "semantic_shift": 0.294118,
             "small_child_penalty": 0.0,
             "structural_gain": 0.314703
@@ -428,9 +396,11 @@
           "source_field": "repeat_signal"
         },
         {
+          "boundary_id": "b1453",
           "candidate_scores": [
             {
               "balance": 0.252238,
+              "boundary_id": "b1453",
               "cardinality_penalty": 0.094626,
               "changed_field_fraction": 0.25,
               "changed_fields": [
@@ -443,21 +413,27 @@
               ],
               "field": "repeat_signal",
               "groups": {
-                "repeat_signal=loop-like": 1453,
-                "repeat_signal=none": 64
+                "loop_like": 1453,
+                "none": 64
               },
-              "left_label": "repeat_signal=loop-like",
+              "label_evidence": [
+                "left:repeat_signal=loop-like@0.765",
+                "right:repeat_signal=none@0.563"
+              ],
+              "label_quality": 0.756098,
+              "left_label": "loop_like",
               "left_weight": 1453,
               "query_bonus": 0.0,
-              "right_label": "repeat_signal=none",
+              "right_label": "none",
               "right_weight": 64,
-              "score": 0.302109,
+              "score": 0.315041,
               "semantic_shift": 0.294118,
               "small_child_penalty": 0.0,
               "structural_gain": 0.292629
             },
             {
               "balance": 0.246268,
+              "boundary_id": "b0062",
               "cardinality_penalty": 0.094626,
               "changed_field_fraction": 0.75,
               "changed_fields": [
@@ -472,21 +448,27 @@
               ],
               "field": "repeat_signal",
               "groups": {
-                "repeat_signal=loop-like": 1455,
-                "repeat_signal=none": 62
+                "loop_like": 1455,
+                "none": 62
               },
-              "left_label": "repeat_signal=none",
+              "label_evidence": [
+                "left:repeat_signal=none@0.516",
+                "right:repeat_signal=loop-like@0.762"
+              ],
+              "label_quality": 0.752142,
+              "left_label": "none",
               "left_weight": 62,
               "query_bonus": 0.0,
-              "right_label": "repeat_signal=loop-like",
+              "right_label": "loop_like",
               "right_weight": 1455,
-              "score": 0.205577,
+              "score": 0.232393,
               "semantic_shift": 0.65,
               "small_child_penalty": 0.0,
               "structural_gain": 0.008987
             },
             {
               "balance": 0.258146,
+              "boundary_id": "b0066",
               "cardinality_penalty": 0.094626,
               "changed_field_fraction": 0.75,
               "changed_fields": [
@@ -501,21 +483,27 @@
               ],
               "field": "repeat_signal",
               "groups": {
-                "repeat_signal=loop-like": 1451,
-                "repeat_signal=none": 66
+                "loop_like": 1451,
+                "none": 66
               },
-              "left_label": "repeat_signal=none",
+              "label_evidence": [
+                "left:repeat_signal=none@0.545",
+                "right:repeat_signal=loop-like@0.764"
+              ],
+              "label_quality": 0.754779,
+              "left_label": "none",
               "left_weight": 66,
               "query_bonus": 0.0,
-              "right_label": "repeat_signal=loop-like",
+              "right_label": "loop_like",
               "right_weight": 1451,
-              "score": 0.203751,
+              "score": 0.231434,
               "semantic_shift": 0.631579,
               "small_child_penalty": 0.0,
               "structural_gain": 0.011718
             },
             {
               "balance": 0.322136,
+              "boundary_id": "b0089",
               "cardinality_penalty": 0.094626,
               "changed_field_fraction": 0.5,
               "changed_fields": [
@@ -529,21 +517,27 @@
               ],
               "field": "repeat_signal",
               "groups": {
-                "repeat_signal=loop-like": 1428,
-                "repeat_signal=none": 89
+                "loop_like": 1428,
+                "none": 89
               },
-              "left_label": "repeat_signal=none",
+              "label_evidence": [
+                "left:repeat_signal=none@0.663",
+                "right:repeat_signal=loop-like@0.777"
+              ],
+              "label_quality": 0.769941,
+              "left_label": "none",
               "left_weight": 89,
               "query_bonus": 0.0,
-              "right_label": "repeat_signal=loop-like",
+              "right_label": "loop_like",
               "right_weight": 1428,
-              "score": 0.160328,
+              "score": 0.198293,
               "semantic_shift": 0.5,
               "small_child_penalty": 0.0,
               "structural_gain": 0.030692
             },
             {
               "balance": 0.306091,
+              "boundary_id": "b0083",
               "cardinality_penalty": 0.094626,
               "changed_field_fraction": 0.5,
               "changed_fields": [
@@ -557,21 +551,27 @@
               ],
               "field": "repeat_signal",
               "groups": {
-                "repeat_signal=loop-like": 1434,
-                "repeat_signal=none": 83
+                "loop_like": 1434,
+                "none": 83
               },
-              "left_label": "repeat_signal=none",
+              "label_evidence": [
+                "left:repeat_signal=none@0.639",
+                "right:repeat_signal=loop-like@0.773"
+              ],
+              "label_quality": 0.765985,
+              "left_label": "none",
               "left_weight": 83,
               "query_bonus": 0.0,
-              "right_label": "repeat_signal=loop-like",
+              "right_label": "loop_like",
               "right_weight": 1434,
-              "score": 0.157419,
+              "score": 0.194722,
               "semantic_shift": 0.5,
               "small_child_penalty": 0.0,
               "structural_gain": 0.025304
             },
             {
               "balance": 0.289609,
+              "boundary_id": "b0077",
               "cardinality_penalty": 0.094626,
               "changed_field_fraction": 0.5,
               "changed_fields": [
@@ -585,21 +585,27 @@
               ],
               "field": "repeat_signal",
               "groups": {
-                "repeat_signal=loop-like": 1440,
-                "repeat_signal=none": 77
+                "loop_like": 1440,
+                "none": 77
               },
-              "left_label": "repeat_signal=none",
+              "label_evidence": [
+                "left:repeat_signal=none@0.61",
+                "right:repeat_signal=loop-like@0.77"
+              ],
+              "label_quality": 0.76203,
+              "left_label": "none",
               "left_weight": 77,
               "query_bonus": 0.0,
-              "right_label": "repeat_signal=loop-like",
+              "right_label": "loop_like",
               "right_weight": 1440,
-              "score": 0.15466,
+              "score": 0.191282,
               "semantic_shift": 0.5,
               "small_child_penalty": 0.0,
               "structural_gain": 0.020196
             },
             {
               "balance": 0.358027,
+              "boundary_id": "b0103",
               "cardinality_penalty": 0.094626,
               "changed_field_fraction": 0.5,
               "changed_fields": [
@@ -613,21 +619,27 @@
               ],
               "field": "repeat_signal",
               "groups": {
-                "repeat_signal=loop-like": 1414,
-                "repeat_signal=none": 103
+                "loop_like": 1414,
+                "none": 103
               },
-              "left_label": "repeat_signal=none",
+              "label_evidence": [
+                "left:repeat_signal=none@0.583",
+                "right:repeat_signal=loop-like@0.775"
+              ],
+              "label_quality": 0.76203,
+              "left_label": "none",
               "left_weight": 103,
               "query_bonus": 0.0,
-              "right_label": "repeat_signal=loop-like",
+              "right_label": "loop_like",
               "right_weight": 1414,
-              "score": 0.153441,
+              "score": 0.190189,
               "semantic_shift": 0.473684,
               "small_child_penalty": 0.0,
               "structural_gain": 0.023665
             },
             {
               "balance": 0.275517,
+              "boundary_id": "b0072",
               "cardinality_penalty": 0.094626,
               "changed_field_fraction": 0.5,
               "changed_fields": [
@@ -641,26 +653,36 @@
               ],
               "field": "repeat_signal",
               "groups": {
-                "repeat_signal=loop-like": 1445,
-                "repeat_signal=none": 72
+                "loop_like": 1445,
+                "none": 72
               },
-              "left_label": "repeat_signal=none",
+              "label_evidence": [
+                "left:repeat_signal=none@0.583",
+                "right:repeat_signal=loop-like@0.767"
+              ],
+              "label_quality": 0.758734,
+              "left_label": "none",
               "left_weight": 72,
               "query_bonus": 0.0,
-              "right_label": "repeat_signal=loop-like",
+              "right_label": "loop_like",
               "right_weight": 1445,
-              "score": 0.152491,
+              "score": 0.188529,
               "semantic_shift": 0.5,
               "small_child_penalty": 0.0,
               "structural_gain": 0.016186
             }
           ],
+          "evidence_fields": [
+            "repeat_signal"
+          ],
           "node_weight": 1517,
           "path": [
-            "repeat_signal=loop-like"
+            "loop_like"
           ],
+          "primary_evidence_field": "repeat_signal",
           "selected_score": {
             "balance": 0.252238,
+            "boundary_id": "b1453",
             "cardinality_penalty": 0.094626,
             "changed_field_fraction": 0.25,
             "changed_fields": [
@@ -673,15 +695,20 @@
             ],
             "field": "repeat_signal",
             "groups": {
-              "repeat_signal=loop-like": 1453,
-              "repeat_signal=none": 64
+              "loop_like": 1453,
+              "none": 64
             },
-            "left_label": "repeat_signal=loop-like",
+            "label_evidence": [
+              "left:repeat_signal=loop-like@0.765",
+              "right:repeat_signal=none@0.563"
+            ],
+            "label_quality": 0.756098,
+            "left_label": "loop_like",
             "left_weight": 1453,
             "query_bonus": 0.0,
-            "right_label": "repeat_signal=none",
+            "right_label": "none",
             "right_weight": 64,
-            "score": 0.302109,
+            "score": 0.315041,
             "semantic_shift": 0.294118,
             "small_child_penalty": 0.0,
             "structural_gain": 0.292629
@@ -689,9 +716,11 @@
           "source_field": "repeat_signal"
         },
         {
+          "boundary_id": "b0062",
           "candidate_scores": [
             {
               "balance": 0.254404,
+              "boundary_id": "b0062",
               "cardinality_penalty": 0.095185,
               "changed_field_fraction": 0.75,
               "changed_fields": [
@@ -706,21 +735,27 @@
               ],
               "field": "repeat_signal",
               "groups": {
-                "repeat_signal=loop-like": 1391,
-                "repeat_signal=none": 62
+                "loop_like": 1391,
+                "none": 62
               },
-              "left_label": "repeat_signal=none",
+              "label_evidence": [
+                "left:repeat_signal=none@0.516",
+                "right:repeat_signal=loop-like@0.777"
+              ],
+              "label_quality": 0.766002,
+              "left_label": "none",
               "left_weight": 62,
               "query_bonus": 0.0,
-              "right_label": "repeat_signal=loop-like",
+              "right_label": "loop_like",
               "right_weight": 1391,
-              "score": 0.206574,
+              "score": 0.236862,
               "semantic_shift": 0.65,
               "small_child_penalty": 0.0,
               "structural_gain": 0.010907
             },
             {
               "balance": 0.266628,
+              "boundary_id": "b0066",
               "cardinality_penalty": 0.095185,
               "changed_field_fraction": 0.75,
               "changed_fields": [
@@ -735,21 +770,27 @@
               ],
               "field": "repeat_signal",
               "groups": {
-                "repeat_signal=loop-like": 1387,
-                "repeat_signal=none": 66
+                "loop_like": 1387,
+                "none": 66
               },
-              "left_label": "repeat_signal=none",
+              "label_evidence": [
+                "left:repeat_signal=none@0.545",
+                "right:repeat_signal=loop-like@0.779"
+              ],
+              "label_quality": 0.768754,
+              "left_label": "none",
               "left_weight": 66,
               "query_bonus": 0.0,
-              "right_label": "repeat_signal=loop-like",
+              "right_label": "loop_like",
               "right_weight": 1387,
-              "score": 0.204968,
+              "score": 0.236126,
               "semantic_shift": 0.631579,
               "small_child_penalty": 0.0,
               "structural_gain": 0.014079
             },
             {
               "balance": 0.332397,
+              "boundary_id": "b0089",
               "cardinality_penalty": 0.095185,
               "changed_field_fraction": 0.5,
               "changed_fields": [
@@ -763,21 +804,27 @@
               ],
               "field": "repeat_signal",
               "groups": {
-                "repeat_signal=loop-like": 1364,
-                "repeat_signal=none": 89
+                "loop_like": 1364,
+                "none": 89
               },
-              "left_label": "repeat_signal=none",
+              "label_evidence": [
+                "left:repeat_signal=none@0.663",
+                "right:repeat_signal=loop-like@0.793"
+              ],
+              "label_quality": 0.784584,
+              "left_label": "none",
               "left_weight": 89,
               "query_bonus": 0.0,
-              "right_label": "repeat_signal=loop-like",
+              "right_label": "loop_like",
               "right_weight": 1364,
-              "score": 0.162981,
+              "score": 0.20441,
               "semantic_shift": 0.5,
               "small_child_penalty": 0.0,
               "structural_gain": 0.03592
             },
             {
               "balance": 0.315918,
+              "boundary_id": "b0083",
               "cardinality_penalty": 0.095185,
               "changed_field_fraction": 0.5,
               "changed_fields": [
@@ -791,21 +838,27 @@
               ],
               "field": "repeat_signal",
               "groups": {
-                "repeat_signal=loop-like": 1370,
-                "repeat_signal=none": 83
+                "loop_like": 1370,
+                "none": 83
               },
-              "left_label": "repeat_signal=none",
+              "label_evidence": [
+                "left:repeat_signal=none@0.639",
+                "right:repeat_signal=loop-like@0.789"
+              ],
+              "label_quality": 0.780454,
+              "left_label": "none",
               "left_weight": 83,
               "query_bonus": 0.0,
-              "right_label": "repeat_signal=loop-like",
+              "right_label": "loop_like",
               "right_weight": 1370,
-              "score": 0.159673,
+              "score": 0.200446,
               "semantic_shift": 0.5,
               "small_child_penalty": 0.0,
               "structural_gain": 0.029736
             },
             {
               "balance": 0.298981,
+              "boundary_id": "b0077",
               "cardinality_penalty": 0.095185,
               "changed_field_fraction": 0.5,
               "changed_fields": [
@@ -819,21 +872,27 @@
               ],
               "field": "repeat_signal",
               "groups": {
-                "repeat_signal=loop-like": 1376,
-                "repeat_signal=none": 77
+                "loop_like": 1376,
+                "none": 77
               },
-              "left_label": "repeat_signal=none",
+              "label_evidence": [
+                "left:repeat_signal=none@0.61",
+                "right:repeat_signal=loop-like@0.786"
+              ],
+              "label_quality": 0.776324,
+              "left_label": "none",
               "left_weight": 77,
               "query_bonus": 0.0,
-              "right_label": "repeat_signal=loop-like",
+              "right_label": "loop_like",
               "right_weight": 1376,
-              "score": 0.156531,
+              "score": 0.196627,
               "semantic_shift": 0.5,
               "small_child_penalty": 0.0,
               "structural_gain": 0.023864
             },
             {
               "balance": 0.369228,
+              "boundary_id": "b0103",
               "cardinality_penalty": 0.095185,
               "changed_field_fraction": 0.5,
               "changed_fields": [
@@ -847,21 +906,27 @@
               ],
               "field": "repeat_signal",
               "groups": {
-                "repeat_signal=loop-like": 1350,
-                "repeat_signal=none": 103
+                "loop_like": 1350,
+                "none": 103
               },
-              "left_label": "repeat_signal=none",
+              "label_evidence": [
+                "left:repeat_signal=none@0.583",
+                "right:repeat_signal=loop-like@0.791"
+              ],
+              "label_quality": 0.776325,
+              "left_label": "none",
               "left_weight": 103,
               "query_bonus": 0.0,
-              "right_label": "repeat_signal=loop-like",
+              "right_label": "loop_like",
               "right_weight": 1350,
-              "score": 0.155855,
+              "score": 0.19601,
               "semantic_shift": 0.473684,
               "small_child_penalty": 0.0,
               "structural_gain": 0.028199
             },
             {
               "balance": 0.284494,
+              "boundary_id": "b0072",
               "cardinality_penalty": 0.095185,
               "changed_field_fraction": 0.5,
               "changed_fields": [
@@ -875,21 +940,27 @@
               ],
               "field": "repeat_signal",
               "groups": {
-                "repeat_signal=loop-like": 1381,
-                "repeat_signal=none": 72
+                "loop_like": 1381,
+                "none": 72
               },
-              "left_label": "repeat_signal=none",
+              "label_evidence": [
+                "left:repeat_signal=none@0.583",
+                "right:repeat_signal=loop-like@0.783"
+              ],
+              "label_quality": 0.772884,
+              "left_label": "none",
               "left_weight": 72,
               "query_bonus": 0.0,
-              "right_label": "repeat_signal=loop-like",
+              "right_label": "loop_like",
               "right_weight": 1381,
-              "score": 0.154057,
+              "score": 0.19357,
               "semantic_shift": 0.5,
               "small_child_penalty": 0.0,
               "structural_gain": 0.019243
             },
             {
               "balance": 0.401597,
+              "boundary_id": "b0116",
               "cardinality_penalty": 0.095185,
               "changed_field_fraction": 0.5,
               "changed_fields": [
@@ -903,26 +974,36 @@
               ],
               "field": "repeat_signal",
               "groups": {
-                "repeat_signal=loop-like": 1337,
-                "repeat_signal=none": 116
+                "loop_like": 1337,
+                "none": 116
               },
-              "left_label": "repeat_signal=none",
+              "label_evidence": [
+                "left:repeat_signal=none@0.517",
+                "right:repeat_signal=loop-like@0.789"
+              ],
+              "label_quality": 0.767378,
+              "left_label": "none",
               "left_weight": 116,
               "query_bonus": 0.0,
-              "right_label": "repeat_signal=loop-like",
+              "right_label": "loop_like",
               "right_weight": 1337,
-              "score": 0.153988,
+              "score": 0.192096,
               "semantic_shift": 0.473684,
               "small_child_penalty": 0.0,
               "structural_gain": 0.02158
             }
           ],
+          "evidence_fields": [
+            "repeat_signal"
+          ],
           "node_weight": 1453,
           "path": [
-            "repeat_signal=loop-like"
+            "loop_like"
           ],
+          "primary_evidence_field": "repeat_signal",
           "selected_score": {
             "balance": 0.254404,
+            "boundary_id": "b0062",
             "cardinality_penalty": 0.095185,
             "changed_field_fraction": 0.75,
             "changed_fields": [
@@ -937,15 +1018,20 @@
             ],
             "field": "repeat_signal",
             "groups": {
-              "repeat_signal=loop-like": 1391,
-              "repeat_signal=none": 62
+              "loop_like": 1391,
+              "none": 62
             },
-            "left_label": "repeat_signal=none",
+            "label_evidence": [
+              "left:repeat_signal=none@0.516",
+              "right:repeat_signal=loop-like@0.777"
+            ],
+            "label_quality": 0.766002,
+            "left_label": "none",
             "left_weight": 62,
             "query_bonus": 0.0,
-            "right_label": "repeat_signal=loop-like",
+            "right_label": "loop_like",
             "right_weight": 1391,
-            "score": 0.206574,
+            "score": 0.236862,
             "semantic_shift": 0.65,
             "small_child_penalty": 0.0,
             "structural_gain": 0.010907
@@ -953,269 +1039,11 @@
           "source_field": "repeat_signal"
         },
         {
-          "candidate_scores": [
-            {
-              "balance": 0.877437,
-              "cardinality_penalty": 0.166048,
-              "changed_field_fraction": 0.5,
-              "changed_fields": [
-                "repeat_signal",
-                "repeat_state"
-              ],
-              "coverage": 0.296875,
-              "cut_after": 45,
-              "evidence_fields": [
-                "repeat_signal"
-              ],
-              "field": "repeat_signal",
-              "groups": {
-                "repeat_signal=loop-like": 45,
-                "repeat_signal=none": 19
-              },
-              "left_label": "repeat_signal=loop-like",
-              "left_weight": 45,
-              "query_bonus": 0.0,
-              "right_label": "repeat_signal=none",
-              "right_weight": 19,
-              "score": 0.478796,
-              "semantic_shift": 0.473684,
-              "small_child_penalty": 0.0,
-              "structural_gain": 0.510259
-            },
-            {
-              "balance": 0.835116,
-              "cardinality_penalty": 0.166048,
-              "changed_field_fraction": 0.25,
-              "changed_fields": [
-                "repeat_signal"
-              ],
-              "coverage": 0.265625,
-              "cut_after": 17,
-              "evidence_fields": [
-                "repeat_signal"
-              ],
-              "field": "repeat_signal",
-              "groups": {
-                "repeat_signal=loop-like": 47,
-                "repeat_signal=none": 17
-              },
-              "left_label": "repeat_signal=none",
-              "left_weight": 17,
-              "query_bonus": 0.0,
-              "right_label": "repeat_signal=loop-like",
-              "right_weight": 47,
-              "score": 0.424565,
-              "semantic_shift": 0.294118,
-              "small_child_penalty": 0.0,
-              "structural_gain": 0.47944
-            },
-            {
-              "balance": 0.757878,
-              "cardinality_penalty": 0.166048,
-              "changed_field_fraction": 0.75,
-              "changed_fields": [
-                "action",
-                "phase",
-                "repeat_state"
-              ],
-              "coverage": 0.21875,
-              "cut_after": 50,
-              "evidence_fields": [
-                "repeat_signal"
-              ],
-              "field": "repeat_signal",
-              "groups": {
-                "repeat_signal=loop-like": 50,
-                "repeat_signal=none": 14
-              },
-              "left_label": "repeat_signal=loop-like",
-              "left_weight": 50,
-              "query_bonus": 0.0,
-              "right_label": "repeat_signal=none",
-              "right_weight": 14,
-              "score": 0.299091,
-              "semantic_shift": 0.65,
-              "small_child_penalty": 0.0,
-              "structural_gain": 0.156995
-            },
-            {
-              "balance": 0.78556,
-              "cardinality_penalty": 0.166048,
-              "changed_field_fraction": 0.5,
-              "changed_fields": [
-                "action",
-                "phase"
-              ],
-              "coverage": 0.234375,
-              "cut_after": 49,
-              "evidence_fields": [
-                "repeat_signal"
-              ],
-              "field": "repeat_signal",
-              "groups": {
-                "repeat_signal=loop-like": 49,
-                "repeat_signal=none": 15
-              },
-              "left_label": "repeat_signal=loop-like",
-              "left_weight": 49,
-              "query_bonus": 0.0,
-              "right_label": "repeat_signal=none",
-              "right_weight": 15,
-              "score": 0.252055,
-              "semantic_shift": 0.5,
-              "small_child_penalty": 0.0,
-              "structural_gain": 0.170685
-            },
-            {
-              "balance": 0.696212,
-              "cardinality_penalty": 0.166048,
-              "changed_field_fraction": 0.5,
-              "changed_fields": [
-                "action",
-                "repeat_state"
-              ],
-              "coverage": 0.1875,
-              "cut_after": 12,
-              "evidence_fields": [
-                "repeat_signal"
-              ],
-              "field": "repeat_signal",
-              "groups": {
-                "repeat_signal=loop-like": 52,
-                "repeat_signal=none": 12
-              },
-              "left_label": "repeat_signal=none",
-              "left_weight": 12,
-              "query_bonus": 0.0,
-              "right_label": "repeat_signal=loop-like",
-              "right_weight": 52,
-              "score": 0.227748,
-              "semantic_shift": 0.526316,
-              "small_child_penalty": 0.0,
-              "structural_gain": 0.130842
-            },
-            {
-              "balance": 0.857148,
-              "cardinality_penalty": 0.166048,
-              "changed_field_fraction": 0.25,
-              "changed_fields": [
-                "action"
-              ],
-              "coverage": 0.28125,
-              "cut_after": 46,
-              "evidence_fields": [
-                "repeat_signal"
-              ],
-              "field": "repeat_signal",
-              "groups": {
-                "repeat_signal=loop-like": 46,
-                "repeat_signal=none": 18
-              },
-              "left_label": "repeat_signal=loop-like",
-              "left_weight": 46,
-              "query_bonus": 0.0,
-              "right_label": "repeat_signal=none",
-              "right_weight": 18,
-              "score": 0.227163,
-              "semantic_shift": 0.352941,
-              "small_child_penalty": 0.0,
-              "structural_gain": 0.214572
-            },
-            {
-              "balance": 0.728134,
-              "cardinality_penalty": 0.166048,
-              "changed_field_fraction": 0.5,
-              "changed_fields": [
-                "action",
-                "repeat_state"
-              ],
-              "coverage": 0.203125,
-              "cut_after": 51,
-              "evidence_fields": [
-                "repeat_signal"
-              ],
-              "field": "repeat_signal",
-              "groups": {
-                "repeat_signal=loop-like": 51,
-                "repeat_signal=none": 13
-              },
-              "left_label": "repeat_signal=loop-like",
-              "left_weight": 51,
-              "query_bonus": 0.0,
-              "right_label": "repeat_signal=none",
-              "right_weight": 13,
-              "score": 0.222409,
-              "semantic_shift": 0.444444,
-              "small_child_penalty": 0.0,
-              "structural_gain": 0.143722
-            },
-            {
-              "balance": 0.835116,
-              "cardinality_penalty": 0.166048,
-              "changed_field_fraction": 0.25,
-              "changed_fields": [
-                "action"
-              ],
-              "coverage": 0.265625,
-              "cut_after": 47,
-              "evidence_fields": [
-                "repeat_signal"
-              ],
-              "field": "repeat_signal",
-              "groups": {
-                "repeat_signal=loop-like": 47,
-                "repeat_signal=none": 17
-              },
-              "left_label": "repeat_signal=loop-like",
-              "left_weight": 47,
-              "query_bonus": 0.0,
-              "right_label": "repeat_signal=none",
-              "right_weight": 17,
-              "score": 0.216353,
-              "semantic_shift": 0.352941,
-              "small_child_penalty": 0.0,
-              "structural_gain": 0.19944
-            }
-          ],
-          "node_weight": 64,
-          "path": [
-            "repeat_signal=loop-like",
-            "repeat_signal=none"
-          ],
-          "selected_score": {
-            "balance": 0.877437,
-            "cardinality_penalty": 0.166048,
-            "changed_field_fraction": 0.5,
-            "changed_fields": [
-              "repeat_signal",
-              "repeat_state"
-            ],
-            "coverage": 0.296875,
-            "cut_after": 45,
-            "evidence_fields": [
-              "repeat_signal"
-            ],
-            "field": "repeat_signal",
-            "groups": {
-              "repeat_signal=loop-like": 45,
-              "repeat_signal=none": 19
-            },
-            "left_label": "repeat_signal=loop-like",
-            "left_weight": 45,
-            "query_bonus": 0.0,
-            "right_label": "repeat_signal=none",
-            "right_weight": 19,
-            "score": 0.478796,
-            "semantic_shift": 0.473684,
-            "small_child_penalty": 0.0,
-            "structural_gain": 0.510259
-          },
-          "source_field": "repeat_signal"
-        },
-        {
+          "boundary_id": "b1134",
           "candidate_scores": [
             {
               "balance": 0.976333,
+              "boundary_id": "b1134",
               "cardinality_penalty": 0.08745,
               "changed_field_fraction": 1.0,
               "changed_fields": [
@@ -1231,21 +1059,27 @@
               ],
               "field": "repeat_signal",
               "groups": {
-                "repeat_signal=loop-like": 1634,
-                "repeat_signal=none": 1134
+                "loop_like": 1634,
+                "none": 1134
               },
-              "left_label": "repeat_signal=none",
+              "label_evidence": [
+                "left:repeat_signal=none@0.569",
+                "right:repeat_signal=loop-like@0.534"
+              ],
+              "label_quality": 0.548049,
+              "left_label": "none",
               "left_weight": 1134,
               "query_bonus": 0.0,
-              "right_label": "repeat_signal=loop-like",
+              "right_label": "loop_like",
               "right_weight": 1634,
-              "score": 0.465103,
+              "score": 0.406827,
               "semantic_shift": 0.782609,
               "small_child_penalty": 0.0,
               "structural_gain": 0.285288
             },
             {
               "balance": 0.927856,
+              "boundary_id": "b0950",
               "cardinality_penalty": 0.08745,
               "changed_field_fraction": 1.0,
               "changed_fields": [
@@ -1261,51 +1095,27 @@
               ],
               "field": "repeat_signal",
               "groups": {
-                "repeat_signal=loop-like": 1818,
-                "repeat_signal=none": 950
+                "loop_like": 1818,
+                "none": 950
               },
-              "left_label": "repeat_signal=none",
+              "label_evidence": [
+                "left:repeat_signal=none@0.581",
+                "right:repeat_signal=loop-like@0.53"
+              ],
+              "label_quality": 0.547327,
+              "left_label": "none",
               "left_weight": 950,
               "query_bonus": 0.0,
-              "right_label": "repeat_signal=loop-like",
+              "right_label": "loop_like",
               "right_weight": 1818,
-              "score": 0.450646,
+              "score": 0.393603,
               "semantic_shift": 0.791667,
               "small_child_penalty": 0.0,
               "structural_gain": 0.285767
             },
             {
-              "balance": 0.921631,
-              "cardinality_penalty": 0.08745,
-              "changed_field_fraction": 1.0,
-              "changed_fields": [
-                "action",
-                "phase",
-                "repeat_signal",
-                "repeat_state"
-              ],
-              "coverage": 0.336705,
-              "cut_after": 932,
-              "evidence_fields": [
-                "repeat_signal"
-              ],
-              "field": "repeat_signal",
-              "groups": {
-                "repeat_signal=loop-like": 1836,
-                "repeat_signal=none": 932
-              },
-              "left_label": "repeat_signal=none",
-              "left_weight": 932,
-              "query_bonus": 0.0,
-              "right_label": "repeat_signal=loop-like",
-              "right_weight": 1836,
-              "score": 0.449215,
-              "semantic_shift": 0.791667,
-              "small_child_penalty": 0.0,
-              "structural_gain": 0.286191
-            },
-            {
               "balance": 0.912906,
+              "boundary_id": "b0908",
               "cardinality_penalty": 0.08745,
               "changed_field_fraction": 1.0,
               "changed_fields": [
@@ -1321,21 +1131,63 @@
               ],
               "field": "repeat_signal",
               "groups": {
-                "repeat_signal=loop-like": 1860,
-                "repeat_signal=none": 908
+                "loop_like": 1860,
+                "none": 908
               },
-              "left_label": "repeat_signal=none",
+              "label_evidence": [
+                "left:repeat_signal=none@0.596",
+                "right:repeat_signal=loop-like@0.534"
+              ],
+              "label_quality": 0.554552,
+              "left_label": "none",
               "left_weight": 908,
               "query_bonus": 0.0,
-              "right_label": "repeat_signal=loop-like",
+              "right_label": "loop_like",
               "right_weight": 1860,
-              "score": 0.447788,
+              "score": 0.392881,
               "semantic_shift": 0.791667,
               "small_child_penalty": 0.0,
               "structural_gain": 0.287807
             },
             {
+              "balance": 0.921631,
+              "boundary_id": "b0932",
+              "cardinality_penalty": 0.08745,
+              "changed_field_fraction": 1.0,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_signal",
+                "repeat_state"
+              ],
+              "coverage": 0.336705,
+              "cut_after": 932,
+              "evidence_fields": [
+                "repeat_signal"
+              ],
+              "field": "repeat_signal",
+              "groups": {
+                "loop_like": 1836,
+                "none": 932
+              },
+              "label_evidence": [
+                "left:repeat_signal=none@0.585",
+                "right:repeat_signal=loop-like@0.531"
+              ],
+              "label_quality": 0.548772,
+              "left_label": "none",
+              "left_weight": 932,
+              "query_bonus": 0.0,
+              "right_label": "loop_like",
+              "right_weight": 1836,
+              "score": 0.392685,
+              "semantic_shift": 0.791667,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.286191
+            },
+            {
               "balance": 0.954434,
+              "boundary_id": "b1730",
               "cardinality_penalty": 0.08745,
               "changed_field_fraction": 0.75,
               "changed_fields": [
@@ -1350,21 +1202,27 @@
               ],
               "field": "repeat_signal",
               "groups": {
-                "repeat_signal=loop-like": 1038,
-                "repeat_signal=none": 1730
+                "loop_like": 1038,
+                "none": 1730
               },
-              "left_label": "repeat_signal=none",
+              "label_evidence": [
+                "left:repeat_signal=none@0.543",
+                "right:repeat_signal=loop-like@0.55"
+              ],
+              "label_quality": 0.545882,
+              "left_label": "none",
               "left_weight": 1730,
               "query_bonus": 0.0,
-              "right_label": "repeat_signal=loop-like",
+              "right_label": "loop_like",
               "right_weight": 1038,
-              "score": 0.435346,
+              "score": 0.379728,
               "semantic_shift": 0.666667,
               "small_child_penalty": 0.0,
               "structural_gain": 0.284259
             },
             {
               "balance": 0.727956,
+              "boundary_id": "b0562",
               "cardinality_penalty": 0.08745,
               "changed_field_fraction": 0.75,
               "changed_fields": [
@@ -1379,21 +1237,60 @@
               ],
               "field": "repeat_signal",
               "groups": {
-                "repeat_signal=loop-like": 2206,
-                "repeat_signal=none": 562
+                "loop_like": 2206,
+                "none": 562
               },
-              "left_label": "repeat_signal=none",
+              "label_evidence": [
+                "left:repeat_signal=none@0.589",
+                "right:repeat_signal=loop-like@0.512"
+              ],
+              "label_quality": 0.527818,
+              "left_label": "none",
               "left_weight": 562,
               "query_bonus": 0.0,
-              "right_label": "repeat_signal=loop-like",
+              "right_label": "loop_like",
               "right_weight": 2206,
-              "score": 0.392957,
+              "score": 0.336892,
               "semantic_shift": 0.666667,
               "small_child_penalty": 0.0,
               "structural_gain": 0.283462
             },
             {
+              "balance": 0.993626,
+              "boundary_id": "b1514",
+              "cardinality_penalty": 0.08745,
+              "changed_field_fraction": 0.25,
+              "changed_fields": [
+                "repeat_signal"
+              ],
+              "coverage": 0.453035,
+              "cut_after": 1514,
+              "evidence_fields": [
+                "repeat_signal"
+              ],
+              "field": "repeat_signal",
+              "groups": {
+                "loop_like": 1254,
+                "none": 1514
+              },
+              "label_evidence": [
+                "left:repeat_signal=none@0.539",
+                "right:repeat_signal=loop-like@0.529"
+              ],
+              "label_quality": 0.534321,
+              "left_label": "none",
+              "left_weight": 1514,
+              "query_bonus": 0.0,
+              "right_label": "loop_like",
+              "right_weight": 1254,
+              "score": 0.332957,
+              "semantic_shift": 0.294118,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.282361
+            },
+            {
               "balance": 0.328763,
+              "boundary_id": "b2601",
               "cardinality_penalty": 0.08745,
               "changed_field_fraction": 1.0,
               "changed_fields": [
@@ -1409,53 +1306,36 @@
               ],
               "field": "repeat_signal",
               "groups": {
-                "repeat_signal=loop-like": 167,
-                "repeat_signal=none": 2601
+                "loop_like": 167,
+                "none": 2601
               },
-              "left_label": "repeat_signal=none",
+              "label_evidence": [
+                "left:repeat_signal=none@0.517",
+                "right:repeat_signal=loop-like@0.623"
+              ],
+              "label_quality": 0.523121,
+              "left_label": "none",
               "left_weight": 2601,
               "query_bonus": 0.0,
-              "right_label": "repeat_signal=loop-like",
+              "right_label": "loop_like",
               "right_weight": 167,
-              "score": 0.389334,
+              "score": 0.332177,
               "semantic_shift": 0.791667,
               "small_child_penalty": 0.0,
               "structural_gain": 0.282311
-            },
-            {
-              "balance": 0.993626,
-              "cardinality_penalty": 0.08745,
-              "changed_field_fraction": 0.25,
-              "changed_fields": [
-                "repeat_signal"
-              ],
-              "coverage": 0.453035,
-              "cut_after": 1514,
-              "evidence_fields": [
-                "repeat_signal"
-              ],
-              "field": "repeat_signal",
-              "groups": {
-                "repeat_signal=loop-like": 1254,
-                "repeat_signal=none": 1514
-              },
-              "left_label": "repeat_signal=none",
-              "left_weight": 1514,
-              "query_bonus": 0.0,
-              "right_label": "repeat_signal=loop-like",
-              "right_weight": 1254,
-              "score": 0.38586,
-              "semantic_shift": 0.294118,
-              "small_child_penalty": 0.0,
-              "structural_gain": 0.282361
             }
+          ],
+          "evidence_fields": [
+            "repeat_signal"
           ],
           "node_weight": 2768,
           "path": [
-            "repeat_signal=none"
+            "none"
           ],
+          "primary_evidence_field": "repeat_signal",
           "selected_score": {
             "balance": 0.976333,
+            "boundary_id": "b1134",
             "cardinality_penalty": 0.08745,
             "changed_field_fraction": 1.0,
             "changed_fields": [
@@ -1471,15 +1351,20 @@
             ],
             "field": "repeat_signal",
             "groups": {
-              "repeat_signal=loop-like": 1634,
-              "repeat_signal=none": 1134
+              "loop_like": 1634,
+              "none": 1134
             },
-            "left_label": "repeat_signal=none",
+            "label_evidence": [
+              "left:repeat_signal=none@0.569",
+              "right:repeat_signal=loop-like@0.534"
+            ],
+            "label_quality": 0.548049,
+            "left_label": "none",
             "left_weight": 1134,
             "query_bonus": 0.0,
-            "right_label": "repeat_signal=loop-like",
+            "right_label": "loop_like",
             "right_weight": 1634,
-            "score": 0.465103,
+            "score": 0.406827,
             "semantic_shift": 0.782609,
             "small_child_penalty": 0.0,
             "structural_gain": 0.285288
@@ -1487,9 +1372,11 @@
           "source_field": "repeat_signal"
         },
         {
+          "boundary_id": "b0908",
           "candidate_scores": [
             {
               "balance": 0.720515,
+              "boundary_id": "b0908",
               "cardinality_penalty": 0.098537,
               "changed_field_fraction": 1.0,
               "changed_fields": [
@@ -1506,50 +1393,29 @@
               ],
               "field": "phase",
               "groups": {
-                "phase=input+repeat_signal=loop-like": 226,
-                "phase=navigate+repeat_signal=none": 908
+                "input+loop_like": 226,
+                "navigate+none": 908
               },
-              "left_label": "phase=navigate+repeat_signal=none",
+              "label_evidence": [
+                "left:phase=navigate@0.91",
+                "left:repeat_signal=none@0.596",
+                "right:phase=input@0.496",
+                "right:repeat_signal=loop-like@0.54"
+              ],
+              "label_quality": 0.705908,
+              "left_label": "navigate+none",
               "left_weight": 908,
               "query_bonus": 0.0,
-              "right_label": "phase=input+repeat_signal=loop-like",
+              "right_label": "input+loop_like",
               "right_weight": 226,
-              "score": 0.440842,
+              "score": 0.425129,
               "semantic_shift": 0.791667,
               "small_child_penalty": 0.0,
               "structural_gain": 0.342405
             },
             {
-              "balance": 0.941031,
-              "cardinality_penalty": 0.098537,
-              "changed_field_fraction": 0.75,
-              "changed_fields": [
-                "action",
-                "phase",
-                "repeat_signal"
-              ],
-              "coverage": 0.358025,
-              "cut_after": 728,
-              "evidence_fields": [
-                "repeat_signal"
-              ],
-              "field": "repeat_signal",
-              "groups": {
-                "repeat_signal=loop-like": 406,
-                "repeat_signal=none": 728
-              },
-              "left_label": "repeat_signal=none",
-              "left_weight": 728,
-              "query_bonus": 0.0,
-              "right_label": "repeat_signal=loop-like",
-              "right_weight": 406,
-              "score": 0.434156,
-              "semantic_shift": 0.666667,
-              "small_child_penalty": 0.0,
-              "structural_gain": 0.292732
-            },
-            {
               "balance": 0.713381,
+              "boundary_id": "b0912",
               "cardinality_penalty": 0.098537,
               "changed_field_fraction": 0.75,
               "changed_fields": [
@@ -1565,80 +1431,29 @@
               ],
               "field": "phase",
               "groups": {
-                "phase=input+repeat_signal=loop-like": 222,
-                "phase=navigate+repeat_signal=none": 912
+                "input+loop_like": 222,
+                "navigate+none": 912
               },
-              "left_label": "phase=navigate+repeat_signal=none",
+              "label_evidence": [
+                "left:phase=navigate@0.909",
+                "left:repeat_signal=none@0.598",
+                "right:phase=input@0.5",
+                "right:repeat_signal=loop-like@0.55"
+              ],
+              "label_quality": 0.708553,
+              "left_label": "navigate+none",
               "left_weight": 912,
               "query_bonus": 0.0,
-              "right_label": "phase=input+repeat_signal=loop-like",
+              "right_label": "input+loop_like",
               "right_weight": 222,
-              "score": 0.41779,
+              "score": 0.405313,
               "semantic_shift": 0.666667,
               "small_child_penalty": 0.0,
               "structural_gain": 0.342917
             },
             {
-              "balance": 0.67597,
-              "cardinality_penalty": 0.098537,
-              "changed_field_fraction": 1.0,
-              "changed_fields": [
-                "action",
-                "phase",
-                "repeat_signal",
-                "repeat_state"
-              ],
-              "coverage": 0.178131,
-              "cut_after": 932,
-              "evidence_fields": [
-                "repeat_signal"
-              ],
-              "field": "repeat_signal",
-              "groups": {
-                "repeat_signal=loop-like": 202,
-                "repeat_signal=none": 932
-              },
-              "left_label": "repeat_signal=none",
-              "left_weight": 932,
-              "query_bonus": 0.0,
-              "right_label": "repeat_signal=loop-like",
-              "right_weight": 202,
-              "score": 0.408654,
-              "semantic_shift": 0.791667,
-              "small_child_penalty": 0.0,
-              "structural_gain": 0.282511
-            },
-            {
-              "balance": 0.662164,
-              "cardinality_penalty": 0.098537,
-              "changed_field_fraction": 0.75,
-              "changed_fields": [
-                "action",
-                "repeat_signal",
-                "repeat_state"
-              ],
-              "coverage": 0.171958,
-              "cut_after": 939,
-              "evidence_fields": [
-                "repeat_signal"
-              ],
-              "field": "repeat_signal",
-              "groups": {
-                "repeat_signal=loop-like": 195,
-                "repeat_signal=none": 939
-              },
-              "left_label": "repeat_signal=none",
-              "left_weight": 939,
-              "query_bonus": 0.0,
-              "right_label": "repeat_signal=loop-like",
-              "right_weight": 195,
-              "score": 0.382405,
-              "semantic_shift": 0.65,
-              "small_child_penalty": 0.0,
-              "structural_gain": 0.28373
-            },
-            {
-              "balance": 0.631263,
+              "balance": 0.941031,
+              "boundary_id": "b0728",
               "cardinality_penalty": 0.098537,
               "changed_field_fraction": 0.75,
               "changed_fields": [
@@ -1646,28 +1461,104 @@
                 "phase",
                 "repeat_signal"
               ],
-              "coverage": 0.15873,
-              "cut_after": 954,
+              "coverage": 0.358025,
+              "cut_after": 728,
               "evidence_fields": [
                 "repeat_signal"
               ],
               "field": "repeat_signal",
               "groups": {
-                "repeat_signal=loop-like": 180,
-                "repeat_signal=none": 954
+                "loop_like": 406,
+                "none": 728
               },
-              "left_label": "repeat_signal=none",
-              "left_weight": 954,
+              "label_evidence": [
+                "left:repeat_signal=none@0.626",
+                "right:repeat_signal=loop-like@0.534"
+              ],
+              "label_quality": 0.593475,
+              "left_label": "none",
+              "left_weight": 728,
               "query_bonus": 0.0,
-              "right_label": "repeat_signal=loop-like",
-              "right_weight": 180,
-              "score": 0.381979,
+              "right_label": "loop_like",
+              "right_weight": 406,
+              "score": 0.390824,
               "semantic_shift": 0.666667,
               "small_child_penalty": 0.0,
-              "structural_gain": 0.282221
+              "structural_gain": 0.292732
+            },
+            {
+              "balance": 0.162326,
+              "boundary_id": "b1107",
+              "cardinality_penalty": 0.098537,
+              "changed_field_fraction": 0.75,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.02381,
+              "cut_after": 1107,
+              "evidence_fields": [
+                "phase"
+              ],
+              "field": "phase",
+              "groups": {
+                "input": 27,
+                "navigate": 1107
+              },
+              "label_evidence": [
+                "left:phase=navigate@0.836",
+                "right:phase=input@0.519"
+              ],
+              "label_quality": 0.828043,
+              "left_label": "navigate",
+              "left_weight": 1107,
+              "query_bonus": 0.0,
+              "right_label": "input",
+              "right_weight": 27,
+              "score": 0.387187,
+              "semantic_shift": 0.636364,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.293162
+            },
+            {
+              "balance": 0.152778,
+              "boundary_id": "b1109",
+              "cardinality_penalty": 0.098537,
+              "changed_field_fraction": 0.75,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.022046,
+              "cut_after": 1109,
+              "evidence_fields": [
+                "phase"
+              ],
+              "field": "phase",
+              "groups": {
+                "input": 25,
+                "navigate": 1109
+              },
+              "label_evidence": [
+                "left:phase=navigate@0.835",
+                "right:phase=input@0.52"
+              ],
+              "label_quality": 0.828042,
+              "left_label": "navigate",
+              "left_weight": 1109,
+              "query_bonus": 0.0,
+              "right_label": "input",
+              "right_weight": 25,
+              "score": 0.384038,
+              "semantic_shift": 0.619048,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.292441
             },
             {
               "balance": 0.817507,
+              "boundary_id": "b0846",
               "cardinality_penalty": 0.098537,
               "changed_field_fraction": 0.75,
               "changed_fields": [
@@ -1683,21 +1574,29 @@
               ],
               "field": "phase",
               "groups": {
-                "phase=input+repeat_signal=loop-like": 288,
-                "phase=navigate+repeat_signal=none": 846
+                "input+loop_like": 288,
+                "navigate+none": 846
               },
-              "left_label": "phase=navigate+repeat_signal=none",
+              "label_evidence": [
+                "left:phase=navigate@0.946",
+                "left:repeat_signal=none@0.603",
+                "right:phase=input@0.51",
+                "right:repeat_signal=loop-like@0.531"
+              ],
+              "label_quality": 0.709877,
+              "left_label": "navigate+none",
               "left_weight": 846,
               "query_bonus": 0.0,
-              "right_label": "phase=input+repeat_signal=loop-like",
+              "right_label": "input+loop_like",
               "right_weight": 288,
-              "score": 0.380627,
+              "score": 0.373697,
               "semantic_shift": 0.65,
               "small_child_penalty": 0.0,
               "structural_gain": 0.239099
             },
             {
               "balance": 0.814754,
+              "boundary_id": "b0848",
               "cardinality_penalty": 0.098537,
               "changed_field_fraction": 0.75,
               "changed_fields": [
@@ -1713,26 +1612,77 @@
               ],
               "field": "repeat_signal",
               "groups": {
-                "repeat_signal=loop-like+phase=input": 286,
-                "repeat_signal=none+phase=navigate": 848
+                "loop_like+input": 286,
+                "none+navigate": 848
               },
-              "left_label": "repeat_signal=none+phase=navigate",
+              "label_evidence": [
+                "left:repeat_signal=none@0.604",
+                "left:phase=navigate@0.945",
+                "right:repeat_signal=loop-like@0.535",
+                "right:phase=input@0.51"
+              ],
+              "label_quality": 0.710759,
+              "left_label": "none+navigate",
               "left_weight": 848,
               "query_bonus": 0.0,
-              "right_label": "repeat_signal=loop-like+phase=input",
+              "right_label": "loop_like+input",
               "right_weight": 286,
-              "score": 0.379804,
+              "score": 0.373197,
               "semantic_shift": 0.65,
               "small_child_penalty": 0.0,
               "structural_gain": 0.238238
+            },
+            {
+              "balance": 0.790375,
+              "boundary_id": "b0865",
+              "cardinality_penalty": 0.098537,
+              "changed_field_fraction": 0.75,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.237213,
+              "cut_after": 865,
+              "evidence_fields": [
+                "phase",
+                "repeat_signal"
+              ],
+              "field": "phase",
+              "groups": {
+                "input+loop_like": 269,
+                "navigate+none": 865
+              },
+              "label_evidence": [
+                "left:phase=navigate@0.934",
+                "left:repeat_signal=none@0.601",
+                "right:phase=input@0.509",
+                "right:repeat_signal=loop-like@0.535"
+              ],
+              "label_quality": 0.709436,
+              "left_label": "navigate+none",
+              "left_weight": 865,
+              "query_bonus": 0.0,
+              "right_label": "input+loop_like",
+              "right_weight": 269,
+              "score": 0.36517,
+              "semantic_shift": 0.65,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.227129
             }
+          ],
+          "evidence_fields": [
+            "phase",
+            "repeat_signal"
           ],
           "node_weight": 1134,
           "path": [
-            "repeat_signal=none"
+            "none"
           ],
+          "primary_evidence_field": "phase",
           "selected_score": {
             "balance": 0.720515,
+            "boundary_id": "b0908",
             "cardinality_penalty": 0.098537,
             "changed_field_fraction": 1.0,
             "changed_fields": [
@@ -1749,15 +1699,22 @@
             ],
             "field": "phase",
             "groups": {
-              "phase=input+repeat_signal=loop-like": 226,
-              "phase=navigate+repeat_signal=none": 908
+              "input+loop_like": 226,
+              "navigate+none": 908
             },
-            "left_label": "phase=navigate+repeat_signal=none",
+            "label_evidence": [
+              "left:phase=navigate@0.91",
+              "left:repeat_signal=none@0.596",
+              "right:phase=input@0.496",
+              "right:repeat_signal=loop-like@0.54"
+            ],
+            "label_quality": 0.705908,
+            "left_label": "navigate+none",
             "left_weight": 908,
             "query_bonus": 0.0,
-            "right_label": "phase=input+repeat_signal=loop-like",
+            "right_label": "input+loop_like",
             "right_weight": 226,
-            "score": 0.440842,
+            "score": 0.425129,
             "semantic_shift": 0.791667,
             "small_child_penalty": 0.0,
             "structural_gain": 0.342405
@@ -1765,9 +1722,11 @@
           "source_field": "phase"
         },
         {
+          "boundary_id": "b0085",
           "candidate_scores": [
             {
               "balance": 0.294915,
+              "boundary_id": "b0085",
               "cardinality_penalty": 0.093676,
               "changed_field_fraction": 0.75,
               "changed_fields": [
@@ -1782,21 +1741,27 @@
               ],
               "field": "phase",
               "groups": {
-                "phase=input": 85,
-                "phase=navigate": 1549
+                "input": 85,
+                "navigate": 1549
               },
-              "left_label": "phase=input",
+              "label_evidence": [
+                "left:phase=input@0.529",
+                "right:phase=navigate@0.837"
+              ],
+              "label_quality": 0.820686,
+              "left_label": "input",
               "left_weight": 85,
               "query_bonus": 0.0,
-              "right_label": "phase=navigate",
+              "right_label": "navigate",
               "right_weight": 1549,
-              "score": 0.377732,
+              "score": 0.398928,
               "semantic_shift": 0.666667,
               "small_child_penalty": 0.0,
               "structural_gain": 0.309039
             },
             {
               "balance": 0.252414,
+              "boundary_id": "b0069",
               "cardinality_penalty": 0.093676,
               "changed_field_fraction": 0.75,
               "changed_fields": [
@@ -1811,21 +1776,27 @@
               ],
               "field": "phase",
               "groups": {
-                "phase=input": 69,
-                "phase=navigate": 1565
+                "input": 69,
+                "navigate": 1565
               },
-              "left_label": "phase=input",
+              "label_evidence": [
+                "left:phase=input@0.536",
+                "right:phase=navigate@0.833"
+              ],
+              "label_quality": 0.820686,
+              "left_label": "input",
               "left_weight": 69,
               "query_bonus": 0.0,
-              "right_label": "phase=navigate",
+              "right_label": "navigate",
               "right_weight": 1565,
-              "score": 0.372167,
+              "score": 0.394002,
               "semantic_shift": 0.65,
               "small_child_penalty": 0.0,
               "structural_gain": 0.305499
             },
             {
               "balance": 0.224152,
+              "boundary_id": "b0059",
               "cardinality_penalty": 0.093676,
               "changed_field_fraction": 0.75,
               "changed_fields": [
@@ -1841,21 +1812,62 @@
               ],
               "field": "phase",
               "groups": {
-                "phase=input": 59,
-                "phase=navigate+action=left_click": 1575
+                "input": 59,
+                "navigate+left_click": 1575
               },
-              "left_label": "phase=input",
+              "label_evidence": [
+                "left:phase=input@0.593",
+                "right:phase=navigate@0.833",
+                "right:action=left_click@0.732"
+              ],
+              "label_quality": 0.775704,
+              "left_label": "input",
               "left_weight": 59,
               "query_bonus": 0.0,
-              "right_label": "phase=navigate+action=left_click",
+              "right_label": "navigate+left_click",
               "right_weight": 1575,
-              "score": 0.370161,
+              "score": 0.380547,
               "semantic_shift": 0.65,
               "small_child_penalty": 0.0,
               "structural_gain": 0.302253
             },
             {
+              "balance": 0.287176,
+              "boundary_id": "b0082",
+              "cardinality_penalty": 0.093676,
+              "changed_field_fraction": 0.5,
+              "changed_fields": [
+                "action",
+                "phase"
+              ],
+              "coverage": 0.050184,
+              "cut_after": 82,
+              "evidence_fields": [
+                "phase"
+              ],
+              "field": "phase",
+              "groups": {
+                "input": 82,
+                "navigate": 1552
+              },
+              "label_evidence": [
+                "left:phase=input@0.537",
+                "right:phase=navigate@0.836"
+              ],
+              "label_quality": 0.821297,
+              "left_label": "input",
+              "left_weight": 82,
+              "query_bonus": 0.0,
+              "right_label": "navigate",
+              "right_weight": 1552,
+              "score": 0.372297,
+              "semantic_shift": 0.5,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.30915
+            },
+            {
               "balance": 0.145953,
+              "boundary_id": "b0034",
               "cardinality_penalty": 0.093676,
               "changed_field_fraction": 0.75,
               "changed_fields": [
@@ -1872,49 +1884,29 @@
               ],
               "field": "phase",
               "groups": {
-                "phase=input": 34,
-                "phase=navigate+repeat_state=single+action=left_click": 1600
+                "input": 34,
+                "navigate+single+left_click": 1600
               },
-              "left_label": "phase=input",
+              "label_evidence": [
+                "left:phase=input@0.676",
+                "right:phase=navigate@0.827",
+                "right:repeat_state=single@0.768",
+                "right:action=left_click@0.726"
+              ],
+              "label_quality": 0.771522,
+              "left_label": "input",
               "left_weight": 34,
               "query_bonus": 0.0,
-              "right_label": "phase=navigate+repeat_state=single+action=left_click",
+              "right_label": "navigate+single+left_click",
               "right_weight": 1600,
-              "score": 0.360251,
+              "score": 0.370704,
               "semantic_shift": 0.619048,
               "small_child_penalty": 0.0,
               "structural_gain": 0.29502
             },
             {
-              "balance": 0.287176,
-              "cardinality_penalty": 0.093676,
-              "changed_field_fraction": 0.5,
-              "changed_fields": [
-                "action",
-                "phase"
-              ],
-              "coverage": 0.050184,
-              "cut_after": 82,
-              "evidence_fields": [
-                "phase"
-              ],
-              "field": "phase",
-              "groups": {
-                "phase=input": 82,
-                "phase=navigate": 1552
-              },
-              "left_label": "phase=input",
-              "left_weight": 82,
-              "query_bonus": 0.0,
-              "right_label": "phase=navigate",
-              "right_weight": 1552,
-              "score": 0.347597,
-              "semantic_shift": 0.5,
-              "small_child_penalty": 0.0,
-              "structural_gain": 0.30915
-            },
-            {
               "balance": 0.260623,
+              "boundary_id": "b0072",
               "cardinality_penalty": 0.093676,
               "changed_field_fraction": 0.5,
               "changed_fields": [
@@ -1928,49 +1920,27 @@
               ],
               "field": "phase",
               "groups": {
-                "phase=input": 72,
-                "phase=navigate": 1562
+                "input": 72,
+                "navigate": 1562
               },
-              "left_label": "phase=input",
+              "label_evidence": [
+                "left:phase=input@0.528",
+                "right:phase=navigate@0.834"
+              ],
+              "label_quality": 0.820074,
+              "left_label": "input",
               "left_weight": 72,
               "query_bonus": 0.0,
-              "right_label": "phase=navigate",
+              "right_label": "navigate",
               "right_weight": 1562,
-              "score": 0.345261,
+              "score": 0.36993,
               "semantic_shift": 0.5,
               "small_child_penalty": 0.0,
               "structural_gain": 0.305344
             },
             {
-              "balance": 0.27139,
-              "cardinality_penalty": 0.093676,
-              "changed_field_fraction": 0.5,
-              "changed_fields": [
-                "action",
-                "phase"
-              ],
-              "coverage": 0.046512,
-              "cut_after": 76,
-              "evidence_fields": [
-                "phase"
-              ],
-              "field": "phase",
-              "groups": {
-                "phase=input": 76,
-                "phase=navigate": 1558
-              },
-              "left_label": "phase=input",
-              "left_weight": 76,
-              "query_bonus": 0.0,
-              "right_label": "phase=navigate",
-              "right_weight": 1558,
-              "score": 0.345181,
-              "semantic_shift": 0.5,
-              "small_child_penalty": 0.0,
-              "structural_gain": 0.304674
-            },
-            {
               "balance": 0.246875,
+              "boundary_id": "b0067",
               "cardinality_penalty": 0.093676,
               "changed_field_fraction": 0.5,
               "changed_fields": [
@@ -1984,27 +1954,71 @@
               ],
               "field": "phase",
               "groups": {
-                "phase=input": 67,
-                "phase=navigate": 1567
+                "input": 67,
+                "navigate": 1567
               },
-              "left_label": "phase=input",
+              "label_evidence": [
+                "left:phase=input@0.537",
+                "right:phase=navigate@0.833"
+              ],
+              "label_quality": 0.820686,
+              "left_label": "input",
               "left_weight": 67,
               "query_bonus": 0.0,
-              "right_label": "phase=navigate",
+              "right_label": "navigate",
               "right_weight": 1567,
-              "score": 0.344867,
+              "score": 0.369738,
               "semantic_shift": 0.5,
               "small_child_penalty": 0.0,
               "structural_gain": 0.30508
+            },
+            {
+              "balance": 0.27139,
+              "boundary_id": "b0076",
+              "cardinality_penalty": 0.093676,
+              "changed_field_fraction": 0.5,
+              "changed_fields": [
+                "action",
+                "phase"
+              ],
+              "coverage": 0.046512,
+              "cut_after": 76,
+              "evidence_fields": [
+                "phase"
+              ],
+              "field": "phase",
+              "groups": {
+                "input": 76,
+                "navigate": 1558
+              },
+              "label_evidence": [
+                "left:phase=input@0.513",
+                "right:phase=navigate@0.834"
+              ],
+              "label_quality": 0.818849,
+              "left_label": "input",
+              "left_weight": 76,
+              "query_bonus": 0.0,
+              "right_label": "navigate",
+              "right_weight": 1558,
+              "score": 0.369548,
+              "semantic_shift": 0.5,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.304674
             }
+          ],
+          "evidence_fields": [
+            "phase"
           ],
           "node_weight": 1634,
           "path": [
-            "repeat_signal=none",
-            "repeat_signal=loop-like"
+            "none",
+            "loop_like"
           ],
+          "primary_evidence_field": "phase",
           "selected_score": {
             "balance": 0.294915,
+            "boundary_id": "b0085",
             "cardinality_penalty": 0.093676,
             "changed_field_fraction": 0.75,
             "changed_fields": [
@@ -2019,15 +2033,20 @@
             ],
             "field": "phase",
             "groups": {
-              "phase=input": 85,
-              "phase=navigate": 1549
+              "input": 85,
+              "navigate": 1549
             },
-            "left_label": "phase=input",
+            "label_evidence": [
+              "left:phase=input@0.529",
+              "right:phase=navigate@0.837"
+            ],
+            "label_quality": 0.820686,
+            "left_label": "input",
             "left_weight": 85,
             "query_bonus": 0.0,
-            "right_label": "phase=navigate",
+            "right_label": "navigate",
             "right_weight": 1549,
-            "score": 0.377732,
+            "score": 0.398928,
             "semantic_shift": 0.666667,
             "small_child_penalty": 0.0,
             "structural_gain": 0.309039
@@ -2036,8 +2055,95 @@
         }
       ],
       "stop_reasons": {
-        "max_depth": 8
+        "max_depth": 6,
+        "redundant_segment_label": 1
       }
+    },
+    "ranking": {
+      "groups": 6,
+      "limit": 6,
+      "policy": "width",
+      "rank_operation_rules": [],
+      "rank_rules": [],
+      "top": [
+        {
+          "matched_rank_rules": [],
+          "rank_score": 1549.0,
+          "stack": "operation:none;operation:loop_like;operation:navigate",
+          "weight": 1549
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 1391.0,
+          "stack": "operation:loop_like",
+          "weight": 1391
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 908.0,
+          "stack": "operation:none;operation:navigate+none",
+          "weight": 908
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 226.0,
+          "stack": "operation:none;operation:input+loop_like",
+          "weight": 226
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 126.0,
+          "stack": "operation:loop_like;operation:none",
+          "weight": 126
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 85.0,
+          "stack": "operation:none;operation:loop_like;operation:input",
+          "weight": 85
+        }
+      ]
+    },
+    "sample_type": "operations",
+    "stacks": {
+      "operation:loop_like": 1391,
+      "operation:loop_like;operation:none": 126,
+      "operation:none;operation:input+loop_like": 226,
+      "operation:none;operation:loop_like;operation:input": 85,
+      "operation:none;operation:loop_like;operation:navigate": 1549,
+      "operation:none;operation:navigate+none": 908
+    },
+    "summary": {
+      "compression_ratio": 714.167,
+      "max_stack_reuse": 1549,
+      "top": [
+        {
+          "stack": "operation:none;operation:loop_like;operation:navigate",
+          "weight": 1549
+        },
+        {
+          "stack": "operation:loop_like",
+          "weight": 1391
+        },
+        {
+          "stack": "operation:none;operation:navigate+none",
+          "weight": 908
+        },
+        {
+          "stack": "operation:none;operation:input+loop_like",
+          "weight": 226
+        },
+        {
+          "stack": "operation:loop_like;operation:none",
+          "weight": 126
+        },
+        {
+          "stack": "operation:none;operation:loop_like;operation:input",
+          "weight": 85
+        }
+      ],
+      "total_weight": 4285,
+      "unique_stacks": 6
     },
     "unit": "count",
     "view": "operations"

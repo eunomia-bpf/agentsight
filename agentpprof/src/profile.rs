@@ -32,7 +32,7 @@ pub struct Profile {
     pub sample_type: &'static str,
     pub unit: &'static str,
     pub ops: Vec<StackNode>,
-    pub task_stack_induction: Option<TaskStackInductionReport>,
+    pub operation_stack_induction: Option<OperationStackInductionReport>,
     rank_rules: Vec<StackRankRule>,
     rank_operation_rules: Vec<StackRankRule>,
     rank_operation_matches: BTreeMap<String, BTreeMap<String, u64>>,
@@ -46,7 +46,7 @@ impl Profile {
             sample_type,
             unit,
             ops: Vec::new(),
-            task_stack_induction: None,
+            operation_stack_induction: None,
             rank_rules: Vec::new(),
             rank_operation_rules: Vec::new(),
             rank_operation_matches: BTreeMap::new(),
@@ -154,7 +154,7 @@ pub struct OperationStackConfig {
     rank_rules: Vec<StackRankRule>,
     rank_operation_rules: Vec<StackRankRule>,
     rank_mode: StackRankMode,
-    task_stack_induction: Option<TaskStackInductionConfig>,
+    operation_stack_induction: Option<OperationStackInductionConfig>,
 }
 
 impl OperationStackConfig {
@@ -167,7 +167,7 @@ impl OperationStackConfig {
             rank_rules: Vec::new(),
             rank_operation_rules: Vec::new(),
             rank_mode: StackRankMode::WidthBoost,
-            task_stack_induction: None,
+            operation_stack_induction: None,
         }
     }
 
@@ -206,14 +206,15 @@ impl OperationStackConfig {
         self
     }
 
-    pub fn with_task_stack_induction(mut self, config: TaskStackInductionConfig) -> Self {
-        self.task_stack_induction = Some(config);
+    pub fn with_operation_stack_induction(mut self, config: OperationStackInductionConfig) -> Self {
+        self.operation_stack_induction = Some(config);
         self
     }
 }
 
 #[derive(Clone, Debug)]
-pub struct TaskStackInductionConfig {
+pub struct OperationStackInductionConfig {
+    derived_field: String,
     allow_session: bool,
     max_depth: usize,
     min_score: f64,
@@ -223,9 +224,10 @@ pub struct TaskStackInductionConfig {
     query_terms: Vec<String>,
 }
 
-impl TaskStackInductionConfig {
+impl OperationStackInductionConfig {
     pub fn new() -> Self {
         Self {
+            derived_field: OPERATION_STACK_DERIVED_FIELD.to_string(),
             allow_session: false,
             max_depth: 4,
             min_score: 0.055,
@@ -238,6 +240,11 @@ impl TaskStackInductionConfig {
 
     pub fn with_allow_session(mut self, allow_session: bool) -> Self {
         self.allow_session = allow_session;
+        self
+    }
+
+    pub fn with_derived_field(mut self, derived_field: impl Into<String>) -> Self {
+        self.derived_field = derived_field.into();
         self
     }
 
@@ -274,39 +281,46 @@ impl TaskStackInductionConfig {
     }
 }
 
-impl Default for TaskStackInductionConfig {
+impl Default for OperationStackInductionConfig {
     fn default() -> Self {
         Self::new()
     }
 }
 
 #[derive(Clone, Debug, Serialize)]
-pub struct TaskStackInductionReport {
+pub struct OperationStackInductionReport {
     policy: &'static str,
+    objective: &'static str,
+    derived_stack_field: String,
     allow_session: bool,
     max_depth: usize,
     min_score: f64,
     min_second_child: u64,
     max_majority_fraction: f64,
+    selected_evidence_fields: Vec<String>,
     selected_source_fields: Vec<String>,
     excluded_oracle_fields: Vec<&'static str>,
     excluded_oracle_prefixes: Vec<&'static str>,
     excluded_oracle_suffixes: Vec<&'static str>,
     stop_reasons: BTreeMap<String, u64>,
-    split_decisions: Vec<TaskStackSplitDecision>,
+    split_decisions: Vec<OperationStackSplitDecision>,
 }
 
 #[derive(Clone, Debug, Serialize)]
-pub struct TaskStackSplitDecision {
+pub struct OperationStackSplitDecision {
     path: Vec<String>,
+    boundary_id: String,
+    primary_evidence_field: String,
+    evidence_fields: Vec<String>,
     source_field: String,
     node_weight: u64,
-    selected_score: TaskStackSplitScore,
-    candidate_scores: Vec<TaskStackSplitScore>,
+    selected_score: OperationStackSplitScore,
+    candidate_scores: Vec<OperationStackSplitScore>,
 }
 
 #[derive(Clone, Debug, Serialize)]
-pub struct TaskStackSplitScore {
+pub struct OperationStackSplitScore {
+    boundary_id: String,
     field: String,
     cut_after: usize,
     left_label: String,
@@ -314,8 +328,10 @@ pub struct TaskStackSplitScore {
     left_weight: u64,
     right_weight: u64,
     evidence_fields: Vec<String>,
+    label_evidence: Vec<String>,
     score: f64,
     structural_gain: f64,
+    label_quality: f64,
     balance: f64,
     coverage: f64,
     query_bonus: f64,
@@ -333,6 +349,13 @@ struct TaskBoundaryEvidence {
     semantic_shift: f64,
     query_bonus: f64,
     changed_field_fraction: f64,
+}
+
+#[derive(Clone, Debug)]
+struct TaskSegmentLabel {
+    label: String,
+    quality: f64,
+    evidence: Vec<String>,
 }
 
 #[derive(Clone)]
@@ -797,8 +820,8 @@ pub fn build_profile_with_options(
             samples.push(sample);
         }
     }
-    let (samples, report) = maybe_induce_task_stack(samples, options);
-    profile.task_stack_induction = report;
+    let (samples, report) = maybe_induce_operation_stack(samples, options);
+    profile.operation_stack_induction = report;
     for sample in samples {
         let frames = stack_frames(&sample, options);
         let stack = folded_stack_from_frames(&frames);
@@ -877,8 +900,8 @@ fn build_profile_from_operations(
         }
         samples.push(sample);
     }
-    let (samples, report) = maybe_induce_task_stack(samples, options);
-    profile.task_stack_induction = report;
+    let (samples, report) = maybe_induce_operation_stack(samples, options);
+    profile.operation_stack_induction = report;
     for sample in samples {
         let frames = stack_frames(&sample, options);
         let stack = folded_stack_from_frames(&frames);
@@ -1006,8 +1029,13 @@ fn apply_operation_field_rules(sample: &Operation, rules: &[OperationStackRule])
     mapped
 }
 
-const TASK_STACK_POLICY: &str = "query-conditioned-recursive-boundary-task-stack-induction";
-const MAX_TASK_STACK_BOUNDARY_CANDIDATES: usize = 512;
+const OPERATION_STACK_POLICY: &str =
+    "query-conditioned-recursive-boundary-operation-stack-induction";
+const OPERATION_STACK_OBJECTIVE: &str =
+    "recursive boundary segmentation over operations; fields are evidence, not stack levels";
+const OPERATION_STACK_DERIVED_FIELD: &str = "operation";
+const MAX_OPERATION_STACK_BOUNDARY_CANDIDATES: usize = 512;
+const MIN_OPERATION_STACK_LABEL_QUALITY: f64 = 0.35;
 const ORACLE_OR_LABEL_FIELDS: &[&str] = &[
     "annotator",
     "attack",
@@ -1069,7 +1097,7 @@ const ORACLE_OR_LABEL_SUFFIXES: &[&str] = &[
     "_target",
     "_unsafe",
 ];
-const TASK_STACK_METADATA_FIELDS: &[&str] = &[
+const OPERATION_STACK_METADATA_FIELDS: &[&str] = &[
     "agent",
     "analysis_task",
     "benchmark",
@@ -1081,7 +1109,7 @@ const TASK_STACK_METADATA_FIELDS: &[&str] = &[
     "source",
     "source_operation_file",
 ];
-const TASK_STACK_NOISY_FIELDS: &[&str] = &[
+const OPERATION_STACK_NOISY_FIELDS: &[&str] = &[
     "busted_retry",
     "input_tokens",
     "llm_retries",
@@ -1090,26 +1118,26 @@ const TASK_STACK_NOISY_FIELDS: &[&str] = &[
     "turn",
 ];
 
-fn maybe_induce_task_stack(
+fn maybe_induce_operation_stack(
     samples: Vec<Operation>,
     options: &OperationStackConfig,
-) -> (Vec<Operation>, Option<TaskStackInductionReport>) {
-    let Some(config) = options.task_stack_induction.as_ref() else {
+) -> (Vec<Operation>, Option<OperationStackInductionReport>) {
+    let Some(config) = options.operation_stack_induction.as_ref() else {
         return (samples, None);
     };
-    let (samples, report) = induce_task_stack(samples, config);
+    let (samples, report) = induce_operation_stack(samples, config);
     (samples, Some(report))
 }
 
-fn induce_task_stack(
+fn induce_operation_stack(
     mut samples: Vec<Operation>,
-    config: &TaskStackInductionConfig,
-) -> (Vec<Operation>, TaskStackInductionReport) {
+    config: &OperationStackInductionConfig,
+) -> (Vec<Operation>, OperationStackInductionReport) {
     let indices = (0..samples.len()).collect::<Vec<_>>();
     let mut task_paths = vec![Vec::<String>::new(); samples.len()];
     let mut stop_reasons = BTreeMap::new();
     let mut split_decisions = Vec::new();
-    induce_task_stack_recursive(
+    induce_operation_stack_recursive(
         &samples,
         &indices,
         config,
@@ -1120,7 +1148,7 @@ fn induce_task_stack(
         &mut split_decisions,
     );
     for (sample, path) in samples.iter_mut().zip(task_paths) {
-        sample.fields.insert("task".to_string(), path);
+        sample.fields.insert(config.derived_field.clone(), path);
     }
     let mut selected_source_fields = BTreeSet::new();
     for decision in &split_decisions {
@@ -1130,15 +1158,18 @@ fn induce_task_stack(
             selected_source_fields.extend(decision.selected_score.evidence_fields.iter().cloned());
         }
     }
-    let selected_source_fields = selected_source_fields.into_iter().collect::<Vec<_>>();
-    let report = TaskStackInductionReport {
-        policy: TASK_STACK_POLICY,
+    let selected_evidence_fields = selected_source_fields.into_iter().collect::<Vec<_>>();
+    let report = OperationStackInductionReport {
+        policy: OPERATION_STACK_POLICY,
+        objective: OPERATION_STACK_OBJECTIVE,
+        derived_stack_field: config.derived_field.clone(),
         allow_session: config.allow_session,
         max_depth: config.max_depth,
         min_score: round6(config.min_score),
         min_second_child: config.min_second_child,
         max_majority_fraction: round6(config.max_majority_fraction),
-        selected_source_fields,
+        selected_evidence_fields: selected_evidence_fields.clone(),
+        selected_source_fields: selected_evidence_fields,
         excluded_oracle_fields: ORACLE_OR_LABEL_FIELDS.to_vec(),
         excluded_oracle_prefixes: ORACLE_OR_LABEL_PREFIXES.to_vec(),
         excluded_oracle_suffixes: ORACLE_OR_LABEL_SUFFIXES.to_vec(),
@@ -1149,15 +1180,15 @@ fn induce_task_stack(
 }
 
 #[allow(clippy::too_many_arguments)]
-fn induce_task_stack_recursive(
+fn induce_operation_stack_recursive(
     samples: &[Operation],
     indices: &[usize],
-    config: &TaskStackInductionConfig,
+    config: &OperationStackInductionConfig,
     path: Vec<String>,
     depth: usize,
     task_paths: &mut [Vec<String>],
     stop_reasons: &mut BTreeMap<String, u64>,
-    split_decisions: &mut Vec<TaskStackSplitDecision>,
+    split_decisions: &mut Vec<OperationStackSplitDecision>,
 ) {
     let node_weight = index_weight(samples, indices);
     if depth >= config.max_depth {
@@ -1178,7 +1209,9 @@ fn induce_task_stack_recursive(
         return;
     };
 
-    let source_field = selected.field.clone();
+    let primary_evidence_field = selected.field.clone();
+    let evidence_fields = selected.evidence_fields.clone();
+    let boundary_id = selected.boundary_id.clone();
     let cut_after = selected.cut_after.min(indices.len().saturating_sub(1));
     let (left_indices, right_indices) = indices.split_at(cut_after);
     if left_indices.is_empty() || right_indices.is_empty() {
@@ -1188,9 +1221,17 @@ fn induce_task_stack_recursive(
     }
     let left_label = selected.left_label.clone();
     let right_label = selected.right_label.clone();
-    split_decisions.push(TaskStackSplitDecision {
+    if path.contains(&left_label) && path.contains(&right_label) {
+        assign_task_path(indices, &path, task_paths);
+        increment_stop(stop_reasons, "redundant_segment_label");
+        return;
+    }
+    split_decisions.push(OperationStackSplitDecision {
         path: path.clone(),
-        source_field: source_field.clone(),
+        boundary_id,
+        primary_evidence_field: primary_evidence_field.clone(),
+        evidence_fields,
+        source_field: primary_evidence_field.clone(),
         node_weight,
         selected_score: selected,
         candidate_scores: candidates,
@@ -1199,7 +1240,7 @@ fn induce_task_stack_recursive(
     for (value, child_indices) in [(left_label, left_indices), (right_label, right_indices)] {
         let mut child_path = path.clone();
         push_task_path_label(&mut child_path, value);
-        induce_task_stack_recursive(
+        induce_operation_stack_recursive(
             samples,
             &child_indices,
             config,
@@ -1213,7 +1254,7 @@ fn induce_task_stack_recursive(
 }
 
 fn push_task_path_label(path: &mut Vec<String>, value: String) {
-    if path.last() != Some(&value) {
+    if !path.contains(&value) {
         path.push(value);
     }
 }
@@ -1236,10 +1277,13 @@ fn increment_stop(stop_reasons: &mut BTreeMap<String, u64>, reason: &str) {
 fn choose_task_split(
     samples: &[Operation],
     indices: &[usize],
-    config: &TaskStackInductionConfig,
-) -> (Option<TaskStackSplitScore>, Vec<TaskStackSplitScore>) {
-    let candidates = task_stack_candidate_fields(samples, indices, config);
-    let boundary_cuts = task_stack_boundary_cuts(samples, indices, &candidates, config);
+    config: &OperationStackInductionConfig,
+) -> (
+    Option<OperationStackSplitScore>,
+    Vec<OperationStackSplitScore>,
+) {
+    let candidates = operation_stack_candidate_fields(samples, indices, config);
+    let boundary_cuts = operation_stack_boundary_cuts(samples, indices, &candidates, config);
     let mut scores = boundary_cuts
         .into_iter()
         .filter_map(|cut_after| {
@@ -1261,11 +1305,11 @@ fn choose_task_split(
     (selected, scores)
 }
 
-fn task_stack_boundary_cuts(
+fn operation_stack_boundary_cuts(
     samples: &[Operation],
     indices: &[usize],
     candidates: &[String],
-    config: &TaskStackInductionConfig,
+    config: &OperationStackInductionConfig,
 ) -> Vec<usize> {
     if indices.len() <= 1 || candidates.is_empty() {
         return Vec::new();
@@ -1276,21 +1320,21 @@ fn task_stack_boundary_cuts(
             cuts.push(cut_after);
         }
     }
-    if cuts.len() <= MAX_TASK_STACK_BOUNDARY_CANDIDATES {
+    if cuts.len() <= MAX_OPERATION_STACK_BOUNDARY_CANDIDATES {
         return cuts;
     }
-    let stride = cuts.len().div_ceil(MAX_TASK_STACK_BOUNDARY_CANDIDATES);
+    let stride = cuts.len().div_ceil(MAX_OPERATION_STACK_BOUNDARY_CANDIDATES);
     cuts.into_iter()
         .enumerate()
         .filter_map(|(idx, cut)| (idx % stride == 0).then_some(cut))
-        .take(MAX_TASK_STACK_BOUNDARY_CANDIDATES)
+        .take(MAX_OPERATION_STACK_BOUNDARY_CANDIDATES)
         .collect()
 }
 
-fn task_stack_candidate_fields(
+fn operation_stack_candidate_fields(
     samples: &[Operation],
     indices: &[usize],
-    config: &TaskStackInductionConfig,
+    config: &OperationStackInductionConfig,
 ) -> Vec<String> {
     let mut fields = BTreeSet::new();
     for index in indices {
@@ -1300,16 +1344,20 @@ fn task_stack_candidate_fields(
         .into_iter()
         .filter(|field| {
             !field.starts_with('_')
-                && !is_task_stack_oracle_field(field)
-                && !TASK_STACK_METADATA_FIELDS.contains(&field.as_str())
-                && !TASK_STACK_NOISY_FIELDS.contains(&field.as_str())
+                && !is_operation_stack_oracle_field(field)
+                && !OPERATION_STACK_METADATA_FIELDS.contains(&field.as_str())
+                && !OPERATION_STACK_NOISY_FIELDS.contains(&field.as_str())
                 && (config.allow_session || field != "session")
-                && task_stack_field_is_candidate(samples, indices, field)
+                && operation_stack_field_is_candidate(samples, indices, field)
         })
         .collect()
 }
 
-fn task_stack_field_is_candidate(samples: &[Operation], indices: &[usize], field: &str) -> bool {
+fn operation_stack_field_is_candidate(
+    samples: &[Operation],
+    indices: &[usize],
+    field: &str,
+) -> bool {
     let counts = weighted_value_counts(samples, indices, field);
     if counts.len() <= 1 || counts.len() > std::cmp::max(40, indices.len() / 2) {
         return false;
@@ -1326,7 +1374,7 @@ fn adjacent_boundary_evidence(
     indices: &[usize],
     cut_after: usize,
     candidates: &[String],
-    config: &TaskStackInductionConfig,
+    config: &OperationStackInductionConfig,
 ) -> Option<TaskBoundaryEvidence> {
     if cut_after == 0 || cut_after >= indices.len() || candidates.is_empty() {
         return None;
@@ -1412,7 +1460,7 @@ fn token_set_distance(left: &BTreeSet<String>, right: &BTreeSet<String>) -> f64 
     1.0 - intersection / union
 }
 
-fn is_task_stack_oracle_field(field: &str) -> bool {
+fn is_operation_stack_oracle_field(field: &str) -> bool {
     ORACLE_OR_LABEL_FIELDS.contains(&field)
         || ORACLE_OR_LABEL_PREFIXES
             .iter()
@@ -1447,8 +1495,8 @@ fn score_task_boundary_split(
     indices: &[usize],
     cut_after: usize,
     candidates: &[String],
-    config: &TaskStackInductionConfig,
-) -> Option<TaskStackSplitScore> {
+    config: &OperationStackInductionConfig,
+) -> Option<OperationStackSplitScore> {
     if cut_after == 0 || cut_after >= indices.len() {
         return None;
     }
@@ -1513,20 +1561,46 @@ fn score_task_boundary_split(
     } else {
         0.0
     };
-    let score = 0.46 * structural_gain
-        + 0.20 * balance * coverage
-        + 0.16 * query_bonus
-        + 0.18 * boundary.semantic_shift
-        + 0.12 * adjacent_change
-        - 0.08 * cardinality_penalty
-        - 0.20 * small_child_penalty;
-    let left_label = task_stack_segment_label(samples, left, &evidence_fields, "left");
-    let right_label = task_stack_segment_label(samples, right, &evidence_fields, "right");
+    let left_segment =
+        operation_stack_segment_label(samples, left, &evidence_fields, "left-segment");
+    let right_segment =
+        operation_stack_segment_label(samples, right, &evidence_fields, "right-segment");
+    let label_quality = (left_segment.quality * left_weight as f64
+        + right_segment.quality * right_weight as f64)
+        / total.max(1) as f64;
+    if label_quality < MIN_OPERATION_STACK_LABEL_QUALITY {
+        return None;
+    }
+    let label_evidence = left_segment
+        .evidence
+        .iter()
+        .map(|item| format!("left:{item}"))
+        .chain(
+            right_segment
+                .evidence
+                .iter()
+                .map(|item| format!("right:{item}")),
+        )
+        .collect::<Vec<_>>();
+    let left_label = left_segment.label;
+    let right_label = right_segment.label;
     let groups = BTreeMap::from([
         (left_label.clone(), left_weight),
         (right_label.clone(), right_weight),
     ]);
-    Some(TaskStackSplitScore {
+    let boundary_id = format!("b{:04}", cut_after);
+    let low_label_penalty = 1.0 - label_quality;
+    let score = 0.40 * structural_gain
+        + 0.18 * balance * coverage
+        + 0.14 * query_bonus
+        + 0.16 * boundary.semantic_shift
+        + 0.10 * adjacent_change
+        + 0.12 * label_quality
+        - 0.08 * cardinality_penalty
+        - 0.14 * low_label_penalty
+        - 0.20 * small_child_penalty;
+    Some(OperationStackSplitScore {
+        boundary_id,
         field: primary_field,
         cut_after,
         left_label,
@@ -1534,8 +1608,10 @@ fn score_task_boundary_split(
         left_weight,
         right_weight,
         evidence_fields,
+        label_evidence,
         score: round6(score),
         structural_gain: round6(structural_gain),
+        label_quality: round6(label_quality),
         balance: round6(balance),
         coverage: round6(coverage),
         query_bonus: round6(query_bonus),
@@ -1593,26 +1669,52 @@ fn score_boundary_evidence_field(
     Some((field.to_string(), score, query_bonus, adjacent_change))
 }
 
-fn task_stack_segment_label(
+fn operation_stack_segment_label(
     samples: &[Operation],
     indices: &[usize],
     evidence_fields: &[String],
     fallback: &str,
-) -> String {
+) -> TaskSegmentLabel {
     let mut parts = Vec::new();
+    let mut evidence = Vec::new();
+    let mut quality_sum = 0.0;
     for field in evidence_fields.iter().take(3) {
         let counts = weighted_value_counts(samples, indices, field);
         let Some((value, share)) = dominant_value_with_share(&counts) else {
             continue;
         };
         if share >= 0.45 {
-            parts.push(format!("{field}={value}"));
+            let label = normalize_segment_label(&value);
+            if !label.is_empty() && !parts.contains(&label) {
+                parts.push(label);
+                evidence.push(format!("{field}={value}@{}", round3(share)));
+                quality_sum += share;
+            }
         }
     }
     if !parts.is_empty() {
-        return parts.join("+");
+        return TaskSegmentLabel {
+            quality: round6(quality_sum / parts.len() as f64),
+            label: parts.join("+"),
+            evidence,
+        };
     }
-    format!("{fallback}-segment")
+    TaskSegmentLabel {
+        label: fallback.to_string(),
+        quality: 0.0,
+        evidence,
+    }
+}
+
+fn normalize_segment_label(value: &str) -> String {
+    let mut label = normalize_token(value);
+    if label.len() > 48 {
+        label.truncate(48);
+        while label.ends_with('_') {
+            label.pop();
+        }
+    }
+    label
 }
 
 fn dominant_value_with_share(counts: &BTreeMap<String, u64>) -> Option<(String, f64)> {
@@ -2181,7 +2283,7 @@ pub fn write_projection(
                         projection.rank_mode,
                         stacks.len(),
                     ),
-                    "task_stack_induction": projection.task_stack_induction,
+                    "operation_stack_induction": projection.operation_stack_induction,
                     "stacks": stacks,
                 },
                 "sessions": sessions.iter().map(|s| session_to_json(s, include_previews)).collect::<Vec<_>>(),
@@ -3170,7 +3272,7 @@ mod tests {
     }
 
     #[test]
-    fn task_stack_induction_derives_task_frames_without_oracle_fields() {
+    fn operation_stack_induction_derives_operation_frames_without_oracle_fields() {
         let mut records = Vec::new();
         for _ in 0..6 {
             records.push(json!({"value": 1, "fields": {
@@ -3221,25 +3323,25 @@ mod tests {
             }}));
         }
 
-        let stack = parse_stack_spec("task").unwrap();
-        let induction = TaskStackInductionConfig::new()
+        let stack = parse_stack_spec("operation").unwrap();
+        let induction = OperationStackInductionConfig::new()
             .with_query_terms(vec!["loop".to_string(), "repeat".to_string()])
             .with_min_score(0.0)
             .with_min_second_child(2)
             .with_min_node_weight(2);
         let options = OperationStackConfig::for_view(ProfileView::Operations)
             .with_stack(stack)
-            .with_task_stack_induction(induction);
+            .with_operation_stack_induction(induction);
         let profile =
             build_profile_from_operation_records(&records, ProfileView::Operations, &options)
                 .unwrap();
         let stacks = profile_to_stacks(&profile);
         assert!(!stacks.is_empty());
-        assert!(
-            stacks
-                .keys()
-                .all(|stack| stack.split(';').all(|frame| frame.starts_with("task:")))
-        );
+        assert!(stacks.keys().all(|stack| {
+            stack
+                .split(';')
+                .all(|frame| frame.starts_with("operation:"))
+        }));
         assert!(stacks.keys().all(|stack| {
             !stack.contains("looping")
                 && !stack.contains("problem_value")
@@ -3255,14 +3357,14 @@ mod tests {
             .collect::<BTreeSet<_>>();
         assert!(
             depths.len() > 1,
-            "expected variable-depth task stacks: {stacks:?}"
+            "expected variable-depth operation stacks: {stacks:?}"
         );
 
         let report = profile
-            .task_stack_induction
+            .operation_stack_induction
             .as_ref()
             .expect("induction report");
-        assert_eq!(report.policy, TASK_STACK_POLICY);
+        assert_eq!(report.policy, OPERATION_STACK_POLICY);
         assert!(
             report
                 .selected_source_fields
@@ -3277,7 +3379,7 @@ mod tests {
             report
                 .selected_source_fields
                 .iter()
-                .all(|field| !is_task_stack_oracle_field(field))
+                .all(|field| !is_operation_stack_oracle_field(field))
         );
     }
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Replay Rust boundary-based task-stack induction on one real labeled trace slice."""
+"""Replay Rust boundary-based operation-stack induction on one real labeled trace slice."""
 
 from __future__ import annotations
 
@@ -80,11 +80,11 @@ ORACLE_SUFFIXES = (
 )
 VIEWS = {
     "agentreward-overview": {
-        "title": "Rust induced task stack",
+        "title": "Rust induced operation stack",
         "allow_session": False,
     },
     "agentreward-session": {
-        "title": "Rust induced task stack with session candidate",
+        "title": "Rust induced operation stack with session candidate",
         "allow_session": True,
     },
 }
@@ -133,7 +133,7 @@ def run_agentpprof(view_name: str, spec: dict[str, Any], fmt: str) -> dict[str, 
         fmt,
         "--output",
         str(output.relative_to(ROOT)),
-        "--induce-task-stack",
+        "--induce-operation-stack",
         "--deterministic-output",
     ]
     for predicate in FILTERS:
@@ -166,9 +166,9 @@ def depth_histogram(stacks: dict[str, int]) -> dict[str, int]:
     return dict(sorted(hist.items(), key=lambda item: int(item[0])))
 
 
-def all_frames_are_task(stacks: dict[str, int]) -> bool:
+def all_frames_are_induced_operation(stacks: dict[str, int]) -> bool:
     return all(
-        frame.startswith("task:")
+        frame.startswith("operation:")
         for stack in stacks
         for frame in stack.split(";")
         if frame
@@ -178,7 +178,7 @@ def all_frames_are_task(stacks: dict[str, int]) -> bool:
 def split_field_counts(induction: dict[str, Any]) -> dict[str, int]:
     counts: Counter[str] = Counter()
     for decision in induction["split_decisions"]:
-        counts[decision["source_field"]] += 1
+        counts[decision.get("primary_evidence_field") or decision["source_field"]] += 1
     return dict(sorted(counts.items()))
 
 
@@ -190,12 +190,19 @@ def evidence_field_counts(induction: dict[str, Any]) -> dict[str, int]:
     return dict(sorted(counts.items()))
 
 
+def operation_stack_induction_report(profile: dict[str, Any]) -> dict[str, Any]:
+    report = profile.get("operation_stack_induction")
+    if report is not None:
+        return report
+    return profile["task_stack_induction"]
+
+
 def summarize_view(view_name: str, spec: dict[str, Any], statuses: dict[str, Any]) -> dict[str, Any]:
     profile_doc = json.loads((OUT / f"{view_name}.json").read_text())
     profile = profile_doc["profile"]
-    induction = profile["task_stack_induction"]
+    induction = operation_stack_induction_report(profile)
     stacks = profile["stacks"]
-    selected_fields = induction["selected_source_fields"]
+    selected_fields = induction.get("selected_evidence_fields") or induction["selected_source_fields"]
     oracle_overlap = sorted(field for field in selected_fields if is_oracle_field(field))
     return {
         "view": view_name,
@@ -206,7 +213,9 @@ def summarize_view(view_name: str, spec: dict[str, Any], statuses: dict[str, Any
         "compression_ratio": profile["summary"]["compression_ratio"],
         "max_stack_reuse": profile["summary"]["max_stack_reuse"],
         "stack": statuses["json"].get("stack"),
+        "induce_operation_stack": statuses["json"].get("induce_operation_stack"),
         "induce_task_stack": statuses["json"].get("induce_task_stack"),
+        "selected_evidence_fields": selected_fields,
         "selected_source_fields": selected_fields,
         "oracle_source_field_overlap": oracle_overlap,
         "split_source_field_counts": split_field_counts(induction),
@@ -214,7 +223,7 @@ def summarize_view(view_name: str, spec: dict[str, Any], statuses: dict[str, Any
         "stop_reasons": induction["stop_reasons"],
         "split_decision_count": len(induction["split_decisions"]),
         "stack_depth_histogram": depth_histogram(stacks),
-        "all_frames_are_task": all_frames_are_task(stacks),
+        "all_frames_are_induced_operation": all_frames_are_induced_operation(stacks),
         "top_stacks": profile["ranking"]["top"][:12],
         "statuses": statuses,
     }
@@ -222,10 +231,10 @@ def summarize_view(view_name: str, spec: dict[str, Any], statuses: dict[str, Any
 
 def write_report(result: dict[str, Any]) -> None:
     lines = [
-        "# R402 Rust Task-Stack Induction",
+        "# R402 Rust Operation-Stack Induction",
         "",
-        "This artifact replays the Rust `agentpprof --induce-task-stack` implementation on one tracked real-trace slice.",
-        "It is a mechanism and visualization artifact: it shows that Rust derives recursive `task:` stacks from adjacent boundary evidence without a user-provided field order.",
+        "This artifact replays the Rust `agentpprof --induce-operation-stack` implementation on one tracked real-trace slice.",
+        "It is a mechanism and visualization artifact: it shows that Rust derives recursive operation-stack segments from adjacent boundary evidence without a user-provided field order.",
         "It is not the paper's hidden-label localization accuracy result.",
         "",
         f"- source: `{result['source']}`",
@@ -242,8 +251,8 @@ def write_report(result: dict[str, Any]) -> None:
                 f"- unique stacks: {view['unique_stacks']}",
                 f"- compression ratio: {view['compression_ratio']}",
                 f"- stack: `{view['stack']}`",
-                f"- selected source fields: `{view['selected_source_fields']}`",
-                f"- split source-field counts: `{view['split_source_field_counts']}`",
+                f"- selected evidence fields: `{view['selected_evidence_fields']}`",
+                f"- split evidence primary-field counts: `{view['split_source_field_counts']}`",
                 f"- split evidence-field counts: `{view['split_evidence_field_counts']}`",
                 f"- oracle source-field overlap: `{view['oracle_source_field_overlap']}`",
                 f"- stack depth histogram: `{view['stack_depth_histogram']}`",
@@ -276,7 +285,7 @@ def write_index(result: dict[str, Any]) -> None:
 <span class="metric">depths: {html.escape(str(view['stack_depth_histogram']))}</span>
 <span class="metric">oracle overlap: {len(view['oracle_source_field_overlap'])}</span>
 </p>
-<p><code>selected source fields: {html.escape(str(view['selected_source_fields']))}</code></p>
+	<p><code>selected evidence fields: {html.escape(str(view['selected_evidence_fields']))}</code></p>
 <iframe src="{html.escape(view_name + '.svg')}"></iframe>
 <h3>Top Stacks</h3>
 <table><thead><tr><th>weight</th><th>stack</th></tr></thead><tbody>{top_rows}</tbody></table>
@@ -285,7 +294,7 @@ def write_index(result: dict[str, Any]) -> None:
         )
     html_doc = f"""<!doctype html>
 <meta charset="utf-8">
-<title>R402 Rust Task-Stack Induction</title>
+	<title>R402 Rust Operation-Stack Induction</title>
 <style>
 body {{ font-family: system-ui, sans-serif; margin: 24px; color: #1f2933; }}
 h1, h2, h3 {{ margin-bottom: 0.3rem; }}
@@ -298,10 +307,10 @@ iframe {{ width: 100%; height: 420px; border: 1px solid #d8dee9; }}
 code {{ background: #eef2f7; padding: 1px 4px; border-radius: 4px; }}
 section {{ margin-bottom: 42px; }}
 </style>
-<h1>R402 Rust Task-Stack Induction</h1>
-<p>Rust `agentpprof` derives recursive task stacks over one AgentRewardBench
-query slice. The output stack uses only <code>task:</code> frames; selected
-source fields are recorded as provenance.</p>
+	<h1>R402 Rust Operation-Stack Induction</h1>
+	<p>Rust `agentpprof` derives recursive operation-stack segments over one AgentRewardBench
+	query slice. The output stack uses only induced segment frames; selected
+	evidence fields are recorded as provenance.</p>
 {''.join(sections)}
 """
     (OUT / "index.html").write_text(html_doc)
@@ -319,28 +328,29 @@ def main() -> None:
     checks = {
         "uses_tracked_r300_source": SOURCE.exists(),
         "single_benchmark_query": FILTERS == ["dataset=agent-reward-bench", "analysis_task=agentreward_looping"],
-        "all_views_use_rust_induction": all(view["induce_task_stack"] for view in views.values()),
+        "all_views_use_rust_induction": all(view["induce_operation_stack"] for view in views.values()),
         "all_views_use_boundary_policy": all(
             view["top_stacks"]
-            and "query-conditioned-recursive-boundary-task-stack-induction"
-            == json.loads((OUT / f"{view_name}.json").read_text())["profile"]["task_stack_induction"]["policy"]
+            and "query-conditioned-recursive-boundary-operation-stack-induction"
+            == operation_stack_induction_report(json.loads((OUT / f"{view_name}.json").read_text())["profile"])["policy"]
             for view_name, view in views.items()
         ),
-        "all_views_fold_task_stack": all(view["stack"] == "task" for view in views.values()),
-        "all_frames_are_task": all(view["all_frames_are_task"] for view in views.values()),
+        "all_views_fold_operation_stack": all(view["stack"] == "operation" for view in views.values()),
+        "all_frames_are_induced_operation": all(
+            view["all_frames_are_induced_operation"] for view in views.values()
+        ),
         "split_decisions_have_boundaries": all(
             decision["selected_score"]["cut_after"] > 0
             and decision["selected_score"]["left_label"] != decision["selected_score"]["right_label"]
             for view_name in views
-            for decision in json.loads((OUT / f"{view_name}.json").read_text())["profile"]["task_stack_induction"]["split_decisions"]
+            for decision in operation_stack_induction_report(
+                json.loads((OUT / f"{view_name}.json").read_text())["profile"]
+            )["split_decisions"]
         ),
-        "boundary_fields_can_recur": all(
-            max(view["split_source_field_counts"].values() or [0]) > 1
-            for view in views.values()
-        ),
+        "boundary_evidence_fields_can_recur": all(max(view["split_source_field_counts"].values() or [0]) > 1 for view in views.values()),
         "no_oracle_source_fields_selected": all(not view["oracle_source_field_overlap"] for view in views.values()),
-        "overview_omits_session_candidate": "session" not in views["agentreward-overview"]["selected_source_fields"],
-        "session_view_can_select_session": "session" in views["agentreward-session"]["selected_source_fields"],
+        "overview_omits_session_candidate": "session" not in views["agentreward-overview"]["selected_evidence_fields"],
+        "session_view_can_select_session": "session" in views["agentreward-session"]["selected_evidence_fields"],
         "variable_depth_in_both_views": all(len(view["stack_depth_histogram"]) > 1 for view in views.values()),
         "query_count_matches_agentreward_looping": all(view["operations"] == 729 for view in views.values()),
     }

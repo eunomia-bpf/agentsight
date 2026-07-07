@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Score Rust-induced task stacks against existing hidden labels.
+"""Score Rust-induced operation stacks against existing hidden labels.
 
 R403 reuses the tracked R300 operation JSONL and R320 scoring machinery. It runs
-the maintained Rust `agentpprof --induce-task-stack` implementation, reconstructs
+the maintained Rust `agentpprof --induce-operation-stack` implementation, reconstructs
 per-operation induced stack assignments from the Rust split decisions, and then
 scores the resulting ranked groups with hidden labels only after profiling.
 """
@@ -32,7 +32,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import operation_profile_accuracy_eval as r320  # noqa: E402
 import operation_analyst_ranking_eval as r302  # noqa: E402
 import operation_query_utility_eval as r300  # noqa: E402
-from operation_rust_task_stack_induction_eval import is_oracle_field  # noqa: E402
+from operation_rust_task_stack_induction_eval import (  # noqa: E402
+    is_oracle_field,
+    operation_stack_induction_report,
+)
 
 
 TASK_TERMS = {
@@ -44,10 +47,10 @@ TASK_TERMS = {
     "osworld_group_start": ["group", "start", "boundary"],
 }
 INDUCED_VIEWS = {
-    "induced_task_stack": {"allow_session": False},
+    "induced_operation_stack": {"allow_session": False},
 }
 RANKERS = ["width", "visible_risk", "query_aware", "oracle_upper_bound"]
-VISIBLE_POLICY = ("induced_task_stack", "query_aware")
+VISIBLE_POLICY = ("induced_operation_stack", "query_aware")
 BASELINE_POLICIES = [
     ("flat", "width"),
     ("fixed_session", "query_aware"),
@@ -165,7 +168,7 @@ def run_agentpprof(
         f"analysis_task={task['id']}",
         "--where",
         f"dataset={task['dataset']}",
-        "--induce-task-stack",
+        "--induce-operation-stack",
         "--deterministic-output",
     ]
     if allow_session:
@@ -182,7 +185,7 @@ def run_agentpprof(
 
 def push_path(path: list[str], label: str) -> list[str]:
     child = list(path)
-    if not child or child[-1] != label:
+    if label not in child:
         child.append(label)
     return child
 
@@ -218,12 +221,12 @@ def reconstruct_paths(operations: list[dict[str, Any]], decisions: list[dict[str
     if cursor != len(decisions):
         raise SystemExit(f"unconsumed Rust split decisions: {len(decisions) - cursor}")
     if any(path is None for path in paths):
-        raise SystemExit("incomplete induced task path reconstruction")
+        raise SystemExit("incomplete induced operation-stack path reconstruction")
     return [path or ["all"] for path in paths]
 
 
 def stack_from_path(path: list[str]) -> str:
-    return ";".join(safe_frame(label, "task") for label in path)
+    return ";".join(safe_frame(label, "operation") for label in path)
 
 
 def stack_frames(label: str) -> list[dict[str, str]]:
@@ -250,7 +253,7 @@ def induced_groups(
     profile_doc: dict[str, Any],
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     profile = profile_doc["profile"]
-    induction = profile["task_stack_induction"]
+    induction = operation_stack_induction_report(profile)
     paths = reconstruct_paths(operations, induction["split_decisions"])
     grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for operation, path in zip(operations, paths):
@@ -300,9 +303,12 @@ def induced_groups(
         "prevalence": total_positive / total_ops if total_ops else 0.0,
         "groups": len(groups),
         "positive_groups": sum(1 for group in groups if group["positives"] > 0),
-        "stack": ["task"],
+        "stack": ["operation"],
         "rust_stack_weight_match": rust_match,
-        "selected_source_fields": induction["selected_source_fields"],
+        "selected_evidence_fields": induction.get("selected_evidence_fields")
+        or induction["selected_source_fields"],
+        "selected_source_fields": induction.get("selected_evidence_fields")
+        or induction["selected_source_fields"],
         "split_decisions": len(induction["split_decisions"]),
         "stop_reasons": induction["stop_reasons"],
         "depth_histogram": depth_histogram,
@@ -444,7 +450,7 @@ def render_markdown(report: dict[str, Any]) -> str:
     lines = [
         "# R403 Induced Stack Scoring",
         "",
-        "This run scores Rust-induced task stacks on the existing R300/R320 hidden-label tasks. It is a mechanism ablation for E2/E3, not a new dataset and not a human-utility study.",
+        "This run scores Rust-induced operation stacks on the existing R300/R320 hidden-label tasks. It is a mechanism ablation for E2/E3, not a new dataset and not a human-utility study.",
         "",
         "## Policy Summary",
         "",
@@ -498,7 +504,7 @@ th {{ background: #edf2f7; }}
 .note {{ max-width: 900px; line-height: 1.5; }}
 </style>
 <h1>R403 Induced Stack Scoring</h1>
-<p class="note">Rust-induced task stacks are scored against existing hidden labels after profiling. The run uses tracked R300/R320 artifacts only.</p>
+<p class="note">Rust-induced operation stacks are scored against existing hidden labels after profiling. The run uses tracked R300/R320 artifacts only.</p>
 <p class="note">{html.escape(report['interpretation']['summary'])}</p>
 <p class="note">{html.escape(report['interpretation']['counterpoint'])}</p>
 <table>
@@ -565,14 +571,22 @@ def main() -> None:
     fixed_session = by_policy[("fixed_session", "query_aware")]
     flat = by_policy[("flat", "width")]
     operation_stack = by_policy[("operation_stack", "query_aware")]
+    variable_tasks = sum(1 for row in view_summaries if row["variable_depth"])
+    stopped_tasks = [
+        row["task"]
+        for row in view_summaries
+        if not row["variable_depth"] and "no_material_split" in row["stop_reasons"]
+    ]
     interpretation = {
         "summary": (
-            "The induced task-stack view gives a label-scored automatic-boundary probe: "
+            "The induced operation-stack view gives a label-scored automatic-boundary probe: "
             f"median top-5 work is {induced_visible['median_top5_work']} versus "
             f"{flat['median_top5_work']} for flat summaries, with median groups "
             f"{induced_visible['median_groups']} versus {fixed_session['median_groups']} "
-            "for fixed-session drilldown. All six real-trace tasks produce variable-depth "
-            "recursive stacks rather than a fixed field-order tree."
+            "for fixed-session drilldown. "
+            f"{variable_tasks}/6 real-trace tasks produce variable-depth recursive stacks; "
+            f"{len(stopped_tasks)}/6 stop at one induced operation segment because visible "
+            "evidence does not support a material split."
         ),
         "counterpoint": (
             "The hand-configured operation stack remains the stronger main E2 policy when "
@@ -585,10 +599,14 @@ def main() -> None:
         "uses_tracked_r300_source": SOURCE.exists(),
         "uses_tracked_r320_baselines": BASELINE_SCORES.exists(),
         "covers_all_six_tasks": len({row["task"] for row in induced_rows}) == 6,
-        "all_rust_profiles_use_induction": all(row["status"].get("induce_task_stack") for row in view_summaries),
+        "all_rust_profiles_use_induction": all(row["status"].get("induce_operation_stack") for row in view_summaries),
         "rust_stack_reconstruction_matches": all(row["rust_stack_weight_match"] for row in view_summaries),
         "no_oracle_source_fields_selected": all(not row["oracle_source_field_overlap"] for row in view_summaries),
-        "variable_depth_induced_stacks": all(row["variable_depth"] for row in view_summaries),
+        "variable_or_materially_stopped_induced_stacks": all(
+            row["variable_depth"]
+            or (row["groups"] == 1 and "no_material_split" in row["stop_reasons"])
+            for row in view_summaries
+        ),
         "hidden_labels_used_only_for_scoring": all(
             not row["uses_hidden_fields"]
             for row in induced_rows
@@ -601,7 +619,7 @@ def main() -> None:
     report = {
         "run_id": "R403",
         "status": "pass" if all(checks.values()) else "fail",
-        "purpose": "Score Rust-induced recursive task stacks as an E2/E3 mechanism ablation on existing real labeled traces.",
+        "purpose": "Score Rust-induced recursive operation stacks as an E2/E3 mechanism ablation on existing real labeled traces.",
         "input_policy": {
             "dataset_sync": "none",
             "dataset_creation": "none",

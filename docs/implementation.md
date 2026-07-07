@@ -39,9 +39,9 @@ Purpose: identify the maintained implementation boundary.
 | `script/operation_oracle_depth_adequacy_eval.py` | R355 oracle-depth adequacy audit; scores visible-ranked profile groups at session, operation/step, positive-run proxy, and task-specific oracle depths over tracked labeled outputs. | research harness |
 | `script/operation_field_derivation_mechanism_eval.py` | R366 field-derivation mechanism audit; consolidates deterministic mapping, profile-spec composition, rank-feature ablation, supervised boundary backends, and boundary-derived profile patches from tracked artifacts without rerunning the profiler. | paper hygiene harness |
 | `script/operation_field_suitability_eval.py` | R400 field-derivation suitability audit; converts tracked R325/R358/R366 evidence into guarded accept/caution/reject profile-configuration decisions without syncing data or rerunning the profiler. | paper hygiene harness |
-| `script/operation_rust_task_stack_induction_eval.py` | R402 Rust boundary-based task-stack induction replay; runs `agentpprof --induce-task-stack` on one tracked R300 real-trace slice and checks task-only, variable-depth stacks without a user stack-field chain or oracle source fields. | research harness |
-| `script/operation_induced_stack_scoring_eval.py` | R403 hidden-label scoring for Rust-induced task-only stacks; runs `agentpprof --induce-task-stack` on the existing six R300/R320 real labeled tasks, reconstructs per-operation induced stack groups from Rust split decisions, and scores hidden labels only after profiling. | research harness |
-| `script/operation_induced_depth_sensitivity_eval.py` | R404 induced task-stack depth-sensitivity sweep; reruns `agentpprof --induce-task-stack --induce-max-depth` over depths 1 through 5 on the same six R300/R320 labeled tasks and scores hidden labels only after profiling. | research harness |
+| `script/operation_rust_task_stack_induction_eval.py` | R402 Rust boundary-based operation-stack induction replay; runs `agentpprof --induce-operation-stack` on one tracked R300 real-trace slice and checks induced `operation:` variable-depth stacks without a user stack-field chain or oracle source fields. | research harness |
+| `script/operation_induced_stack_scoring_eval.py` | R403 hidden-label scoring for Rust-induced operation stacks; runs `agentpprof --induce-operation-stack` on the existing six R300/R320 real labeled tasks, reconstructs per-operation induced stack groups from Rust split decisions, and scores hidden labels only after profiling. | research harness |
+| `script/operation_induced_depth_sensitivity_eval.py` | R404 induced operation-stack depth-sensitivity sweep; reruns `agentpprof --induce-operation-stack --induce-max-depth` over depths 1 through 5 on the same six R300/R320 labeled tasks and scores hidden labels only after profiling. | research harness |
 | `script/paper_entry_claim_path_audit.py` | R367 entry claim-path audit; checks that abstract, introduction/problem framing, and main result table present RQ1/E1-RQ4/E4 as three empirical profiling questions plus one systems/reproducibility question, with R-runs as provenance and only operation/operation-stack profiler abstractions. | paper hygiene harness |
 | `script/paper_trace_tree_baseline_audit.py` | R368 trace-tree-shaped baseline audit; reads existing R320/R355 hidden-label scoring outputs and makes the flat/fixed-session/dataset-native/raw-action baseline tradeoffs explicit without importing ecosystem traces or rerunning the profiler. | paper hygiene harness |
 | `script/paper_core_experiment_consolidation_audit.py` | R359 paper-facing core-experiment consolidation audit; checks that evaluation is organized as RQ1/E1-RQ4/E4, R-runs are provenance, and R358 remains an RQ3/E3 mechanism ablation. | paper hygiene harness |
@@ -79,10 +79,11 @@ The current Rust implementation supports:
   each folded stack group;
 - rank-policy selection via `--rank-mode width-boost|rule-score` and
   profile-spec `rank_mode`;
-- recursive task-stack induction via `--induce-task-stack`, which scores
-  adjacent operation boundaries from visible fields, semantic shift,
-  changed-field density, and optional query terms, writes a multi-value `task`
-  field, and folds that field as the only stack frame for the induced view;
+- recursive operation-stack induction via `--induce-operation-stack`, which
+  scores adjacent operation boundaries from visible fields, semantic shift,
+  changed-field density, and optional query terms, writes a multi-value
+  induced `operation` path, and folds that path as the only stack frame family
+  for the induced view;
 - frame-local stack overrides via `--stack-rule`;
 - reusable profile specs via `--profile-spec`, including operation-file,
   local-session, imported agent-trace, and standard-trace input paths;
@@ -153,48 +154,49 @@ part of the same profile-spec path as operation-file mappings and ranking, but
 they remain operation-field derivations folded into operation stacks rather
 than a third profiler object.
 
-R402 adds a first-class Rust task-stack induction mode. `agentpprof
---induce-task-stack` no longer requires a user-supplied stack-field chain. It
+R402 adds a first-class Rust operation-stack induction mode. `agentpprof
+--induce-operation-stack` no longer requires a user-supplied stack-field chain. It
 treats visible fields as evidence, filters oracle and label fields, scores
 adjacent operation boundaries inside the current contiguous segment with
 semantic-shift, changed-field, query, and partition-coherence signals, permits
 the same evidence field to recur at different recursive cuts, recursively
 splits only when the children have enough weight and distinct dominant
-evidence, and stores the induced path as a multi-value `task` field before
+evidence, and stores the induced path as a multi-value `operation` field before
 normal stack folding. The
 replay artifact runs this mode over
 `dataset=agent-reward-bench;analysis_task=agentreward_looping` from the tracked
 R300 operation file. The overview view produces 729 operations, 15 stacks, and
-depth histogram 1/3/11 at depths 2/3/4; the session-candidate view uses the same
-operations and produces 15 stacks with depth histogram 7/6/2. `session` is
+depth histogram 1/1/13 at depths 2/3/4; the session-candidate view uses the same
+operations and produces 16 stacks with depth histogram 2/14 at depths 3/4. `session` is
 selected only when explicitly allowed as evidence. This is an implementation
-and visualization check for recursive task-only folding, not a hidden-label
+and visualization check for recursive operation-stack folding, not a hidden-label
 accuracy result.
 
 R403 turns that implementation path into a scored profiler view without adding
 datasets or labels. `script/operation_induced_stack_scoring_eval.py` reuses the
 tracked R300 operation JSONL and R320 policy-score CSV, runs the release
-`agentpprof --induce-task-stack` binary for all six hidden-label tasks,
+`agentpprof --induce-operation-stack` binary for all six hidden-label tasks,
 reconstructs operation-to-stack assignments from the Rust split-decision report,
 and scores flat/fixed-session/dataset-native/raw-action/operation-stack
 baselines with the same R320 machinery. The run passes 9/9 checks: all six tasks
 use Rust induction, reconstructed stack weights match Rust JSON, no oracle
-source fields are selected, hidden labels are used only after profiling, and all
-six tasks produce variable-depth induced stacks. Median induced-task-stack
-query-aware work@5 is 0.2819 versus 1.0 for flat summaries, median groups are
-15.0 versus 285.0 for fixed-session drilldown, and median AP remains lower than
-the hand-configured operation stack, 0.3034 versus 0.3116. This is RQ2/RQ3
+evidence fields are selected, hidden labels are used only after profiling, and
+4/6 tasks produce variable-depth induced stacks while 2/6 AgentNet quality tasks
+stop at one material segment. Median induced-operation-stack query-aware work@5
+is 0.653 versus 1.0 for flat summaries, median groups are 12.0 versus 285.0 for
+fixed-session drilldown, and median AP remains lower than the hand-configured
+operation stack, 0.2762 versus 0.3116. This is RQ2/RQ3
 mechanism evidence for automatic recursive folding, not a new main experiment
 or a claim of universal boundary discovery.
 
 R404 tests whether the induced-stack depth cap is a real configuration knob
 rather than a fixed ontology. `script/operation_induced_depth_sensitivity_eval.py`
 uses the same tracked R300 operation source and the same R320/R403 scoring path,
-then reruns release `agentpprof --induce-task-stack` with depth caps 1 through
+then reruns release `agentpprof --induce-operation-stack` with depth caps 1 through
 5. Hidden labels remain outside the profiler and are used only for offline
 scoring. The run passes 9/9 integrity checks and shows that query-aware median
-AP peaks at depth 4, lowest median top-5 work occurs at depth 5, and task-level
-AP-best depths span 3, 4, and 5. The implementation consequence is that
+AP peaks at depth 3, lowest median top-5 work occurs at depth 5, and material-split
+task AP-best depths span 2, 3, 4, and 5. The implementation consequence is that
 recursive folding exposes a depth surface that profile specs and query hints
 can tune; it is not a user-provided field chain or an automatic selector.
 

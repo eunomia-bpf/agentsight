@@ -9,18 +9,18 @@ th { background: #edf2f7; }
 .note { max-width: 900px; line-height: 1.5; }
 </style>
 <h1>R403 Induced Stack Scoring</h1>
-<p class="note">Rust-induced task stacks are scored against existing hidden labels after profiling. The run uses tracked R300/R320 artifacts only.</p>
-<p class="note">The induced task-stack view gives a label-scored automatic-boundary probe: median top-5 work is 0.2819 versus 1.0 for flat summaries, with median groups 15.0 versus 285.0 for fixed-session drilldown. All six real-trace tasks produce variable-depth recursive stacks rather than a fixed field-order tree.</p>
-<p class="note">The hand-configured operation stack remains the stronger main E2 policy when median AP is compared (0.3116 versus 0.3034), so induction is evidence for configurable recursive folding rather than a replacement for task-specific profile specs.</p>
+<p class="note">Rust-induced operation stacks are scored against existing hidden labels after profiling. The run uses tracked R300/R320 artifacts only.</p>
+<p class="note">The induced operation-stack view gives a label-scored automatic-boundary probe: median top-5 work is 0.653 versus 1.0 for flat summaries, with median groups 12.0 versus 285.0 for fixed-session drilldown. 4/6 real-trace tasks produce variable-depth recursive stacks; 2/6 stop at one induced operation segment because visible evidence does not support a material split.</p>
+<p class="note">The hand-configured operation stack remains the stronger main E2 policy when median AP is compared (0.3116 versus 0.2762), so induction is evidence for configurable recursive folding rather than a replacement for task-specific profile specs.</p>
 <table>
 <thead><tr><th>Policy</th><th>Tasks</th><th>Hidden</th><th>Median AP</th><th>Median R@5</th><th>Median work@5</th><th>Median budget30 recall</th><th>Median groups</th></tr></thead>
 <tbody><tr><td>dataset_native:query_aware</td><td>6</td><td>False</td><td>0.3571</td><td>0.8665</td><td>0.8539</td><td>0.3377</td><td>7.5</td></tr>
 <tr><td>fixed_session:query_aware</td><td>6</td><td>False</td><td>0.3476</td><td>0.0233</td><td>0.0163</td><td>0.3559</td><td>285.0</td></tr>
 <tr><td>flat:width</td><td>6</td><td>False</td><td>0.1678</td><td>1.0</td><td>1.0</td><td>0.0</td><td>1.0</td></tr>
-<tr><td>induced_task_stack:oracle_upper_bound</td><td>6</td><td>True</td><td>0.4559</td><td>0.8464</td><td>0.4529</td><td>0.3961</td><td>15.0</td></tr>
-<tr><td>induced_task_stack:query_aware</td><td>6</td><td>False</td><td>0.3034</td><td>0.3798</td><td>0.2819</td><td>0.276</td><td>15.0</td></tr>
-<tr><td>induced_task_stack:visible_risk</td><td>6</td><td>False</td><td>0.1459</td><td>0.3798</td><td>0.3869</td><td>0.276</td><td>15.0</td></tr>
-<tr><td>induced_task_stack:width</td><td>6</td><td>False</td><td>0.1377</td><td>0.7982</td><td>0.744</td><td>0.3241</td><td>15.0</td></tr>
+<tr><td>induced_operation_stack:oracle_upper_bound</td><td>6</td><td>True</td><td>0.3042</td><td>0.9879</td><td>0.8143</td><td>0.1787</td><td>12.0</td></tr>
+<tr><td>induced_operation_stack:query_aware</td><td>6</td><td>False</td><td>0.2762</td><td>0.7618</td><td>0.653</td><td>0.1505</td><td>12.0</td></tr>
+<tr><td>induced_operation_stack:visible_risk</td><td>6</td><td>False</td><td>0.1514</td><td>0.5931</td><td>0.7735</td><td>0.1518</td><td>12.0</td></tr>
+<tr><td>induced_operation_stack:width</td><td>6</td><td>False</td><td>0.1806</td><td>0.93</td><td>0.9122</td><td>0.1518</td><td>12.0</td></tr>
 <tr><td>operation_stack:oracle_upper_bound</td><td>6</td><td>True</td><td>0.5992</td><td>0.3004</td><td>0.044</td><td>0.564</td><td>157.5</td></tr>
 <tr><td>operation_stack:query_aware</td><td>6</td><td>False</td><td>0.3116</td><td>0.188</td><td>0.0937</td><td>0.39</td><td>157.5</td></tr>
 <tr><td>operation_stack:width</td><td>6</td><td>False</td><td>0.161</td><td>0.4746</td><td>0.5424</td><td>0.3372</td><td>157.5</td></tr>

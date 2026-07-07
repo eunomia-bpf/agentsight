@@ -1,6 +1,6 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>R402 Rust Task-Stack Induction</title>
+	<title>R402 Rust Operation-Stack Induction</title>
 <style>
 body { font-family: system-ui, sans-serif; margin: 24px; color: #1f2933; }
 h1, h2, h3 { margin-bottom: 0.3rem; }
@@ -13,54 +13,54 @@ iframe { width: 100%; height: 420px; border: 1px solid #d8dee9; }
 code { background: #eef2f7; padding: 1px 4px; border-radius: 4px; }
 section { margin-bottom: 42px; }
 </style>
-<h1>R402 Rust Task-Stack Induction</h1>
-<p>Rust `agentpprof` derives recursive task stacks over one AgentRewardBench
-query slice. The output stack uses only <code>task:</code> frames; selected
-source fields are recorded as provenance.</p>
+	<h1>R402 Rust Operation-Stack Induction</h1>
+	<p>Rust `agentpprof` derives recursive operation-stack segments over one AgentRewardBench
+	query slice. The output stack uses only induced segment frames; selected
+	evidence fields are recorded as provenance.</p>
 
 <section>
-<h2>Rust induced task stack</h2>
+<h2>Rust induced operation stack</h2>
 <p>
 <span class="metric">operations: 729</span>
 <span class="metric">unique stacks: 15</span>
-<span class="metric">depths: {&#x27;2&#x27;: 1, &#x27;3&#x27;: 3, &#x27;4&#x27;: 11}</span>
+<span class="metric">depths: {&#x27;2&#x27;: 1, &#x27;3&#x27;: 1, &#x27;4&#x27;: 13}</span>
 <span class="metric">oracle overlap: 0</span>
 </p>
-<p><code>selected source fields: [&#x27;action&#x27;, &#x27;repeat_run&#x27;, &#x27;repeat_signal&#x27;, &#x27;repeat_state&#x27;]</code></p>
+	<p><code>selected evidence fields: [&#x27;action&#x27;, &#x27;phase&#x27;, &#x27;repeat_run&#x27;, &#x27;repeat_state&#x27;, &#x27;step_error&#x27;]</code></p>
 <iframe src="agentreward-overview.svg"></iframe>
 <h3>Top Stacks</h3>
-<table><thead><tr><th>weight</th><th>stack</th></tr></thead><tbody><tr><td>162</td><td>task:repeat_state_single;task:repeat_signal_loop-like;task:repeat_run_1;task:repeat_signal_loop-like</td></tr>
-<tr><td>130</td><td>task:repeat_state_single;task:repeat_signal_none</td></tr>
-<tr><td>76</td><td>task:repeat_state_single;task:repeat_signal_none;task:repeat_signal_loop-like</td></tr>
-<tr><td>69</td><td>task:repeat_state_single;task:repeat_signal_loop-like;task:repeat_run_1;task:repeat_signal_none</td></tr>
-<tr><td>64</td><td>task:repeat_state_same-action-run;task:repeat_run_3plus;task:action_click;task:repeat_run_1</td></tr>
-<tr><td>41</td><td>task:repeat_state_same-action-run;task:repeat_run_1;task:repeat_state_single;task:repeat_signal_loop-like</td></tr>
-<tr><td>27</td><td>task:repeat_state_same-action-run;task:repeat_run_1;task:repeat_state_same-action-window;task:action_fill</td></tr>
-<tr><td>27</td><td>task:repeat_state_same-action-run;task:repeat_run_3plus;task:action_hover</td></tr>
-<tr><td>26</td><td>task:repeat_state_single;task:repeat_signal_loop-like;task:repeat_run_3plus</td></tr>
-<tr><td>24</td><td>task:repeat_state_same-action-run;task:repeat_run_3plus;task:action_click;task:repeat_run_3plus</td></tr></tbody></table>
+<table><thead><tr><th>weight</th><th>stack</th></tr></thead><tbody><tr><td>485</td><td>operation:1+single;operation:click;operation:click+navigate;operation:single</td></tr>
+<tr><td>51</td><td>operation:1+single;operation:click;operation:click+navigate;operation:same_action_window</td></tr>
+<tr><td>51</td><td>operation:3plus+same_action_run;operation:1;operation:1+single;operation:1+single+ok</td></tr>
+<tr><td>25</td><td>operation:3plus+same_action_run;operation:same_action_run+3plus;operation:hover;operation:same_action_run+3plus+hover</td></tr>
+<tr><td>24</td><td>operation:3plus+same_action_run;operation:1</td></tr>
+<tr><td>19</td><td>operation:3plus+same_action_run;operation:same_action_run+3plus;operation:click</td></tr>
+<tr><td>13</td><td>operation:1+single;operation:right-segment;operation:single;operation:go_back</td></tr>
+<tr><td>13</td><td>operation:3plus+same_action_run;operation:1;operation:1+single;operation:3plus+same_action_run+error</td></tr>
+<tr><td>11</td><td>operation:3plus+same_action_run;operation:same_action_run+3plus;operation:click;operation:1+single</td></tr>
+<tr><td>9</td><td>operation:1+single;operation:click;operation:left-segment;operation:single</td></tr></tbody></table>
 </section>
 
 <section>
-<h2>Rust induced task stack with session candidate</h2>
+<h2>Rust induced operation stack with session candidate</h2>
 <p>
 <span class="metric">operations: 729</span>
-<span class="metric">unique stacks: 15</span>
-<span class="metric">depths: {&#x27;2&#x27;: 7, &#x27;3&#x27;: 6, &#x27;4&#x27;: 2}</span>
+<span class="metric">unique stacks: 16</span>
+<span class="metric">depths: {&#x27;3&#x27;: 2, &#x27;4&#x27;: 14}</span>
 <span class="metric">oracle overlap: 0</span>
 </p>
-<p><code>selected source fields: [&#x27;repeat_run&#x27;, &#x27;repeat_signal&#x27;, &#x27;repeat_state&#x27;, &#x27;session&#x27;]</code></p>
+	<p><code>selected evidence fields: [&#x27;action&#x27;, &#x27;phase&#x27;, &#x27;repeat_run&#x27;, &#x27;repeat_state&#x27;, &#x27;session&#x27;]</code></p>
 <iframe src="agentreward-session.svg"></iframe>
 <h3>Top Stacks</h3>
-<table><thead><tr><th>weight</th><th>stack</th></tr></thead><tbody><tr><td>130</td><td>task:session_workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:session_workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2</td></tr>
-<tr><td>77</td><td>task:session_workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:session_workarena.servicenow.dashboard-retrieve-catalog-and-max-order-apple-watch-l2;task:repeat_signal_loop-like</td></tr>
-<tr><td>61</td><td>task:session_visualwebarena.resized.580;task:session_assistantbench.improved.validation.17;task:session_assistantbench.improved.validation.9</td></tr>
-<tr><td>60</td><td>task:session_visualwebarena.resized.580;task:session_assistantbench.improved.validation.15;task:session_visualwebarena.88</td></tr>
-<tr><td>60</td><td>task:session_workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:repeat_signal_loop-like</td></tr>
-<tr><td>60</td><td>task:session_workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:session_workarena.servicenow.dashboard-retrieve-catalog-and-max-order-apple-watch-l2;task:session_workarena.servicenow.two-changes-wide-basic-uniform-risk-change-request-scheduling-l2</td></tr>
-<tr><td>48</td><td>task:session_visualwebarena.resized.580;task:repeat_run_1</td></tr>
-<tr><td>39</td><td>task:session_workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:session_workarena.servicenow.dashboard-retrieve-catalog-and-max-order-apple-watch-l2;task:session_workarena.servicenow.two-changes-wide-basic-uniform-risk-change-request-scheduling-l2;task:session_workarena.servicenow.two-changes-wide-priority-uniform-risk-change-request-scheduling-l2</td></tr>
-<tr><td>34</td><td>task:session_visualwebarena.resized.580;task:session_assistantbench.improved.validation.17</td></tr>
-<tr><td>30</td><td>task:session_visualwebarena.resized.580;task:repeat_run_3plus</td></tr></tbody></table>
+<table><thead><tr><th>weight</th><th>stack</th></tr></thead><tbody><tr><td>504</td><td>operation:1+single;operation:click;operation:click+navigate;operation:single</td></tr>
+<tr><td>32</td><td>operation:1+single;operation:click;operation:click+navigate;operation:workarena_servicenow_dashboard_retrieve_catalog+same_action_run</td></tr>
+<tr><td>30</td><td>operation:3plus+same_action_run;operation:1;operation:assistantbench_improved_validation_15+1+single;operation:assistantbench_improved_validation_15</td></tr>
+<tr><td>28</td><td>operation:3plus+same_action_run;operation:1;operation:assistantbench_improved_validation_15+1+single;operation:assistantbench_improved_validation_16</td></tr>
+<tr><td>25</td><td>operation:3plus+same_action_run;operation:visualwebarena_88+same_action_run+3plus;operation:visualwebarena_88+hover;operation:same_action_run+3plus+hover</td></tr>
+<tr><td>24</td><td>operation:3plus+same_action_run;operation:1;operation:visualwebarena_76+3plus+same_action_run</td></tr>
+<tr><td>19</td><td>operation:3plus+same_action_run;operation:visualwebarena_88+same_action_run+3plus;operation:webarena_723+click</td></tr>
+<tr><td>13</td><td>operation:1+single;operation:assistantbench_improved_validation_17;operation:single;operation:go_back</td></tr>
+<tr><td>11</td><td>operation:3plus+same_action_run;operation:visualwebarena_88+same_action_run+3plus;operation:webarena_723+click;operation:1+single</td></tr>
+<tr><td>9</td><td>operation:1+single;operation:click;operation:webarena_155;operation:single</td></tr></tbody></table>
 </section>
 

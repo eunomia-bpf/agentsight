@@ -1,50 +1,9 @@
 {
   "generated_at": "1970-01-01T00:00:00Z",
   "profile": {
-    "ranking": {
-      "groups": 2,
-      "limit": 2,
-      "policy": "width",
-      "rank_operation_rules": [],
-      "rank_rules": [],
-      "top": [
-        {
-          "matched_rank_rules": [],
-          "rank_score": 2048.0,
-          "stack": "task:phase_navigate",
-          "weight": 2048
-        },
-        {
-          "matched_rank_rules": [],
-          "rank_score": 1963.0,
-          "stack": "task:phase_input",
-          "weight": 1963
-        }
-      ]
-    },
-    "sample_type": "operations",
-    "stacks": {
-      "task:phase_input": 1963,
-      "task:phase_navigate": 2048
-    },
-    "summary": {
-      "compression_ratio": 2005.5,
-      "max_stack_reuse": 2048,
-      "top": [
-        {
-          "stack": "task:phase_navigate",
-          "weight": 2048
-        },
-        {
-          "stack": "task:phase_input",
-          "weight": 1963
-        }
-      ],
-      "total_weight": 4011,
-      "unique_stacks": 2
-    },
-    "task_stack_induction": {
+    "operation_stack_induction": {
       "allow_session": false,
+      "derived_stack_field": "operation",
       "excluded_oracle_fields": [
         "annotator",
         "attack",
@@ -110,46 +69,64 @@
       "max_majority_fraction": 0.985,
       "min_score": 0.055,
       "min_second_child": 5,
-      "policy": "query-conditioned-recursive-boundary-task-stack-induction",
+      "objective": "recursive boundary segmentation over operations; fields are evidence, not stack levels",
+      "policy": "query-conditioned-recursive-boundary-operation-stack-induction",
+      "selected_evidence_fields": [
+        "app",
+        "phase",
+        "repeat_state"
+      ],
       "selected_source_fields": [
+        "app",
         "phase",
         "repeat_state"
       ],
       "split_decisions": [
         {
+          "boundary_id": "b1095",
           "candidate_scores": [
             {
-              "balance": 0.999676,
+              "balance": 0.845736,
+              "boundary_id": "b1095",
               "cardinality_penalty": 0.083541,
-              "changed_field_fraction": 0.6,
+              "changed_field_fraction": 0.8,
               "changed_fields": [
                 "action",
-                "phase",
+                "app",
+                "repeat_signal",
                 "repeat_state"
               ],
-              "coverage": 0.489404,
-              "cut_after": 2048,
+              "coverage": 0.272999,
+              "cut_after": 1095,
               "evidence_fields": [
-                "phase",
-                "repeat_state"
+                "app",
+                "repeat_state",
+                "phase"
               ],
-              "field": "phase",
+              "field": "app",
               "groups": {
-                "phase=input": 1963,
-                "phase=navigate": 2048
+                "multi_apps+input": 2916,
+                "navigate": 1095
               },
-              "left_label": "phase=navigate",
-              "left_weight": 2048,
+              "label_evidence": [
+                "left:phase=navigate@0.712",
+                "right:app=multi_apps@0.833",
+                "right:phase=input@0.626"
+              ],
+              "label_quality": 0.724881,
+              "left_label": "navigate",
+              "left_weight": 1095,
               "query_bonus": 0.333333,
-              "right_label": "phase=input",
-              "right_weight": 1963,
-              "score": 0.494837,
-              "semantic_shift": 0.541667,
+              "right_label": "multi_apps+input",
+              "right_weight": 2916,
+              "score": 0.459975,
+              "semantic_shift": 0.666667,
               "small_child_penalty": 0.0,
-              "structural_gain": 0.288778
+              "structural_gain": 0.308241
             },
             {
-              "balance": 0.999996,
+              "balance": 0.893055,
+              "boundary_id": "b1243",
               "cardinality_penalty": 0.083541,
               "changed_field_fraction": 0.6,
               "changed_fields": [
@@ -157,29 +134,75 @@
                 "phase",
                 "repeat_state"
               ],
-              "coverage": 0.498878,
-              "cut_after": 2001,
+              "coverage": 0.309898,
+              "cut_after": 1243,
               "evidence_fields": [
                 "phase",
+                "app",
                 "repeat_state"
               ],
               "field": "phase",
               "groups": {
-                "phase=input": 2010,
-                "phase=navigate": 2001
+                "input+multi_apps": 2768,
+                "navigate": 1243
               },
-              "left_label": "phase=navigate",
-              "left_weight": 2001,
+              "label_evidence": [
+                "left:phase=navigate@0.709",
+                "right:phase=input@0.643",
+                "right:app=multi_apps@0.878"
+              ],
+              "label_quality": 0.744328,
+              "left_label": "navigate",
+              "left_weight": 1243,
               "query_bonus": 0.333333,
-              "right_label": "phase=input",
-              "right_weight": 2010,
-              "score": 0.492753,
+              "right_label": "input+multi_apps",
+              "right_weight": 2768,
+              "score": 0.45501,
+              "semantic_shift": 0.538462,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.313829
+            },
+            {
+              "balance": 0.912455,
+              "boundary_id": "b1314",
+              "cardinality_penalty": 0.083541,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.327599,
+              "cut_after": 1314,
+              "evidence_fields": [
+                "phase",
+                "repeat_state",
+                "app"
+              ],
+              "field": "phase",
+              "groups": {
+                "input+multi_apps": 2697,
+                "navigate": 1314
+              },
+              "label_evidence": [
+                "left:phase=navigate@0.702",
+                "right:phase=input@0.648",
+                "right:app=multi_apps@0.879"
+              ],
+              "label_quality": 0.74358,
+              "left_label": "navigate",
+              "left_weight": 1314,
+              "query_bonus": 0.333333,
+              "right_label": "input+multi_apps",
+              "right_weight": 2697,
+              "score": 0.453261,
               "semantic_shift": 0.52,
               "small_child_penalty": 0.0,
-              "structural_gain": 0.288539
+              "structural_gain": 0.307354
             },
             {
-              "balance": 0.999939,
+              "balance": 0.914511,
+              "boundary_id": "b1322",
               "cardinality_penalty": 0.083541,
               "changed_field_fraction": 0.6,
               "changed_fields": [
@@ -187,29 +210,37 @@
                 "phase",
                 "repeat_state"
               ],
-              "coverage": 0.495388,
-              "cut_after": 2024,
+              "coverage": 0.329594,
+              "cut_after": 1322,
               "evidence_fields": [
                 "phase",
-                "repeat_state"
+                "repeat_state",
+                "app"
               ],
               "field": "phase",
               "groups": {
-                "phase=input": 1987,
-                "phase=navigate": 2024
+                "input+multi_apps": 2689,
+                "navigate": 1322
               },
-              "left_label": "phase=navigate",
-              "left_weight": 2024,
+              "label_evidence": [
+                "left:phase=navigate@0.699",
+                "right:phase=input@0.648",
+                "right:app=multi_apps@0.879"
+              ],
+              "label_quality": 0.742334,
+              "left_label": "navigate",
+              "left_weight": 1322,
               "query_bonus": 0.333333,
-              "right_label": "phase=input",
-              "right_weight": 1987,
-              "score": 0.492272,
+              "right_label": "input+multi_apps",
+              "right_weight": 2689,
+              "score": 0.452907,
               "semantic_shift": 0.52,
               "small_child_penalty": 0.0,
-              "structural_gain": 0.289024
+              "structural_gain": 0.306154
             },
             {
-              "balance": 0.997173,
+              "balance": 0.916793,
+              "boundary_id": "b1331",
               "cardinality_penalty": 0.083541,
               "changed_field_fraction": 0.6,
               "changed_fields": [
@@ -217,29 +248,37 @@
                 "phase",
                 "repeat_state"
               ],
-              "coverage": 0.468711,
-              "cut_after": 2131,
+              "coverage": 0.331837,
+              "cut_after": 1331,
               "evidence_fields": [
                 "phase",
-                "repeat_state"
+                "repeat_state",
+                "app"
               ],
               "field": "phase",
               "groups": {
-                "phase=input": 1880,
-                "phase=navigate": 2131
+                "input+multi_apps": 2680,
+                "navigate": 1331
               },
-              "left_label": "phase=navigate",
-              "left_weight": 2131,
+              "label_evidence": [
+                "left:phase=navigate@0.696",
+                "right:phase=input@0.648",
+                "right:app=multi_apps@0.879"
+              ],
+              "label_quality": 0.741212,
+              "left_label": "navigate",
+              "left_weight": 1331,
               "query_bonus": 0.333333,
-              "right_label": "phase=input",
-              "right_weight": 1880,
-              "score": 0.486079,
+              "right_label": "input+multi_apps",
+              "right_weight": 2680,
+              "score": 0.452592,
               "semantic_shift": 0.52,
               "small_child_penalty": 0.0,
-              "structural_gain": 0.287722
+              "structural_gain": 0.304833
             },
             {
-              "balance": 0.996849,
+              "balance": 0.932984,
+              "boundary_id": "b1399",
               "cardinality_penalty": 0.083541,
               "changed_field_fraction": 0.6,
               "changed_fields": [
@@ -247,29 +286,75 @@
                 "phase",
                 "repeat_state"
               ],
-              "coverage": 0.466966,
-              "cut_after": 2138,
+              "coverage": 0.348791,
+              "cut_after": 1399,
               "evidence_fields": [
                 "phase",
-                "repeat_state"
+                "repeat_state",
+                "app"
               ],
               "field": "phase",
               "groups": {
-                "phase=input": 1873,
-                "phase=navigate": 2138
+                "input+multi_apps": 2612,
+                "navigate": 1399
               },
-              "left_label": "phase=navigate",
-              "left_weight": 2138,
+              "label_evidence": [
+                "left:phase=navigate@0.674",
+                "right:phase=input@0.645",
+                "right:app=multi_apps@0.876"
+              ],
+              "label_quality": 0.730242,
+              "left_label": "navigate",
+              "left_weight": 1399,
               "query_bonus": 0.333333,
-              "right_label": "phase=input",
-              "right_weight": 1873,
-              "score": 0.485757,
+              "right_label": "input+multi_apps",
+              "right_weight": 2612,
+              "score": 0.452464,
+              "semantic_shift": 0.538462,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.294723
+            },
+            {
+              "balance": 0.921503,
+              "boundary_id": "b1350",
+              "cardinality_penalty": 0.083541,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.336574,
+              "cut_after": 1350,
+              "evidence_fields": [
+                "phase",
+                "repeat_state",
+                "app"
+              ],
+              "field": "phase",
+              "groups": {
+                "input+multi_apps": 2661,
+                "navigate": 1350
+              },
+              "label_evidence": [
+                "left:phase=navigate@0.693",
+                "right:phase=input@0.649",
+                "right:app=multi_apps@0.878"
+              ],
+              "label_quality": 0.73984,
+              "left_label": "navigate",
+              "left_weight": 1350,
+              "query_bonus": 0.333333,
+              "right_label": "input+multi_apps",
+              "right_weight": 2661,
+              "score": 0.452421,
               "semantic_shift": 0.52,
               "small_child_penalty": 0.0,
-              "structural_gain": 0.287843
+              "structural_gain": 0.302628
             },
             {
-              "balance": 0.992922,
+              "balance": 0.923443,
+              "boundary_id": "b1358",
               "cardinality_penalty": 0.083541,
               "changed_field_fraction": 0.6,
               "changed_fields": [
@@ -277,126 +362,130 @@
                 "phase",
                 "repeat_state"
               ],
-              "coverage": 0.450511,
-              "cut_after": 1807,
+              "coverage": 0.338569,
+              "cut_after": 1358,
               "evidence_fields": [
                 "phase",
-                "repeat_state"
+                "repeat_state",
+                "app"
               ],
               "field": "phase",
               "groups": {
-                "phase=input": 2204,
-                "phase=navigate": 1807
+                "input+multi_apps": 2653,
+                "navigate": 1358
               },
-              "left_label": "phase=navigate",
-              "left_weight": 1807,
+              "label_evidence": [
+                "left:phase=navigate@0.691",
+                "right:phase=input@0.649",
+                "right:app=multi_apps@0.877"
+              ],
+              "label_quality": 0.738594,
+              "left_label": "navigate",
+              "left_weight": 1358,
               "query_bonus": 0.333333,
-              "right_label": "phase=input",
-              "right_weight": 2204,
-              "score": 0.484801,
+              "right_label": "input+multi_apps",
+              "right_weight": 2653,
+              "score": 0.452053,
               "semantic_shift": 0.52,
               "small_child_penalty": 0.0,
-              "structural_gain": 0.293666
-            },
-            {
-              "balance": 0.995375,
-              "cardinality_penalty": 0.083541,
-              "changed_field_fraction": 0.6,
-              "changed_fields": [
-                "action",
-                "phase",
-                "repeat_state"
-              ],
-              "coverage": 0.459985,
-              "cut_after": 2166,
-              "evidence_fields": [
-                "phase",
-                "repeat_state"
-              ],
-              "field": "phase",
-              "groups": {
-                "phase=input": 1845,
-                "phase=navigate": 2166
-              },
-              "left_label": "phase=navigate",
-              "left_weight": 2166,
-              "query_bonus": 0.333333,
-              "right_label": "phase=input",
-              "right_weight": 1845,
-              "score": 0.483913,
-              "semantic_shift": 0.52,
-              "small_child_penalty": 0.0,
-              "structural_gain": 0.287156
-            },
-            {
-              "balance": 0.997522,
-              "cardinality_penalty": 0.083541,
-              "changed_field_fraction": 0.6,
-              "changed_fields": [
-                "action",
-                "phase",
-                "repeat_state"
-              ],
-              "coverage": 0.470706,
-              "cut_after": 2123,
-              "evidence_fields": [
-                "phase",
-                "repeat_state"
-              ],
-              "field": "phase",
-              "groups": {
-                "phase=input": 1888,
-                "phase=navigate": 2123
-              },
-              "left_label": "phase=navigate",
-              "left_weight": 2123,
-              "query_bonus": 0.333333,
-              "right_label": "phase=input",
-              "right_weight": 1888,
-              "score": 0.482833,
-              "semantic_shift": 0.5,
-              "small_child_penalty": 0.0,
-              "structural_gain": 0.287554
+              "structural_gain": 0.301395
             }
+          ],
+          "evidence_fields": [
+            "app",
+            "repeat_state",
+            "phase"
           ],
           "node_weight": 4011,
           "path": [],
+          "primary_evidence_field": "app",
           "selected_score": {
-            "balance": 0.999676,
+            "balance": 0.845736,
+            "boundary_id": "b1095",
             "cardinality_penalty": 0.083541,
-            "changed_field_fraction": 0.6,
+            "changed_field_fraction": 0.8,
             "changed_fields": [
               "action",
-              "phase",
+              "app",
+              "repeat_signal",
               "repeat_state"
             ],
-            "coverage": 0.489404,
-            "cut_after": 2048,
+            "coverage": 0.272999,
+            "cut_after": 1095,
             "evidence_fields": [
-              "phase",
-              "repeat_state"
+              "app",
+              "repeat_state",
+              "phase"
             ],
-            "field": "phase",
+            "field": "app",
             "groups": {
-              "phase=input": 1963,
-              "phase=navigate": 2048
+              "multi_apps+input": 2916,
+              "navigate": 1095
             },
-            "left_label": "phase=navigate",
-            "left_weight": 2048,
+            "label_evidence": [
+              "left:phase=navigate@0.712",
+              "right:app=multi_apps@0.833",
+              "right:phase=input@0.626"
+            ],
+            "label_quality": 0.724881,
+            "left_label": "navigate",
+            "left_weight": 1095,
             "query_bonus": 0.333333,
-            "right_label": "phase=input",
-            "right_weight": 1963,
-            "score": 0.494837,
-            "semantic_shift": 0.541667,
+            "right_label": "multi_apps+input",
+            "right_weight": 2916,
+            "score": 0.459975,
+            "semantic_shift": 0.666667,
             "small_child_penalty": 0.0,
-            "structural_gain": 0.288778
+            "structural_gain": 0.308241
           },
-          "source_field": "phase"
+          "source_field": "app"
         }
       ],
       "stop_reasons": {
         "max_depth": 2
       }
+    },
+    "ranking": {
+      "groups": 2,
+      "limit": 2,
+      "policy": "width",
+      "rank_operation_rules": [],
+      "rank_rules": [],
+      "top": [
+        {
+          "matched_rank_rules": [],
+          "rank_score": 2916.0,
+          "stack": "operation:multi_apps+input",
+          "weight": 2916
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 1095.0,
+          "stack": "operation:navigate",
+          "weight": 1095
+        }
+      ]
+    },
+    "sample_type": "operations",
+    "stacks": {
+      "operation:multi_apps+input": 2916,
+      "operation:navigate": 1095
+    },
+    "summary": {
+      "compression_ratio": 2005.5,
+      "max_stack_reuse": 2916,
+      "top": [
+        {
+          "stack": "operation:multi_apps+input",
+          "weight": 2916
+        },
+        {
+          "stack": "operation:navigate",
+          "weight": 1095
+        }
+      ],
+      "total_weight": 4011,
+      "unique_stacks": 2
     },
     "unit": "count",
     "view": "operations"
