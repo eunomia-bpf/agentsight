@@ -1,9 +1,9 @@
 # Implementation
 
-Last updated: 2026-07-06
+Last updated: 2026-07-07
 Stage at update: stage 4 execute / stage 8 audit / stage 11 reproducibility prep
 Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agentpprof/src/standard_trace.rs`, `agentpprof/tests/standard_trace_cli.rs`, `agentpprof/tests/profile_spec_cli.rs`, `script/operation_*.py`, `script/agent_trace_datasets.py sample tau-bench-trajectories`, `script/agent_trace_datasets.py sample agent-reward-bench`, `script/agent_trace_datasets.py sample satraj-os-safety`, `script/agent_trace_datasets.py sample osworld-human`, `script/agent_trace_datasets.py sample agentnet`, `script/agent_trace_datasets.py sample scalecua-navigation`, `script/agent_trace_exchange_eval.py`, `script/agent_trace_chrome_exchange_eval.py`, `script/operation_standard_trace_exchange_eval.py`, `script/operation_where_filter_eval.py`, `script/operation_rust_rank_rule_eval.py`, `script/operation_rank_mode_eval.py`, `script/operation_rank_feature_eval.py`, `script/operation_rank_feature_ablation_eval.py`, `script/operation_rank_feature_robustness_eval.py`, `script/operation_profile_spec_composition_eval.py`, `script/operation_profile_patch_eval.py`, `script/operation_boundary_profile_patch_eval.py`, `script/operation_oracle_depth_adequacy_eval.py`, `script/operation_field_derivation_mechanism_eval.py`, `script/paper_core_experiment_consolidation_audit.py`, `script/paper_core_result_tables.py`, `script/paper_core_claim_evidence.py`, `script/paper_core_section_readiness.py`, `script/paper_visualization_portfolio.py`, `script/paper_headline_case_studies.py`, `script/paper_claim_integrity_r356.py`, `script/implementation_consistency_audit.py`, `script/paper_two_abstraction_doc_gate.py`, `script/paper_build_smoke_r396.py`, `script/paper_main_body_run_ledger_r397.py`, `cargo test --manifest-path agentpprof/Cargo.toml --test profile_spec_cli`, `cargo test --manifest-path agentpprof/Cargo.toml`
-Additional source/command: `script/operation_field_suitability_eval.py`, `script/operation_rust_task_stack_induction_eval.py`
+Additional source/command: `script/operation_field_suitability_eval.py`, `script/operation_rust_task_stack_induction_eval.py`, `script/operation_induced_stack_scoring_eval.py`
 Completeness: partial
 
 ## Repository Layout Relevant To Semantic Profiling
@@ -40,6 +40,7 @@ Purpose: identify the maintained implementation boundary.
 | `script/operation_field_derivation_mechanism_eval.py` | R366 field-derivation mechanism audit; consolidates deterministic mapping, profile-spec composition, rank-feature ablation, supervised boundary backends, and boundary-derived profile patches from tracked artifacts without rerunning the profiler. | paper hygiene harness |
 | `script/operation_field_suitability_eval.py` | R400 field-derivation suitability audit; converts tracked R325/R358/R366 evidence into guarded accept/caution/reject profile-configuration decisions without syncing data or rerunning the profiler. | paper hygiene harness |
 | `script/operation_rust_task_stack_induction_eval.py` | R402 Rust boundary-based task-stack induction replay; runs `agentpprof --induce-task-stack` on one tracked R300 real-trace slice and checks task-only, variable-depth stacks without a user field order or oracle source fields. | research harness |
+| `script/operation_induced_stack_scoring_eval.py` | R403 hidden-label scoring for Rust-induced task-only stacks; runs `agentpprof --induce-task-stack` on the existing six R300/R320 real labeled tasks, reconstructs per-operation induced stack groups from Rust split decisions, and scores hidden labels only after profiling. | research harness |
 | `script/paper_entry_claim_path_audit.py` | R367 entry claim-path audit; checks that abstract, introduction/problem framing, and main result table present RQ1/E1-RQ4/E4 as three empirical profiling questions plus one systems/reproducibility question, with R-runs as provenance and only operation/operation-stack profiler abstractions. | paper hygiene harness |
 | `script/paper_trace_tree_baseline_audit.py` | R368 trace-tree-shaped baseline audit; reads existing R320/R355 hidden-label scoring outputs and makes the flat/fixed-session/dataset-native/raw-action baseline tradeoffs explicit without importing ecosystem traces or rerunning the profiler. | paper hygiene harness |
 | `script/paper_core_experiment_consolidation_audit.py` | R359 paper-facing core-experiment consolidation audit; checks that evaluation is organized as RQ1/E1-RQ4/E4, R-runs are provenance, and R358 remains an RQ3/E3 mechanism ablation. | paper hygiene harness |
@@ -166,6 +167,22 @@ operations and produces 15 stacks with depth histogram 7/6/2. `session` is
 selected only when explicitly allowed as evidence. This is an implementation
 and visualization check for recursive task-only folding, not a hidden-label
 accuracy result.
+
+R403 turns that implementation path into a scored profiler view without adding
+datasets or labels. `script/operation_induced_stack_scoring_eval.py` reuses the
+tracked R300 operation JSONL and R320 policy-score CSV, runs the release
+`agentpprof --induce-task-stack` binary for all six hidden-label tasks,
+reconstructs operation-to-stack assignments from the Rust split-decision report,
+and scores flat/fixed-session/dataset-native/raw-action/operation-stack
+baselines with the same R320 machinery. The run passes 9/9 checks: all six tasks
+use Rust induction, reconstructed stack weights match Rust JSON, no oracle
+source fields are selected, hidden labels are used only after profiling, and all
+six tasks produce variable-depth induced stacks. Median induced-task-stack
+query-aware work@5 is 0.3143 versus 1.0 for flat summaries, median groups are
+15.5 versus 285.0 for fixed-session drilldown, and median AP remains lower than
+the hand-configured operation stack, 0.2972 versus 0.3116. This is RQ2/RQ3
+mechanism evidence for automatic recursive folding, not a new main experiment
+or a claim of universal boundary discovery.
 
 R342 extends that composition check to existing real labeled traces without
 fetching or relabeling data. `script/operation_profile_spec_composition_eval.py`
