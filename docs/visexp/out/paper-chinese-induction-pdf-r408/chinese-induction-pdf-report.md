@@ -4,8 +4,8 @@ This artifact checks that the tracked Chinese PDF contains the induction display
 It is not a new empirical experiment.
 
 - Status: pass
-- Git commit: `729721cedf339b06fa769f82b41ec14664a213dd`
-- Extracted PDF characters: 60089
+- Git commit: `5e1bc072e568dc5eb1f3d146a3e8d6086c278868`
+- Extracted PDF characters: 60051
 
 ## Token Checks
 
