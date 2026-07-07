@@ -1,0 +1,230 @@
+{
+  "checks": [
+    {
+      "check": "decision_rules_cover_profile_knobs",
+      "evidence": "rules=['boundary-derived profile repair', 'deterministic mapping', 'operation-level rank features', 'profile-spec stack depth and predicates', 'supervised boundary-derived fields']",
+      "status": "pass"
+    },
+    {
+      "check": "family_decisions_include_counterpoints",
+      "evidence": "family decisions={'accept': 1, 'caution': 3, 'reject': 1}",
+      "status": "pass"
+    },
+    {
+      "check": "actionability_is_configuration_not_selector",
+      "evidence": "Rules choose profile knobs and guardrails rather than a label-free automatic selector.",
+      "status": "pass"
+    },
+    {
+      "check": "two_abstractions_only",
+      "evidence": "All decisions derive operation fields or choose operation-stack queries; no third profiler object is introduced.",
+      "status": "pass"
+    },
+    {
+      "check": "no_new_data_or_profiler_rerun",
+      "evidence": "The script reads tracked R325/R358/R366 artifacts only.",
+      "status": "pass"
+    }
+  ],
+  "checks_passed": 5,
+  "checks_total": 5,
+  "claim": "Operation-field derivation is actionable when the profiler can name a guarded configuration knob: mapping for compression, stack depth for view control, rank features for task-specific ordering, and boundary-derived fields only after suitability checks beat simple baselines.",
+  "decision_rules": [
+    {
+      "avoid_when": "the task needs fine action-boundary fidelity",
+      "counterpoint": "It deliberately coarsens action labels: action->phase V-measure 0.9343->0.7416 and adjacent phase/action boundary F1 0.9677->0.7774. Mean task/dataset V-measure is unchanged at 0.7778; some datasets are already well structured and do not benefit.",
+      "decision_id": "D1",
+      "evidence": "Held-out mapping over 3990 operations reduces unique stacks 284->209 and improves compression 14.049->19.091; dataset->task V-measure 0.8374->0.8531. Across 9 held-out datasets / 13265 operations, mapped stacks reduce stack count on 6/9 datasets, never increase it (0 negative), and yield 1162.005 weighted stack reduction per 1k ops.",
+      "knob": "deterministic mapping",
+      "use_when": "the goal is cross-dataset semantic aggregation or stack compression",
+      "verdict": "accept_for_compression_caution_for_boundaries"
+    },
+    {
+      "avoid_when": "a single default stack is being treated as universally optimal",
+      "counterpoint": "Depth is objective-dependent: 3/6 tasks choose different stack depths for AP and first-positive work.",
+      "decision_id": "D2",
+      "evidence": "12 profile-spec variants compose operation files, predicates, operation rank rules, rule-score ranking, and explicit stack depth; 12/12 are prompt/session-frame free. AP improves versus width in 9/12 variants and first-positive work in 10/12.",
+      "knob": "profile-spec stack depth and predicates",
+      "use_when": "the same operation source must be folded into task-specific views",
+      "verdict": "accept_as_query_surface"
+    },
+    {
+      "avoid_when": "a feature is known to be misleading for the task family",
+      "counterpoint": "3 misleading feature rows: It also finds 3 misleading feature rows, including OSWorld input-phase and SATraj loop-like cases.",
+      "decision_id": "D3",
+      "evidence": "7 critical feature rows: Leave-one-feature ablation identifies 7 critical feature rows across safety, looping, side-effect, and step-quality tasks. Examples include success, loop-like, write-action, and failure fields.",
+      "knob": "operation-level rank features",
+      "use_when": "feature ablations identify task-specific positive signals",
+      "verdict": "accept_with_ablation_guard"
+    },
+    {
+      "avoid_when": "a simple visible field already explains the boundary or the oracle is not an adjacent boundary",
+      "counterpoint": "1/5 rows remain counterpoints; AgentRewardBench looping is better explained by repeat_signal_change than the learned backend.",
+      "decision_id": "D4",
+      "evidence": "1 accept, 3 caution, and 1 reject decisions across 5 family rows. Boundary backends beat the best simple baseline on 4/5 tested rows; OSWorld-Human R297 reaches F1 0.7735 versus best baseline 0.7090, and R299 also improves AgentNet quality-state boundaries.",
+      "knob": "supervised boundary-derived fields",
+      "use_when": "adjacent-boundary labels are available and learned fields beat simple sequence/field baselines",
+      "verdict": "accept_only_after_suitability_check"
+    },
+    {
+      "avoid_when": "inspection work is the primary objective and fixed-session is cheaper",
+      "counterpoint": "Inspection-cost metrics are mixed: top-5 work changes by +0.0813 and first-positive work by +0.1581. Top-5 work delta 0.0813; first-positive work delta 0.1581.",
+      "decision_id": "D5",
+      "evidence": "On held-out OSWorld-Human, learned-boundary fields improve AP 0.2402->0.2583, reduce groups 108->74, and raise top-5 recall by 0.1111. AP gain 0.0181 and group reduction 34.",
+      "knob": "boundary-derived profile repair",
+      "use_when": "visible phase/action fields fail on human-boundary localization",
+      "verdict": "accept_for_ap_and_fragmentation_caution_for_work"
+    }
+  ],
+  "elapsed_s": 0.0529,
+  "family_decisions": [
+    {
+      "best_baseline": "always_boundary",
+      "best_baseline_f1": "0.709",
+      "candidate": "osworld_human_group_r297",
+      "dataset": "osworld-human",
+      "decision": "accept",
+      "delta_vs_best_baseline_f1": "0.0645",
+      "learned_f1": "0.7735",
+      "reason": "learned fields beat always_boundary by 0.0645 F1 with high absolute F1"
+    },
+    {
+      "best_baseline": "always_boundary",
+      "best_baseline_f1": "0.6706",
+      "candidate": "osworld_human_group",
+      "dataset": "osworld-human",
+      "decision": "caution",
+      "delta_vs_best_baseline_f1": "0.021",
+      "learned_f1": "0.6916",
+      "reason": "learned fields beat always_boundary by 0.021 F1, but the margin or absolute F1 is modest"
+    },
+    {
+      "best_baseline": "always_boundary",
+      "best_baseline_f1": "0.2155",
+      "candidate": "agentnet_step_correct",
+      "dataset": "agentnet",
+      "decision": "caution",
+      "delta_vs_best_baseline_f1": "0.1042",
+      "learned_f1": "0.3197",
+      "reason": "learned fields beat always_boundary by 0.1042 F1, but the margin or absolute F1 is modest"
+    },
+    {
+      "best_baseline": "always_boundary",
+      "best_baseline_f1": "0.2645",
+      "candidate": "agentnet_step_redundant",
+      "dataset": "agentnet",
+      "decision": "caution",
+      "delta_vs_best_baseline_f1": "0.0716",
+      "learned_f1": "0.3361",
+      "reason": "learned fields beat always_boundary by 0.0716 F1, but the margin or absolute F1 is modest"
+    },
+    {
+      "best_baseline": "repeat_signal_change",
+      "best_baseline_f1": "1",
+      "candidate": "agentreward_looping",
+      "dataset": "agentrewardbench",
+      "decision": "reject",
+      "delta_vs_best_baseline_f1": "-0.2167",
+      "learned_f1": "0.7833",
+      "reason": "simple baseline repeat_signal_change is stronger by 0.2167 F1"
+    }
+  ],
+  "input_policy": {
+    "hidden_labels_only_in_upstream_artifacts": true,
+    "no_dataset_creation": true,
+    "no_dataset_sync": true,
+    "no_profiler_rerun": true,
+    "no_relabeling": true
+  },
+  "outputs": {
+    "checks": "docs/visexp/out/operation-field-suitability-r400/field-suitability-checks.csv",
+    "decision_rules": "docs/visexp/out/operation-field-suitability-r400/decision-rules.csv",
+    "family_decisions": "docs/visexp/out/operation-field-suitability-r400/family-decisions.csv",
+    "html": "docs/visexp/out/operation-field-suitability-r400/index.html",
+    "json": "docs/visexp/out/operation-field-suitability-r400/field-suitability-report.json",
+    "markdown": "docs/visexp/out/operation-field-suitability-r400/field-suitability-report.md"
+  },
+  "run_id": "R400",
+  "schema": "agentsight.operation_field_suitability.v1",
+  "source_status": [
+    {
+      "path": "script/operation_field_suitability_eval.py",
+      "sha256": "656f7348e837806df3f206ef79065db56770438dcb8490688627a1516f57fe97",
+      "source": "generator script",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/out/operation-field-derivation-mechanism-r366/field-derivation-mechanism-report.json",
+      "sha256": "c29010e8f008498962dccf5c5494ed739a19020935739eb66db358e76afeb870",
+      "source": "R366 mechanism report",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-field-derivation-mechanism-r366/mechanism-rows.csv",
+      "sha256": "29e1549340686ad9d159045fc22ef80aeff7d3fee6a94abdb537988c7cbcf5e9",
+      "source": "R366 mechanism rows",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-field-derivation-mechanism-r366/boundary-family-summary.csv",
+      "sha256": "78e15a5001f7e5c6c2e5c0028381f167d1c645f3ec4aba6722037b4598fb8483",
+      "source": "R366 boundary family summary",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-rank-feature-ablation-r325/rank-feature-findings.csv",
+      "sha256": "e00b81affdb4cc23f03d891947c9169188feb031b7437004c87068b476eecb3d",
+      "source": "R325 rank feature findings",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-boundary-profile-patch-r358/policy-metrics.csv",
+      "sha256": "18bb032c0e0a9f2900b229d767e516eaad3f98189d65c98ae24a1178e176356d",
+      "source": "R358 boundary profile patch metrics",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/evaluation.md",
+      "sha256": "a6ed27e5e78b10186d257369d94af453e9299623ecfc76b98e750c8f25f97f73",
+      "source": "evaluation ledger",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/design.md",
+      "sha256": "2e432b3f7b50c9a8baee9f62a91ce78ca8aa4396ca4fa67c3d1066d149292720",
+      "source": "design doc",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/implementation.md",
+      "sha256": "1bca796c9b25ec7ad2478800efcc8df3852fc4541ea6431d8c20551b5aca0dbb",
+      "source": "implementation doc",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/paper/main.tex",
+      "sha256": "7e13cb8a4d012ae970e8f67f6baa89b4415de3f44bd4ad0bd03d69115f4b438e",
+      "source": "Chinese paper",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/agentpprof-paper/main.tex",
+      "sha256": "5d287888e2f724b4e2b82fdb1d3c26655658f3fcfb16f4aeb836097afbaabd6b",
+      "source": "English paper",
+      "status": "tracked_clean"
+    }
+  ],
+  "status": "pass",
+  "summary": {
+    "decision_rules": 5,
+    "family_accept": 1,
+    "family_caution": 3,
+    "family_reject": 1,
+    "rank_feature_critical_rows": 7,
+    "rank_feature_misleading_rows": 3
+  },
+  "upstream_status": {
+    "r366": "pass",
+    "r366_checks": "None/None"
+  }
+}

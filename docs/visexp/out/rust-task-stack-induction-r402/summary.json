@@ -2,23 +2,35 @@
   "agentreward-overview": {
     "all_frames_are_task": true,
     "allow_session": false,
-    "compression_ratio": 15.511,
+    "compression_ratio": 48.6,
     "induce_task_stack": true,
-    "max_stack_reuse": 131,
+    "max_stack_reuse": 162,
     "operations": 729,
     "oracle_source_field_overlap": [],
     "selected_source_fields": [
       "action",
+      "repeat_run",
       "repeat_signal",
-      "repeat_state",
-      "step_error"
+      "repeat_state"
     ],
-    "split_decision_count": 10,
+    "split_decision_count": 14,
+    "split_evidence_field_counts": {
+      "action": 3,
+      "repeat_run": 5,
+      "repeat_signal": 5,
+      "repeat_state": 8
+    },
+    "split_source_field_counts": {
+      "action": 3,
+      "repeat_run": 4,
+      "repeat_signal": 5,
+      "repeat_state": 2
+    },
     "stack": "task",
     "stack_depth_histogram": {
-      "1": 1,
-      "2": 22,
-      "3": 24
+      "2": 1,
+      "3": 3,
+      "4": 11
     },
     "statuses": {
       "folded": {
@@ -75,7 +87,7 @@
         "standard_trace_format": null,
         "standard_trace_output": null,
         "status": "ok",
-        "unique_stacks": 47,
+        "unique_stacks": 15,
         "unit": "count",
         "view": "operations",
         "warnings": [],
@@ -138,7 +150,7 @@
         "standard_trace_format": null,
         "standard_trace_output": null,
         "status": "ok",
-        "unique_stacks": 47,
+        "unique_stacks": 15,
         "unit": "count",
         "view": "operations",
         "warnings": [],
@@ -203,7 +215,7 @@
         "standard_trace_format": null,
         "standard_trace_output": null,
         "status": "ok",
-        "unique_stacks": 47,
+        "unique_stacks": 15,
         "unit": "count",
         "view": "operations",
         "warnings": [],
@@ -214,110 +226,118 @@
       }
     },
     "stop_reasons": {
-      "no_material_split": 14,
-      "small_node": 33
+      "max_depth": 14,
+      "no_material_split": 1
     },
     "title": "Rust induced task stack",
     "top_stacks": [
       {
         "matched_rank_rules": [],
-        "rank_score": 131.0,
-        "stack": "task:same-action-run;task:click",
-        "weight": 131
+        "rank_score": 162.0,
+        "stack": "task:repeat_state_single;task:repeat_signal_loop-like;task:repeat_run_1;task:repeat_signal_loop-like",
+        "weight": 162
       },
       {
         "matched_rank_rules": [],
-        "rank_score": 125.0,
-        "stack": "task:single;task:loop-like;task:click",
-        "weight": 125
+        "rank_score": 130.0,
+        "stack": "task:repeat_state_single;task:repeat_signal_none",
+        "weight": 130
       },
       {
         "matched_rank_rules": [],
-        "rank_score": 108.0,
-        "stack": "task:single;task:none;task:click",
-        "weight": 108
+        "rank_score": 76.0,
+        "stack": "task:repeat_state_single;task:repeat_signal_none;task:repeat_signal_loop-like",
+        "weight": 76
       },
       {
         "matched_rank_rules": [],
-        "rank_score": 49.0,
-        "stack": "task:light-repeat;task:click;task:loop-like",
-        "weight": 49
+        "rank_score": 69.0,
+        "stack": "task:repeat_state_single;task:repeat_signal_loop-like;task:repeat_run_1;task:repeat_signal_none",
+        "weight": 69
       },
       {
         "matched_rank_rules": [],
-        "rank_score": 47.0,
-        "stack": "task:single;task:loop-like;task:fill",
-        "weight": 47
+        "rank_score": 64.0,
+        "stack": "task:repeat_state_same-action-run;task:repeat_run_3plus;task:action_click;task:repeat_run_1",
+        "weight": 64
       },
       {
         "matched_rank_rules": [],
-        "rank_score": 25.0,
-        "stack": "task:same-action-window;task:click",
-        "weight": 25
+        "rank_score": 41.0,
+        "stack": "task:repeat_state_same-action-run;task:repeat_run_1;task:repeat_state_single;task:repeat_signal_loop-like",
+        "weight": 41
       },
       {
         "matched_rank_rules": [],
-        "rank_score": 23.0,
-        "stack": "task:same-action-run;task:send_msg_to_user",
-        "weight": 23
+        "rank_score": 27.0,
+        "stack": "task:repeat_state_same-action-run;task:repeat_run_1;task:repeat_state_same-action-window;task:action_fill",
+        "weight": 27
+      },
+      {
+        "matched_rank_rules": [],
+        "rank_score": 27.0,
+        "stack": "task:repeat_state_same-action-run;task:repeat_run_3plus;task:action_hover",
+        "weight": 27
+      },
+      {
+        "matched_rank_rules": [],
+        "rank_score": 26.0,
+        "stack": "task:repeat_state_single;task:repeat_signal_loop-like;task:repeat_run_3plus",
+        "weight": 26
+      },
+      {
+        "matched_rank_rules": [],
+        "rank_score": 24.0,
+        "stack": "task:repeat_state_same-action-run;task:repeat_run_3plus;task:action_click;task:repeat_run_3plus",
+        "weight": 24
+      },
+      {
+        "matched_rank_rules": [],
+        "rank_score": 22.0,
+        "stack": "task:repeat_state_same-action-run;task:repeat_run_3plus;task:action_hover;task:action_click",
+        "weight": 22
       },
       {
         "matched_rank_rules": [],
         "rank_score": 21.0,
-        "stack": "task:light-repeat;task:click;task:none",
+        "stack": "task:repeat_state_same-action-run;task:repeat_run_1;task:repeat_state_same-action-window;task:action_click",
         "weight": 21
-      },
-      {
-        "matched_rank_rules": [],
-        "rank_score": 20.0,
-        "stack": "task:same-action-run;task:hover",
-        "weight": 20
-      },
-      {
-        "matched_rank_rules": [],
-        "rank_score": 17.0,
-        "stack": "task:same-action-window;task:fill",
-        "weight": 17
-      },
-      {
-        "matched_rank_rules": [],
-        "rank_score": 17.0,
-        "stack": "task:single;task:none;task:fill",
-        "weight": 17
-      },
-      {
-        "matched_rank_rules": [],
-        "rank_score": 16.0,
-        "stack": "task:light-repeat;task:fill;task:loop-like",
-        "weight": 16
       }
     ],
-    "unique_stacks": 47,
+    "unique_stacks": 15,
     "view": "agentreward-overview"
   },
   "agentreward-session": {
     "all_frames_are_task": true,
     "allow_session": true,
-    "compression_ratio": 8.011,
+    "compression_ratio": 48.6,
     "induce_task_stack": true,
-    "max_stack_reuse": 35,
+    "max_stack_reuse": 130,
     "operations": 729,
     "oracle_source_field_overlap": [],
     "selected_source_fields": [
-      "action",
       "repeat_run",
       "repeat_signal",
       "repeat_state",
-      "session",
-      "step_error"
+      "session"
     ],
-    "split_decision_count": 32,
+    "split_decision_count": 14,
+    "split_evidence_field_counts": {
+      "repeat_run": 4,
+      "repeat_signal": 4,
+      "repeat_state": 6,
+      "session": 13
+    },
+    "split_source_field_counts": {
+      "repeat_run": 1,
+      "repeat_signal": 2,
+      "session": 11
+    },
     "stack": "task",
     "stack_depth_histogram": {
-      "1": 11,
-      "2": 46,
-      "3": 26,
-      "4": 8
+      "2": 7,
+      "3": 6,
+      "4": 2
     },
     "statuses": {
       "folded": {
@@ -375,7 +395,7 @@
         "standard_trace_format": null,
         "standard_trace_output": null,
         "status": "ok",
-        "unique_stacks": 91,
+        "unique_stacks": 15,
         "unit": "count",
         "view": "operations",
         "warnings": [],
@@ -439,7 +459,7 @@
         "standard_trace_format": null,
         "standard_trace_output": null,
         "status": "ok",
-        "unique_stacks": 91,
+        "unique_stacks": 15,
         "unit": "count",
         "view": "operations",
         "warnings": [],
@@ -505,7 +525,7 @@
         "standard_trace_format": null,
         "standard_trace_output": null,
         "status": "ok",
-        "unique_stacks": 91,
+        "unique_stacks": 15,
         "unit": "count",
         "view": "operations",
         "warnings": [],
@@ -516,86 +536,85 @@
       }
     },
     "stop_reasons": {
-      "max_depth": 8,
-      "no_material_split": 22,
-      "small_node": 61
+      "max_depth": 14,
+      "no_material_split": 1
     },
     "title": "Rust induced task stack with session candidate",
     "top_stacks": [
       {
         "matched_rank_rules": [],
-        "rank_score": 35.0,
-        "stack": "task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2;task:click;task:none;task:single",
-        "weight": 35
+        "rank_score": 130.0,
+        "stack": "task:session_workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:session_workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2",
+        "weight": 130
+      },
+      {
+        "matched_rank_rules": [],
+        "rank_score": 77.0,
+        "stack": "task:session_workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:session_workarena.servicenow.dashboard-retrieve-catalog-and-max-order-apple-watch-l2;task:repeat_signal_loop-like",
+        "weight": 77
+      },
+      {
+        "matched_rank_rules": [],
+        "rank_score": 61.0,
+        "stack": "task:session_visualwebarena.resized.580;task:session_assistantbench.improved.validation.17;task:session_assistantbench.improved.validation.9",
+        "weight": 61
+      },
+      {
+        "matched_rank_rules": [],
+        "rank_score": 60.0,
+        "stack": "task:session_visualwebarena.resized.580;task:session_assistantbench.improved.validation.15;task:session_visualwebarena.88",
+        "weight": 60
+      },
+      {
+        "matched_rank_rules": [],
+        "rank_score": 60.0,
+        "stack": "task:session_workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:repeat_signal_loop-like",
+        "weight": 60
+      },
+      {
+        "matched_rank_rules": [],
+        "rank_score": 60.0,
+        "stack": "task:session_workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:session_workarena.servicenow.dashboard-retrieve-catalog-and-max-order-apple-watch-l2;task:session_workarena.servicenow.two-changes-wide-basic-uniform-risk-change-request-scheduling-l2",
+        "weight": 60
+      },
+      {
+        "matched_rank_rules": [],
+        "rank_score": 48.0,
+        "stack": "task:session_visualwebarena.resized.580;task:repeat_run_1",
+        "weight": 48
+      },
+      {
+        "matched_rank_rules": [],
+        "rank_score": 39.0,
+        "stack": "task:session_workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:session_workarena.servicenow.dashboard-retrieve-catalog-and-max-order-apple-watch-l2;task:session_workarena.servicenow.two-changes-wide-basic-uniform-risk-change-request-scheduling-l2;task:session_workarena.servicenow.two-changes-wide-priority-uniform-risk-change-request-scheduling-l2",
+        "weight": 39
+      },
+      {
+        "matched_rank_rules": [],
+        "rank_score": 34.0,
+        "stack": "task:session_visualwebarena.resized.580;task:session_assistantbench.improved.validation.17",
+        "weight": 34
       },
       {
         "matched_rank_rules": [],
         "rank_score": 30.0,
-        "stack": "task:workarena.servicenow.dashboard-retrieve-catalog-and-max-order-apple-watch-l2",
+        "stack": "task:session_visualwebarena.resized.580;task:repeat_run_3plus",
         "weight": 30
       },
       {
         "matched_rank_rules": [],
         "rank_score": 30.0,
-        "stack": "task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:none;task:click",
+        "stack": "task:session_visualwebarena.resized.580;task:session_assistantbench.improved.validation.15",
         "weight": 30
       },
       {
         "matched_rank_rules": [],
-        "rank_score": 24.0,
-        "stack": "task:visualwebarena.76;task:3plus",
-        "weight": 24
-      },
-      {
-        "matched_rank_rules": [],
-        "rank_score": 24.0,
-        "stack": "task:visualwebarena.resized.580;task:3plus",
-        "weight": 24
-      },
-      {
-        "matched_rank_rules": [],
-        "rank_score": 24.0,
-        "stack": "task:workarena.servicenow.two-changes-wide-basic-varied-risk-change-request-scheduling-l2;task:3plus",
-        "weight": 24
-      },
-      {
-        "matched_rank_rules": [],
-        "rank_score": 21.0,
-        "stack": "task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:loop-like;task:single;task:click",
-        "weight": 21
-      },
-      {
-        "matched_rank_rules": [],
-        "rank_score": 20.0,
-        "stack": "task:visualwebarena.88;task:same-action-run",
-        "weight": 20
-      },
-      {
-        "matched_rank_rules": [],
-        "rank_score": 19.0,
-        "stack": "task:webarena.723;task:3plus",
-        "weight": 19
-      },
-      {
-        "matched_rank_rules": [],
-        "rank_score": 18.0,
-        "stack": "task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2;task:send_msg_to_user",
-        "weight": 18
-      },
-      {
-        "matched_rank_rules": [],
-        "rank_score": 17.0,
-        "stack": "task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2;task:click;task:none;task:light-repeat",
-        "weight": 17
-      },
-      {
-        "matched_rank_rules": [],
-        "rank_score": 17.0,
-        "stack": "task:workarena.servicenow.two-changes-wide-schedule-tight-uniform-risk-change-request-scheduling-l2;task:click;task:ok",
-        "weight": 17
+        "rank_score": 30.0,
+        "stack": "task:session_visualwebarena.resized.580;task:session_assistantbench.improved.validation.15;task:session_visualwebarena.76",
+        "weight": 30
       }
     ],
-    "unique_stacks": 91,
+    "unique_stacks": 15,
     "view": "agentreward-session"
   }
 }

@@ -3,6 +3,7 @@
 Last updated: 2026-07-06
 Stage at update: stage 5 analyze / stage 6 claim gate / stage 9 paper integration
 Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agent-session`, `script/agent_trace_to_operations.py`, `script/agent_trace_convert.py`, `script/agent_trace_exchange_eval.py`, `script/agent_trace_chrome_trace.py`, `script/agent_trace_chrome_exchange_eval.py`, `script/operation_boundary_backend_eval.py`, `script/boundary_family_calibration_eval.py`, `script/operation_query_utility_eval.py`, `script/operation_analyst_task_eval.py`, `script/operation_analyst_ranking_eval.py`, `script/operation_case_study_eval.py`, `script/operation_case_baseline_eval.py`, `script/operation_analyst_outcome_eval.py`, `script/operation_problem_value_synthesis.py`, `script/operation_where_filter_eval.py`, `script/operation_rust_rank_rule_eval.py`, `script/operation_rank_mode_eval.py`, `script/operation_rank_feature_eval.py`, `script/operation_rank_feature_ablation_eval.py`, `script/operation_rank_feature_robustness_eval.py`, `script/operation_profile_patch_eval.py`, `script/operation_boundary_profile_patch_eval.py`, `script/operation_oracle_depth_adequacy_eval.py`, `script/paper_core_experiment_consolidation_audit.py`, `script/paper_core_result_tables.py`, `script/paper_core_claim_evidence.py`, `script/paper_core_section_readiness.py`, `script/paper_visualization_portfolio.py`, `script/paper_claim_integrity_r356.py`, `script/paper_claim_synthesis.py`, `script/reviewer_evidence_packet.py`, `script/paper_value_novelty_synthesis.py`, `script/paper_claim_readiness_synthesis.py`, `script/paper_evidence_matrix_synthesis.py`, `script/paper_robustness_audit.py`, `docs/evaluation.md`, `agentpprof --profile-spec`
+Additional source/command: `script/operation_field_suitability_eval.py`, `script/operation_rust_task_stack_induction_eval.py`
 Completeness: partial
 
 ## Current State And Blocking Gate
@@ -42,7 +43,21 @@ problems to operation/operation-stack evidence, not a runtime abstraction. R299
 adds the first boundary-family calibration pass over existing non-OSWorld
 labels. It keeps the same extension point, but adds a design constraint:
 boundary backends must pass a suitability/calibration gate for each target
-oracle instead of being presented as one universal detector. R300 adds an
+oracle instead of being presented as one universal detector. R400 makes that
+constraint explicit as a profile-configuration gate: deterministic mappings,
+stack-depth choices, rank features, supervised boundary fields, and
+boundary-profile repairs are accepted only as guarded operation-field and
+operation-stack choices. Its accept, caution, and reject family outcomes keep
+field derivation out of universal-selector or automatic-boundary-discovery
+claims. R402 upgrades the maintained Rust induction path for the same design
+principle: `agentpprof --induce-task-stack` scores adjacent operation
+boundaries from visible evidence, recursively splits contiguous task segments,
+and writes a multi-value `task` field before folding. Source fields such as
+action, phase, repeat state, error state, and session are evidence for the
+split, while the rendered stack remains task-only. The artifact replays one
+tracked AgentRewardBench slice and shows variable-depth `task:` stacks without
+a user-provided field order; it is mechanism evidence, not the hidden-label
+localization benchmark. R300 adds an
 automated analysis-utility proxy: it converts existing labeled problems into
 ordinary operations with fields such as `analysis_task` and `target_positive`,
 then compares flat, fixed-session, semantic operation-stack, and label-drilldown
@@ -89,6 +104,7 @@ agent-native transcript
   -> operation fields + weight
   -> optional operation-field mappings
   -> optional operation predicate
+  -> optional task-stack induction from visible boundary evidence
   -> user-selected operation stack frames
   -> weighted profile projection
   -> optional JSON rank projection over operation-stack groups
@@ -97,13 +113,16 @@ agent-native transcript
 `--view` chooses which operations are sampled and how they are weighted.
 `--op-map` and `--op-map-file` derive or overwrite operation fields before
 stacking. `--where` selects a subset of operations after mapping and before
-stacking. `--stack` chooses the recursive stack shape. `--stack-rule` is a
-frame-local override for one projection. `--rank-rule` orders JSON profile
-groups after folding by visible stack text; `--rank-op-rule` matches visible
-mapped operation `field=value` tokens before folding and aggregates matched
-operation weight inside each group; `--rank-mode` chooses whether width or
-visible rule score is primary. None of these changes the sampled operations or
-the stack abstraction.
+stacking. `--stack` chooses the recursive stack shape. `--induce-task-stack`
+derives a recursive multi-value `task` field by scoring adjacent operation
+boundaries from visible fields and optional query terms, then folds with
+`--stack task`; the user supplies predicates and objective hints, not a stack
+field order. `--stack-rule` is a frame-local override for one projection.
+`--rank-rule` orders JSON profile groups after folding by visible stack text;
+`--rank-op-rule` matches visible mapped operation `field=value` tokens before
+folding and aggregates matched operation weight inside each group; `--rank-mode`
+chooses whether width or visible rule score is primary. None of these changes
+the sampled operations or the stack abstraction.
 
 ## Core Abstraction: Operation
 
@@ -142,6 +161,15 @@ stack count changes from 9 at dataset depth to 57 at phase depth, 226 at
 tool/semantic depth, 455 at action depth, and 3,757 when fixed session is added.
 This is expected behavior: users choose the stack depth that matches the
 question instead of accepting a fixed prompt/session hierarchy.
+
+Automatic task-stack induction is a stack-construction mode over the same
+abstraction. The profiler does not ask the user for a field order such as
+`analysis_task,phase,action,status`. It considers visible operation fields as
+boundary evidence, scores adjacent cuts inside the current contiguous segment,
+allows the same evidence field to recur at different recursive cuts, recursively
+splits only when the children have material weight and distinct dominant
+evidence, and writes the resulting path into the operation's `task` field. The
+folded profile still contains only `task:` frames for this mode.
 
 R289 extends the same model to SATraj-OS desktop computer-use traces. The stack
 does not add a GUI, safety, prompt, or OS-specific object: `safety`,
@@ -487,10 +515,10 @@ Purpose: keep open risks tied to experiments.
 
 | Risk | Validation hook | Current evidence |
 |---|---|---|
-| Prompt/session boundaries leak back into the abstraction. | Run fixed-boundary ablations against recursive stacks. | R277 and R286 show fixed session greatly fragments stacks. |
+| Prompt/session boundaries leak back into the abstraction. | Run fixed-boundary ablations against recursive stacks and task-stack induction checks that treat session as optional evidence only. | R277 and R286 show fixed session greatly fragments stacks. R402 shows `--induce-task-stack` can produce 15 variable-depth `task:` stacks on one real AgentRewardBench slice without a user field order; boundary evidence fields recur across recursive cuts, and session enters only when explicitly allowed as evidence. |
 | Hand-written mappings overfit one dataset family. | Held-out and leave-dataset-out mapping evaluation plus operation-family precedence checks. | R282-R285 cover held-out sessions and 9 leave-out datasets; R289/R290/R291 add desktop computer-use precedence checks; R292 adds a supplemental GUI history-depth field check. |
 | Action labels are too shallow as boundary oracles. | Add step-instruction, solution-path, outcome, side-effect, looping, repetition, safety/attack, grouped-action, step-quality, and failure-label scorers. | R287 adds tau-bench outcomes and expected task actions; R288 adds AgentRewardBench expert success, side-effect, looping, optimality, and action-derived `repeat_signal` fields; R289 adds SATraj safety and attack labels; R290 adds OSWorld-Human grouped-action boundary labels; R291 adds AgentNet step correctness and redundancy labels. AndroidControl and TRAIL remain deeper oracle candidates. |
-| Boundary detection remains only deterministic mapping. | Evaluate learned boundary backends that derive operation fields before stack construction and compare against held-out human or dataset boundaries; require suitability and calibration checks per oracle family. | R297 trains a supervised adjacent-boundary backend on OSWorld-Human, excludes oracle/group fields from features, reaches held-out human-group F1 0.7735, and folds predicted `learned_group_pattern` fields through Rust `agentpprof`. R299 applies the same pattern to OSWorld-Human, AgentNet step-quality labels, and AgentRewardBench looping; it finds mixed results and keeps SATraj/ScaleCUA/tau-bench out of the trained set when they lack suitable adjacent boundary oracles. This is still supervised and family-specific, not unsupervised discovery. |
+| Boundary detection remains only deterministic mapping. | Evaluate learned boundary backends that derive operation fields before stack construction and compare against held-out human or dataset boundaries; require suitability and calibration checks per oracle family. | R297 trains a supervised adjacent-boundary backend on OSWorld-Human, excludes oracle/group fields from features, reaches held-out human-group F1 0.7735, and folds predicted `learned_group_pattern` fields through Rust `agentpprof`. R299 applies the same pattern to OSWorld-Human, AgentNet step-quality labels, and AgentRewardBench looping; it finds mixed results and keeps SATraj/ScaleCUA/tau-bench out of the trained set when they lack suitable adjacent boundary oracles. R400 turns those mixed results into one accept, three caution, and one reject suitability decision, so boundary-derived fields stay supervised and family-specific rather than becoming an unsupervised detector. |
 | Human-facing value remains unmeasured. | First score profiler outputs directly against dataset-provided hidden labels; run a controlled human/agent analyst study only for productivity, time-to-answer, or analyst-accuracy claims. | R320 is the current C4 gate: over 6 tasks, 4 oracle-rich datasets, 34,539 operations, 3,699 positives, and 144 policies, operation-stack query-aware top-5 groups inspect median 0.0937 work versus flat's 1.0, improve top-5 recall over fixed-session on 5/6 tasks, and reduce median groups from 285.0 to 157.5. R333/R334/R337 add work-budget, fragmentation, and fixed-recall checks; R339/R355 score session, operation/step, positive-run, and task-specific oracle depths; R344 shows the metric surface is a tradeoff rather than dominance. R354/R358 show profile-configuration actionability through executable profile-spec and boundary-field patches. This supports profiler fidelity/localization/actionability, not human productivity. |
 | Profile experiments remain ad hoc shell commands. | Bundle reproducible operation-file, local-session/agent-trace/standard-trace input, op-map/tagging, view predicate, stack, rank policy, and output choices in profile specs while preserving CLI overrides. | R293 adds an AgentNet profile spec that reproduces the R291 608-stack diagnostic profile and folds the same operations into an 83-stack override view. R321 adds `where_rules` profile specs over the R300 real labeled operation JSONL and confirms mapping-derived predicates select 729, 714, and 4,285 operations before stack folding. R322 adds `rank_rules` profile specs and Rust JSON ranked groups over the same task suite. R323 adds `rank_mode` profile specs for width-boost versus rule-score ranking. R324 adds `rank_op_rules` profile specs for operation-level feature-density ranking over a scrubbed visible-operation profiler input. R325 adds leave-one-feature profile specs to isolate critical and misleading rank features. R326 adds equal-weight, global-bank, and ablation-repaired profile specs to test rank-policy robustness. R392 extends the maintained profile-spec path to carry explicit local-session, agent-trace, and standard-trace inputs plus regex tag rules, with public-fixture regressions for semantic and coarse recursive folding. |
 | Local agent sessions and external operation files are hard to exchange or replay outside native logs. | Export parsed sessions as `agentsight.agent-session.trace.v1`, import them through `--trace-file`, convert them to operation JSONL, and bridge session or operation-file inputs through a standard trace container when needed. | R294 public Codex fixture smoke shows direct trace import and converted operation-file import produce identical folded stacks; R303 scripts the same bridge as a tracked reproducer and verifies filesystem/tool-command portability for the exported trace. R306 exports the same fixture to Chrome Trace Event JSON, imports it back to operation JSONL, and preserves the same 6 samples / 5 stacks folded output. R353 exports a tracked real labeled operation prefix to Chrome Trace Event JSON and imports it back with byte-identical 512-sample / 11-stack folded output. |

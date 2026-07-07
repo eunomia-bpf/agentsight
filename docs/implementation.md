@@ -3,6 +3,7 @@
 Last updated: 2026-07-06
 Stage at update: stage 4 execute / stage 8 audit / stage 11 reproducibility prep
 Source/command: `agentpprof/src/main.rs`, `agentpprof/src/profile.rs`, `agentpprof/src/standard_trace.rs`, `agentpprof/tests/standard_trace_cli.rs`, `agentpprof/tests/profile_spec_cli.rs`, `script/operation_*.py`, `script/agent_trace_datasets.py sample tau-bench-trajectories`, `script/agent_trace_datasets.py sample agent-reward-bench`, `script/agent_trace_datasets.py sample satraj-os-safety`, `script/agent_trace_datasets.py sample osworld-human`, `script/agent_trace_datasets.py sample agentnet`, `script/agent_trace_datasets.py sample scalecua-navigation`, `script/agent_trace_exchange_eval.py`, `script/agent_trace_chrome_exchange_eval.py`, `script/operation_standard_trace_exchange_eval.py`, `script/operation_where_filter_eval.py`, `script/operation_rust_rank_rule_eval.py`, `script/operation_rank_mode_eval.py`, `script/operation_rank_feature_eval.py`, `script/operation_rank_feature_ablation_eval.py`, `script/operation_rank_feature_robustness_eval.py`, `script/operation_profile_spec_composition_eval.py`, `script/operation_profile_patch_eval.py`, `script/operation_boundary_profile_patch_eval.py`, `script/operation_oracle_depth_adequacy_eval.py`, `script/operation_field_derivation_mechanism_eval.py`, `script/paper_core_experiment_consolidation_audit.py`, `script/paper_core_result_tables.py`, `script/paper_core_claim_evidence.py`, `script/paper_core_section_readiness.py`, `script/paper_visualization_portfolio.py`, `script/paper_headline_case_studies.py`, `script/paper_claim_integrity_r356.py`, `script/implementation_consistency_audit.py`, `script/paper_two_abstraction_doc_gate.py`, `script/paper_build_smoke_r396.py`, `script/paper_main_body_run_ledger_r397.py`, `cargo test --manifest-path agentpprof/Cargo.toml --test profile_spec_cli`, `cargo test --manifest-path agentpprof/Cargo.toml`
+Additional source/command: `script/operation_field_suitability_eval.py`, `script/operation_rust_task_stack_induction_eval.py`
 Completeness: partial
 
 ## Repository Layout Relevant To Semantic Profiling
@@ -37,6 +38,8 @@ Purpose: identify the maintained implementation boundary.
 | `script/operation_boundary_profile_patch_eval.py` | R358 boundary-derived profile patch audit; reruns Rust profile specs over R297 held-out OSWorld-Human boundary fields as ordinary operation fields and scores hidden labels after profiling. | research harness |
 | `script/operation_oracle_depth_adequacy_eval.py` | R355 oracle-depth adequacy audit; scores visible-ranked profile groups at session, operation/step, positive-run proxy, and task-specific oracle depths over tracked labeled outputs. | research harness |
 | `script/operation_field_derivation_mechanism_eval.py` | R366 field-derivation mechanism audit; consolidates deterministic mapping, profile-spec composition, rank-feature ablation, supervised boundary backends, and boundary-derived profile patches from tracked artifacts without rerunning the profiler. | paper hygiene harness |
+| `script/operation_field_suitability_eval.py` | R400 field-derivation suitability audit; converts tracked R325/R358/R366 evidence into guarded accept/caution/reject profile-configuration decisions without syncing data or rerunning the profiler. | paper hygiene harness |
+| `script/operation_rust_task_stack_induction_eval.py` | R402 Rust boundary-based task-stack induction replay; runs `agentpprof --induce-task-stack` on one tracked R300 real-trace slice and checks task-only, variable-depth stacks without a user field order or oracle source fields. | research harness |
 | `script/paper_entry_claim_path_audit.py` | R367 entry claim-path audit; checks that abstract, introduction/problem framing, and main result table present RQ1/E1-RQ4/E4 as three empirical profiling questions plus one systems/reproducibility question, with R-runs as provenance and only operation/operation-stack profiler abstractions. | paper hygiene harness |
 | `script/paper_trace_tree_baseline_audit.py` | R368 trace-tree-shaped baseline audit; reads existing R320/R355 hidden-label scoring outputs and makes the flat/fixed-session/dataset-native/raw-action baseline tradeoffs explicit without importing ecosystem traces or rerunning the profiler. | paper hygiene harness |
 | `script/paper_core_experiment_consolidation_audit.py` | R359 paper-facing core-experiment consolidation audit; checks that evaluation is organized as RQ1/E1-RQ4/E4, R-runs are provenance, and R358 remains an RQ3/E3 mechanism ablation. | paper hygiene harness |
@@ -74,6 +77,10 @@ The current Rust implementation supports:
   each folded stack group;
 - rank-policy selection via `--rank-mode width-boost|rule-score` and
   profile-spec `rank_mode`;
+- recursive task-stack induction via `--induce-task-stack`, which scores
+  adjacent operation boundaries from visible fields and optional query terms,
+  writes a multi-value `task` field, and folds that field as the only stack
+  frame for the induced view;
 - frame-local stack overrides via `--stack-rule`;
 - reusable profile specs via `--profile-spec`, including operation-file,
   local-session, imported agent-trace, and standard-trace input paths;
@@ -143,6 +150,22 @@ replay gap for E4: input selection and local-session tag derivation are now
 part of the same profile-spec path as operation-file mappings and ranking, but
 they remain operation-field derivations folded into operation stacks rather
 than a third profiler object.
+
+R402 adds a first-class Rust task-stack induction mode. `agentpprof
+--induce-task-stack` no longer requires a user-supplied field order. It treats
+visible fields as evidence, filters oracle and label fields, scores adjacent
+operation boundaries inside the current contiguous segment, permits the same
+evidence field to recur at different recursive cuts, recursively splits only
+when the children have enough weight and distinct dominant evidence, and stores
+the induced path as a multi-value `task` field before normal stack folding. The
+replay artifact runs this mode over
+`dataset=agent-reward-bench;analysis_task=agentreward_looping` from the tracked
+R300 operation file. The overview view produces 729 operations, 15 stacks, and
+depth histogram 1/3/11 at depths 2/3/4; the session-candidate view uses the same
+operations and produces 15 stacks with depth histogram 7/6/2. `session` is
+selected only when explicitly allowed as evidence. This is an implementation
+and visualization check for recursive task-only folding, not a hidden-label
+accuracy result.
 
 R342 extends that composition check to existing real labeled traces without
 fetching or relabeling data. `script/operation_profile_spec_composition_eval.py`
@@ -238,6 +261,16 @@ task, automatic boundary detector, or third profiler abstraction.
 R360/R361/R364 now consume this R366 audit as internal RQ1/E1 and RQ3/E3 evidence, so the
 paper-facing structure remains three empirical profiling questions plus one
 systems/reproducibility question rather than adding a fifth block.
+
+R400 adds the field-derivation suitability audit.
+`script/operation_field_suitability_eval.py` reads tracked R325/R358/R366
+artifacts and emits five profile-knob decisions plus five boundary-family
+decisions. It records when deterministic mapping, stack-depth changes,
+operation-level rank features, supervised boundary-derived fields, and
+boundary-profile repair should be accepted, used with caution, or rejected. It
+does not sync datasets, relabel operations, rerun the profiler, add a third
+profiler object, or claim a universal automatic selector. The output is a
+profile-configuration guardrail for RQ3/E3 actionability.
 
 R367 checks the paper entry path for that same structure.
 `script/paper_entry_claim_path_audit.py` reads the Chinese paper, English

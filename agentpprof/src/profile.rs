@@ -308,6 +308,12 @@ pub struct TaskStackSplitDecision {
 #[derive(Clone, Debug, Serialize)]
 pub struct TaskStackSplitScore {
     field: String,
+    cut_after: usize,
+    left_label: String,
+    right_label: String,
+    left_weight: u64,
+    right_weight: u64,
+    evidence_fields: Vec<String>,
     score: f64,
     structural_gain: f64,
     balance: f64,
@@ -989,12 +995,23 @@ fn apply_operation_field_rules(sample: &Operation, rules: &[OperationStackRule])
     mapped
 }
 
-const TASK_STACK_POLICY: &str = "query-conditioned-greedy-task-stack-induction";
+const TASK_STACK_POLICY: &str = "query-conditioned-recursive-boundary-task-stack-induction";
+const MAX_TASK_STACK_BOUNDARY_CANDIDATES: usize = 512;
 const ORACLE_OR_LABEL_FIELDS: &[&str] = &[
     "annotator",
+    "attack",
+    "attack_type",
     "boundary_label",
     "boundary_positive",
     "correct",
+    "expected_action",
+    "gold",
+    "gold_action",
+    "group",
+    "group_id",
+    "group_pattern",
+    "human_boundary",
+    "human_group",
     "label",
     "looping",
     "optimality",
@@ -1002,13 +1019,45 @@ const ORACLE_OR_LABEL_FIELDS: &[&str] = &[
     "problem_oracle",
     "problem_value",
     "redundant",
+    "reference",
+    "reference_action",
+    "safe",
+    "safety",
     "side_effect",
     "status",
+    "step_correct",
+    "step_optimal",
+    "step_redundant",
+    "step_success",
     "target_positive",
     "unsafe",
 ];
-const ORACLE_OR_LABEL_PREFIXES: &[&str] = &["problem_"];
-const ORACLE_OR_LABEL_SUFFIXES: &[&str] = &["_positive", "_oracle", "_label"];
+const ORACLE_OR_LABEL_PREFIXES: &[&str] = &[
+    "gold_",
+    "group_",
+    "human_",
+    "label_",
+    "oracle_",
+    "problem_",
+    "reference_",
+    "target_",
+];
+const ORACLE_OR_LABEL_SUFFIXES: &[&str] = &[
+    "_answer",
+    "_attack",
+    "_correct",
+    "_gold",
+    "_ground_truth",
+    "_label",
+    "_oracle",
+    "_positive",
+    "_redundant",
+    "_reference",
+    "_safe",
+    "_safety",
+    "_target",
+    "_unsafe",
+];
 const TASK_STACK_METADATA_FIELDS: &[&str] = &[
     "agent",
     "analysis_task",
@@ -1054,7 +1103,6 @@ fn induce_task_stack(
         &indices,
         config,
         Vec::new(),
-        BTreeSet::new(),
         0,
         &mut task_paths,
         &mut stop_reasons,
@@ -1063,12 +1111,15 @@ fn induce_task_stack(
     for (sample, path) in samples.iter_mut().zip(task_paths) {
         sample.fields.insert("task".to_string(), path);
     }
-    let selected_source_fields = split_decisions
-        .iter()
-        .map(|decision| decision.source_field.clone())
-        .collect::<BTreeSet<_>>()
-        .into_iter()
-        .collect::<Vec<_>>();
+    let mut selected_source_fields = BTreeSet::new();
+    for decision in &split_decisions {
+        if decision.selected_score.evidence_fields.is_empty() {
+            selected_source_fields.insert(decision.source_field.clone());
+        } else {
+            selected_source_fields.extend(decision.selected_score.evidence_fields.iter().cloned());
+        }
+    }
+    let selected_source_fields = selected_source_fields.into_iter().collect::<Vec<_>>();
     let report = TaskStackInductionReport {
         policy: TASK_STACK_POLICY,
         allow_session: config.allow_session,
@@ -1092,7 +1143,6 @@ fn induce_task_stack_recursive(
     indices: &[usize],
     config: &TaskStackInductionConfig,
     path: Vec<String>,
-    used_fields: BTreeSet<String>,
     depth: usize,
     task_paths: &mut [Vec<String>],
     stop_reasons: &mut BTreeMap<String, u64>,
@@ -1110,7 +1160,7 @@ fn induce_task_stack_recursive(
         return;
     }
 
-    let (selected, candidates) = choose_task_split(samples, indices, config, &used_fields);
+    let (selected, candidates) = choose_task_split(samples, indices, config);
     let Some(selected) = selected else {
         assign_task_path(indices, &path, task_paths);
         increment_stop(stop_reasons, "no_material_split");
@@ -1118,6 +1168,15 @@ fn induce_task_stack_recursive(
     };
 
     let source_field = selected.field.clone();
+    let cut_after = selected.cut_after.min(indices.len().saturating_sub(1));
+    let (left_indices, right_indices) = indices.split_at(cut_after);
+    if left_indices.is_empty() || right_indices.is_empty() {
+        assign_task_path(indices, &path, task_paths);
+        increment_stop(stop_reasons, "empty_boundary_child");
+        return;
+    }
+    let left_label = selected.left_label.clone();
+    let right_label = selected.right_label.clone();
     split_decisions.push(TaskStackSplitDecision {
         path: path.clone(),
         source_field: source_field.clone(),
@@ -1126,35 +1185,25 @@ fn induce_task_stack_recursive(
         candidate_scores: candidates,
     });
 
-    let mut groups: BTreeMap<String, Vec<usize>> = BTreeMap::new();
-    for index in indices {
-        groups
-            .entry(operation_field_value(&samples[*index], &source_field))
-            .or_default()
-            .push(*index);
-    }
-    let mut groups = groups.into_iter().collect::<Vec<_>>();
-    groups.sort_by(|(left_value, left), (right_value, right)| {
-        index_weight(samples, right)
-            .cmp(&index_weight(samples, left))
-            .then_with(|| left_value.cmp(right_value))
-    });
-    let mut next_used = used_fields;
-    next_used.insert(source_field);
-    for (value, child_indices) in groups {
+    for (value, child_indices) in [(left_label, left_indices), (right_label, right_indices)] {
         let mut child_path = path.clone();
-        child_path.push(value);
+        push_task_path_label(&mut child_path, value);
         induce_task_stack_recursive(
             samples,
             &child_indices,
             config,
             child_path,
-            next_used.clone(),
             depth + 1,
             task_paths,
             stop_reasons,
             split_decisions,
         );
+    }
+}
+
+fn push_task_path_label(path: &mut Vec<String>, value: String) {
+    if path.last() != Some(&value) {
+        path.push(value);
     }
 }
 
@@ -1177,12 +1226,14 @@ fn choose_task_split(
     samples: &[Operation],
     indices: &[usize],
     config: &TaskStackInductionConfig,
-    used_fields: &BTreeSet<String>,
 ) -> (Option<TaskStackSplitScore>, Vec<TaskStackSplitScore>) {
-    let candidates = task_stack_candidate_fields(samples, indices, config, used_fields);
-    let mut scores = candidates
-        .iter()
-        .filter_map(|field| score_task_split(samples, indices, field, &candidates, config))
+    let candidates = task_stack_candidate_fields(samples, indices, config);
+    let boundary_cuts = task_stack_boundary_cuts(samples, indices, &candidates);
+    let mut scores = boundary_cuts
+        .into_iter()
+        .filter_map(|cut_after| {
+            score_task_boundary_split(samples, indices, cut_after, &candidates, config)
+        })
         .collect::<Vec<_>>();
     scores.sort_by(|left, right| {
         right
@@ -1199,11 +1250,40 @@ fn choose_task_split(
     (selected, scores)
 }
 
+fn task_stack_boundary_cuts(
+    samples: &[Operation],
+    indices: &[usize],
+    candidates: &[String],
+) -> Vec<usize> {
+    if indices.len() <= 1 || candidates.is_empty() {
+        return Vec::new();
+    }
+    let mut cuts = Vec::new();
+    for cut_after in 1..indices.len() {
+        let left = &samples[indices[cut_after - 1]];
+        let right = &samples[indices[cut_after]];
+        if candidates
+            .iter()
+            .any(|field| operation_field_value(left, field) != operation_field_value(right, field))
+        {
+            cuts.push(cut_after);
+        }
+    }
+    if cuts.len() <= MAX_TASK_STACK_BOUNDARY_CANDIDATES {
+        return cuts;
+    }
+    let stride = cuts.len().div_ceil(MAX_TASK_STACK_BOUNDARY_CANDIDATES);
+    cuts.into_iter()
+        .enumerate()
+        .filter_map(|(idx, cut)| (idx % stride == 0).then_some(cut))
+        .take(MAX_TASK_STACK_BOUNDARY_CANDIDATES)
+        .collect()
+}
+
 fn task_stack_candidate_fields(
     samples: &[Operation],
     indices: &[usize],
     config: &TaskStackInductionConfig,
-    used_fields: &BTreeSet<String>,
 ) -> Vec<String> {
     let mut fields = BTreeSet::new();
     for index in indices {
@@ -1213,7 +1293,6 @@ fn task_stack_candidate_fields(
         .into_iter()
         .filter(|field| {
             !field.starts_with('_')
-                && !used_fields.contains(field)
                 && !is_task_stack_oracle_field(field)
                 && !TASK_STACK_METADATA_FIELDS.contains(&field.as_str())
                 && !TASK_STACK_NOISY_FIELDS.contains(&field.as_str())
@@ -1265,64 +1344,96 @@ fn is_numeric_value(value: &str) -> bool {
     seen_digit
 }
 
-fn score_task_split(
+fn score_task_boundary_split(
     samples: &[Operation],
     indices: &[usize],
-    field: &str,
+    cut_after: usize,
     candidates: &[String],
     config: &TaskStackInductionConfig,
 ) -> Option<TaskStackSplitScore> {
-    let counts = weighted_value_counts(samples, indices, field);
-    let mut values = counts.values().copied().collect::<Vec<_>>();
-    values.sort_by(|left, right| right.cmp(left));
-    if values.len() <= 1 {
+    if cut_after == 0 || cut_after >= indices.len() {
         return None;
     }
-    let total = values.iter().sum::<u64>();
-    let second = values.get(1).copied().unwrap_or(0);
-    let majority_fraction = values[0] as f64 / total.max(1) as f64;
-    if second < config.min_second_child || majority_fraction > config.max_majority_fraction {
+    let (left, right) = indices.split_at(cut_after);
+    let left_weight = index_weight(samples, left);
+    let right_weight = index_weight(samples, right);
+    let total = left_weight + right_weight;
+    let majority_fraction = left_weight.max(right_weight) as f64 / total.max(1) as f64;
+    if left_weight.min(right_weight) < config.min_second_child
+        || majority_fraction > config.max_majority_fraction
+    {
         return None;
     }
 
-    let split_entropy = entropy(&counts);
-    let balance = if counts.len() > 1 {
-        split_entropy / (counts.len() as f64).log2()
-    } else {
+    let mut evidence_scores = candidates
+        .iter()
+        .filter_map(|field| {
+            score_boundary_evidence_field(samples, indices, left, right, field, &config.query_terms)
+        })
+        .collect::<Vec<_>>();
+    evidence_scores.sort_by(|left, right| {
+        right
+            .1
+            .partial_cmp(&left.1)
+            .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| left.0.cmp(&right.0))
+    });
+    let primary_field = evidence_scores.first().map(|item| item.0.clone())?;
+    let evidence_fields = evidence_scores
+        .iter()
+        .take(4)
+        .map(|item| item.0.clone())
+        .collect::<Vec<_>>();
+    let structural_gain = if evidence_scores.is_empty() {
         0.0
+    } else {
+        evidence_scores
+            .iter()
+            .take(4)
+            .map(|(_, score, _, _)| *score)
+            .sum::<f64>()
+            / evidence_scores.len().min(4) as f64
     };
+    let query_bonus = evidence_scores
+        .iter()
+        .map(|(_, _, query, _)| *query)
+        .fold(0.0, f64::max);
+    let adjacent_change = evidence_scores
+        .iter()
+        .map(|(_, _, _, change)| *change)
+        .fold(0.0, f64::max);
+    let child_counts = BTreeMap::from([
+        ("left".to_string(), left_weight),
+        ("right".to_string(), right_weight),
+    ]);
+    let balance = entropy(&child_counts);
     let coverage = 1.0 - majority_fraction;
-    let mut gains = Vec::new();
-    for target in candidates {
-        if target == field {
-            continue;
-        }
-        let target_counts = weighted_value_counts(samples, indices, target);
-        let target_entropy = entropy(&target_counts);
-        if target_entropy <= 0.0 {
-            continue;
-        }
-        let gain = (target_entropy - conditional_entropy(samples, indices, field, target)).max(0.0)
-            / target_entropy;
-        gains.push(gain);
-    }
-    let structural_gain = if gains.is_empty() {
-        0.0
+    let cardinality_penalty = 1.0 / ((total + 1) as f64).log2().max(1.0);
+    let small_child_penalty = if left_weight.min(right_weight) < config.min_second_child * 2 {
+        0.5
     } else {
-        gains.iter().sum::<f64>() / gains.len() as f64
+        0.0
     };
-    let query_bonus = query_bonus(field, counts.keys(), &config.query_terms);
-    let cardinality_penalty = ((counts.len() + 1) as f64).log2() / ((total + 1) as f64).log2();
-    let small_child_penalty = counts
-        .values()
-        .filter(|count| **count < config.min_second_child)
-        .sum::<u64>() as f64
-        / total.max(1) as f64;
-    let score = 0.62 * structural_gain + 0.26 * balance * coverage + 0.18 * query_bonus
+    let score = 0.54 * structural_gain
+        + 0.20 * balance * coverage
+        + 0.18 * query_bonus
+        + 0.16 * adjacent_change
         - 0.08 * cardinality_penalty
         - 0.20 * small_child_penalty;
+    let left_label = task_stack_segment_label(samples, left, &evidence_fields, "left");
+    let right_label = task_stack_segment_label(samples, right, &evidence_fields, "right");
+    let groups = BTreeMap::from([
+        (left_label.clone(), left_weight),
+        (right_label.clone(), right_weight),
+    ]);
     Some(TaskStackSplitScore {
-        field: field.to_string(),
+        field: primary_field,
+        cut_after,
+        left_label,
+        right_label,
+        left_weight,
+        right_weight,
+        evidence_fields,
         score: round6(score),
         structural_gain: round6(structural_gain),
         balance: round6(balance),
@@ -1330,8 +1441,77 @@ fn score_task_split(
         query_bonus: round6(query_bonus),
         cardinality_penalty: round6(cardinality_penalty),
         small_child_penalty: round6(small_child_penalty),
-        groups: counts,
+        groups,
     })
+}
+
+fn score_boundary_evidence_field(
+    samples: &[Operation],
+    parent: &[usize],
+    left: &[usize],
+    right: &[usize],
+    field: &str,
+    query_terms: &[String],
+) -> Option<(String, f64, f64, f64)> {
+    let parent_counts = weighted_value_counts(samples, parent, field);
+    if parent_counts.len() <= 1 {
+        return None;
+    }
+    let parent_entropy = entropy(&parent_counts);
+    if parent_entropy <= 0.0 {
+        return None;
+    }
+    let left_counts = weighted_value_counts(samples, left, field);
+    let right_counts = weighted_value_counts(samples, right, field);
+    let left_dominant = dominant_value(&left_counts)?;
+    let right_dominant = dominant_value(&right_counts)?;
+    if left_dominant == right_dominant {
+        return None;
+    }
+    let left_weight = index_weight(samples, left);
+    let right_weight = index_weight(samples, right);
+    let total = (left_weight + right_weight).max(1) as f64;
+    let child_entropy = (left_weight as f64 / total) * entropy(&left_counts)
+        + (right_weight as f64 / total) * entropy(&right_counts);
+    let partition_gain = ((parent_entropy - child_entropy) / parent_entropy).max(0.0);
+    let adjacent_change = if operation_field_value(&samples[*left.last()?], field)
+        != operation_field_value(&samples[*right.first()?], field)
+    {
+        1.0
+    } else {
+        0.0
+    };
+    let query_bonus = query_bonus(
+        field,
+        left_counts.keys().chain(right_counts.keys()),
+        query_terms,
+    );
+    let score = 0.72 * partition_gain + 0.28 * adjacent_change;
+    Some((field.to_string(), score, query_bonus, adjacent_change))
+}
+
+fn task_stack_segment_label(
+    samples: &[Operation],
+    indices: &[usize],
+    evidence_fields: &[String],
+    fallback: &str,
+) -> String {
+    for field in evidence_fields {
+        let counts = weighted_value_counts(samples, indices, field);
+        let Some(value) = dominant_value(&counts) else {
+            continue;
+        };
+        return format!("{field}={value}");
+    }
+    format!("{fallback}-segment")
+}
+
+fn dominant_value(counts: &BTreeMap<String, u64>) -> Option<String> {
+    counts
+        .iter()
+        .filter(|(value, _)| value.as_str() != "unknown")
+        .max_by(|left, right| left.1.cmp(right.1).then_with(|| right.0.cmp(left.0)))
+        .map(|(value, _)| value.clone())
 }
 
 fn operation_field_value(sample: &Operation, field: &str) -> String {
@@ -1374,30 +1554,6 @@ fn entropy(counts: &BTreeMap<String, u64>) -> f64 {
         .map(|count| {
             let probability = *count as f64 / total as f64;
             -probability * probability.log2()
-        })
-        .sum()
-}
-
-fn conditional_entropy(
-    samples: &[Operation],
-    indices: &[usize],
-    split_field: &str,
-    target_field: &str,
-) -> f64 {
-    let mut split_groups: BTreeMap<String, Vec<usize>> = BTreeMap::new();
-    for index in indices {
-        split_groups
-            .entry(operation_field_value(&samples[*index], split_field))
-            .or_default()
-            .push(*index);
-    }
-    let total = index_weight(samples, indices).max(1);
-    split_groups
-        .values()
-        .map(|group| {
-            let weight = index_weight(samples, group);
-            let counts = weighted_value_counts(samples, group, target_field);
-            (weight as f64 / total as f64) * entropy(&counts)
         })
         .sum()
 }
@@ -2907,7 +3063,11 @@ mod tests {
                 "action": "click",
                 "looping": "no",
                 "problem_value": "negative",
-                "status": "failure"
+                "status": "failure",
+                "step_correct": "false",
+                "safety": "safe",
+                "human_group": "g0",
+                "group_pattern": "g0"
             }}));
         }
         for _ in 0..6 {
@@ -2919,7 +3079,11 @@ mod tests {
                 "action": "click",
                 "looping": "yes",
                 "problem_value": "positive",
-                "status": "failure"
+                "status": "failure",
+                "step_correct": "true",
+                "safety": "unsafe",
+                "human_group": "g1",
+                "group_pattern": "g1"
             }}));
         }
         for _ in 0..6 {
@@ -2931,7 +3095,11 @@ mod tests {
                 "action": "fill",
                 "looping": "yes",
                 "problem_value": "positive",
-                "status": "failure"
+                "status": "failure",
+                "step_correct": "true",
+                "safety": "unsafe",
+                "human_group": "g2",
+                "group_pattern": "g2"
             }}));
         }
 
@@ -2958,6 +3126,10 @@ mod tests {
             !stack.contains("looping")
                 && !stack.contains("problem_value")
                 && !stack.contains("status:")
+                && !stack.contains("step_correct")
+                && !stack.contains("safety:")
+                && !stack.contains("human_group")
+                && !stack.contains("group_pattern")
         }));
         let depths = stacks
             .keys()

@@ -22,45 +22,45 @@ source fields are recorded as provenance.</p>
 <h2>Rust induced task stack</h2>
 <p>
 <span class="metric">operations: 729</span>
-<span class="metric">unique stacks: 47</span>
-<span class="metric">depths: {&#x27;1&#x27;: 1, &#x27;2&#x27;: 22, &#x27;3&#x27;: 24}</span>
+<span class="metric">unique stacks: 15</span>
+<span class="metric">depths: {&#x27;2&#x27;: 1, &#x27;3&#x27;: 3, &#x27;4&#x27;: 11}</span>
 <span class="metric">oracle overlap: 0</span>
 </p>
-<p><code>selected source fields: [&#x27;action&#x27;, &#x27;repeat_signal&#x27;, &#x27;repeat_state&#x27;, &#x27;step_error&#x27;]</code></p>
+<p><code>selected source fields: [&#x27;action&#x27;, &#x27;repeat_run&#x27;, &#x27;repeat_signal&#x27;, &#x27;repeat_state&#x27;]</code></p>
 <iframe src="agentreward-overview.svg"></iframe>
 <h3>Top Stacks</h3>
-<table><thead><tr><th>weight</th><th>stack</th></tr></thead><tbody><tr><td>131</td><td>task:same-action-run;task:click</td></tr>
-<tr><td>125</td><td>task:single;task:loop-like;task:click</td></tr>
-<tr><td>108</td><td>task:single;task:none;task:click</td></tr>
-<tr><td>49</td><td>task:light-repeat;task:click;task:loop-like</td></tr>
-<tr><td>47</td><td>task:single;task:loop-like;task:fill</td></tr>
-<tr><td>25</td><td>task:same-action-window;task:click</td></tr>
-<tr><td>23</td><td>task:same-action-run;task:send_msg_to_user</td></tr>
-<tr><td>21</td><td>task:light-repeat;task:click;task:none</td></tr>
-<tr><td>20</td><td>task:same-action-run;task:hover</td></tr>
-<tr><td>17</td><td>task:same-action-window;task:fill</td></tr></tbody></table>
+<table><thead><tr><th>weight</th><th>stack</th></tr></thead><tbody><tr><td>162</td><td>task:repeat_state_single;task:repeat_signal_loop-like;task:repeat_run_1;task:repeat_signal_loop-like</td></tr>
+<tr><td>130</td><td>task:repeat_state_single;task:repeat_signal_none</td></tr>
+<tr><td>76</td><td>task:repeat_state_single;task:repeat_signal_none;task:repeat_signal_loop-like</td></tr>
+<tr><td>69</td><td>task:repeat_state_single;task:repeat_signal_loop-like;task:repeat_run_1;task:repeat_signal_none</td></tr>
+<tr><td>64</td><td>task:repeat_state_same-action-run;task:repeat_run_3plus;task:action_click;task:repeat_run_1</td></tr>
+<tr><td>41</td><td>task:repeat_state_same-action-run;task:repeat_run_1;task:repeat_state_single;task:repeat_signal_loop-like</td></tr>
+<tr><td>27</td><td>task:repeat_state_same-action-run;task:repeat_run_1;task:repeat_state_same-action-window;task:action_fill</td></tr>
+<tr><td>27</td><td>task:repeat_state_same-action-run;task:repeat_run_3plus;task:action_hover</td></tr>
+<tr><td>26</td><td>task:repeat_state_single;task:repeat_signal_loop-like;task:repeat_run_3plus</td></tr>
+<tr><td>24</td><td>task:repeat_state_same-action-run;task:repeat_run_3plus;task:action_click;task:repeat_run_3plus</td></tr></tbody></table>
 </section>
 
 <section>
 <h2>Rust induced task stack with session candidate</h2>
 <p>
 <span class="metric">operations: 729</span>
-<span class="metric">unique stacks: 91</span>
-<span class="metric">depths: {&#x27;1&#x27;: 11, &#x27;2&#x27;: 46, &#x27;3&#x27;: 26, &#x27;4&#x27;: 8}</span>
+<span class="metric">unique stacks: 15</span>
+<span class="metric">depths: {&#x27;2&#x27;: 7, &#x27;3&#x27;: 6, &#x27;4&#x27;: 2}</span>
 <span class="metric">oracle overlap: 0</span>
 </p>
-<p><code>selected source fields: [&#x27;action&#x27;, &#x27;repeat_run&#x27;, &#x27;repeat_signal&#x27;, &#x27;repeat_state&#x27;, &#x27;session&#x27;, &#x27;step_error&#x27;]</code></p>
+<p><code>selected source fields: [&#x27;repeat_run&#x27;, &#x27;repeat_signal&#x27;, &#x27;repeat_state&#x27;, &#x27;session&#x27;]</code></p>
 <iframe src="agentreward-session.svg"></iframe>
 <h3>Top Stacks</h3>
-<table><thead><tr><th>weight</th><th>stack</th></tr></thead><tbody><tr><td>35</td><td>task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2;task:click;task:none;task:single</td></tr>
-<tr><td>30</td><td>task:workarena.servicenow.dashboard-retrieve-catalog-and-max-order-apple-watch-l2</td></tr>
-<tr><td>30</td><td>task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:none;task:click</td></tr>
-<tr><td>24</td><td>task:visualwebarena.76;task:3plus</td></tr>
-<tr><td>24</td><td>task:visualwebarena.resized.580;task:3plus</td></tr>
-<tr><td>24</td><td>task:workarena.servicenow.two-changes-wide-basic-varied-risk-change-request-scheduling-l2;task:3plus</td></tr>
-<tr><td>21</td><td>task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:loop-like;task:single;task:click</td></tr>
-<tr><td>20</td><td>task:visualwebarena.88;task:same-action-run</td></tr>
-<tr><td>19</td><td>task:webarena.723;task:3plus</td></tr>
-<tr><td>18</td><td>task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2;task:send_msg_to_user</td></tr></tbody></table>
+<table><thead><tr><th>weight</th><th>stack</th></tr></thead><tbody><tr><td>130</td><td>task:session_workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:session_workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2</td></tr>
+<tr><td>77</td><td>task:session_workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:session_workarena.servicenow.dashboard-retrieve-catalog-and-max-order-apple-watch-l2;task:repeat_signal_loop-like</td></tr>
+<tr><td>61</td><td>task:session_visualwebarena.resized.580;task:session_assistantbench.improved.validation.17;task:session_assistantbench.improved.validation.9</td></tr>
+<tr><td>60</td><td>task:session_visualwebarena.resized.580;task:session_assistantbench.improved.validation.15;task:session_visualwebarena.88</td></tr>
+<tr><td>60</td><td>task:session_workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:repeat_signal_loop-like</td></tr>
+<tr><td>60</td><td>task:session_workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:session_workarena.servicenow.dashboard-retrieve-catalog-and-max-order-apple-watch-l2;task:session_workarena.servicenow.two-changes-wide-basic-uniform-risk-change-request-scheduling-l2</td></tr>
+<tr><td>48</td><td>task:session_visualwebarena.resized.580;task:repeat_run_1</td></tr>
+<tr><td>39</td><td>task:session_workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:session_workarena.servicenow.dashboard-retrieve-catalog-and-max-order-apple-watch-l2;task:session_workarena.servicenow.two-changes-wide-basic-uniform-risk-change-request-scheduling-l2;task:session_workarena.servicenow.two-changes-wide-priority-uniform-risk-change-request-scheduling-l2</td></tr>
+<tr><td>34</td><td>task:session_visualwebarena.resized.580;task:session_assistantbench.improved.validation.17</td></tr>
+<tr><td>30</td><td>task:session_visualwebarena.resized.580;task:repeat_run_3plus</td></tr></tbody></table>
 </section>
 

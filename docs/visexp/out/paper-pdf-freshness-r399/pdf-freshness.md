@@ -2,7 +2,7 @@
 
 Status: `pass`
 Checks: 9/9
-Token checks: 29/29
+Token checks: 30/30
 
 The tracked Chinese and English paper PDFs contain the same main-display path that the TeX sources expose. This is an E4 replayability/scope-control check, not a new empirical experiment.
 
@@ -12,12 +12,12 @@ The tracked Chinese and English paper PDFs contain the same main-display path th
 |---|---:|---|
 | prerequisite_gates_pass | True | Prerequisite statuses={'R396 paper build smoke': 'pass', 'R398 current three-plus-one': 'pass'} |
 | pdftotext_available | True | pdftotext=/usr/bin/pdftotext |
-| tracked_pdfs_exist | True | PDF bytes={'chinese_pdf_bytes': 591294, 'english_pdf_bytes': 594895} |
+| tracked_pdfs_exist | True | PDF bytes={'chinese_pdf_bytes': 597291, 'english_pdf_bytes': 596192} |
 | pdftotext_extraction_succeeds | True | Chinese rc=0 stderr=; English rc=0 stderr= |
 | source_display_path_tokens_present | True | Chinese and English TeX sources contain the main-display path tokens. |
 | tracked_pdfs_contain_display_path | True | Tracked Chinese and English PDFs contain the display-path text after PDF text extraction. |
 | pdf_non_claim_scope_visible | True | Tracked English PDF keeps fifth-experiment, accuracy, productivity, boundary, and ecosystem non-claims visible. |
-| english_submodule_captured_by_parent | True | submodule_head=e7a500f2f66180e28b70a53b2014fda8bcd54756; parent_index=e7a500f2f66180e28b70a53b2014fda8bcd54756 |
+| english_submodule_captured_by_parent | True | submodule_head=f5eaa5fc4eb201beb31232b54a3d3a44dc99c8f2; parent_index=f5eaa5fc4eb201beb31232b54a3d3a44dc99c8f2 |
 | source_status_tracked_or_dirty_allowed | True | All inputs are tracked or intentionally dirty while this gate is generated. |
 
 ## Token Checks
@@ -38,7 +38,8 @@ The tracked Chinese and English paper PDFs contain the same main-display path th
 | english_source | True | `Supporting materials contain the larger portfolio, case, verdict, and consistency tables` |
 | chinese_pdf | True | `主文图表形成一条固定证据路径` |
 | chinese_pdf | True | `四个 block 的 claim map` |
-| chinese_pdf | True | `hidden-label fidelity 和 baseline tradeoff` |
+| chinese_pdf | True | `hidden-label` |
+| chinese_pdf | True | `baseline tradeoff` |
 | chinese_pdf | True | `mechanism/actionability` |
 | chinese_pdf | True | `replay/cost 证据` |
 | chinese_pdf | True | `适用边界` |

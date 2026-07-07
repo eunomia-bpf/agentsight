@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Replay Rust task-stack induction on one real labeled trace slice."""
+"""Replay Rust boundary-based task-stack induction on one real labeled trace slice."""
 
 from __future__ import annotations
 
@@ -19,9 +19,19 @@ FILTERS = ["dataset=agent-reward-bench", "analysis_task=agentreward_looping"]
 QUERY_TERMS = ["loop", "repeat"]
 ORACLE_FIELDS = {
     "annotator",
+    "attack",
+    "attack_type",
     "boundary_label",
     "boundary_positive",
     "correct",
+    "expected_action",
+    "gold",
+    "gold_action",
+    "group",
+    "group_id",
+    "group_pattern",
+    "human_boundary",
+    "human_group",
     "label",
     "looping",
     "optimality",
@@ -29,13 +39,45 @@ ORACLE_FIELDS = {
     "problem_oracle",
     "problem_value",
     "redundant",
+    "reference",
+    "reference_action",
+    "safe",
+    "safety",
     "side_effect",
     "status",
+    "step_correct",
+    "step_optimal",
+    "step_redundant",
+    "step_success",
     "target_positive",
     "unsafe",
 }
-ORACLE_PREFIXES = ("problem_",)
-ORACLE_SUFFIXES = ("_positive", "_oracle", "_label")
+ORACLE_PREFIXES = (
+    "gold_",
+    "group_",
+    "human_",
+    "label_",
+    "oracle_",
+    "problem_",
+    "reference_",
+    "target_",
+)
+ORACLE_SUFFIXES = (
+    "_answer",
+    "_attack",
+    "_correct",
+    "_gold",
+    "_ground_truth",
+    "_label",
+    "_oracle",
+    "_positive",
+    "_redundant",
+    "_reference",
+    "_safe",
+    "_safety",
+    "_target",
+    "_unsafe",
+)
 VIEWS = {
     "agentreward-overview": {
         "title": "Rust induced task stack",
@@ -133,6 +175,21 @@ def all_frames_are_task(stacks: dict[str, int]) -> bool:
     )
 
 
+def split_field_counts(induction: dict[str, Any]) -> dict[str, int]:
+    counts: Counter[str] = Counter()
+    for decision in induction["split_decisions"]:
+        counts[decision["source_field"]] += 1
+    return dict(sorted(counts.items()))
+
+
+def evidence_field_counts(induction: dict[str, Any]) -> dict[str, int]:
+    counts: Counter[str] = Counter()
+    for decision in induction["split_decisions"]:
+        for field in decision["selected_score"].get("evidence_fields", []):
+            counts[field] += 1
+    return dict(sorted(counts.items()))
+
+
 def summarize_view(view_name: str, spec: dict[str, Any], statuses: dict[str, Any]) -> dict[str, Any]:
     profile_doc = json.loads((OUT / f"{view_name}.json").read_text())
     profile = profile_doc["profile"]
@@ -152,6 +209,8 @@ def summarize_view(view_name: str, spec: dict[str, Any], statuses: dict[str, Any
         "induce_task_stack": statuses["json"].get("induce_task_stack"),
         "selected_source_fields": selected_fields,
         "oracle_source_field_overlap": oracle_overlap,
+        "split_source_field_counts": split_field_counts(induction),
+        "split_evidence_field_counts": evidence_field_counts(induction),
         "stop_reasons": induction["stop_reasons"],
         "split_decision_count": len(induction["split_decisions"]),
         "stack_depth_histogram": depth_histogram(stacks),
@@ -166,7 +225,7 @@ def write_report(result: dict[str, Any]) -> None:
         "# R402 Rust Task-Stack Induction",
         "",
         "This artifact replays the Rust `agentpprof --induce-task-stack` implementation on one tracked real-trace slice.",
-        "It is a mechanism and visualization artifact: it shows that Rust derives recursive `task:` stacks without a user-provided field order.",
+        "It is a mechanism and visualization artifact: it shows that Rust derives recursive `task:` stacks from adjacent boundary evidence without a user-provided field order.",
         "It is not the paper's hidden-label localization accuracy result.",
         "",
         f"- source: `{result['source']}`",
@@ -184,6 +243,8 @@ def write_report(result: dict[str, Any]) -> None:
                 f"- compression ratio: {view['compression_ratio']}",
                 f"- stack: `{view['stack']}`",
                 f"- selected source fields: `{view['selected_source_fields']}`",
+                f"- split source-field counts: `{view['split_source_field_counts']}`",
+                f"- split evidence-field counts: `{view['split_evidence_field_counts']}`",
                 f"- oracle source-field overlap: `{view['oracle_source_field_overlap']}`",
                 f"- stack depth histogram: `{view['stack_depth_histogram']}`",
                 f"- stop reasons: `{view['stop_reasons']}`",
@@ -259,8 +320,24 @@ def main() -> None:
         "uses_tracked_r300_source": SOURCE.exists(),
         "single_benchmark_query": FILTERS == ["dataset=agent-reward-bench", "analysis_task=agentreward_looping"],
         "all_views_use_rust_induction": all(view["induce_task_stack"] for view in views.values()),
+        "all_views_use_boundary_policy": all(
+            view["top_stacks"]
+            and "query-conditioned-recursive-boundary-task-stack-induction"
+            == json.loads((OUT / f"{view_name}.json").read_text())["profile"]["task_stack_induction"]["policy"]
+            for view_name, view in views.items()
+        ),
         "all_views_fold_task_stack": all(view["stack"] == "task" for view in views.values()),
         "all_frames_are_task": all(view["all_frames_are_task"] for view in views.values()),
+        "split_decisions_have_boundaries": all(
+            decision["selected_score"]["cut_after"] > 0
+            and decision["selected_score"]["left_label"] != decision["selected_score"]["right_label"]
+            for view_name in views
+            for decision in json.loads((OUT / f"{view_name}.json").read_text())["profile"]["task_stack_induction"]["split_decisions"]
+        ),
+        "boundary_fields_can_recur": all(
+            max(view["split_source_field_counts"].values() or [0]) > 1
+            for view in views.values()
+        ),
         "no_oracle_source_fields_selected": all(not view["oracle_source_field_overlap"] for view in views.values()),
         "overview_omits_session_candidate": "session" not in views["agentreward-overview"]["selected_source_fields"],
         "session_view_can_select_session": "session" in views["agentreward-session"]["selected_source_fields"],

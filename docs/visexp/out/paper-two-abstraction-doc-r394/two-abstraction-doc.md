@@ -17,7 +17,7 @@ Maintained docs and paper drafts keep operation and operation stack as the only 
 | trace_session_span_are_containers_or_fields | True | Trace/session/span wording keeps those objects as containers, fields, or baselines rather than profiler abstractions. |
 | automatic_boundary_and_detector_nonclaims_visible | True | Docs and papers preserve automatic-boundary/detector non-claims. |
 | no_stale_field_derivation_order_or_layer_terms | True | Forbidden stale wording hits={} |
-| paper_structure_remains_three_plus_one | True | Paper and idea story retain three empirical profiling experiments plus one artifact/reproducibility block. |
+| paper_structure_remains_three_plus_one | True | Paper and idea story retain three empirical profiling experiments plus one replayability/scope-control block. |
 | r394_registered_in_evaluation_ledger | True | Evaluation ledger records this documentation consistency gate. |
 | english_submodule_clean | True | English paper submodule is clean and the parent gitlink matches it. |
 | source_status_tracked_or_dirty_allowed | True | All guard inputs are tracked or intentionally dirty while this guard is being generated. |

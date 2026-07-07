@@ -254,11 +254,11 @@ def build_report() -> dict[str, Any]:
         checks,
         "paper_structure_remains_three_plus_one",
         "three core empirical profiling experiments" in texts["English paper"]
-        and "artifact/reproducibility block" in texts["English paper"]
+        and "replayability/scope-control block" in texts["English paper"]
         and "三个核心经验性 profiling 实验" in texts["Chinese paper"]
-        and "artifact/reproducibility block" in texts["Chinese paper"]
-        and "three core empirical profiling experiments plus one artifact/reproducibility block" in texts["idea story"],
-        "Paper and idea story retain three empirical profiling experiments plus one artifact/reproducibility block.",
+        and "replayability/scope-control block" in texts["Chinese paper"]
+        and "three core empirical profiling experiments plus one replayability/scope-control block" in texts["idea story"],
+        "Paper and idea story retain three empirical profiling experiments plus one replayability/scope-control block.",
     )
     add_check(
         checks,

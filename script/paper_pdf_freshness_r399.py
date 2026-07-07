@@ -61,7 +61,8 @@ ENGLISH_SOURCE_TOKENS = [
 CHINESE_PDF_TOKENS = [
     "主文图表形成一条固定证据路径",
     "四个 block 的 claim map",
-    "hidden-label fidelity 和 baseline tradeoff",
+    "hidden-label",
+    "baseline tradeoff",
     "mechanism/actionability",
     "replay/cost 证据",
     "适用边界",

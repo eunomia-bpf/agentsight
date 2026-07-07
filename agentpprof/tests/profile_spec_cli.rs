@@ -136,13 +136,13 @@ fn cli_induces_task_stack_without_user_field_order() {
 
     let mut rows = Vec::new();
     for _ in 0..6 {
-        rows.push(r#"{"value":1,"fields":{"dataset":"agent-reward-bench","analysis_task":"agentreward_looping","repeat_state":"single","repeat_signal":"none","action":"click","looping":"no","problem_value":"negative","status":"failure"}}"#);
+        rows.push(r#"{"value":1,"fields":{"dataset":"agent-reward-bench","analysis_task":"agentreward_looping","repeat_state":"single","repeat_signal":"none","action":"click","looping":"no","problem_value":"negative","status":"failure","step_correct":"false","safety":"safe","human_group":"g0","group_pattern":"g0"}}"#);
     }
     for _ in 0..6 {
-        rows.push(r#"{"value":1,"fields":{"dataset":"agent-reward-bench","analysis_task":"agentreward_looping","repeat_state":"same-action-run","repeat_signal":"loop-like","action":"click","looping":"yes","problem_value":"positive","status":"failure"}}"#);
+        rows.push(r#"{"value":1,"fields":{"dataset":"agent-reward-bench","analysis_task":"agentreward_looping","repeat_state":"same-action-run","repeat_signal":"loop-like","action":"click","looping":"yes","problem_value":"positive","status":"failure","step_correct":"true","safety":"unsafe","human_group":"g1","group_pattern":"g1"}}"#);
     }
     for _ in 0..6 {
-        rows.push(r#"{"value":1,"fields":{"dataset":"agent-reward-bench","analysis_task":"agentreward_looping","repeat_state":"same-action-run","repeat_signal":"loop-like","action":"fill","looping":"yes","problem_value":"positive","status":"failure"}}"#);
+        rows.push(r#"{"value":1,"fields":{"dataset":"agent-reward-bench","analysis_task":"agentreward_looping","repeat_state":"same-action-run","repeat_signal":"loop-like","action":"fill","looping":"yes","problem_value":"positive","status":"failure","step_correct":"true","safety":"unsafe","human_group":"g2","group_pattern":"g2"}}"#);
     }
     fs::write(&ops_path, rows.join("\n") + "\n").unwrap();
 
@@ -189,12 +189,25 @@ fn cli_induces_task_stack_without_user_field_order() {
             .all(|stack| { stack.split(';').all(|frame| frame.starts_with("task:")) })
     );
     assert!(stacks.keys().all(|stack| {
-        !stack.contains("looping") && !stack.contains("problem_value") && !stack.contains("status:")
+        !stack.contains("looping")
+            && !stack.contains("problem_value")
+            && !stack.contains("status:")
+            && !stack.contains("step_correct")
+            && !stack.contains("safety:")
+            && !stack.contains("human_group")
+            && !stack.contains("group_pattern")
     }));
     let report = &profile_json["profile"]["task_stack_induction"];
     assert_eq!(
         report["policy"],
-        "query-conditioned-greedy-task-stack-induction"
+        "query-conditioned-recursive-boundary-task-stack-induction"
+    );
+    assert!(
+        report["split_decisions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|decision| decision["selected_score"]["cut_after"].as_u64().unwrap() > 0)
     );
     let selected = report["selected_source_fields"].as_array().unwrap();
     assert!(selected.iter().any(|field| {
@@ -206,9 +219,70 @@ fn cli_induces_task_stack_without_user_field_order() {
     assert!(selected.iter().all(|field| {
         !matches!(
             field.as_str().unwrap(),
-            "looping" | "problem_value" | "status"
+            "looping"
+                | "problem_value"
+                | "status"
+                | "step_correct"
+                | "safety"
+                | "human_group"
+                | "group_pattern"
         )
     }));
+}
+
+#[test]
+fn cli_induced_task_stack_ignores_hidden_oracle_only_boundaries() {
+    let tmp = tempfile::tempdir().unwrap();
+    let ops_path = tmp.path().join("ops.jsonl");
+    let output_path = tmp.path().join("induced.json");
+    let binary = env!("CARGO_BIN_EXE_agentpprof");
+
+    let mut rows = Vec::new();
+    for _ in 0..6 {
+        rows.push(r#"{"value":1,"fields":{"dataset":"fixture","analysis_task":"hidden_boundary","action":"click","step_correct":"false","safety":"safe","human_group":"g0","group_pattern":"g0","target_positive":"no"}}"#);
+    }
+    for _ in 0..6 {
+        rows.push(r#"{"value":1,"fields":{"dataset":"fixture","analysis_task":"hidden_boundary","action":"click","step_correct":"true","safety":"unsafe","human_group":"g1","group_pattern":"g1","target_positive":"yes"}}"#);
+    }
+    fs::write(&ops_path, rows.join("\n") + "\n").unwrap();
+
+    let output = Command::new(binary)
+        .args([
+            "--operation-file",
+            ops_path.to_str().unwrap(),
+            "--view",
+            "operations",
+            "--format",
+            "json",
+            "--output",
+            output_path.to_str().unwrap(),
+            "--induce-task-stack",
+            "--induce-query-term",
+            "correct",
+            "--deterministic-output",
+        ])
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "induced CLI profile failed: {}\nstdout: {}",
+        String::from_utf8_lossy(&output.stderr),
+        String::from_utf8_lossy(&output.stdout)
+    );
+
+    let profile_json: Value =
+        serde_json::from_str(&fs::read_to_string(&output_path).unwrap()).unwrap();
+    let stacks = profile_json["profile"]["stacks"].as_object().unwrap();
+    assert_eq!(stacks.len(), 1);
+    assert_eq!(stacks["task:all"], 12);
+    let report = &profile_json["profile"]["task_stack_induction"];
+    assert!(
+        report["selected_source_fields"]
+            .as_array()
+            .unwrap()
+            .is_empty()
+    );
+    assert!(report["split_decisions"].as_array().unwrap().is_empty());
 }
 
 #[test]
