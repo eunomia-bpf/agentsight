@@ -81,6 +81,7 @@ AI agent 轨迹的调试问题正在从单次调用回放变成跨任务剖析�
 如果 profiler 只保留进程或函数栈，上层语义和 benchmark oracle 又会丢失。
 
 本文的出发点是把 agent trace 中所有可剖析对象都降到同一层。
+本文所说的语义剖析，是指用 agent operation fields 在跨 session 轨迹上形成可聚合、可排序、可评分的诊断单元。
 一个 prompt 可以是 operation，一个 tool call 可以是 operation，一串 prompt 也可以通过 mapping 被派生为同一个 intent 或 task operation field。
 同样，GUI action、API call、browser action、process event、syscall、安全标签、step correctness 和人工 grouped-action id 都不是新的 profiler 抽象，而是 operation fields。
 Profiler 的核心任务不是决定唯一正确边界，而是让用户和实验可以在同一批 operations 上选择 stack 字段、派生 mappings，并得到不同深度的递归折叠。
@@ -272,7 +273,7 @@ RQ4 只检查 profile-spec 可复现性、离线成本和主张边界。
     \toprule
     研究问题 & Workload / oracle & 主要证据 & 支持的结论 \\
     \midrule
-    RQ1/E1: 泛化覆盖、递归折叠和字段派生 & 15 public labeled trace families / 47,590 operations, plus local-session and standard-trace exchange fixtures. OSWorld-Human and AgentNet provide the strongest boundary and step-quality oracles. & Core sources contain 42,590 operations; ScaleCUA brings the coverage sample to 47,590; the same operations fold from 9 dataset stacks to 57 phase, 226 semantic, 455 action, or 3,757 fixed-session stacks. AgentNet profile-spec override changes 608 stacks to 83 without changing input operations. Automatic operation-stack induction produces variable-depth stacks on 4/6 hidden-label tasks and stops on 2/6 when visible evidence has no material split. Held-out mapping improves compression from 14.049 to 19.091; OSWorld-Human learned boundary F1 reaches 0.7735; boundary backends beat the best simple baseline on 4/5 rows. & Heterogeneous traces enter one operation layer, and stack depth is a recursive query over fields. Mapping, tagging, and boundary backends derive fields before folding; they do not add prompt/session/tool/safety-specific profiler objects or automatic intent boundary discovery. \\
+    RQ1/E1: 泛化覆盖、递归折叠和字段派生 & 15 public labeled trace families / 47,590 operations, plus local-session and standard-trace exchange fixtures. OSWorld-Human and AgentNet provide the strongest boundary and step-quality oracles. & Core sources contain 42,590 operations; ScaleCUA brings the coverage sample to 47,590; the same operations fold from 9 dataset stacks to 57 phase, 226 semantic, 455 action, or 3,757 fixed-session stacks. AgentNet profile-spec override changes 608 stacks to 83 without changing input operations. Automatic operation-stack induction produces variable-depth stacks on 4/6 hidden-label tasks and stops on 2/6 when visible evidence has no material split. Held-out mapping improves compression from 14.049 to 19.091; OSWorld-Human learned boundary F1 reaches 0.7735; boundary backends beat the best simple baseline on 4/5 rows. & Heterogeneous traces enter one operation layer, and stack depth is a recursive query over fields. Mapping, tagging, and boundary backends derive fields before folding; they do not add prompt/session/tool/safety-specific profiler abstractions or automatic intent boundary discovery. \\
     RQ2/E2: hidden-label 定位和排序 & Six failure, safety, quality, and boundary tasks over AgentRewardBench, SATraj-OS, AgentNet, and OSWorld-Human; 34,539 operations / 3,699 positives. & The benchmark scores 144 view/ranker policies. Query-aware operation-stack top-5 groups inspect median 0.0937 work versus 1.0 for flat, improve top-5 recall over fixed-session on 5/6 tasks, and reduce median groups from 285.0 to 157.5. Work-budget、fragmentation、fixed-recall、sequence-scope、oracle-depth、uncertainty、negative-control 和 multi-metric analyses test robustness rather than define separate experiments. & Operation-stack profiling is faithful to dataset-provided hidden labels under this benchmark and gives a better inspection-work/median-fragmentation Pareto point than flat or fixed-session alone. It is not a universal detector, a single best hierarchy, or a work-dominant replacement for drilldown views. \\
     RQ3/E3: 机制隔离和可操作性 & The same six labeled tasks, plus held-out OSWorld-Human boundary-backend operations. & Operation-level rank features and ablations expose useful and misleading fields; profile-spec patches improve 5/6 tasks with median AP delta 0.0376 and lift delta 0.5750. Induced depth sweep finds best query-aware median AP at depth 3 and lowest median top-5 work at depth 5. Learned-boundary fields improve OSWorld-Human AP to 0.2583 and reduce groups to 74, but increase top-5 work and first-positive work. & The profiler produces profile-configuration actionability: which operation fields, operation-stack depths, mappings, rankers, lenses, and drilldown views to tune. It keeps automatic action selection, automatic patch selection, and automatic boundary discovery out of scope. \\
     RQ4/E4: 可重放性、离线成本和主张边界 & 76 operation-JSONL profile 配置，以及 local-session、agent-trace 和 standard-trace input replay checks. & Deterministic replay 覆盖 152 次 profiler 执行。Semantic determinism 在两种模式下均为 76/76。Deterministic output 将 raw-byte determinism 提升到 76/76，median runtime 为 1.601s，p95 为 2.767s。Source selection、regex tags、trace inputs 和 effective standard-trace args 都通过同一 operation-stack path replay。 & The offline profiler path is replayable and cheap enough for artifact evaluation. This result does not measure live eBPF overhead, human productivity, or full trace-ecosystem compatibility. \\
@@ -292,7 +293,7 @@ RQ1 检查同一个 operation layer 能否覆盖异构 agent traces，并避免�
 它使用 public dataset labels、native trajectory fields、OSWorld-Human human boundary 和 AgentNet quality labels 作为 oracle，比较 dataset-native stacks、no-map folding、fixed-session stacks、profile-spec replay 和 trace round trip。
 主要指标包括 operation coverage、unique-stack range、mapping compression、boundary F1/V-measure 和 replay equality。
 这个问题只支持 configurable operation-stack folding，不支持完整生态兼容或自动恢复所有 latent intent。
-Prompt、tool、process 和 syscall 可以是 operation records 或 fields，session/span 是字段、容器或 baseline shape，不是新的 profiler objects。
+Prompt、tool、process 和 syscall 可以是 operation records 或 fields，session/span 是字段、容器或 baseline shape，不是新的 profiler 抽象。
 
 核心 14 数据集产生 42,590 个 operations 和 1,497 个 unique stacks，compression ratio 为 28.45。
 加入 ScaleCUA 补充样本后，总量为 47,590 个 operations 和 1,611 个 unique stacks，compression ratio 为 29.541。
@@ -521,7 +522,7 @@ OSWorld-Human 需要 boundary-derived fields，这说明 RQ3 评估的是可操�
 这一节的问题是 localization gain 来自哪些机制，以及 profile-guided 的 operation fields、operation-stack depth、rank features、mappings 或 boundary-derived fields 能否在不把 hidden labels 泄漏进 profiler input 的前提下改善输出。
 Rank-feature、mapping、stack-depth、boundary-field、profile-spec patch、case view、diagnostic lens 和 transfer counterpoint 共同支撑同一个 RQ3 主张。
 
-E3 的机制问题是 E2 的 ranked groups 能不能解释应该怎样改 profile configuration。
+E3 的机制问题是 E2 的 ranked groups 能不能解释应该怎样改 profiler 配置。
 Hidden labels 只在 profiling 之后用于 scoring。
 Visible inputs 仍然是 operation fields、operation-stack depth、mapping/tagging rules、rank features、profile specs 和 boundary-derived operation fields。
 Actionable diagnosis 需要每个任务指向具体的 operation field、stack depth、ranker、mapping、profile-spec 或 drilldown change，并且 executable patches 能改善 scored output。
@@ -713,7 +714,8 @@ LangSmith、Langfuse、Phoenix 和 AgentOps 等系统进一步把 LLM call、too
 本文因此把 trace/span/session 明确当作 exchange container 或 baseline shape，而不是加成第三个 profiler 抽象。
 E2 实际评估的是 fixed-session drilldown 这个 trace-tree-shaped baseline。
 真实 OpenTelemetry/OpenInference/Phoenix span-tree import 仍是后续互操作 baseline，不是当前已完成结果。
-本文关注跨轨迹 semantic profiling，把异构标注轨迹或本地 agent 历史统一为 operations，并允许用户选择 stack 深度、mappings、tagging 和 ranker。
+本文关注跨轨迹 semantic profiling，即按 agent operation fields 做跨 session 聚合、排序和评分。
+系统先把异构标注轨迹或本地 agent 历史统一为 operations，再允许用户选择 stack 深度、mappings、tagging 和 ranker。
 这些系统构成最接近的基线威胁，本文定位为互补的 profiler abstraction，而不是替代现有 observability products。
 
 \subsection{Agent Failure 和 Span Localization}
