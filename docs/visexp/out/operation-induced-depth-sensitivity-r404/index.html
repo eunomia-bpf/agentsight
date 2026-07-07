@@ -1,0 +1,36 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>R404 Induced Stack Depth Sensitivity</title>
+<style>
+body { font-family: system-ui, sans-serif; margin: 32px; color: #17202a; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { border-bottom: 1px solid #d5dde5; padding: 7px 8px; text-align: left; }
+th { background: #edf2f7; }
+.note { max-width: 920px; line-height: 1.5; }
+</style>
+<h1>R404 Induced Stack Depth Sensitivity</h1>
+<p class="note">Induced stack depth is a real profile-configuration knob: sweeping depths [1, 2, 3, 4, 5] changes hidden-label fidelity, inspection work, and fragmentation on the same six real labeled tasks without syncing new data or using hidden labels during profiling.</p>
+<p class="note">The sweep is a post-hoc mechanism analysis, not an automatic depth selector. The median-AP best depth is 4 (AP 0.3034), while the lowest median work@5 depth is 5 (work 0.1067).</p>
+<table>
+<thead><tr><th>Depth</th><th>Ranker</th><th>Median AP</th><th>Median work@5</th><th>Median budget30 recall</th><th>Median groups</th></tr></thead>
+<tbody><tr><td>1</td><td>oracle_upper_bound</td><td>0.2086</td><td>1.0</td><td>0.0</td><td>2.0</td></tr>
+<tr><td>1</td><td>query_aware</td><td>0.1688</td><td>1.0</td><td>0.0</td><td>2.0</td></tr>
+<tr><td>1</td><td>visible_risk</td><td>0.1688</td><td>1.0</td><td>0.0</td><td>2.0</td></tr>
+<tr><td>1</td><td>width</td><td>0.2066</td><td>1.0</td><td>0.0</td><td>2.0</td></tr>
+<tr><td>2</td><td>oracle_upper_bound</td><td>0.2223</td><td>1.0</td><td>0.2709</td><td>4.0</td></tr>
+<tr><td>2</td><td>query_aware</td><td>0.1548</td><td>1.0</td><td>0.1446</td><td>4.0</td></tr>
+<tr><td>2</td><td>visible_risk</td><td>0.1537</td><td>1.0</td><td>0.1446</td><td>4.0</td></tr>
+<tr><td>2</td><td>width</td><td>0.2045</td><td>1.0</td><td>0.2709</td><td>4.0</td></tr>
+<tr><td>3</td><td>oracle_upper_bound</td><td>0.338</td><td>0.7224</td><td>0.3606</td><td>7.5</td></tr>
+<tr><td>3</td><td>query_aware</td><td>0.3009</td><td>0.7612</td><td>0.3371</td><td>7.5</td></tr>
+<tr><td>3</td><td>visible_risk</td><td>0.1572</td><td>0.7111</td><td>0.2004</td><td>7.5</td></tr>
+<tr><td>3</td><td>width</td><td>0.1855</td><td>0.8837</td><td>0.315</td><td>7.5</td></tr>
+<tr><td>4</td><td>oracle_upper_bound</td><td>0.4559</td><td>0.4721</td><td>0.3961</td><td>15.0</td></tr>
+<tr><td>4</td><td>query_aware</td><td>0.3034</td><td>0.2819</td><td>0.276</td><td>15.0</td></tr>
+<tr><td>4</td><td>visible_risk</td><td>0.1459</td><td>0.3869</td><td>0.276</td><td>15.0</td></tr>
+<tr><td>4</td><td>width</td><td>0.1377</td><td>0.744</td><td>0.3241</td><td>15.0</td></tr>
+<tr><td>5</td><td>oracle_upper_bound</td><td>0.5269</td><td>0.3772</td><td>0.4003</td><td>28.0</td></tr>
+<tr><td>5</td><td>query_aware</td><td>0.2993</td><td>0.1067</td><td>0.2795</td><td>28.0</td></tr>
+<tr><td>5</td><td>visible_risk</td><td>0.1491</td><td>0.0754</td><td>0.2789</td><td>28.0</td></tr>
+<tr><td>5</td><td>width</td><td>0.1363</td><td>0.6399</td><td>0.2602</td><td>28.0</td></tr></tbody>
+</table>

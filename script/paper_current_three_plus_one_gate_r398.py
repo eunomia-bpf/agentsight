@@ -308,10 +308,10 @@ def build_report() -> dict[str, Any]:
     add_check(
         checks,
         "e3_is_mechanism_actionability_not_fifth_experiment",
-        "which stack fields, mappings, rankers, and profile specs explain or repair the e2 results" in english_l
+        "which operation fields, stack depths, mappings, rankers, and profile specs explain or repair the e2 results" in english_l
         and "not a fifth core experiment" in english_l
         and (
-            "哪些 stack fields、mappings、rankers 和 profile specs 造成或修复 E2 的结果" in chinese_norm
+            "operation fields、operation-stack depth" in chinese_norm
             or "Rank-feature、mapping、stack-depth、boundary-field、profile-spec patch" in chinese_norm
         )
         and ("不是第五个核心实验" in chinese_norm or "不是新增实验" in chinese_norm),

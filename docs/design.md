@@ -62,10 +62,12 @@ mode as an ordinary profiler view over the six existing R300/R320 hidden-label
 tasks. The automatic view produces variable-depth recursive stacks on all six
 tasks, with median 15.0 groups, median top-5 work 0.2819 versus 1.0 for flat
 summaries, and median groups 15.0 versus 285.0 for fixed-session drilldown.
-The hand-configured operation stack remains the stronger main E2 policy by
-median AP, 0.3116 versus 0.3034, so induction is evidence for configurable
-recursive folding rather than a replacement for task-specific profile specs or
-a universal boundary detector. R300 adds an
+R404 then varies only the induction depth cap over the same six tasks. Median AP
+is best at depth 4, median top-5 work is lowest at depth 5, and task-level AP-best
+depths span 3, 4, and 5. The hand-configured operation stack remains the stronger
+main E2 policy by median AP, 0.3116 versus 0.3034, so induction is evidence for
+configurable recursive folding and depth-sensitive profile tuning rather than a
+replacement for task-specific profile specs or a universal boundary detector. R300 adds an
 automated analysis-utility proxy: it converts existing labeled problems into
 ordinary operations with fields such as `analysis_task` and `target_positive`,
 then compares flat, fixed-session, semantic operation-stack, and label-drilldown
@@ -526,7 +528,7 @@ Purpose: keep open risks tied to experiments.
 
 | Risk | Validation hook | Current evidence |
 |---|---|---|
-| Prompt/session boundaries leak back into the abstraction. | Run fixed-boundary ablations against recursive stacks and task-stack induction checks that treat session as optional evidence only. | R277 and R286 show fixed session greatly fragments stacks. R402 shows `--induce-task-stack` can produce 15 variable-depth `task:` stacks on one real AgentRewardBench slice without a user stack-field chain; boundary evidence fields recur across recursive cuts, and session enters only when explicitly allowed as evidence. R403 scores the same induction path across all six hidden-label tasks and confirms variable-depth stacks without oracle source fields. |
+| Prompt/session boundaries leak back into the abstraction. | Run fixed-boundary ablations against recursive stacks and task-stack induction checks that treat session as optional evidence only. | R277 and R286 show fixed session greatly fragments stacks. R402 shows `--induce-task-stack` can produce 15 variable-depth `task:` stacks on one real AgentRewardBench slice without a user stack-field chain; boundary evidence fields recur across recursive cuts, and session enters only when explicitly allowed as evidence. R403 scores the same induction path across all six hidden-label tasks and confirms variable-depth stacks without oracle source fields. R404 shows the induced depth cap changes AP, work, and groups on the same tasks, so depth is a profile configuration rather than a fixed session/prompt boundary. |
 | Hand-written mappings overfit one dataset family. | Held-out and leave-dataset-out mapping evaluation plus operation-family precedence checks. | R282-R285 cover held-out sessions and 9 leave-out datasets; R289/R290/R291 add desktop computer-use precedence checks; R292 adds a supplemental GUI history-depth field check. |
 | Action labels are too shallow as boundary oracles. | Add step-instruction, solution-path, outcome, side-effect, looping, repetition, safety/attack, grouped-action, step-quality, and failure-label scorers. | R287 adds tau-bench outcomes and expected task actions; R288 adds AgentRewardBench expert success, side-effect, looping, optimality, and action-derived `repeat_signal` fields; R289 adds SATraj safety and attack labels; R290 adds OSWorld-Human grouped-action boundary labels; R291 adds AgentNet step correctness and redundancy labels. AndroidControl and TRAIL remain deeper oracle candidates. |
 | Boundary detection remains only deterministic mapping. | Evaluate learned boundary backends that derive operation fields before stack construction and compare against held-out human or dataset boundaries; require suitability and calibration checks per oracle family. | R297 trains a supervised adjacent-boundary backend on OSWorld-Human, excludes oracle/group fields from features, reaches held-out human-group F1 0.7735, and folds predicted `learned_group_pattern` fields through Rust `agentpprof`. R299 applies the same pattern to OSWorld-Human, AgentNet step-quality labels, and AgentRewardBench looping; it finds mixed results and keeps SATraj/ScaleCUA/tau-bench out of the trained set when they lack suitable adjacent boundary oracles. R400 turns those mixed results into one accept, three caution, and one reject suitability decision, so boundary-derived fields stay supervised and family-specific rather than becoming an unsupervised detector. |

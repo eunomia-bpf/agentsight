@@ -1,0 +1,2164 @@
+{
+  "generated_at": "1970-01-01T00:00:00Z",
+  "profile": {
+    "ranking": {
+      "groups": 8,
+      "limit": 8,
+      "policy": "width",
+      "rank_operation_rules": [],
+      "rank_rules": [],
+      "top": [
+        {
+          "matched_rank_rules": [],
+          "rank_score": 792.0,
+          "stack": "task:phase_navigate;task:app_multi_apps+phase_input",
+          "weight": 792
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 785.0,
+          "stack": "task:phase_navigate;task:app_libreoffice_calc",
+          "weight": 785
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 639.0,
+          "stack": "task:phase_input;task:repeat_state_same-action-window;task:right-segment",
+          "weight": 639
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 553.0,
+          "stack": "task:phase_input;task:right-segment",
+          "weight": 553
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 550.0,
+          "stack": "task:phase_input;task:right-segment;task:left-segment",
+          "weight": 550
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 310.0,
+          "stack": "task:phase_navigate;task:app_chrome",
+          "weight": 310
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 221.0,
+          "stack": "task:phase_input;task:repeat_state_same-action-window;task:left-segment",
+          "weight": 221
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 161.0,
+          "stack": "task:phase_navigate;task:app_multi_apps+phase_input;task:app_libreoffice_writer+phase_navigate+action_click",
+          "weight": 161
+        }
+      ]
+    },
+    "sample_type": "operations",
+    "stacks": {
+      "task:phase_input;task:repeat_state_same-action-window;task:left-segment": 221,
+      "task:phase_input;task:repeat_state_same-action-window;task:right-segment": 639,
+      "task:phase_input;task:right-segment": 553,
+      "task:phase_input;task:right-segment;task:left-segment": 550,
+      "task:phase_navigate;task:app_chrome": 310,
+      "task:phase_navigate;task:app_libreoffice_calc": 785,
+      "task:phase_navigate;task:app_multi_apps+phase_input": 792,
+      "task:phase_navigate;task:app_multi_apps+phase_input;task:app_libreoffice_writer+phase_navigate+action_click": 161
+    },
+    "summary": {
+      "compression_ratio": 501.375,
+      "max_stack_reuse": 792,
+      "top": [
+        {
+          "stack": "task:phase_navigate;task:app_multi_apps+phase_input",
+          "weight": 792
+        },
+        {
+          "stack": "task:phase_navigate;task:app_libreoffice_calc",
+          "weight": 785
+        },
+        {
+          "stack": "task:phase_input;task:repeat_state_same-action-window;task:right-segment",
+          "weight": 639
+        },
+        {
+          "stack": "task:phase_input;task:right-segment",
+          "weight": 553
+        },
+        {
+          "stack": "task:phase_input;task:right-segment;task:left-segment",
+          "weight": 550
+        },
+        {
+          "stack": "task:phase_navigate;task:app_chrome",
+          "weight": 310
+        },
+        {
+          "stack": "task:phase_input;task:repeat_state_same-action-window;task:left-segment",
+          "weight": 221
+        },
+        {
+          "stack": "task:phase_navigate;task:app_multi_apps+phase_input;task:app_libreoffice_writer+phase_navigate+action_click",
+          "weight": 161
+        }
+      ],
+      "total_weight": 4011,
+      "unique_stacks": 8
+    },
+    "task_stack_induction": {
+      "allow_session": false,
+      "excluded_oracle_fields": [
+        "annotator",
+        "attack",
+        "attack_type",
+        "boundary_label",
+        "boundary_positive",
+        "correct",
+        "expected_action",
+        "gold",
+        "gold_action",
+        "group",
+        "group_id",
+        "group_pattern",
+        "human_boundary",
+        "human_group",
+        "label",
+        "looping",
+        "optimality",
+        "oracle",
+        "problem_oracle",
+        "problem_value",
+        "redundant",
+        "reference",
+        "reference_action",
+        "safe",
+        "safety",
+        "side_effect",
+        "status",
+        "step_correct",
+        "step_optimal",
+        "step_redundant",
+        "step_success",
+        "target_positive",
+        "unsafe"
+      ],
+      "excluded_oracle_prefixes": [
+        "gold_",
+        "group_",
+        "human_",
+        "label_",
+        "oracle_",
+        "problem_",
+        "reference_",
+        "target_"
+      ],
+      "excluded_oracle_suffixes": [
+        "_answer",
+        "_attack",
+        "_correct",
+        "_gold",
+        "_ground_truth",
+        "_label",
+        "_oracle",
+        "_positive",
+        "_redundant",
+        "_reference",
+        "_safe",
+        "_safety",
+        "_target",
+        "_unsafe"
+      ],
+      "max_depth": 3,
+      "max_majority_fraction": 0.985,
+      "min_score": 0.055,
+      "min_second_child": 5,
+      "policy": "query-conditioned-recursive-boundary-task-stack-induction",
+      "selected_source_fields": [
+        "action",
+        "app",
+        "phase",
+        "repeat_state"
+      ],
+      "split_decisions": [
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.999676,
+              "cardinality_penalty": 0.083541,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.489404,
+              "cut_after": 2048,
+              "evidence_fields": [
+                "phase",
+                "repeat_state"
+              ],
+              "field": "phase",
+              "groups": {
+                "phase=input": 1963,
+                "phase=navigate": 2048
+              },
+              "left_label": "phase=navigate",
+              "left_weight": 2048,
+              "query_bonus": 0.333333,
+              "right_label": "phase=input",
+              "right_weight": 1963,
+              "score": 0.494837,
+              "semantic_shift": 0.541667,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.288778
+            },
+            {
+              "balance": 0.999996,
+              "cardinality_penalty": 0.083541,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.498878,
+              "cut_after": 2001,
+              "evidence_fields": [
+                "phase",
+                "repeat_state"
+              ],
+              "field": "phase",
+              "groups": {
+                "phase=input": 2010,
+                "phase=navigate": 2001
+              },
+              "left_label": "phase=navigate",
+              "left_weight": 2001,
+              "query_bonus": 0.333333,
+              "right_label": "phase=input",
+              "right_weight": 2010,
+              "score": 0.492753,
+              "semantic_shift": 0.52,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.288539
+            },
+            {
+              "balance": 0.999939,
+              "cardinality_penalty": 0.083541,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.495388,
+              "cut_after": 2024,
+              "evidence_fields": [
+                "phase",
+                "repeat_state"
+              ],
+              "field": "phase",
+              "groups": {
+                "phase=input": 1987,
+                "phase=navigate": 2024
+              },
+              "left_label": "phase=navigate",
+              "left_weight": 2024,
+              "query_bonus": 0.333333,
+              "right_label": "phase=input",
+              "right_weight": 1987,
+              "score": 0.492272,
+              "semantic_shift": 0.52,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.289024
+            },
+            {
+              "balance": 0.997173,
+              "cardinality_penalty": 0.083541,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.468711,
+              "cut_after": 2131,
+              "evidence_fields": [
+                "phase",
+                "repeat_state"
+              ],
+              "field": "phase",
+              "groups": {
+                "phase=input": 1880,
+                "phase=navigate": 2131
+              },
+              "left_label": "phase=navigate",
+              "left_weight": 2131,
+              "query_bonus": 0.333333,
+              "right_label": "phase=input",
+              "right_weight": 1880,
+              "score": 0.486079,
+              "semantic_shift": 0.52,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.287722
+            },
+            {
+              "balance": 0.996849,
+              "cardinality_penalty": 0.083541,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.466966,
+              "cut_after": 2138,
+              "evidence_fields": [
+                "phase",
+                "repeat_state"
+              ],
+              "field": "phase",
+              "groups": {
+                "phase=input": 1873,
+                "phase=navigate": 2138
+              },
+              "left_label": "phase=navigate",
+              "left_weight": 2138,
+              "query_bonus": 0.333333,
+              "right_label": "phase=input",
+              "right_weight": 1873,
+              "score": 0.485757,
+              "semantic_shift": 0.52,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.287843
+            },
+            {
+              "balance": 0.992922,
+              "cardinality_penalty": 0.083541,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.450511,
+              "cut_after": 1807,
+              "evidence_fields": [
+                "phase",
+                "repeat_state"
+              ],
+              "field": "phase",
+              "groups": {
+                "phase=input": 2204,
+                "phase=navigate": 1807
+              },
+              "left_label": "phase=navigate",
+              "left_weight": 1807,
+              "query_bonus": 0.333333,
+              "right_label": "phase=input",
+              "right_weight": 2204,
+              "score": 0.484801,
+              "semantic_shift": 0.52,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.293666
+            },
+            {
+              "balance": 0.995375,
+              "cardinality_penalty": 0.083541,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.459985,
+              "cut_after": 2166,
+              "evidence_fields": [
+                "phase",
+                "repeat_state"
+              ],
+              "field": "phase",
+              "groups": {
+                "phase=input": 1845,
+                "phase=navigate": 2166
+              },
+              "left_label": "phase=navigate",
+              "left_weight": 2166,
+              "query_bonus": 0.333333,
+              "right_label": "phase=input",
+              "right_weight": 1845,
+              "score": 0.483913,
+              "semantic_shift": 0.52,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.287156
+            },
+            {
+              "balance": 0.997522,
+              "cardinality_penalty": 0.083541,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.470706,
+              "cut_after": 2123,
+              "evidence_fields": [
+                "phase",
+                "repeat_state"
+              ],
+              "field": "phase",
+              "groups": {
+                "phase=input": 1888,
+                "phase=navigate": 2123
+              },
+              "left_label": "phase=navigate",
+              "left_weight": 2123,
+              "query_bonus": 0.333333,
+              "right_label": "phase=input",
+              "right_weight": 1888,
+              "score": 0.482833,
+              "semantic_shift": 0.5,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.287554
+            }
+          ],
+          "node_weight": 4011,
+          "path": [],
+          "selected_score": {
+            "balance": 0.999676,
+            "cardinality_penalty": 0.083541,
+            "changed_field_fraction": 0.6,
+            "changed_fields": [
+              "action",
+              "phase",
+              "repeat_state"
+            ],
+            "coverage": 0.489404,
+            "cut_after": 2048,
+            "evidence_fields": [
+              "phase",
+              "repeat_state"
+            ],
+            "field": "phase",
+            "groups": {
+              "phase=input": 1963,
+              "phase=navigate": 2048
+            },
+            "left_label": "phase=navigate",
+            "left_weight": 2048,
+            "query_bonus": 0.333333,
+            "right_label": "phase=input",
+            "right_weight": 1963,
+            "score": 0.494837,
+            "semantic_shift": 0.541667,
+            "small_child_penalty": 0.0,
+            "structural_gain": 0.288778
+          },
+          "source_field": "phase"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.996529,
+              "cardinality_penalty": 0.090903,
+              "changed_field_fraction": 0.8,
+              "changed_fields": [
+                "action",
+                "app",
+                "repeat_signal",
+                "repeat_state"
+              ],
+              "coverage": 0.465332,
+              "cut_after": 1095,
+              "evidence_fields": [
+                "app",
+                "repeat_state",
+                "phase"
+              ],
+              "field": "app",
+              "groups": {
+                "app=multi_apps+phase=input": 953,
+                "phase=navigate": 1095
+              },
+              "left_label": "phase=navigate",
+              "left_weight": 1095,
+              "query_bonus": 0.333333,
+              "right_label": "app=multi_apps+phase=input",
+              "right_weight": 953,
+              "score": 0.531605,
+              "semantic_shift": 0.666667,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.332175
+            },
+            {
+              "balance": 0.613251,
+              "cardinality_penalty": 0.090903,
+              "changed_field_fraction": 0.8,
+              "changed_fields": [
+                "action",
+                "app",
+                "phase",
+                "repeat_signal"
+              ],
+              "coverage": 0.151367,
+              "cut_after": 310,
+              "evidence_fields": [
+                "app"
+              ],
+              "field": "app",
+              "groups": {
+                "app=chrome": 310,
+                "app=multi_apps": 1738
+              },
+              "left_label": "app=chrome",
+              "left_weight": 310,
+              "query_bonus": 0.333333,
+              "right_label": "app=multi_apps",
+              "right_weight": 1738,
+              "score": 0.528287,
+              "semantic_shift": 0.692308,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.476186
+            },
+            {
+              "balance": 0.987797,
+              "cardinality_penalty": 0.090903,
+              "changed_field_fraction": 0.8,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_signal",
+                "repeat_state"
+              ],
+              "coverage": 0.435059,
+              "cut_after": 1157,
+              "evidence_fields": [
+                "phase",
+                "repeat_state",
+                "app"
+              ],
+              "field": "phase",
+              "groups": {
+                "phase=input+app=multi_apps": 891,
+                "phase=navigate": 1157
+              },
+              "left_label": "phase=navigate",
+              "left_weight": 1157,
+              "query_bonus": 0.333333,
+              "right_label": "phase=input+app=multi_apps",
+              "right_weight": 891,
+              "score": 0.518468,
+              "semantic_shift": 0.653846,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.323401
+            },
+            {
+              "balance": 0.969152,
+              "cardinality_penalty": 0.090903,
+              "changed_field_fraction": 0.8,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_signal",
+                "repeat_state"
+              ],
+              "coverage": 0.396973,
+              "cut_after": 1235,
+              "evidence_fields": [
+                "phase",
+                "action",
+                "repeat_state",
+                "app"
+              ],
+              "field": "phase",
+              "groups": {
+                "phase=input+repeat_state=same-action-window": 813,
+                "phase=navigate+action=click": 1235
+              },
+              "left_label": "phase=navigate+action=click",
+              "left_weight": 1235,
+              "query_bonus": 0.333333,
+              "right_label": "phase=input+repeat_state=same-action-window",
+              "right_weight": 813,
+              "score": 0.512406,
+              "semantic_shift": 0.653846,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.329798
+            },
+            {
+              "balance": 0.999498,
+              "cardinality_penalty": 0.090903,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.486816,
+              "cut_after": 1051,
+              "evidence_fields": [
+                "phase",
+                "repeat_state",
+                "app"
+              ],
+              "field": "phase",
+              "groups": {
+                "phase=input+app=multi_apps": 997,
+                "phase=navigate": 1051
+              },
+              "left_label": "phase=navigate",
+              "left_weight": 1051,
+              "query_bonus": 0.333333,
+              "right_label": "phase=input+app=multi_apps",
+              "right_weight": 997,
+              "score": 0.507773,
+              "semantic_shift": 0.538462,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.320598
+            },
+            {
+              "balance": 0.997993,
+              "cardinality_penalty": 0.090903,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.473633,
+              "cut_after": 1078,
+              "evidence_fields": [
+                "phase",
+                "repeat_state",
+                "app"
+              ],
+              "field": "phase",
+              "groups": {
+                "phase=input+app=multi_apps": 970,
+                "phase=navigate": 1078
+              },
+              "left_label": "phase=navigate",
+              "left_weight": 1078,
+              "query_bonus": 0.333333,
+              "right_label": "phase=input+app=multi_apps",
+              "right_weight": 970,
+              "score": 0.504401,
+              "semantic_shift": 0.52,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.326529
+            },
+            {
+              "balance": 0.997604,
+              "cardinality_penalty": 0.090903,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.471191,
+              "cut_after": 1083,
+              "evidence_fields": [
+                "phase",
+                "repeat_state",
+                "app"
+              ],
+              "field": "phase",
+              "groups": {
+                "phase=input+app=multi_apps": 965,
+                "phase=navigate": 1083
+              },
+              "left_label": "phase=navigate",
+              "left_weight": 1083,
+              "query_bonus": 0.333333,
+              "right_label": "phase=input+app=multi_apps",
+              "right_weight": 965,
+              "score": 0.504129,
+              "semantic_shift": 0.52,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.327078
+            },
+            {
+              "balance": 0.995141,
+              "cardinality_penalty": 0.090903,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.458984,
+              "cut_after": 1108,
+              "evidence_fields": [
+                "phase",
+                "repeat_state",
+                "app"
+              ],
+              "field": "phase",
+              "groups": {
+                "phase=input+app=multi_apps": 940,
+                "phase=navigate": 1108
+              },
+              "left_label": "phase=navigate",
+              "left_weight": 1108,
+              "query_bonus": 0.333333,
+              "right_label": "phase=input+app=multi_apps",
+              "right_weight": 940,
+              "score": 0.502588,
+              "semantic_shift": 0.52,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.329514
+            }
+          ],
+          "node_weight": 2048,
+          "path": [
+            "phase=navigate"
+          ],
+          "selected_score": {
+            "balance": 0.996529,
+            "cardinality_penalty": 0.090903,
+            "changed_field_fraction": 0.8,
+            "changed_fields": [
+              "action",
+              "app",
+              "repeat_signal",
+              "repeat_state"
+            ],
+            "coverage": 0.465332,
+            "cut_after": 1095,
+            "evidence_fields": [
+              "app",
+              "repeat_state",
+              "phase"
+            ],
+            "field": "app",
+            "groups": {
+              "app=multi_apps+phase=input": 953,
+              "phase=navigate": 1095
+            },
+            "left_label": "phase=navigate",
+            "left_weight": 1095,
+            "query_bonus": 0.333333,
+            "right_label": "app=multi_apps+phase=input",
+            "right_weight": 953,
+            "score": 0.531605,
+            "semantic_shift": 0.666667,
+            "small_child_penalty": 0.0,
+            "structural_gain": 0.332175
+          },
+          "source_field": "app"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.859647,
+              "cardinality_penalty": 0.099029,
+              "changed_field_fraction": 0.8,
+              "changed_fields": [
+                "action",
+                "app",
+                "phase",
+                "repeat_signal"
+              ],
+              "coverage": 0.283105,
+              "cut_after": 310,
+              "evidence_fields": [
+                "app"
+              ],
+              "field": "app",
+              "groups": {
+                "app=chrome": 310,
+                "app=libreoffice_calc": 785
+              },
+              "left_label": "app=chrome",
+              "left_weight": 310,
+              "query_bonus": 0.333333,
+              "right_label": "app=libreoffice_calc",
+              "right_weight": 785,
+              "score": 0.62788,
+              "semantic_shift": 0.692308,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.628651
+            },
+            {
+              "balance": 0.87961,
+              "cardinality_penalty": 0.099029,
+              "changed_field_fraction": 0.8,
+              "changed_fields": [
+                "action",
+                "app",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.29863,
+              "cut_after": 768,
+              "evidence_fields": [
+                "app"
+              ],
+              "field": "app",
+              "groups": {
+                "app=libreoffice_calc": 768,
+                "app=libreoffice_impress": 327
+              },
+              "left_label": "app=libreoffice_calc",
+              "left_weight": 768,
+              "query_bonus": 0.333333,
+              "right_label": "app=libreoffice_impress",
+              "right_weight": 327,
+              "score": 0.626564,
+              "semantic_shift": 0.642857,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.636747
+            },
+            {
+              "balance": 0.763654,
+              "cardinality_penalty": 0.099029,
+              "changed_field_fraction": 1.0,
+              "changed_fields": [
+                "action",
+                "app",
+                "phase",
+                "repeat_signal",
+                "repeat_state"
+              ],
+              "coverage": 0.221918,
+              "cut_after": 243,
+              "evidence_fields": [
+                "app"
+              ],
+              "field": "app",
+              "groups": {
+                "app=chrome": 243,
+                "app=libreoffice_calc": 852
+              },
+              "left_label": "app=chrome",
+              "left_weight": 243,
+              "query_bonus": 0.333333,
+              "right_label": "app=libreoffice_calc",
+              "right_weight": 852,
+              "score": 0.610575,
+              "semantic_shift": 0.777778,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.589718
+            },
+            {
+              "balance": 0.844527,
+              "cardinality_penalty": 0.099029,
+              "changed_field_fraction": 0.8,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_signal",
+                "repeat_state"
+              ],
+              "coverage": 0.272146,
+              "cut_after": 298,
+              "evidence_fields": [
+                "app"
+              ],
+              "field": "app",
+              "groups": {
+                "app=chrome": 298,
+                "app=libreoffice_calc": 797
+              },
+              "left_label": "app=chrome",
+              "left_weight": 298,
+              "query_bonus": 0.333333,
+              "right_label": "app=libreoffice_calc",
+              "right_weight": 797,
+              "score": 0.461811,
+              "semantic_shift": 0.692308,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.32569
+            },
+            {
+              "balance": 0.828533,
+              "cardinality_penalty": 0.099029,
+              "changed_field_fraction": 0.8,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_signal",
+                "repeat_state"
+              ],
+              "coverage": 0.261187,
+              "cut_after": 286,
+              "evidence_fields": [
+                "app"
+              ],
+              "field": "app",
+              "groups": {
+                "app=chrome": 286,
+                "app=libreoffice_calc": 809
+              },
+              "left_label": "app=chrome",
+              "left_weight": 286,
+              "query_bonus": 0.333333,
+              "right_label": "app=libreoffice_calc",
+              "right_weight": 809,
+              "score": 0.450922,
+              "semantic_shift": 0.68,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.312675
+            },
+            {
+              "balance": 0.953334,
+              "cardinality_penalty": 0.099029,
+              "changed_field_fraction": 0.8,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_signal",
+                "repeat_state"
+              ],
+              "coverage": 0.373516,
+              "cut_after": 409,
+              "evidence_fields": [
+                "app"
+              ],
+              "field": "app",
+              "groups": {
+                "app=chrome": 409,
+                "app=libreoffice_calc": 686
+              },
+              "left_label": "app=chrome",
+              "left_weight": 409,
+              "query_bonus": 0.333333,
+              "right_label": "app=libreoffice_calc",
+              "right_weight": 686,
+              "score": 0.449412,
+              "semantic_shift": 0.653846,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.258895
+            },
+            {
+              "balance": 0.815949,
+              "cardinality_penalty": 0.099029,
+              "changed_field_fraction": 0.8,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_signal",
+                "repeat_state"
+              ],
+              "coverage": 0.252968,
+              "cut_after": 277,
+              "evidence_fields": [
+                "app"
+              ],
+              "field": "app",
+              "groups": {
+                "app=chrome": 277,
+                "app=libreoffice_calc": 818
+              },
+              "left_label": "app=chrome",
+              "left_weight": 277,
+              "query_bonus": 0.333333,
+              "right_label": "app=libreoffice_calc",
+              "right_weight": 818,
+              "score": 0.445906,
+              "semantic_shift": 0.68,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.306116
+            },
+            {
+              "balance": 0.78456,
+              "cardinality_penalty": 0.099029,
+              "changed_field_fraction": 0.8,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_signal",
+                "repeat_state"
+              ],
+              "coverage": 0.23379,
+              "cut_after": 256,
+              "evidence_fields": [
+                "app"
+              ],
+              "field": "app",
+              "groups": {
+                "app=chrome": 256,
+                "app=libreoffice_calc": 839
+              },
+              "left_label": "app=chrome",
+              "left_weight": 256,
+              "query_bonus": 0.333333,
+              "right_label": "app=libreoffice_calc",
+              "right_weight": 839,
+              "score": 0.438763,
+              "semantic_shift": 0.68,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.300582
+            }
+          ],
+          "node_weight": 1095,
+          "path": [
+            "phase=navigate"
+          ],
+          "selected_score": {
+            "balance": 0.859647,
+            "cardinality_penalty": 0.099029,
+            "changed_field_fraction": 0.8,
+            "changed_fields": [
+              "action",
+              "app",
+              "phase",
+              "repeat_signal"
+            ],
+            "coverage": 0.283105,
+            "cut_after": 310,
+            "evidence_fields": [
+              "app"
+            ],
+            "field": "app",
+            "groups": {
+              "app=chrome": 310,
+              "app=libreoffice_calc": 785
+            },
+            "left_label": "app=chrome",
+            "left_weight": 310,
+            "query_bonus": 0.333333,
+            "right_label": "app=libreoffice_calc",
+            "right_weight": 785,
+            "score": 0.62788,
+            "semantic_shift": 0.692308,
+            "small_child_penalty": 0.0,
+            "structural_gain": 0.628651
+          },
+          "source_field": "app"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.655275,
+              "cardinality_penalty": 0.101032,
+              "changed_field_fraction": 1.0,
+              "changed_fields": [
+                "action",
+                "app",
+                "phase",
+                "repeat_signal",
+                "repeat_state"
+              ],
+              "coverage": 0.16894,
+              "cut_after": 161,
+              "evidence_fields": [
+                "app",
+                "phase",
+                "action",
+                "repeat_state"
+              ],
+              "field": "app",
+              "groups": {
+                "app=libreoffice_writer+phase=navigate+action=click": 161,
+                "app=multi_apps+phase=input": 792
+              },
+              "left_label": "app=libreoffice_writer+phase=navigate+action=click",
+              "left_weight": 161,
+              "query_bonus": 0.333333,
+              "right_label": "app=multi_apps+phase=input",
+              "right_weight": 792,
+              "score": 0.553216,
+              "semantic_shift": 0.8,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.482228
+            },
+            {
+              "balance": 0.997418,
+              "cardinality_penalty": 0.101032,
+              "changed_field_fraction": 0.8,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_signal",
+                "repeat_state"
+              ],
+              "coverage": 0.470094,
+              "cut_after": 505,
+              "evidence_fields": [
+                "action"
+              ],
+              "field": "action",
+              "groups": {
+                "left-segment": 505,
+                "right-segment": 448
+              },
+              "left_label": "left-segment",
+              "left_weight": 505,
+              "query_bonus": 0.333333,
+              "right_label": "right-segment",
+              "right_weight": 448,
+              "score": 0.523752,
+              "semantic_shift": 0.653846,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.319636
+            },
+            {
+              "balance": 0.967018,
+              "cardinality_penalty": 0.101032,
+              "changed_field_fraction": 0.8,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_signal",
+                "repeat_state"
+              ],
+              "coverage": 0.393494,
+              "cut_after": 578,
+              "evidence_fields": [
+                "action"
+              ],
+              "field": "action",
+              "groups": {
+                "left-segment": 578,
+                "right-segment": 375
+              },
+              "left_label": "left-segment",
+              "left_weight": 578,
+              "query_bonus": 0.333333,
+              "right_label": "right-segment",
+              "right_weight": 375,
+              "score": 0.508496,
+              "semantic_shift": 0.653846,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.324891
+            },
+            {
+              "balance": 0.964344,
+              "cardinality_penalty": 0.101032,
+              "changed_field_fraction": 0.8,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_signal",
+                "repeat_state"
+              ],
+              "coverage": 0.389297,
+              "cut_after": 582,
+              "evidence_fields": [
+                "action"
+              ],
+              "field": "action",
+              "groups": {
+                "left-segment": 582,
+                "right-segment": 371
+              },
+              "left_label": "left-segment",
+              "left_weight": 582,
+              "query_bonus": 0.333333,
+              "right_label": "right-segment",
+              "right_weight": 371,
+              "score": 0.50721,
+              "semantic_shift": 0.653846,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.324313
+            },
+            {
+              "balance": 0.999961,
+              "cardinality_penalty": 0.101032,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.496327,
+              "cut_after": 473,
+              "evidence_fields": [
+                "action"
+              ],
+              "field": "action",
+              "groups": {
+                "left-segment": 473,
+                "right-segment": 480
+              },
+              "left_label": "left-segment",
+              "left_weight": 473,
+              "query_bonus": 0.333333,
+              "right_label": "right-segment",
+              "right_weight": 480,
+              "score": 0.505584,
+              "semantic_shift": 0.538462,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.313366
+            },
+            {
+              "balance": 0.999961,
+              "cardinality_penalty": 0.101032,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.496327,
+              "cut_after": 480,
+              "evidence_fields": [
+                "action"
+              ],
+              "field": "action",
+              "groups": {
+                "left-segment": 480,
+                "right-segment": 473
+              },
+              "left_label": "left-segment",
+              "left_weight": 480,
+              "query_bonus": 0.333333,
+              "right_label": "right-segment",
+              "right_weight": 473,
+              "score": 0.502975,
+              "semantic_shift": 0.52,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.314919
+            },
+            {
+              "balance": 0.99965,
+              "cardinality_penalty": 0.101032,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.488982,
+              "cut_after": 487,
+              "evidence_fields": [
+                "action"
+              ],
+              "field": "action",
+              "groups": {
+                "left-segment": 487,
+                "right-segment": 466
+              },
+              "left_label": "left-segment",
+              "left_weight": 487,
+              "query_bonus": 0.333333,
+              "right_label": "right-segment",
+              "right_weight": 466,
+              "score": 0.502255,
+              "semantic_shift": 0.52,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.316614
+            },
+            {
+              "balance": 0.999027,
+              "cardinality_penalty": 0.101032,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.481637,
+              "cut_after": 494,
+              "evidence_fields": [
+                "action"
+              ],
+              "field": "action",
+              "groups": {
+                "left-segment": 494,
+                "right-segment": 459
+              },
+              "left_label": "left-segment",
+              "left_weight": 494,
+              "query_bonus": 0.333333,
+              "right_label": "right-segment",
+              "right_weight": 459,
+              "score": 0.501578,
+              "semantic_shift": 0.52,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.318465
+            }
+          ],
+          "node_weight": 953,
+          "path": [
+            "phase=navigate",
+            "app=multi_apps+phase=input"
+          ],
+          "selected_score": {
+            "balance": 0.655275,
+            "cardinality_penalty": 0.101032,
+            "changed_field_fraction": 1.0,
+            "changed_fields": [
+              "action",
+              "app",
+              "phase",
+              "repeat_signal",
+              "repeat_state"
+            ],
+            "coverage": 0.16894,
+            "cut_after": 161,
+            "evidence_fields": [
+              "app",
+              "phase",
+              "action",
+              "repeat_state"
+            ],
+            "field": "app",
+            "groups": {
+              "app=libreoffice_writer+phase=navigate+action=click": 161,
+              "app=multi_apps+phase=input": 792
+            },
+            "left_label": "app=libreoffice_writer+phase=navigate+action=click",
+            "left_weight": 161,
+            "query_bonus": 0.333333,
+            "right_label": "app=multi_apps+phase=input",
+            "right_weight": 792,
+            "score": 0.553216,
+            "semantic_shift": 0.8,
+            "small_child_penalty": 0.0,
+            "structural_gain": 0.482228
+          },
+          "source_field": "app"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.988918,
+              "cardinality_penalty": 0.091411,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.438105,
+              "cut_after": 860,
+              "evidence_fields": [
+                "action",
+                "repeat_state"
+              ],
+              "field": "action",
+              "groups": {
+                "repeat_state=same-action-window": 860,
+                "right-segment": 1103
+              },
+              "left_label": "repeat_state=same-action-window",
+              "left_weight": 860,
+              "query_bonus": 0.333333,
+              "right_label": "right-segment",
+              "right_weight": 1103,
+              "score": 0.491586,
+              "semantic_shift": 0.52,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.315903
+            },
+            {
+              "balance": 0.986208,
+              "cardinality_penalty": 0.091411,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.430973,
+              "cut_after": 846,
+              "evidence_fields": [
+                "action",
+                "repeat_state"
+              ],
+              "field": "action",
+              "groups": {
+                "repeat_state=same-action-window": 846,
+                "right-segment": 1117
+              },
+              "left_label": "repeat_state=same-action-window",
+              "left_weight": 846,
+              "query_bonus": 0.333333,
+              "right_label": "right-segment",
+              "right_weight": 1117,
+              "score": 0.490183,
+              "semantic_shift": 0.52,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.316427
+            },
+            {
+              "balance": 0.986411,
+              "cardinality_penalty": 0.091411,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.431482,
+              "cut_after": 1116,
+              "evidence_fields": [
+                "repeat_state",
+                "phase",
+                "action"
+              ],
+              "field": "repeat_state",
+              "groups": {
+                "phase=input": 1116,
+                "phase=navigate": 847
+              },
+              "left_label": "phase=input",
+              "left_weight": 1116,
+              "query_bonus": 0.333333,
+              "right_label": "phase=navigate",
+              "right_weight": 847,
+              "score": 0.488976,
+              "semantic_shift": 0.52,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.313547
+            },
+            {
+              "balance": 0.983647,
+              "cardinality_penalty": 0.091411,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.42486,
+              "cut_after": 834,
+              "evidence_fields": [
+                "action",
+                "repeat_state"
+              ],
+              "field": "action",
+              "groups": {
+                "repeat_state=same-action-window": 834,
+                "right-segment": 1129
+              },
+              "left_label": "repeat_state=same-action-window",
+              "left_weight": 834,
+              "query_bonus": 0.333333,
+              "right_label": "right-segment",
+              "right_weight": 1129,
+              "score": 0.48836,
+              "semantic_shift": 0.52,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.315559
+            },
+            {
+              "balance": 0.9891,
+              "cardinality_penalty": 0.091411,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.438614,
+              "cut_after": 1102,
+              "evidence_fields": [
+                "repeat_state",
+                "phase",
+                "action"
+              ],
+              "field": "repeat_state",
+              "groups": {
+                "phase=input": 1102,
+                "phase=navigate": 861
+              },
+              "left_label": "phase=input",
+              "left_weight": 1102,
+              "query_bonus": 0.333333,
+              "right_label": "phase=navigate",
+              "right_weight": 861,
+              "score": 0.488009,
+              "semantic_shift": 0.5,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.3157
+            },
+            {
+              "balance": 0.981817,
+              "cardinality_penalty": 0.091411,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.420785,
+              "cut_after": 826,
+              "evidence_fields": [
+                "action",
+                "repeat_state"
+              ],
+              "field": "action",
+              "groups": {
+                "repeat_state=same-action-window": 826,
+                "right-segment": 1137
+              },
+              "left_label": "repeat_state=same-action-window",
+              "left_weight": 826,
+              "query_bonus": 0.333333,
+              "right_label": "right-segment",
+              "right_weight": 1137,
+              "score": 0.487151,
+              "semantic_shift": 0.52,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.315009
+            },
+            {
+              "balance": 0.978888,
+              "cardinality_penalty": 0.091411,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.414671,
+              "cut_after": 814,
+              "evidence_fields": [
+                "action",
+                "repeat_state"
+              ],
+              "field": "action",
+              "groups": {
+                "repeat_state=same-action-window": 814,
+                "right-segment": 1149
+              },
+              "left_label": "repeat_state=same-action-window",
+              "left_weight": 814,
+              "query_bonus": 0.333333,
+              "right_label": "right-segment",
+              "right_weight": 1149,
+              "score": 0.485361,
+              "semantic_shift": 0.52,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.314254
+            },
+            {
+              "balance": 0.999991,
+              "cardinality_penalty": 0.091411,
+              "changed_field_fraction": 0.4,
+              "changed_fields": [
+                "action",
+                "repeat_state"
+              ],
+              "coverage": 0.498217,
+              "cut_after": 978,
+              "evidence_fields": [
+                "action",
+                "repeat_state"
+              ],
+              "field": "action",
+              "groups": {
+                "repeat_state=same-action-window": 978,
+                "right-segment": 985
+              },
+              "left_label": "repeat_state=same-action-window",
+              "left_weight": 978,
+              "query_bonus": 0.333333,
+              "right_label": "right-segment",
+              "right_weight": 985,
+              "score": 0.484416,
+              "semantic_shift": 0.416667,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.312508
+            }
+          ],
+          "node_weight": 1963,
+          "path": [
+            "phase=input"
+          ],
+          "selected_score": {
+            "balance": 0.988918,
+            "cardinality_penalty": 0.091411,
+            "changed_field_fraction": 0.6,
+            "changed_fields": [
+              "action",
+              "phase",
+              "repeat_state"
+            ],
+            "coverage": 0.438105,
+            "cut_after": 860,
+            "evidence_fields": [
+              "action",
+              "repeat_state"
+            ],
+            "field": "action",
+            "groups": {
+              "repeat_state=same-action-window": 860,
+              "right-segment": 1103
+            },
+            "left_label": "repeat_state=same-action-window",
+            "left_weight": 860,
+            "query_bonus": 0.333333,
+            "right_label": "right-segment",
+            "right_weight": 1103,
+            "score": 0.491586,
+            "semantic_shift": 0.52,
+            "small_child_penalty": 0.0,
+            "structural_gain": 0.315903
+          },
+          "source_field": "action"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.82215,
+              "cardinality_penalty": 0.102565,
+              "changed_field_fraction": 0.75,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.256977,
+              "cut_after": 221,
+              "evidence_fields": [
+                "action"
+              ],
+              "field": "action",
+              "groups": {
+                "left-segment": 221,
+                "right-segment": 639
+              },
+              "left_label": "left-segment",
+              "left_weight": 221,
+              "query_bonus": 0.333333,
+              "right_label": "right-segment",
+              "right_weight": 639,
+              "score": 0.456425,
+              "semantic_shift": 0.619048,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.299159
+            },
+            {
+              "balance": 0.814943,
+              "cardinality_penalty": 0.102565,
+              "changed_field_fraction": 0.75,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.252326,
+              "cut_after": 217,
+              "evidence_fields": [
+                "action"
+              ],
+              "field": "action",
+              "groups": {
+                "left-segment": 217,
+                "right-segment": 643
+              },
+              "left_label": "left-segment",
+              "left_weight": 217,
+              "query_bonus": 0.333333,
+              "right_label": "right-segment",
+              "right_weight": 643,
+              "score": 0.455202,
+              "semantic_shift": 0.619048,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.298954
+            },
+            {
+              "balance": 0.772292,
+              "cardinality_penalty": 0.102565,
+              "changed_field_fraction": 0.75,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.226744,
+              "cut_after": 195,
+              "evidence_fields": [
+                "action"
+              ],
+              "field": "action",
+              "groups": {
+                "left-segment": 195,
+                "right-segment": 665
+              },
+              "left_label": "left-segment",
+              "left_weight": 195,
+              "query_bonus": 0.333333,
+              "right_label": "right-segment",
+              "right_weight": 665,
+              "score": 0.44676,
+              "semantic_shift": 0.6,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.301324
+            },
+            {
+              "balance": 0.751149,
+              "cardinality_penalty": 0.102565,
+              "changed_field_fraction": 0.75,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.215116,
+              "cut_after": 185,
+              "evidence_fields": [
+                "action"
+              ],
+              "field": "action",
+              "groups": {
+                "left-segment": 185,
+                "right-segment": 675
+              },
+              "left_label": "left-segment",
+              "left_weight": 185,
+              "query_bonus": 0.333333,
+              "right_label": "right-segment",
+              "right_weight": 675,
+              "score": 0.443762,
+              "semantic_shift": 0.6,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.300688
+            },
+            {
+              "balance": 0.740147,
+              "cardinality_penalty": 0.102565,
+              "changed_field_fraction": 0.75,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.209302,
+              "cut_after": 180,
+              "evidence_fields": [
+                "action"
+              ],
+              "field": "action",
+              "groups": {
+                "left-segment": 180,
+                "right-segment": 680
+              },
+              "left_label": "left-segment",
+              "left_weight": 180,
+              "query_bonus": 0.333333,
+              "right_label": "right-segment",
+              "right_weight": 680,
+              "score": 0.443752,
+              "semantic_shift": 0.619048,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.296113
+            },
+            {
+              "balance": 0.714896,
+              "cardinality_penalty": 0.102565,
+              "changed_field_fraction": 0.75,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.196512,
+              "cut_after": 169,
+              "evidence_fields": [
+                "action"
+              ],
+              "field": "action",
+              "groups": {
+                "left-segment": 169,
+                "right-segment": 691
+              },
+              "left_label": "left-segment",
+              "left_weight": 169,
+              "query_bonus": 0.333333,
+              "right_label": "right-segment",
+              "right_weight": 691,
+              "score": 0.438696,
+              "semantic_shift": 0.619048,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.291396
+            },
+            {
+              "balance": 0.726555,
+              "cardinality_penalty": 0.102565,
+              "changed_field_fraction": 0.75,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.202326,
+              "cut_after": 174,
+              "evidence_fields": [
+                "action"
+              ],
+              "field": "action",
+              "groups": {
+                "left-segment": 174,
+                "right-segment": 686
+              },
+              "left_label": "left-segment",
+              "left_weight": 174,
+              "query_bonus": 0.333333,
+              "right_label": "right-segment",
+              "right_weight": 686,
+              "score": 0.438178,
+              "semantic_shift": 0.6,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.294891
+            },
+            {
+              "balance": 0.829193,
+              "cardinality_penalty": 0.102565,
+              "changed_field_fraction": 0.5,
+              "changed_fields": [
+                "action",
+                "repeat_state"
+              ],
+              "coverage": 0.261628,
+              "cut_after": 225,
+              "evidence_fields": [
+                "action"
+              ],
+              "field": "action",
+              "groups": {
+                "left-segment": 225,
+                "right-segment": 635
+              },
+              "left_label": "left-segment",
+              "left_weight": 225,
+              "query_bonus": 0.333333,
+              "right_label": "right-segment",
+              "right_weight": 635,
+              "score": 0.43108,
+              "semantic_shift": 0.473684,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.298481
+            }
+          ],
+          "node_weight": 860,
+          "path": [
+            "phase=input",
+            "repeat_state=same-action-window"
+          ],
+          "selected_score": {
+            "balance": 0.82215,
+            "cardinality_penalty": 0.102565,
+            "changed_field_fraction": 0.75,
+            "changed_fields": [
+              "action",
+              "phase",
+              "repeat_state"
+            ],
+            "coverage": 0.256977,
+            "cut_after": 221,
+            "evidence_fields": [
+              "action"
+            ],
+            "field": "action",
+            "groups": {
+              "left-segment": 221,
+              "right-segment": 639
+            },
+            "left_label": "left-segment",
+            "left_weight": 221,
+            "query_bonus": 0.333333,
+            "right_label": "right-segment",
+            "right_weight": 639,
+            "score": 0.456425,
+            "semantic_shift": 0.619048,
+            "small_child_penalty": 0.0,
+            "structural_gain": 0.299159
+          },
+          "source_field": "action"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.999995,
+              "cardinality_penalty": 0.098926,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.49864,
+              "cut_after": 550,
+              "evidence_fields": [
+                "repeat_state",
+                "action"
+              ],
+              "field": "repeat_state",
+              "groups": {
+                "left-segment": 550,
+                "right-segment": 553
+              },
+              "left_label": "left-segment",
+              "left_weight": 550,
+              "query_bonus": 0.333333,
+              "right_label": "right-segment",
+              "right_weight": 553,
+              "score": 0.499916,
+              "semantic_shift": 0.52,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.306891
+            },
+            {
+              "balance": 0.587978,
+              "cardinality_penalty": 0.098926,
+              "changed_field_fraction": 1.0,
+              "changed_fields": [
+                "action",
+                "app",
+                "phase",
+                "repeat_signal",
+                "repeat_state"
+              ],
+              "coverage": 0.141432,
+              "cut_after": 947,
+              "evidence_fields": [
+                "app",
+                "repeat_signal",
+                "action",
+                "repeat_state"
+              ],
+              "field": "app",
+              "groups": {
+                "app=multi_apps+repeat_signal=loop-like": 947,
+                "app=vs_code+repeat_signal=none+action=click": 156
+              },
+              "left_label": "app=multi_apps+repeat_signal=loop-like",
+              "left_weight": 947,
+              "query_bonus": 0.333333,
+              "right_label": "app=vs_code+repeat_signal=none+action=click",
+              "right_weight": 156,
+              "score": 0.499813,
+              "semantic_shift": 0.785714,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.383334
+            },
+            {
+              "balance": 0.999354,
+              "cardinality_penalty": 0.098926,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.485041,
+              "cut_after": 568,
+              "evidence_fields": [
+                "action",
+                "repeat_state"
+              ],
+              "field": "action",
+              "groups": {
+                "left-segment": 568,
+                "right-segment": 535
+              },
+              "left_label": "left-segment",
+              "left_weight": 568,
+              "query_bonus": 0.333333,
+              "right_label": "right-segment",
+              "right_weight": 535,
+              "score": 0.497594,
+              "semantic_shift": 0.52,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.307891
+            },
+            {
+              "balance": 0.999098,
+              "cardinality_penalty": 0.098926,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.482321,
+              "cut_after": 532,
+              "evidence_fields": [
+                "repeat_state",
+                "action"
+              ],
+              "field": "repeat_state",
+              "groups": {
+                "left-segment": 532,
+                "right-segment": 571
+              },
+              "left_label": "left-segment",
+              "left_weight": 532,
+              "query_bonus": 0.333333,
+              "right_label": "right-segment",
+              "right_weight": 571,
+              "score": 0.496297,
+              "semantic_shift": 0.52,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.306305
+            },
+            {
+              "balance": 0.996662,
+              "cardinality_penalty": 0.098926,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.466002,
+              "cut_after": 514,
+              "evidence_fields": [
+                "repeat_state",
+                "action"
+              ],
+              "field": "repeat_state",
+              "groups": {
+                "left-segment": 514,
+                "right-segment": 589
+              },
+              "left_label": "left-segment",
+              "left_weight": 514,
+              "query_bonus": 0.333333,
+              "right_label": "right-segment",
+              "right_weight": 589,
+              "score": 0.492712,
+              "semantic_shift": 0.52,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.306094
+            },
+            {
+              "balance": 0.996296,
+              "cardinality_penalty": 0.098926,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.464189,
+              "cut_after": 591,
+              "evidence_fields": [
+                "action",
+                "repeat_state"
+              ],
+              "field": "action",
+              "groups": {
+                "left-segment": 591,
+                "right-segment": 512
+              },
+              "left_label": "left-segment",
+              "left_weight": 591,
+              "query_bonus": 0.333333,
+              "right_label": "right-segment",
+              "right_weight": 512,
+              "score": 0.489647,
+              "semantic_shift": 0.5,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.308116
+            },
+            {
+              "balance": 0.992682,
+              "cardinality_penalty": 0.098926,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.449683,
+              "cut_after": 496,
+              "evidence_fields": [
+                "repeat_state",
+                "action"
+              ],
+              "field": "repeat_state",
+              "groups": {
+                "left-segment": 496,
+                "right-segment": 607
+              },
+              "left_label": "left-segment",
+              "left_weight": 496,
+              "query_bonus": 0.333333,
+              "right_label": "right-segment",
+              "right_weight": 607,
+              "score": 0.489191,
+              "semantic_shift": 0.52,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.306289
+            },
+            {
+              "balance": 0.990111,
+              "cardinality_penalty": 0.098926,
+              "changed_field_fraction": 0.6,
+              "changed_fields": [
+                "action",
+                "phase",
+                "repeat_state"
+              ],
+              "coverage": 0.441523,
+              "cut_after": 616,
+              "evidence_fields": [
+                "action",
+                "repeat_state"
+              ],
+              "field": "action",
+              "groups": {
+                "left-segment": 616,
+                "right-segment": 487
+              },
+              "left_label": "left-segment",
+              "left_weight": 616,
+              "query_bonus": 0.333333,
+              "right_label": "right-segment",
+              "right_weight": 487,
+              "score": 0.487495,
+              "semantic_shift": 0.52,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.306618
+            }
+          ],
+          "node_weight": 1103,
+          "path": [
+            "phase=input",
+            "right-segment"
+          ],
+          "selected_score": {
+            "balance": 0.999995,
+            "cardinality_penalty": 0.098926,
+            "changed_field_fraction": 0.6,
+            "changed_fields": [
+              "action",
+              "phase",
+              "repeat_state"
+            ],
+            "coverage": 0.49864,
+            "cut_after": 550,
+            "evidence_fields": [
+              "repeat_state",
+              "action"
+            ],
+            "field": "repeat_state",
+            "groups": {
+              "left-segment": 550,
+              "right-segment": 553
+            },
+            "left_label": "left-segment",
+            "left_weight": 550,
+            "query_bonus": 0.333333,
+            "right_label": "right-segment",
+            "right_weight": 553,
+            "score": 0.499916,
+            "semantic_shift": 0.52,
+            "small_child_penalty": 0.0,
+            "structural_gain": 0.306891
+          },
+          "source_field": "repeat_state"
+        }
+      ],
+      "stop_reasons": {
+        "max_depth": 8
+      }
+    },
+    "unit": "count",
+    "view": "operations"
+  },
+  "schema_version": 1,
+  "sessions": []
+}
