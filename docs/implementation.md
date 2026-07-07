@@ -518,7 +518,8 @@ Purpose: name work still needed before a paper-ready artifact.
 | Task | Why it matters | Status |
 |---|---|---|
 | Add deeper boundary scorers for step instructions, solution paths, and failure labels. | Action-label F1 is too shallow for final recursive-boundary claims. | pending |
-| Add a non-rule or model-backed boundary backend for OSWorld-Human and AgentNet. | The paper can currently claim configurable deterministic mapping, not automatic boundary discovery. | pending |
+| Add a non-rule or model-backed boundary backend beyond deterministic mapping. | R297/R299/R400 already cover supervised adjacent-boundary fields for OSWorld-Human and mixed family suitability checks. The remaining work is calibrated sequence/LLM-style backends before any automatic-boundary wording. | partially complete; expansion pending |
+| Compare free-form regex and LLM prompt taggers against external or human-labeled semantic ground truth. | The current local-session tagger evidence covers scale, syntax, latency, cache behavior, and aliasing, but not semantic adequacy on free-form prompts. This must pass the same hidden-label and simple-baseline discipline before LLM tags enter the profiler claim. | pending |
 | Execute the controlled human/agent analyst study from R315/R316/R317. | The current C4 evidence is an automated hidden-label profiler benchmark; analyst productivity, analyst accuracy, time-to-answer, and user utility remain unsupported. | pending |
 | Import one real OpenTelemetry GenAI, OpenInference, or Perfetto trace from another agent tool. | R306/R353 prove standard-trace container round trips for session and operation-file inputs, not compatibility with real producer traces. | pending |
 | Add converters for the best next trajectory sources: UI-Vision, OSWorld-Verified/OSWorld 2.0 trajectories, and VisualWebArena trajectories. | Future expansion beyond the current 15 sources should be driven by stronger oracles, not dataset count alone. | pending |
