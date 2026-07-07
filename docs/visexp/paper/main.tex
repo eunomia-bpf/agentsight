@@ -349,6 +349,9 @@ Rust operation-stack induction 进一步检验“不是用户给固定 stack 字
 同时它的 median AP 为 0.2762，低于 hand-configured operation-stack query-aware 的 0.3116。
 同一 induced view 的 depth sweep 进一步说明深度是 profile 配置：query-aware median AP 在 depth 3 最高，为 0.2865；median top-5 work 在 depth 5 最低，为 0.4727；有 material split 的四个任务 AP-best depth 分散在 2、3、4 和 5。
 这说明同一个 prompt/action 序列可以被自动折叠成参差不齐的 operation stack，但它支持的是 configurable recursive folding 和 depth tuning，不是取代 task-specific profile specs，也不是自动发现所有 intent boundary。
+表~\ref{tab:induction-display} 把这组三层证据压缩成 paper-facing display：机制形成、hidden-label localization 消融和深度调优分别支撑不同 claim，并各自保留 non-claim 边界。
+
+\input{../out/paper-induction-display-r407/induction-claim-table.tex}
 
 \paragraph{Field derivation 和 boundary probes。}
 

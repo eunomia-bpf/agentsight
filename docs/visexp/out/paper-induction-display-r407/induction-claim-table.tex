@@ -1,0 +1,15 @@
+\begin{table*}[t]
+  \centering
+  \small
+  \caption{自动 operation-stack induction 的 claim-facing 证据。该表把 R402--R404 组织为机制、定位消融和深度调优三条证据；hidden labels 只在 profiling 后评分。}
+  \label{tab:induction-display}
+  \begin{tabular}{p{0.18\textwidth}p{0.24\textwidth}p{0.29\textwidth}p{0.21\textwidth}}
+    \toprule
+    证据块 & Reviewer question & 主要数字 & 支持的结论 / 边界 \\
+    \midrule
+    E1 recursive formation & Can the profiler form recursive operation stacks without a user-supplied field chain? & 729 operations; 15 induced stacks; depth histogram 2:1/3:1/4:13; session-as-evidence view has 16 stacks. & Visible boundary evidence can induce ragged operation-only stacks, and session remains optional evidence. Not automatic discovery of all intent boundaries. \\
+    E2 localization ablation & Do induced stacks work as a visible profiler view on real hidden-label tasks? & 4/6 variable-depth tasks, 2/6 material-stop tasks; AP 0.2762 vs hand-configured 0.3116; work@5 0.653 vs flat 1; groups 12 vs fixed-session 285. & Induction reduces flat work and fixed-session fragmentation, but hand-configured specs remain stronger by AP. Not a replacement for task-specific profile specs. \\
+    E3 depth actionability & Is induced-stack depth a real tuning surface? & best query-aware median AP at depth 3 (0.2865); lowest median work@5 at depth 5 (0.4727); material-split AP-best depths span 2, 3, 4, 5. & Different objectives prefer different recursive depths, so depth is a profile-configuration knob. Not an automatic depth selector or analyst-productivity result. \\
+    \bottomrule
+  \end{tabular}
+\end{table*}
