@@ -42,6 +42,43 @@ SOURCES = {
     "R400 field suitability": OUT_ROOT / "operation-field-suitability-r400" / "field-suitability-report.json",
 }
 
+OPERATION_JSONL_SOURCES = {
+    "AgentNet operations": OUT_ROOT / "external-agent-trace-agentnet-r291" / "agentnet-operations.jsonl",
+    "AgentRewardBench operations": OUT_ROOT / "external-agent-trace-agentreward-r288" / "agentreward-operations.jsonl",
+    "OSWorld-Human operations": OUT_ROOT / "external-agent-trace-osworldhuman-r290" / "osworld-human-operations.jsonl",
+    "SATraj-OS operations": OUT_ROOT / "external-agent-trace-satraj-r289" / "satraj-operations.jsonl",
+    "ScaleCUA operations": OUT_ROOT / "external-agent-trace-scalecua-r292" / "scalecua-operations.jsonl",
+    "R300 query utility operations": OUT_ROOT / "operation-query-utility-r300" / "query-utility-operations.jsonl",
+}
+
+FREE_TEXT_FIELDS = {
+    "prompt",
+    "text",
+    "instruction",
+    "goal",
+    "query",
+    "utterance",
+    "message",
+    "user_request",
+    "task_text",
+    "task_instruction",
+}
+
+ORACLE_FIELDS = {
+    "target_positive",
+    "problem_oracle",
+    "problem_value",
+    "looping",
+    "side_effect",
+    "safety",
+    "attack_type",
+    "step_correct",
+    "step_redundant",
+    "human_group",
+    "group_pattern",
+    "group_position",
+}
+
 ROW_FIELDS = [
     "paper_area",
     "claim_or_gap",
@@ -72,6 +109,18 @@ def read_text(path: Path) -> str:
 
 def read_json(path: Path) -> dict[str, Any]:
     return json.loads(read_text(path))
+
+
+def read_jsonl(path: Path) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    if not path.exists():
+        return rows
+    with path.open(encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                rows.append(json.loads(line))
+    return rows
 
 
 def sha256(path: Path) -> str:
@@ -121,7 +170,7 @@ def git_commit() -> str:
 
 def source_rows() -> list[dict[str, str]]:
     rows: list[dict[str, str]] = []
-    for name, path in {"generator script": SCRIPT_PATH, **SOURCES}.items():
+    for name, path in {"generator script": SCRIPT_PATH, **SOURCES, **OPERATION_JSONL_SOURCES}.items():
         rows.append(
             {
                 "source": name,
@@ -152,7 +201,76 @@ def contains_all(text: str, needles: list[str]) -> bool:
     return all(needle in text for needle in needles)
 
 
-def build_rows(english: str, chinese: str, evaluation: str) -> list[dict[str, str]]:
+def scan_operation_text_oracles() -> dict[str, Any]:
+    dataset_rows: list[dict[str, Any]] = []
+    total_rows = 0
+    total_with_free_text = 0
+    total_with_oracle = 0
+    total_with_both = 0
+    for name, path in OPERATION_JSONL_SOURCES.items():
+        rows = read_jsonl(path)
+        text_fields: set[str] = set()
+        oracle_fields: set[str] = set()
+        rows_with_free_text = 0
+        rows_with_oracle = 0
+        rows_with_both = 0
+        categorical_task_values: set[str] = set()
+        for row in rows:
+            fields = row.get("fields", {})
+            present_text = {
+                key
+                for key in FREE_TEXT_FIELDS
+                if isinstance(fields.get(key), str) and len(fields.get(key, "").strip()) >= 8
+            }
+            present_oracle = {
+                key
+                for key in ORACLE_FIELDS
+                if isinstance(fields.get(key), str) and fields.get(key, "").strip()
+            }
+            if fields.get("task"):
+                categorical_task_values.add(str(fields["task"]))
+            text_fields.update(present_text)
+            oracle_fields.update(present_oracle)
+            if present_text:
+                rows_with_free_text += 1
+            if present_oracle:
+                rows_with_oracle += 1
+            if present_text and present_oracle:
+                rows_with_both += 1
+        total_rows += len(rows)
+        total_with_free_text += rows_with_free_text
+        total_with_oracle += rows_with_oracle
+        total_with_both += rows_with_both
+        dataset_rows.append(
+            {
+                "source": name,
+                "path": rel(path),
+                "rows": len(rows),
+                "rows_with_free_text": rows_with_free_text,
+                "rows_with_oracle": rows_with_oracle,
+                "rows_with_both": rows_with_both,
+                "free_text_fields": sorted(text_fields),
+                "oracle_fields": sorted(oracle_fields),
+                "categorical_task_values": sorted(categorical_task_values)[:8],
+            }
+        )
+    return {
+        "sources": dataset_rows,
+        "summary": {
+            "sources": len(dataset_rows),
+            "rows": total_rows,
+            "rows_with_free_text": total_with_free_text,
+            "rows_with_oracle": total_with_oracle,
+            "rows_with_both": total_with_both,
+            "has_same_input_free_text_oracle": total_with_both > 0,
+        },
+    }
+
+
+def build_rows(
+    english: str, chinese: str, evaluation: str, operation_text_scan: dict[str, Any]
+) -> list[dict[str, str]]:
+    scan = operation_text_scan["summary"]
     return [
         {
             "paper_area": "Overall structure",
@@ -192,7 +310,11 @@ def build_rows(english: str, chinese: str, evaluation: str) -> list[dict[str, st
                     "assessment of the LLM/regex tagger",
                 ],
             ),
-            "outer_evidence": "R366 supports deterministic/supervised field derivation and suitability checks, but not a completed same-prompt backend comparison.",
+            "outer_evidence": (
+                "R366 supports deterministic/supervised field derivation and suitability checks, but not a completed same-prompt backend comparison. "
+                f"R405 scans {scan['sources']} tracked operation JSONL sources / {scan['rows']} rows and finds "
+                f"{scan['rows_with_both']} rows with both public free-form text and oracle semantic labels."
+            ),
             "status": "must_remain_future_work",
             "next_action": "Do not claim LLM/regex/embedding tagger accuracy until a same-input evaluation exists.",
             "claim_rule": "Mapping/tagging are operation-field derivation mechanisms; they are not evidence of universal intent recognition.",
@@ -250,8 +372,15 @@ def build_rows(english: str, chinese: str, evaluation: str) -> list[dict[str, st
     ]
 
 
-def build_checks(rows: list[dict[str, str]], english: str, chinese: str, evaluation: str) -> list[dict[str, Any]]:
+def build_checks(
+    rows: list[dict[str, str]],
+    english: str,
+    chinese: str,
+    evaluation: str,
+    operation_text_scan: dict[str, Any],
+) -> list[dict[str, Any]]:
     row_blob = json.dumps(rows, ensure_ascii=False, sort_keys=True)
+    scan = operation_text_scan["summary"]
     checks: list[dict[str, Any]] = []
     checks.append(
         {
@@ -293,6 +422,17 @@ def build_checks(rows: list[dict[str, str]], english: str, chinese: str, evaluat
                 ],
             ),
             "detail": "R405 lists tagger-comparison, human-utility, and ecosystem-compatibility gaps as non-claims or future work.",
+        }
+    )
+    checks.append(
+        {
+            "check": "tagger_gap_has_no_current_free_text_oracle",
+            "passed": scan["rows"] > 0 and scan["rows_with_both"] == 0,
+            "detail": (
+                f"Scanned {scan['sources']} tracked operation JSONL sources and {scan['rows']} rows; "
+                f"{scan['rows_with_free_text']} rows had public free-form text fields, "
+                f"{scan['rows_with_oracle']} rows had oracle fields, and {scan['rows_with_both']} rows had both."
+            ),
         }
     )
     checks.append(
@@ -346,6 +486,12 @@ def write_markdown(path: Path, report: dict[str, Any]) -> None:
     lines.extend(["", "## Checks", "", "| Check | Passed | Detail |", "| --- | --- | --- |"])
     for check in report["checks"]:
         lines.append(f"| {check['check']} | {check['passed']} | {check['detail']} |")
+    lines.extend(["", "## Operation Text/Oracle Scan", "", "| Source | Rows | Free-text rows | Oracle rows | Rows with both | Free-text fields | Oracle fields |", "| --- | ---: | ---: | ---: | ---: | --- | --- |"])
+    for row in report["operation_text_oracle_scan"]["sources"]:
+        lines.append(
+            f"| {row['source']} | {row['rows']} | {row['rows_with_free_text']} | {row['rows_with_oracle']} | {row['rows_with_both']} | "
+            f"{', '.join(row['free_text_fields']) or '-'} | {', '.join(row['oracle_fields']) or '-'} |"
+        )
     lines.append("")
     path.write_text("\n".join(lines), encoding="utf-8")
 
@@ -368,6 +514,18 @@ def write_html(path: Path, report: dict[str, Any]) -> None:
         f"<td>{html.escape(check['detail'])}</td>"
         "</tr>"
         for check in report["checks"]
+    )
+    scan_rows = "\n".join(
+        "<tr>"
+        f"<td>{html.escape(row['source'])}</td>"
+        f"<td>{row['rows']}</td>"
+        f"<td>{row['rows_with_free_text']}</td>"
+        f"<td>{row['rows_with_oracle']}</td>"
+        f"<td>{row['rows_with_both']}</td>"
+        f"<td>{html.escape(', '.join(row['free_text_fields']) or '-')}</td>"
+        f"<td>{html.escape(', '.join(row['oracle_fields']) or '-')}</td>"
+        "</tr>"
+        for row in report["operation_text_oracle_scan"]["sources"]
     )
     path.write_text(
         f"""<!doctype html>
@@ -395,6 +553,11 @@ def write_html(path: Path, report: dict[str, Any]) -> None:
     <tr><th>Check</th><th>Passed</th><th>Detail</th></tr>
     {checks}
   </table>
+  <h2>Operation Text/Oracle Scan</h2>
+  <table>
+    <tr><th>Source</th><th>Rows</th><th>Free-text rows</th><th>Oracle rows</th><th>Rows with both</th><th>Free-text fields</th><th>Oracle fields</th></tr>
+    {scan_rows}
+  </table>
 </body>
 </html>
 """,
@@ -410,8 +573,9 @@ def main() -> None:
     english = read_text(SOURCES["English paper draft"])
     chinese = read_text(SOURCES["Chinese paper draft"])
     evaluation = read_text(SOURCES["evaluation ledger"])
-    rows = build_rows(english, chinese, evaluation)
-    checks = build_checks(rows, english, chinese, evaluation)
+    operation_text_scan = scan_operation_text_oracles()
+    rows = build_rows(english, chinese, evaluation, operation_text_scan)
+    checks = build_checks(rows, english, chinese, evaluation, operation_text_scan)
     report: dict[str, Any] = {
         "run_id": RUN_ID,
         "status": "pass" if all(check["passed"] for check in checks) else "fail",
@@ -420,6 +584,7 @@ def main() -> None:
         "scope": "read-only English submodule audit; outer-repo outputs only",
         "rows": rows,
         "checks": checks,
+        "operation_text_oracle_scan": operation_text_scan,
         "source_status": source_rows(),
     }
 
