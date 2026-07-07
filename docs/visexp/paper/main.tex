@@ -615,16 +615,18 @@ E4 的辅助材料只约束正文和可重放结果的一致性。
 这些材料帮助 reviewer 判断 paper 是否把证据写过头，但不增加 localization、actionability 或 overhead claim。
 辅助 displays 可以支持 E1--E4，但不会形成额外主实验。
 
-\section{哪些数据集最适合}
+\section{数据源选择与扩展边界}
 
-从当前 15 个方案看，最适合支撑论文主 claim 的不是“最大”数据集，而是同时具备顺序、动作、边界或质量 oracle 的数据集。
-第一类是 OSWorld-Human，因为它同时给 single-action 和 grouped-action，是验证递归边界的最直接 oracle。
-第二类是 AgentNet，因为它规模大、人工桌面任务多，并带 per-step correctness/redundancy。
-第三类是 AgentRewardBench 和 SATraj-OS，因为它们把 profiler 从 action taxonomy 推到 failure、looping、安全和 side-effect diagnostics。
-第四类是 GUI-Odyssey/tau-bench/ToolBench 这组跨域补充，它们覆盖移动 GUI、user-agent-tool dialogue 和 API/tool traces，证明 operation abstraction 不局限于桌面。
+当前数据选择遵循 oracle-first 原则。
+Operation-stack profiling 的主 claim 需要有顺序、有动作、并且能隐藏评分标签的真实轨迹。
+规模更大的数据集如果缺少这些字段，只能支撑覆盖范围，不能支撑 localization accuracy。
+OSWorld-Human 提供 single-action 和 grouped-action，因此最直接支撑递归边界验证。
+AgentNet 同时提供大规模人工桌面任务和 per-step correctness/redundancy，因此支撑 step-quality profiling。
+AgentRewardBench 和 SATraj-OS 把评估目标从 action taxonomy 推到 failure、looping、安全和 side-effect diagnostics。
+GUI-Odyssey、tau-bench 和 ToolBench 则作为跨域覆盖来源，说明 operation abstraction 可以覆盖移动 GUI、user-agent-tool dialogue 和 API/tool traces，而不局限于桌面轨迹。
 
-ScaleCUA 是有用补充，但不是当前主证据。
-补充 ScaleCUA stream sample 含 5,000 个 Ubuntu navigation rows，覆盖 131 个 sessions，最大 step 为 48。
+ScaleCUA 的作用是扩大 GUI history 覆盖，而不是提供新的主证据。
+我们使用的 ScaleCUA stream sample 含 5,000 个 Ubuntu navigation rows，覆盖 131 个 sessions，最大 step 为 48。
 该子集的 action taxonomy 主要是 click 和 terminate，所以 phase/action 指标达到 1.0 并不表示强泛化。
 它更适合证明 multi-step GUI history context 可以被投影为 \texttt{history\_state} 和 \texttt{history\_depth} fields，而不是证明复杂边界 detector。
 
