@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>R405 English Paper Experiment Gap Audit</title>
+  <style>
+    body { font-family: sans-serif; margin: 2rem; line-height: 1.4; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid #ccc; padding: 0.35rem; vertical-align: top; }
+    th { background: #f2f2f2; }
+  </style>
+</head>
+<body>
+  <h1>R405 English Paper Experiment Gap Audit</h1>
+  <p>Status: <strong>pass</strong></p>
+  <h2>Claim/Gaps</h2>
+  <table>
+    <tr><th>Area</th><th>Status</th><th>Claim or gap</th><th>Outer evidence</th><th>Next action</th></tr>
+    <tr><td>Overall structure</td><td>gap_to_sync_when_english_edits_are_allowed</td><td>English draft still presents three RQs, while the outer paper/evaluation ledger uses three empirical profiling experiments plus one replayability/scope-control block.</td><td>docs/visexp/paper/main.tex and docs/evaluation.md contain RQ1/E1-RQ4/E4.</td><td>Do not edit the submodule now. When explicitly allowed, port the four-block structure from the Chinese paper into English.</td></tr>
+<tr><td>Fidelity / localization</td><td>supported_by_outer_artifacts</td><td>Operation-stack groups localize dataset-provided hidden positives with less flat-summary inspection work and less fixed-session fragmentation.</td><td>R320/R344/R355/R368: 6 tasks, 34,539 operations, 3,699 positives; Work@5 0.0937 vs flat 1.0; median groups 157.5 vs fixed-session 285.0; metric counterpoints preserved.</td><td>Use as the main profiling-paper claim; keep flat/fixed-session counterpoints visible.</td></tr>
+<tr><td>Actionability</td><td>supported_as_profile_configuration</td><td>Profiler output can guide profile-configuration changes: stack fields, rank features, mapping rules, depth, and boundary-derived fields.</td><td>R324/R325/R335/R340/R341/R345-R350/R354/R358/R366/R400 provide feature, patch, boundary, and suitability evidence; R354 has 5/6 accepted executable profile-spec patches.</td><td>Write actionability as configuration insight, not automatic patch selection or agent-driven diagnosis.</td></tr>
+<tr><td>Intent recognition / taggers</td><td>must_remain_future_work</td><td>Direct regex-vs-embedding-vs-LLM tagger comparison on the same free-form prompts remains future work.</td><td>R366 supports deterministic/supervised field derivation and suitability checks, but not a completed same-prompt backend comparison.</td><td>Do not claim LLM/regex/embedding tagger accuracy until a same-input evaluation exists.</td></tr>
+<tr><td>Boundary detection</td><td>supported_only_with_scope</td><td>Current boundary evidence is supervised or deterministic field derivation, not automatic discovery of every latent intent boundary.</td><td>R297/R299/R355/R366/R400: OSWorld-Human and selected label families support scoped boundary fields; family suitability includes accept/caution/reject outcomes.</td><td>Keep &#x27;automatic intent boundary discovery&#x27; out of the claim; require family-specific suitability.</td></tr>
+<tr><td>Human utility</td><td>unsupported_non_claim</td><td>The evidence does not show improved human/agent analyst accuracy, time-to-answer, or productivity.</td><td>R315/R316 are protocol/sensitivity artifacts; docs/evaluation.md explicitly gates human-utility claims.</td><td>Only run an analyst study if the paper wants human utility claims.</td></tr>
+<tr><td>Trace ecosystem compatibility</td><td>unsupported_non_claim</td><td>The project has standard-trace exchange smoke tests, but no complete compatibility claim for OpenTelemetry/Phoenix/LangSmith/Langfuse/Perfetto producer traces.</td><td>R306/R353 cover Chrome/Perfetto-style exchange containers and byte-identical replay on fixtures/prefixes; real producer imports remain pending.</td><td>Import one real producer trace before claiming ecosystem compatibility or span-tree superiority.</td></tr>
+<tr><td>Two abstractions</td><td>supported_in_outer_paper</td><td>Outer Chinese paper now frames prompt/session/span/task as fields, containers, or baseline shapes over operations, not profiler objects.</td><td>Chinese paper abstract/design plus R394/R375 guardrails preserve operation and operation-stack as the only profiler abstractions.</td><td>When English edits are allowed, align terminology to operation/operation-stack and avoid extra abstract objects.</td></tr>
+  </table>
+  <h2>Checks</h2>
+  <table>
+    <tr><th>Check</th><th>Passed</th><th>Detail</th></tr>
+    <tr><td>english_submodule_read_only_scope</td><td>True</td><td>This script opens docs/agentpprof-paper/main.tex for reading only and writes outputs only under the outer docs/visexp/out tree.</td></tr>
+<tr><td>three_empirical_plus_one_scope_detected</td><td>True</td><td>Outer Chinese paper/evaluation ledger expose the four reviewer-facing blocks.</td></tr>
+<tr><td>english_three_rq_gap_detected</td><td>True</td><td>The English submodule draft remains behind the outer four-block organization.</td></tr>
+<tr><td>main_claim_has_outer_evidence</td><td>True</td><td>R405 maps the core localization/work/fragmentation claim to tracked outer artifacts.</td></tr>
+<tr><td>future_work_gaps_explicit</td><td>True</td><td>R405 lists tagger-comparison, human-utility, and ecosystem-compatibility gaps as non-claims or future work.</td></tr>
+<tr><td>two_abstraction_boundary_preserved</td><td>True</td><td>R405 routes mappings, tags, predicates, rankers, and profile specs back to the two profiler abstractions.</td></tr>
+  </table>
+</body>
+</html>

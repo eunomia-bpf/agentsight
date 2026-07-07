@@ -1,0 +1,193 @@
+{
+  "checks": [
+    {
+      "check": "english_submodule_read_only_scope",
+      "detail": "This script opens docs/agentpprof-paper/main.tex for reading only and writes outputs only under the outer docs/visexp/out tree.",
+      "passed": true
+    },
+    {
+      "check": "three_empirical_plus_one_scope_detected",
+      "detail": "Outer Chinese paper/evaluation ledger expose the four reviewer-facing blocks.",
+      "passed": true
+    },
+    {
+      "check": "english_three_rq_gap_detected",
+      "detail": "The English submodule draft remains behind the outer four-block organization.",
+      "passed": true
+    },
+    {
+      "check": "main_claim_has_outer_evidence",
+      "detail": "R405 maps the core localization/work/fragmentation claim to tracked outer artifacts.",
+      "passed": true
+    },
+    {
+      "check": "future_work_gaps_explicit",
+      "detail": "R405 lists tagger-comparison, human-utility, and ecosystem-compatibility gaps as non-claims or future work.",
+      "passed": true
+    },
+    {
+      "check": "two_abstraction_boundary_preserved",
+      "detail": "R405 routes mappings, tags, predicates, rankers, and profile specs back to the two profiler abstractions.",
+      "passed": true
+    }
+  ],
+  "generated_at": "2026-07-07T20:28:43Z",
+  "git_commit": "010668cf420faccf14928f729586f37a3988598f",
+  "rows": [
+    {
+      "claim_or_gap": "English draft still presents three RQs, while the outer paper/evaluation ledger uses three empirical profiling experiments plus one replayability/scope-control block.",
+      "claim_rule": "Keep the reviewer-facing paper as 3 empirical profiling experiments plus 1 reproducibility/scope block, not a run ledger.",
+      "english_line": "131",
+      "next_action": "Do not edit the submodule now. When explicitly allowed, port the four-block structure from the Chinese paper into English.",
+      "outer_evidence": "docs/visexp/paper/main.tex and docs/evaluation.md contain RQ1/E1-RQ4/E4.",
+      "paper_area": "Overall structure",
+      "status": "gap_to_sync_when_english_edits_are_allowed"
+    },
+    {
+      "claim_or_gap": "Operation-stack groups localize dataset-provided hidden positives with less flat-summary inspection work and less fixed-session fragmentation.",
+      "claim_rule": "Claim profiler localization/ranking fidelity against hidden labels, not human analyst accuracy or universal dominance.",
+      "english_line": "541",
+      "next_action": "Use as the main profiling-paper claim; keep flat/fixed-session counterpoints visible.",
+      "outer_evidence": "R320/R344/R355/R368: 6 tasks, 34,539 operations, 3,699 positives; Work@5 0.0937 vs flat 1.0; median groups 157.5 vs fixed-session 285.0; metric counterpoints preserved.",
+      "paper_area": "Fidelity / localization",
+      "status": "supported_by_outer_artifacts"
+    },
+    {
+      "claim_or_gap": "Profiler output can guide profile-configuration changes: stack fields, rank features, mapping rules, depth, and boundary-derived fields.",
+      "claim_rule": "Actionability is 'what to tune and why', not an automatic optimizer.",
+      "english_line": "753",
+      "next_action": "Write actionability as configuration insight, not automatic patch selection or agent-driven diagnosis.",
+      "outer_evidence": "R324/R325/R335/R340/R341/R345-R350/R354/R358/R366/R400 provide feature, patch, boundary, and suitability evidence; R354 has 5/6 accepted executable profile-spec patches.",
+      "paper_area": "Actionability",
+      "status": "supported_as_profile_configuration"
+    },
+    {
+      "claim_or_gap": "Direct regex-vs-embedding-vs-LLM tagger comparison on the same free-form prompts remains future work.",
+      "claim_rule": "Mapping/tagging are operation-field derivation mechanisms; they are not evidence of universal intent recognition.",
+      "english_line": "678",
+      "next_action": "Do not claim LLM/regex/embedding tagger accuracy until a same-input evaluation exists.",
+      "outer_evidence": "R366 supports deterministic/supervised field derivation and suitability checks, but not a completed same-prompt backend comparison.",
+      "paper_area": "Intent recognition / taggers",
+      "status": "must_remain_future_work"
+    },
+    {
+      "claim_or_gap": "Current boundary evidence is supervised or deterministic field derivation, not automatic discovery of every latent intent boundary.",
+      "claim_rule": "Boundary backends write operation fields before folding and remain inside the two abstractions.",
+      "english_line": "471",
+      "next_action": "Keep 'automatic intent boundary discovery' out of the claim; require family-specific suitability.",
+      "outer_evidence": "R297/R299/R355/R366/R400: OSWorld-Human and selected label families support scoped boundary fields; family suitability includes accept/caution/reject outcomes.",
+      "paper_area": "Boundary detection",
+      "status": "supported_only_with_scope"
+    },
+    {
+      "claim_or_gap": "The evidence does not show improved human/agent analyst accuracy, time-to-answer, or productivity.",
+      "claim_rule": "The main claim is profiler fidelity/work/actionability on labeled traces, not analyst productivity.",
+      "english_line": "397",
+      "next_action": "Only run an analyst study if the paper wants human utility claims.",
+      "outer_evidence": "R315/R316 are protocol/sensitivity artifacts; docs/evaluation.md explicitly gates human-utility claims.",
+      "paper_area": "Human utility",
+      "status": "unsupported_non_claim"
+    },
+    {
+      "claim_or_gap": "The project has standard-trace exchange smoke tests, but no complete compatibility claim for OpenTelemetry/Phoenix/LangSmith/Langfuse/Perfetto producer traces.",
+      "claim_rule": "Current span-tree baseline is fixed-session-shaped drilldown, not full ecosystem parity.",
+      "english_line": "756",
+      "next_action": "Import one real producer trace before claiming ecosystem compatibility or span-tree superiority.",
+      "outer_evidence": "R306/R353 cover Chrome/Perfetto-style exchange containers and byte-identical replay on fixtures/prefixes; real producer imports remain pending.",
+      "paper_area": "Trace ecosystem compatibility",
+      "status": "unsupported_non_claim"
+    },
+    {
+      "claim_or_gap": "Outer Chinese paper now frames prompt/session/span/task as fields, containers, or baseline shapes over operations, not profiler objects.",
+      "claim_rule": "Only operation and operation stack are profiler abstractions; mappings, tags, predicates, rankers, and specs configure them.",
+      "english_line": "",
+      "next_action": "When English edits are allowed, align terminology to operation/operation-stack and avoid extra abstract objects.",
+      "outer_evidence": "Chinese paper abstract/design plus R394/R375 guardrails preserve operation and operation-stack as the only profiler abstractions.",
+      "paper_area": "Two abstractions",
+      "status": "supported_in_outer_paper"
+    }
+  ],
+  "run_id": "R405",
+  "scope": "read-only English submodule audit; outer-repo outputs only",
+  "source_status": [
+    {
+      "path": "script/paper_english_experiment_gap_audit.py",
+      "sha256": "49568c8df80d7dea657fb5b5c3b3779b03c78dfe728a880f249dc5c0629f83ce",
+      "source": "generator script",
+      "status": "untracked_or_missing"
+    },
+    {
+      "path": "docs/agentpprof-paper/main.tex",
+      "sha256": "90338c150c6514f5381f9f14f746a7b41fe84630b371bbd01266d40b35b5227f",
+      "source": "English paper draft",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/paper/main.tex",
+      "sha256": "935ce7fa3e4c770058c6b8f42f2ec51ff759a60a87ad6717e00b9ebbcf8fed6e",
+      "source": "Chinese paper draft",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/evaluation.md",
+      "sha256": "89ccf66826314169cfe7ba71cfdb5371cb852b851a6c633281c7c5387431fe6d",
+      "source": "evaluation ledger",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/design.md",
+      "sha256": "de9a9adcec1e6737f757d6dfd16d0a26c7df9c3c622b5bae87edcae9ab83098b",
+      "source": "design notes",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/implementation.md",
+      "sha256": "27866ccdd5095c331adbe350874ae5a03eb76644b03aadcff030257ad0650a3d",
+      "source": "implementation notes",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/visexp/out/operation-profile-accuracy-r320/profile-accuracy-report.json",
+      "sha256": "4baf9e91f444ec47a4d8d843ffc210e11fabf51b18dbc6113c7a2b2532a35786",
+      "source": "R320 hidden-label benchmark",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-metric-consistency-r344/metric-consistency-report.json",
+      "sha256": "efd92f217e603babb4ed900ae8551ade316dd8cfe9c0eb46fd8974a1f84026fb",
+      "source": "R344 metric consistency",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-oracle-depth-adequacy-r355/oracle-depth-adequacy-report.json",
+      "sha256": "59b32c9cb9f00000984ae19376ac9aa411ad7b1c9a679ef3d0306017e5def00a",
+      "source": "R355 oracle-depth adequacy",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-field-derivation-mechanism-r366/field-derivation-mechanism-report.json",
+      "sha256": "c29010e8f008498962dccf5c5494ed739a19020935739eb66db358e76afeb870",
+      "source": "R366 field derivation",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/paper-trace-tree-baseline-r368/trace-tree-baseline-report.json",
+      "sha256": "a261b64246f392a48b45c55cd43fb62c2d962ce6cbb86040697818d2edb2a81c",
+      "source": "R368 trace-tree baseline",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/paper-core-claim-gate-r375/core-claim-gate-report.json",
+      "sha256": "ef0085eb95e71921df924b6209eee1d3925cec402325b8feee84695b9cc624dc",
+      "source": "R375 claim gate",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-field-suitability-r400/field-suitability-report.json",
+      "sha256": "8f85dddc0ed65f1de48ae62353454abd2d545c0748db6defc67c8e13afa1561f",
+      "source": "R400 field suitability",
+      "status": "tracked_clean"
+    }
+  ],
+  "status": "pass"
+}

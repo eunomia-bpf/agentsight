@@ -43,7 +43,7 @@ AI agent 的执行历史已经不再只是一次 prompt 或一棵 trace tree。
 本文提出一种更小的语义剖析模型：系统只保留两个核心抽象，\op{} 和 \opstack{}。
 \op{} 是带字段和权重的观测，prompt、tool call、process、syscall、GUI action 和 plan step 可以是 operation 记录或派生字段；session、span、task 和 trace id 是 operation fields、交换容器或 baseline shape，不是新的 profiler 对象。
 \opstack{} 是用户从字段中选择的递归投影，mapping 和 tagging 在 stack 构造前派生字段，而不是创建第三种 profiler 对象。
-当用户不想给出固定 stack 字段链时，\toolname{} 也可以从可见 evidence、semantic shift 和 query hint 中给相邻 operation boundary 打分，递归诱导多值 \texttt{task} 字段，再用 task-only stack 折叠。
+当用户不想给出固定 stack 字段链时，\toolname{} 也可以从可见 evidence、semantic shift 和 query hint 中给相邻 operation boundary 打分，递归诱导多层 operation frames，再用 operation-only stack 折叠。
 关键点是聚合不是第三个对象，也不是固定 trace tree；聚合由 query time 选择的 stack 形态决定。
 这不是单纯的 query-time aggregation 或 flamegraph renderer claim；scoped novelty 是 agent-operation record、recursive multi-field operation-stack projection 和 hidden-label profile-group scoring 的组合。
 我们在 Rust \toolname{} 中实现该模型，并围绕三个核心经验性 profiling 实验和一个 replayability/scope-control block 评估它。
@@ -95,7 +95,7 @@ Profiler 的核心任务不是决定唯一正确边界，而是让用户和实�
 \opstack{} 是从 operation fields 中选择出的有序 frame 列表。
 例如同一批 operations 可以用 \texttt{project,dataset} 查看数据来源，也可以用 \texttt{project,dataset,task,phase,op,tool,action,status} 查看动作深度，或者加入 \texttt{human\_group}、\texttt{step\_correct}、\texttt{safety} 和 \texttt{looping} 做诊断视图。
 Stack 不是 trace tree，也不是 session hierarchy。
-自动 task-stack induction 仍然只产生 \opstack{}：\toolname{} 在当前连续 operation segment 内用可见 evidence、semantic shift、changed-field density 和 query hint 给相邻 cut 打分，要求左右 child 有足够权重和不同 dominant evidence，然后递归写入多值 \texttt{task} 字段。
+自动 operation-stack induction 仍然只产生 \opstack{}：\toolname{} 在当前连续 operation segment 内用可见 evidence、semantic shift、changed-field density 和 query hint 给相邻 cut 打分，要求左右 child 有足够权重和不同 dominant evidence，然后递归写入多层 operation frames。
 因此用户给的是 predicate、view 和 query hint，不是 \texttt{analysis\_task,phase,action,status} 这样的固定 stack 字段链。
 它是一个查询结果，用户可以按问题改变深度和字段。
 
@@ -148,7 +148,7 @@ agentpprof --operation-file ops.jsonl --view operations \\
 Stack 结构分析脚本位于 \texttt{script/operation\_stack\_analysis.py}，用于生成 flamegraph 之外的 tree、top-kind 和 transition 报告。
 
 这个实现刻意保留简单接口。
-它不像 jq 那样完整表达 JSON 查询语言，但它已经把 profiler 的关键自由度暴露为 flags 和可提交配置：数据源由 \texttt{--trace-file} 或 \texttt{--operation-file} 选择，权重由 \texttt{--view} 选择，查询子集由 \texttt{--where} 选择，字段派生由 \texttt{--op-map} 选择，显式递归边界由 \texttt{--stack} 选择，自动 task-stack 边界由 \texttt{--induce-task-stack} 和 query terms 诱导，JSON group 排序由 \texttt{--rank-rule}、\texttt{--rank-op-rule} 和 \texttt{--rank-mode} 选择，复现实验由 \texttt{--profile-spec} 固化。
+它不像 jq 那样完整表达 JSON 查询语言，但它已经把 profiler 的关键自由度暴露为 flags 和可提交配置：数据源由 \texttt{--trace-file} 或 \texttt{--operation-file} 选择，权重由 \texttt{--view} 选择，查询子集由 \texttt{--where} 选择，字段派生由 \texttt{--op-map} 选择，显式递归边界由 \texttt{--stack} 选择，自动 operation-stack 边界由 \texttt{--induce-operation-stack} 和 query terms 诱导，JSON group 排序由 \texttt{--rank-rule}、\texttt{--rank-op-rule} 和 \texttt{--rank-mode} 选择，复现实验由 \texttt{--profile-spec} 固化。
 实现证据只作为 E1--E4 的接口验证进入论文，而不是形成额外主实验。
 Profile-spec predicate 证明 mapping-derived \texttt{where\_rules} 可以在 folding 前选择 729/729、714/714 和 4,285/4,285 个预期 operations；profile-spec composition 证明 operation source、predicate、visible rank rule、rank mode 和显式 stack depth 可以在 12/12 variants 中组合，且不引入 prompt/session frame；standard-trace exchange 证明 tracked real labeled operation prefix 经 trace container 往返后仍保持 512 samples 和 11 stacks。
 这些检查只作为 E1 的接口复查材料，而不是新的 experiment block。
@@ -251,7 +251,7 @@ RQ4 检查 profile-spec 可复现性、离线成本和 claim scope。
     \toprule
     RQ / paper block & Workload / oracle & Main evidence & Scoped conclusion \\
     \midrule
-    RQ1/E1: generality, recursive folding, and field derivation & 15 public labeled trace families / 47,590 operations, plus local-session and standard-trace exchange fixtures. OSWorld-Human and AgentNet provide the strongest boundary and step-quality oracles. & Core sources contain 42,590 operations; ScaleCUA brings the smoke set to 47,590; the same operations fold from 9 dataset stacks to 57 phase, 226 semantic, 455 action, or 3,757 fixed-session stacks. AgentNet profile-spec override changes 608 stacks to 83 without changing input operations. Automatic task-stack induction produces variable-depth stacks on all six hidden-label tasks. Held-out mapping improves compression from 14.049 to 19.091; OSWorld-Human learned boundary F1 reaches 0.7735; boundary backends beat the best simple baseline on 4/5 rows. & Heterogeneous traces enter one operation layer, and stack depth is a recursive query over fields. Mapping, tagging, and boundary backends derive fields before folding; they do not add prompt/session/tool/safety-specific profiler objects or automatic intent boundary discovery. \\
+    RQ1/E1: generality, recursive folding, and field derivation & 15 public labeled trace families / 47,590 operations, plus local-session and standard-trace exchange fixtures. OSWorld-Human and AgentNet provide the strongest boundary and step-quality oracles. & Core sources contain 42,590 operations; ScaleCUA brings the smoke set to 47,590; the same operations fold from 9 dataset stacks to 57 phase, 226 semantic, 455 action, or 3,757 fixed-session stacks. AgentNet profile-spec override changes 608 stacks to 83 without changing input operations. Automatic operation-stack induction produces variable-depth stacks on all six hidden-label tasks. Held-out mapping improves compression from 14.049 to 19.091; OSWorld-Human learned boundary F1 reaches 0.7735; boundary backends beat the best simple baseline on 4/5 rows. & Heterogeneous traces enter one operation layer, and stack depth is a recursive query over fields. Mapping, tagging, and boundary backends derive fields before folding; they do not add prompt/session/tool/safety-specific profiler objects or automatic intent boundary discovery. \\
     RQ2/E2: hidden-label localization and ranking & Six failure, safety, quality, and boundary tasks over AgentRewardBench, SATraj-OS, AgentNet, and OSWorld-Human; 34,539 operations / 3,699 positives. & The benchmark scores 144 view/ranker policies. Query-aware operation-stack top-5 groups inspect median 0.0937 work versus 1.0 for flat, improve top-5 recall over fixed-session on 5/6 tasks, and reduce median groups from 285.0 to 157.5. Work-budget、fragmentation、fixed-recall、sequence-scope、oracle-depth、uncertainty、negative-control 和 multi-metric slices test robustness rather than define separate experiments. & Operation-stack profiling is faithful to dataset-provided hidden labels under this benchmark and gives a better inspection-work/median-fragmentation Pareto point than flat or fixed-session alone. It is not a universal detector, a single best hierarchy, or a work-dominant replacement for drilldown views. \\
     RQ3/E3: mechanism and actionability & The same six labeled tasks, plus held-out OSWorld-Human boundary-backend operations. & Operation-level rank features and ablations expose useful and misleading fields; profile-spec patches improve 5/6 tasks with median AP delta 0.0376 and lift delta 0.5750. Induced depth sweep finds best median AP at depth 4 and lowest median top-5 work at depth 5. Learned-boundary fields improve OSWorld-Human AP to 0.2583 and reduce groups to 74, but increase top-5 work and first-positive work. & The profiler produces profile-configuration actionability: which operation fields, operation-stack depths, mappings, rankers, lenses, and drilldown views to tune. It keeps automatic action selection, automatic patch selection, and automatic boundary discovery out of scope. \\
     RQ4/E4: replayability, offline cost, and scope control & 76 tracked operation-JSONL profile specs, plus local-session、agent-trace 和 standard-trace profile-spec input replay regressions. & Deterministic replay covers 152 profiler invocations. Semantic determinism is 76/76 in both modes; deterministic output makes raw-byte determinism 76/76 with median runtime 1.601s and p95 2.767s in the clean rerun. Source selection、regex tags、trace inputs 和 effective standard-trace args 都通过同一 operation-stack path replay。 & The offline profiler path is replayable and cheap enough for artifact evaluation. This result does not measure live eBPF overhead, human productivity, or full trace-ecosystem compatibility. \\
@@ -341,14 +341,14 @@ Profile spec 把这个 query 自由度变成可复现实验配置。
 第三，field derivation 是可扩展接口，因为 mapping 和 supervised backend 只写入 operation fields，profiler 仍按 operation stack 折叠。
 这些机制结果给出 paper novelty，但 user-utility、通用 boundary detector 和完整 trace-platform compatibility 仍是后续工作。
 
-Rust task-stack induction 进一步检验“不是用户给固定 stack 字段链”的实现路径。
-在 tracked AgentRewardBench looping slice 上，\toolname{} 用 \texttt{--induce-task-stack} 从可见 evidence、semantic shift、changed-field density 和 query hint 给相邻边界打分，并输出 task-only stacks。
+Rust operation-stack induction 进一步检验“不是用户给固定 stack 字段链”的实现路径。
+在 tracked AgentRewardBench looping slice 上，\toolname{} 用 \texttt{--induce-operation-stack} 从可见 evidence、semantic shift、changed-field density 和 query hint 给相邻边界打分，并输出 induced operation-only stacks。
 在六个 hidden-label tasks 上，同一个实现作为普通 profiler view 运行时全部产生 variable-depth stacks。
 其中 AgentRewardBench、AgentNet 和 OSWorld-Human 的 stacks 覆盖深度 2/3/4，SATraj 同时保留深度 1/2/3/4。
 这个自动 view 的 median groups 为 15.0，远低于 fixed-session 的 285.0；median top-5 work 为 0.2819，低于 flat summary 的 1.0。
 同时它的 median AP 为 0.3034，低于 hand-configured operation-stack query-aware 的 0.3116。
 同一 induced view 的 depth sweep 进一步说明深度是 profile 配置：median AP 在 depth 4 最高，为 0.3034；median top-5 work 在 depth 5 最低，为 0.1067；各任务的 AP-best depth 分散在 3、4 和 5。
-这说明同一个 prompt/action 序列可以被自动折叠成参差不齐的 task stack，但它支持的是 configurable recursive folding 和 depth tuning，不是取代 task-specific profile specs，也不是自动发现所有 intent boundary。
+这说明同一个 prompt/action 序列可以被自动折叠成参差不齐的 operation stack，但它支持的是 configurable recursive folding 和 depth tuning，不是取代 task-specific profile specs，也不是自动发现所有 intent boundary。
 
 \paragraph{Field derivation 和 boundary probes。}
 
@@ -405,7 +405,7 @@ Fixed-session drilldown 是当前已评估的 trace-tree-shaped baseline；这�
 在同一批 scored rows 上，operation-stack query-aware 相对 fixed-session 在 5/6 tasks 上提高 top-5 recall 和 F1，在 4/6 tasks 上提高 budget-30 recall，并在 4/6 tasks 上减少 group count；同时 fixed-session 在 4/6 tasks 上保留更低 top-5 work 和 first-positive work。
 Depth-aware slice 给出同一 claim 的更细版本：operation-stack rankings 在 20/24 task-depth rows 上超过 fixed-session budget-30 positive-unit recall，并在 22/24 rows 上用更少 groups 到达 50\% positive units。
 如果这些反例从论文里消失，claim 就会被写过头；保留它们后，E2 支持的是更好的 localization-budget/fragmentation tradeoff，不是对所有 trace-tree-shaped objectives 的 dominance。
-Automatic induced task stacks 给出同一 tradeoff 的机制侧证据。
+Automatic induced operation stacks 给出同一 tradeoff 的机制侧证据。
 它们在不要求用户给固定 stack 字段链的情况下，用可见 boundary evidence 产生 variable-depth groups，并在同一 hidden-label scoring pipeline 下取得 median top-5 work 0.2819 和 median groups 15.0。
 同一 induced path 上改变 depth cap 会改变 profile 表面：depth 4 给出最高 median AP，depth 5 给出最低 median top-5 work，且 3 个任务的 AP-best depth 与 work-best depth 不同。
 这个结果比 flat 更省检查、比 fixed-session 更少碎片化，但 AP 仍低于 hand-configured operation-stack，所以 E2 主结论仍以 query-aware operation stack 为主。
@@ -489,8 +489,8 @@ Human-boundary 任务指向 representation repair，因为 action-depth stack �
 Field-suitability decisions 进一步说明这些配置建议何时可用。
 Deterministic mapping、stack depth 和 predicates、operation-level rank features、supervised boundary fields、boundary-profile repair 分别对应不同的 accept/caution/reject 条件。
 因此 E3 的 actionability 是 profiler 指出该调哪个 operation-field 或 operation-stack view，而不是自动选择唯一正确视图或自动发现所有边界。
-Automatic task-stack induction 也落在这个 actionability 边界内。
-它证明 profiler 可以从可见字段递归诱导 task-only stack，并把深度参差的 stack 当作可打分 view，但它的 AP 反例说明 profile-specific stack 和 ranker 仍然需要按任务调优。
+Automatic operation-stack induction 也落在这个 actionability 边界内。
+它证明 profiler 可以从可见字段递归诱导 operation-only stack，并把深度参差的 stack 当作可打分 view，但它的 AP 反例说明 profile-specific stack 和 ranker 仍然需要按任务调优。
 Depth sensitivity 把这点变成可操作结论：同一 induced profiler view 在 depth 4 取得最高 median AP，在 depth 5 取得最低 median top-5 work，而 task-level AP-best depth 跨 3、4、5 分布。
 因此 E3 的建议是调 operation-stack depth 和 ranker objective，而不是把 \texttt{analysis\_task,phase,action,status} 当成固定 ontology。
 
