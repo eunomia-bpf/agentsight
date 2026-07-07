@@ -1,0 +1,57 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>R406 English induction sync</title>
+  <style>
+    body { font-family: sans-serif; margin: 2rem; line-height: 1.45; }
+    table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+    th, td { border: 1px solid #ccc; padding: 0.35rem; vertical-align: top; }
+    pre { background: #f6f8fa; padding: 1rem; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <h1>R406 English Operation-Stack Induction Sync Packet</h1>
+  <p>Status: <strong>pass</strong>. This packet is read-only with respect to the English submodule.</p>
+  <h2>Evidence To Port</h2>
+  <table>
+    <thead><tr><th>paper_block</th><th>english_status</th><th>ready_evidence</th><th>numbers</th><th>claim_boundary</th><th>sync_action</th></tr></thead>
+    <tbody><tr><td>RQ1 mechanism: recursive operation-stack construction</td><td>missing_from_submodule</td><td>R402 replays the maintained Rust profiler on a tracked AgentRewardBench slice and emits induced operation frames without a user stack-field order.</td><td>729 operations; overview 15 stacks with depth histogram {&#x27;2&#x27;: 1, &#x27;3&#x27;: 1, &#x27;4&#x27;: 13}; session-allowed view 16 stacks.</td><td>This supports configurable recursive folding, not automatic discovery of all intent boundaries.</td><td>Port the induction paragraph and keep session as optional evidence, not a default stack level.</td></tr>
+<tr><td>RQ2 mechanism ablation: hidden-label localization</td><td>missing_from_submodule</td><td>R403 scores induced operation-stack groups on the same six R300/R320 hidden-label tasks.</td><td>4/6 tasks produce variable-depth stacks and 2/6 stop when visible evidence has no material split; median AP 0.2762 vs hand-configured operation-stack 0.3116; median work@5 0.653 vs flat 1; median groups 12 vs fixed-session 285.</td><td>The hand-configured operation stack remains the stronger main policy by AP, so induction is an ablation and configuration probe.</td><td>Add a short RQ2 paragraph or table row under baseline/actionability discussion, not a new top-level experiment.</td></tr>
+<tr><td>RQ3 actionability: depth sensitivity</td><td>missing_from_submodule</td><td>R404 sweeps --induce-max-depth over depths 1 through 5 using hidden labels only after profiling.</td><td>query-aware median AP is highest at depth 3 (0.2865); median work@5 is lowest at depth 5 (0.4727); material-split task AP-best depths span 2, 3, 4, 5.</td><td>This is a profile-configuration surface, not an automatic depth selector.</td><td>Use this as actionability evidence: different tasks prefer different recursive depths and metrics.</td></tr>
+<tr><td>Scope guardrail</td><td>must_preserve_non_claim</td><td>R402/R403/R404 exclude oracle source fields and score hidden labels only after profiling.</td><td>R403 and R404 both pass hidden-label and no-oracle-source checks.</td><td>Do not claim human productivity, automatic patch selection, universal boundary discovery, or full OTel/LangSmith/Phoenix compatibility.</td><td>When porting into English, keep these limitations adjacent to the induced-stack result.</td></tr></tbody>
+  </table>
+  <h2>Snippet Draft</h2>
+  <pre>% R406 read-only sync packet. Do not paste until English submodule edits are allowed.
+\paragraph{Automatic operation-stack induction.}
+The profiler can construct a recursive operation stack without asking the user for a fixed field order such as phase/action/status.
+We run \texttt{--induce-operation-stack} on a tracked AgentRewardBench slice and let visible boundary evidence, semantic shift, changed-field density, and query hints choose adjacent cuts inside each current segment.
+The overview replay covers 729 operations and produces 15 induced operation stacks; allowing session as evidence changes the result to 16 stacks, which confirms that session is an optional evidence field rather than a required stack level.
+This result is an implementation and mechanism check for recursive folding, not an automatic boundary detector.
+
+\paragraph{Induced stacks as a localization ablation.}
+We then score the same induced operation-stack path on the six hidden-label localization tasks.
+The induced view creates variable-depth stacks on 4/6 tasks and stops on 2/6 tasks when visible fields do not support a material split.
+Its median top-5 inspection work is 0.653, compared with 1 for flat summaries, and its median group count is 12, compared with 285 for fixed-session drilldown.
+The hand-configured operation stack remains stronger by median AP (0.3116 versus 0.2762), so this ablation supports configurable recursive folding rather than replacing task-specific profile specifications.
+
+\paragraph{Depth sensitivity.}
+Changing only the induced-stack depth cap changes the localization surface.
+The query-aware induced view reaches its highest median AP at depth 3 (0.2865), while the lowest median top-5 work occurs at depth 5 (0.4727).
+Across tasks with material splits, AP-best depths span 2, 3, 4, 5.
+This is profile-configuration actionability, not an analyst-productivity result or an automatic depth selector.
+</pre>
+  <h2>Checks</h2>
+  <table>
+    <thead><tr><th>Check</th><th>Passed</th><th>Detail</th></tr></thead>
+    <tbody><tr><td>english_submodule_read_only_scope</td><td>True</td><td>The script writes only under docs/visexp/out and reads docs/agentpprof-paper/main.tex without editing it.</td></tr>
+<tr><td>r402_passed</td><td>True</td><td>R402 run-result.json reports pass.</td></tr>
+<tr><td>r403_passed</td><td>True</td><td>R403 run-result and report both pass.</td></tr>
+<tr><td>r404_passed</td><td>True</td><td>R404 run-result and report both pass.</td></tr>
+<tr><td>english_gap_detected</td><td>True</td><td>The current English submodule does not yet mention --induce-operation-stack or induced operation-stack evidence.</td></tr>
+<tr><td>outer_paper_and_ledger_have_evidence</td><td>True</td><td>The outer Chinese paper and evaluation ledger mention R402/R403/R404 induced operation-stack evidence.</td></tr>
+<tr><td>public_profile_uses_operation_stack_key</td><td>True</td><td>R402 public JSON exposes operation_stack_induction and no stale task_stack_induction key.</td></tr>
+<tr><td>snippets_include_claim_boundaries</td><td>True</td><td>The generated English snippets include non-claim boundaries.</td></tr></tbody>
+  </table>
+</body>
+</html>

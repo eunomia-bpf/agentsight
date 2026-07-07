@@ -1,0 +1,18 @@
+% R406 read-only sync packet. Do not paste until English submodule edits are allowed.
+\paragraph{Automatic operation-stack induction.}
+The profiler can construct a recursive operation stack without asking the user for a fixed field order such as phase/action/status.
+We run \texttt{--induce-operation-stack} on a tracked AgentRewardBench slice and let visible boundary evidence, semantic shift, changed-field density, and query hints choose adjacent cuts inside each current segment.
+The overview replay covers 729 operations and produces 15 induced operation stacks; allowing session as evidence changes the result to 16 stacks, which confirms that session is an optional evidence field rather than a required stack level.
+This result is an implementation and mechanism check for recursive folding, not an automatic boundary detector.
+
+\paragraph{Induced stacks as a localization ablation.}
+We then score the same induced operation-stack path on the six hidden-label localization tasks.
+The induced view creates variable-depth stacks on 4/6 tasks and stops on 2/6 tasks when visible fields do not support a material split.
+Its median top-5 inspection work is 0.653, compared with 1 for flat summaries, and its median group count is 12, compared with 285 for fixed-session drilldown.
+The hand-configured operation stack remains stronger by median AP (0.3116 versus 0.2762), so this ablation supports configurable recursive folding rather than replacing task-specific profile specifications.
+
+\paragraph{Depth sensitivity.}
+Changing only the induced-stack depth cap changes the localization surface.
+The query-aware induced view reaches its highest median AP at depth 3 (0.2865), while the lowest median top-5 work occurs at depth 5 (0.4727).
+Across tasks with material splits, AP-best depths span 2, 3, 4, 5.
+This is profile-configuration actionability, not an analyst-productivity result or an automatic depth selector.
