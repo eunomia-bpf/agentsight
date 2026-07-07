@@ -424,39 +424,28 @@ Prompt 或 session 没有参与这个抽象。
 
 \subsection{RQ2/E2：Hidden-label localization 和 ranking}
 
-RQ2 检验 operation-stack profiling 能否在真实 labeled traces 上完成 faithful localization 和 ranking。
-我们把 6 个 oracle-backed tasks 中的 34,539 个 operations 和 3,699 个 hidden positives 作为评分对象，并比较 flat summary、fixed-session drilldown、dataset-native hierarchy、raw-action stack、operation-stack width、operation-stack query-aware、label-drilldown 和 oracle upper bound。
+RQ2 问 profiler 能否把真实标注轨迹中的问题排到检查队列前面。
+我们把每个 profile group 视为一个待检查目标，把 dataset labels 隐藏到 scoring 阶段，并只允许非 oracle policies 读取可见 operation fields。
+六个任务覆盖 AgentRewardBench looping/side-effect、SATraj unsafe、AgentNet incorrect/redundant steps 和 OSWorld-Human group starts，总计 34,539 个 operations 和 3,699 个 positives。
+主比较衡量一个 profiling view 是否比 flat summary 少检查操作，是否比 fixed-session drilldown 更少碎片化或在同预算下召回更多 positives，以及是否保留反例而不写成单项指标支配。
+比较对象包括 flat summary、fixed-session drilldown、dataset-native hierarchy、raw-action stack、operation-stack width、operation-stack query-aware、label-drilldown 和 oracle upper bound。
 评分指标包括 precision@k、recall、F1、AUPRC-style AP、nDCG、recall/F1@work budget、work-to-first-positive 和 group count。
-Flat 和 dataset-native 可以赢 broad-recall 或 nDCG 目标，因此主张必须是 Pareto tradeoff，而不是 metric dominance。
-这一节的核心问题是 hot stacks 和 top-ranked groups 是否真的对应 hidden positives，并且是否能相对 flat summary 降低 inspection work、相对 fixed-session drilldown proxy 改善 localization-budget/fragmentation tradeoff。
 
-E2 把每个 profile group 当作 inspection target。
-Ranked targets 如果能用比 flat summary 更少的 work 找到 hidden positives，并比 fixed-session trace-tree proxy 更少碎片化，就支持本文的 profiling 主张。
-成功条件不是单一指标第一。
-Operation stack 需要降低 flat inspection work，在有意义的 fixed-session localization 或 fragmentation objective 上改善，同时保留 fixed-session early-hit 反例。
-这个主实验不重新定义 agent benchmark，而是把真实标注轨迹中的 failure、safety、quality 和 human-boundary labels 当作 profiler localization oracle。
-6 个任务覆盖 AgentRewardBench looping/side-effect、SATraj unsafe、AgentNet incorrect/redundant steps 和 OSWorld-Human group starts，总计 34,539 个 operations、3,699 个 positives。
-E2 scoring pipeline 把每个 view/ranker 的 hot groups 当作 ranked localization result，用 hidden labels 计算 precision@k、recall@budget、F1、AUPRC-style AP、nDCG 和 work-to-first-positive。
-比较对象包括 flat、fixed-session drilldown、dataset-native hierarchy、raw action stack、operation-stack、label-drilldown oracle view，以及 width、visible-risk、query-aware 和 oracle-upper-bound rankers。
-非 oracle policies 只使用 visible operation fields，label-drilldown 和 oracle-upper-bound 只作为上界。
-表~\ref{tab:e2-localization} 给出主要 policies 的 median 结果。
+表~\ref{tab:e2-localization} 给出主要 policies 的 median 结果，并显示 operation-stack 的主要收益来自检查成本和碎片化的折中。
 Operation-stack query-aware 在 top-5 groups 中只检查 0.0937 operation fraction，而 flat summary 必须检查 1.0。
 相对 fixed-session query-aware drilldown，operation-stack top-5 recall 在 5/6 tasks 上更高，并把 median group count 从 285.0 降到 157.5。
-这支持的是 inspection-work/fragmentation Pareto tradeoff，而不是 metric dominance。
+这些数字支持 inspection-work/fragmentation Pareto tradeoff，而不是 metric dominance。
 Dataset-native hierarchy 的 median top-5 recall 达到 0.8665 但 work 为 0.8539，fixed-session 的 work-to-first-positive 只有 0.0044 但 top-5 recall 只有 0.0233。
 
-Failure interpretation 和 baseline scope 也是结果的一部分。
-Fixed-session drilldown 是当前已评估的 trace-tree-shaped baseline。
-这个 baseline 不等价于完整导入 OpenTelemetry、Phoenix、LangSmith、Langfuse 或 Perfetto ecosystem traces。
+Baseline scope 直接限制 E2 的 claim。
+Fixed-session drilldown 是当前已评估的 trace-tree-shaped baseline，但它不等价于完整导入 OpenTelemetry、Phoenix、LangSmith、Langfuse 或 Perfetto ecosystem traces。
 在同一批 scored rows 上，operation-stack query-aware 相对 fixed-session 在 5/6 tasks 上提高 top-5 recall 和 F1，在 4/6 tasks 上提高 budget-30 recall，并在 4/6 tasks 上减少 group count。
-同时 fixed-session 在 4/6 tasks 上保留更低 top-5 work 和 first-positive work。
-Depth-aware slice 细化同一主张。
-Operation-stack rankings 在 20/24 task-depth rows 上超过 fixed-session budget-30 positive-unit recall，并在 22/24 rows 上用更少 groups 到达 50\% positive units。
-如果这些反例从论文里消失，主张就会被写过头。
-保留它们后，E2 支持的是更好的 localization-budget/fragmentation tradeoff，不是对所有 trace-tree-shaped objectives 的 dominance。
-Automatic induced operation stacks 给出同一 tradeoff 的机制侧证据。
-它们在不要求用户给固定 stack 字段链的情况下，用可见 boundary evidence 产生 variable-depth groups 或在证据不足时停止，并在同一 hidden-label scoring pipeline 下取得 median top-5 work 0.653 和 median groups 12.0。
-同一 induced path 上改变 depth cap 会改变 profile 表面：depth 3 给出最高 query-aware median AP，depth 5 给出最低 median top-5 work，且有 material split 的四个任务 AP-best depth 与 work-best depth 都不同。
+Fixed-session 同时在 4/6 tasks 上保留更低 top-5 work 和 first-positive work。
+Depth-aware scoring 进一步说明同一个 tradeoff，因为 operation-stack rankings 在 20/24 task-depth rows 上超过 fixed-session budget-30 positive-unit recall，并在 22/24 rows 上用更少 groups 到达 50\% positive units。
+这些反例让 E2 的结论保持在 localization-budget/fragmentation tradeoff 上，而不是扩张成对所有 trace-tree-shaped objectives 的 dominance。
+Automatic induced operation stacks 提供机制侧证据。
+Induction 不要求用户给固定 stack 字段链，而是用可见 boundary evidence 产生 variable-depth groups 或在证据不足时停止，并在同一 hidden-label scoring pipeline 下取得 median top-5 work 0.653 和 median groups 12.0。
+同一 induced path 上改变 depth cap 会改变 profile 表面，depth 3 给出最高 query-aware median AP，depth 5 给出最低 median top-5 work，且有 material split 的四个任务 AP-best depth 与 work-best depth 都不同。
 这个结果比 flat 更省检查、比 fixed-session 更少碎片化，但 AP 仍低于 hand-configured operation-stack，所以 E2 主结论仍以 query-aware operation stack 为主。
 Case views 只解释 localization result 的可复查性。
 这些 examples 只使用可见 operation fields，再用隐藏标签事后评分，因此可以展示 top-ranked operation-stack groups 为什么命中或误导，同时保留 flat full-recall 与 fixed-session early-hit 反例。
@@ -502,7 +491,7 @@ Case views 只解释 localization result 的可复查性。
 任务级汇总显示 6/6 tasks 相比 flat summary 改善 AP 和 top-five inspected work，5/6 tasks 相比 fixed-session drilldown 改善 top-five recall，4/6 tasks 降低 fixed-session group fragmentation，并且 6/6 tasks 都有 actionable configuration result，即 profile-spec patch 或 boundary-field repair。
 同一组 views 也保留负证据：fixed-session 在若干任务上仍然是 first-positive 或 group-count counterpoint，OSWorld-Human 需要 boundary-derived fields，而不是 visible phase/action ranking alone。
 
-E2 的 robustness evidence 只检验 Pareto 结论是否稳健。
+E2 的 robustness evidence 只检验同一个 Pareto 结论是否稳健。
 Bootstrap 和 label-permutation analyses 显示，operation-stack query-aware 的 AP、top-5 work、budget recall 和 group-count deltas 在 6/6 tasks 上方向稳定。
 AP 在 6/6 tasks 上超过 95\% prevalence/group-size null，30\% budget recall 在 5/6 tasks 上超过 null。
 Work-budget、fragmentation 和 oracle-depth analyses 再把收益拆到检查成本上。
@@ -518,39 +507,30 @@ Work-budget、fragmentation、fixed-recall、sequence-scope、oracle-depth、unc
 
 \subsection{RQ3/E3：机制隔离和 actionability}
 
-RQ3 检验 profiler 是否能通过 operation fields、operation-stack depth、mapping/tagging rules、ranking policies、profile specs 和 boundary-derived operation fields 暴露 actionable optimization knobs。
+RQ3 问 profiler 的定位结果能不能告诉研究者该调什么配置。
+一个有用的 profiling result 不只把 positives 排到前面，还应该指出收益来自哪个 operation field、stack depth、mapping/tagging rule、ranker、profile spec 或 boundary-derived field。
 Hidden labels 仍然只在 profiling 之后用于 scoring，boundary-derived fields 还用 held-out OSWorld-Human boundary positives 评分。
 我们比较 default semantic-width specs、patched specs、visible feature rankers、transfer policies、learned-boundary stacks、fixed-session 和 semantic-width stacks，并报告 accepted patches、AP delta、top-5 lift delta、first-positive-work delta、group reduction 和 top-5 work counterpoint。
 OSWorld-Human 需要 boundary-derived fields，这说明 RQ3 评估的是可操作机制证据，而不是自动边界发现或自动 patch 选择。
-这一节的问题是 localization gain 来自哪些机制，以及 profile-guided 的 operation fields、operation-stack depth、rank features、mappings 或 boundary-derived fields 能否在不把 hidden labels 泄漏进 profiler input 的前提下改善输出。
-Rank-feature、mapping、stack-depth、boundary-field、profile-spec patch、case view、diagnostic lens 和 transfer counterpoint 共同支撑同一个 RQ3 主张。
-
-E3 的机制问题是 E2 的 ranked groups 能不能解释应该怎样改 profiler 配置。
-Hidden labels 只在 profiling 之后用于 scoring。
-Visible inputs 仍然是 operation fields、operation-stack depth、mapping/tagging rules、rank features、profile specs 和 boundary-derived operation fields。
-Actionable diagnosis 需要每个任务指向具体的 operation field、stack depth、ranker、mapping、profile-spec 或 drilldown change，并且 executable patches 能改善 scored output。
+因此 E3 的证据必须同时满足两个条件。
+Profiler 输出要把每个任务连接到具体配置动作，并且 executable patches 要在不把 hidden labels 泄漏进 profiler input 的前提下改善 scored output。
 这个证据仍不能写成 automatic selector。
 
-表~\ref{tab:actionability} 是 E3 的主显示，它把 task-level localization signal 转成 diagnosis table。
+表~\ref{tab:actionability} 是 E3 的主显示，它把 task-level localization signal 转成配置建议。
 SATraj unsafe 说明 \texttt{environment,phase,action} 和 risky/write-action ranking 对安全问题有效。
 Looping 说明 \texttt{repeat\_signal} 有用但需要 prevalence-aware ranking，side-effect 指向更深的 write/input mapping。
 AgentNet step-quality 需要 action-family 定位后再进入 fixed-session examples，OSWorld-Human 则需要 boundary-derived fields。
 因此 actionability 的第一层结论是 profiler 指出该调 operation field、stack depth、mapping、ranker、profile spec、boundary field 还是 drilldown，而不是给出唯一默认 view。
-Task-level verdict synthesis 给出任务级结论。
-6/6 任务都是支持但有反例，不是无条件胜出。
-其中 5/6 任务有 accepted executable profile-spec patch。
-剩下的 OSWorld-Human row 指向 boundary-derived fields，并保留 top-five 与 first-positive work 反例。
-这 6 行进一步收敛成三类可复用优化模式。
+六个任务进一步收敛成三类可复用优化模式。
 Safety 和 side-effect 任务指向 field 与 ranker 修改，因为 environment、phase/action 和 write/input fields 会把相关 positives 推到更小的 inspected region。
 Step-quality 任务指向 drilldown workflow，因为 desktop phase、repeat 和 action fields 先定位可疑区域，再由 fixed-session examples 解释单条 trace。
 Human-boundary 任务指向 representation repair，因为 action-depth stack 不够，boundary-derived operation fields 能提高 AP 并减少 groups，但仍保留 inspection-work 反例。
 这些模式给出的是 profile inputs、operation fields、stack depth 和 rankers 的配置建议，不是 profiler 自动预测出的标签。
 Field-suitability decisions 进一步说明这些配置建议何时可用。
 Deterministic mapping、stack depth 和 predicates、operation-level rank features、supervised boundary fields、boundary-profile repair 分别对应不同的 accept/caution/reject 条件。
-因此 E3 的 actionability 是 profiler 指出该调哪个 operation-field 或 operation-stack view，而不是自动选择唯一正确视图或自动发现所有边界。
 Automatic operation-stack induction 也落在这个 actionability 边界内。
 它证明 profiler 可以从可见字段递归诱导 operation-only stack，并把深度参差的 stack 当作可打分 view，但它的 AP 反例说明 profile-specific stack 和 ranker 仍然需要按任务调优。
-Depth sensitivity 把这点变成可操作结论：同一 induced profiler view 在 depth 3 取得最高 query-aware median AP，在 depth 5 取得最低 median top-5 work，而有 material split 的 task-level AP-best depth 跨 2、3、4、5 分布。
+Depth sensitivity 把这点变成可操作结论，同一 induced profiler view 在 depth 3 取得最高 query-aware median AP，在 depth 5 取得最低 median top-5 work，而有 material split 的 task-level AP-best depth 跨 2、3、4、5 分布。
 因此 E3 的建议是调 operation-stack depth 和 ranker objective，而不是把 \texttt{analysis\_task,phase,action,status} 当成固定 ontology。
 
 机制消融说明这些诊断来自可复现的 profiler 配置。
@@ -589,7 +569,8 @@ Held-out action transfer 在 35/60 aligned decisions 上 within tolerance，但 
 Executable profile-spec patches 关闭一个从诊断到可执行配置的闭环。
 Default 与 patched profile specs 在同一 visible operation input 上实际运行 Rust \texttt{agentpprof --profile-spec}，hidden labels 只在 profiler 输出后评分。
 5/6 patches 同时改善 AP、top-5 lift 和 first-positive work，median AP delta 为 0.0376，median top-5 lift delta 为 0.5750。
-这里的 failure interpretation 同样重要：唯一 reject 是 OSWorld-Human，说明 visible phase/action rank features 不足以处理 human-boundary 目标。
+这里的 failure interpretation 同样重要。
+唯一 reject 是 OSWorld-Human，说明 visible phase/action rank features 不足以处理 human-boundary 目标。
 Held-out boundary-derived fields 随后作为普通 operation fields 折叠，AP 从 semantic-width 的 0.2402 提升到 0.2583，groups 从 108 降到 74。
 反例是 top-5 work 和 first-positive work 变差。
 这些 patch 和 boundary-field results 支持 boundary-derived fields 是 actionable operation-field knob，不支持 automatic boundary discovery、automatic patch selector 或第五个核心实验。
