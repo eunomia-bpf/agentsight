@@ -332,9 +332,8 @@ OSWorld-Human exact-aligned tasks &
 \end{tabular}
 \end{table*}
 
-\paragraph{递归 stack-depth sweep。}
-
-Depth-sweep 主结果在同一批 13,265 个 operations 上扫过 8 个 stack depths。
+递归 stack-depth sweep 说明固定 session 边界会迅速碎片化同一批 operations。
+主结果在同一批 13,265 个 operations 上扫过 8 个 stack depths。
 只保留 dataset 时有 9 个 stacks；加入 task 后为 11 个；phase depth 为 57 个；tool/semantic depth 为 226 个；action depth 为 455 个；加入固定 session 后膨胀到 3,757 个。
 相对于 dataset depth，固定 session 的 unique stacks 增加 417.4 倍。
 这个结果直接反驳把 session 或 prompt 作为默认 profiling 边界的设计。
@@ -370,9 +369,8 @@ Rust operation-stack induction 进一步检验“不是用户给固定 stack 字
 
 \input{../out/paper-induction-display-r407/induction-claim-table.tex}
 
-\paragraph{Field derivation 和 boundary probes。}
-
-本节支持的是 configurable deterministic/supervised field derivation 在合适标签家族上的迁移，而不是通用无监督边界发现。
+Field derivation 和 boundary probes 检验字段派生是否能在合适标签家族上迁移。
+这些 probes 支持的是 configurable deterministic/supervised field derivation，而不是通用无监督边界发现。
 Held-out mapping rules 在 3,990 个 operations 上把 compression 从无 mapping baseline 的 14.049 提高到 19.091，held-out stacks 从 284 降到 209，并把 task/dataset V-measure 从 0.837 提高到 0.853。
 Phase/action boundary F1 为 0.777、precision 为 1.0，说明当前 mapping 保守：它不会制造 false positive phase changes，但会合并一些 fine-grained action changes。
 Leave-dataset-out mapping 在修正 API/tool phase precedence 后，在 9 个 held-out datasets 中的 6 个减少 unique stacks，0 个出现 negative stack-reduction regression，weighted stack reduction 为每 1,000 operations 1162.005。
@@ -392,9 +390,7 @@ Suitability analysis 把这个扩展策略写成更明确的配置决策。
 Deterministic mapping 适合 compression，但会粗化 action boundary；rank features 需要 ablation evidence，因为真实任务里既有 critical feature rows，也有 misleading feature rows；boundary-derived fields 必须先过 family-specific suitability。
 当前 boundary-family 决策包含 1 个 accept、3 个 caution 和 1 个 reject，因此 field derivation 是有条件的 profile-configuration loop，不是 universal automatic selector。
 
-\paragraph{Human-boundary oracle。}
-
-OSWorld-Human 是当前最强的 grouped-boundary oracle。
+当前最强的 grouped-boundary oracle 来自 OSWorld-Human。
 转换器覆盖 369 个 human desktop tasks 和 6,010 个 single-action operations；只有 grouped-action 序列与 single-action 序列 exact-aligned 的 320 个 tasks 被写入 \texttt{human\_group}、\texttt{group\_pattern} 和 \texttt{group\_position} oracle fields。
 这些 exact-aligned tasks 含 4,011 个 operations 和 2,075 个 session-local groups；31 个 content-mismatch tasks 和 18 个 length-mismatch tasks 保留用于 action profiling，但不被当作 gold group oracle。
 在同一批 exact-aligned operations 上，action-depth stack 有 482 个 unique stacks，grouped-depth stack 降到 106 个；保守 \texttt{group\_pattern} 对人工 \texttt{human\_group} boundary 的 F1 为 0.627，precision 为 1.0，recall 为 0.456。
@@ -645,7 +641,7 @@ ScaleCUA 的作用是扩大 GUI history 覆盖，而不是提供新的主证据�
 
 \section{相关工作}
 
-\textbf{Profiling、flamegraphs 和 trace analysis.}
+\subsection{Profiling、Flamegraphs 和 Trace Analysis}
 传统 flamegraph 和 pprof 路线把运行时调用栈折叠成热点视图~[1,16,17]。
 pprof 不只是固定 call stack，因为它支持 sample tags，也支持用 \texttt{tagroot}/\texttt{tagleaf} 把 tag value 作为 pseudo stack frame 可视化~[17]。
 Perfetto 则代表系统 trace ingestion、SQL trace analysis、trace summary 和 derived events 的成熟方向~[18]。
@@ -655,7 +651,7 @@ Stack frame 来自 agent operation fields，而不是语言运行时函数调用
 因此同一批 operations 可以被折叠为 task、phase、tool、action、quality 或 safety 视图，也可以改成 fixed-session 或 flat baseline。
 区别不在图形样式，而在 agent 语义对象、递归多字段 stack projection 和跨数据集 hidden-label scoring。
 
-\textbf{Agent tracing 和 LLM observability.}
+\subsection{Agent Tracing 和 LLM Observability}
 OpenTelemetry GenAI 和 OpenInference 标准化 GenAI spans、LLM calls、agent reasoning steps、tool invocations、retrieval operations、MCP 和 provider-specific telemetry~[2,11]。
 LangSmith、Langfuse、Phoenix 和 AgentOps 等系统进一步把 LLM call、tool call、latency、token、trace tree、session、observation、evaluation score、goal、plan 和 agent artifact 放进单次 workflow inspection 与生产监控~[12,13,14,15]。
 这些系统是本文最接近的同问题相关工作。
@@ -664,7 +660,7 @@ E2 实际评估的是 fixed-session drilldown 这个 trace-tree-shaped baseline�
 本文关注跨轨迹 semantic profiling，把异构标注轨迹或本地 agent 历史统一为 operations，并允许用户选择 stack 深度、mappings、tagging 和 ranker。
 这些系统构成最接近的基线威胁，本文定位为互补的 profiler abstraction，而不是替代现有 observability products。
 
-\textbf{Agent failure 和 span localization。}
+\subsection{Agent Failure 和 Span Localization}
 2026 年的 AgentRx、TELBench/DRIFT、Holistic Evaluation and Failure Diagnosis 和 AgentAtlas 是最接近的同问题威胁~[23--26]。
 AgentRx 发布带 critical failure step 和 failure category 的失败轨迹，并用 constraint checking 与 LLM judge 做 root-cause localization。
 TELBench/DRIFT 把 deep-research agent 轨迹转成 semantic spans，并标注 harmful error spans。
@@ -673,13 +669,13 @@ Holistic Diagnosis 把 agent-level diagnosis 和 span-level evaluation 结合起
 本文的差异更窄，把 profile groups 当作 profiler 输出，在同一批 operations 上比较 flat、fixed-session drilldown、dataset-native、raw-action 和 operation-stack views，并用 AP、nDCG、inspection budget recall、work-to-first-positive、fragmentation 和 profile-configuration actionability 评分。
 AgentRx/TELBench-style traces 是后续 oracle/baseline 候选，不是当前已完成的 broader span-localization 证据。
 
-\textbf{Computer-use 和 tool-use benchmarks.}
+\subsection{Computer-use 和 Tool-use Benchmarks}
 WebLINX、Mind2Web、GUI-Odyssey、OSWorld/OSWorld-Human、OpenCUA/AgentNet、SATraj-OS、AgentRewardBench、ToolBench 和 tau-bench 为本文提供真实标注轨迹~[3--10,19--22]。
 本文不提出新 benchmark。
 贡献是把这些 benchmark 的动作、质量、安全和人工 group 标签统一为 operation fields，并用同一个 profiler 机制比较它们适合回答哪些 profiling 问题。
 这些 benchmark 提供证据来源和原生序列对照，不是被本文替代的对象。
 
-\textbf{新意边界。}
+\subsection{新意边界}
 本文不把新意建立在“第一个 agent observability 系统”、“第一个 agent trajectory benchmark”或“第一个 folded-stack 可视化”上。
 本文当前可支持的新意是只用 operation 和 operation stack 两个 profiler 抽象，把 trace/session/span 作为输入容器或 baseline，在真实公开标注轨迹上把 profile groups 当成 ranking/localization outputs，并用 hidden labels 计算 accuracy、work、fragmentation 和 actionability。
 更具体地说，贡献不只是 query-time aggregation，而是把 agent-operation record、recursive multi-field stack shape 和 hidden-label localization benchmark 绑在一起。
