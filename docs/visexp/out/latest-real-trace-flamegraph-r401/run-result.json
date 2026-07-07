@@ -1,709 +1,3164 @@
 {
   "checks": {
-    "drilldown_adds_session": true,
-    "drilldown_matches_agentreward_count": true,
-    "no_hidden_label_stack_frames": true,
-    "overview_avoids_session_fragmentation": true,
-    "overview_is_less_fragmented_than_drilldown": true,
-    "overview_matches_agentreward_count": true,
+    "all_views_match_query_count": true,
+    "drilldown_allows_session_candidate": true,
+    "drilldown_has_variable_leaf_depth": true,
+    "drilldown_is_more_detailed": true,
+    "no_hidden_oracle_source_fields_selected": true,
+    "no_user_field_order": true,
+    "overview_does_not_allow_session_candidate": true,
+    "overview_has_variable_leaf_depth": true,
     "single_benchmark_filter": true,
-    "uses_tracked_real_trace": true
+    "single_benchmark_query_rows_loaded": true,
+    "single_query_filter": true,
+    "uses_tracked_real_trace": true,
+    "visual_stack_uses_only_task_frames": true
   },
-  "filter": "dataset=agent-reward-bench",
+  "filter": "dataset=agent-reward-bench;analysis_task=agentreward_looping",
+  "folding_policy": {
+    "max_majority_fraction": 0.985,
+    "min_score": 0.055,
+    "min_second_child": 5,
+    "name": "query-conditioned-greedy-task-stack-induction"
+  },
   "run_id": "R401",
   "source": "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl",
   "status": "pass",
   "views": {
-    "agentreward-overview": {
+    "agentreward-induced-overview": {
       "outputs": {
-        "folded": "agentreward-overview.folded",
-        "png": "agentreward-overview.png",
-        "profile_json": "agentreward-overview.profile.json",
-        "svg": "agentreward-overview.svg"
+        "folded": "agentreward-induced-overview.folded",
+        "png": "agentreward-induced-overview.png",
+        "profile_json": "agentreward-induced-overview.profile.json",
+        "svg": "agentreward-induced-overview.svg"
       },
+      "split_decisions": [
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.756515,
+              "cardinality_penalty": 0.271765,
+              "coverage": 0.499314,
+              "field": "repeat_state",
+              "groups": {
+                "light-repeat": 114,
+                "same-action-run": 187,
+                "same-action-window": 59,
+                "single": 365,
+                "target-window": 4
+              },
+              "query_bonus": 0.6,
+              "score": 0.342396,
+              "small_child_penalty": 0.005487,
+              "structural_gain": 0.256488
+            },
+            {
+              "balance": 0.699644,
+              "cardinality_penalty": 0.210266,
+              "coverage": 0.312757,
+              "field": "repeat_run",
+              "groups": {
+                "1": 501,
+                "2": 41,
+                "3plus": 187
+              },
+              "query_bonus": 0.4,
+              "score": 0.21866,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.171918
+            },
+            {
+              "balance": 0.540727,
+              "cardinality_penalty": 0.389039,
+              "coverage": 0.366255,
+              "field": "action",
+              "groups": {
+                "clear": 3,
+                "click": 462,
+                "fill": 109,
+                "go_back": 13,
+                "goto": 14,
+                "hover": 27,
+                "noop": 8,
+                "press": 1,
+                "report_infeasible": 8,
+                "scroll": 19,
+                "select_option": 25,
+                "send_msg_to_user": 40
+              },
+              "query_bonus": 0.0,
+              "score": 0.194734,
+              "small_child_penalty": 0.005487,
+              "structural_gain": 0.283004
+            },
+            {
+              "balance": 0.821443,
+              "cardinality_penalty": 0.166632,
+              "coverage": 0.256516,
+              "field": "repeat_signal",
+              "groups": {
+                "loop-like": 542,
+                "none": 187
+              },
+              "query_bonus": 0.4,
+              "score": 0.149865,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.058726
+            },
+            {
+              "balance": 0.538243,
+              "cardinality_penalty": 0.271765,
+              "coverage": 0.266118,
+              "field": "phase",
+              "groups": {
+                "browser-action": 28,
+                "finish": 48,
+                "input": 110,
+                "navigate": 535,
+                "observe": 8
+              },
+              "query_bonus": 0.0,
+              "score": 0.114745,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.160073
+            },
+            {
+              "balance": 0.424405,
+              "cardinality_penalty": 0.166632,
+              "coverage": 0.08642,
+              "field": "step_error",
+              "groups": {
+                "error": 63,
+                "ok": 666
+              },
+              "query_bonus": 0.0,
+              "score": 0.002127,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.00955
+            }
+          ],
+          "node_weight": 729,
+          "path": [],
+          "selected_score": {
+            "balance": 0.756515,
+            "cardinality_penalty": 0.271765,
+            "coverage": 0.499314,
+            "field": "repeat_state",
+            "groups": {
+              "light-repeat": 114,
+              "same-action-run": 187,
+              "same-action-window": 59,
+              "single": 365,
+              "target-window": 4
+            },
+            "query_bonus": 0.6,
+            "score": 0.342396,
+            "small_child_penalty": 0.005487,
+            "structural_gain": 0.256488
+          },
+          "source_field": "repeat_state"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.538949,
+              "cardinality_penalty": 0.406242,
+              "coverage": 0.361644,
+              "field": "action",
+              "groups": {
+                "click": 233,
+                "fill": 64,
+                "go_back": 2,
+                "goto": 11,
+                "hover": 3,
+                "noop": 4,
+                "report_infeasible": 8,
+                "scroll": 4,
+                "select_option": 23,
+                "send_msg_to_user": 13
+              },
+              "query_bonus": 0.0,
+              "score": 0.250416,
+              "small_child_penalty": 0.035616,
+              "structural_gain": 0.386068
+            },
+            {
+              "balance": 0.588566,
+              "cardinality_penalty": 0.303553,
+              "coverage": 0.306849,
+              "field": "phase",
+              "groups": {
+                "browser-action": 23,
+                "finish": 21,
+                "input": 64,
+                "navigate": 253,
+                "observe": 4
+              },
+              "query_bonus": 0.0,
+              "score": 0.191786,
+              "small_child_penalty": 0.010959,
+              "structural_gain": 0.276299
+            },
+            {
+              "balance": 0.98696,
+              "cardinality_penalty": 0.186122,
+              "coverage": 0.432877,
+              "field": "repeat_signal",
+              "groups": {
+                "loop-like": 207,
+                "none": 158
+              },
+              "query_bonus": 0.4,
+              "score": 0.181606,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.021638
+            },
+            {
+              "balance": 0.380577,
+              "cardinality_penalty": 0.186122,
+              "coverage": 0.073973,
+              "field": "step_error",
+              "groups": {
+                "error": 27,
+                "ok": 338
+              },
+              "query_bonus": 0.0,
+              "score": -0.001021,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.010563
+            }
+          ],
+          "node_weight": 365,
+          "path": [
+            "task:single"
+          ],
+          "selected_score": {
+            "balance": 0.538949,
+            "cardinality_penalty": 0.406242,
+            "coverage": 0.361644,
+            "field": "action",
+            "groups": {
+              "click": 233,
+              "fill": 64,
+              "go_back": 2,
+              "goto": 11,
+              "hover": 3,
+              "noop": 4,
+              "report_infeasible": 8,
+              "scroll": 4,
+              "select_option": 23,
+              "send_msg_to_user": 13
+            },
+            "query_bonus": 0.0,
+            "score": 0.250416,
+            "small_child_penalty": 0.035616,
+            "structural_gain": 0.386068
+          },
+          "source_field": "action"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.996157,
+              "cardinality_penalty": 0.201384,
+              "coverage": 0.463519,
+              "field": "repeat_signal",
+              "groups": {
+                "loop-like": 125,
+                "none": 108
+              },
+              "query_bonus": 0.4,
+              "score": 0.179535,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.005797
+            },
+            {
+              "balance": 0.4076,
+              "cardinality_penalty": 0.201384,
+              "coverage": 0.081545,
+              "field": "step_error",
+              "groups": {
+                "error": 19,
+                "ok": 214
+              },
+              "query_bonus": 0.0,
+              "score": -0.005998,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.002372
+            }
+          ],
+          "node_weight": 233,
+          "path": [
+            "task:single",
+            "task:click"
+          ],
+          "selected_score": {
+            "balance": 0.996157,
+            "cardinality_penalty": 0.201384,
+            "coverage": 0.463519,
+            "field": "repeat_signal",
+            "groups": {
+              "loop-like": 125,
+              "none": 108
+            },
+            "query_bonus": 0.4,
+            "score": 0.179535,
+            "small_child_penalty": 0.0,
+            "structural_gain": 0.005797
+          },
+          "source_field": "repeat_signal"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.835116,
+              "cardinality_penalty": 0.263179,
+              "coverage": 0.265625,
+              "field": "repeat_signal",
+              "groups": {
+                "loop-like": 47,
+                "none": 17
+              },
+              "query_bonus": 0.4,
+              "score": 0.157395,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.078668
+            }
+          ],
+          "node_weight": 64,
+          "path": [
+            "task:single",
+            "task:fill"
+          ],
+          "selected_score": {
+            "balance": 0.835116,
+            "cardinality_penalty": 0.263179,
+            "coverage": 0.265625,
+            "field": "repeat_signal",
+            "groups": {
+              "loop-like": 47,
+              "none": 17
+            },
+            "query_bonus": 0.4,
+            "score": 0.157395,
+            "small_child_penalty": 0.0,
+            "structural_gain": 0.078668
+          },
+          "source_field": "repeat_signal"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.932112,
+              "cardinality_penalty": 0.345687,
+              "coverage": 0.347826,
+              "field": "repeat_signal",
+              "groups": {
+                "loop-like": 8,
+                "none": 15
+              },
+              "query_bonus": 0.4,
+              "score": 0.12864,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.0
+            }
+          ],
+          "node_weight": 23,
+          "path": [
+            "task:single",
+            "task:select_option"
+          ],
+          "selected_score": {
+            "balance": 0.932112,
+            "cardinality_penalty": 0.345687,
+            "coverage": 0.347826,
+            "field": "repeat_signal",
+            "groups": {
+              "loop-like": 8,
+              "none": 15
+            },
+            "query_bonus": 0.4,
+            "score": 0.12864,
+            "small_child_penalty": 0.0,
+            "structural_gain": 0.0
+          },
+          "source_field": "repeat_signal"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.995727,
+              "cardinality_penalty": 0.41629,
+              "coverage": 0.461538,
+              "field": "repeat_signal",
+              "groups": {
+                "loop-like": 6,
+                "none": 7
+              },
+              "query_bonus": 0.4,
+              "score": 0.273313,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.185691
+            }
+          ],
+          "node_weight": 13,
+          "path": [
+            "task:single",
+            "task:send_msg_to_user"
+          ],
+          "selected_score": {
+            "balance": 0.995727,
+            "cardinality_penalty": 0.41629,
+            "coverage": 0.461538,
+            "field": "repeat_signal",
+            "groups": {
+              "loop-like": 6,
+              "none": 7
+            },
+            "query_bonus": 0.4,
+            "score": 0.273313,
+            "small_child_penalty": 0.0,
+            "structural_gain": 0.185691
+          },
+          "source_field": "repeat_signal"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.494021,
+              "cardinality_penalty": 0.419603,
+              "coverage": 0.299465,
+              "field": "action",
+              "groups": {
+                "click": 131,
+                "fill": 6,
+                "go_back": 1,
+                "goto": 1,
+                "hover": 20,
+                "noop": 3,
+                "scroll": 2,
+                "send_msg_to_user": 23
+              },
+              "query_bonus": 0.0,
+              "score": 0.334836,
+              "small_child_penalty": 0.037433,
+              "structural_gain": 0.544236
+            },
+            {
+              "balance": 0.425571,
+              "cardinality_penalty": 0.307353,
+              "coverage": 0.171123,
+              "field": "phase",
+              "groups": {
+                "finish": 23,
+                "input": 6,
+                "navigate": 155,
+                "observe": 3
+              },
+              "query_bonus": 0.0,
+              "score": 0.183599,
+              "small_child_penalty": 0.016043,
+              "structural_gain": 0.310422
+            },
+            {
+              "balance": 0.2549,
+              "cardinality_penalty": 0.209801,
+              "coverage": 0.042781,
+              "field": "step_error",
+              "groups": {
+                "error": 8,
+                "ok": 179
+              },
+              "query_bonus": 0.0,
+              "score": -0.00491,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.014578
+            }
+          ],
+          "node_weight": 187,
+          "path": [
+            "task:same-action-run"
+          ],
+          "selected_score": {
+            "balance": 0.494021,
+            "cardinality_penalty": 0.419603,
+            "coverage": 0.299465,
+            "field": "action",
+            "groups": {
+              "click": 131,
+              "fill": 6,
+              "go_back": 1,
+              "goto": 1,
+              "hover": 20,
+              "noop": 3,
+              "scroll": 2,
+              "send_msg_to_user": 23
+            },
+            "query_bonus": 0.0,
+            "score": 0.334836,
+            "small_child_penalty": 0.037433,
+            "structural_gain": 0.544236
+          },
+          "source_field": "action"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.551322,
+              "cardinality_penalty": 0.523697,
+              "coverage": 0.385965,
+              "field": "action",
+              "groups": {
+                "clear": 1,
+                "click": 70,
+                "fill": 22,
+                "go_back": 5,
+                "goto": 1,
+                "hover": 4,
+                "noop": 1,
+                "press": 1,
+                "scroll": 3,
+                "select_option": 2,
+                "send_msg_to_user": 4
+              },
+              "query_bonus": 0.0,
+              "score": 0.244992,
+              "small_child_penalty": 0.149123,
+              "structural_gain": 0.421592
+            },
+            {
+              "balance": 0.502548,
+              "cardinality_penalty": 0.377615,
+              "coverage": 0.27193,
+              "field": "phase",
+              "groups": {
+                "browser-action": 3,
+                "finish": 4,
+                "input": 23,
+                "navigate": 83,
+                "observe": 1
+              },
+              "query_bonus": 0.0,
+              "score": 0.132766,
+              "small_child_penalty": 0.070175,
+              "structural_gain": 0.228192
+            },
+            {
+              "balance": 0.818156,
+              "cardinality_penalty": 0.231534,
+              "coverage": 0.254386,
+              "field": "repeat_signal",
+              "groups": {
+                "loop-like": 85,
+                "none": 29
+              },
+              "query_bonus": 0.4,
+              "score": 0.115961,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.013502
+            },
+            {
+              "balance": 0.629249,
+              "cardinality_penalty": 0.231534,
+              "coverage": 0.157895,
+              "field": "step_error",
+              "groups": {
+                "error": 18,
+                "ok": 96
+              },
+              "query_bonus": 0.0,
+              "score": 0.027416,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.03243
+            }
+          ],
+          "node_weight": 114,
+          "path": [
+            "task:light-repeat"
+          ],
+          "selected_score": {
+            "balance": 0.551322,
+            "cardinality_penalty": 0.523697,
+            "coverage": 0.385965,
+            "field": "action",
+            "groups": {
+              "clear": 1,
+              "click": 70,
+              "fill": 22,
+              "go_back": 5,
+              "goto": 1,
+              "hover": 4,
+              "noop": 1,
+              "press": 1,
+              "scroll": 3,
+              "select_option": 2,
+              "send_msg_to_user": 4
+            },
+            "query_bonus": 0.0,
+            "score": 0.244992,
+            "small_child_penalty": 0.149123,
+            "structural_gain": 0.421592
+          },
+          "source_field": "action"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.881291,
+              "cardinality_penalty": 0.257728,
+              "coverage": 0.3,
+              "field": "repeat_signal",
+              "groups": {
+                "loop-like": 49,
+                "none": 21
+              },
+              "query_bonus": 0.4,
+              "score": 0.133101,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.020933
+            },
+            {
+              "balance": 0.660962,
+              "cardinality_penalty": 0.257728,
+              "coverage": 0.171429,
+              "field": "step_error",
+              "groups": {
+                "error": 12,
+                "ok": 58
+              },
+              "query_bonus": 0.0,
+              "score": 0.018575,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.015699
+            }
+          ],
+          "node_weight": 70,
+          "path": [
+            "task:light-repeat",
+            "task:click"
+          ],
+          "selected_score": {
+            "balance": 0.881291,
+            "cardinality_penalty": 0.257728,
+            "coverage": 0.3,
+            "field": "repeat_signal",
+            "groups": {
+              "loop-like": 49,
+              "none": 21
+            },
+            "query_bonus": 0.4,
+            "score": 0.133101,
+            "small_child_penalty": 0.0,
+            "structural_gain": 0.020933
+          },
+          "source_field": "repeat_signal"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.845351,
+              "cardinality_penalty": 0.350379,
+              "coverage": 0.272727,
+              "field": "repeat_signal",
+              "groups": {
+                "loop-like": 16,
+                "none": 6
+              },
+              "query_bonus": 0.4,
+              "score": 0.127777,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.03849
+            }
+          ],
+          "node_weight": 22,
+          "path": [
+            "task:light-repeat",
+            "task:fill"
+          ],
+          "selected_score": {
+            "balance": 0.845351,
+            "cardinality_penalty": 0.350379,
+            "coverage": 0.272727,
+            "field": "repeat_signal",
+            "groups": {
+              "loop-like": 16,
+              "none": 6
+            },
+            "query_bonus": 0.4,
+            "score": 0.127777,
+            "small_child_penalty": 0.0,
+            "structural_gain": 0.03849
+          },
+          "source_field": "repeat_signal"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.764944,
+              "cardinality_penalty": 0.475268,
+              "coverage": 0.576271,
+              "field": "action",
+              "groups": {
+                "clear": 1,
+                "click": 25,
+                "fill": 17,
+                "go_back": 5,
+                "goto": 1,
+                "scroll": 10
+              },
+              "query_bonus": 0.0,
+              "score": 0.476606,
+              "small_child_penalty": 0.033898,
+              "structural_gain": 0.656121
+            },
+            {
+              "balance": 0.619481,
+              "cardinality_penalty": 0.338588,
+              "coverage": 0.305085,
+              "field": "phase",
+              "groups": {
+                "browser-action": 1,
+                "input": 17,
+                "navigate": 41
+              },
+              "query_bonus": 0.0,
+              "score": 0.21469,
+              "small_child_penalty": 0.016949,
+              "structural_gain": 0.316175
+            },
+            {
+              "balance": 0.57258,
+              "cardinality_penalty": 0.268324,
+              "coverage": 0.135593,
+              "field": "step_error",
+              "groups": {
+                "error": 8,
+                "ok": 51
+              },
+              "query_bonus": 0.0,
+              "score": 0.051299,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.084804
+            }
+          ],
+          "node_weight": 59,
+          "path": [
+            "task:same-action-window"
+          ],
+          "selected_score": {
+            "balance": 0.764944,
+            "cardinality_penalty": 0.475268,
+            "coverage": 0.576271,
+            "field": "action",
+            "groups": {
+              "clear": 1,
+              "click": 25,
+              "fill": 17,
+              "go_back": 5,
+              "goto": 1,
+              "scroll": 10
+            },
+            "query_bonus": 0.0,
+            "score": 0.476606,
+            "small_child_penalty": 0.033898,
+            "structural_gain": 0.656121
+          },
+          "source_field": "action"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 1.0,
+              "cardinality_penalty": 0.458157,
+              "coverage": 0.5,
+              "field": "step_error",
+              "groups": {
+                "error": 5,
+                "ok": 5
+              },
+              "query_bonus": 0.0,
+              "score": 0.093347,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.0
+            }
+          ],
+          "node_weight": 10,
+          "path": [
+            "task:same-action-window",
+            "task:scroll"
+          ],
+          "selected_score": {
+            "balance": 1.0,
+            "cardinality_penalty": 0.458157,
+            "coverage": 0.5,
+            "field": "step_error",
+            "groups": {
+              "error": 5,
+              "ok": 5
+            },
+            "query_bonus": 0.0,
+            "score": 0.093347,
+            "small_child_penalty": 0.0,
+            "structural_gain": 0.0
+          },
+          "source_field": "step_error"
+        }
+      ],
       "statuses": {
         "folded": {
-          "command": [
-            "cargo",
-            "run",
-            "--manifest-path",
-            "agentpprof/Cargo.toml",
-            "--",
-            "--operation-file",
-            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl",
-            "--view",
-            "operations",
-            "--format",
-            "folded",
-            "--output",
-            "docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-overview.folded",
-            "--where",
-            "dataset=agent-reward-bench",
-            "--stack",
-            "source,dataset,analysis_task,phase,tool,action,status",
-            "--deterministic-output"
-          ],
-          "deterministic_output": true,
-          "format": "folded",
-          "op_map_files": [],
-          "op_maps": [],
-          "operation_files": [
-            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl"
-          ],
-          "operations": 34539,
-          "output": "docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-overview.folded",
-          "profile_specs": [],
-          "rank_mode": "width-boost",
-          "rank_op_rules": [],
-          "rank_rules": [],
-          "sample_type": "operations",
-          "samples": 1458,
-          "stack": "source,dataset,analysis_task,phase,tool,action,status",
-          "stack_rules": [],
-          "standard_trace_events": null,
-          "standard_trace_format": null,
-          "standard_trace_output": null,
-          "status": "ok",
-          "unique_stacks": 28,
-          "unit": "count",
-          "view": "operations",
-          "warnings": [],
-          "where_rules": [
-            "dataset=agent-reward-bench"
-          ]
+          "generator": "task-stack-induction",
+          "output": "docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-induced-overview.folded",
+          "status": "ok"
         },
         "profile_json": {
-          "command": [
-            "cargo",
-            "run",
-            "--manifest-path",
-            "agentpprof/Cargo.toml",
-            "--",
-            "--operation-file",
-            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl",
-            "--view",
-            "operations",
-            "--format",
-            "json",
-            "--output",
-            "docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-overview.profile.json",
-            "--where",
-            "dataset=agent-reward-bench",
-            "--stack",
-            "source,dataset,analysis_task,phase,tool,action,status",
-            "--deterministic-output"
-          ],
-          "deterministic_output": true,
-          "format": "json",
-          "op_map_files": [],
-          "op_maps": [],
-          "operation_files": [
-            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl"
-          ],
-          "operations": 34539,
-          "output": "docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-overview.profile.json",
-          "profile_specs": [],
-          "rank_mode": "width-boost",
-          "rank_op_rules": [],
-          "rank_rules": [],
-          "sample_type": "operations",
-          "samples": 1458,
-          "stack": "source,dataset,analysis_task,phase,tool,action,status",
-          "stack_rules": [],
-          "standard_trace_events": null,
-          "standard_trace_format": null,
-          "standard_trace_output": null,
-          "status": "ok",
-          "unique_stacks": 28,
-          "unit": "count",
-          "view": "operations",
-          "warnings": [],
-          "where_rules": [
-            "dataset=agent-reward-bench"
-          ]
+          "generator": "task-stack-induction",
+          "output": "docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-induced-overview.profile.json",
+          "status": "ok"
         },
         "svg": {
-          "command": [
-            "cargo",
-            "run",
-            "--manifest-path",
-            "agentpprof/Cargo.toml",
-            "--",
-            "--operation-file",
-            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl",
-            "--view",
-            "operations",
-            "--format",
-            "svg",
-            "--output",
-            "docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-overview.svg",
-            "--where",
-            "dataset=agent-reward-bench",
-            "--stack",
-            "source,dataset,analysis_task,phase,tool,action,status",
-            "--deterministic-output",
-            "--svg-width",
-            "1600"
-          ],
-          "deterministic_output": true,
-          "format": "svg",
-          "op_map_files": [],
-          "op_maps": [],
-          "operation_files": [
-            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl"
-          ],
-          "operations": 34539,
-          "output": "docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-overview.svg",
-          "profile_specs": [],
-          "rank_mode": "width-boost",
-          "rank_op_rules": [],
-          "rank_rules": [],
-          "sample_type": "operations",
-          "samples": 1458,
-          "stack": "source,dataset,analysis_task,phase,tool,action,status",
-          "stack_rules": [],
-          "standard_trace_events": null,
-          "standard_trace_format": null,
-          "standard_trace_output": null,
-          "status": "ok",
-          "unique_stacks": 28,
-          "unit": "count",
-          "view": "operations",
-          "warnings": [],
-          "where_rules": [
-            "dataset=agent-reward-bench"
-          ]
+          "generator": "task-stack-induction",
+          "output": "docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-induced-overview.svg",
+          "status": "ok"
         }
       },
       "summary": {
-        "compression_ratio": 52.071,
-        "hidden_label_fields_in_stack": [],
-        "max_stack_reuse": 451,
-        "operations": 1458,
-        "purpose": "A readable benchmark-level workload-shape view without per-session fragmentation.",
-        "stack": "source,dataset,analysis_task,phase,tool,action,status",
-        "title": "AgentReward overview",
-        "top_by_field": {
-          "action": [
+        "compression_ratio": 16.953,
+        "constant_metadata_fields_omitted": [
+          "dataset",
+          "source"
+        ],
+        "max_stack_depth": 3,
+        "max_stack_reuse": 131,
+        "operations": 729,
+        "purpose": "A query-conditioned task stack induced from visible operation fields, without session as a candidate.",
+        "query": "analysis_task=agentreward_looping",
+        "source_fields_hidden_oracle_overlap": [],
+        "source_fields_selected_by_induction": [
+          "action",
+          "repeat_signal",
+          "repeat_state",
+          "step_error"
+        ],
+        "stack": "task",
+        "stack_depth_histogram": {
+          "1": 1,
+          "2": 28,
+          "3": 14
+        },
+        "stop_reasons": {
+          "no_material_split": 14,
+          "small_node": 29
+        },
+        "title": "AgentReward induced task stack",
+        "top_by_level": {
+          "task_level_1": [
+            [
+              "single",
+              365
+            ],
+            [
+              "same-action-run",
+              187
+            ],
+            [
+              "light-repeat",
+              114
+            ],
+            [
+              "same-action-window",
+              59
+            ],
+            [
+              "target-window",
+              4
+            ]
+          ],
+          "task_level_2": [
             [
               "click",
-              924
+              459
             ],
             [
               "fill",
-              218
+              109
             ],
             [
               "send_msg_to_user",
-              80
+              40
             ],
             [
               "hover",
-              54
+              27
             ],
             [
               "select_option",
-              50
+              25
             ],
             [
               "scroll",
-              38
+              19
             ],
             [
               "goto",
-              28
+              14
             ],
             [
               "go_back",
-              26
+              13
             ],
             [
               "noop",
-              16
+              8
             ],
             [
               "report_infeasible",
-              16
+              8
             ]
           ],
-          "analysis_task": [
+          "task_level_3": [
             [
-              "agentreward_looping",
-              729
+              "loop-like",
+              251
             ],
             [
-              "agentreward_side_effect",
-              729
-            ]
-          ],
-          "dataset": [
-            [
-              "agent-reward-bench",
-              1458
-            ]
-          ],
-          "phase": [
-            [
-              "navigate",
-              1070
+              "none",
+              174
             ],
             [
-              "input",
-              220
+              "error",
+              5
             ],
             [
-              "finish",
-              96
-            ],
-            [
-              "browser-action",
-              56
-            ],
-            [
-              "observe",
-              16
-            ]
-          ],
-          "source": [
-            [
-              "mcgill-nlp/agent-reward-bench",
-              1458
-            ]
-          ],
-          "status": [
-            [
-              "failure",
-              1428
-            ],
-            [
-              "success",
-              30
+              "ok",
+              5
             ]
           ]
         },
         "top_stacks": [
           {
-            "matched_rank_rules": [],
-            "rank_score": 451.0,
-            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;phase:navigate;tool:browser;action:click;status:failure",
-            "weight": 451
+            "stack": "task:same-action-run;task:click",
+            "weight": 131
           },
           {
-            "matched_rank_rules": [],
-            "rank_score": 451.0,
-            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;phase:navigate;tool:browser;action:click;status:failure",
-            "weight": 451
+            "stack": "task:single;task:click;task:loop-like",
+            "weight": 125
           },
           {
-            "matched_rank_rules": [],
-            "rank_score": 109.0,
-            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;phase:input;tool:browser;action:fill;status:failure",
-            "weight": 109
+            "stack": "task:single;task:click;task:none",
+            "weight": 108
           },
           {
-            "matched_rank_rules": [],
-            "rank_score": 109.0,
-            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;phase:input;tool:browser;action:fill;status:failure",
-            "weight": 109
+            "stack": "task:light-repeat;task:click;task:loop-like",
+            "weight": 49
           },
           {
-            "matched_rank_rules": [],
-            "rank_score": 36.0,
-            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;phase:finish;tool:browser;action:send_msg_to_user;status:failure",
-            "weight": 36
+            "stack": "task:single;task:fill;task:loop-like",
+            "weight": 47
           },
           {
-            "matched_rank_rules": [],
-            "rank_score": 36.0,
-            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;phase:finish;tool:browser;action:send_msg_to_user;status:failure",
-            "weight": 36
-          },
-          {
-            "matched_rank_rules": [],
-            "rank_score": 27.0,
-            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;phase:navigate;tool:browser;action:hover;status:failure",
-            "weight": 27
-          },
-          {
-            "matched_rank_rules": [],
-            "rank_score": 27.0,
-            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;phase:navigate;tool:browser;action:hover;status:failure",
-            "weight": 27
-          },
-          {
-            "matched_rank_rules": [],
-            "rank_score": 25.0,
-            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;phase:browser-action;tool:browser;action:select_option;status:failure",
+            "stack": "task:same-action-window;task:click",
             "weight": 25
           },
           {
-            "matched_rank_rules": [],
-            "rank_score": 25.0,
-            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;phase:browser-action;tool:browser;action:select_option;status:failure",
-            "weight": 25
+            "stack": "task:same-action-run;task:send_msg_to_user",
+            "weight": 23
           },
           {
-            "matched_rank_rules": [],
-            "rank_score": 19.0,
-            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;phase:navigate;tool:browser;action:scroll;status:failure",
-            "weight": 19
+            "stack": "task:light-repeat;task:click;task:none",
+            "weight": 21
           },
           {
-            "matched_rank_rules": [],
-            "rank_score": 19.0,
-            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;phase:navigate;tool:browser;action:scroll;status:failure",
-            "weight": 19
+            "stack": "task:same-action-run;task:hover",
+            "weight": 20
+          },
+          {
+            "stack": "task:same-action-window;task:fill",
+            "weight": 17
+          },
+          {
+            "stack": "task:single;task:fill;task:none",
+            "weight": 17
+          },
+          {
+            "stack": "task:light-repeat;task:fill;task:loop-like",
+            "weight": 16
           }
         ],
-        "unique_stacks": 28,
-        "view": "agentreward-overview",
-        "where": "dataset=agent-reward-bench"
+        "unique_stacks": 43,
+        "view": "agentreward-induced-overview",
+        "visual_stack_frame": "task",
+        "where": "dataset=agent-reward-bench;analysis_task=agentreward_looping"
       }
     },
-    "agentreward-session-drilldown": {
+    "agentreward-induced-session-drilldown": {
       "outputs": {
-        "folded": "agentreward-session-drilldown.folded",
-        "png": "agentreward-session-drilldown.png",
-        "profile_json": "agentreward-session-drilldown.profile.json",
-        "svg": "agentreward-session-drilldown.svg"
+        "folded": "agentreward-induced-session-drilldown.folded",
+        "png": "agentreward-induced-session-drilldown.png",
+        "profile_json": "agentreward-induced-session-drilldown.profile.json",
+        "svg": "agentreward-induced-session-drilldown.svg"
       },
+      "split_decisions": [
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.887923,
+              "cardinality_penalty": 0.515877,
+              "coverage": 0.860082,
+              "field": "session",
+              "groups": {
+                "assistantbench.improved.validation.10": 22,
+                "assistantbench.improved.validation.15": 30,
+                "assistantbench.improved.validation.16": 21,
+                "assistantbench.improved.validation.17": 30,
+                "assistantbench.improved.validation.9": 30,
+                "visualwebarena.512": 3,
+                "visualwebarena.525": 1,
+                "visualwebarena.569": 30,
+                "visualwebarena.76": 30,
+                "visualwebarena.88": 30,
+                "visualwebarena.resized.512": 6,
+                "visualwebarena.resized.525": 1,
+                "visualwebarena.resized.569": 13,
+                "visualwebarena.resized.580": 33,
+                "webarena.155": 11,
+                "webarena.177": 4,
+                "webarena.24": 2,
+                "webarena.718": 7,
+                "webarena.723": 30,
+                "webarena.726": 4,
+                "workarena.servicenow.dashboard-retrieve-catalog-and-max-order-apple-watch-l2": 30,
+                "workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2": 100,
+                "workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2": 102,
+                "workarena.servicenow.two-changes-wide-basic-uniform-risk-change-request-scheduling-l2": 30,
+                "workarena.servicenow.two-changes-wide-basic-varied-risk-change-request-scheduling-l2": 30,
+                "workarena.servicenow.two-changes-wide-priority-uniform-risk-change-request-scheduling-l2": 30,
+                "workarena.servicenow.two-changes-wide-priority-varied-risk-change-request-scheduling-l2": 9,
+                "workarena.servicenow.two-changes-wide-schedule-tight-uniform-risk-change-request-scheduling-l2": 30,
+                "workarena.servicenow.two-changes-wide-tight-priority-varied-risk-change-request-scheduling-l2": 30
+              },
+              "query_bonus": 0.0,
+              "score": 0.400594,
+              "small_child_penalty": 0.020576,
+              "structural_gain": 0.399067
+            },
+            {
+              "balance": 0.756515,
+              "cardinality_penalty": 0.271765,
+              "coverage": 0.499314,
+              "field": "repeat_state",
+              "groups": {
+                "light-repeat": 114,
+                "same-action-run": 187,
+                "same-action-window": 59,
+                "single": 365,
+                "target-window": 4
+              },
+              "query_bonus": 0.6,
+              "score": 0.329375,
+              "small_child_penalty": 0.005487,
+              "structural_gain": 0.235487
+            },
+            {
+              "balance": 0.699644,
+              "cardinality_penalty": 0.210266,
+              "coverage": 0.312757,
+              "field": "repeat_run",
+              "groups": {
+                "1": 501,
+                "2": 41,
+                "3plus": 187
+              },
+              "query_bonus": 0.4,
+              "score": 0.21027,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.158384
+            },
+            {
+              "balance": 0.540727,
+              "cardinality_penalty": 0.389039,
+              "coverage": 0.366255,
+              "field": "action",
+              "groups": {
+                "clear": 3,
+                "click": 462,
+                "fill": 109,
+                "go_back": 13,
+                "goto": 14,
+                "hover": 27,
+                "noop": 8,
+                "press": 1,
+                "report_infeasible": 8,
+                "scroll": 19,
+                "select_option": 25,
+                "send_msg_to_user": 40
+              },
+              "query_bonus": 0.0,
+              "score": 0.185059,
+              "small_child_penalty": 0.005487,
+              "structural_gain": 0.267399
+            },
+            {
+              "balance": 0.821443,
+              "cardinality_penalty": 0.166632,
+              "coverage": 0.256516,
+              "field": "repeat_signal",
+              "groups": {
+                "loop-like": 542,
+                "none": 187
+              },
+              "query_bonus": 0.4,
+              "score": 0.156416,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.069292
+            },
+            {
+              "balance": 0.538243,
+              "cardinality_penalty": 0.271765,
+              "coverage": 0.266118,
+              "field": "phase",
+              "groups": {
+                "browser-action": 28,
+                "finish": 48,
+                "input": 110,
+                "navigate": 535,
+                "observe": 8
+              },
+              "query_bonus": 0.0,
+              "score": 0.106136,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.146186
+            },
+            {
+              "balance": 0.424405,
+              "cardinality_penalty": 0.166632,
+              "coverage": 0.08642,
+              "field": "step_error",
+              "groups": {
+                "error": 63,
+                "ok": 666
+              },
+              "query_bonus": 0.0,
+              "score": 0.005141,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.014412
+            }
+          ],
+          "node_weight": 729,
+          "path": [],
+          "selected_score": {
+            "balance": 0.887923,
+            "cardinality_penalty": 0.515877,
+            "coverage": 0.860082,
+            "field": "session",
+            "groups": {
+              "assistantbench.improved.validation.10": 22,
+              "assistantbench.improved.validation.15": 30,
+              "assistantbench.improved.validation.16": 21,
+              "assistantbench.improved.validation.17": 30,
+              "assistantbench.improved.validation.9": 30,
+              "visualwebarena.512": 3,
+              "visualwebarena.525": 1,
+              "visualwebarena.569": 30,
+              "visualwebarena.76": 30,
+              "visualwebarena.88": 30,
+              "visualwebarena.resized.512": 6,
+              "visualwebarena.resized.525": 1,
+              "visualwebarena.resized.569": 13,
+              "visualwebarena.resized.580": 33,
+              "webarena.155": 11,
+              "webarena.177": 4,
+              "webarena.24": 2,
+              "webarena.718": 7,
+              "webarena.723": 30,
+              "webarena.726": 4,
+              "workarena.servicenow.dashboard-retrieve-catalog-and-max-order-apple-watch-l2": 30,
+              "workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2": 100,
+              "workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2": 102,
+              "workarena.servicenow.two-changes-wide-basic-uniform-risk-change-request-scheduling-l2": 30,
+              "workarena.servicenow.two-changes-wide-basic-varied-risk-change-request-scheduling-l2": 30,
+              "workarena.servicenow.two-changes-wide-priority-uniform-risk-change-request-scheduling-l2": 30,
+              "workarena.servicenow.two-changes-wide-priority-varied-risk-change-request-scheduling-l2": 9,
+              "workarena.servicenow.two-changes-wide-schedule-tight-uniform-risk-change-request-scheduling-l2": 30,
+              "workarena.servicenow.two-changes-wide-tight-priority-varied-risk-change-request-scheduling-l2": 30
+            },
+            "query_bonus": 0.0,
+            "score": 0.400594,
+            "small_child_penalty": 0.020576,
+            "structural_gain": 0.399067
+          },
+          "source_field": "session"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.6692,
+              "cardinality_penalty": 0.419854,
+              "coverage": 0.411765,
+              "field": "action",
+              "groups": {
+                "click": 60,
+                "fill": 15,
+                "noop": 1,
+                "report_infeasible": 1,
+                "select_option": 13,
+                "send_msg_to_user": 12
+              },
+              "query_bonus": 0.0,
+              "score": 0.324113,
+              "small_child_penalty": 0.019608,
+              "structural_gain": 0.467708
+            },
+            {
+              "balance": 0.723533,
+              "cardinality_penalty": 0.386594,
+              "coverage": 0.411765,
+              "field": "phase",
+              "groups": {
+                "browser-action": 13,
+                "finish": 13,
+                "input": 15,
+                "navigate": 60,
+                "observe": 1
+              },
+              "query_bonus": 0.0,
+              "score": 0.319016,
+              "small_child_penalty": 0.009804,
+              "structural_gain": 0.442652
+            },
+            {
+              "balance": 0.7075,
+              "cardinality_penalty": 0.29911,
+              "coverage": 0.27451,
+              "field": "repeat_state",
+              "groups": {
+                "light-repeat": 13,
+                "same-action-run": 15,
+                "single": 74
+              },
+              "query_bonus": 0.6,
+              "score": 0.292257,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.254339
+            },
+            {
+              "balance": 0.977418,
+              "cardinality_penalty": 0.237039,
+              "coverage": 0.411765,
+              "field": "repeat_signal",
+              "groups": {
+                "loop-like": 60,
+                "none": 42
+              },
+              "query_bonus": 0.4,
+              "score": 0.224976,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.108545
+            }
+          ],
+          "node_weight": 102,
+          "path": [
+            "task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2"
+          ],
+          "selected_score": {
+            "balance": 0.6692,
+            "cardinality_penalty": 0.419854,
+            "coverage": 0.411765,
+            "field": "action",
+            "groups": {
+              "click": 60,
+              "fill": 15,
+              "noop": 1,
+              "report_infeasible": 1,
+              "select_option": 13,
+              "send_msg_to_user": 12
+            },
+            "query_bonus": 0.0,
+            "score": 0.324113,
+            "small_child_penalty": 0.019608,
+            "structural_gain": 0.467708
+          },
+          "source_field": "action"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 1.0,
+              "cardinality_penalty": 0.267245,
+              "coverage": 0.5,
+              "field": "repeat_signal",
+              "groups": {
+                "loop-like": 30,
+                "none": 30
+              },
+              "query_bonus": 0.4,
+              "score": 0.279775,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.159927
+            },
+            {
+              "balance": 0.650022,
+              "cardinality_penalty": 0.267245,
+              "coverage": 0.166667,
+              "field": "repeat_state",
+              "groups": {
+                "light-repeat": 10,
+                "single": 50
+              },
+              "query_bonus": 0.2,
+              "score": 0.107241,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.103956
+            }
+          ],
+          "node_weight": 60,
+          "path": [
+            "task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2",
+            "task:click"
+          ],
+          "selected_score": {
+            "balance": 1.0,
+            "cardinality_penalty": 0.267245,
+            "coverage": 0.5,
+            "field": "repeat_signal",
+            "groups": {
+              "loop-like": 30,
+              "none": 30
+            },
+            "query_bonus": 0.4,
+            "score": 0.279775,
+            "small_child_penalty": 0.0,
+            "structural_gain": 0.159927
+          },
+          "source_field": "repeat_signal"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.881291,
+              "cardinality_penalty": 0.319923,
+              "coverage": 0.3,
+              "field": "repeat_state",
+              "groups": {
+                "light-repeat": 9,
+                "single": 21
+              },
+              "query_bonus": 0.2,
+              "score": 0.079147,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.0
+            }
+          ],
+          "node_weight": 30,
+          "path": [
+            "task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2",
+            "task:click",
+            "task:loop-like"
+          ],
+          "selected_score": {
+            "balance": 0.881291,
+            "cardinality_penalty": 0.319923,
+            "coverage": 0.3,
+            "field": "repeat_state",
+            "groups": {
+              "light-repeat": 9,
+              "single": 21
+            },
+            "query_bonus": 0.2,
+            "score": 0.079147,
+            "small_child_penalty": 0.0,
+            "structural_gain": 0.0
+          },
+          "source_field": "repeat_state"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.803114,
+              "cardinality_penalty": 0.5,
+              "coverage": 0.466667,
+              "field": "repeat_state",
+              "groups": {
+                "light-repeat": 1,
+                "same-action-run": 6,
+                "single": 8
+              },
+              "query_bonus": 0.6,
+              "score": 0.55353,
+              "small_child_penalty": 0.066667,
+              "structural_gain": 0.64745
+            },
+            {
+              "balance": 0.803114,
+              "cardinality_penalty": 0.5,
+              "coverage": 0.466667,
+              "field": "repeat_run",
+              "groups": {
+                "1": 8,
+                "2": 1,
+                "3plus": 6
+              },
+              "query_bonus": 0.4,
+              "score": 0.51753,
+              "small_child_penalty": 0.066667,
+              "structural_gain": 0.64745
+            }
+          ],
+          "node_weight": 15,
+          "path": [
+            "task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2",
+            "task:fill"
+          ],
+          "selected_score": {
+            "balance": 0.803114,
+            "cardinality_penalty": 0.5,
+            "coverage": 0.466667,
+            "field": "repeat_state",
+            "groups": {
+              "light-repeat": 1,
+              "same-action-run": 6,
+              "single": 8
+            },
+            "query_bonus": 0.6,
+            "score": 0.55353,
+            "small_child_penalty": 0.066667,
+            "structural_gain": 0.64745
+          },
+          "source_field": "repeat_state"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.995727,
+              "cardinality_penalty": 0.41629,
+              "coverage": 0.461538,
+              "field": "repeat_signal",
+              "groups": {
+                "loop-like": 6,
+                "none": 7
+              },
+              "query_bonus": 0.4,
+              "score": 0.302761,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.233188
+            }
+          ],
+          "node_weight": 13,
+          "path": [
+            "task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2",
+            "task:select_option"
+          ],
+          "selected_score": {
+            "balance": 0.995727,
+            "cardinality_penalty": 0.41629,
+            "coverage": 0.461538,
+            "field": "repeat_signal",
+            "groups": {
+              "loop-like": 6,
+              "none": 7
+            },
+            "query_bonus": 0.4,
+            "score": 0.302761,
+            "small_child_penalty": 0.0,
+            "structural_gain": 0.233188
+          },
+          "source_field": "repeat_signal"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.640235,
+              "cardinality_penalty": 0.421638,
+              "coverage": 0.39,
+              "field": "action",
+              "groups": {
+                "click": 61,
+                "fill": 8,
+                "noop": 1,
+                "report_infeasible": 1,
+                "select_option": 11,
+                "send_msg_to_user": 18
+              },
+              "query_bonus": 0.0,
+              "score": 0.376739,
+              "small_child_penalty": 0.02,
+              "structural_gain": 0.56379
+            },
+            {
+              "balance": 0.68842,
+              "cardinality_penalty": 0.388237,
+              "coverage": 0.39,
+              "field": "phase",
+              "groups": {
+                "browser-action": 11,
+                "finish": 19,
+                "input": 8,
+                "navigate": 61,
+                "observe": 1
+              },
+              "query_bonus": 0.0,
+              "score": 0.367491,
+              "small_child_penalty": 0.01,
+              "structural_gain": 0.533458
+            },
+            {
+              "balance": 0.793168,
+              "cardinality_penalty": 0.300381,
+              "coverage": 0.34,
+              "field": "repeat_state",
+              "groups": {
+                "light-repeat": 20,
+                "same-action-run": 14,
+                "single": 66
+              },
+              "query_bonus": 0.6,
+              "score": 0.345666,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.309
+            },
+            {
+              "balance": 0.881291,
+              "cardinality_penalty": 0.238046,
+              "coverage": 0.3,
+              "field": "repeat_signal",
+              "groups": {
+                "loop-like": 30,
+                "none": 70
+              },
+              "query_bonus": 0.4,
+              "score": 0.237746,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.187175
+            }
+          ],
+          "node_weight": 100,
+          "path": [
+            "task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2"
+          ],
+          "selected_score": {
+            "balance": 0.640235,
+            "cardinality_penalty": 0.421638,
+            "coverage": 0.39,
+            "field": "action",
+            "groups": {
+              "click": 61,
+              "fill": 8,
+              "noop": 1,
+              "report_infeasible": 1,
+              "select_option": 11,
+              "send_msg_to_user": 18
+            },
+            "query_bonus": 0.0,
+            "score": 0.376739,
+            "small_child_penalty": 0.02,
+            "structural_gain": 0.56379
+          },
+          "source_field": "action"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.853658,
+              "cardinality_penalty": 0.266193,
+              "coverage": 0.278689,
+              "field": "repeat_state",
+              "groups": {
+                "light-repeat": 17,
+                "single": 44
+              },
+              "query_bonus": 0.2,
+              "score": 0.155056,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.126607
+            },
+            {
+              "balance": 0.603652,
+              "cardinality_penalty": 0.266193,
+              "coverage": 0.147541,
+              "field": "repeat_signal",
+              "groups": {
+                "loop-like": 9,
+                "none": 52
+              },
+              "query_bonus": 0.4,
+              "score": 0.129369,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.089528
+            }
+          ],
+          "node_weight": 61,
+          "path": [
+            "task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2",
+            "task:click"
+          ],
+          "selected_score": {
+            "balance": 0.853658,
+            "cardinality_penalty": 0.266193,
+            "coverage": 0.278689,
+            "field": "repeat_state",
+            "groups": {
+              "light-repeat": 17,
+              "single": 44
+            },
+            "query_bonus": 0.2,
+            "score": 0.155056,
+            "small_child_penalty": 0.0,
+            "structural_gain": 0.126607
+          },
+          "source_field": "repeat_state"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.730926,
+              "cardinality_penalty": 0.288602,
+              "coverage": 0.204545,
+              "field": "repeat_signal",
+              "groups": {
+                "loop-like": 9,
+                "none": 35
+              },
+              "query_bonus": 0.4,
+              "score": 0.087784,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.0
+            }
+          ],
+          "node_weight": 44,
+          "path": [
+            "task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2",
+            "task:click",
+            "task:single"
+          ],
+          "selected_score": {
+            "balance": 0.730926,
+            "cardinality_penalty": 0.288602,
+            "coverage": 0.204545,
+            "field": "repeat_signal",
+            "groups": {
+              "loop-like": 9,
+              "none": 35
+            },
+            "query_bonus": 0.4,
+            "score": 0.087784,
+            "small_child_penalty": 0.0,
+            "structural_gain": 0.0
+          },
+          "source_field": "repeat_signal"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.664855,
+              "cardinality_penalty": 0.393123,
+              "coverage": 0.272727,
+              "field": "repeat_state",
+              "groups": {
+                "light-repeat": 2,
+                "same-action-run": 24,
+                "single": 7
+              },
+              "query_bonus": 0.6,
+              "score": 0.459271,
+              "small_child_penalty": 0.060606,
+              "structural_gain": 0.560804
+            },
+            {
+              "balance": 0.664855,
+              "cardinality_penalty": 0.393123,
+              "coverage": 0.272727,
+              "field": "repeat_run",
+              "groups": {
+                "1": 7,
+                "2": 2,
+                "3plus": 24
+              },
+              "query_bonus": 0.4,
+              "score": 0.423271,
+              "small_child_penalty": 0.060606,
+              "structural_gain": 0.560804
+            }
+          ],
+          "node_weight": 33,
+          "path": [
+            "task:visualwebarena.resized.580"
+          ],
+          "selected_score": {
+            "balance": 0.664855,
+            "cardinality_penalty": 0.393123,
+            "coverage": 0.272727,
+            "field": "repeat_state",
+            "groups": {
+              "light-repeat": 2,
+              "same-action-run": 24,
+              "single": 7
+            },
+            "query_bonus": 0.6,
+            "score": 0.459271,
+            "small_child_penalty": 0.060606,
+            "structural_gain": 0.560804
+          },
+          "source_field": "repeat_state"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.89232,
+              "cardinality_penalty": 0.468679,
+              "coverage": 0.533333,
+              "field": "repeat_state",
+              "groups": {
+                "light-repeat": 8,
+                "same-action-run": 5,
+                "same-action-window": 3,
+                "single": 14
+              },
+              "query_bonus": 0.6,
+              "score": 0.338871,
+              "small_child_penalty": 0.1,
+              "structural_gain": 0.265533
+            }
+          ],
+          "node_weight": 30,
+          "path": [
+            "task:assistantbench.improved.validation.15"
+          ],
+          "selected_score": {
+            "balance": 0.89232,
+            "cardinality_penalty": 0.468679,
+            "coverage": 0.533333,
+            "field": "repeat_state",
+            "groups": {
+              "light-repeat": 8,
+              "same-action-run": 5,
+              "same-action-window": 3,
+              "single": 14
+            },
+            "query_bonus": 0.6,
+            "score": 0.338871,
+            "small_child_penalty": 0.1,
+            "structural_gain": 0.265533
+          },
+          "source_field": "repeat_state"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.870647,
+              "cardinality_penalty": 0.468679,
+              "coverage": 0.666667,
+              "field": "action",
+              "groups": {
+                "click": 9,
+                "fill": 1,
+                "go_back": 10,
+                "goto": 10
+              },
+              "query_bonus": 0.0,
+              "score": 0.470308,
+              "small_child_penalty": 0.033333,
+              "structural_gain": 0.586381
+            },
+            {
+              "balance": 0.873233,
+              "cardinality_penalty": 0.468679,
+              "coverage": 0.533333,
+              "field": "repeat_state",
+              "groups": {
+                "light-repeat": 6,
+                "same-action-run": 2,
+                "same-action-window": 8,
+                "single": 14
+              },
+              "query_bonus": 0.6,
+              "score": 0.28726,
+              "small_child_penalty": 0.066667,
+              "structural_gain": 0.175806
+            }
+          ],
+          "node_weight": 30,
+          "path": [
+            "task:assistantbench.improved.validation.17"
+          ],
+          "selected_score": {
+            "balance": 0.870647,
+            "cardinality_penalty": 0.468679,
+            "coverage": 0.666667,
+            "field": "action",
+            "groups": {
+              "click": 9,
+              "fill": 1,
+              "go_back": 10,
+              "goto": 10
+            },
+            "query_bonus": 0.0,
+            "score": 0.470308,
+            "small_child_penalty": 0.033333,
+            "structural_gain": 0.586381
+          },
+          "source_field": "action"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.863178,
+              "cardinality_penalty": 0.403698,
+              "coverage": 0.533333,
+              "field": "action",
+              "groups": {
+                "click": 13,
+                "fill": 14,
+                "go_back": 3
+              },
+              "query_bonus": 0.0,
+              "score": 0.40019,
+              "small_child_penalty": 0.1,
+              "structural_gain": 0.536762
+            },
+            {
+              "balance": 0.996792,
+              "cardinality_penalty": 0.319923,
+              "coverage": 0.466667,
+              "field": "phase",
+              "groups": {
+                "input": 14,
+                "navigate": 16
+              },
+              "query_bonus": 0.0,
+              "score": 0.331396,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.380719
+            },
+            {
+              "balance": 0.957698,
+              "cardinality_penalty": 0.403698,
+              "coverage": 0.566667,
+              "field": "repeat_state",
+              "groups": {
+                "light-repeat": 11,
+                "same-action-window": 13,
+                "single": 6
+              },
+              "query_bonus": 0.4,
+              "score": 0.221598,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.065795
+            }
+          ],
+          "node_weight": 30,
+          "path": [
+            "task:assistantbench.improved.validation.9"
+          ],
+          "selected_score": {
+            "balance": 0.863178,
+            "cardinality_penalty": 0.403698,
+            "coverage": 0.533333,
+            "field": "action",
+            "groups": {
+              "click": 13,
+              "fill": 14,
+              "go_back": 3
+            },
+            "query_bonus": 0.0,
+            "score": 0.40019,
+            "small_child_penalty": 0.1,
+            "structural_gain": 0.536762
+          },
+          "source_field": "action"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.977046,
+              "cardinality_penalty": 0.525299,
+              "coverage": 0.615385,
+              "field": "repeat_state",
+              "groups": {
+                "light-repeat": 5,
+                "same-action-window": 5,
+                "single": 3
+              },
+              "query_bonus": 0.4,
+              "score": 0.14015,
+              "small_child_penalty": 0.230769,
+              "structural_gain": 0.0
+            }
+          ],
+          "node_weight": 13,
+          "path": [
+            "task:assistantbench.improved.validation.9",
+            "task:click"
+          ],
+          "selected_score": {
+            "balance": 0.977046,
+            "cardinality_penalty": 0.525299,
+            "coverage": 0.615385,
+            "field": "repeat_state",
+            "groups": {
+              "light-repeat": 5,
+              "same-action-window": 5,
+              "single": 3
+            },
+            "query_bonus": 0.4,
+            "score": 0.14015,
+            "small_child_penalty": 0.230769,
+            "structural_gain": 0.0
+          },
+          "source_field": "repeat_state"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.972268,
+              "cardinality_penalty": 0.403698,
+              "coverage": 0.566667,
+              "field": "repeat_state",
+              "groups": {
+                "light-repeat": 7,
+                "same-action-window": 10,
+                "single": 13
+              },
+              "query_bonus": 0.4,
+              "score": 0.374623,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.309148
+            },
+            {
+              "balance": 0.738209,
+              "cardinality_penalty": 0.403698,
+              "coverage": 0.466667,
+              "field": "action",
+              "groups": {
+                "click": 16,
+                "fill": 1,
+                "scroll": 13
+              },
+              "query_bonus": 0.0,
+              "score": 0.363072,
+              "small_child_penalty": 0.033333,
+              "structural_gain": 0.503977
+            },
+            {
+              "balance": 0.996792,
+              "cardinality_penalty": 0.319923,
+              "coverage": 0.466667,
+              "field": "step_error",
+              "groups": {
+                "error": 14,
+                "ok": 16
+              },
+              "query_bonus": 0.0,
+              "score": 0.138552,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.069681
+            }
+          ],
+          "node_weight": 30,
+          "path": [
+            "task:visualwebarena.569"
+          ],
+          "selected_score": {
+            "balance": 0.972268,
+            "cardinality_penalty": 0.403698,
+            "coverage": 0.566667,
+            "field": "repeat_state",
+            "groups": {
+              "light-repeat": 7,
+              "same-action-window": 10,
+              "single": 13
+            },
+            "query_bonus": 0.4,
+            "score": 0.374623,
+            "small_child_penalty": 0.0,
+            "structural_gain": 0.309148
+          },
+          "source_field": "repeat_state"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.995727,
+              "cardinality_penalty": 0.41629,
+              "coverage": 0.461538,
+              "field": "step_error",
+              "groups": {
+                "error": 6,
+                "ok": 7
+              },
+              "query_bonus": 0.0,
+              "score": 0.230761,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.233188
+            }
+          ],
+          "node_weight": 13,
+          "path": [
+            "task:visualwebarena.569",
+            "task:single"
+          ],
+          "selected_score": {
+            "balance": 0.995727,
+            "cardinality_penalty": 0.41629,
+            "coverage": 0.461538,
+            "field": "step_error",
+            "groups": {
+              "error": 6,
+              "ok": 7
+            },
+            "query_bonus": 0.0,
+            "score": 0.230761,
+            "small_child_penalty": 0.0,
+            "structural_gain": 0.233188
+          },
+          "source_field": "step_error"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 1.0,
+              "cardinality_penalty": 0.458157,
+              "coverage": 0.5,
+              "field": "step_error",
+              "groups": {
+                "error": 5,
+                "ok": 5
+              },
+              "query_bonus": 0.0,
+              "score": 0.093347,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.0
+            }
+          ],
+          "node_weight": 10,
+          "path": [
+            "task:visualwebarena.569",
+            "task:same-action-window"
+          ],
+          "selected_score": {
+            "balance": 1.0,
+            "cardinality_penalty": 0.458157,
+            "coverage": 0.5,
+            "field": "step_error",
+            "groups": {
+              "error": 5,
+              "ok": 5
+            },
+            "query_bonus": 0.0,
+            "score": 0.093347,
+            "small_child_penalty": 0.0,
+            "structural_gain": 0.0
+          },
+          "source_field": "step_error"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.53751,
+              "cardinality_penalty": 0.403698,
+              "coverage": 0.2,
+              "field": "repeat_state",
+              "groups": {
+                "light-repeat": 1,
+                "same-action-run": 24,
+                "single": 5
+              },
+              "query_bonus": 0.6,
+              "score": 0.527697,
+              "small_child_penalty": 0.033333,
+              "structural_gain": 0.694692
+            },
+            {
+              "balance": 0.53751,
+              "cardinality_penalty": 0.403698,
+              "coverage": 0.2,
+              "field": "repeat_run",
+              "groups": {
+                "1": 5,
+                "2": 1,
+                "3plus": 24
+              },
+              "query_bonus": 0.4,
+              "score": 0.491697,
+              "small_child_penalty": 0.033333,
+              "structural_gain": 0.694692
+            }
+          ],
+          "node_weight": 30,
+          "path": [
+            "task:visualwebarena.76"
+          ],
+          "selected_score": {
+            "balance": 0.53751,
+            "cardinality_penalty": 0.403698,
+            "coverage": 0.2,
+            "field": "repeat_state",
+            "groups": {
+              "light-repeat": 1,
+              "same-action-run": 24,
+              "single": 5
+            },
+            "query_bonus": 0.6,
+            "score": 0.527697,
+            "small_child_penalty": 0.033333,
+            "structural_gain": 0.694692
+          },
+          "source_field": "repeat_state"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.783581,
+              "cardinality_penalty": 0.403698,
+              "coverage": 0.333333,
+              "field": "repeat_state",
+              "groups": {
+                "light-repeat": 4,
+                "same-action-run": 20,
+                "single": 6
+              },
+              "query_bonus": 0.6,
+              "score": 0.483533,
+              "small_child_penalty": 0.133333,
+              "structural_gain": 0.591267
+            },
+            {
+              "balance": 0.764724,
+              "cardinality_penalty": 0.403698,
+              "coverage": 0.333333,
+              "field": "repeat_run",
+              "groups": {
+                "1": 7,
+                "2": 3,
+                "3plus": 20
+              },
+              "query_bonus": 0.4,
+              "score": 0.42913,
+              "small_child_penalty": 0.1,
+              "structural_gain": 0.553467
+            }
+          ],
+          "node_weight": 30,
+          "path": [
+            "task:visualwebarena.88"
+          ],
+          "selected_score": {
+            "balance": 0.783581,
+            "cardinality_penalty": 0.403698,
+            "coverage": 0.333333,
+            "field": "repeat_state",
+            "groups": {
+              "light-repeat": 4,
+              "same-action-run": 20,
+              "single": 6
+            },
+            "query_bonus": 0.6,
+            "score": 0.483533,
+            "small_child_penalty": 0.133333,
+            "structural_gain": 0.591267
+          },
+          "source_field": "repeat_state"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.701495,
+              "cardinality_penalty": 0.468679,
+              "coverage": 0.366667,
+              "field": "repeat_state",
+              "groups": {
+                "light-repeat": 3,
+                "same-action-run": 19,
+                "single": 7,
+                "target-window": 1
+              },
+              "query_bonus": 0.6,
+              "score": 0.456462,
+              "small_child_penalty": 0.133333,
+              "structural_gain": 0.557656
+            },
+            {
+              "balance": 0.756417,
+              "cardinality_penalty": 0.403698,
+              "coverage": 0.366667,
+              "field": "repeat_run",
+              "groups": {
+                "1": 9,
+                "2": 2,
+                "3plus": 19
+              },
+              "query_bonus": 0.4,
+              "score": 0.432098,
+              "small_child_penalty": 0.066667,
+              "structural_gain": 0.53809
+            }
+          ],
+          "node_weight": 30,
+          "path": [
+            "task:webarena.723"
+          ],
+          "selected_score": {
+            "balance": 0.701495,
+            "cardinality_penalty": 0.468679,
+            "coverage": 0.366667,
+            "field": "repeat_state",
+            "groups": {
+              "light-repeat": 3,
+              "same-action-run": 19,
+              "single": 7,
+              "target-window": 1
+            },
+            "query_bonus": 0.6,
+            "score": 0.456462,
+            "small_child_penalty": 0.133333,
+            "structural_gain": 0.557656
+          },
+          "source_field": "repeat_state"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.648813,
+              "cardinality_penalty": 0.468679,
+              "coverage": 0.4,
+              "field": "action",
+              "groups": {
+                "click": 18,
+                "fill": 10,
+                "press": 1,
+                "scroll": 1
+              },
+              "query_bonus": 0.0,
+              "score": 0.275472,
+              "small_child_penalty": 0.066667,
+              "structural_gain": 0.417456
+            },
+            {
+              "balance": 0.948078,
+              "cardinality_penalty": 0.319923,
+              "coverage": 0.366667,
+              "field": "phase",
+              "groups": {
+                "input": 11,
+                "navigate": 19
+              },
+              "query_bonus": 0.0,
+              "score": 0.247346,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.294446
+            },
+            {
+              "balance": 0.756417,
+              "cardinality_penalty": 0.403698,
+              "coverage": 0.366667,
+              "field": "repeat_state",
+              "groups": {
+                "light-repeat": 9,
+                "same-action-window": 2,
+                "single": 19
+              },
+              "query_bonus": 0.4,
+              "score": 0.227095,
+              "small_child_penalty": 0.066667,
+              "structural_gain": 0.20744
+            },
+            {
+              "balance": 0.881291,
+              "cardinality_penalty": 0.319923,
+              "coverage": 0.3,
+              "field": "step_error",
+              "groups": {
+                "error": 9,
+                "ok": 21
+              },
+              "query_bonus": 0.0,
+              "score": 0.15727,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.184069
+            }
+          ],
+          "node_weight": 30,
+          "path": [
+            "task:workarena.servicenow.two-changes-wide-basic-uniform-risk-change-request-scheduling-l2"
+          ],
+          "selected_score": {
+            "balance": 0.648813,
+            "cardinality_penalty": 0.468679,
+            "coverage": 0.4,
+            "field": "action",
+            "groups": {
+              "click": 18,
+              "fill": 10,
+              "press": 1,
+              "scroll": 1
+            },
+            "query_bonus": 0.0,
+            "score": 0.275472,
+            "small_child_penalty": 0.066667,
+            "structural_gain": 0.417456
+          },
+          "source_field": "action"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.820043,
+              "cardinality_penalty": 0.470818,
+              "coverage": 0.388889,
+              "field": "repeat_state",
+              "groups": {
+                "light-repeat": 5,
+                "same-action-window": 2,
+                "single": 11
+              },
+              "query_bonus": 0.4,
+              "score": 0.547008,
+              "small_child_penalty": 0.111111,
+              "structural_gain": 0.729
+            },
+            {
+              "balance": 0.991076,
+              "cardinality_penalty": 0.373114,
+              "coverage": 0.444444,
+              "field": "step_error",
+              "groups": {
+                "error": 8,
+                "ok": 10
+              },
+              "query_bonus": 0.0,
+              "score": 0.429319,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.555878
+            }
+          ],
+          "node_weight": 18,
+          "path": [
+            "task:workarena.servicenow.two-changes-wide-basic-uniform-risk-change-request-scheduling-l2",
+            "task:click"
+          ],
+          "selected_score": {
+            "balance": 0.820043,
+            "cardinality_penalty": 0.470818,
+            "coverage": 0.388889,
+            "field": "repeat_state",
+            "groups": {
+              "light-repeat": 5,
+              "same-action-window": 2,
+              "single": 11
+            },
+            "query_bonus": 0.4,
+            "score": 0.547008,
+            "small_child_penalty": 0.111111,
+            "structural_gain": 0.729
+          },
+          "source_field": "repeat_state"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.53751,
+              "cardinality_penalty": 0.403698,
+              "coverage": 0.2,
+              "field": "repeat_state",
+              "groups": {
+                "light-repeat": 1,
+                "same-action-run": 24,
+                "single": 5
+              },
+              "query_bonus": 0.6,
+              "score": 0.527697,
+              "small_child_penalty": 0.033333,
+              "structural_gain": 0.694692
+            },
+            {
+              "balance": 0.53751,
+              "cardinality_penalty": 0.403698,
+              "coverage": 0.2,
+              "field": "repeat_run",
+              "groups": {
+                "1": 5,
+                "2": 1,
+                "3plus": 24
+              },
+              "query_bonus": 0.4,
+              "score": 0.491697,
+              "small_child_penalty": 0.033333,
+              "structural_gain": 0.694692
+            }
+          ],
+          "node_weight": 30,
+          "path": [
+            "task:workarena.servicenow.two-changes-wide-basic-varied-risk-change-request-scheduling-l2"
+          ],
+          "selected_score": {
+            "balance": 0.53751,
+            "cardinality_penalty": 0.403698,
+            "coverage": 0.2,
+            "field": "repeat_state",
+            "groups": {
+              "light-repeat": 1,
+              "same-action-run": 24,
+              "single": 5
+            },
+            "query_bonus": 0.6,
+            "score": 0.527697,
+            "small_child_penalty": 0.033333,
+            "structural_gain": 0.694692
+          },
+          "source_field": "repeat_state"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.881291,
+              "cardinality_penalty": 0.319923,
+              "coverage": 0.3,
+              "field": "action",
+              "groups": {
+                "click": 21,
+                "fill": 9
+              },
+              "query_bonus": 0.0,
+              "score": 0.287149,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.393552
+            },
+            {
+              "balance": 0.881291,
+              "cardinality_penalty": 0.319923,
+              "coverage": 0.3,
+              "field": "phase",
+              "groups": {
+                "input": 9,
+                "navigate": 21
+              },
+              "query_bonus": 0.0,
+              "score": 0.287149,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.393552
+            },
+            {
+              "balance": 0.718776,
+              "cardinality_penalty": 0.521772,
+              "coverage": 0.433333,
+              "field": "repeat_state",
+              "groups": {
+                "light-repeat": 7,
+                "same-action-run": 1,
+                "same-action-window": 4,
+                "single": 17,
+                "target-window": 1
+              },
+              "query_bonus": 0.6,
+              "score": 0.239056,
+              "small_child_penalty": 0.2,
+              "structural_gain": 0.212606
+            }
+          ],
+          "node_weight": 30,
+          "path": [
+            "task:workarena.servicenow.two-changes-wide-priority-uniform-risk-change-request-scheduling-l2"
+          ],
+          "selected_score": {
+            "balance": 0.881291,
+            "cardinality_penalty": 0.319923,
+            "coverage": 0.3,
+            "field": "action",
+            "groups": {
+              "click": 21,
+              "fill": 9
+            },
+            "query_bonus": 0.0,
+            "score": 0.287149,
+            "small_child_penalty": 0.0,
+            "structural_gain": 0.393552
+          },
+          "source_field": "action"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.794798,
+              "cardinality_penalty": 0.579662,
+              "coverage": 0.52381,
+              "field": "repeat_state",
+              "groups": {
+                "light-repeat": 6,
+                "same-action-run": 1,
+                "same-action-window": 3,
+                "single": 10,
+                "target-window": 1
+              },
+              "query_bonus": 0.6,
+              "score": 0.394898,
+              "small_child_penalty": 0.238095,
+              "structural_gain": 0.439752
+            }
+          ],
+          "node_weight": 21,
+          "path": [
+            "task:workarena.servicenow.two-changes-wide-priority-uniform-risk-change-request-scheduling-l2",
+            "task:click"
+          ],
+          "selected_score": {
+            "balance": 0.794798,
+            "cardinality_penalty": 0.579662,
+            "coverage": 0.52381,
+            "field": "repeat_state",
+            "groups": {
+              "light-repeat": 6,
+              "same-action-run": 1,
+              "same-action-window": 3,
+              "single": 10,
+              "target-window": 1
+            },
+            "query_bonus": 0.6,
+            "score": 0.394898,
+            "small_child_penalty": 0.238095,
+            "structural_gain": 0.439752
+          },
+          "source_field": "repeat_state"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.836641,
+              "cardinality_penalty": 0.319923,
+              "coverage": 0.266667,
+              "field": "action",
+              "groups": {
+                "click": 22,
+                "fill": 8
+              },
+              "query_bonus": 0.0,
+              "score": 0.27999,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.399318
+            },
+            {
+              "balance": 0.836641,
+              "cardinality_penalty": 0.319923,
+              "coverage": 0.266667,
+              "field": "phase",
+              "groups": {
+                "input": 8,
+                "navigate": 22
+              },
+              "query_bonus": 0.0,
+              "score": 0.27999,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.399318
+            },
+            {
+              "balance": 0.721928,
+              "cardinality_penalty": 0.319923,
+              "coverage": 0.2,
+              "field": "repeat_state",
+              "groups": {
+                "light-repeat": 6,
+                "single": 24
+              },
+              "query_bonus": 0.2,
+              "score": 0.138563,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.146156
+            },
+            {
+              "balance": 0.721928,
+              "cardinality_penalty": 0.319923,
+              "coverage": 0.2,
+              "field": "step_error",
+              "groups": {
+                "error": 6,
+                "ok": 24
+              },
+              "query_bonus": 0.0,
+              "score": 0.041787,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.04813
+            }
+          ],
+          "node_weight": 30,
+          "path": [
+            "task:workarena.servicenow.two-changes-wide-schedule-tight-uniform-risk-change-request-scheduling-l2"
+          ],
+          "selected_score": {
+            "balance": 0.836641,
+            "cardinality_penalty": 0.319923,
+            "coverage": 0.266667,
+            "field": "action",
+            "groups": {
+              "click": 22,
+              "fill": 8
+            },
+            "query_bonus": 0.0,
+            "score": 0.27999,
+            "small_child_penalty": 0.0,
+            "structural_gain": 0.399318
+          },
+          "source_field": "action"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.773227,
+              "cardinality_penalty": 0.350379,
+              "coverage": 0.227273,
+              "field": "step_error",
+              "groups": {
+                "error": 5,
+                "ok": 17
+              },
+              "query_bonus": 0.0,
+              "score": 0.32636,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.497902
+            }
+          ],
+          "node_weight": 22,
+          "path": [
+            "task:workarena.servicenow.two-changes-wide-schedule-tight-uniform-risk-change-request-scheduling-l2",
+            "task:click"
+          ],
+          "selected_score": {
+            "balance": 0.773227,
+            "cardinality_penalty": 0.350379,
+            "coverage": 0.227273,
+            "field": "step_error",
+            "groups": {
+              "error": 5,
+              "ok": 17
+            },
+            "query_bonus": 0.0,
+            "score": 0.32636,
+            "small_child_penalty": 0.0,
+            "structural_gain": 0.497902
+          },
+          "source_field": "step_error"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.863178,
+              "cardinality_penalty": 0.403698,
+              "coverage": 0.533333,
+              "field": "action",
+              "groups": {
+                "clear": 3,
+                "click": 14,
+                "fill": 13
+              },
+              "query_bonus": 0.0,
+              "score": 0.364948,
+              "small_child_penalty": 0.1,
+              "structural_gain": 0.47992
+            },
+            {
+              "balance": 0.863178,
+              "cardinality_penalty": 0.403698,
+              "coverage": 0.533333,
+              "field": "phase",
+              "groups": {
+                "browser-action": 3,
+                "input": 13,
+                "navigate": 14
+              },
+              "query_bonus": 0.0,
+              "score": 0.364948,
+              "small_child_penalty": 0.1,
+              "structural_gain": 0.47992
+            },
+            {
+              "balance": 0.783777,
+              "cardinality_penalty": 0.319923,
+              "coverage": 0.233333,
+              "field": "step_error",
+              "groups": {
+                "error": 7,
+                "ok": 23
+              },
+              "query_bonus": 0.0,
+              "score": 0.078493,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.09119
+            }
+          ],
+          "node_weight": 30,
+          "path": [
+            "task:workarena.servicenow.two-changes-wide-tight-priority-varied-risk-change-request-scheduling-l2"
+          ],
+          "selected_score": {
+            "balance": 0.863178,
+            "cardinality_penalty": 0.403698,
+            "coverage": 0.533333,
+            "field": "action",
+            "groups": {
+              "clear": 3,
+              "click": 14,
+              "fill": 13
+            },
+            "query_bonus": 0.0,
+            "score": 0.364948,
+            "small_child_penalty": 0.1,
+            "structural_gain": 0.47992
+          },
+          "source_field": "action"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.985228,
+              "cardinality_penalty": 0.405684,
+              "coverage": 0.428571,
+              "field": "step_error",
+              "groups": {
+                "error": 6,
+                "ok": 8
+              },
+              "query_bonus": 0.0,
+              "score": 0.244554,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.26972
+            }
+          ],
+          "node_weight": 14,
+          "path": [
+            "task:workarena.servicenow.two-changes-wide-tight-priority-varied-risk-change-request-scheduling-l2",
+            "task:click"
+          ],
+          "selected_score": {
+            "balance": 0.985228,
+            "cardinality_penalty": 0.405684,
+            "coverage": 0.428571,
+            "field": "step_error",
+            "groups": {
+              "error": 6,
+              "ok": 8
+            },
+            "query_bonus": 0.0,
+            "score": 0.244554,
+            "small_child_penalty": 0.0,
+            "structural_gain": 0.26972
+          },
+          "source_field": "step_error"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.761665,
+              "cardinality_penalty": 0.442129,
+              "coverage": 0.454545,
+              "field": "action",
+              "groups": {
+                "click": 12,
+                "fill": 9,
+                "send_msg_to_user": 1
+              },
+              "query_bonus": 0.0,
+              "score": 0.388582,
+              "small_child_penalty": 0.045455,
+              "structural_gain": 0.553272
+            },
+            {
+              "balance": 0.761665,
+              "cardinality_penalty": 0.442129,
+              "coverage": 0.454545,
+              "field": "phase",
+              "groups": {
+                "finish": 1,
+                "input": 9,
+                "navigate": 12
+              },
+              "query_bonus": 0.0,
+              "score": 0.388582,
+              "small_child_penalty": 0.045455,
+              "structural_gain": 0.553272
+            },
+            {
+              "balance": 0.81562,
+              "cardinality_penalty": 0.442129,
+              "coverage": 0.363636,
+              "field": "repeat_state",
+              "groups": {
+                "light-repeat": 3,
+                "same-action-window": 14,
+                "single": 5
+              },
+              "query_bonus": 0.4,
+              "score": 0.157206,
+              "small_child_penalty": 0.136364,
+              "structural_gain": 0.114091
+            }
+          ],
+          "node_weight": 22,
+          "path": [
+            "task:assistantbench.improved.validation.10"
+          ],
+          "selected_score": {
+            "balance": 0.761665,
+            "cardinality_penalty": 0.442129,
+            "coverage": 0.454545,
+            "field": "action",
+            "groups": {
+              "click": 12,
+              "fill": 9,
+              "send_msg_to_user": 1
+            },
+            "query_bonus": 0.0,
+            "score": 0.388582,
+            "small_child_penalty": 0.045455,
+            "structural_gain": 0.553272
+          },
+          "source_field": "action"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.75769,
+              "cardinality_penalty": 0.448488,
+              "coverage": 0.428571,
+              "field": "repeat_state",
+              "groups": {
+                "light-repeat": 1,
+                "same-action-run": 8,
+                "single": 12
+              },
+              "query_bonus": 0.6,
+              "score": 0.43947,
+              "small_child_penalty": 0.047619,
+              "structural_gain": 0.471685
+            },
+            {
+              "balance": 0.75769,
+              "cardinality_penalty": 0.448488,
+              "coverage": 0.428571,
+              "field": "repeat_run",
+              "groups": {
+                "1": 12,
+                "2": 1,
+                "3plus": 8
+              },
+              "query_bonus": 0.4,
+              "score": 0.40347,
+              "small_child_penalty": 0.047619,
+              "structural_gain": 0.471685
+            },
+            {
+              "balance": 0.985228,
+              "cardinality_penalty": 0.355418,
+              "coverage": 0.428571,
+              "field": "step_error",
+              "groups": {
+                "error": 12,
+                "ok": 9
+              },
+              "query_bonus": 0.0,
+              "score": 0.275387,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.312965
+            }
+          ],
+          "node_weight": 21,
+          "path": [
+            "task:assistantbench.improved.validation.16"
+          ],
+          "selected_score": {
+            "balance": 0.75769,
+            "cardinality_penalty": 0.448488,
+            "coverage": 0.428571,
+            "field": "repeat_state",
+            "groups": {
+              "light-repeat": 1,
+              "same-action-run": 8,
+              "single": 12
+            },
+            "query_bonus": 0.6,
+            "score": 0.43947,
+            "small_child_penalty": 0.047619,
+            "structural_gain": 0.471685
+          },
+          "source_field": "repeat_state"
+        },
+        {
+          "candidate_scores": [
+            {
+              "balance": 0.961237,
+              "cardinality_penalty": 0.41629,
+              "coverage": 0.384615,
+              "field": "repeat_signal",
+              "groups": {
+                "loop-like": 8,
+                "none": 5
+              },
+              "query_bonus": 0.4,
+              "score": 0.203799,
+              "small_child_penalty": 0.0,
+              "structural_gain": 0.111255
+            }
+          ],
+          "node_weight": 13,
+          "path": [
+            "task:visualwebarena.resized.569"
+          ],
+          "selected_score": {
+            "balance": 0.961237,
+            "cardinality_penalty": 0.41629,
+            "coverage": 0.384615,
+            "field": "repeat_signal",
+            "groups": {
+              "loop-like": 8,
+              "none": 5
+            },
+            "query_bonus": 0.4,
+            "score": 0.203799,
+            "small_child_penalty": 0.0,
+            "structural_gain": 0.111255
+          },
+          "source_field": "repeat_signal"
+        }
+      ],
       "statuses": {
         "folded": {
-          "command": [
-            "cargo",
-            "run",
-            "--manifest-path",
-            "agentpprof/Cargo.toml",
-            "--",
-            "--operation-file",
-            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl",
-            "--view",
-            "operations",
-            "--format",
-            "folded",
-            "--output",
-            "docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-session-drilldown.folded",
-            "--where",
-            "dataset=agent-reward-bench",
-            "--stack",
-            "source,dataset,analysis_task,session,phase,tool,action,status",
-            "--deterministic-output"
-          ],
-          "deterministic_output": true,
-          "format": "folded",
-          "op_map_files": [],
-          "op_maps": [],
-          "operation_files": [
-            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl"
-          ],
-          "operations": 34539,
-          "output": "docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-session-drilldown.folded",
-          "profile_specs": [],
-          "rank_mode": "width-boost",
-          "rank_op_rules": [],
-          "rank_rules": [],
-          "sample_type": "operations",
-          "samples": 1458,
-          "stack": "source,dataset,analysis_task,session,phase,tool,action,status",
-          "stack_rules": [],
-          "standard_trace_events": null,
-          "standard_trace_format": null,
-          "standard_trace_output": null,
-          "status": "ok",
-          "unique_stacks": 170,
-          "unit": "count",
-          "view": "operations",
-          "warnings": [],
-          "where_rules": [
-            "dataset=agent-reward-bench"
-          ]
+          "generator": "task-stack-induction",
+          "output": "docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-induced-session-drilldown.folded",
+          "status": "ok"
         },
         "profile_json": {
-          "command": [
-            "cargo",
-            "run",
-            "--manifest-path",
-            "agentpprof/Cargo.toml",
-            "--",
-            "--operation-file",
-            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl",
-            "--view",
-            "operations",
-            "--format",
-            "json",
-            "--output",
-            "docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-session-drilldown.profile.json",
-            "--where",
-            "dataset=agent-reward-bench",
-            "--stack",
-            "source,dataset,analysis_task,session,phase,tool,action,status",
-            "--deterministic-output"
-          ],
-          "deterministic_output": true,
-          "format": "json",
-          "op_map_files": [],
-          "op_maps": [],
-          "operation_files": [
-            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl"
-          ],
-          "operations": 34539,
-          "output": "docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-session-drilldown.profile.json",
-          "profile_specs": [],
-          "rank_mode": "width-boost",
-          "rank_op_rules": [],
-          "rank_rules": [],
-          "sample_type": "operations",
-          "samples": 1458,
-          "stack": "source,dataset,analysis_task,session,phase,tool,action,status",
-          "stack_rules": [],
-          "standard_trace_events": null,
-          "standard_trace_format": null,
-          "standard_trace_output": null,
-          "status": "ok",
-          "unique_stacks": 170,
-          "unit": "count",
-          "view": "operations",
-          "warnings": [],
-          "where_rules": [
-            "dataset=agent-reward-bench"
-          ]
+          "generator": "task-stack-induction",
+          "output": "docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-induced-session-drilldown.profile.json",
+          "status": "ok"
         },
         "svg": {
-          "command": [
-            "cargo",
-            "run",
-            "--manifest-path",
-            "agentpprof/Cargo.toml",
-            "--",
-            "--operation-file",
-            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl",
-            "--view",
-            "operations",
-            "--format",
-            "svg",
-            "--output",
-            "docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-session-drilldown.svg",
-            "--where",
-            "dataset=agent-reward-bench",
-            "--stack",
-            "source,dataset,analysis_task,session,phase,tool,action,status",
-            "--deterministic-output",
-            "--svg-width",
-            "1600"
-          ],
-          "deterministic_output": true,
-          "format": "svg",
-          "op_map_files": [],
-          "op_maps": [],
-          "operation_files": [
-            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl"
-          ],
-          "operations": 34539,
-          "output": "docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-session-drilldown.svg",
-          "profile_specs": [],
-          "rank_mode": "width-boost",
-          "rank_op_rules": [],
-          "rank_rules": [],
-          "sample_type": "operations",
-          "samples": 1458,
-          "stack": "source,dataset,analysis_task,session,phase,tool,action,status",
-          "stack_rules": [],
-          "standard_trace_events": null,
-          "standard_trace_format": null,
-          "standard_trace_output": null,
-          "status": "ok",
-          "unique_stacks": 170,
-          "unit": "count",
-          "view": "operations",
-          "warnings": [],
-          "where_rules": [
-            "dataset=agent-reward-bench"
-          ]
+          "generator": "task-stack-induction",
+          "output": "docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-induced-session-drilldown.svg",
+          "status": "ok"
         }
       },
       "summary": {
-        "compression_ratio": 8.576,
-        "hidden_label_fields_in_stack": [],
-        "max_stack_reuse": 61,
-        "operations": 1458,
-        "purpose": "A deeper view that adds session only after the benchmark overview is readable.",
-        "stack": "source,dataset,analysis_task,session,phase,tool,action,status",
-        "title": "AgentReward session drilldown",
-        "top_by_field": {
-          "action": [
+        "compression_ratio": 8.011,
+        "constant_metadata_fields_omitted": [
+          "dataset",
+          "source"
+        ],
+        "max_stack_depth": 4,
+        "max_stack_reuse": 35,
+        "operations": 729,
+        "purpose": "The same induction policy with session available as a candidate split when it explains visible variation.",
+        "query": "analysis_task=agentreward_looping",
+        "source_fields_hidden_oracle_overlap": [],
+        "source_fields_selected_by_induction": [
+          "action",
+          "repeat_signal",
+          "repeat_state",
+          "session",
+          "step_error"
+        ],
+        "stack": "task",
+        "stack_depth_histogram": {
+          "1": 11,
+          "2": 50,
+          "3": 26,
+          "4": 4
+        },
+        "stop_reasons": {
+          "no_material_split": 25,
+          "small_node": 66
+        },
+        "title": "AgentReward induced task stack with session candidate",
+        "top_by_level": {
+          "task_level_1": [
+            [
+              "workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2",
+              102
+            ],
+            [
+              "workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2",
+              100
+            ],
+            [
+              "visualwebarena.resized.580",
+              33
+            ],
+            [
+              "assistantbench.improved.validation.15",
+              30
+            ],
+            [
+              "assistantbench.improved.validation.17",
+              30
+            ],
+            [
+              "assistantbench.improved.validation.9",
+              30
+            ],
+            [
+              "visualwebarena.569",
+              30
+            ],
+            [
+              "visualwebarena.76",
+              30
+            ],
+            [
+              "visualwebarena.88",
+              30
+            ],
+            [
+              "webarena.723",
+              30
+            ]
+          ],
+          "task_level_2": [
             [
               "click",
-              924
+              230
+            ],
+            [
+              "same-action-run",
+              124
             ],
             [
               "fill",
-              218
+              87
+            ],
+            [
+              "single",
+              69
             ],
             [
               "send_msg_to_user",
-              80
+              31
             ],
             [
-              "hover",
-              54
+              "light-repeat",
+              27
             ],
             [
               "select_option",
-              50
-            ],
-            [
-              "scroll",
-              38
-            ],
-            [
-              "goto",
-              28
+              24
             ],
             [
               "go_back",
-              26
+              13
             ],
             [
-              "noop",
-              16
+              "same-action-window",
+              13
             ],
             [
-              "report_infeasible",
-              16
+              "goto",
+              10
             ]
           ],
-          "analysis_task": [
+          "task_level_3": [
             [
-              "agentreward_looping",
-              729
+              "single",
+              76
             ],
             [
-              "agentreward_side_effect",
-              729
+              "none",
+              37
+            ],
+            [
+              "ok",
+              37
+            ],
+            [
+              "loop-like",
+              36
+            ],
+            [
+              "light-repeat",
+              34
+            ],
+            [
+              "error",
+              22
+            ],
+            [
+              "same-action-window",
+              10
+            ],
+            [
+              "same-action-run",
+              7
+            ],
+            [
+              "target-window",
+              1
             ]
           ],
-          "dataset": [
+          "task_level_4": [
             [
-              "agent-reward-bench",
-              1458
-            ]
-          ],
-          "phase": [
-            [
-              "navigate",
-              1070
+              "none",
+              35
             ],
             [
-              "input",
-              220
+              "single",
+              21
             ],
             [
-              "finish",
-              96
+              "light-repeat",
+              9
             ],
             [
-              "browser-action",
-              56
-            ],
-            [
-              "observe",
-              16
-            ]
-          ],
-          "source": [
-            [
-              "mcgill-nlp/agent-reward-bench",
-              1458
-            ]
-          ],
-          "status": [
-            [
-              "failure",
-              1428
-            ],
-            [
-              "success",
-              30
+              "loop-like",
+              9
             ]
           ]
         },
         "top_stacks": [
           {
-            "matched_rank_rules": [],
-            "rank_score": 61.0,
-            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;session:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2;phase:navigate;tool:browser;action:click;status:failure",
-            "weight": 61
+            "stack": "task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2;task:click;task:single;task:none",
+            "weight": 35
           },
           {
-            "matched_rank_rules": [],
-            "rank_score": 61.0,
-            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;session:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2;phase:navigate;tool:browser;action:click;status:failure",
-            "weight": 61
-          },
-          {
-            "matched_rank_rules": [],
-            "rank_score": 60.0,
-            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;session:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;phase:navigate;tool:browser;action:click;status:failure",
-            "weight": 60
-          },
-          {
-            "matched_rank_rules": [],
-            "rank_score": 60.0,
-            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;session:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;phase:navigate;tool:browser;action:click;status:failure",
-            "weight": 60
-          },
-          {
-            "matched_rank_rules": [],
-            "rank_score": 32.0,
-            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;session:visualwebarena.resized.580;phase:navigate;tool:browser;action:click;status:failure",
-            "weight": 32
-          },
-          {
-            "matched_rank_rules": [],
-            "rank_score": 32.0,
-            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;session:visualwebarena.resized.580;phase:navigate;tool:browser;action:click;status:failure",
-            "weight": 32
-          },
-          {
-            "matched_rank_rules": [],
-            "rank_score": 30.0,
-            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;session:workarena.servicenow.dashboard-retrieve-catalog-and-max-order-apple-watch-l2;phase:navigate;tool:browser;action:click;status:failure",
+            "stack": "task:workarena.servicenow.dashboard-retrieve-catalog-and-max-order-apple-watch-l2",
             "weight": 30
           },
           {
-            "matched_rank_rules": [],
-            "rank_score": 30.0,
-            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;session:workarena.servicenow.dashboard-retrieve-catalog-and-max-order-apple-watch-l2;phase:navigate;tool:browser;action:click;status:failure",
+            "stack": "task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:click;task:none",
             "weight": 30
           },
           {
-            "matched_rank_rules": [],
-            "rank_score": 28.0,
-            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;session:visualwebarena.76;phase:navigate;tool:browser;action:click;status:failure",
-            "weight": 28
+            "stack": "task:visualwebarena.76;task:same-action-run",
+            "weight": 24
           },
           {
-            "matched_rank_rules": [],
-            "rank_score": 28.0,
-            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;session:workarena.servicenow.two-changes-wide-basic-varied-risk-change-request-scheduling-l2;phase:navigate;tool:browser;action:click;status:failure",
-            "weight": 28
+            "stack": "task:visualwebarena.resized.580;task:same-action-run",
+            "weight": 24
           },
           {
-            "matched_rank_rules": [],
-            "rank_score": 28.0,
-            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;session:visualwebarena.76;phase:navigate;tool:browser;action:click;status:failure",
-            "weight": 28
+            "stack": "task:workarena.servicenow.two-changes-wide-basic-varied-risk-change-request-scheduling-l2;task:same-action-run",
+            "weight": 24
           },
           {
-            "matched_rank_rules": [],
-            "rank_score": 28.0,
-            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;session:workarena.servicenow.two-changes-wide-basic-varied-risk-change-request-scheduling-l2;phase:navigate;tool:browser;action:click;status:failure",
-            "weight": 28
+            "stack": "task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:click;task:loop-like;task:single",
+            "weight": 21
+          },
+          {
+            "stack": "task:visualwebarena.88;task:same-action-run",
+            "weight": 20
+          },
+          {
+            "stack": "task:webarena.723;task:same-action-run",
+            "weight": 19
+          },
+          {
+            "stack": "task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2;task:send_msg_to_user",
+            "weight": 18
+          },
+          {
+            "stack": "task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2;task:click;task:light-repeat",
+            "weight": 17
+          },
+          {
+            "stack": "task:workarena.servicenow.two-changes-wide-schedule-tight-uniform-risk-change-request-scheduling-l2;task:click;task:ok",
+            "weight": 17
           }
         ],
-        "unique_stacks": 170,
-        "view": "agentreward-session-drilldown",
-        "where": "dataset=agent-reward-bench"
+        "unique_stacks": 91,
+        "view": "agentreward-induced-session-drilldown",
+        "visual_stack_frame": "task",
+        "where": "dataset=agent-reward-bench;analysis_task=agentreward_looping"
       }
     }
   }

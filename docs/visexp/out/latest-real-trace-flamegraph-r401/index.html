@@ -1,6 +1,6 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>R401 AgentReward Operation-Stack Flamegraphs</title>
+<title>R401 AgentReward Induced Operation-Stack Flamegraphs</title>
 <style>
 body { font-family: system-ui, sans-serif; margin: 24px; color: #1f2933; }
 h1, h2, h3 { margin-bottom: 0.3rem; }
@@ -13,83 +13,155 @@ iframe { width: 100%; height: 420px; border: 1px solid #d8dee9; }
 code { background: #eef2f7; padding: 1px 4px; border-radius: 4px; }
 section { margin-bottom: 42px; }
 </style>
-<h1>R401 AgentReward Operation-Stack Flamegraphs</h1>
+<h1>R401 AgentReward Induced Operation-Stack Flamegraphs</h1>
 <p>The profiler folds one real benchmark slice from the tracked R300 operation
-file. This avoids mixing unrelated benchmarks and shows why stack depth is a
-profile choice: the overview gives a compact benchmark structure, while the
-session drilldown adds session frames only when the reader wants deeper detail.</p>
+file. The user supplies a profiling query, not a stack field order. The
+induction algorithm chooses visible source fields only as split evidence,
+records those choices in JSON, and renders every frame as a recursive
+<code>task:</code> frame. Leaves stop early when no candidate split clears the
+information-gain and fragmentation gate.</p>
 <p><strong>Source:</strong> <code>docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl</code><br>
-<strong>Filter:</strong> <code>dataset=agent-reward-bench</code></p>
+<strong>Filter:</strong> <code>dataset=agent-reward-bench;analysis_task=agentreward_looping</code><br>
+<strong>Omitted visual constants:</strong> <code>source,dataset</code></p>
 
 <section>
-<h2>AgentReward overview</h2>
-<p>A readable benchmark-level workload-shape view without per-session fragmentation.</p>
+<h2>AgentReward induced task stack</h2>
+<p>A query-conditioned task stack induced from visible operation fields, without session as a candidate.</p>
 <p>
-<span class="metric">operations: 1458</span>
-<span class="metric">unique stacks: 28</span>
-<span class="metric">hidden label fields in stack: 0</span>
+<span class="metric">operations: 729</span>
+<span class="metric">unique stacks: 43</span>
+<span class="metric">depths: {&#x27;1&#x27;: 1, &#x27;2&#x27;: 28, &#x27;3&#x27;: 14}</span>
+<span class="metric">oracle-field overlap: 0</span>
 </p>
-<p><code>source,dataset,analysis_task,phase,tool,action,status</code></p>
-<iframe src="agentreward-overview.svg"></iframe>
-<h3>Analysis Tasks</h3>
-<table><thead><tr><th>analysis task</th><th>operations</th></tr></thead><tbody><tr><td>agentreward_looping</td><td>729</td></tr>
-<tr><td>agentreward_side_effect</td><td>729</td></tr></tbody></table>
-<h3>Phases</h3>
-<table><thead><tr><th>phase</th><th>operations</th></tr></thead><tbody><tr><td>navigate</td><td>1070</td></tr>
-<tr><td>input</td><td>220</td></tr>
-<tr><td>finish</td><td>96</td></tr>
-<tr><td>browser-action</td><td>56</td></tr>
-<tr><td>observe</td><td>16</td></tr></tbody></table>
+<p><code>visual frame: task</code></p>
+<p><code>selected source fields: [&#x27;action&#x27;, &#x27;repeat_signal&#x27;, &#x27;repeat_state&#x27;, &#x27;step_error&#x27;]</code></p>
+<p><strong>Stop reasons:</strong> <code>{&#x27;no_material_split&#x27;: 14, &#x27;small_node&#x27;: 29}</code></p>
+<iframe src="agentreward-induced-overview.svg"></iframe>
+<h3>task_level_1</h3><table><thead><tr><th>task_level_1</th><th>operations</th></tr></thead><tbody><tr><td>single</td><td>365</td></tr>
+<tr><td>same-action-run</td><td>187</td></tr>
+<tr><td>light-repeat</td><td>114</td></tr>
+<tr><td>same-action-window</td><td>59</td></tr>
+<tr><td>target-window</td><td>4</td></tr></tbody></table><h3>task_level_2</h3><table><thead><tr><th>task_level_2</th><th>operations</th></tr></thead><tbody><tr><td>click</td><td>459</td></tr>
+<tr><td>fill</td><td>109</td></tr>
+<tr><td>send_msg_to_user</td><td>40</td></tr>
+<tr><td>hover</td><td>27</td></tr>
+<tr><td>select_option</td><td>25</td></tr>
+<tr><td>scroll</td><td>19</td></tr>
+<tr><td>goto</td><td>14</td></tr>
+<tr><td>go_back</td><td>13</td></tr>
+<tr><td>noop</td><td>8</td></tr>
+<tr><td>report_infeasible</td><td>8</td></tr></tbody></table><h3>task_level_3</h3><table><thead><tr><th>task_level_3</th><th>operations</th></tr></thead><tbody><tr><td>loop-like</td><td>251</td></tr>
+<tr><td>none</td><td>174</td></tr>
+<tr><td>error</td><td>5</td></tr>
+<tr><td>ok</td><td>5</td></tr></tbody></table>
+<h3>Selected Splits</h3>
+<table><thead><tr><th>source field</th><th>node weight</th><th>score</th><th>path</th></tr></thead><tbody><tr><td>repeat_state</td><td>729</td><td>0.342396</td><td>&lt;root&gt;</td></tr>
+<tr><td>action</td><td>365</td><td>0.250416</td><td>task:single</td></tr>
+<tr><td>repeat_signal</td><td>233</td><td>0.179535</td><td>task:single;task:click</td></tr>
+<tr><td>repeat_signal</td><td>64</td><td>0.157395</td><td>task:single;task:fill</td></tr>
+<tr><td>repeat_signal</td><td>23</td><td>0.12864</td><td>task:single;task:select_option</td></tr>
+<tr><td>repeat_signal</td><td>13</td><td>0.273313</td><td>task:single;task:send_msg_to_user</td></tr>
+<tr><td>action</td><td>187</td><td>0.334836</td><td>task:same-action-run</td></tr>
+<tr><td>action</td><td>114</td><td>0.244992</td><td>task:light-repeat</td></tr>
+<tr><td>repeat_signal</td><td>70</td><td>0.133101</td><td>task:light-repeat;task:click</td></tr>
+<tr><td>repeat_signal</td><td>22</td><td>0.127777</td><td>task:light-repeat;task:fill</td></tr>
+<tr><td>action</td><td>59</td><td>0.476606</td><td>task:same-action-window</td></tr>
+<tr><td>step_error</td><td>10</td><td>0.093347</td><td>task:same-action-window;task:scroll</td></tr></tbody></table>
 <h3>Top Stacks</h3>
-<table><thead><tr><th>weight</th><th>stack</th></tr></thead><tbody><tr><td>451</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;phase:navigate;tool:browser;action:click;status:failure</td></tr>
-<tr><td>451</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;phase:navigate;tool:browser;action:click;status:failure</td></tr>
-<tr><td>109</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;phase:input;tool:browser;action:fill;status:failure</td></tr>
-<tr><td>109</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;phase:input;tool:browser;action:fill;status:failure</td></tr>
-<tr><td>36</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;phase:finish;tool:browser;action:send_msg_to_user;status:failure</td></tr>
-<tr><td>36</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;phase:finish;tool:browser;action:send_msg_to_user;status:failure</td></tr>
-<tr><td>27</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;phase:navigate;tool:browser;action:hover;status:failure</td></tr>
-<tr><td>27</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;phase:navigate;tool:browser;action:hover;status:failure</td></tr>
-<tr><td>25</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;phase:browser-action;tool:browser;action:select_option;status:failure</td></tr>
-<tr><td>25</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;phase:browser-action;tool:browser;action:select_option;status:failure</td></tr></tbody></table>
-<h3>Replay Commands</h3>
-<table><thead><tr><th>output</th><th>command</th></tr></thead><tbody><tr><td>svg</td><td>cargo run --manifest-path agentpprof/Cargo.toml -- --operation-file docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl --view operations --format svg --output docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-overview.svg --where dataset=agent-reward-bench --stack source,dataset,analysis_task,phase,tool,action,status --deterministic-output --svg-width 1600</td></tr>
-<tr><td>folded</td><td>cargo run --manifest-path agentpprof/Cargo.toml -- --operation-file docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl --view operations --format folded --output docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-overview.folded --where dataset=agent-reward-bench --stack source,dataset,analysis_task,phase,tool,action,status --deterministic-output</td></tr>
-<tr><td>profile_json</td><td>cargo run --manifest-path agentpprof/Cargo.toml -- --operation-file docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl --view operations --format json --output docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-overview.profile.json --where dataset=agent-reward-bench --stack source,dataset,analysis_task,phase,tool,action,status --deterministic-output</td></tr></tbody></table>
+<table><thead><tr><th>weight</th><th>stack</th></tr></thead><tbody><tr><td>131</td><td>task:same-action-run;task:click</td></tr>
+<tr><td>125</td><td>task:single;task:click;task:loop-like</td></tr>
+<tr><td>108</td><td>task:single;task:click;task:none</td></tr>
+<tr><td>49</td><td>task:light-repeat;task:click;task:loop-like</td></tr>
+<tr><td>47</td><td>task:single;task:fill;task:loop-like</td></tr>
+<tr><td>25</td><td>task:same-action-window;task:click</td></tr>
+<tr><td>23</td><td>task:same-action-run;task:send_msg_to_user</td></tr>
+<tr><td>21</td><td>task:light-repeat;task:click;task:none</td></tr>
+<tr><td>20</td><td>task:same-action-run;task:hover</td></tr>
+<tr><td>17</td><td>task:same-action-window;task:fill</td></tr></tbody></table>
+<h3>Replay Outputs</h3>
+<table><thead><tr><th>output</th><th>generator</th></tr></thead><tbody><tr><td>svg</td><td>task-stack-induction -&gt; docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-induced-overview.svg</td></tr>
+<tr><td>folded</td><td>task-stack-induction -&gt; docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-induced-overview.folded</td></tr>
+<tr><td>profile_json</td><td>task-stack-induction -&gt; docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-induced-overview.profile.json</td></tr></tbody></table>
 </section>
 
 <section>
-<h2>AgentReward session drilldown</h2>
-<p>A deeper view that adds session only after the benchmark overview is readable.</p>
+<h2>AgentReward induced task stack with session candidate</h2>
+<p>The same induction policy with session available as a candidate split when it explains visible variation.</p>
 <p>
-<span class="metric">operations: 1458</span>
-<span class="metric">unique stacks: 170</span>
-<span class="metric">hidden label fields in stack: 0</span>
+<span class="metric">operations: 729</span>
+<span class="metric">unique stacks: 91</span>
+<span class="metric">depths: {&#x27;1&#x27;: 11, &#x27;2&#x27;: 50, &#x27;3&#x27;: 26, &#x27;4&#x27;: 4}</span>
+<span class="metric">oracle-field overlap: 0</span>
 </p>
-<p><code>source,dataset,analysis_task,session,phase,tool,action,status</code></p>
-<iframe src="agentreward-session-drilldown.svg"></iframe>
-<h3>Analysis Tasks</h3>
-<table><thead><tr><th>analysis task</th><th>operations</th></tr></thead><tbody><tr><td>agentreward_looping</td><td>729</td></tr>
-<tr><td>agentreward_side_effect</td><td>729</td></tr></tbody></table>
-<h3>Phases</h3>
-<table><thead><tr><th>phase</th><th>operations</th></tr></thead><tbody><tr><td>navigate</td><td>1070</td></tr>
-<tr><td>input</td><td>220</td></tr>
-<tr><td>finish</td><td>96</td></tr>
-<tr><td>browser-action</td><td>56</td></tr>
-<tr><td>observe</td><td>16</td></tr></tbody></table>
+<p><code>visual frame: task</code></p>
+<p><code>selected source fields: [&#x27;action&#x27;, &#x27;repeat_signal&#x27;, &#x27;repeat_state&#x27;, &#x27;session&#x27;, &#x27;step_error&#x27;]</code></p>
+<p><strong>Stop reasons:</strong> <code>{&#x27;no_material_split&#x27;: 25, &#x27;small_node&#x27;: 66}</code></p>
+<iframe src="agentreward-induced-session-drilldown.svg"></iframe>
+<h3>task_level_1</h3><table><thead><tr><th>task_level_1</th><th>operations</th></tr></thead><tbody><tr><td>workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2</td><td>102</td></tr>
+<tr><td>workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2</td><td>100</td></tr>
+<tr><td>visualwebarena.resized.580</td><td>33</td></tr>
+<tr><td>assistantbench.improved.validation.15</td><td>30</td></tr>
+<tr><td>assistantbench.improved.validation.17</td><td>30</td></tr>
+<tr><td>assistantbench.improved.validation.9</td><td>30</td></tr>
+<tr><td>visualwebarena.569</td><td>30</td></tr>
+<tr><td>visualwebarena.76</td><td>30</td></tr>
+<tr><td>visualwebarena.88</td><td>30</td></tr>
+<tr><td>webarena.723</td><td>30</td></tr></tbody></table><h3>task_level_2</h3><table><thead><tr><th>task_level_2</th><th>operations</th></tr></thead><tbody><tr><td>click</td><td>230</td></tr>
+<tr><td>same-action-run</td><td>124</td></tr>
+<tr><td>fill</td><td>87</td></tr>
+<tr><td>single</td><td>69</td></tr>
+<tr><td>send_msg_to_user</td><td>31</td></tr>
+<tr><td>light-repeat</td><td>27</td></tr>
+<tr><td>select_option</td><td>24</td></tr>
+<tr><td>go_back</td><td>13</td></tr>
+<tr><td>same-action-window</td><td>13</td></tr>
+<tr><td>goto</td><td>10</td></tr></tbody></table><h3>task_level_3</h3><table><thead><tr><th>task_level_3</th><th>operations</th></tr></thead><tbody><tr><td>single</td><td>76</td></tr>
+<tr><td>none</td><td>37</td></tr>
+<tr><td>ok</td><td>37</td></tr>
+<tr><td>loop-like</td><td>36</td></tr>
+<tr><td>light-repeat</td><td>34</td></tr>
+<tr><td>error</td><td>22</td></tr>
+<tr><td>same-action-window</td><td>10</td></tr>
+<tr><td>same-action-run</td><td>7</td></tr>
+<tr><td>target-window</td><td>1</td></tr></tbody></table><h3>task_level_4</h3><table><thead><tr><th>task_level_4</th><th>operations</th></tr></thead><tbody><tr><td>none</td><td>35</td></tr>
+<tr><td>single</td><td>21</td></tr>
+<tr><td>light-repeat</td><td>9</td></tr>
+<tr><td>loop-like</td><td>9</td></tr></tbody></table>
+<h3>Selected Splits</h3>
+<table><thead><tr><th>source field</th><th>node weight</th><th>score</th><th>path</th></tr></thead><tbody><tr><td>session</td><td>729</td><td>0.400594</td><td>&lt;root&gt;</td></tr>
+<tr><td>action</td><td>102</td><td>0.324113</td><td>task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2</td></tr>
+<tr><td>repeat_signal</td><td>60</td><td>0.279775</td><td>task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:click</td></tr>
+<tr><td>repeat_state</td><td>30</td><td>0.079147</td><td>task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:click;task:loop-like</td></tr>
+<tr><td>repeat_state</td><td>15</td><td>0.55353</td><td>task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:fill</td></tr>
+<tr><td>repeat_signal</td><td>13</td><td>0.302761</td><td>task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:select_option</td></tr>
+<tr><td>action</td><td>100</td><td>0.376739</td><td>task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2</td></tr>
+<tr><td>repeat_state</td><td>61</td><td>0.155056</td><td>task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2;task:click</td></tr>
+<tr><td>repeat_signal</td><td>44</td><td>0.087784</td><td>task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2;task:click;task:single</td></tr>
+<tr><td>repeat_state</td><td>33</td><td>0.459271</td><td>task:visualwebarena.resized.580</td></tr>
+<tr><td>repeat_state</td><td>30</td><td>0.338871</td><td>task:assistantbench.improved.validation.15</td></tr>
+<tr><td>action</td><td>30</td><td>0.470308</td><td>task:assistantbench.improved.validation.17</td></tr>
+<tr><td>action</td><td>30</td><td>0.40019</td><td>task:assistantbench.improved.validation.9</td></tr>
+<tr><td>repeat_state</td><td>13</td><td>0.14015</td><td>task:assistantbench.improved.validation.9;task:click</td></tr>
+<tr><td>repeat_state</td><td>30</td><td>0.374623</td><td>task:visualwebarena.569</td></tr>
+<tr><td>step_error</td><td>13</td><td>0.230761</td><td>task:visualwebarena.569;task:single</td></tr>
+<tr><td>step_error</td><td>10</td><td>0.093347</td><td>task:visualwebarena.569;task:same-action-window</td></tr>
+<tr><td>repeat_state</td><td>30</td><td>0.527697</td><td>task:visualwebarena.76</td></tr>
+<tr><td>repeat_state</td><td>30</td><td>0.483533</td><td>task:visualwebarena.88</td></tr>
+<tr><td>repeat_state</td><td>30</td><td>0.456462</td><td>task:webarena.723</td></tr></tbody></table>
 <h3>Top Stacks</h3>
-<table><thead><tr><th>weight</th><th>stack</th></tr></thead><tbody><tr><td>61</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;session:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2;phase:navigate;tool:browser;action:click;status:failure</td></tr>
-<tr><td>61</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;session:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2;phase:navigate;tool:browser;action:click;status:failure</td></tr>
-<tr><td>60</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;session:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;phase:navigate;tool:browser;action:click;status:failure</td></tr>
-<tr><td>60</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;session:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;phase:navigate;tool:browser;action:click;status:failure</td></tr>
-<tr><td>32</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;session:visualwebarena.resized.580;phase:navigate;tool:browser;action:click;status:failure</td></tr>
-<tr><td>32</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;session:visualwebarena.resized.580;phase:navigate;tool:browser;action:click;status:failure</td></tr>
-<tr><td>30</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;session:workarena.servicenow.dashboard-retrieve-catalog-and-max-order-apple-watch-l2;phase:navigate;tool:browser;action:click;status:failure</td></tr>
-<tr><td>30</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;session:workarena.servicenow.dashboard-retrieve-catalog-and-max-order-apple-watch-l2;phase:navigate;tool:browser;action:click;status:failure</td></tr>
-<tr><td>28</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;session:visualwebarena.76;phase:navigate;tool:browser;action:click;status:failure</td></tr>
-<tr><td>28</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;session:workarena.servicenow.two-changes-wide-basic-varied-risk-change-request-scheduling-l2;phase:navigate;tool:browser;action:click;status:failure</td></tr></tbody></table>
-<h3>Replay Commands</h3>
-<table><thead><tr><th>output</th><th>command</th></tr></thead><tbody><tr><td>svg</td><td>cargo run --manifest-path agentpprof/Cargo.toml -- --operation-file docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl --view operations --format svg --output docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-session-drilldown.svg --where dataset=agent-reward-bench --stack source,dataset,analysis_task,session,phase,tool,action,status --deterministic-output --svg-width 1600</td></tr>
-<tr><td>folded</td><td>cargo run --manifest-path agentpprof/Cargo.toml -- --operation-file docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl --view operations --format folded --output docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-session-drilldown.folded --where dataset=agent-reward-bench --stack source,dataset,analysis_task,session,phase,tool,action,status --deterministic-output</td></tr>
-<tr><td>profile_json</td><td>cargo run --manifest-path agentpprof/Cargo.toml -- --operation-file docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl --view operations --format json --output docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-session-drilldown.profile.json --where dataset=agent-reward-bench --stack source,dataset,analysis_task,session,phase,tool,action,status --deterministic-output</td></tr></tbody></table>
+<table><thead><tr><th>weight</th><th>stack</th></tr></thead><tbody><tr><td>35</td><td>task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2;task:click;task:single;task:none</td></tr>
+<tr><td>30</td><td>task:workarena.servicenow.dashboard-retrieve-catalog-and-max-order-apple-watch-l2</td></tr>
+<tr><td>30</td><td>task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:click;task:none</td></tr>
+<tr><td>24</td><td>task:visualwebarena.76;task:same-action-run</td></tr>
+<tr><td>24</td><td>task:visualwebarena.resized.580;task:same-action-run</td></tr>
+<tr><td>24</td><td>task:workarena.servicenow.two-changes-wide-basic-varied-risk-change-request-scheduling-l2;task:same-action-run</td></tr>
+<tr><td>21</td><td>task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:click;task:loop-like;task:single</td></tr>
+<tr><td>20</td><td>task:visualwebarena.88;task:same-action-run</td></tr>
+<tr><td>19</td><td>task:webarena.723;task:same-action-run</td></tr>
+<tr><td>18</td><td>task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2;task:send_msg_to_user</td></tr></tbody></table>
+<h3>Replay Outputs</h3>
+<table><thead><tr><th>output</th><th>generator</th></tr></thead><tbody><tr><td>svg</td><td>task-stack-induction -&gt; docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-induced-session-drilldown.svg</td></tr>
+<tr><td>folded</td><td>task-stack-induction -&gt; docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-induced-session-drilldown.folded</td></tr>
+<tr><td>profile_json</td><td>task-stack-induction -&gt; docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-induced-session-drilldown.profile.json</td></tr></tbody></table>
 </section>
 
