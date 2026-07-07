@@ -748,6 +748,7 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld/OSWorld-Human、OpenCUA/AgentNet、SA
 字段派生和边界恢复仍然是第一个限制。
 当前证据支持 deterministic mappings、label-derived rules 和部分 supervised boundary backends 能派生 stackable operation fields，但没有证明无监督或 LLM-backed intent detector 已经解决。
 这些结果也没有证明一个 backend 能跨所有标签家族工作。
+Free-form prompt labeling 和 LLM taggers 仍需要在同一 hidden-label localization protocol 下与 deterministic mapping 比较，才能成为本文主张的一部分。
 AgentRewardBench looping 被简单 \texttt{repeat\_signal\_change} baseline 完全解释，这说明每个 family 都需要 suitability、calibration 和 simple-baseline 检查。
 
 E2 支持 profiler-localization 主张，但没有测量人类效用。
@@ -803,6 +804,7 @@ Replay、数字对齐、数据来源选择和两个抽象的表述约束让正�
 	它不覆盖 detector、human utility、baseline dominance、automatic patch selector 或 ecosystem compatibility。
 	后续工作应优先加强主张所需的 oracle，而不是无差别增加数据集。
 	Field-derivation backend 需要跨家族 calibration，并稳定胜过简单 sequence-derived baselines。
+	Free-form prompt/LLM tagging 也应该先通过同一 hidden-label scoring 和 simple-baseline 检查，再进入 profiler 主张。
 	已有或新增真实 trace 也需要更强的 instruction-step、solution-path 或 human subtask oracle。
 	只有当论文提出 ecosystem-baseline 主张时，真实 OTel/Phoenix/LangSmith/Langfuse/Perfetto span-tree trace 才成为必要基线。
 	Controlled human 或 agent analyst study 可以作为后续增强，但不是本文主 profiling 主张的前置条件。
