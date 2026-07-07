@@ -92,8 +92,9 @@ agentpprof --project-root . -o agent.pb.gz
   editing, restoring, formatting, regenerating, committing, pushing, pulling, or
   updating the submodule. The user or another agent may be editing it in
   parallel.
-- The outer `main.tex` is the Chinese paper; edit it only when the user asks for
-  Chinese paper changes. Keep English-paper and Chinese-paper work separated.
+- The outer `main.tex` is the Chinese paper and may be updated iteratively when
+  the user asks to continue paper/research writing. Keep Chinese-paper work in
+  the outer repository and keep it separate from the English paper submodule.
 - When submodules are dirty, inspect and report their status separately. Do not
   commit, restore, or update submodule contents as a side effect of unrelated
   code, experiment, or documentation work.
