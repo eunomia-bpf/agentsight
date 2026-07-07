@@ -174,45 +174,40 @@ Profile-spec replay、input-source replay 和 deterministic output 归入 E4。
 
 \section{实验方法}
 
-评估遵循八个原则。
-第一，只使用公开的、别人已经标注好的 agent 轨迹或交互轨迹。
-我们使用 Hugging Face Dataset Viewer、HF repo JSONL、公开 GitHub JSON 和公开 benchmark artifacts 进行轻量采样，不同步完整测试集，也不提交原始外部样本。
-第二，每个 claim 都必须对应可执行 oracle。
-对于 phase/action 结构使用 V-measure 和相邻边界 F1；对于 grouped-action 使用人工 group id；对于 looping、safety、step correctness 和 redundancy 使用数据集原生标签；对于递归深度使用同一批 operations 下 unique stack 和 compression 变化。
-第三，负结果保留在论文中。
-例如 AgentNet 的 task status 很弱地预测 per-step correctness，repeat signal 也很弱地预测 step redundancy。
-这说明 profiler 能承载这些诊断字段，但简单 mapping 不能替代专门质量模型。
-		第四，论文 claim 必须能回到可复现结果。
-		我们只把可重放结果中已经存在的 numbers 和 source policy 写进 claims 与 limitations。
-		这个约束不是新实验，也不是 profiler object。
-		它防止摘要、结果、局限和结论在数字、scope 或 unsupported claim 上漂移。
-	第五，boundary backend 必须仍然服从两个抽象。
-	监督式 adjacent-boundary backend 只写回 \texttt{learned\_group\_pattern}、\texttt{learned\_segment\_pattern}、\texttt{learned\_segment\_position} 和 \texttt{learned\_boundary\_prev} 等 operation fields。
-	递归折叠仍由 \toolname{} 使用普通 \texttt{--profile-spec} 和 \texttt{--stack} 完成。
-		每个候选标签家族还必须先通过 suitability 和 simple-baseline 检查，防止把 safety、history context 或 repetition proxy 错当作语义边界。
-	第六，真实问题价值必须先通过可复现 proxy 任务收敛。
-	我们从 AgentRewardBench、SATraj-OS、AgentNet 和 OSWorld-Human 的已有 operation JSONL 构造 6 个 oracle-backed analysis tasks，比较 flat、fixed-session、semantic operation-stack 和 label-drilldown 四种 stack specs。
-	指标包括 positive lift、覆盖 50\% positives 的 inspection fraction、group count、top-group session support、selected recall 和 selected work。
-	这仍不是人类用户实验，但它把“profiler 是否解决真实问题”从叙述变成可审计的 proxy result。
-	第七，默认浏览、ranking 和 case evidence 都必须避免答案泄漏。
-	Visible packets 不包含 oracle-positive 字段，hidden answer key 单独保存 positives。
-	非 oracle rankers 只读 \texttt{status}、\texttt{repeat\_signal}、\texttt{phase}、\texttt{action} 和 \texttt{environment} 等可见字段，不读 \texttt{looping}、\texttt{safety}、\texttt{step\_correct} 或 \texttt{target\_positive}。
-	因此 first-positive、first-enriched 和 high-lift evidence 只是对同一 operation/operation-stack packet 的隐藏标签回放评分，而不是 automatic detection 或 human utility。
-	第八，E2 hidden-label scoring 把 profiler 输出直接当作 ranking/localization result。
-	它在同一 6 个真实标注任务上比较 flat、fixed-session、dataset-native hierarchy、raw action stack、operation-stack、label-drilldown oracle view，以及 width、visible-risk、query-aware 和 oracle-upper-bound rankers。
-	非 oracle policies 只使用可见 operation fields，隐藏标签只用于 scoring。
-	指标包括 precision@k、recall@operation-budget、F1@k、AUPRC-style average precision、nDCG、work-to-first-positive、groups-to-50\% recall、group count 和 task-level profile-configuration insight。
-	这个设置把 profiling paper 的主 claim 从“analyst 是否更快”改为“profiler 自身是否能在真实 workload 上相对 dataset-provided hidden labels 定位、排序并指导优化”。
+评估把 profiler 输出当作 ranked localization targets，而不是把 flamegraph 图形本身当作结果。
+我们只使用公开的、别人已经标注好的 agent 轨迹或交互轨迹，并通过 Hugging Face Dataset Viewer、HF repo JSONL、公开 GitHub JSON 和公开 benchmark artifacts 做轻量采样。
+这种数据策略避免同步完整测试集、图片归档和 gated 数据，同时保留每个 claim 需要的顺序、动作、质量、安全或人工边界 oracle。
 
-	\subsection{Hierarchy ablation baselines}
+每个 claim 都对应一个可执行 oracle 和一个 scoped metric。
+Phase/action 结构用 V-measure 和相邻边界 F1 评分；grouped-action 用人工 group id 评分；looping、safety、step correctness 和 redundancy 使用数据集原生标签；递归深度使用同一批 operations 下 unique stack 和 compression 变化。
+我们从 AgentRewardBench、SATraj-OS、AgentNet 和 OSWorld-Human 的 operation JSONL 构造 6 个 oracle-backed analysis tasks，并把 flat、fixed-session、dataset-native hierarchy、raw action stack、operation-stack、label-drilldown oracle view 与 width、visible-risk、query-aware 和 oracle-upper-bound rankers 放在同一评分协议下比较。
+指标包括 precision@k、recall@operation-budget、F1@k、AUPRC-style average precision、nDCG、work-to-first-positive、groups-to-50\% recall、group count 和 task-level profile-configuration insight。
 
-	本文比较的是 hierarchy choices，而不是把每个已有 observability 产品完整复刻一遍。
-	Flat profile 把每个任务压成一个 summary packet，用来检验 operation stack 是否比无层级摘要更 selective。
-	Fixed-session drilldown 把 session 或 demo id 放进 stack，用来模拟 session/prompt-first 调试界面和传统 trace-tree drilldown 的碎片化风险。
-	Prompt/session tree、tool-call hierarchy 和 OTel/span-like trace tree 在本实验中都被建模为不同 stack specs：它们仍然读取同一批 operations，只是把 \texttt{session}、\texttt{prompt}、\texttt{tool}、\texttt{process} 或 trace id 放在更靠前的 frames。
-	Label-drilldown 是 oracle-aware upper-bound style view，它把 hidden label 直接放入 stack，用来界定“如果答案字段已经可见”时的上限，而不作为真实用户界面 baseline。
-	这些 ablations 的目的，是隔离边界选择对聚合、selectivity、recall 和 inspected work 的影响。
-	因此本文不会声称 \toolname{} 支配所有生产 observability UI，只声称 operation stack 把这些边界选择统一成可配置查询。
+Hidden-label scoring 把答案字段从 profiler input 中隔离出来。
+非 oracle policies 只读取 \texttt{status}、\texttt{repeat\_signal}、\texttt{phase}、\texttt{action} 和 \texttt{environment} 等可见 operation fields，不读取 \texttt{looping}、\texttt{safety}、\texttt{step\_correct} 或 \texttt{target\_positive}。
+因此 first-positive、first-enriched 和 high-lift results 都是同一 operation/operation-stack 输出的事后 oracle scoring，而不是 automatic detection、人类效用或答案泄漏。
+
+机制实验把 field derivation 和 boundary derivation 都限制在两个抽象内。
+监督式 adjacent-boundary backend 只写回 \texttt{learned\_group\_pattern}、\texttt{learned\_segment\_pattern}、\texttt{learned\_segment\_position} 和 \texttt{learned\_boundary\_prev} 等 operation fields，递归折叠仍由 \toolname{} 使用普通 \texttt{--profile-spec} 和 \texttt{--stack} 完成。
+每个候选标签家族还必须经过 suitability 和 simple-baseline comparison，防止把 safety、history context 或 repetition proxy 错当作语义边界。
+负结果也保留在论文中。
+AgentNet 的 task status 很弱地预测 per-step correctness，repeat signal 也很弱地预测 step redundancy。
+这些反例说明 profiler 能承载诊断字段，但简单 mapping 不能替代专门质量模型。
+
+复现约束把论文 claim 连接回可重放结果。
+我们只把可重放 profile outputs 中已经存在的 numbers 和 source policy 写进 claims 与 limitations，并用 profile specs 固定 operation source、mapping、ranker、stack 和 deterministic output 选项。
+这个设置把 profiling paper 的主 claim 从“analyst 是否更快”改为“profiler 自身是否能在真实 workload 上相对 dataset-provided hidden labels 定位、排序并指导优化”。
+
+\subsection{Hierarchy ablation baselines}
+
+本文比较的是 hierarchy choices，而不是把每个已有 observability 产品完整复刻一遍。
+Flat profile 把每个任务压成一个 summary group，用来检验 operation stack 是否比无层级摘要更 selective。
+Fixed-session drilldown 把 session 或 demo id 放进 stack，用来模拟 session/prompt-first 调试界面和传统 trace-tree drilldown 的碎片化风险。
+Prompt/session tree、tool-call hierarchy 和 OTel/span-like trace tree 在本实验中都被建模为不同 stack specs。
+它们仍然读取同一批 operations，只是把 \texttt{session}、\texttt{prompt}、\texttt{tool}、\texttt{process} 或 trace id 放在更靠前的 frames。
+Label-drilldown 是 oracle-aware upper-bound style view，它把 hidden label 直接放入 stack，用来界定“如果答案字段已经可见”时的上限，而不作为真实用户界面 baseline。
+这些 ablations 隔离边界选择对聚合、selectivity、recall 和 inspected work 的影响。
+因此本文不会声称 \toolname{} 支配所有生产 observability UI，只声称 operation stack 把这些边界选择统一成可配置查询。
 
 	\begin{table*}[t]
 	  \centering
