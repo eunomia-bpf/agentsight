@@ -1,0 +1,66 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>R402 Rust Task-Stack Induction</title>
+<style>
+body { font-family: system-ui, sans-serif; margin: 24px; color: #1f2933; }
+h1, h2, h3 { margin-bottom: 0.3rem; }
+p { max-width: 980px; line-height: 1.45; }
+table { border-collapse: collapse; margin: 12px 0 24px; width: 100%; }
+th, td { border: 1px solid #d8dee9; padding: 6px 8px; vertical-align: top; font-size: 13px; }
+th { background: #eef2f7; text-align: left; }
+.metric { display: inline-block; margin-right: 18px; font-weight: 650; }
+iframe { width: 100%; height: 420px; border: 1px solid #d8dee9; }
+code { background: #eef2f7; padding: 1px 4px; border-radius: 4px; }
+section { margin-bottom: 42px; }
+</style>
+<h1>R402 Rust Task-Stack Induction</h1>
+<p>Rust `agentpprof` derives recursive task stacks over one AgentRewardBench
+query slice. The output stack uses only <code>task:</code> frames; selected
+source fields are recorded as provenance.</p>
+
+<section>
+<h2>Rust induced task stack</h2>
+<p>
+<span class="metric">operations: 729</span>
+<span class="metric">unique stacks: 47</span>
+<span class="metric">depths: {&#x27;1&#x27;: 1, &#x27;2&#x27;: 22, &#x27;3&#x27;: 24}</span>
+<span class="metric">oracle overlap: 0</span>
+</p>
+<p><code>selected source fields: [&#x27;action&#x27;, &#x27;repeat_signal&#x27;, &#x27;repeat_state&#x27;, &#x27;step_error&#x27;]</code></p>
+<iframe src="agentreward-overview.svg"></iframe>
+<h3>Top Stacks</h3>
+<table><thead><tr><th>weight</th><th>stack</th></tr></thead><tbody><tr><td>131</td><td>task:same-action-run;task:click</td></tr>
+<tr><td>125</td><td>task:single;task:loop-like;task:click</td></tr>
+<tr><td>108</td><td>task:single;task:none;task:click</td></tr>
+<tr><td>49</td><td>task:light-repeat;task:click;task:loop-like</td></tr>
+<tr><td>47</td><td>task:single;task:loop-like;task:fill</td></tr>
+<tr><td>25</td><td>task:same-action-window;task:click</td></tr>
+<tr><td>23</td><td>task:same-action-run;task:send_msg_to_user</td></tr>
+<tr><td>21</td><td>task:light-repeat;task:click;task:none</td></tr>
+<tr><td>20</td><td>task:same-action-run;task:hover</td></tr>
+<tr><td>17</td><td>task:same-action-window;task:fill</td></tr></tbody></table>
+</section>
+
+<section>
+<h2>Rust induced task stack with session candidate</h2>
+<p>
+<span class="metric">operations: 729</span>
+<span class="metric">unique stacks: 91</span>
+<span class="metric">depths: {&#x27;1&#x27;: 11, &#x27;2&#x27;: 46, &#x27;3&#x27;: 26, &#x27;4&#x27;: 8}</span>
+<span class="metric">oracle overlap: 0</span>
+</p>
+<p><code>selected source fields: [&#x27;action&#x27;, &#x27;repeat_run&#x27;, &#x27;repeat_signal&#x27;, &#x27;repeat_state&#x27;, &#x27;session&#x27;, &#x27;step_error&#x27;]</code></p>
+<iframe src="agentreward-session.svg"></iframe>
+<h3>Top Stacks</h3>
+<table><thead><tr><th>weight</th><th>stack</th></tr></thead><tbody><tr><td>35</td><td>task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2;task:click;task:none;task:single</td></tr>
+<tr><td>30</td><td>task:workarena.servicenow.dashboard-retrieve-catalog-and-max-order-apple-watch-l2</td></tr>
+<tr><td>30</td><td>task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:none;task:click</td></tr>
+<tr><td>24</td><td>task:visualwebarena.76;task:3plus</td></tr>
+<tr><td>24</td><td>task:visualwebarena.resized.580;task:3plus</td></tr>
+<tr><td>24</td><td>task:workarena.servicenow.two-changes-wide-basic-varied-risk-change-request-scheduling-l2;task:3plus</td></tr>
+<tr><td>21</td><td>task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:loop-like;task:single;task:click</td></tr>
+<tr><td>20</td><td>task:visualwebarena.88;task:same-action-run</td></tr>
+<tr><td>19</td><td>task:webarena.723;task:3plus</td></tr>
+<tr><td>18</td><td>task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2;task:send_msg_to_user</td></tr></tbody></table>
+</section>
+

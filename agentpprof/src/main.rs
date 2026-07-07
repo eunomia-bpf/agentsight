@@ -13,7 +13,7 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use profile::{
-    OperationStackConfig, OutputFormat, ProfileView, StackRankMode,
+    OperationStackConfig, OutputFormat, ProfileView, StackRankMode, TaskStackInductionConfig,
     build_profile_from_operation_records, build_profile_with_options, infer_output_format,
     parse_operation_filters, parse_operation_rank_rules, parse_stack_rank_rules, parse_stack_rules,
     parse_stack_rules_with_flag, parse_stack_spec, profile_to_stacks, read_operation_record_values,
@@ -82,6 +82,11 @@ OPERATION STACK QUERY WORKFLOW:
   in a JSON file and run:
 
      agentpprof --profile-spec agentnet-diagnostic-spec.json
+
+  --induce-task-stack derives a recursive multi-value task field before
+  folding. The user supplies predicates and optional query terms, not a stack
+  field order; source fields such as session, action, effect, process, or
+  prompt tags are candidate evidence, while the rendered stack is task-only.
 "#;
 
 #[derive(Parser)]
@@ -135,6 +140,18 @@ struct Cli {
     /// Choose how JSON rank rules order stack groups.
     #[arg(long = "rank-mode", value_enum)]
     rank_mode: Option<CliRankMode>,
+    /// Derive a recursive task field from visible operation fields, then fold as --stack task.
+    #[arg(long = "induce-task-stack")]
+    induce_task_stack: bool,
+    /// Allow session/prompt-instance fields to be considered as induction split evidence.
+    #[arg(long = "induce-allow-session")]
+    induce_allow_session: bool,
+    /// Maximum depth for --induce-task-stack.
+    #[arg(long = "induce-max-depth")]
+    induce_max_depth: Option<usize>,
+    /// Query terms used by --induce-task-stack to prefer relevant visible splits.
+    #[arg(long = "induce-query-term", value_name = "TERM")]
+    induce_query_terms: Vec<String>,
     /// Write byte-stable profiles by replacing output timestamps with fixed values.
     #[arg(long = "deterministic-output")]
     deterministic_output: bool,
@@ -285,6 +302,10 @@ struct ProfileSpec {
     rank_rules: Vec<String>,
     rank_op_rules: Vec<String>,
     rank_mode: Option<CliRankMode>,
+    induce_task_stack: Option<bool>,
+    induce_allow_session: Option<bool>,
+    induce_max_depth: Option<usize>,
+    induce_query_terms: Vec<String>,
     tag_rules: Vec<String>,
     preset: Option<bool>,
     tagger: Option<TaggerKind>,
@@ -315,6 +336,11 @@ struct RawProfileSpec {
     #[serde(default)]
     rank_op_rules: Vec<String>,
     rank_mode: Option<String>,
+    induce_task_stack: Option<bool>,
+    induce_allow_session: Option<bool>,
+    induce_max_depth: Option<usize>,
+    #[serde(default)]
+    induce_query_terms: Vec<String>,
     #[serde(default)]
     tag_rules: Vec<String>,
     preset: Option<bool>,
@@ -369,9 +395,27 @@ fn command_export(args: Cli) -> Result<()> {
     let view = cli_view.into();
     let mut profile_options = OperationStackConfig::for_view(view);
     let stack = args.stack.as_deref().or(spec.stack.as_deref());
-    if let Some(stack) = stack {
+    let induce_task_stack = args.induce_task_stack || spec.induce_task_stack.unwrap_or(false);
+    let induce_allow_session =
+        args.induce_allow_session || spec.induce_allow_session.unwrap_or(false);
+    let induce_max_depth = args.induce_max_depth.or(spec.induce_max_depth).unwrap_or(4);
+    let induce_query_terms = merge_cli_first(&args.induce_query_terms, &spec.induce_query_terms);
+    let effective_stack_name = if induce_task_stack {
+        if let Some(stack) = stack
+            && stack.trim() != "task"
+        {
+            bail!(
+                "--induce-task-stack derives and folds task frames; omit --stack or use --stack task"
+            );
+        }
+        profile_options = profile_options.with_stack(parse_stack_spec("task")?);
+        "task"
+    } else if let Some(stack) = stack {
         profile_options = profile_options.with_stack(parse_stack_spec(stack)?);
-    }
+        stack
+    } else {
+        "default"
+    };
     let op_map_files = merge_cli_first(&args.op_map_files, &spec.op_map_files);
     let op_maps = load_effective_op_map_rules(
         &args.op_maps,
@@ -401,6 +445,14 @@ fn command_export(args: Cli) -> Result<()> {
         .with_rank_rules(parse_stack_rank_rules(&rank_rules)?)
         .with_rank_operation_rules(parse_operation_rank_rules(&rank_op_rules)?)
         .with_rank_mode(rank_mode.into());
+    if induce_task_stack {
+        profile_options = profile_options.with_task_stack_induction(
+            TaskStackInductionConfig::new()
+                .with_allow_session(induce_allow_session)
+                .with_max_depth(induce_max_depth)
+                .with_query_terms(induce_query_terms.clone()),
+        );
+    }
     let operation_files = merge_spec_first(&spec.operation_files, &args.operation_files);
     let session_files = merge_spec_first(&spec.session_files, &args.session_files);
     let trace_files = merge_spec_first(&spec.trace_files, &args.trace_files);
@@ -446,7 +498,11 @@ fn command_export(args: Cli) -> Result<()> {
             "sample_type": profile.sample_type,
             "unit": profile.unit,
             "profile_specs": args.profile_specs,
-            "stack": stack.unwrap_or("default"),
+            "stack": effective_stack_name,
+            "induce_task_stack": induce_task_stack,
+            "induce_allow_session": induce_allow_session,
+            "induce_max_depth": induce_max_depth,
+            "induce_query_terms": induce_query_terms.clone(),
             "op_maps": op_maps,
             "op_map_files": op_map_files,
             "where_rules": where_rules,
@@ -521,7 +577,11 @@ fn command_export(args: Cli) -> Result<()> {
             "sample_type": profile.sample_type,
             "unit": profile.unit,
             "profile_specs": args.profile_specs,
-            "stack": stack.unwrap_or("default"),
+            "stack": effective_stack_name,
+            "induce_task_stack": induce_task_stack,
+            "induce_allow_session": induce_allow_session,
+            "induce_max_depth": induce_max_depth,
+            "induce_query_terms": induce_query_terms.clone(),
             "op_maps": op_maps,
             "op_map_files": op_map_files,
             "where_rules": where_rules,
@@ -666,7 +726,11 @@ fn command_export(args: Cli) -> Result<()> {
             None
         },
         "standard_trace_events": standard_trace_events,
-        "stack": stack.unwrap_or("default"),
+        "stack": effective_stack_name,
+        "induce_task_stack": induce_task_stack,
+        "induce_allow_session": induce_allow_session,
+        "induce_max_depth": induce_max_depth,
+        "induce_query_terms": induce_query_terms.clone(),
         "op_maps": op_maps,
         "op_map_files": op_map_files,
         "where_rules": where_rules,
@@ -846,6 +910,10 @@ fn normalize_profile_spec(raw: RawProfileSpec, base: &Path) -> Result<ProfileSpe
             .as_deref()
             .map(parse_spec_rank_mode)
             .transpose()?,
+        induce_task_stack: raw.induce_task_stack,
+        induce_allow_session: raw.induce_allow_session,
+        induce_max_depth: raw.induce_max_depth,
+        induce_query_terms: raw.induce_query_terms,
         tag_rules: raw.tag_rules,
         preset: raw.preset,
         tagger: raw.tagger.as_deref().map(parse_spec_tagger).transpose()?,
@@ -958,6 +1026,15 @@ impl ProfileSpec {
         if next.rank_mode.is_some() {
             self.rank_mode = next.rank_mode;
         }
+        if next.induce_task_stack.is_some() {
+            self.induce_task_stack = next.induce_task_stack;
+        }
+        if next.induce_allow_session.is_some() {
+            self.induce_allow_session = next.induce_allow_session;
+        }
+        if next.induce_max_depth.is_some() {
+            self.induce_max_depth = next.induce_max_depth;
+        }
         if next.preset.is_some() {
             self.preset = next.preset;
         }
@@ -975,6 +1052,7 @@ impl ProfileSpec {
         self.where_rules.extend(next.where_rules);
         self.rank_rules.extend(next.rank_rules);
         self.rank_op_rules.extend(next.rank_op_rules);
+        self.induce_query_terms.extend(next.induce_query_terms);
         self.tag_rules.extend(next.tag_rules);
         self.op_map_files.extend(next.op_map_files);
         self.operation_files.extend(next.operation_files);

@@ -1,0 +1,626 @@
+{
+  "checks": {
+    "all_frames_are_task": true,
+    "all_views_fold_task_stack": true,
+    "all_views_use_rust_induction": true,
+    "no_oracle_source_fields_selected": true,
+    "overview_omits_session_candidate": true,
+    "query_count_matches_agentreward_looping": true,
+    "session_view_can_select_session": true,
+    "single_benchmark_query": true,
+    "uses_tracked_r300_source": true,
+    "variable_depth_in_both_views": true
+  },
+  "filters": [
+    "dataset=agent-reward-bench",
+    "analysis_task=agentreward_looping"
+  ],
+  "query_terms": [
+    "loop",
+    "repeat"
+  ],
+  "run_id": "R402",
+  "source": "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl",
+  "status": "pass",
+  "views": {
+    "agentreward-overview": {
+      "all_frames_are_task": true,
+      "allow_session": false,
+      "compression_ratio": 15.511,
+      "induce_task_stack": true,
+      "max_stack_reuse": 131,
+      "operations": 729,
+      "oracle_source_field_overlap": [],
+      "selected_source_fields": [
+        "action",
+        "repeat_signal",
+        "repeat_state",
+        "step_error"
+      ],
+      "split_decision_count": 10,
+      "stack": "task",
+      "stack_depth_histogram": {
+        "1": 1,
+        "2": 22,
+        "3": 24
+      },
+      "statuses": {
+        "folded": {
+          "command": [
+            "cargo",
+            "run",
+            "--manifest-path",
+            "agentpprof/Cargo.toml",
+            "--",
+            "--operation-file",
+            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl",
+            "--view",
+            "operations",
+            "--format",
+            "folded",
+            "--output",
+            "docs/visexp/out/rust-task-stack-induction-r402/agentreward-overview.folded",
+            "--induce-task-stack",
+            "--deterministic-output",
+            "--where",
+            "dataset=agent-reward-bench",
+            "--where",
+            "analysis_task=agentreward_looping",
+            "--induce-query-term",
+            "loop",
+            "--induce-query-term",
+            "repeat"
+          ],
+          "deterministic_output": true,
+          "format": "folded",
+          "induce_allow_session": false,
+          "induce_max_depth": 4,
+          "induce_query_terms": [
+            "loop",
+            "repeat"
+          ],
+          "induce_task_stack": true,
+          "op_map_files": [],
+          "op_maps": [],
+          "operation_files": [
+            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl"
+          ],
+          "operations": 34539,
+          "output": "docs/visexp/out/rust-task-stack-induction-r402/agentreward-overview.folded",
+          "profile_specs": [],
+          "rank_mode": "width-boost",
+          "rank_op_rules": [],
+          "rank_rules": [],
+          "sample_type": "operations",
+          "samples": 729,
+          "stack": "task",
+          "stack_rules": [],
+          "standard_trace_events": null,
+          "standard_trace_format": null,
+          "standard_trace_output": null,
+          "status": "ok",
+          "unique_stacks": 47,
+          "unit": "count",
+          "view": "operations",
+          "warnings": [],
+          "where_rules": [
+            "dataset=agent-reward-bench",
+            "analysis_task=agentreward_looping"
+          ]
+        },
+        "json": {
+          "command": [
+            "cargo",
+            "run",
+            "--manifest-path",
+            "agentpprof/Cargo.toml",
+            "--",
+            "--operation-file",
+            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl",
+            "--view",
+            "operations",
+            "--format",
+            "json",
+            "--output",
+            "docs/visexp/out/rust-task-stack-induction-r402/agentreward-overview.json",
+            "--induce-task-stack",
+            "--deterministic-output",
+            "--where",
+            "dataset=agent-reward-bench",
+            "--where",
+            "analysis_task=agentreward_looping",
+            "--induce-query-term",
+            "loop",
+            "--induce-query-term",
+            "repeat"
+          ],
+          "deterministic_output": true,
+          "format": "json",
+          "induce_allow_session": false,
+          "induce_max_depth": 4,
+          "induce_query_terms": [
+            "loop",
+            "repeat"
+          ],
+          "induce_task_stack": true,
+          "op_map_files": [],
+          "op_maps": [],
+          "operation_files": [
+            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl"
+          ],
+          "operations": 34539,
+          "output": "docs/visexp/out/rust-task-stack-induction-r402/agentreward-overview.json",
+          "profile_specs": [],
+          "rank_mode": "width-boost",
+          "rank_op_rules": [],
+          "rank_rules": [],
+          "sample_type": "operations",
+          "samples": 729,
+          "stack": "task",
+          "stack_rules": [],
+          "standard_trace_events": null,
+          "standard_trace_format": null,
+          "standard_trace_output": null,
+          "status": "ok",
+          "unique_stacks": 47,
+          "unit": "count",
+          "view": "operations",
+          "warnings": [],
+          "where_rules": [
+            "dataset=agent-reward-bench",
+            "analysis_task=agentreward_looping"
+          ]
+        },
+        "svg": {
+          "command": [
+            "cargo",
+            "run",
+            "--manifest-path",
+            "agentpprof/Cargo.toml",
+            "--",
+            "--operation-file",
+            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl",
+            "--view",
+            "operations",
+            "--format",
+            "svg",
+            "--output",
+            "docs/visexp/out/rust-task-stack-induction-r402/agentreward-overview.svg",
+            "--induce-task-stack",
+            "--deterministic-output",
+            "--where",
+            "dataset=agent-reward-bench",
+            "--where",
+            "analysis_task=agentreward_looping",
+            "--induce-query-term",
+            "loop",
+            "--induce-query-term",
+            "repeat",
+            "--svg-width",
+            "1600"
+          ],
+          "deterministic_output": true,
+          "format": "svg",
+          "induce_allow_session": false,
+          "induce_max_depth": 4,
+          "induce_query_terms": [
+            "loop",
+            "repeat"
+          ],
+          "induce_task_stack": true,
+          "op_map_files": [],
+          "op_maps": [],
+          "operation_files": [
+            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl"
+          ],
+          "operations": 34539,
+          "output": "docs/visexp/out/rust-task-stack-induction-r402/agentreward-overview.svg",
+          "profile_specs": [],
+          "rank_mode": "width-boost",
+          "rank_op_rules": [],
+          "rank_rules": [],
+          "sample_type": "operations",
+          "samples": 729,
+          "stack": "task",
+          "stack_rules": [],
+          "standard_trace_events": null,
+          "standard_trace_format": null,
+          "standard_trace_output": null,
+          "status": "ok",
+          "unique_stacks": 47,
+          "unit": "count",
+          "view": "operations",
+          "warnings": [],
+          "where_rules": [
+            "dataset=agent-reward-bench",
+            "analysis_task=agentreward_looping"
+          ]
+        }
+      },
+      "stop_reasons": {
+        "no_material_split": 14,
+        "small_node": 33
+      },
+      "title": "Rust induced task stack",
+      "top_stacks": [
+        {
+          "matched_rank_rules": [],
+          "rank_score": 131.0,
+          "stack": "task:same-action-run;task:click",
+          "weight": 131
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 125.0,
+          "stack": "task:single;task:loop-like;task:click",
+          "weight": 125
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 108.0,
+          "stack": "task:single;task:none;task:click",
+          "weight": 108
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 49.0,
+          "stack": "task:light-repeat;task:click;task:loop-like",
+          "weight": 49
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 47.0,
+          "stack": "task:single;task:loop-like;task:fill",
+          "weight": 47
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 25.0,
+          "stack": "task:same-action-window;task:click",
+          "weight": 25
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 23.0,
+          "stack": "task:same-action-run;task:send_msg_to_user",
+          "weight": 23
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 21.0,
+          "stack": "task:light-repeat;task:click;task:none",
+          "weight": 21
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 20.0,
+          "stack": "task:same-action-run;task:hover",
+          "weight": 20
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 17.0,
+          "stack": "task:same-action-window;task:fill",
+          "weight": 17
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 17.0,
+          "stack": "task:single;task:none;task:fill",
+          "weight": 17
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 16.0,
+          "stack": "task:light-repeat;task:fill;task:loop-like",
+          "weight": 16
+        }
+      ],
+      "unique_stacks": 47,
+      "view": "agentreward-overview"
+    },
+    "agentreward-session": {
+      "all_frames_are_task": true,
+      "allow_session": true,
+      "compression_ratio": 8.011,
+      "induce_task_stack": true,
+      "max_stack_reuse": 35,
+      "operations": 729,
+      "oracle_source_field_overlap": [],
+      "selected_source_fields": [
+        "action",
+        "repeat_run",
+        "repeat_signal",
+        "repeat_state",
+        "session",
+        "step_error"
+      ],
+      "split_decision_count": 32,
+      "stack": "task",
+      "stack_depth_histogram": {
+        "1": 11,
+        "2": 46,
+        "3": 26,
+        "4": 8
+      },
+      "statuses": {
+        "folded": {
+          "command": [
+            "cargo",
+            "run",
+            "--manifest-path",
+            "agentpprof/Cargo.toml",
+            "--",
+            "--operation-file",
+            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl",
+            "--view",
+            "operations",
+            "--format",
+            "folded",
+            "--output",
+            "docs/visexp/out/rust-task-stack-induction-r402/agentreward-session.folded",
+            "--induce-task-stack",
+            "--deterministic-output",
+            "--where",
+            "dataset=agent-reward-bench",
+            "--where",
+            "analysis_task=agentreward_looping",
+            "--induce-allow-session",
+            "--induce-query-term",
+            "loop",
+            "--induce-query-term",
+            "repeat"
+          ],
+          "deterministic_output": true,
+          "format": "folded",
+          "induce_allow_session": true,
+          "induce_max_depth": 4,
+          "induce_query_terms": [
+            "loop",
+            "repeat"
+          ],
+          "induce_task_stack": true,
+          "op_map_files": [],
+          "op_maps": [],
+          "operation_files": [
+            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl"
+          ],
+          "operations": 34539,
+          "output": "docs/visexp/out/rust-task-stack-induction-r402/agentreward-session.folded",
+          "profile_specs": [],
+          "rank_mode": "width-boost",
+          "rank_op_rules": [],
+          "rank_rules": [],
+          "sample_type": "operations",
+          "samples": 729,
+          "stack": "task",
+          "stack_rules": [],
+          "standard_trace_events": null,
+          "standard_trace_format": null,
+          "standard_trace_output": null,
+          "status": "ok",
+          "unique_stacks": 91,
+          "unit": "count",
+          "view": "operations",
+          "warnings": [],
+          "where_rules": [
+            "dataset=agent-reward-bench",
+            "analysis_task=agentreward_looping"
+          ]
+        },
+        "json": {
+          "command": [
+            "cargo",
+            "run",
+            "--manifest-path",
+            "agentpprof/Cargo.toml",
+            "--",
+            "--operation-file",
+            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl",
+            "--view",
+            "operations",
+            "--format",
+            "json",
+            "--output",
+            "docs/visexp/out/rust-task-stack-induction-r402/agentreward-session.json",
+            "--induce-task-stack",
+            "--deterministic-output",
+            "--where",
+            "dataset=agent-reward-bench",
+            "--where",
+            "analysis_task=agentreward_looping",
+            "--induce-allow-session",
+            "--induce-query-term",
+            "loop",
+            "--induce-query-term",
+            "repeat"
+          ],
+          "deterministic_output": true,
+          "format": "json",
+          "induce_allow_session": true,
+          "induce_max_depth": 4,
+          "induce_query_terms": [
+            "loop",
+            "repeat"
+          ],
+          "induce_task_stack": true,
+          "op_map_files": [],
+          "op_maps": [],
+          "operation_files": [
+            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl"
+          ],
+          "operations": 34539,
+          "output": "docs/visexp/out/rust-task-stack-induction-r402/agentreward-session.json",
+          "profile_specs": [],
+          "rank_mode": "width-boost",
+          "rank_op_rules": [],
+          "rank_rules": [],
+          "sample_type": "operations",
+          "samples": 729,
+          "stack": "task",
+          "stack_rules": [],
+          "standard_trace_events": null,
+          "standard_trace_format": null,
+          "standard_trace_output": null,
+          "status": "ok",
+          "unique_stacks": 91,
+          "unit": "count",
+          "view": "operations",
+          "warnings": [],
+          "where_rules": [
+            "dataset=agent-reward-bench",
+            "analysis_task=agentreward_looping"
+          ]
+        },
+        "svg": {
+          "command": [
+            "cargo",
+            "run",
+            "--manifest-path",
+            "agentpprof/Cargo.toml",
+            "--",
+            "--operation-file",
+            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl",
+            "--view",
+            "operations",
+            "--format",
+            "svg",
+            "--output",
+            "docs/visexp/out/rust-task-stack-induction-r402/agentreward-session.svg",
+            "--induce-task-stack",
+            "--deterministic-output",
+            "--where",
+            "dataset=agent-reward-bench",
+            "--where",
+            "analysis_task=agentreward_looping",
+            "--induce-allow-session",
+            "--induce-query-term",
+            "loop",
+            "--induce-query-term",
+            "repeat",
+            "--svg-width",
+            "1600"
+          ],
+          "deterministic_output": true,
+          "format": "svg",
+          "induce_allow_session": true,
+          "induce_max_depth": 4,
+          "induce_query_terms": [
+            "loop",
+            "repeat"
+          ],
+          "induce_task_stack": true,
+          "op_map_files": [],
+          "op_maps": [],
+          "operation_files": [
+            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl"
+          ],
+          "operations": 34539,
+          "output": "docs/visexp/out/rust-task-stack-induction-r402/agentreward-session.svg",
+          "profile_specs": [],
+          "rank_mode": "width-boost",
+          "rank_op_rules": [],
+          "rank_rules": [],
+          "sample_type": "operations",
+          "samples": 729,
+          "stack": "task",
+          "stack_rules": [],
+          "standard_trace_events": null,
+          "standard_trace_format": null,
+          "standard_trace_output": null,
+          "status": "ok",
+          "unique_stacks": 91,
+          "unit": "count",
+          "view": "operations",
+          "warnings": [],
+          "where_rules": [
+            "dataset=agent-reward-bench",
+            "analysis_task=agentreward_looping"
+          ]
+        }
+      },
+      "stop_reasons": {
+        "max_depth": 8,
+        "no_material_split": 22,
+        "small_node": 61
+      },
+      "title": "Rust induced task stack with session candidate",
+      "top_stacks": [
+        {
+          "matched_rank_rules": [],
+          "rank_score": 35.0,
+          "stack": "task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2;task:click;task:none;task:single",
+          "weight": 35
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 30.0,
+          "stack": "task:workarena.servicenow.dashboard-retrieve-catalog-and-max-order-apple-watch-l2",
+          "weight": 30
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 30.0,
+          "stack": "task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:none;task:click",
+          "weight": 30
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 24.0,
+          "stack": "task:visualwebarena.76;task:3plus",
+          "weight": 24
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 24.0,
+          "stack": "task:visualwebarena.resized.580;task:3plus",
+          "weight": 24
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 24.0,
+          "stack": "task:workarena.servicenow.two-changes-wide-basic-varied-risk-change-request-scheduling-l2;task:3plus",
+          "weight": 24
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 21.0,
+          "stack": "task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;task:loop-like;task:single;task:click",
+          "weight": 21
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 20.0,
+          "stack": "task:visualwebarena.88;task:same-action-run",
+          "weight": 20
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 19.0,
+          "stack": "task:webarena.723;task:3plus",
+          "weight": 19
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 18.0,
+          "stack": "task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2;task:send_msg_to_user",
+          "weight": 18
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 17.0,
+          "stack": "task:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2;task:click;task:none;task:light-repeat",
+          "weight": 17
+        },
+        {
+          "matched_rank_rules": [],
+          "rank_score": 17.0,
+          "stack": "task:workarena.servicenow.two-changes-wide-schedule-tight-uniform-risk-change-request-scheduling-l2;task:click;task:ok",
+          "weight": 17
+        }
+      ],
+      "unique_stacks": 91,
+      "view": "agentreward-session"
+    }
+  }
+}

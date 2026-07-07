@@ -128,6 +128,132 @@ phase:submit=(action=click.*intent=authenticate.*target=submit)
 }
 
 #[test]
+fn cli_induces_task_stack_without_user_field_order() {
+    let tmp = tempfile::tempdir().unwrap();
+    let ops_path = tmp.path().join("ops.jsonl");
+    let output_path = tmp.path().join("induced.json");
+    let binary = env!("CARGO_BIN_EXE_agentpprof");
+
+    let mut rows = Vec::new();
+    for _ in 0..6 {
+        rows.push(r#"{"value":1,"fields":{"dataset":"agent-reward-bench","analysis_task":"agentreward_looping","repeat_state":"single","repeat_signal":"none","action":"click","looping":"no","problem_value":"negative","status":"failure"}}"#);
+    }
+    for _ in 0..6 {
+        rows.push(r#"{"value":1,"fields":{"dataset":"agent-reward-bench","analysis_task":"agentreward_looping","repeat_state":"same-action-run","repeat_signal":"loop-like","action":"click","looping":"yes","problem_value":"positive","status":"failure"}}"#);
+    }
+    for _ in 0..6 {
+        rows.push(r#"{"value":1,"fields":{"dataset":"agent-reward-bench","analysis_task":"agentreward_looping","repeat_state":"same-action-run","repeat_signal":"loop-like","action":"fill","looping":"yes","problem_value":"positive","status":"failure"}}"#);
+    }
+    fs::write(&ops_path, rows.join("\n") + "\n").unwrap();
+
+    let output = Command::new(binary)
+        .args([
+            "--operation-file",
+            ops_path.to_str().unwrap(),
+            "--view",
+            "operations",
+            "--format",
+            "json",
+            "--output",
+            output_path.to_str().unwrap(),
+            "--where",
+            "dataset=agent-reward-bench",
+            "--where",
+            "analysis_task=agentreward_looping",
+            "--induce-task-stack",
+            "--induce-query-term",
+            "loop",
+            "--deterministic-output",
+        ])
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "induced CLI profile failed: {}\nstdout: {}",
+        String::from_utf8_lossy(&output.stderr),
+        String::from_utf8_lossy(&output.stdout)
+    );
+    let status: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(status["status"], "ok");
+    assert_eq!(status["stack"], "task");
+    assert_eq!(status["induce_task_stack"], true);
+    assert_eq!(status["samples"], 18);
+
+    let profile_json: Value =
+        serde_json::from_str(&fs::read_to_string(&output_path).unwrap()).unwrap();
+    let stacks = profile_json["profile"]["stacks"].as_object().unwrap();
+    assert!(!stacks.is_empty());
+    assert!(
+        stacks
+            .keys()
+            .all(|stack| { stack.split(';').all(|frame| frame.starts_with("task:")) })
+    );
+    assert!(stacks.keys().all(|stack| {
+        !stack.contains("looping") && !stack.contains("problem_value") && !stack.contains("status:")
+    }));
+    let report = &profile_json["profile"]["task_stack_induction"];
+    assert_eq!(
+        report["policy"],
+        "query-conditioned-greedy-task-stack-induction"
+    );
+    let selected = report["selected_source_fields"].as_array().unwrap();
+    assert!(selected.iter().any(|field| {
+        matches!(
+            field.as_str().unwrap(),
+            "repeat_state" | "repeat_signal" | "action"
+        )
+    }));
+    assert!(selected.iter().all(|field| {
+        !matches!(
+            field.as_str().unwrap(),
+            "looping" | "problem_value" | "status"
+        )
+    }));
+}
+
+#[test]
+fn cli_induced_task_stack_rejects_non_task_stack_override() {
+    let tmp = tempfile::tempdir().unwrap();
+    let ops_path = tmp.path().join("ops.jsonl");
+    let output_path = tmp.path().join("induced.json");
+    let binary = env!("CARGO_BIN_EXE_agentpprof");
+
+    fs::write(
+        &ops_path,
+        [
+            r#"{"value":1,"fields":{"dataset":"agent-reward-bench","analysis_task":"agentreward_looping","repeat_state":"single","action":"click"}}"#,
+            r#"{"value":1,"fields":{"dataset":"agent-reward-bench","analysis_task":"agentreward_looping","repeat_state":"same-action-run","action":"fill"}}"#,
+        ]
+        .join("\n")
+            + "\n",
+    )
+    .unwrap();
+
+    let output = Command::new(binary)
+        .args([
+            "--operation-file",
+            ops_path.to_str().unwrap(),
+            "--view",
+            "operations",
+            "--format",
+            "json",
+            "--output",
+            output_path.to_str().unwrap(),
+            "--induce-task-stack",
+            "--stack",
+            "action",
+        ])
+        .output()
+        .unwrap();
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("--induce-task-stack derives and folds task frames"),
+        "unexpected stderr: {stderr}"
+    );
+}
+
+#[test]
 fn profile_spec_replays_local_session_inputs_and_tag_rules() {
     let tmp = tempfile::tempdir().unwrap();
     let session_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
