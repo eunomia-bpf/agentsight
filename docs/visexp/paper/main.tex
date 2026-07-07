@@ -71,7 +71,7 @@ RQ4 只说明离线证据可重放，并约束数字、数据来源选择和主�
 
 因此本文支持的是有范围限定的 profiling 主张：operation-stack profiling 能在公开真实标注 trace 的 dataset-provided hidden labels 下定位、排序和解释任务相关 failure、quality problem 和 dataset-provided semantic boundary，并相对 flat summary 减少 inspection work、相对 fixed-session drilldown proxy 改善 median fragmentation tradeoff。
 本文不声称提升 human productivity，不声称自动发现所有 intent boundary，不声称 metric dominance，也不声称完整兼容现有 trace ecosystem。
-	\end{abstract}
+\end{abstract}
 
 \section{问题}
 
@@ -775,39 +775,37 @@ Replay、数字对齐、数据来源选择和两个抽象的表述约束让正�
 
 \section{结论}
 
-	本文将 agent 语义 profiling 的核心数据模型收敛为 operation 和 operation stack 两个抽象。
-	Prompt、session、tool call、process、syscall、plan、subagent、GUI action 以及安全和质量标签，都以 operation 的形态或字段进入同一模型。
-	字段派生、查询过滤、权重选择、递归折叠和复现配置都只改变 operation 或查询配置。
-	Profile spec 固定这些选择，deterministic output 让同一 profile 可以 byte-stable replay。
-	在 15 个轻量采样的公开标注轨迹数据源上，这个模型统一了 web、mobile、desktop、software、API、dialogue、failure、安全、human group 和 step-quality 轨迹，并产生 flamegraph 之外的 stack tree、transition、quality、boundary、case views 和 scope reports。
-	这个结果支持本文的核心机制主张，即 agent profiling 的边界可以从 prompt/session/span tree 中释放出来，成为 query-time operation-stack projection。
+本文将 agent 语义 profiling 的数据模型收敛为 operation 和 operation stack 两个抽象。
+Prompt、session、tool call、process、syscall、plan、subagent、GUI action 以及安全和质量标签，都作为 operations 或 operation fields 进入同一模型。
+字段派生、查询过滤、权重选择、递归折叠和复现配置只改变 operation 字段或 query 配置，而不产生新的 profiler 对象。
+Profile spec 固定这些选择，deterministic output 让同一 profile 可以 byte-stable replay。
+在 15 个轻量采样的公开标注轨迹数据源上，这个模型统一了 web、mobile、desktop、software、API、dialogue、failure、安全、human group 和 step-quality 轨迹，并产生 flamegraph 之外的 stack tree、transition、quality、boundary、case views 和 scope reports。
+E1 因此支持本文的机制主张，即 agent profiling 的边界可以从 prompt/session/span tree 中释放出来，成为 query-time operation-stack projection。
 
-	当前最强经验结论来自四类 oracle-rich 轨迹，它们分别覆盖不同诊断问题。
-	OSWorld-Human 证明同一动作序列可以折叠到人工 grouped-action 深度，AgentNet 证明 step correctness 和 redundancy 可以作为普通 operation fields 进入 profiling，AgentRewardBench 和 SATraj-OS 证明 failure、looping、side-effect、安全和 attack-type diagnostics 可以用同一机制表达。
-	6 个 label-hidden tasks 构成主 hidden-label profiler benchmark。
-	Query-aware operation-stack top-5 groups 用 median 0.0937 work 取得 0.188 recall，flat summary 用 1.0 work 才取得 full recall，fixed-session 用 0.0163 work 但 top-5 recall 只有 0.0233。
-	相对 fixed-session，operation-stack top-5 recall 在 5/6 tasks 上更高，并把 median groups 从 285.0 降到 157.5。
+本文最强经验依据来自四类 oracle-rich 轨迹。
+OSWorld-Human 展示同一动作序列可以折叠到人工 grouped-action 深度，AgentNet 展示 step correctness 和 redundancy 可以作为普通 operation fields 进入 profiling，AgentRewardBench 和 SATraj-OS 展示 failure、looping、side-effect、安全和 attack-type diagnostics 可以用同一机制表达。
+在 6 个 label-hidden tasks 组成的主 hidden-label benchmark 中，query-aware operation-stack top-5 groups 用 median 0.0937 work 取得 0.188 recall，flat summary 用 1.0 work 才取得 full recall，fixed-session 用 0.0163 work 但 top-5 recall 只有 0.0233。
+相对 fixed-session，operation-stack top-5 recall 在 5/6 tasks 上更高，并把 median groups 从 285.0 降到 157.5。
 
-	补充分析进一步界定这个 profiler 主张的适用条件。
-	Task-paired uncertainty、label-permutation negative controls、view/depth task-fit、inspection-budget curves、fixed-recall target、sequence-scope scoring 和 oracle-depth scoring 共同说明，operation-stack 的主要优势是 AP/work/fragmentation tradeoff，而不是所有指标支配。
-		Actionability 证据进一步显示 36/36 objective rows 有具体 optimization action，27/36 best visible policies 不是默认 operation-stack query-aware。
-		Diagnostic lenses、case views、baseline contrasts、action counterfactuals 和 held-out transfer results 说明 profiler 暴露的是可调分析界面，而不是 automatic universal selector。
-	Executable profile-spec patch 进一步证明这种 profile-configuration actionability 可以落到 Rust profiler 配置上。
-	在 6 个 patches 中，5 个同时改善 AP、top-5 lift 和 first-positive work。
-	OSWorld-Human reject 再由 boundary-derived operation fields 改善 AP 和 groups，但保留 work 反例。
+E3 进一步说明 operation-stack 的价值来自可调 profiling 配置，而不是单一默认层级。
+Task-paired uncertainty、label-permutation negative controls、view/depth task-fit、inspection-budget curves、fixed-recall target、sequence-scope scoring 和 oracle-depth scoring 共同把优势限定为 AP/work/fragmentation tradeoff。
+Actionability 证据显示 36/36 objective rows 有具体 optimization action，27/36 best visible policies 不是默认 operation-stack query-aware。
+Diagnostic lenses、case views、baseline contrasts、action counterfactuals 和 held-out transfer results 说明 profiler 暴露的是可调分析界面，而不是 automatic universal selector。
+Executable profile-spec patches 把这种 profile-configuration actionability 落到 Rust profiler 配置上，并在 6 个 patches 中让 5 个同时改善 AP、top-5 lift 和 first-positive work。
+OSWorld-Human reject 再由 boundary-derived operation fields 改善 AP 和 groups，但保留 work 反例。
 
-	因此本文的新意不在单个 flamegraph，而在把 agent 轨迹先统一成 operations，再把边界选择推迟到 operation-stack 查询。
-	这个接口与 pprof、Perfetto、OpenTelemetry/OpenInference 和 LLM observability systems 互补，因为它不重新定义通用 trace schema，也不把 dashboard 当作贡献。
-	所有扩展都先写回 operation fields，再由同一 operation-stack query 折叠，包括 mapping/tagging、profile spec、agent-session trace、Chrome/Perfetto-style trace exchange 和 boundary-derived fields。
-	这样的限制让同一批 operations 可以按不同问题选择 view、派生字段和折叠深度，也让读者看到每个数字对应哪一类证据。
-	当前可写入论文的价值主张只覆盖相对 dataset-provided hidden labels 的 profiler fidelity、label-scored ranking/localization、inspection-cost/fragmentation tradeoff 和 profile-configuration actionability。
-	它不覆盖 detector、human utility、baseline dominance、automatic patch selector 或 ecosystem compatibility。
-	后续工作应优先加强主张所需的 oracle，而不是无差别增加数据集。
-	Field-derivation backend 需要跨家族 calibration，并稳定胜过简单 sequence-derived baselines。
-	Free-form prompt/LLM tagging 也应该先通过同一 hidden-label scoring 和 simple-baseline 检查，再进入 profiler 主张。
-	已有或新增真实 trace 也需要更强的 instruction-step、solution-path 或 human subtask oracle。
-	只有当论文提出 ecosystem-baseline 主张时，真实 OTel/Phoenix/LangSmith/Langfuse/Perfetto span-tree trace 才成为必要基线。
-	Controlled human 或 agent analyst study 可以作为后续增强，但不是本文主 profiling 主张的前置条件。
+因此本文的新意不在单个 flamegraph，而在把 agent 轨迹先统一成 operations，再把边界选择推迟到 operation-stack 查询。
+该接口与 pprof、Perfetto、OpenTelemetry/OpenInference 和 LLM observability systems 互补，因为它不重新定义通用 trace schema，也不把 dashboard 当作贡献。
+Mapping/tagging、profile spec、agent-session trace、Chrome/Perfetto-style trace exchange 和 boundary-derived fields 都先写回 operation fields，再由同一 operation-stack query 折叠。
+这一限制让同一批 operations 可以按不同问题选择 view、派生字段和折叠深度，也让读者看到每个数字对应哪一类证据。
+本文的价值主张只覆盖相对 dataset-provided hidden labels 的 profiler fidelity、label-scored ranking/localization、inspection-cost/fragmentation tradeoff 和 profile-configuration actionability。
+它不覆盖 universal detector、human utility、baseline dominance、automatic patch selector 或 ecosystem compatibility。
+后续工作应优先加强主张所需的 oracle，而不是无差别增加数据集。
+Field-derivation backend 需要跨家族 calibration，并稳定胜过简单 sequence-derived baselines。
+Free-form prompt/LLM tagging 也应该先通过同一 hidden-label scoring 和 simple-baseline 检查，再进入 profiler 主张。
+已有或新增真实 trace 需要更强的 instruction-step、solution-path 或 human subtask oracle。
+只有当论文提出 ecosystem-baseline 主张时，真实 OTel/Phoenix/LangSmith/Langfuse/Perfetto span-tree trace 才成为必要基线。
+Controlled human 或 agent analyst study 可以作为后续增强，但不是本文主 profiling 主张的前置条件。
 
 \vspace{-0.8em}
 \section*{参考文献}
