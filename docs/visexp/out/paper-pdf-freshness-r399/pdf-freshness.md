@@ -12,12 +12,12 @@ The tracked Chinese and English paper PDFs contain the same main-display path th
 |---|---:|---|
 | prerequisite_gates_pass | True | Prerequisite statuses={'R396 paper build smoke': 'pass', 'R398 current three-plus-one': 'pass'} |
 | pdftotext_available | True | pdftotext=/usr/bin/pdftotext |
-| tracked_pdfs_exist | True | PDF bytes={'chinese_pdf_bytes': 601765, 'english_pdf_bytes': 597695} |
+| tracked_pdfs_exist | True | PDF bytes={'chinese_pdf_bytes': 602365, 'english_pdf_bytes': 597728} |
 | pdftotext_extraction_succeeds | True | Chinese rc=0 stderr=; English rc=0 stderr= |
 | source_display_path_tokens_present | True | Chinese and English TeX sources contain the main-display path tokens. |
 | tracked_pdfs_contain_display_path | True | Tracked Chinese and English PDFs contain the display-path text after PDF text extraction. |
 | pdf_non_claim_scope_visible | True | Tracked English PDF keeps fifth-experiment, accuracy, productivity, boundary, and ecosystem non-claims visible. |
-| english_submodule_captured_by_parent | True | submodule_head=ce0eb8f460ca00c25718c7567100ba7d2cfdc3a1; parent_index=ce0eb8f460ca00c25718c7567100ba7d2cfdc3a1 |
+| english_submodule_captured_by_parent | True | submodule_head=79ce3e7653ec6b72e7cf9755f0ec0b5271eba5ab; parent_index=79ce3e7653ec6b72e7cf9755f0ec0b5271eba5ab |
 | source_status_tracked_or_dirty_allowed | True | All inputs are tracked or intentionally dirty while this gate is generated. |
 
 ## Token Checks

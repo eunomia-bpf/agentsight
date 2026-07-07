@@ -43,7 +43,7 @@ AI agent 的执行历史已经不再只是一次 prompt 或一棵 trace tree。
 本文提出一种更小的语义剖析模型：系统只保留两个核心抽象，\op{} 和 \opstack{}。
 \op{} 是带字段和权重的观测，prompt、tool call、process、syscall、GUI action 和 plan step 可以是 operation 记录或派生字段；session、span、task 和 trace id 是 operation fields、交换容器或 baseline shape，不是新的 profiler 对象。
 \opstack{} 是用户从字段中选择的递归投影，mapping 和 tagging 在 stack 构造前派生字段，而不是创建第三种 profiler 对象。
-当用户不想给出字段顺序时，\toolname{} 也可以从可见字段和 query hint 中给相邻 operation boundary 打分，递归诱导多值 \texttt{task} 字段，再用 task-only stack 折叠。
+当用户不想给出固定 stack 字段链时，\toolname{} 也可以从可见 evidence、semantic shift 和 query hint 中给相邻 operation boundary 打分，递归诱导多值 \texttt{task} 字段，再用 task-only stack 折叠。
 关键点是聚合不是第三个对象，也不是固定 trace tree；聚合由 query time 选择的 stack 形态决定。
 这不是单纯的 query-time aggregation 或 flamegraph renderer claim；scoped novelty 是 agent-operation record、recursive multi-field operation-stack projection 和 hidden-label profile-group scoring 的组合。
 我们在 Rust \toolname{} 中实现该模型，并围绕三个核心经验性 profiling 实验和一个 replayability/scope-control block 评估它。
@@ -95,8 +95,8 @@ Profiler 的核心任务不是决定唯一正确边界，而是让用户和实�
 \opstack{} 是从 operation fields 中选择出的有序 frame 列表。
 例如同一批 operations 可以用 \texttt{project,dataset} 查看数据来源，也可以用 \texttt{project,dataset,task,phase,op,tool,action,status} 查看动作深度，或者加入 \texttt{human\_group}、\texttt{step\_correct}、\texttt{safety} 和 \texttt{looping} 做诊断视图。
 Stack 不是 trace tree，也不是 session hierarchy。
-自动 task-stack induction 仍然只产生 \opstack{}：\toolname{} 在当前连续 operation segment 内给相邻 cut 打分，要求左右 child 有足够权重和不同 dominant evidence，然后递归写入多值 \texttt{task} 字段。
-因此用户给的是 predicate、view 和 query hint，不是 \texttt{analysis\_task,phase,action,status} 这样的固定字段顺序。
+自动 task-stack induction 仍然只产生 \opstack{}：\toolname{} 在当前连续 operation segment 内用可见 evidence、semantic shift、changed-field density 和 query hint 给相邻 cut 打分，要求左右 child 有足够权重和不同 dominant evidence，然后递归写入多值 \texttt{task} 字段。
+因此用户给的是 predicate、view 和 query hint，不是 \texttt{analysis\_task,phase,action,status} 这样的固定 stack 字段链。
 它是一个查询结果，用户可以按问题改变深度和字段。
 
 \subsection{Mapping 和 tagging}
@@ -341,12 +341,12 @@ Profile spec 把这个 query 自由度变成可复现实验配置。
 第三，field derivation 是可扩展接口，因为 mapping 和 supervised backend 只写入 operation fields，profiler 仍按 operation stack 折叠。
 这些机制结果给出 paper novelty，但 user-utility、通用 boundary detector 和完整 trace-platform compatibility 仍是后续工作。
 
-Rust task-stack induction 进一步检验“不是用户给字段顺序”的实现路径。
-在 tracked AgentRewardBench looping slice 上，\toolname{} 用 \texttt{--induce-task-stack} 从可见字段给相邻边界打分，并输出 task-only stacks。
+Rust task-stack induction 进一步检验“不是用户给固定 stack 字段链”的实现路径。
+在 tracked AgentRewardBench looping slice 上，\toolname{} 用 \texttt{--induce-task-stack} 从可见 evidence、semantic shift、changed-field density 和 query hint 给相邻边界打分，并输出 task-only stacks。
 在六个 hidden-label tasks 上，同一个实现作为普通 profiler view 运行时全部产生 variable-depth stacks。
 其中 AgentRewardBench、AgentNet 和 OSWorld-Human 的 stacks 覆盖深度 2/3/4，SATraj 同时保留深度 1/2/3/4。
-这个自动 view 的 median groups 为 15.5，远低于 fixed-session 的 285.0；median top-5 work 为 0.3143，低于 flat summary 的 1.0。
-同时它的 median AP 为 0.2972，低于 hand-configured operation-stack query-aware 的 0.3116。
+这个自动 view 的 median groups 为 15.0，远低于 fixed-session 的 285.0；median top-5 work 为 0.2819，低于 flat summary 的 1.0。
+同时它的 median AP 为 0.3034，低于 hand-configured operation-stack query-aware 的 0.3116。
 这说明同一个 prompt/action 序列可以被自动折叠成参差不齐的 task stack，但它支持的是 configurable recursive folding，不是取代 task-specific profile specs，也不是自动发现所有 intent boundary。
 
 \paragraph{Field derivation 和 boundary probes。}
@@ -405,7 +405,7 @@ Fixed-session drilldown 是当前已评估的 trace-tree-shaped baseline；这�
 Depth-aware slice 给出同一 claim 的更细版本：operation-stack rankings 在 20/24 task-depth rows 上超过 fixed-session budget-30 positive-unit recall，并在 22/24 rows 上用更少 groups 到达 50\% positive units。
 如果这些反例从论文里消失，claim 就会被写过头；保留它们后，E2 支持的是更好的 localization-budget/fragmentation tradeoff，不是对所有 trace-tree-shaped objectives 的 dominance。
 Automatic induced task stacks 给出同一 tradeoff 的机制侧证据。
-它们在不要求用户给字段顺序的情况下，用可见 boundary evidence 产生 variable-depth groups，并在同一 hidden-label scoring pipeline 下取得 median top-5 work 0.3143 和 median groups 15.5。
+它们在不要求用户给固定 stack 字段链的情况下，用可见 boundary evidence 产生 variable-depth groups，并在同一 hidden-label scoring pipeline 下取得 median top-5 work 0.2819 和 median groups 15.0。
 这个结果比 flat 更省检查、比 fixed-session 更少碎片化，但 AP 仍低于 hand-configured operation-stack，所以 E2 主结论仍以 query-aware operation stack 为主。
 Setup 和 case-packet outputs 只解释实验可复查性。
 它们验证 visible packet 与 hidden answer key 分离，说明 top-ranked operation-stack groups 能形成 reviewer-facing cases，并保留 flat full-recall 与 fixed-session early-hit 反例。

@@ -85,8 +85,9 @@ OPERATION STACK QUERY WORKFLOW:
 
   --induce-task-stack derives a recursive multi-value task field before
   folding. The user supplies predicates and optional query terms, not a stack
-  field order; source fields such as session, action, effect, process, or
-  prompt tags are candidate evidence, while the rendered stack is task-only.
+  field chain; adjacent operation boundaries are scored from visible evidence
+  such as action, effect, process, prompt tags, or an explicitly allowed
+  session field, while the rendered stack is task-only.
 "#;
 
 #[derive(Parser)]

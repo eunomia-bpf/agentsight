@@ -209,6 +209,20 @@ fn cli_induces_task_stack_without_user_field_order() {
             .iter()
             .all(|decision| decision["selected_score"]["cut_after"].as_u64().unwrap() > 0)
     );
+    assert!(
+        report["split_decisions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|decision| decision["selected_score"]["semantic_shift"]
+                .as_f64()
+                .unwrap()
+                > 0.0
+                && !decision["selected_score"]["changed_fields"]
+                    .as_array()
+                    .unwrap()
+                    .is_empty())
+    );
     let selected = report["selected_source_fields"].as_array().unwrap();
     assert!(selected.iter().any(|field| {
         matches!(

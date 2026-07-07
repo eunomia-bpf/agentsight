@@ -319,9 +319,20 @@ pub struct TaskStackSplitScore {
     balance: f64,
     coverage: f64,
     query_bonus: f64,
+    semantic_shift: f64,
+    changed_field_fraction: f64,
+    changed_fields: Vec<String>,
     cardinality_penalty: f64,
     small_child_penalty: f64,
     groups: BTreeMap<String, u64>,
+}
+
+#[derive(Clone, Debug)]
+struct TaskBoundaryEvidence {
+    changed_fields: Vec<String>,
+    semantic_shift: f64,
+    query_bonus: f64,
+    changed_field_fraction: f64,
 }
 
 #[derive(Clone)]
@@ -1228,7 +1239,7 @@ fn choose_task_split(
     config: &TaskStackInductionConfig,
 ) -> (Option<TaskStackSplitScore>, Vec<TaskStackSplitScore>) {
     let candidates = task_stack_candidate_fields(samples, indices, config);
-    let boundary_cuts = task_stack_boundary_cuts(samples, indices, &candidates);
+    let boundary_cuts = task_stack_boundary_cuts(samples, indices, &candidates, config);
     let mut scores = boundary_cuts
         .into_iter()
         .filter_map(|cut_after| {
@@ -1240,7 +1251,7 @@ fn choose_task_split(
             .score
             .partial_cmp(&left.score)
             .unwrap_or(std::cmp::Ordering::Equal)
-            .then_with(|| left.field.cmp(&right.field))
+            .then_with(|| left.cut_after.cmp(&right.cut_after))
     });
     let selected = scores
         .first()
@@ -1254,18 +1265,14 @@ fn task_stack_boundary_cuts(
     samples: &[Operation],
     indices: &[usize],
     candidates: &[String],
+    config: &TaskStackInductionConfig,
 ) -> Vec<usize> {
     if indices.len() <= 1 || candidates.is_empty() {
         return Vec::new();
     }
     let mut cuts = Vec::new();
     for cut_after in 1..indices.len() {
-        let left = &samples[indices[cut_after - 1]];
-        let right = &samples[indices[cut_after]];
-        if candidates
-            .iter()
-            .any(|field| operation_field_value(left, field) != operation_field_value(right, field))
-        {
+        if adjacent_boundary_evidence(samples, indices, cut_after, candidates, config).is_some() {
             cuts.push(cut_after);
         }
     }
@@ -1314,6 +1321,97 @@ fn task_stack_field_is_candidate(samples: &[Operation], indices: &[usize], field
     (numeric as f64 / indices.len().max(1) as f64) <= 0.8
 }
 
+fn adjacent_boundary_evidence(
+    samples: &[Operation],
+    indices: &[usize],
+    cut_after: usize,
+    candidates: &[String],
+    config: &TaskStackInductionConfig,
+) -> Option<TaskBoundaryEvidence> {
+    if cut_after == 0 || cut_after >= indices.len() || candidates.is_empty() {
+        return None;
+    }
+    let left = &samples[indices[cut_after - 1]];
+    let right = &samples[indices[cut_after]];
+    let changed_fields = candidates
+        .iter()
+        .filter(|field| operation_field_value(left, field) != operation_field_value(right, field))
+        .cloned()
+        .collect::<Vec<_>>();
+    let left_tokens = visible_operation_tokens(left, candidates);
+    let right_tokens = visible_operation_tokens(right, candidates);
+    let semantic_shift = token_set_distance(&left_tokens, &right_tokens);
+    if changed_fields.is_empty() && semantic_shift <= 0.0 {
+        return None;
+    }
+    let query_bonus = query_bonus(
+        "boundary",
+        left_tokens.iter().chain(right_tokens.iter()),
+        &config.query_terms,
+    );
+    Some(TaskBoundaryEvidence {
+        changed_field_fraction: changed_fields.len() as f64 / candidates.len().max(1) as f64,
+        changed_fields,
+        semantic_shift,
+        query_bonus,
+    })
+}
+
+fn visible_operation_tokens(sample: &Operation, candidates: &[String]) -> BTreeSet<String> {
+    let mut tokens = BTreeSet::new();
+    for field in candidates {
+        tokenize_visible_text(field, &mut tokens);
+        for value in sample.values(field) {
+            tokenize_visible_text(value, &mut tokens);
+            tokens.insert(format!(
+                "{}={}",
+                normalize_token(field),
+                normalize_token(value)
+            ));
+        }
+    }
+    tokens.retain(|token| !token.is_empty() && token != "unknown");
+    tokens
+}
+
+fn tokenize_visible_text(text: &str, tokens: &mut BTreeSet<String>) {
+    let mut current = String::new();
+    for ch in text.chars() {
+        if ch.is_ascii_alphanumeric() {
+            current.push(ch.to_ascii_lowercase());
+        } else if !current.is_empty() {
+            if current.len() >= 2 {
+                tokens.insert(current.clone());
+            }
+            current.clear();
+        }
+    }
+    if current.len() >= 2 {
+        tokens.insert(current);
+    }
+}
+
+fn normalize_token(text: &str) -> String {
+    let mut out = String::new();
+    for ch in text.chars() {
+        if ch.is_ascii_alphanumeric() {
+            out.push(ch.to_ascii_lowercase());
+        } else if !out.ends_with('_') {
+            out.push('_');
+        }
+    }
+    out.trim_matches('_').to_string()
+}
+
+fn token_set_distance(left: &BTreeSet<String>, right: &BTreeSet<String>) -> f64 {
+    if left.is_empty() && right.is_empty() {
+        return 0.0;
+    }
+    let intersection = left.intersection(right).count() as f64;
+    let union = left.union(right).count().max(1) as f64;
+    1.0 - intersection / union
+}
+
 fn is_task_stack_oracle_field(field: &str) -> bool {
     ORACLE_OR_LABEL_FIELDS.contains(&field)
         || ORACLE_OR_LABEL_PREFIXES
@@ -1355,6 +1453,7 @@ fn score_task_boundary_split(
         return None;
     }
     let (left, right) = indices.split_at(cut_after);
+    let boundary = adjacent_boundary_evidence(samples, indices, cut_after, candidates, config)?;
     let left_weight = index_weight(samples, left);
     let right_weight = index_weight(samples, right);
     let total = left_weight + right_weight;
@@ -1397,11 +1496,11 @@ fn score_task_boundary_split(
     let query_bonus = evidence_scores
         .iter()
         .map(|(_, _, query, _)| *query)
-        .fold(0.0, f64::max);
+        .fold(boundary.query_bonus, f64::max);
     let adjacent_change = evidence_scores
         .iter()
         .map(|(_, _, _, change)| *change)
-        .fold(0.0, f64::max);
+        .fold(boundary.changed_field_fraction, f64::max);
     let child_counts = BTreeMap::from([
         ("left".to_string(), left_weight),
         ("right".to_string(), right_weight),
@@ -1414,10 +1513,11 @@ fn score_task_boundary_split(
     } else {
         0.0
     };
-    let score = 0.54 * structural_gain
+    let score = 0.46 * structural_gain
         + 0.20 * balance * coverage
-        + 0.18 * query_bonus
-        + 0.16 * adjacent_change
+        + 0.16 * query_bonus
+        + 0.18 * boundary.semantic_shift
+        + 0.12 * adjacent_change
         - 0.08 * cardinality_penalty
         - 0.20 * small_child_penalty;
     let left_label = task_stack_segment_label(samples, left, &evidence_fields, "left");
@@ -1439,6 +1539,9 @@ fn score_task_boundary_split(
         balance: round6(balance),
         coverage: round6(coverage),
         query_bonus: round6(query_bonus),
+        semantic_shift: round6(boundary.semantic_shift),
+        changed_field_fraction: round6(boundary.changed_field_fraction),
+        changed_fields: boundary.changed_fields,
         cardinality_penalty: round6(cardinality_penalty),
         small_child_penalty: round6(small_child_penalty),
         groups,
@@ -1496,14 +1599,29 @@ fn task_stack_segment_label(
     evidence_fields: &[String],
     fallback: &str,
 ) -> String {
-    for field in evidence_fields {
+    let mut parts = Vec::new();
+    for field in evidence_fields.iter().take(3) {
         let counts = weighted_value_counts(samples, indices, field);
-        let Some(value) = dominant_value(&counts) else {
+        let Some((value, share)) = dominant_value_with_share(&counts) else {
             continue;
         };
-        return format!("{field}={value}");
+        if share >= 0.45 {
+            parts.push(format!("{field}={value}"));
+        }
+    }
+    if !parts.is_empty() {
+        return parts.join("+");
     }
     format!("{fallback}-segment")
+}
+
+fn dominant_value_with_share(counts: &BTreeMap<String, u64>) -> Option<(String, f64)> {
+    let total = counts.values().sum::<u64>().max(1) as f64;
+    counts
+        .iter()
+        .filter(|(value, _)| value.as_str() != "unknown")
+        .max_by(|left, right| left.1.cmp(right.1).then_with(|| right.0.cmp(left.0)))
+        .map(|(value, weight)| (value.clone(), *weight as f64 / total))
 }
 
 fn dominant_value(counts: &BTreeMap<String, u64>) -> Option<String> {
@@ -3151,6 +3269,10 @@ mod tests {
                 .iter()
                 .any(|field| matches!(field.as_str(), "repeat_state" | "repeat_signal" | "action"))
         );
+        assert!(report.split_decisions.iter().all(|decision| {
+            decision.selected_score.semantic_shift > 0.0
+                && !decision.selected_score.changed_fields.is_empty()
+        }));
         assert!(
             report
                 .selected_source_fields
