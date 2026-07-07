@@ -194,39 +194,40 @@ def build_packet() -> dict[str, Any]:
     rows = [
         {
             "paper_block": "E1 recursive formation",
-            "question": "Can the profiler form recursive operation stacks without a user-supplied field chain?",
+            "question": "profiler 能否在没有用户指定 field chain 的情况下形成递归 operation stack?",
             "evidence": "Rust induction replay over one tracked AgentRewardBench slice.",
             "main_numbers": (
-                f"{overview['operations']} operations; {overview['unique_stacks']} induced stacks; "
-                f"depth histogram {hist_text(overview['stack_depth_histogram'])}; session-as-evidence view has {session['unique_stacks']} stacks."
+                f"{overview['operations']} 个 operations；{overview['unique_stacks']} 个 induced stacks；"
+                f"深度直方图 {hist_text(overview['stack_depth_histogram'])}；"
+                f"session-as-evidence view 有 {session['unique_stacks']} 个 stacks。"
             ),
-            "supported_conclusion": "Visible boundary evidence can induce ragged operation-only stacks, and session remains optional evidence.",
-            "non_claim": "Not automatic discovery of all intent boundaries.",
+            "supported_conclusion": "可见边界证据足以诱导参差递归的 operation-only stacks，session 只是可选 evidence field。",
+            "non_claim": "不能声称自动发现所有 intent boundaries。",
         },
         {
             "paper_block": "E2 localization ablation",
-            "question": "Do induced stacks work as a visible profiler view on real hidden-label tasks?",
+            "question": "induced stacks 能否作为真实 hidden-label tasks 上的可见 profiler view?",
             "evidence": "The induced view is scored on the same six R300/R320 labeled tasks as the main benchmark.",
             "main_numbers": (
-                f"{variable_tasks}/6 variable-depth tasks, {stopped_tasks}/6 material-stop tasks; "
-                f"AP {fmt(induced['median_average_precision'])} vs hand-configured {fmt(hand['median_average_precision'])}; "
-                f"work@5 {fmt(induced['median_top5_work'])} vs flat {fmt(flat['median_top5_work'])}; "
-                f"groups {fmt(induced['median_groups'])} vs fixed-session {fmt(fixed['median_groups'])}."
+                f"{variable_tasks}/6 tasks 形成 variable depth，{stopped_tasks}/6 tasks 在 material stop 停止；"
+                f"AP {fmt(induced['median_average_precision'])} vs hand-configured {fmt(hand['median_average_precision'])}；"
+                f"work@5 {fmt(induced['median_top5_work'])} vs flat {fmt(flat['median_top5_work'])}；"
+                f"groups {fmt(induced['median_groups'])} vs fixed-session {fmt(fixed['median_groups'])}。"
             ),
-            "supported_conclusion": "Induction reduces flat work and fixed-session fragmentation, but hand-configured specs remain stronger by AP.",
-            "non_claim": "Not a replacement for task-specific profile specs.",
+            "supported_conclusion": "induction 降低 flat inspection work 和 fixed-session fragmentation，但 AP 仍弱于 hand-configured specs。",
+            "non_claim": "不能把它写成 task-specific profile specs 的替代品。",
         },
         {
             "paper_block": "E3 depth actionability",
-            "question": "Is induced-stack depth a real tuning surface?",
+            "question": "induced-stack depth 是否是实际可调的 profiling surface?",
             "evidence": "The depth cap is swept from 1 to 5 while hidden labels are used only after profiling.",
             "main_numbers": (
-                f"best query-aware median AP at depth 3 ({fmt(depth3['median_average_precision'])}); "
-                f"lowest median work@5 at depth 5 ({fmt(depth5['median_top5_work'])}); "
-                f"material-split AP-best depths span {', '.join(map(str, material_best_depths))}."
+                f"query-aware median AP 在 depth 3 最高（{fmt(depth3['median_average_precision'])}）；"
+                f"median work@5 在 depth 5 最低（{fmt(depth5['median_top5_work'])}）；"
+                f"material-split AP-best depths 覆盖 {', '.join(map(str, material_best_depths))}。"
             ),
-            "supported_conclusion": "Different objectives prefer different recursive depths, so depth is a profile-configuration knob.",
-            "non_claim": "Not an automatic depth selector or analyst-productivity result.",
+            "supported_conclusion": "不同目标偏好不同递归深度，因此 depth 是 profile-configuration knob。",
+            "non_claim": "不能声称自动 depth selector 或 analyst-productivity 改善。",
         },
     ]
 
@@ -262,7 +263,7 @@ def build_packet() -> dict[str, Any]:
         },
         {
             "check": "non_claim_boundaries_present",
-            "passed": all(row["non_claim"].startswith("Not ") for row in rows),
+            "passed": all(row["non_claim"].startswith("不能") for row in rows),
             "detail": "Each table row carries an explicit non-claim.",
         },
         {
@@ -295,11 +296,11 @@ def write_table(path: Path, rows: list[dict[str, str]]) -> None:
         r"\begin{table*}[t]",
         r"  \centering",
         r"  \small",
-        r"  \caption{自动 operation-stack induction 的 claim-facing 证据。该表把 R402--R404 组织为机制、定位消融和深度调优三条证据；hidden labels 只在 profiling 后评分。}",
+        r"  \caption{自动 operation-stack induction 的 claim-facing 证据。该表把递归形成、hidden-label 定位消融和深度调优连到同一 profiling claim；hidden labels 只在 profiling 后评分。}",
         r"  \label{tab:induction-display}",
         r"  \begin{tabular}{p{0.18\textwidth}p{0.24\textwidth}p{0.29\textwidth}p{0.21\textwidth}}",
         r"    \toprule",
-        r"    证据块 & Reviewer question & 主要数字 & 支持的结论 / 边界 \\",
+        r"    证据块 & 读者问题 & 主要数字 & 支持的结论 / 边界 \\",
         r"    \midrule",
     ]
     for row in rows:
