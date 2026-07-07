@@ -75,6 +75,29 @@ agentpprof --project-root . -o agent.pb.gz
 - When changing user-facing CLI behavior, update the focused reference docs and
   examples that describe that behavior, but avoid broad README churn.
 
+## Collaboration Safety
+
+- This repository may be edited by the user and other agents at the same time.
+  Always inspect `git status --short` before editing, and treat unexpected
+  changes as someone else's work.
+- Never run destructive repository commands such as `git reset`, `git reset
+  --hard`, `git checkout -- <path>`, `git clean`, or broad restore commands
+  unless the user explicitly asks for that exact operation.
+- Do not overwrite, revert, reformat, or regenerate files that are unrelated to
+  the current task. If an output directory is partially regenerated or a command
+  is interrupted, stop and report the partial state instead of cleaning it with a
+  destructive command.
+- Do not touch the paper submodule under `docs/agentpprof-paper/` in any way
+  unless the user explicitly asks to operate on that submodule. This includes
+  editing, restoring, formatting, regenerating, committing, pushing, pulling, or
+  updating the submodule. The user or another agent may be editing it in
+  parallel.
+- The outer `main.tex` is the Chinese paper; edit it only when the user asks for
+  Chinese paper changes. Keep English-paper and Chinese-paper work separated.
+- When submodules are dirty, inspect and report their status separately. Do not
+  commit, restore, or update submodule contents as a side effect of unrelated
+  code, experiment, or documentation work.
+
 ## Architecture
 
 ```
