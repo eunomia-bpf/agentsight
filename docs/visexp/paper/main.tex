@@ -43,10 +43,12 @@ AI agent 的执行历史已经不再只是一次 prompt 或一棵 trace tree。
 本文提出一种更小的语义剖析模型，只保留 \op{} 和 \opstack{} 两个核心抽象。
 \op{} 是带字段和权重的观测。
 Prompt、tool call、process、syscall、GUI action 和 plan step 可以是 operation 记录或派生字段，session、span、task 和 trace id 则是 operation fields、交换容器或 baseline shape，不是新的 profiler 对象。
-\opstack{} 是用户从字段中选择的递归投影，mapping 和 tagging 在 stack 构造前派生字段，而不是创建第三种 profiler 对象。
-当用户不想给出固定 stack 字段链时，\toolname{} 也可以从可见 evidence、semantic shift 和 query hint 中给相邻 operation boundary 打分，递归诱导多层 operation frames，再用 operation-only stack 折叠。
+\opstack{} 是由 operation fields 形成的递归 frame 序列。
+显式 \texttt{--stack} 只是复现某个分析视图的一种方式。
+Mapping 和 tagging 在 stack 构造前派生字段，而不是创建第三种 profiler 对象。
+当固定字段链不足以表达任务边界时，\toolname{} 也可以从可见 evidence、semantic shift 和 query hint 中给相邻 operation boundary 打分，递归诱导多层 operation frames，再用 operation-only stack 折叠。
 关键点是聚合不是第三个对象，也不是固定 trace tree。
-Query time 选择的 stack 形态决定聚合结果。
+查询时选择的 stack 形态决定聚合结果。
 因此本文的新意不在单纯 query-time aggregation 或 flamegraph renderer。
 它在于把 agent operation record、递归多字段 operation-stack 投影和 hidden-label profile-group scoring 放进同一个 profiler 评估问题。
 我们在 Rust \toolname{} 中实现该模型，并用三个核心 profiling 实验和一个可重放性检查评估它。
@@ -76,9 +78,10 @@ RQ4 只说明离线证据可重放，并约束数字、数据来源选择和主�
 \section{问题}
 
 AI agent 轨迹的调试问题正在从单次调用回放变成跨任务剖析问题。
-开发者不只想知道某个 span 什么时候开始和结束，也想知道哪类任务导致最多重复点击，哪些 GUI 轨迹反复输入，哪个工具调用族对应失败，哪些安全攻击类型集中在某些操作阶段，或者一个 prompt 序列能否被折叠成 task、phase、action 和人工 subtask 等多个深度。
-如果 profiler 把 session、prompt 或 tool call 写死成核心层级，这些问题会被迫使用同一个边界。
-如果 profiler 只保留进程或函数栈，上层语义和 benchmark oracle 又会丢失。
+例如，一个 web 或 desktop agent 可能在几十个 session 中反复搜索、点击、输入和调用工具，但失败只集中在少数任务阶段或少数操作族。
+开发者要问的是哪些阶段、工具或动作族形成热点，哪些轨迹反复输入，哪些安全攻击集中在写操作附近，以及同一段 prompt/action 序列能否按 task、phase、action 或人工 subtask 折叠到不同深度。
+固定的 session、prompt 或 tool-call tree 会迫使这些问题共用一个边界。
+纯进程或函数栈又会丢失上层语义和 benchmark oracle。
 
 本文的出发点是把 agent trace 中所有可剖析对象都降到同一层。
 本文所说的语义剖析，是指用 agent operation fields 在跨 session 轨迹上形成可聚合、可排序、可评分的诊断单元。
@@ -101,12 +104,13 @@ Profiler 的核心任务不是决定唯一正确边界，而是让用户和实�
 这些字段可以来自本地 Codex/Claude session，也可以来自外部 benchmark 的标注轨迹。
 实现上，外部轨迹使用每行一个 JSON object 的 operation JSONL，并把原始任务文本、截图和长对话默认排除在提交复现包之外。
 
-\opstack{} 是从 operation fields 中选择出的有序 frame 列表。
-例如同一批 operations 可以用 \texttt{project,dataset} 查看数据来源，也可以用 \texttt{project,dataset,task,phase,op,tool,action,status} 查看动作深度，或者加入 \texttt{human\_group}、\texttt{step\_correct}、\texttt{safety} 和 \texttt{looping} 做诊断视图。
+\opstack{} 是由 operation fields 构成的递归 frame 列表。
+显式 stack spec 可以把字段投影成 frames，例如同一批 operations 可以用 \texttt{project,dataset} 查看数据来源，也可以用 \texttt{project,dataset,task,phase,op,tool,action,status} 查看动作深度，或者加入 \texttt{human\_group}、\texttt{step\_correct}、\texttt{safety} 和 \texttt{looping} 做诊断视图。
 Stack 不是 trace tree，也不是 session hierarchy。
-自动 operation-stack induction 仍然只产生 \opstack{}：\toolname{} 在当前连续 operation segment 内用可见 evidence、semantic shift、changed-field density 和 query hint 给相邻 cut 打分，要求左右 child 有足够权重和不同 dominant evidence，然后递归写入多层 operation frames。
-因此用户给的是 predicate、view 和 query hint，不是 \texttt{analysis\_task,phase,action,status} 这样的固定 stack 字段链。
-它是一个查询结果，用户可以按问题改变深度和字段。
+当显式字段链不足以表达任务边界时，自动 operation-stack induction 仍然只产生 \opstack{}：\toolname{} 在当前连续 operation segment 内用可见 evidence、semantic shift、changed-field density 和 query hint 给相邻 cut 打分，要求左右 child 有足够权重和不同 dominant evidence，然后递归写入多层 operation frames。
+因此 profile 配置给出 predicate、view 和 query hint。
+固定字段链只是一个可复现 view，而不是 profiler 必须依赖的 ontology。
+Operation stack 是一个查询结果，用户可以按问题改变深度和字段。
 
 \subsection{Mapping 和 tagging}
 
