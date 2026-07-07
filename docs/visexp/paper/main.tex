@@ -90,7 +90,7 @@ Profiler 的核心任务不是决定唯一正确边界，而是让用户和实�
 \op{} 是唯一的样本级对象。
 每个 operation 是一个带权重的字段集合，例如 \texttt{op=prompt}、\texttt{op=llm}、\texttt{op=tool}、\texttt{tool=browser}、\texttt{action=click}、\texttt{phase=navigate}、\texttt{status=failure} 或 \texttt{step\_correct=incorrect}。
 这些字段可以来自本地 Codex/Claude session，也可以来自外部 benchmark 的标注轨迹。
-实现上，外部轨迹使用每行一个 JSON object 的 operation JSONL，并把原始任务文本、截图和长对话默认排除在提交 artifact 之外。
+实现上，外部轨迹使用每行一个 JSON object 的 operation JSONL，并把原始任务文本、截图和长对话默认排除在提交复现包之外。
 
 \opstack{} 是从 operation fields 中选择出的有序 frame 列表。
 例如同一批 operations 可以用 \texttt{project,dataset} 查看数据来源，也可以用 \texttt{project,dataset,task,phase,op,tool,action,status} 查看动作深度，或者加入 \texttt{human\_group}、\texttt{step\_correct}、\texttt{safety} 和 \texttt{looping} 做诊断视图。
@@ -111,7 +111,7 @@ Mapping 不引入第三个抽象。
 它只是在 operation 上写字段，使同一个 stack specification 可以跨数据集复用。
 当前 Rust CLI 支持 inline \texttt{--op-map FIELD:LABEL=REGEX} 和文件形式 \texttt{--op-map-file}。
 \texttt{--where FIELD=REGEX} 和 \texttt{FIELD!=REGEX} 在 mapping 之后、stack 构造之前选择 operation 子集，多条 predicate 取 AND；它实现形式化模型里的 $\phi$，不是新的 profiler 对象。
-\texttt{script/operation\_map\_infer.py} 可以从已标注 operations 中生成同样格式的规则文件，并用这些规则测试 held-out 和 leave-dataset-out 泛化。
+同一规则格式可以从已标注 operations 中派生出来，再用于 held-out 和 leave-dataset-out 泛化测试。
 \texttt{--profile-spec} 把 operation files、mapping files、predicate、view、stack 和输出路径打包成 JSON 配置，便于 reviewer 复现实验；命令行参数仍可覆盖 spec 默认值。
 \texttt{--deterministic-output} 或 spec 中的 \texttt{deterministic\_output} 可以把 JSON \texttt{generated\_at} 和 pprof profile time 固定为可复现值，用于 byte-stable replay checks。
 它不改变模型本身，只是把已有 operation 和 operation-stack 查询显式记录下来。
@@ -140,12 +140,12 @@ agentpprof --operation-file ops.jsonl --view operations \\
 \end{tabular}
 \end{quote}
 
-外部数据集转换器位于 \texttt{script/agent\_trace\_datasets.py}。
-转换器只下载或流式读取所需公开文件的采样前缀。
+外部数据集进入系统前先被规范化为 operation JSONL。
+规范化过程只下载或流式读取所需公开文件的采样前缀。
 对于包含截图、长 prompt 或完整对话的数据集，默认保存 redacted rows 和 operation JSONL，不提交原始数据。
-	本地 agent session 通过 \texttt{agent-session} 解析为 \texttt{agentsight.agent-session.trace.v1} trace；\toolname{} 可以用 \texttt{--export-trace} 写出 filesystem-normalized trace，用 \texttt{--trace-file} 读回，也可以通过 \texttt{script/agent\_trace\_convert.py to-operations} 转成 operation JSONL。\texttt{script/agent\_trace\_exchange\_eval.py} 将这三步、filesystem/tool-command portability check 和 folded-output equality check 固化为一个可复现实验；该检查不声称 prompt/LLM preview 已完整脱敏。\toolname{} 还可以用 \texttt{--export-standard-trace} 写出 Chrome/Perfetto-style \texttt{traceEvents}，再用 \texttt{--standard-trace-file} 导入为普通 operations 后折叠。\texttt{script/agent\_trace\_convert.py export-standard --format chrome} 和 \texttt{import-standard --format chrome} 保留为显式中间文件脚本；\texttt{script/agent\_trace\_chrome\_exchange\_eval.py} 验证 session fixture 路径不改变 folded operation-stack 输出。Operation-file exchange regression 进一步用 tracked real labeled visible-operation JSONL 的 512-row prefix 验证 operation-file 路径：512 operations 导出为 512 个 Chrome complete events，经 \texttt{--standard-trace-file} 导入后仍得到 byte-identical 的 512-sample / 11-stack folded 输出；这仍是 exchange check，不是新的 accuracy result。
-质量评估脚本位于 \texttt{script/operation\_stack\_quality.py}，它复用 \toolname{} 的 operation mapping contract，并计算字段覆盖率、oracle V-measure 和序列相邻边界 F1。
-Stack 结构分析脚本位于 \texttt{script/operation\_stack\_analysis.py}，用于生成 flamegraph 之外的 tree、top-kind 和 transition 报告。
+	本地 agent session 通过 \texttt{agent-session} 解析为 \texttt{agentsight.agent-session.trace.v1} trace。\toolname{} 可以用 \texttt{--export-trace} 写出 filesystem-normalized trace，用 \texttt{--trace-file} 读回，也可以把 trace 转成 operation JSONL 后折叠。这个 replay path 同时检查 filesystem/tool-command portability 和 folded-output equality，但不声称 prompt/LLM preview 已完整脱敏。\toolname{} 还可以用 \texttt{--export-standard-trace} 写出 Chrome/Perfetto-style \texttt{traceEvents}，再用 \texttt{--standard-trace-file} 导入为普通 operations 后折叠。Operation-file exchange regression 进一步用 tracked real labeled visible-operation JSONL 的 512-row prefix 验证 operation-file 路径：512 operations 导出为 512 个 Chrome complete events，经 \texttt{--standard-trace-file} 导入后仍得到 byte-identical 的 512-sample / 11-stack folded 输出。这仍是 exchange check，不是新的 accuracy result。
+质量评估复用 \toolname{} 的 operation mapping contract，并计算字段覆盖率、oracle V-measure 和序列相邻边界 F1。
+同一 profile output 还可以生成 flamegraph 之外的 tree、top-kind 和 transition 报告。
 
 这个实现刻意保留简单接口。
 它不像 jq 那样完整表达 JSON 查询语言，但它已经把 profiler 的关键自由度暴露为 flags 和可提交配置：数据源由 \texttt{--trace-file} 或 \texttt{--operation-file} 选择，权重由 \texttt{--view} 选择，查询子集由 \texttt{--where} 选择，字段派生由 \texttt{--op-map} 选择，显式递归边界由 \texttt{--stack} 选择，自动 operation-stack 边界由 \texttt{--induce-operation-stack} 和 query terms 诱导，JSON group 排序由 \texttt{--rank-rule}、\texttt{--rank-op-rule} 和 \texttt{--rank-mode} 选择，复现实验由 \texttt{--profile-spec} 固化。
@@ -162,7 +162,7 @@ Profile-spec replay、input-source replay 和 deterministic output 归入 E4。
 同一批 76 个 tracked specs 覆盖 view specs、rank-feature specs 和 robustness specs；Rust \texttt{agentpprof --profile-spec} 重复运行两次后 semantic profile hash 全部稳定，默认 raw-byte hash 只有 4/76 稳定，因为 JSON profile 包含生成时间戳。
 启用 \texttt{--deterministic-output} 后 raw-byte hash 达到 76/76。
 同一个 E4 block 进一步验证 profile spec 可以 replay \texttt{session\_files}、\texttt{trace\_files}、\texttt{standard\_trace\_files}、regex \texttt{tag\_rules}、\texttt{where\_rules}、rank rules、stack override 和 \texttt{include\_standard\_trace\_args}；这些输入源最后仍归一成 operations 并由 operation stack 折叠。
-这关闭的是 artifact byte-stability 缺口，不是新的 accuracy benchmark、live overhead benchmark 或第五个主实验。
+这关闭的是输出 byte-stability 缺口，不是新的 accuracy benchmark、live overhead benchmark 或第五个主实验。
 因此 prompt、session、toolcall、process、syscall、plan 和 subagent 都可以在同一套 mechanism 中出现，而不是成为互不兼容的 object model。
 
 \section{实验方法}
@@ -604,9 +604,9 @@ Rust profile-spec path 现在可以携带 \texttt{session\_files}、\texttt{trac
 \end{table}
 
 剩余一致性检查不是新的 empirical evidence。
-它们检查表格生成、claim wording、source paths、non-claims 和 operation/operation-stack boundary 是否与 tracked outputs 对齐。
+它们检查 claim wording、source paths、non-claims 和 operation/operation-stack boundary 是否与 tracked outputs 对齐。
 这些检查方便 reviewer 审计论文和 replay outputs 的一致性，但它们不增加 localization、actionability 或 overhead claim。
-表格生成器、visualization portfolios 和 headline selectors 可以支持 E1--E4，但不会形成额外主实验。
+辅助 displays 可以支持 E1--E4，但不会形成额外主实验。
 
 \section{哪些数据集最适合}
 
