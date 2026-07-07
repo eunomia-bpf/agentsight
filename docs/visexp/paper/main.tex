@@ -367,14 +367,14 @@ Boundary backend 提供更强但仍 scoped 的 field derivation 证据。
 它在 held-out pairs 上达到 precision 0.7400、recall 0.8102、F1 0.7735，高于 phase-change baseline 0.2919、action-change baseline 0.5142 和 conservative \texttt{group\_pattern} reference 0.5810；预测字段写回 \texttt{learned\_group\_pattern} 和 \texttt{learned\_group\_position} 后，Rust \toolname{} 在 1,132 个 held-out operations 上折叠得到 74 个 stacks。
 这支持 supervised boundary fields 可以作为普通 operation fields 被 folding 使用，不支持新增第三个 profiler object。
 
-Field-derivation audit 同时保留反例。
+Field-derivation analysis 同时保留反例。
 Mapping 提高 compression，但把 action-to-phase V-measure 从 0.9343 降到 0.7416，说明它是聚合机制而不是细粒度边界 oracle。
 跨标签家族的 boundary suitability check 中，learned boundary backends 在 4/5 rows 上胜过 best simple baseline；可训练 rows 的 held-out F1 分别是 OSWorld-Human 0.6916、AgentNet step-correct 0.3197、AgentNet step-redundant 0.3361 和 AgentRewardBench looping 0.7833。
 AgentNet 两个 quality-state boundaries 优于 always-boundary baselines（0.2155 和 0.2645），但仍有 precision 和 calibration caveat；AgentRewardBench looping 虽然 learned F1 达到 0.7833，却被 \texttt{repeat\_signal\_change} baseline 的 1.0 F1 完全解释。
 因此 E1 的结论是：mapping、tagging/rank features、profile specs 和 supervised boundary backends 都只是写入 operation fields，然后由 operation stack 折叠；它们支持 first-class field derivation 和 suitability checks，不支持 automatic intent boundary discovery。
-Suitability audit 把这个扩展策略写成更明确的配置决策。
-Deterministic mapping 适合 compression，但会粗化 action boundary；rank features 需要 ablation guard，因为真实任务里既有 critical feature rows，也有 misleading feature rows；boundary-derived fields 必须先过 family-specific suitability。
-当前 boundary-family 决策包含 1 个 accept、3 个 caution 和 1 个 reject，因此 field derivation 是 guarded profile-configuration loop，不是 universal automatic selector。
+Suitability analysis 把这个扩展策略写成更明确的配置决策。
+Deterministic mapping 适合 compression，但会粗化 action boundary；rank features 需要 ablation evidence，因为真实任务里既有 critical feature rows，也有 misleading feature rows；boundary-derived fields 必须先过 family-specific suitability。
+当前 boundary-family 决策包含 1 个 accept、3 个 caution 和 1 个 reject，因此 field derivation 是有条件的 profile-configuration loop，不是 universal automatic selector。
 
 \paragraph{Human-boundary oracle。}
 
@@ -640,7 +640,7 @@ LangSmith、Langfuse、Phoenix 和 AgentOps 等系统进一步把 LLM call、too
 因此本文把 trace/span/session 明确当作 exchange container 或 baseline shape，而不是加成第三个 profiler 抽象。
 E2 实际评估的是 fixed-session drilldown 这个 trace-tree-shaped baseline；真实 OpenTelemetry/OpenInference/Phoenix span-tree import 仍是后续互操作 baseline，不是当前已完成结果。
 本文关注跨轨迹 semantic profiling，把异构标注轨迹或本地 agent 历史统一为 operations，并允许用户选择 stack 深度、mappings、tagging 和 ranker。
-这些 closest systems 已进入 novelty map 和 baseline guard。
+因此本文把这些系统作为同问题 baseline threat，而不是声称替代现有 observability products。
 
 \textbf{Agent failure 和 span localization。}
 2026 年的 AgentRx、TELBench/DRIFT、Holistic Evaluation and Failure Diagnosis 和 AgentAtlas 是最接近的同问题威胁~[23--26]。
@@ -661,7 +661,7 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld/OSWorld-Human、OpenCUA/AgentNet、SA
 因此本文的新意不是“第一个 agent observability 系统”、不是“第一个 agent trajectory benchmark”、也不是“第一个 folded-stack 可视化”。
 当前可 defend 的 scoped novelty 是：只用 operation 和 operation stack 两个 profiler 抽象，把 trace/session/span 作为输入容器或 baseline，在真实公开标注轨迹上把 profile groups 当成 ranking/localization outputs，并用 hidden labels 计算 accuracy、work、fragmentation 和 actionability。
 更具体地说，新意不是 query-time aggregation 本身，而是把 agent-operation record、recursive multi-field stack shape 和 hidden-label localization benchmark 绑在一起：同一批 agent operations 因 stack shape 不同形成不同的可定位、可排序、可检查 aggregation units。
-这不是穷尽式 2026 全量综述；它是围绕当前 paper claim 的 closest-threat audit。
+这不是穷尽式 2026 全量综述；它只界定当前 claim 的最近同问题威胁和已评估边界。
 
 \section{局限}
 
