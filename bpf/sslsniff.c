@@ -22,6 +22,7 @@
 #include "sslsniff.skel.h"
 #include "sslsniff.h"
 #include "container_info.h"
+#include "codex_offsets.h"
 #include "jsonl.h"
 
 #define INVALID_UID -1
@@ -155,7 +156,11 @@ struct boringssl_offsets {
 	size_t ssl_write;
 	size_t ssl_read;
 	size_t ssl_do_handshake;
+	bool write_is_ex;
+	bool read_is_ex;
 	bool found;
+	const char *source;
+	const char *version;
 };
 
 static size_t find_pattern(const unsigned char *data, size_t data_len,
@@ -300,6 +305,9 @@ static struct boringssl_offsets find_boringssl_offsets(const char *binary_path) 
 	}
 
 	result.found = true;
+	result.write_is_ex = false;
+	result.read_is_ex = false;
+	result.source = "BoringSSL byte-pattern";
 	if (verbose) {
 		fprintf(stderr, "BoringSSL detected in %s:\n", binary_path);
 		fprintf(stderr, "  SSL_do_handshake offset: 0x%lx\n", result.ssl_do_handshake);
@@ -422,12 +430,29 @@ int attach_nss(struct sslsniff_bpf *skel, const char *lib) {
 
 int attach_openssl_by_offset(struct sslsniff_bpf *skel, const char *lib,
 							 struct boringssl_offsets *offsets) {
-	ATTACH_UPROBE_OFFSET_CHECKED(skel, lib, offsets->ssl_write, probe_SSL_rw_enter);
-	ATTACH_URETPROBE_OFFSET_CHECKED(skel, lib, offsets->ssl_write, probe_SSL_write_exit);
-	ATTACH_UPROBE_OFFSET_CHECKED(skel, lib, offsets->ssl_read, probe_SSL_rw_enter);
-	ATTACH_URETPROBE_OFFSET_CHECKED(skel, lib, offsets->ssl_read, probe_SSL_read_exit);
+	if (offsets->write_is_ex) {
+		ATTACH_UPROBE_OFFSET_CHECKED(skel, lib, offsets->ssl_write,
+									 probe_SSL_write_ex_enter);
+		ATTACH_URETPROBE_OFFSET_CHECKED(skel, lib, offsets->ssl_write,
+										probe_SSL_write_ex_exit);
+	} else {
+		ATTACH_UPROBE_OFFSET_CHECKED(skel, lib, offsets->ssl_write,
+									 probe_SSL_rw_enter);
+		ATTACH_URETPROBE_OFFSET_CHECKED(skel, lib, offsets->ssl_write,
+										probe_SSL_write_exit);
+	}
 
-	/* BoringSSL does not have SSL_write_ex/SSL_read_ex, skip those */
+	if (offsets->read_is_ex) {
+		ATTACH_UPROBE_OFFSET_CHECKED(skel, lib, offsets->ssl_read,
+									 probe_SSL_read_ex_enter);
+		ATTACH_URETPROBE_OFFSET_CHECKED(skel, lib, offsets->ssl_read,
+										probe_SSL_read_ex_exit);
+	} else {
+		ATTACH_UPROBE_OFFSET_CHECKED(skel, lib, offsets->ssl_read,
+									 probe_SSL_rw_enter);
+		ATTACH_URETPROBE_OFFSET_CHECKED(skel, lib, offsets->ssl_read,
+										probe_SSL_read_exit);
+	}
 
 	if (env.handshake) {
 		ATTACH_UPROBE_OFFSET_CHECKED(skel, lib, offsets->ssl_do_handshake,
@@ -688,13 +713,40 @@ int main(int argc, char **argv) {
 			warn("Failed to probe SSL_write in %s: libbpf error %ld\n",
 				 env.extra_lib, test_err);
 		} else {
-			// Symbol not found - try BoringSSL pattern detection
+			// Symbol not found - try the Codex release table, then generic
+			// BoringSSL pattern detection for other stripped static clients.
 			if (verbose)
-				fprintf(stderr, "Symbols not found, trying BoringSSL pattern detection...\n");
-			struct boringssl_offsets offsets = find_boringssl_offsets(env.extra_lib);
+				fprintf(stderr, "Symbols not found, trying Codex offset table...\n");
+			struct codex_ssl_offsets codex_offsets;
+			struct boringssl_offsets offsets = { .found = false };
+			if (codex_find_ssl_offsets(env.extra_lib, &codex_offsets)) {
+				offsets.ssl_write = codex_offsets.ssl_write;
+				offsets.ssl_read = codex_offsets.ssl_read;
+				offsets.ssl_do_handshake = codex_offsets.ssl_do_handshake;
+				offsets.write_is_ex = codex_offsets.write_is_ex;
+				offsets.read_is_ex = codex_offsets.read_is_ex;
+				offsets.found = true;
+				offsets.source = "Codex offset table";
+				offsets.version = codex_offsets.version;
+			}
+			if (!offsets.found) {
+				if (verbose)
+					fprintf(stderr, "Codex offset table missed, trying BoringSSL pattern detection...\n");
+				offsets = find_boringssl_offsets(env.extra_lib);
+			}
 			if (offsets.found) {
-				fprintf(stderr, "BoringSSL detected! Attaching by offset...\n");
+				if (offsets.version) {
+					fprintf(stderr, "%s matched %s in %s. Attaching by offset...\n",
+							offsets.source, offsets.version, env.extra_lib);
+				} else {
+					fprintf(stderr, "%s detected in %s. Attaching by offset...\n",
+							offsets.source, env.extra_lib);
+				}
 				err = attach_openssl_by_offset(obj, env.extra_lib, &offsets);
+			} else if (codex_binary_has_tls_markers(env.extra_lib)) {
+				warn("Failed to attach to %s: this looks like a stripped Codex/aws-lc "
+					 "binary, but its release fingerprint is not in the Codex offset table\n",
+					 env.extra_lib);
 			} else {
 				warn("Failed to attach to %s: no SSL symbols or BoringSSL patterns found\n",
 					 env.extra_lib);
