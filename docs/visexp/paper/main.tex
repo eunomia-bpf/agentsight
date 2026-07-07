@@ -363,6 +363,15 @@ Flat/mapped stack 为 103 个 unique stacks，而固定 demo/session stack 为 1
 这组结果支持的是可插拔 projection design，即不同任务可以选择不同 operation-stack axes。
 它不验证自由文本 tagger 的准确率，也不说明 prompt 或 session 应该成为新的 profiler 抽象。
 
+同一批本地 session 还说明权重 view 也必须保持可配置。
+Prompt-duration view 重构了 2,858 个 prompt spans，并覆盖 183,714/183,714 个 system-effect observations。
+Duration-weighted top-10 prompt tags 与 effect-count top-10 只重合 7/10，二者 Spearman rank correlation 为 0.623。
+\texttt{network} prompt tag 在 duration view 中排第 8，占 2.837\%，但在 effect-count view 中排第 93，只占 0.04\%。
+这说明 \texttt{--view} 不只是渲染选项。
+它决定 profiler 关注 wall-clock prompt interval、system-effect count、token、file 还是 network 等权重。
+这个 duration baseline 仍只是 prompt interval reconstruction，可能包含 idle 或 user-wait time。
+因此它支持 view selection 是 profile 配置的一部分，不支持 true tool/LLM latency、human utility 或取代 effect-count profiling。
+
 Profile spec 把这个 query 自由度变成可复现实验配置。
 同一个 AgentNet spec 引用相同 operation JSONL 和 op-map 文件，默认产生 608 个 diagnostic stacks。
 命令行只覆盖 \texttt{--stack} 和输出路径后，样本数保持 16,741 不变，unique stacks 降到 83。
