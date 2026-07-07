@@ -9,9 +9,7 @@ use crate::analyzers::{
     SSEProcessor, SSLFilter, TimestampNormalizer,
 };
 use crate::binary_extractor::BinaryExtractor;
-use crate::binary_resolver::{
-    binary_embeds_ssl, resolve_binary_path, resolve_container_binary_arg,
-};
+use crate::binary_resolver::{resolve_binary_path_for_ssl, resolve_container_binary_arg};
 use crate::output::{
     print_event_json, print_trace_container_binary_resolved, print_trace_header,
     print_trace_shutdown, print_trace_ssl_binary_discovered, print_trace_start,
@@ -342,8 +340,7 @@ pub(crate) async fn run_trace(
             .comm
             .as_deref()
             .filter(|c| !c.contains(','))
-            .and_then(|c| resolve_binary_path(c).ok())
-            .filter(|p| binary_embeds_ssl(p));
+            .and_then(|c| resolve_binary_path_for_ssl(c).ok().flatten());
         if let Some(p) = resolved {
             print_trace_ssl_binary_discovered(cfg.comm.as_deref().unwrap_or(""), &p);
             cfg.binary_path = Some(p);
@@ -494,8 +491,7 @@ pub(crate) async fn run_trace_silent_until_cancel(
             .comm
             .as_deref()
             .filter(|c| !c.contains(','))
-            .and_then(|c| resolve_binary_path(c).ok())
-            .filter(|p| binary_embeds_ssl(p));
+            .and_then(|c| resolve_binary_path_for_ssl(c).ok().flatten());
         if let Some(p) = resolved {
             cfg.binary_path = Some(p);
         }

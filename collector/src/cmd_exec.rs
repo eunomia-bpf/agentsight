@@ -5,7 +5,7 @@ use futures::stream::StreamExt;
 
 use crate::analyzers::{print_global_http_filter_metrics, print_global_ssl_filter_metrics};
 use crate::binary_extractor::BinaryExtractor;
-use crate::binary_resolver::{binary_embeds_ssl, resolve_binary_path};
+use crate::binary_resolver::{resolve_binary_path, resolve_binary_path_for_ssl};
 use crate::cli_db::load_agentsight_view;
 use crate::cmd_trace::{
     TraceConfig, build_trace_agent_with_view, drain_stream_for, prepare_process_seeds,
@@ -103,23 +103,28 @@ pub(crate) async fn run_exec(
 
     print_record_header();
 
-    let binary_path = match binary_path_override {
+    let ssl_binary_path = match binary_path_override {
         Some(p) => {
             print_record_provided_binary_path(p);
-            p.to_string()
+            Some(p.to_string())
         }
         None => {
-            let p = resolve_binary_path(program).map_err(|e| {
-                RunnerError::from(format!("failed to resolve '{}': {}", program, e))
-            })?;
-            print_record_auto_binary_path(&p);
-            p
+            match resolve_binary_path_for_ssl(program)
+                .map_err(|e| RunnerError::from(format!("failed to resolve '{}': {}", program, e)))?
+            {
+                Some(p) => {
+                    print_record_auto_binary_path(&p);
+                    Some(p)
+                }
+                None => {
+                    let p = resolve_binary_path(program).map_err(|e| {
+                        RunnerError::from(format!("failed to resolve '{}': {}", program, e))
+                    })?;
+                    print_record_auto_binary_path(&p);
+                    None
+                }
+            }
         }
-    };
-    let ssl_binary_path = if binary_path_override.is_some() || binary_embeds_ssl(&binary_path) {
-        Some(binary_path)
-    } else {
-        None
     };
 
     // When not running as root, warm the sudo credential cache so the

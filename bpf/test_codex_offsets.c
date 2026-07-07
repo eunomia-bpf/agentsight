@@ -91,12 +91,58 @@ static void test_nonmatching_binary_misses_table(void)
 	free(path);
 }
 
+static void test_codex_01425_table_entry(void)
+{
+	const struct codex_offset_entry *entry = &codex_offset_table[0];
+
+	check(strcmp(entry->version, "0.142.5") == 0,
+	      "Codex 0.142.5 table entry is first");
+	check(entry->file_size == 285929520ULL,
+	      "Codex 0.142.5 table entry records file size");
+	check(entry->ssl_write == 218231264ULL,
+	      "Codex 0.142.5 table entry records SSL_write_ex offset");
+	check(entry->ssl_read == 218230672ULL,
+	      "Codex 0.142.5 table entry records SSL_read_ex offset");
+	check(entry->ssl_do_handshake == 218228992ULL,
+	      "Codex 0.142.5 table entry records SSL_do_handshake offset");
+	check(entry->write_is_ex && entry->read_is_ex,
+	      "Codex 0.142.5 table entry uses *_ex uprobes");
+	check(entry->head_sha256[0] == 0xf0 && entry->head_sha256[31] == 0x5f,
+	      "Codex 0.142.5 table entry records head SHA-256");
+}
+
+static void test_codex_01425_fixture_if_available(void)
+{
+	const char *path = getenv("AGENTSIGHT_CODEX_01425_BIN");
+	struct codex_ssl_offsets offsets;
+
+	if (!path || !path[0]) {
+		printf("[SKIP] AGENTSIGHT_CODEX_01425_BIN not set\n");
+		return;
+	}
+
+	check(codex_find_ssl_offsets(path, &offsets),
+	      "Codex 0.142.5 fixture hits offset table");
+	check(strcmp(offsets.version, "0.142.5") == 0,
+	      "Codex 0.142.5 fixture reports version");
+	check(offsets.ssl_write == 218231264ULL,
+	      "Codex 0.142.5 fixture reports SSL_write_ex offset");
+	check(offsets.ssl_read == 218230672ULL,
+	      "Codex 0.142.5 fixture reports SSL_read_ex offset");
+	check(offsets.ssl_do_handshake == 218228992ULL,
+	      "Codex 0.142.5 fixture reports SSL_do_handshake offset");
+	check(offsets.write_is_ex && offsets.read_is_ex,
+	      "Codex 0.142.5 fixture reports *_ex uprobes");
+}
+
 int main(void)
 {
 	printf("===== Codex offset tests =====\n");
 	test_sha256_abc();
 	test_marker_detection();
 	test_nonmatching_binary_misses_table();
+	test_codex_01425_table_entry();
+	test_codex_01425_fixture_if_available();
 	printf("Tests passed: %d\n", tests_run - tests_failed);
 	printf("Tests failed: %d\n", tests_failed);
 	return tests_failed == 0 ? 0 : 1;

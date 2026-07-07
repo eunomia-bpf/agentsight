@@ -6,6 +6,7 @@
 //! Three entry points are used by the CLI handlers in `main.rs`:
 //!   - [`resolve_binary_path`] turns a command name/path into the underlying ELF
 //!     (PATH search, symlink canonicalization, shebang interpreter resolution).
+//!   - [`resolve_binary_path_for_ssl`] finds the concrete static TLS target.
 //!   - [`binary_embeds_ssl`] detects statically-linked TLS (Node.js/OpenClaw).
 //!   - [`parse_container_ref`] + [`resolve_container_binary_path`] map a
 //!     `docker://<container>` reference to an explicit host SSL attach target.
@@ -25,6 +26,30 @@ pub(crate) fn resolve_binary_path(command: &str) -> Result<String, String> {
     resolve_binary_path_inner(command, 0)
 }
 
+/// Resolve a command to the concrete ELF path sslsniff should attach to, when
+/// one is needed for statically-linked TLS.
+///
+/// Codex's npm launcher is a Node.js script, but the network client runs in the
+/// platform-native `@openai/codex-linux-*` binary. Prefer that native binary
+/// before following the launcher's shebang to `node`; otherwise `record -- codex`
+/// attaches to the wrapper and misses Codex's TLS traffic.
+pub(crate) fn resolve_binary_path_for_ssl(command: &str) -> Result<Option<String>, String> {
+    let launcher = resolve_command_path(command)?;
+    if is_openai_codex_native_binary(&launcher) {
+        return Ok(Some(canonicalize_path(&launcher)));
+    }
+    if let Some(path) = codex_native_binary_from_launcher(&launcher) {
+        return Ok(Some(path));
+    }
+
+    let resolved = resolve_binary_path(command)?;
+    if binary_embeds_ssl(&resolved) {
+        Ok(Some(resolved))
+    } else {
+        Ok(None)
+    }
+}
+
 fn resolve_binary_path_inner(command: &str, depth: u8) -> Result<String, String> {
     if depth > 5 {
         return Err(format!(
@@ -33,18 +58,9 @@ fn resolve_binary_path_inner(command: &str, depth: u8) -> Result<String, String>
         ));
     }
 
-    // 1. Locate the file: an explicit path is used as-is, otherwise search $PATH.
-    let candidate = if command.contains('/') {
-        std::path::PathBuf::from(command)
-    } else {
-        find_in_path(command).ok_or_else(|| format!("'{}' not found in $PATH", command))?
-    };
+    let resolved = resolve_command_path(command)?;
 
-    // 2. Follow symlinks to the real file (e.g. claude -> versions/2.1.150).
-    let resolved = std::fs::canonicalize(&candidate)
-        .map_err(|e| format!("cannot resolve '{}': {}", candidate.display(), e))?;
-
-    // 3. Inspect the file header: ELF magic vs. shebang.
+    // Inspect the file header: ELF magic vs. shebang.
     let mut header = [0u8; 256];
     let n = {
         use std::io::Read;
@@ -85,6 +101,18 @@ fn resolve_binary_path_inner(command: &str, depth: u8) -> Result<String, String>
         "'{}' is neither an ELF binary nor a shebang script; specify --binary-path explicitly",
         resolved.display()
     ))
+}
+
+/// Locate a command and follow symlinks without chasing shebang interpreters.
+fn resolve_command_path(command: &str) -> Result<std::path::PathBuf, String> {
+    let candidate = if command.contains('/') {
+        std::path::PathBuf::from(command)
+    } else {
+        find_in_path(command).ok_or_else(|| format!("'{}' not found in $PATH", command))?
+    };
+
+    std::fs::canonicalize(&candidate)
+        .map_err(|e| format!("cannot resolve '{}': {}", candidate.display(), e))
 }
 
 /// Minimal `which`: find an executable file named `cmd` in the `$PATH` dirs.
@@ -191,6 +219,94 @@ pub(crate) fn binary_embeds_ssl(path: &str) -> bool {
         }
     }
     false
+}
+
+fn codex_native_binary_from_launcher(launcher: &std::path::Path) -> Option<String> {
+    let package_root = openai_codex_package_root(launcher)?;
+    const CANDIDATES: &[(&str, &str)] = &[
+        ("codex-linux-x64", "x86_64-unknown-linux-musl"),
+        ("codex-linux-arm64", "aarch64-unknown-linux-musl"),
+    ];
+
+    for (package, target) in CANDIDATES {
+        let path = package_root
+            .join("node_modules")
+            .join("@openai")
+            .join(package)
+            .join("vendor")
+            .join(target)
+            .join("bin")
+            .join("codex");
+        if is_elf_file(&path) {
+            return Some(canonicalize_path(&path));
+        }
+    }
+    None
+}
+
+fn is_openai_codex_native_binary(path: &std::path::Path) -> bool {
+    if !is_elf_file(path) || !file_name_eq(path, "codex") {
+        return false;
+    }
+
+    let Some(bin_dir) = path.parent().filter(|p| file_name_eq(p, "bin")) else {
+        return false;
+    };
+    let Some(target_dir) = bin_dir.parent().filter(|p| {
+        file_name_eq(p, "x86_64-unknown-linux-musl")
+            || file_name_eq(p, "aarch64-unknown-linux-musl")
+    }) else {
+        return false;
+    };
+    let Some(vendor_dir) = target_dir.parent().filter(|p| file_name_eq(p, "vendor")) else {
+        return false;
+    };
+    let Some(package_dir) = vendor_dir
+        .parent()
+        .filter(|p| file_name_eq(p, "codex-linux-x64") || file_name_eq(p, "codex-linux-arm64"))
+    else {
+        return false;
+    };
+    package_dir
+        .parent()
+        .is_some_and(|parent| file_name_eq(parent, "@openai"))
+}
+
+fn openai_codex_package_root(path: &std::path::Path) -> Option<std::path::PathBuf> {
+    for ancestor in path.ancestors() {
+        if file_name_eq(ancestor, "codex")
+            && ancestor
+                .parent()
+                .is_some_and(|parent| file_name_eq(parent, "@openai"))
+            && ancestor
+                .parent()
+                .and_then(|parent| parent.parent())
+                .is_some_and(|parent| file_name_eq(parent, "node_modules"))
+        {
+            return Some(ancestor.to_path_buf());
+        }
+    }
+    None
+}
+
+fn file_name_eq(path: &std::path::Path, expected: &str) -> bool {
+    path.file_name().and_then(|name| name.to_str()) == Some(expected)
+}
+
+fn is_elf_file(path: &std::path::Path) -> bool {
+    use std::io::Read;
+    let mut header = [0u8; 4];
+    let mut f = match std::fs::File::open(path) {
+        Ok(f) => f,
+        Err(_) => return false,
+    };
+    f.read_exact(&mut header).is_ok() && header == *b"\x7fELF"
+}
+
+fn canonicalize_path(path: &std::path::Path) -> String {
+    std::fs::canonicalize(path)
+        .map(|p| p.to_string_lossy().into_owned())
+        .unwrap_or_else(|_| path.to_string_lossy().into_owned())
 }
 
 /// Strip a `docker://<ref>` or `docker:<ref>` scheme from a `--binary-path`
@@ -320,7 +436,10 @@ fn canonicalize_attach_path(path: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{binary_embeds_ssl, canonicalize_attach_path, parse_container_ref};
+    use super::{
+        binary_embeds_ssl, canonicalize_attach_path, parse_container_ref,
+        resolve_binary_path_for_ssl,
+    };
 
     #[test]
     fn parses_docker_double_slash_scheme() {
@@ -375,6 +494,48 @@ mod tests {
         std::fs::write(&path, b"prefix BoringSSLError suffix").unwrap();
 
         assert!(binary_embeds_ssl(path.to_str().unwrap()));
+    }
+
+    #[test]
+    fn resolves_codex_npm_launcher_to_native_ssl_binary() {
+        let dir = tempfile::tempdir().unwrap();
+        let package_root = dir.path().join("node_modules/@openai/codex");
+        let launcher = package_root.join("bin/codex.js");
+        let native = package_root.join(
+            "node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/bin/codex",
+        );
+        std::fs::create_dir_all(launcher.parent().unwrap()).unwrap();
+        std::fs::create_dir_all(native.parent().unwrap()).unwrap();
+        std::fs::write(&launcher, b"#!/usr/bin/env node\n").unwrap();
+        std::fs::write(&native, b"\x7fELFnative codex binary").unwrap();
+
+        let resolved = resolve_binary_path_for_ssl(launcher.to_str().unwrap()).unwrap();
+        let expected = native
+            .canonicalize()
+            .unwrap()
+            .to_string_lossy()
+            .into_owned();
+
+        assert_eq!(resolved.as_deref(), Some(expected.as_str()));
+    }
+
+    #[test]
+    fn resolves_codex_native_package_binary_for_ssl() {
+        let dir = tempfile::tempdir().unwrap();
+        let native = dir.path().join(
+            "node_modules/@openai/codex-linux-x64/vendor/x86_64-unknown-linux-musl/bin/codex",
+        );
+        std::fs::create_dir_all(native.parent().unwrap()).unwrap();
+        std::fs::write(&native, b"\x7fELFnative codex binary").unwrap();
+
+        let resolved = resolve_binary_path_for_ssl(native.to_str().unwrap()).unwrap();
+        let expected = native
+            .canonicalize()
+            .unwrap()
+            .to_string_lossy()
+            .into_owned();
+
+        assert_eq!(resolved.as_deref(), Some(expected.as_str()));
     }
 
     #[test]
