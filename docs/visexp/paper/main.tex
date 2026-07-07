@@ -219,7 +219,7 @@ Label-drilldown 是 oracle-aware upper-bound style view，它把 hidden label �
     \toprule
     数据源 & 原生标注 & 转换方式 & 主要用途 \\
     \midrule
-    WebLINX, Mind2Web, AgentTrek, WebShop & web action、demo/task、reward 或 action history & HF Dataset Viewer 或 HF repo shard & web navigation 和 shopping trajectories 的跨源 smoke。 \\
+    WebLINX, Mind2Web, AgentTrek, WebShop & web action、demo/task、reward 或 action history & HF Dataset Viewer 或 HF repo shard & web navigation 和 shopping trajectories 的跨源覆盖。 \\
     API-Bank, ToolBench, tau-bench & API/tool call、solution path、多轮 user/assistant/tool messages、outcome & HF rows 或 repo JSONL & tool/API/dialogue phases 和 user-agent-tool operation 形态。 \\
     SWE-agent & issue trajectory、command action、success target & HF Dataset Viewer & software-agent command 轨迹。 \\
     AndroidControl, GUI-Odyssey & mobile/cross-app step action 与 instruction & public/HF samples & 移动 GUI action depth 和跨 app scale。 \\
@@ -227,7 +227,7 @@ Label-drilldown 是 oracle-aware upper-bound style view，它把 hidden label �
     SATraj-OS & desktop action、success、safety、reward、attack type & HF safety config & 桌面安全和 attack-type operation fields。 \\
     OSWorld-Human & human single-action 和 grouped-action 轨迹 & GitHub JSON files & 人工 grouped-action 边界 oracle。 \\
     AgentNet & human desktop PyAutoGUI、task outcome、step correctness、redundancy & HF repo JSONL streaming & 最大 human desktop step-quality oracle。 \\
-    ScaleCUA & GUI navigation action、previous-operation context、gold action & HF annotation JSONL streaming & 补充多步 GUI history-depth smoke。 \\
+    ScaleCUA & GUI navigation action、previous-operation context、gold action & HF annotation JSONL streaming & 补充多步 GUI history-depth 覆盖。 \\
     \bottomrule
   \end{tabular}
 \end{table*}
@@ -253,7 +253,7 @@ RQ4 检查 profile-spec 可复现性、离线成本和 claim scope。
     \toprule
     RQ / paper block & Workload / oracle & Main evidence & Scoped conclusion \\
     \midrule
-    RQ1/E1: generality, recursive folding, and field derivation & 15 public labeled trace families / 47,590 operations, plus local-session and standard-trace exchange fixtures. OSWorld-Human and AgentNet provide the strongest boundary and step-quality oracles. & Core sources contain 42,590 operations; ScaleCUA brings the smoke set to 47,590; the same operations fold from 9 dataset stacks to 57 phase, 226 semantic, 455 action, or 3,757 fixed-session stacks. AgentNet profile-spec override changes 608 stacks to 83 without changing input operations. Automatic operation-stack induction produces variable-depth stacks on 4/6 hidden-label tasks and stops on 2/6 when visible evidence has no material split. Held-out mapping improves compression from 14.049 to 19.091; OSWorld-Human learned boundary F1 reaches 0.7735; boundary backends beat the best simple baseline on 4/5 rows. & Heterogeneous traces enter one operation layer, and stack depth is a recursive query over fields. Mapping, tagging, and boundary backends derive fields before folding; they do not add prompt/session/tool/safety-specific profiler objects or automatic intent boundary discovery. \\
+    RQ1/E1: generality, recursive folding, and field derivation & 15 public labeled trace families / 47,590 operations, plus local-session and standard-trace exchange fixtures. OSWorld-Human and AgentNet provide the strongest boundary and step-quality oracles. & Core sources contain 42,590 operations; ScaleCUA brings the coverage sample to 47,590; the same operations fold from 9 dataset stacks to 57 phase, 226 semantic, 455 action, or 3,757 fixed-session stacks. AgentNet profile-spec override changes 608 stacks to 83 without changing input operations. Automatic operation-stack induction produces variable-depth stacks on 4/6 hidden-label tasks and stops on 2/6 when visible evidence has no material split. Held-out mapping improves compression from 14.049 to 19.091; OSWorld-Human learned boundary F1 reaches 0.7735; boundary backends beat the best simple baseline on 4/5 rows. & Heterogeneous traces enter one operation layer, and stack depth is a recursive query over fields. Mapping, tagging, and boundary backends derive fields before folding; they do not add prompt/session/tool/safety-specific profiler objects or automatic intent boundary discovery. \\
     RQ2/E2: hidden-label localization and ranking & Six failure, safety, quality, and boundary tasks over AgentRewardBench, SATraj-OS, AgentNet, and OSWorld-Human; 34,539 operations / 3,699 positives. & The benchmark scores 144 view/ranker policies. Query-aware operation-stack top-5 groups inspect median 0.0937 work versus 1.0 for flat, improve top-5 recall over fixed-session on 5/6 tasks, and reduce median groups from 285.0 to 157.5. Work-budget、fragmentation、fixed-recall、sequence-scope、oracle-depth、uncertainty、negative-control 和 multi-metric analyses test robustness rather than define separate experiments. & Operation-stack profiling is faithful to dataset-provided hidden labels under this benchmark and gives a better inspection-work/median-fragmentation Pareto point than flat or fixed-session alone. It is not a universal detector, a single best hierarchy, or a work-dominant replacement for drilldown views. \\
     RQ3/E3: mechanism and actionability & The same six labeled tasks, plus held-out OSWorld-Human boundary-backend operations. & Operation-level rank features and ablations expose useful and misleading fields; profile-spec patches improve 5/6 tasks with median AP delta 0.0376 and lift delta 0.5750. Induced depth sweep finds best query-aware median AP at depth 3 and lowest median top-5 work at depth 5. Learned-boundary fields improve OSWorld-Human AP to 0.2583 and reduce groups to 74, but increase top-5 work and first-positive work. & The profiler produces profile-configuration actionability: which operation fields, operation-stack depths, mappings, rankers, lenses, and drilldown views to tune. It keeps automatic action selection, automatic patch selection, and automatic boundary discovery out of scope. \\
     RQ4/E4: replayability, offline cost, and scope control & 76 tracked operation-JSONL profile specs, plus local-session、agent-trace 和 standard-trace profile-spec input replay regressions. & Deterministic replay covers 152 profiler invocations. Semantic determinism is 76/76 in both modes; deterministic output makes raw-byte determinism 76/76 with median runtime 1.601s and p95 2.767s in the clean rerun. Source selection、regex tags、trace inputs 和 effective standard-trace args 都通过同一 operation-stack path replay。 & The offline profiler path is replayable and cheap enough for artifact evaluation. This result does not measure live eBPF overhead, human productivity, or full trace-ecosystem compatibility. \\
@@ -414,7 +414,7 @@ Automatic induced operation stacks 给出同一 tradeoff 的机制侧证据。
 同一 induced path 上改变 depth cap 会改变 profile 表面：depth 3 给出最高 query-aware median AP，depth 5 给出最低 median top-5 work，且有 material split 的四个任务 AP-best depth 与 work-best depth 都不同。
 这个结果比 flat 更省检查、比 fixed-session 更少碎片化，但 AP 仍低于 hand-configured operation-stack，所以 E2 主结论仍以 query-aware operation stack 为主。
 Case views 只解释 localization result 的可复查性。
-它们验证 visible packet 与 hidden answer key 分离，说明 top-ranked operation-stack groups 能形成 reviewer-facing examples，并保留 flat full-recall 与 fixed-session early-hit 反例。
+这些 examples 只使用可见 operation fields，再用隐藏标签事后评分，因此可以展示 top-ranked operation-stack groups 为什么命中或误导，同时保留 flat full-recall 与 fixed-session early-hit 反例。
 主 accuracy claim 仍然来自统一的 hidden-label scoring，而不是来自 case 展示本身。
 
 \begin{table*}[t]
@@ -675,15 +675,16 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld/OSWorld-Human、OpenCUA/AgentNet、SA
 	E2 把 failure、safety、quality 和 human-boundary 问题转成 hidden-label ranking/localization benchmark，并证明 operation-stack profiling 相对 flat summary 和 fixed-session drilldown 有 accuracy/work/fragmentation tradeoff。
 	这个 tradeoff 是 task- 和 metric-specific 的：最佳 visible view 不由单一 hierarchy 垄断，source-task selector 不能稳定自动选中最优 view，20\%/30\% inspection budget 下 operation-stack query-aware 的 median recall 更高，但 fixed-session 仍保留 first-positive 低成本反例。
 	Fixed-session fragmentation 与 operation-work 成本也必须分开解释：operation-stack 支持更少 group fragmentation 和同预算更少 groups，但 first-positive/work 指标仍不由 operation-stack 支配。
-	Related-work/baseline audit 只把 grounding 转成可失败检查，不增加新的实证结果。
-	Protocol package 仍然有用，因为它把现有 visible packets 和 hidden answer key 固化为 6 个 tasks、3 个 views、24 个 participant slots 和 144 个 trials 的 balanced analyst-study protocol，并通过 visible-packet leakage check。
-	但该 study 现在只是可选增强，用来验证开发者或 agent analyst 是否更快或更准。
+	Related-work comparison 只把 closest-system grounding 转成 baseline threat，不增加新的实证结果。
+	我们已经把 6 个 tasks、3 个 views、24 个 participant slots 和 144 个 trials 整理成 balanced analyst-study protocol，并让 study materials 与 hidden answer key 分离。
+	但该 protocol 现在只是可选增强，用来验证开发者或 agent analyst 是否更快或更准。
 	本文当前不能推出开发者准确率、time-to-answer 或 productivity 改善，也不能声称所有 intent boundary 都能被自动发现。
 	论文主 claim 应固定为 profiler 本身在真实标注 trace 上的定位、排序、归因和 actionability，而不是 human utility。
 
 	第三，数据和互操作范围是轻量采样。
 	本文避免同步完整测试集、图片归档和 gated 数据，因此有些来源只覆盖前缀、子配置或 redacted rows。
-	Chrome Trace Event 和 agent-session exchange 当前只是 exchange/reproducibility smoke：它们覆盖本地 session fixture 和 tracked real labeled operation prefix，证明 trace 可以作为 exchange container，但不证明完整 OpenTelemetry/Chrome trace-ecosystem、Perfetto producer 或图像密集 benchmark 兼容。
+	Chrome Trace Event 和 agent-session exchange 当前只提供 exchange/reproducibility evidence，覆盖本地 session fixture 和 tracked real labeled operation prefix。
+	这说明 trace 可以作为 exchange container，但不证明完整 OpenTelemetry/Chrome trace-ecosystem、Perfetto producer 或图像密集 benchmark 兼容。
 
 		第四，E4 是复现和范围控制结果，不是额外的 profiler accuracy 结果。
 		Replay、paper-number alignment、source policy 和 two-abstraction wording 让正文没有越过已有实证结果。
