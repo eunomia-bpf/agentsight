@@ -292,7 +292,7 @@ RQ1 检查同一个 operation layer 能否覆盖异构 agent traces，并避免�
 它使用 public dataset labels、native trajectory fields、OSWorld-Human human boundary 和 AgentNet quality labels 作为 oracle，比较 dataset-native stacks、no-map folding、fixed-session stacks、profile-spec replay 和 trace round trip。
 主要指标包括 operation coverage、unique-stack range、mapping compression、boundary F1/V-measure 和 replay equality。
 这个问题只支持 configurable operation-stack folding，不支持完整生态兼容或自动恢复所有 latent intent。
-Prompt、tool、process 和 syscall 可以是 operation records 或 fields；session/span 是字段、容器或 baseline shape，不是新的 profiler objects。
+Prompt、tool、process 和 syscall 可以是 operation records 或 fields，session/span 是字段、容器或 baseline shape，不是新的 profiler objects。
 
 核心 14 数据集产生 42,590 个 operations 和 1,497 个 unique stacks，compression ratio 为 28.45。
 加入 ScaleCUA 补充样本后，总量为 47,590 个 operations 和 1,611 个 unique stacks，compression ratio 为 29.541。
@@ -711,7 +711,8 @@ OpenTelemetry GenAI 和 OpenInference 标准化 GenAI spans、LLM calls、agent 
 LangSmith、Langfuse、Phoenix 和 AgentOps 等系统进一步把 LLM call、tool call、latency、token、trace tree、session、observation、evaluation score、goal、plan 和 agent artifact 放进单次 workflow inspection 与生产监控~[12,13,14,15]。
 这些系统是本文最接近的同问题相关工作。
 本文因此把 trace/span/session 明确当作 exchange container 或 baseline shape，而不是加成第三个 profiler 抽象。
-E2 实际评估的是 fixed-session drilldown 这个 trace-tree-shaped baseline；真实 OpenTelemetry/OpenInference/Phoenix span-tree import 仍是后续互操作 baseline，不是当前已完成结果。
+E2 实际评估的是 fixed-session drilldown 这个 trace-tree-shaped baseline。
+真实 OpenTelemetry/OpenInference/Phoenix span-tree import 仍是后续互操作 baseline，不是当前已完成结果。
 本文关注跨轨迹 semantic profiling，把异构标注轨迹或本地 agent 历史统一为 operations，并允许用户选择 stack 深度、mappings、tagging 和 ranker。
 这些系统构成最接近的基线威胁，本文定位为互补的 profiler abstraction，而不是替代现有 observability products。
 
@@ -719,7 +720,8 @@ E2 实际评估的是 fixed-session drilldown 这个 trace-tree-shaped baseline�
 2026 年的 AgentRx、TELBench/DRIFT、Holistic Evaluation and Failure Diagnosis 和 AgentAtlas 是最接近的同问题威胁~[23--26]。
 AgentRx 发布带 critical failure step 和 failure category 的失败轨迹，并用 constraint checking 与 LLM judge 做 root-cause localization。
 TELBench/DRIFT 把 deep-research agent 轨迹转成 semantic spans，并标注 harmful error spans。
-Holistic Diagnosis 把 agent-level diagnosis 和 span-level evaluation 结合起来；AgentAtlas 则强调 outcome leaderboard 不能覆盖 trajectory quality 和 control-decision quality。
+Holistic Diagnosis 把 agent-level diagnosis 和 span-level evaluation 结合起来。
+AgentAtlas 则强调 outcome leaderboard 不能覆盖 trajectory quality 和 control-decision quality。
 这些工作已经覆盖 failure localization、trajectory diagnosis 和 span-level evaluation 的问题定义。
 本文的差异更窄，把 profile groups 当作 profiler 输出，在同一批 operations 上比较 flat、fixed-session drilldown、dataset-native、raw-action 和 operation-stack views，并用 AP、nDCG、inspection budget recall、work-to-first-positive、fragmentation 和 profile-configuration actionability 评分。
 AgentRx/TELBench-style traces 是后续 oracle/baseline 候选，不是当前已完成的 broader span-localization 证据。
@@ -735,7 +737,8 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld/OSWorld-Human、OpenCUA/AgentNet、SA
 本文当前可支持的新意是只用 operation 和 operation stack 两个 profiler 抽象，把 trace/session/span 作为输入容器或 baseline，在真实公开标注轨迹上把 profile groups 当成 ranking/localization outputs，并用 hidden labels 计算 accuracy、work、fragmentation 和 actionability。
 更具体地说，贡献不只是 query-time aggregation，而是把 agent-operation record、recursive multi-field stack shape 和 hidden-label localization benchmark 绑在一起。
 同一批 agent operations 会因为 stack shape 不同形成不同的可定位、可排序、可检查 aggregation units。
-这不是穷尽式 2026 全量综述；它只界定当前主张的最近同问题威胁和已评估边界。
+这不是穷尽式 2026 全量综述。
+它只界定当前主张的最近同问题威胁和已评估边界。
 
 \section{局限}
 
