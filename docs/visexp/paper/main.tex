@@ -264,6 +264,10 @@ RQ2 是主 hidden-label localization/ranking 实验，直接比较 flat、fixed-
 RQ3 隔离 stack depth、ranker、mapping、transfer、case 和 profile-spec patch 的作用。
 RQ4 只检查 profile-spec 可复现性、离线成本和主张边界。
 其他分析用于解释反例和适用条件，不扩大核心实验数量。
+换句话说，E2 是唯一的 hidden-label localization/ranking 主实验，主 accuracy claim 仍然来自统一的 hidden-label scoring。
+E3 只解释 E2 结果来自哪些 operation fields、operation-stack depth、mapping、ranker 和 profile-spec patch；它不是第五个核心实验，也不是自动 selector。
+RQ4/E4 不是新的 hidden-label accuracy experiment，不是人工 analyst 或 human-productivity claim，也不是完整 trace-ecosystem compatibility claim。
+后续新结果只保留能够支撑 claim 的比较、消融、反例和复现实验；其他分析只作为补充材料中的证据来源，不改变 E1--E4 结构。
 
 \begin{table*}[t]
   \centering
@@ -289,6 +293,7 @@ RQ4 只检查 profile-spec 可复现性、离线成本和主张边界。
 表~\ref{tab:e1-abstraction-evidence} 检查两抽象和递归折叠，表~\ref{tab:e2-localization} 与图~\ref{fig:e2e3-portfolio} 左图给出 hidden-label fidelity 和 baseline tradeoff，表~\ref{tab:actionability} 与图~\ref{fig:e2e3-portfolio} 右图给出 mechanism/actionability。
 表~\ref{tab:e4-replay-cost} 和表~\ref{tab:e4-determinism} 只给出 replay/cost 证据。
 Portfolio、case 和 verdict 视图解释这些主图表的数据来源、反例和适用边界。
+主文图表按这条路径阅读：表~\ref{tab:results} 是四个 block 的 claim map；表~\ref{tab:e2-localization} 和图~\ref{fig:e2e3-portfolio} 提供 hidden-label fidelity 和 baseline tradeoff；表~\ref{tab:actionability} 提供 mechanism/actionability；补充的 portfolio、case 和 verdict 视图只用于解释这些主图表的数据来源、反例和适用边界。
 
 \subsection{RQ1/E1：泛化覆盖、递归折叠和边界字段}
 

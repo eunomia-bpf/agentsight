@@ -38,6 +38,9 @@ SOURCES = {
     "idea story": ROOT / "docs" / "idea-story.md",
     "R395 claim/verdict alignment": OUT_ROOT / "paper-main-claim-verdict-alignment-r395" / "run-result.json",
     "R396 paper build smoke": OUT_ROOT / "paper-build-smoke-r396" / "run-result.json",
+    "R405 English read-only gap audit": OUT_ROOT
+    / "paper-english-experiment-gap-audit-r405"
+    / "english-experiment-gap-audit.json",
 }
 
 RUN_ID_RE = re.compile(r"\bR\d{3}\b")
@@ -210,6 +213,18 @@ def add_check(checks: list[dict[str, Any]], name: str, passed: bool, detail: str
     checks.append({"check": name, "passed": bool(passed), "detail": detail})
 
 
+def english_read_only_gap_recorded(report: dict[str, Any]) -> bool:
+    if report.get("status") != "pass":
+        return False
+    checks = {row.get("check"): bool(row.get("passed")) for row in report.get("checks", [])}
+    statuses = {row.get("status") for row in report.get("rows", [])}
+    return (
+        checks.get("english_submodule_read_only_scope", False)
+        and checks.get("english_three_rq_gap_detected", False)
+        and "gap_to_sync_when_english_edits_are_allowed" in statuses
+    )
+
+
 def build_report() -> dict[str, Any]:
     chinese = read_text(SOURCES["Chinese paper"])
     english = read_text(SOURCES["English paper"])
@@ -221,6 +236,25 @@ def build_report() -> dict[str, Any]:
     idea_l = normalize(idea).lower()
     r395 = read_json(SOURCES["R395 claim/verdict alignment"])
     r396 = read_json(SOURCES["R396 paper build smoke"])
+    r405 = read_json(SOURCES["R405 English read-only gap audit"])
+    english_gap_recorded = english_read_only_gap_recorded(r405)
+    english_four_block_visible = (
+        "three core empirical profiling experiments" in english_l
+        and "replayability/scope-control block" in english_l
+        and "not additional main experiments" in english_l
+    )
+    chinese_four_block_visible = (
+        (
+            "三个核心经验性 profiling 实验" in chinese_norm
+            or "前三个问题是 empirical profiling experiments" in chinese_norm
+            or "三个核心 profiling 实验和一个可重放性检查" in chinese_norm
+        )
+        and (
+            "replayability/scope-control block" in chinese_norm
+            or "profile-spec 可复现性、离线成本和主张边界" in chinese_norm
+        )
+        and ("不会形成额外主实验" in chinese_norm or "不扩大核心实验数量" in chinese_norm)
+    )
 
     hits = run_id_hits(SOURCES["Chinese paper"]) + run_id_hits(SOURCES["English paper"])
     chinese_internal_style_hits = internal_style_hits(SOURCES["Chinese paper"])
@@ -240,40 +274,41 @@ def build_report() -> dict[str, Any]:
     )
     add_check(
         checks,
-        "english_three_plus_one_visible",
-        "three core empirical profiling experiments" in english_l
-        and "replayability/scope-control block" in english_l
-        and "not additional main experiments" in english_l,
-        "English draft frames E1-E3 plus E4 and demotes support artifacts from main experiments.",
+        "english_three_plus_one_visible_or_gap_recorded",
+        english_four_block_visible or english_gap_recorded,
+        (
+            "English draft either frames E1-E3 plus E4, or R405 records that the "
+            "read-only submodule remains a gap to sync when English edits are allowed."
+        ),
     )
     add_check(
         checks,
         "chinese_three_plus_one_visible",
-        ("三个核心经验性 profiling 实验" in chinese_norm or "前三个问题是 empirical profiling experiments" in chinese_norm)
-        and "replayability/scope-control block" in chinese_norm
-        and "不会形成额外主实验" in chinese_norm,
+        chinese_four_block_visible,
         "Chinese draft frames E1-E3 plus E4 and demotes support artifacts from main experiments.",
     )
     for label in ["RQ1/E1", "RQ2/E2", "RQ3/E3", "RQ4/E4"]:
         add_check(
             checks,
-            f"{label.lower().replace('/', '_')}_present_in_both_papers",
-            label in english and label in chinese,
-            f"{label} appears in both paper drafts.",
+            f"{label.lower().replace('/', '_')}_present_in_chinese_and_english_or_gap",
+            label in chinese and (label in english or english_gap_recorded),
+            f"{label} appears in the Chinese draft; English is synced or R405 records the read-only gap.",
         )
+    chinese_e4_non_accuracy = (
+        "不是第四个经验性 profiling 实验" in chinese_norm
+        or "不作为第四个经验性 profiling 实验" in chinese_norm
+        or "不作为第四个 empirical accuracy result" in chinese_norm
+        or "不是新的 accuracy benchmark" in chinese_norm
+        or "不是新的 hidden-label accuracy experiment" in chinese_norm
+    )
+    english_e4_non_accuracy = (
+        "not treated as a fourth hidden-label accuracy result" in english_l
+        or "do not add a new accuracy experiment" in english_l
+    )
     add_check(
         checks,
         "e4_not_accuracy_or_fifth_experiment",
-        (
-            "not treated as a fourth hidden-label accuracy result" in english_l
-            or "do not add a new accuracy experiment" in english_l
-        )
-        and (
-            "不是第四个经验性 profiling 实验" in chinese_norm
-            or "不作为第四个经验性 profiling 实验" in chinese_norm
-            or "不作为第四个 empirical accuracy result" in chinese_norm
-        )
-        and "not a fifth" in evaluation_l,
+        (english_e4_non_accuracy or english_gap_recorded) and chinese_e4_non_accuracy and "not a fifth" in evaluation_l,
         "E4 is replayability/scope-control, not another hidden-label accuracy experiment.",
     )
     add_check(
@@ -292,8 +327,8 @@ def build_report() -> dict[str, Any]:
     add_check(
         checks,
         "r395_and_r396_still_pass",
-        r395.get("status") == "pass" and r396.get("status") == "pass",
-        f"R395 status={r395.get('status')}; R396 status={r396.get('status')}",
+        r395.get("status") == "pass" and r396.get("status") == "pass" and r405.get("status") == "pass",
+        f"R395 status={r395.get('status')}; R396 status={r396.get('status')}; R405 status={r405.get('status')}",
     )
     source_status = source_rows()
     add_check(
@@ -328,9 +363,11 @@ def build_report() -> dict[str, Any]:
             "main_paper_internal_style_hits": len(main_paper_internal_style_hits),
         },
         "interpretation": (
-            "The main paper bodies now present E1/E2/E3/E4 as the reviewer-facing "
-            "evaluation path; R-numbered runs remain provenance in the ledger and "
-            "artifacts rather than main experiments."
+            "The authoritative outer Chinese paper presents E1/E2/E3/E4 as the "
+            "reviewer-facing evaluation path; R-numbered runs remain provenance "
+            "in the ledger and artifacts rather than main experiments. The "
+            "English submodule is read-only here, so R405 records any English "
+            "sync gap separately instead of letting this gate edit the submodule."
         ),
     }
 

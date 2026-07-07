@@ -7,15 +7,15 @@ Main-paper internal-style hits: 0
 Chinese internal-style hits: 0
 Paper-facing self-undercut hits: 0
 
-The current paper organization remains three empirical profiling experiments plus one replayability/scope-control block. R-numbered runs are ledger provenance, support, ablations, counterpoints, or scope checks, not main-paper mini-experiments.
+The authoritative outer Chinese paper organization remains three empirical profiling experiments plus one replayability/scope-control block. R-numbered runs are ledger provenance, support, ablations, counterpoints, or scope checks, not main-paper mini-experiments. The English submodule is read-only in this worktree; R405 records the current sync gap separately.
 
 ## Checks
 
 | Check | Passed | Detail |
 |---|---:|---|
-| prerequisite_gates_pass | True | Prerequisite statuses={'R395 claim/verdict alignment': 'pass', 'R396 paper build smoke': 'pass', 'R397 anti-run-ledger': 'pass'} |
-| papers_have_exactly_four_rq_subsections | True | Chinese RQs=['RQ1/E1', 'RQ2/E2', 'RQ3/E3', 'RQ4/E4']; English RQs=['RQ1/E1', 'RQ2/E2', 'RQ3/E3', 'RQ4/E4'] |
-| three_plus_one_stated_in_both_papers | True | Both drafts state E1-E3 as core empirical profiling experiments and E4 as replayability/scope-control. |
+| prerequisite_gates_pass | True | Prerequisite statuses={'R395 claim/verdict alignment': 'pass', 'R396 paper build smoke': 'pass', 'R397 anti-run-ledger': 'pass', 'R405 English read-only gap audit': 'pass'} |
+| chinese_has_four_rq_subsections_and_english_synced_or_gap_recorded | True | Chinese RQs=['RQ1/E1', 'RQ2/E2', 'RQ3/E3', 'RQ4/E4']; English RQs=[]; English read-only gap recorded=True |
+| three_plus_one_stated_in_chinese_and_english_synced_or_gap_recorded | True | The Chinese draft states E1-E3 plus E4; the English draft is either synced or recorded by R405 as a read-only gap. |
 | e2_is_single_hidden_label_accuracy_block | True | Hidden-label profiler accuracy is concentrated in E2 rather than split into many small experiments. |
 | e3_is_mechanism_actionability_not_fifth_experiment | True | Mechanism, actionability, patches, and boundary-field evidence remain inside E3. |
 | e4_is_replay_scope_not_accuracy_or_ecosystem_claim | True | E4 remains a replayability/scope-control block with explicit non-claims. |

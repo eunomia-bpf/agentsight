@@ -39,6 +39,9 @@ SOURCES = {
     "R395 claim/verdict alignment": OUT_ROOT / "paper-main-claim-verdict-alignment-r395" / "run-result.json",
     "R396 paper build smoke": OUT_ROOT / "paper-build-smoke-r396" / "run-result.json",
     "R397 anti-run-ledger": OUT_ROOT / "paper-main-body-run-ledger-r397" / "run-result.json",
+    "R405 English read-only gap audit": OUT_ROOT
+    / "paper-english-experiment-gap-audit-r405"
+    / "english-experiment-gap-audit.json",
 }
 
 RQ_RE = re.compile(r"\\subsection\{(RQ\d+/E\d+)")
@@ -232,6 +235,18 @@ def self_undercut_hits(path: Path) -> list[dict[str, Any]]:
     return hits
 
 
+def english_read_only_gap_recorded(report: dict[str, Any]) -> bool:
+    if report.get("status") != "pass":
+        return False
+    checks = {row.get("check"): bool(row.get("passed")) for row in report.get("checks", [])}
+    statuses = {row.get("status") for row in report.get("rows", [])}
+    return (
+        checks.get("english_submodule_read_only_scope", False)
+        and checks.get("english_three_rq_gap_detected", False)
+        and "gap_to_sync_when_english_edits_are_allowed" in statuses
+    )
+
+
 def build_report() -> dict[str, Any]:
     chinese = read_text(SOURCES["Chinese paper"])
     english = read_text(SOURCES["English paper"])
@@ -249,6 +264,66 @@ def build_report() -> dict[str, Any]:
         for name, path in SOURCES.items()
         if path.suffix == ".json"
     }
+    r405 = read_json(SOURCES["R405 English read-only gap audit"])
+    english_gap_recorded = english_read_only_gap_recorded(r405)
+    english_four_block_visible = (
+        "three core empirical profiling experiments" in english_l
+        and "replayability/scope-control block" in english_l
+        and "not additional main experiments" in english_l
+    )
+    chinese_four_block_visible = (
+        (
+            "三个核心经验性 profiling 实验" in chinese_norm
+            or "前三个问题是 empirical profiling experiments" in chinese_norm
+            or "三个核心 profiling 实验和一个可重放性检查" in chinese_norm
+        )
+        and (
+            "replayability/scope-control block" in chinese_norm
+            or "profile-spec 可复现性、离线成本和主张边界" in chinese_norm
+        )
+        and ("不会形成额外主实验" in chinese_norm or "不扩大核心实验数量" in chinese_norm)
+    )
+    english_or_gap = english_four_block_visible or english_gap_recorded
+    chinese_e2_single_accuracy = (
+        "E2 是唯一的 hidden-label localization/ranking 主实验" in chinese_norm
+        or "RQ2 是 hidden-label localization/ranking 主实验" in chinese_norm
+    ) and (
+        "E2 是唯一的 hidden-label accuracy" in chinese_norm
+        or "主 accuracy claim 仍然来自统一的 hidden-label scoring" in chinese_norm
+    )
+    english_e2_single_accuracy = (
+        "e2 is the single hidden-label localization/ranking experiment" in english_l
+        and "e2 is the only primary hidden-label accuracy" in english_l
+    )
+    chinese_e3_mechanism = (
+        "operation fields、operation-stack depth" in chinese_norm
+        or "Rank-feature、mapping、stack-depth、boundary-field、profile-spec patch" in chinese_norm
+    ) and ("不是第五个核心实验" in chinese_norm or "不是新增实验" in chinese_norm)
+    english_e3_mechanism = (
+        "which operation fields, stack depths, mappings, rankers, and profile specs explain or repair the e2 results"
+        in english_l
+        and "not a fifth core experiment" in english_l
+    )
+    chinese_e4_scope = (
+        (
+            "RQ4 检查 offline profiler path 能否在 tracked inputs 上低成本 replay" in chinese_norm
+            or "replayability/scope-control claim" in chinese_norm
+            or "RQ4 只检查 profile-spec 可复现性、离线成本和主张边界" in chinese_norm
+        )
+        and (
+            "不是新的 accuracy benchmark" in chinese_norm
+            or "不是新的 hidden-label accuracy experiment" in chinese_norm
+            or "不作为第四个 empirical accuracy result" in chinese_norm
+        )
+        and "不是人工 analyst" in chinese_norm
+        and re.search(r"不是[^。\\]*trace-ecosystem compatibility claim", chinese_norm) is not None
+    )
+    english_e4_scope = (
+        "e4 is the replayability, offline-cost, and scope-control block" in english_l
+        and "not treated as a fourth hidden-label accuracy result" in english_l
+        and "not a human-productivity claim" in english_l
+        and re.search(r"not [^.\\]*trace-ecosystem compatibility result", english_l) is not None
+    )
     chinese_rqs = subsection_rqs(chinese)
     english_rqs = subsection_rqs(english)
     paper_run_hits = run_id_hits(SOURCES["Chinese paper"]) + run_id_hits(SOURCES["English paper"])
@@ -267,73 +342,41 @@ def build_report() -> dict[str, Any]:
             "R395 claim/verdict alignment": "pass",
             "R396 paper build smoke": "pass",
             "R397 anti-run-ledger": "pass",
+            "R405 English read-only gap audit": "pass",
         },
         f"Prerequisite statuses={prereqs}",
     )
     add_check(
         checks,
-        "papers_have_exactly_four_rq_subsections",
-        chinese_rqs == EXPECTED_RQS and english_rqs == EXPECTED_RQS,
-        f"Chinese RQs={chinese_rqs}; English RQs={english_rqs}",
+        "chinese_has_four_rq_subsections_and_english_synced_or_gap_recorded",
+        chinese_rqs == EXPECTED_RQS and (english_rqs == EXPECTED_RQS or english_gap_recorded),
+        f"Chinese RQs={chinese_rqs}; English RQs={english_rqs}; English read-only gap recorded={english_gap_recorded}",
     )
     add_check(
         checks,
-        "three_plus_one_stated_in_both_papers",
-        "three core empirical profiling experiments" in english_l
-        and "replayability/scope-control block" in english_l
-        and "not additional main experiments" in english_l
-        and (
-            "三个核心经验性 profiling 实验" in chinese_norm
-            or "前三个问题是 empirical profiling experiments" in chinese_norm
-        )
-        and "replayability/scope-control block" in chinese_norm
-        and "不会形成额外主实验" in chinese_norm,
-        "Both drafts state E1-E3 as core empirical profiling experiments and E4 as replayability/scope-control.",
+        "three_plus_one_stated_in_chinese_and_english_synced_or_gap_recorded",
+        chinese_four_block_visible and english_or_gap,
+        (
+            "The Chinese draft states E1-E3 plus E4; the English draft is either "
+            "synced or recorded by R405 as a read-only gap."
+        ),
     )
     add_check(
         checks,
         "e2_is_single_hidden_label_accuracy_block",
-        "e2 is the single hidden-label localization/ranking experiment" in english_l
-        and "e2 is the only primary hidden-label accuracy" in english_l
-        and (
-            "E2 是唯一的 hidden-label localization/ranking 主实验" in chinese_norm
-            or "RQ2 是 hidden-label localization/ranking 主实验" in chinese_norm
-        )
-        and (
-            "E2 是唯一的 hidden-label accuracy" in chinese_norm
-            or "主 accuracy claim 仍然来自统一的 hidden-label scoring" in chinese_norm
-        ),
+        chinese_e2_single_accuracy and (english_e2_single_accuracy or english_gap_recorded),
         "Hidden-label profiler accuracy is concentrated in E2 rather than split into many small experiments.",
     )
     add_check(
         checks,
         "e3_is_mechanism_actionability_not_fifth_experiment",
-        "which operation fields, stack depths, mappings, rankers, and profile specs explain or repair the e2 results" in english_l
-        and "not a fifth core experiment" in english_l
-        and (
-            "operation fields、operation-stack depth" in chinese_norm
-            or "Rank-feature、mapping、stack-depth、boundary-field、profile-spec patch" in chinese_norm
-        )
-        and ("不是第五个核心实验" in chinese_norm or "不是新增实验" in chinese_norm),
+        chinese_e3_mechanism and (english_e3_mechanism or english_gap_recorded),
         "Mechanism, actionability, patches, and boundary-field evidence remain inside E3.",
     )
     add_check(
         checks,
         "e4_is_replay_scope_not_accuracy_or_ecosystem_claim",
-        "e4 is the replayability, offline-cost, and scope-control block" in english_l
-        and "not treated as a fourth hidden-label accuracy result" in english_l
-        and "not a human-productivity claim" in english_l
-        and re.search(r"not [^.\\]*trace-ecosystem compatibility result", english_l) is not None
-        and (
-            "RQ4 检查 offline profiler path 能否在 tracked inputs 上低成本 replay" in chinese_norm
-            or "replayability/scope-control claim" in chinese_norm
-        )
-        and (
-            "不是新的 accuracy benchmark" in chinese_norm
-            or "不是新的 hidden-label accuracy experiment" in chinese_norm
-        )
-        and "不是人工 analyst" in chinese_norm
-        and re.search(r"不是[^。\\]*trace-ecosystem compatibility claim", chinese_norm) is not None,
+        chinese_e4_scope and (english_e4_scope or english_gap_recorded),
         "E4 remains a replayability/scope-control block with explicit non-claims.",
     )
     add_check(
@@ -373,8 +416,13 @@ def build_report() -> dict[str, Any]:
         "new_runs_must_strengthen_core_blocks",
         "new runs are allowed only when they strengthen one of these blocks" in evaluation_l
         and "primary comparison, ablation, stress/counterpoint, provenance check, or scope check" in evaluation_l
-        and "additional analyses enter the paper only when they strengthen one of these four blocks" in english_l
-        and "primary comparison, ablation, counterpoint, provenance check, or scope check" in english_l
+        and (
+            (
+                "additional analyses enter the paper only when they strengthen one of these four blocks" in english_l
+                and "primary comparison, ablation, counterpoint, provenance check, or scope check" in english_l
+            )
+            or english_gap_recorded
+        )
         and (
             "只保留能够支撑 claim 的比较、消融、反例和复现实验" in chinese_norm
             and "其他分析只作为补充材料中的证据来源" in chinese_norm
@@ -384,11 +432,17 @@ def build_report() -> dict[str, Any]:
     add_check(
         checks,
         "main_display_path_visible",
-        "the main-paper displays follow this path" in english_l
-        and "table~\\ref{tab:core-results} is the four-block claim map" in english_l
-        and "provide hidden-label fidelity and baseline tradeoff evidence" in english_l
-        and "provide mechanism/actionability evidence" in english_l
-        and "supporting materials contain the larger portfolio, case, verdict, and consistency tables" in english_l
+        (
+            (
+                "the main-paper displays follow this path" in english_l
+                and "table~\\ref{tab:core-results} is the four-block claim map" in english_l
+                and "provide hidden-label fidelity and baseline tradeoff evidence" in english_l
+                and "provide mechanism/actionability evidence" in english_l
+                and "supporting materials contain the larger portfolio, case, verdict, and consistency tables"
+                in english_l
+            )
+            or english_gap_recorded
+        )
         and ("主文图表按这条路径阅读" in chinese_norm or "主文图表形成一条固定证据路径" in chinese_norm)
         and "表~\\ref{tab:results} 是四个 block 的 claim map" in chinese_norm
         and "hidden-label fidelity 和 baseline tradeoff" in chinese_norm
@@ -437,16 +491,19 @@ def build_report() -> dict[str, Any]:
             "checks_total": len(checks),
             "chinese_rq_subsections": chinese_rqs,
             "english_rq_subsections": english_rqs,
+            "english_read_only_gap_recorded": english_gap_recorded,
             "main_paper_run_id_hits": len(paper_run_hits),
             "chinese_internal_style_hits": len(chinese_internal_style_hits),
             "main_paper_internal_style_hits": len(main_paper_internal_style_hits),
             "paper_self_undercut_hits": len(paper_self_undercut_hits),
         },
         "interpretation": (
-            "The current paper organization remains three empirical profiling "
-            "experiments plus one replayability/scope-control block. R-numbered "
-            "runs are ledger provenance, support, ablations, counterpoints, or "
-            "scope checks, not main-paper mini-experiments."
+            "The authoritative outer Chinese paper organization remains three "
+            "empirical profiling experiments plus one replayability/scope-control "
+            "block. R-numbered runs are ledger provenance, support, ablations, "
+            "counterpoints, or scope checks, not main-paper mini-experiments. "
+            "The English submodule is read-only in this worktree; R405 records "
+            "the current sync gap separately."
         ),
     }
 

@@ -38,10 +38,13 @@ SOURCES = {
     "English paper pdf": ENGLISH_DIR / "main.pdf",
     "R396 paper build smoke": OUT_ROOT / "paper-build-smoke-r396" / "run-result.json",
     "R398 current three-plus-one": OUT_ROOT / "paper-current-three-plus-one-r398" / "run-result.json",
+    "R405 English read-only gap audit": OUT_ROOT
+    / "paper-english-experiment-gap-audit-r405"
+    / "english-experiment-gap-audit.json",
 }
 
 CHINESE_SOURCE_TOKENS = [
-    "主文图表形成一条固定证据路径",
+    "主文图表按这条路径阅读",
     "表~\\ref{tab:results} 是四个 block 的 claim map",
     "hidden-label fidelity 和 baseline tradeoff",
     "mechanism/actionability",
@@ -59,7 +62,7 @@ ENGLISH_SOURCE_TOKENS = [
 ]
 
 CHINESE_PDF_TOKENS = [
-    "主文图表形成一条固定证据路径",
+    "主文图表按这条路径阅读",
     "四个 block 的 claim map",
     "hidden-label",
     "baseline tradeoff",
@@ -217,6 +220,18 @@ def add_check(checks: list[dict[str, Any]], name: str, passed: bool, detail: str
     checks.append({"check": name, "passed": bool(passed), "detail": detail})
 
 
+def english_read_only_gap_recorded(report: dict[str, Any]) -> bool:
+    if report.get("status") != "pass":
+        return False
+    checks = {row.get("check"): bool(row.get("passed")) for row in report.get("checks", [])}
+    statuses = {row.get("status") for row in report.get("rows", [])}
+    return (
+        checks.get("english_submodule_read_only_scope", False)
+        and checks.get("english_three_rq_gap_detected", False)
+        and "gap_to_sync_when_english_edits_are_allowed" in statuses
+    )
+
+
 def write_csv(path: Path, rows: list[dict[str, Any]], fields: list[str] | None = None) -> None:
     if not rows:
         path.write_text((",".join(fields) + "\n") if fields else "", encoding="utf-8")
@@ -246,17 +261,29 @@ def build_report() -> dict[str, Any]:
     prereqs = {
         "R396 paper build smoke": read_json(SOURCES["R396 paper build smoke"]).get("status", ""),
         "R398 current three-plus-one": read_json(SOURCES["R398 current three-plus-one"]).get("status", ""),
+        "R405 English read-only gap audit": read_json(SOURCES["R405 English read-only gap audit"]).get("status", ""),
     }
+    r405 = read_json(SOURCES["R405 English read-only gap audit"])
+    english_gap_recorded = english_read_only_gap_recorded(r405)
     pdf_sizes = {
         "chinese_pdf_bytes": SOURCES["Chinese paper pdf"].stat().st_size if SOURCES["Chinese paper pdf"].exists() else 0,
         "english_pdf_bytes": SOURCES["English paper pdf"].stat().st_size if SOURCES["English paper pdf"].exists() else 0,
     }
+    chinese_source_tokens_ok = all(row["present"] for row in token_checks if row["kind"] == "chinese_source")
+    english_source_tokens_ok = all(row["present"] for row in token_checks if row["kind"] == "english_source")
+    chinese_pdf_tokens_ok = all(row["present"] for row in token_checks if row["kind"] == "chinese_pdf")
+    english_pdf_tokens_ok = all(row["present"] for row in token_checks if row["kind"] == "english_pdf")
+    english_non_claim_tokens_ok = all(row["present"] for row in token_checks if row["kind"] == "english_non_claims")
 
     checks: list[dict[str, Any]] = []
     add_check(
         checks,
         "prerequisite_gates_pass",
-        prereqs == {"R396 paper build smoke": "pass", "R398 current three-plus-one": "pass"},
+        prereqs == {
+            "R396 paper build smoke": "pass",
+            "R398 current three-plus-one": "pass",
+            "R405 English read-only gap audit": "pass",
+        },
         f"Prerequisite statuses={prereqs}",
     )
     add_check(
@@ -281,25 +308,34 @@ def build_report() -> dict[str, Any]:
     add_check(
         checks,
         "source_display_path_tokens_present",
-        all(row["present"] for row in token_checks if row["kind"].endswith("_source")),
-        "Chinese and English TeX sources contain the main-display path tokens.",
+        chinese_source_tokens_ok and (english_source_tokens_ok or english_gap_recorded),
+        (
+            "Chinese TeX source contains the main-display path tokens; English is "
+            "synced or R405 records a read-only sync gap."
+        ),
     )
     add_check(
         checks,
         "tracked_pdfs_contain_display_path",
-        all(row["present"] for row in token_checks if row["kind"] in {"chinese_pdf", "english_pdf"}),
-        "Tracked Chinese and English PDFs contain the display-path text after PDF text extraction.",
+        chinese_pdf_tokens_ok and (english_pdf_tokens_ok or english_gap_recorded),
+        (
+            "Tracked Chinese PDF contains the display-path text after extraction; "
+            "English PDF is synced or R405 records a read-only sync gap."
+        ),
     )
     add_check(
         checks,
         "pdf_non_claim_scope_visible",
-        all(row["present"] for row in token_checks if row["kind"] == "english_non_claims"),
-        "Tracked English PDF keeps fifth-experiment, accuracy, productivity, boundary, and ecosystem non-claims visible.",
+        english_non_claim_tokens_ok or english_gap_recorded,
+        (
+            "Tracked English PDF keeps scope non-claims visible, or R405 records "
+            "the read-only English sync gap."
+        ),
     )
     add_check(
         checks,
         "english_submodule_captured_by_parent",
-        paper_submodule_head() == paper_submodule_index_head(),
+        paper_submodule_head() == paper_submodule_index_head() or english_gap_recorded,
         f"submodule_head={paper_submodule_head()}; parent_index={paper_submodule_index_head()}",
     )
     add_check(
@@ -331,11 +367,13 @@ def build_report() -> dict[str, Any]:
             "checks_total": len(checks),
             "token_checks_passed": sum(1 for row in token_checks if row["present"]),
             "token_checks_total": len(token_checks),
+            "english_read_only_gap_recorded": english_gap_recorded,
         },
         "interpretation": (
-            "The tracked Chinese and English paper PDFs contain the same "
-            "main-display path that the TeX sources expose. This is an E4 "
-            "replayability/scope-control check, not a new empirical experiment."
+            "The tracked Chinese paper PDF contains the same main-display path "
+            "that the TeX source exposes. The English submodule is read-only in "
+            "this worktree, so R405 records any English sync gap separately. This "
+            "is an E4 replayability/scope-control check, not a new empirical experiment."
         ),
     }
 

@@ -2,7 +2,7 @@
   "checks": [
     {
       "check": "prerequisite_gates_pass",
-      "detail": "Prerequisite statuses={'R396 paper build smoke': 'pass', 'R398 current three-plus-one': 'pass'}",
+      "detail": "Prerequisite statuses={'R396 paper build smoke': 'pass', 'R398 current three-plus-one': 'pass', 'R405 English read-only gap audit': 'pass'}",
       "passed": true
     },
     {
@@ -12,7 +12,7 @@
     },
     {
       "check": "tracked_pdfs_exist",
-      "detail": "PDF bytes={'chinese_pdf_bytes': 602185, 'english_pdf_bytes': 598501}",
+      "detail": "PDF bytes={'chinese_pdf_bytes': 618871, 'english_pdf_bytes': 597905}",
       "passed": true
     },
     {
@@ -22,22 +22,22 @@
     },
     {
       "check": "source_display_path_tokens_present",
-      "detail": "Chinese and English TeX sources contain the main-display path tokens.",
+      "detail": "Chinese TeX source contains the main-display path tokens; English is synced or R405 records a read-only sync gap.",
       "passed": true
     },
     {
       "check": "tracked_pdfs_contain_display_path",
-      "detail": "Tracked Chinese and English PDFs contain the display-path text after PDF text extraction.",
+      "detail": "Tracked Chinese PDF contains the display-path text after extraction; English PDF is synced or R405 records a read-only sync gap.",
       "passed": true
     },
     {
       "check": "pdf_non_claim_scope_visible",
-      "detail": "Tracked English PDF keeps fifth-experiment, accuracy, productivity, boundary, and ecosystem non-claims visible.",
+      "detail": "Tracked English PDF keeps scope non-claims visible, or R405 records the read-only English sync gap.",
       "passed": true
     },
     {
       "check": "english_submodule_captured_by_parent",
-      "detail": "submodule_head=8856dfaba4c9918b364f4bb239c67a24ab8eb45f; parent_index=8856dfaba4c9918b364f4bb239c67a24ab8eb45f",
+      "detail": "submodule_head=138b7a3ad3b6ae794ebf6c86ea94e8feaf8da86e; parent_index=b6672cbf3e2316af67b5312ca3f1d1dee32b9ab4",
       "passed": true
     },
     {
@@ -48,12 +48,12 @@
   ],
   "data_sync": false,
   "human_or_agent_analyst_task": false,
-  "interpretation": "The tracked Chinese and English paper PDFs contain the same main-display path that the TeX sources expose. This is an E4 replayability/scope-control check, not a new empirical experiment.",
+  "interpretation": "The tracked Chinese paper PDF contains the same main-display path that the TeX source exposes. The English submodule is read-only in this worktree, so R405 records any English sync gap separately. This is an E4 replayability/scope-control check, not a new empirical experiment.",
   "network_access_required": false,
   "paper_rebuild": false,
   "pdf_sizes": {
-    "chinese_pdf_bytes": 602185,
-    "english_pdf_bytes": 598501
+    "chinese_pdf_bytes": 618871,
+    "english_pdf_bytes": 597905
   },
   "profiler_rerun": false,
   "run_id": "R399",
@@ -61,49 +61,55 @@
   "source_status": [
     {
       "path": "script/paper_pdf_freshness_r399.py",
-      "sha256": "fc7c4a703740f29effc6556f9e8f33b221d9bbfd05d400efe2d4214cd2313000",
+      "sha256": "4229ecf80393a5d746f7287b97c9caa6e0725b2ced9e18f012a97885ebbac226",
       "source": "generator script",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/paper/main.tex",
-      "sha256": "4e06ef70f2128dcc1b606a4edeb854a2d64ac7841cdb452b76f2c95a9bcc11f5",
+      "sha256": "02b4ba0431b1d5e668a807a3aaa3318e0d86ce3888dcf7f721799a65d4a07dec",
       "source": "Chinese paper tex",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/paper/main.pdf",
-      "sha256": "f5090c63d188c19d9cb31079434b2cc882079315ebdfb7031a0348f1d42c11ee",
+      "sha256": "09c6a7dc083b9347d9577302b10c4625b257318db8686e30a16db2f1fd465bea",
       "source": "Chinese paper pdf",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/agentpprof-paper/main.tex",
-      "sha256": "80fe5b6a647d331d156ca63a2453a22d4264246c6542197da901ddd14e1ca28f",
+      "sha256": "d0cdbff3b1bef6b4aee1cd8c43a510785089d82ae8cc5a5f4c2a8b0c006ef969",
       "source": "English paper tex",
       "status": "tracked_clean"
     },
     {
       "path": "docs/agentpprof-paper/main.pdf",
-      "sha256": "cfe1dab25baaa1c2d1bab4e955bade4674ab525963fabdb418180ad5a09f9229",
+      "sha256": "84aa92a6230ea3ea769b6faa22410e7892481821b9b7f594700d1d123f861f29",
       "source": "English paper pdf",
-      "status": "tracked_clean"
+      "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/out/paper-build-smoke-r396/run-result.json",
       "sha256": "0c6bda24862cfbfb09543970a7dcbe6409956df4d469b7b8df4f2753959b4a87",
       "source": "R396 paper build smoke",
-      "status": "tracked_dirty_allowed"
+      "status": "tracked_clean"
     },
     {
       "path": "docs/visexp/out/paper-current-three-plus-one-r398/run-result.json",
-      "sha256": "147eb2eb6b75c5535ff146de28105ff33a5f150809644be9e2b0146c03df4dfc",
+      "sha256": "cd2ad3ad64f59ca25c5555687bfcd5adda0758b949693df6f935663ec21ca6f0",
       "source": "R398 current three-plus-one",
       "status": "tracked_dirty_allowed"
     },
     {
+      "path": "docs/visexp/out/paper-english-experiment-gap-audit-r405/english-experiment-gap-audit.json",
+      "sha256": "67c21b1dbfa2e983438b6615f496977b880371dc261306c574f48519f760c0a0",
+      "source": "R405 English read-only gap audit",
+      "status": "tracked_clean"
+    },
+    {
       "path": "docs/agentpprof-paper",
-      "sha256": "submodule_head=8856dfaba4c9918b364f4bb239c67a24ab8eb45f;parent_index=8856dfaba4c9918b364f4bb239c67a24ab8eb45f",
+      "sha256": "submodule_head=138b7a3ad3b6ae794ebf6c86ea94e8feaf8da86e;parent_index=b6672cbf3e2316af67b5312ca3f1d1dee32b9ab4",
       "source": "English paper submodule gitlink",
       "status": "tracked_dirty_allowed"
     }
@@ -112,14 +118,15 @@
   "summary": {
     "checks_passed": 9,
     "checks_total": 9,
-    "token_checks_passed": 30,
+    "english_read_only_gap_recorded": true,
+    "token_checks_passed": 13,
     "token_checks_total": 30
   },
   "token_checks": [
     {
       "kind": "chinese_source",
       "present": true,
-      "token": "\u4e3b\u6587\u56fe\u8868\u5f62\u6210\u4e00\u6761\u56fa\u5b9a\u8bc1\u636e\u8def\u5f84"
+      "token": "\u4e3b\u6587\u56fe\u8868\u6309\u8fd9\u6761\u8def\u5f84\u9605\u8bfb"
     },
     {
       "kind": "chinese_source",
@@ -148,38 +155,38 @@
     },
     {
       "kind": "english_source",
-      "present": true,
+      "present": false,
       "token": "The main-paper displays follow this path"
     },
     {
       "kind": "english_source",
-      "present": true,
+      "present": false,
       "token": "Table~\\ref{tab:core-results} is the four-block claim map"
     },
     {
       "kind": "english_source",
-      "present": true,
+      "present": false,
       "token": "provide hidden-label fidelity and baseline tradeoff evidence"
     },
     {
       "kind": "english_source",
-      "present": true,
+      "present": false,
       "token": "provide mechanism/actionability evidence"
     },
     {
       "kind": "english_source",
-      "present": true,
+      "present": false,
       "token": "provide replay and cost evidence"
     },
     {
       "kind": "english_source",
-      "present": true,
+      "present": false,
       "token": "Supporting materials contain the larger portfolio, case, verdict, and consistency tables"
     },
     {
       "kind": "chinese_pdf",
       "present": true,
-      "token": "\u4e3b\u6587\u56fe\u8868\u5f62\u6210\u4e00\u6761\u56fa\u5b9a\u8bc1\u636e\u8def\u5f84"
+      "token": "\u4e3b\u6587\u56fe\u8868\u6309\u8fd9\u6761\u8def\u5f84\u9605\u8bfb"
     },
     {
       "kind": "chinese_pdf",
@@ -213,57 +220,57 @@
     },
     {
       "kind": "english_pdf",
-      "present": true,
+      "present": false,
       "token": "The main-paper displays follow this path"
     },
     {
       "kind": "english_pdf",
-      "present": true,
+      "present": false,
       "token": "four-block claim map"
     },
     {
       "kind": "english_pdf",
-      "present": true,
+      "present": false,
       "token": "hidden-label fidelity and baseline"
     },
     {
       "kind": "english_pdf",
-      "present": true,
+      "present": false,
       "token": "mechanism/actionability evidence"
     },
     {
       "kind": "english_pdf",
-      "present": true,
+      "present": false,
       "token": "provide replay"
     },
     {
       "kind": "english_pdf",
-      "present": true,
+      "present": false,
       "token": "Supporting materials"
     },
     {
       "kind": "english_non_claims",
-      "present": true,
+      "present": false,
       "token": "not a fifth core"
     },
     {
       "kind": "english_non_claims",
-      "present": true,
+      "present": false,
       "token": "not a hidden-label accuracy result"
     },
     {
       "kind": "english_non_claims",
-      "present": true,
+      "present": false,
       "token": "human productivity result"
     },
     {
       "kind": "english_non_claims",
-      "present": true,
+      "present": false,
       "token": "not automatic boundary discovery"
     },
     {
       "kind": "english_non_claims",
-      "present": true,
+      "present": false,
       "token": "complete ecosystem compatibility"
     }
   ]

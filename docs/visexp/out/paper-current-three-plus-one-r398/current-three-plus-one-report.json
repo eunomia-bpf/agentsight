@@ -2,17 +2,17 @@
   "checks": [
     {
       "check": "prerequisite_gates_pass",
-      "detail": "Prerequisite statuses={'R395 claim/verdict alignment': 'pass', 'R396 paper build smoke': 'pass', 'R397 anti-run-ledger': 'pass'}",
+      "detail": "Prerequisite statuses={'R395 claim/verdict alignment': 'pass', 'R396 paper build smoke': 'pass', 'R397 anti-run-ledger': 'pass', 'R405 English read-only gap audit': 'pass'}",
       "passed": true
     },
     {
-      "check": "papers_have_exactly_four_rq_subsections",
-      "detail": "Chinese RQs=['RQ1/E1', 'RQ2/E2', 'RQ3/E3', 'RQ4/E4']; English RQs=['RQ1/E1', 'RQ2/E2', 'RQ3/E3', 'RQ4/E4']",
+      "check": "chinese_has_four_rq_subsections_and_english_synced_or_gap_recorded",
+      "detail": "Chinese RQs=['RQ1/E1', 'RQ2/E2', 'RQ3/E3', 'RQ4/E4']; English RQs=[]; English read-only gap recorded=True",
       "passed": true
     },
     {
-      "check": "three_plus_one_stated_in_both_papers",
-      "detail": "Both drafts state E1-E3 as core empirical profiling experiments and E4 as replayability/scope-control.",
+      "check": "three_plus_one_stated_in_chinese_and_english_synced_or_gap_recorded",
+      "detail": "The Chinese draft states E1-E3 plus E4; the English draft is either synced or recorded by R405 as a read-only gap.",
       "passed": true
     },
     {
@@ -74,7 +74,7 @@
   "chinese_internal_style_hits": [],
   "data_sync": false,
   "human_or_agent_analyst_task": false,
-  "interpretation": "The current paper organization remains three empirical profiling experiments plus one replayability/scope-control block. R-numbered runs are ledger provenance, support, ablations, counterpoints, or scope checks, not main-paper mini-experiments.",
+  "interpretation": "The authoritative outer Chinese paper organization remains three empirical profiling experiments plus one replayability/scope-control block. R-numbered runs are ledger provenance, support, ablations, counterpoints, or scope checks, not main-paper mini-experiments. The English submodule is read-only in this worktree; R405 records the current sync gap separately.",
   "main_paper_internal_style_hits": [],
   "network_access_required": false,
   "paper_run_id_hits": [],
@@ -85,27 +85,27 @@
   "source_status": [
     {
       "path": "script/paper_current_three_plus_one_gate_r398.py",
-      "sha256": "35aa8519e31cb76d87f27ae742a1b4a1ff90b4f0a5762b4aae2f3ad4e40db07e",
+      "sha256": "b73e814405c6195aab4014688556a89caa4d3977df8330d6eacfd2ab803a96da",
       "source": "generator script",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/visexp/paper/main.tex",
-      "sha256": "4e06ef70f2128dcc1b606a4edeb854a2d64ac7841cdb452b76f2c95a9bcc11f5",
+      "sha256": "02b4ba0431b1d5e668a807a3aaa3318e0d86ce3888dcf7f721799a65d4a07dec",
       "source": "Chinese paper",
       "status": "tracked_dirty_allowed"
     },
     {
       "path": "docs/agentpprof-paper/main.tex",
-      "sha256": "80fe5b6a647d331d156ca63a2453a22d4264246c6542197da901ddd14e1ca28f",
+      "sha256": "d0cdbff3b1bef6b4aee1cd8c43a510785089d82ae8cc5a5f4c2a8b0c006ef969",
       "source": "English paper",
       "status": "tracked_clean"
     },
     {
       "path": "docs/evaluation.md",
-      "sha256": "42c37a071c3ae25a395707906fe26b084dcc8fddfd24a23fbe4b4a1e80f83c55",
+      "sha256": "4c0d4bf691ffdee990db3124a72586f235b93162beb55bc198f928a2f7ee718e",
       "source": "evaluation ledger",
-      "status": "tracked_dirty_allowed"
+      "status": "tracked_clean"
     },
     {
       "path": "docs/idea-story.md",
@@ -117,23 +117,29 @@
       "path": "docs/visexp/out/paper-main-claim-verdict-alignment-r395/run-result.json",
       "sha256": "e8316d9a455d4304f242be55e828d0a6edb8c7d64e699648411fc06d684eeba5",
       "source": "R395 claim/verdict alignment",
-      "status": "tracked_dirty_allowed"
+      "status": "tracked_clean"
     },
     {
       "path": "docs/visexp/out/paper-build-smoke-r396/run-result.json",
       "sha256": "0c6bda24862cfbfb09543970a7dcbe6409956df4d469b7b8df4f2753959b4a87",
       "source": "R396 paper build smoke",
-      "status": "tracked_dirty_allowed"
+      "status": "tracked_clean"
     },
     {
       "path": "docs/visexp/out/paper-main-body-run-ledger-r397/run-result.json",
       "sha256": "37294206a92091f8aea59d17f5a2ae0f205590d64e57a61a99ed20b1a36de559",
       "source": "R397 anti-run-ledger",
-      "status": "tracked_dirty_allowed"
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/paper-english-experiment-gap-audit-r405/english-experiment-gap-audit.json",
+      "sha256": "67c21b1dbfa2e983438b6615f496977b880371dc261306c574f48519f760c0a0",
+      "source": "R405 English read-only gap audit",
+      "status": "tracked_clean"
     },
     {
       "path": "docs/agentpprof-paper",
-      "sha256": "submodule_head=8856dfaba4c9918b364f4bb239c67a24ab8eb45f;parent_index=8856dfaba4c9918b364f4bb239c67a24ab8eb45f",
+      "sha256": "submodule_head=138b7a3ad3b6ae794ebf6c86ea94e8feaf8da86e;parent_index=b6672cbf3e2316af67b5312ca3f1d1dee32b9ab4",
       "source": "English paper submodule gitlink",
       "status": "tracked_dirty_allowed"
     }
@@ -149,12 +155,8 @@
       "RQ3/E3",
       "RQ4/E4"
     ],
-    "english_rq_subsections": [
-      "RQ1/E1",
-      "RQ2/E2",
-      "RQ3/E3",
-      "RQ4/E4"
-    ],
+    "english_read_only_gap_recorded": true,
+    "english_rq_subsections": [],
     "main_paper_internal_style_hits": 0,
     "main_paper_run_id_hits": 0,
     "paper_self_undercut_hits": 0
