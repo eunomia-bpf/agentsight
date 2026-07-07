@@ -45,7 +45,8 @@ AI agent 的执行历史已经不再只是一次 prompt 或一棵 trace tree。
 \opstack{} 是用户从字段中选择的递归投影，mapping 和 tagging 在 stack 构造前派生字段，而不是创建第三种 profiler 对象。
 当用户不想给出固定 stack 字段链时，\toolname{} 也可以从可见 evidence、semantic shift 和 query hint 中给相邻 operation boundary 打分，递归诱导多层 operation frames，再用 operation-only stack 折叠。
 关键点是聚合不是第三个对象，也不是固定 trace tree；聚合由 query time 选择的 stack 形态决定。
-这不是单纯的 query-time aggregation 或 flamegraph renderer claim；scoped novelty 是 agent-operation record、recursive multi-field operation-stack projection 和 hidden-label profile-group scoring 的组合。
+因此本文的新意不在单纯 query-time aggregation 或 flamegraph renderer。
+它在于把 agent operation record、递归多字段 operation-stack 投影和 hidden-label profile-group scoring 放进同一个 profiler 评估问题。
 我们在 Rust \toolname{} 中实现该模型，并围绕三个核心经验性 profiling 实验和一个 replayability/scope-control block 评估它。
 RQ1 验证泛化覆盖和递归 operation-stack 形成。
 在 15 个轻量采样的公开标注轨迹来源上，\toolname{} 把 47,590 个 samples 投影到同一 operation layer；同一批 13,265 个 operations 可以从 9 个 dataset stacks 折叠为 57 个 phase stacks、226 个 semantic stacks、455 个 action stacks，或 3,757 个 fixed-session stacks，而不改变输入 operation。
@@ -61,7 +62,7 @@ Executable profile-spec patches 在 5/6 tasks 上改善 AP、top-5 lift 和 firs
 Field-suitability synthesis 进一步把 mapping、stack-depth、rank-feature 和 boundary-field 证据变成 accept/caution/reject 配置决策。
 RQ4 验证 replayability、offline cost 和复现边界。
 76 个 profile specs 在 deterministic replay 下保持语义和 byte-level 输出稳定；local-session、agent-trace 和 standard-trace 输入都通过同一 operation-stack path 重放。
-RQ4 只说明离线证据可重放，并约束数字、source policy 和 claim scope，不作为第四个 empirical accuracy result。
+RQ4 只说明离线证据可重放，并约束数字、数据来源选择和主张边界，不作为第四个 empirical accuracy result。
 
 因此本文支持的是 scoped profiling claim：operation-stack profiling 能在公开真实标注 trace 的 dataset-provided hidden labels 下定位、排序和解释任务相关 failure、quality problem 和 dataset-provided semantic boundary，并相对 flat summary 减少 inspection work、相对 fixed-session drilldown proxy 改善 median fragmentation tradeoff。
 本文不声称提升 human productivity，不声称自动发现所有 intent boundary，不声称 metric dominance，也不声称完整兼容现有 trace ecosystem。
@@ -195,7 +196,7 @@ AgentNet 的 task status 很弱地预测 per-step correctness，repeat signal �
 这些反例说明 profiler 能承载诊断字段，但简单 mapping 不能替代专门质量模型。
 
 复现约束把论文 claim 连接回可重放结果。
-我们只把可重放 profile results 中已经存在的 numbers 和 source policy 写进 claims 与 limitations，并用 profile specs 固定 operation source、mapping、ranker、stack 和 deterministic output 选项。
+我们只把可重放 profile results 中已经存在的数字和数据来源选择写进论文主张与局限，并用 profile specs 固定 operation source、mapping、ranker、stack 和 deterministic output 选项。
 这个设置把 profiling paper 的主 claim 从“analyst 是否更快”改为“profiler 自身是否能在真实 workload 上相对 dataset-provided hidden labels 定位、排序并指导优化”。
 
 \subsection{Hierarchy ablation baselines}
@@ -239,7 +240,7 @@ Label-drilldown 是 oracle-aware upper-bound style view，它把 hidden label �
 RQ1 检查 operation generality、递归 stack folding、field derivation 和人工边界能否落在同一个两抽象模型中。
 RQ2 是 hidden-label localization/ranking 主实验。
 RQ3 用 ranker、stack、mapping、transfer、case 和 profile-spec patch 消融解释机制与 actionability。
-RQ4 检查 profile-spec 可复现性、离线成本和 claim scope。
+RQ4 检查 profile-spec 可复现性、离线成本和主张边界。
 这种组织方式让主文只保留能够支撑 claim 的比较、消融、反例和复现实验，其他分析只作为补充材料中的证据来源。
 
 \begin{table*}[t]
@@ -566,9 +567,9 @@ Rust profile-spec path 现在可以携带 \texttt{session\_files}、\texttt{trac
 表~\ref{tab:e4-replay-cost} 和表~\ref{tab:e4-determinism} 是 E4 的两个主显示。
 前者呈现 replayability/cost result，后者呈现 deterministic-output repair；表中的 labels 只标识 source-spec families，不是新的 accuracy 实验。
 
-除了两张主表，RQ4 还约束论文数字、source policy 和明确排除的 claims。
+除了两张主表，RQ4 还约束论文数字、数据来源选择和明确排除的主张。
 这些一致性约束只核对已经报告的 profile results 和当前论文文本，不重新排名、不下载、不同步、不创建、不重标数据集、不重跑 profiler，也不运行 human/agent analyst task。
-上一节的 actionability 结论依赖这些可复现 profile specs 和 operation inputs；本节不重新验证 fidelity/accuracy、actionability 或 baseline tradeoff，只证明 reviewer 能重放这些 specs，并核对 reported numbers、source policy 和 claim boundaries。
+上一节的 actionability 结论依赖这些可复现 profile specs 和 operation inputs；本节不重新验证 fidelity/accuracy、actionability 或 baseline tradeoff，只证明 reviewer 能重放这些 specs，并核对 reported numbers、数据来源选择和主张边界。
 因此 RQ4/E4 是 replayability/scope evidence，不是人工 analyst 主观解释、live overhead 或新的 profiler accuracy 结果。
 
 \begin{table}[t]
@@ -604,7 +605,7 @@ Rust profile-spec path 现在可以携带 \texttt{session\_files}、\texttt{trac
 \end{table}
 
 E4 的辅助材料只约束正文和可重放结果的一致性。
-它们把 claim wording、source policy、non-claims 和 operation/operation-stack boundary 对齐到 replayed profiles。
+它们把论文主张、数据来源选择、明确排除的结论和 operation/operation-stack 边界对齐到 replayed profiles。
 这些材料帮助 reviewer 判断 paper 是否把证据写过头，但不增加 localization、actionability 或 overhead claim。
 辅助 displays 可以支持 E1--E4，但不会形成额外主实验。
 
@@ -687,7 +688,7 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld/OSWorld-Human、OpenCUA/AgentNet、SA
 	这说明 trace 可以作为 exchange container，但不证明完整 OpenTelemetry/Chrome trace-ecosystem、Perfetto producer 或图像密集 benchmark 兼容。
 
 		第四，E4 是复现和范围控制结果，不是额外的 profiler accuracy 结果。
-		Replay、reported-number alignment、source policy 和 two-abstraction wording 让正文没有越过已有实证结果。
+		Replay、数字对齐、数据来源选择和两个抽象的表述约束让正文没有越过已有实证结果。
 		如果采样或 oracle 本身有偏差，E4 能暴露不一致并迫使 claim 收窄，但不能消除偏差。
 		因此本文最终主张应固定为 two-abstraction mechanism 和 hidden-label profiler fidelity/work tradeoff，而不是 universal fixed-session dominance、automatic anomaly detection 或完整 human utility。
 
@@ -709,13 +710,18 @@ WebLINX、Mind2Web、GUI-Odyssey、OSWorld/OSWorld-Human、OpenCUA/AgentNet、SA
 		Diagnostic lenses、case views、baseline contrasts、action counterfactuals 和 held-out transfer results 说明 profiler 暴露的是可调分析 surface，而不是 automatic universal selector。
 	Executable profile-spec patch 进一步证明这种 profile-configuration actionability 可以落到 Rust profiler 配置上：5/6 patches 改善 AP、top-5 lift 和 first-positive work；OSWorld-Human reject 再由 boundary-derived operation fields 改善 AP 和 groups，但保留 work 反例。
 
-	因此本文的新意不在单个 flamegraph，而在两个抽象形成的统一接口。
-	它也不在通用 query-time aggregation、trace schema 或 observability dashboard 本身；这些能力已经由 pprof、Perfetto、OpenTelemetry/OpenInference 和 LLM observability systems 覆盖到不同程度。
-	Mapping、tagging、profile specs、agent-session trace、Chrome/Perfetto-style trace exchange 和 boundary backends 都只围绕 operation fields 与 operation-stack queries 工作。
-	它们让用户和实验者能在同一批 operations 上选择不同 view、派生不同 fields、折叠不同深度，并审计每个 claim 的证据来源。
-	当前 value claim 是相对 dataset-provided hidden labels 的 profiler fidelity、label-scored ranking/localization、inspection-cost/fragmentation tradeoff 和 profile-configuration actionability；不是 detector、human utility、baseline dominance、automatic patch selector 或 ecosystem compatibility。
-	下一步不应无差别增加数据集，而应沿两个方向提高 claim 强度：一是把 field-derivation backend 做到跨家族 calibration 并稳定胜过简单 sequence-derived baselines，二是在已有或新增真实 trace 中补更强的 instruction-step、solution-path 或 human subtask oracle；只有在要写 ecosystem baseline claim 时才导入真实 OTel/Phoenix/LangSmith/Langfuse/Perfetto span-tree trace。
-	Controlled human 或 agent analyst study 可以作为后续增强，但不再是本文主 profiling claim 的前置条件。
+	因此本文的新意不在单个 flamegraph，而在把 agent 轨迹先统一成 operations，再把边界选择推迟到 operation-stack 查询。
+	这个接口与 pprof、Perfetto、OpenTelemetry/OpenInference 和 LLM observability systems 互补，因为它不重新定义通用 trace schema，也不把 dashboard 当作贡献。
+	所有扩展都先写回 operation fields，再由同一 operation-stack query 折叠，包括 mapping/tagging、profile spec、agent-session trace、Chrome/Perfetto-style trace exchange 和 boundary-derived fields。
+	这样的限制让同一批 operations 可以按不同问题选择 view、派生字段和折叠深度，也让读者看到每个数字对应哪一类证据。
+	当前可写入论文的价值主张只覆盖相对 dataset-provided hidden labels 的 profiler fidelity、label-scored ranking/localization、inspection-cost/fragmentation tradeoff 和 profile-configuration actionability。
+	它不覆盖 detector、human utility、baseline dominance、automatic patch selector 或 ecosystem compatibility。
+	后续增强不应该无差别增加数据集。
+	更有价值的方向有两个。
+	第一，field-derivation backend 需要跨家族 calibration，并稳定胜过简单 sequence-derived baselines。
+	第二，我们需要在已有或新增真实 trace 中补更强的 instruction-step、solution-path 或 human subtask oracle。
+	只有当论文要提出 ecosystem-baseline 主张时，才应该导入真实 OTel/Phoenix/LangSmith/Langfuse/Perfetto span-tree trace。
+	Controlled human 或 agent analyst study 可以作为后续增强，但不是本文主 profiling claim 的前置条件。
 
 \vspace{-0.8em}
 \section*{参考文献}
