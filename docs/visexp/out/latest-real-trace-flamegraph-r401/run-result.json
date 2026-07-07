@@ -1,0 +1,710 @@
+{
+  "checks": {
+    "drilldown_adds_session": true,
+    "drilldown_matches_agentreward_count": true,
+    "no_hidden_label_stack_frames": true,
+    "overview_avoids_session_fragmentation": true,
+    "overview_is_less_fragmented_than_drilldown": true,
+    "overview_matches_agentreward_count": true,
+    "single_benchmark_filter": true,
+    "uses_tracked_real_trace": true
+  },
+  "filter": "dataset=agent-reward-bench",
+  "run_id": "R401",
+  "source": "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl",
+  "status": "pass",
+  "views": {
+    "agentreward-overview": {
+      "outputs": {
+        "folded": "agentreward-overview.folded",
+        "png": "agentreward-overview.png",
+        "profile_json": "agentreward-overview.profile.json",
+        "svg": "agentreward-overview.svg"
+      },
+      "statuses": {
+        "folded": {
+          "command": [
+            "cargo",
+            "run",
+            "--manifest-path",
+            "agentpprof/Cargo.toml",
+            "--",
+            "--operation-file",
+            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl",
+            "--view",
+            "operations",
+            "--format",
+            "folded",
+            "--output",
+            "docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-overview.folded",
+            "--where",
+            "dataset=agent-reward-bench",
+            "--stack",
+            "source,dataset,analysis_task,phase,tool,action,status",
+            "--deterministic-output"
+          ],
+          "deterministic_output": true,
+          "format": "folded",
+          "op_map_files": [],
+          "op_maps": [],
+          "operation_files": [
+            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl"
+          ],
+          "operations": 34539,
+          "output": "docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-overview.folded",
+          "profile_specs": [],
+          "rank_mode": "width-boost",
+          "rank_op_rules": [],
+          "rank_rules": [],
+          "sample_type": "operations",
+          "samples": 1458,
+          "stack": "source,dataset,analysis_task,phase,tool,action,status",
+          "stack_rules": [],
+          "standard_trace_events": null,
+          "standard_trace_format": null,
+          "standard_trace_output": null,
+          "status": "ok",
+          "unique_stacks": 28,
+          "unit": "count",
+          "view": "operations",
+          "warnings": [],
+          "where_rules": [
+            "dataset=agent-reward-bench"
+          ]
+        },
+        "profile_json": {
+          "command": [
+            "cargo",
+            "run",
+            "--manifest-path",
+            "agentpprof/Cargo.toml",
+            "--",
+            "--operation-file",
+            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl",
+            "--view",
+            "operations",
+            "--format",
+            "json",
+            "--output",
+            "docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-overview.profile.json",
+            "--where",
+            "dataset=agent-reward-bench",
+            "--stack",
+            "source,dataset,analysis_task,phase,tool,action,status",
+            "--deterministic-output"
+          ],
+          "deterministic_output": true,
+          "format": "json",
+          "op_map_files": [],
+          "op_maps": [],
+          "operation_files": [
+            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl"
+          ],
+          "operations": 34539,
+          "output": "docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-overview.profile.json",
+          "profile_specs": [],
+          "rank_mode": "width-boost",
+          "rank_op_rules": [],
+          "rank_rules": [],
+          "sample_type": "operations",
+          "samples": 1458,
+          "stack": "source,dataset,analysis_task,phase,tool,action,status",
+          "stack_rules": [],
+          "standard_trace_events": null,
+          "standard_trace_format": null,
+          "standard_trace_output": null,
+          "status": "ok",
+          "unique_stacks": 28,
+          "unit": "count",
+          "view": "operations",
+          "warnings": [],
+          "where_rules": [
+            "dataset=agent-reward-bench"
+          ]
+        },
+        "svg": {
+          "command": [
+            "cargo",
+            "run",
+            "--manifest-path",
+            "agentpprof/Cargo.toml",
+            "--",
+            "--operation-file",
+            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl",
+            "--view",
+            "operations",
+            "--format",
+            "svg",
+            "--output",
+            "docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-overview.svg",
+            "--where",
+            "dataset=agent-reward-bench",
+            "--stack",
+            "source,dataset,analysis_task,phase,tool,action,status",
+            "--deterministic-output",
+            "--svg-width",
+            "1600"
+          ],
+          "deterministic_output": true,
+          "format": "svg",
+          "op_map_files": [],
+          "op_maps": [],
+          "operation_files": [
+            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl"
+          ],
+          "operations": 34539,
+          "output": "docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-overview.svg",
+          "profile_specs": [],
+          "rank_mode": "width-boost",
+          "rank_op_rules": [],
+          "rank_rules": [],
+          "sample_type": "operations",
+          "samples": 1458,
+          "stack": "source,dataset,analysis_task,phase,tool,action,status",
+          "stack_rules": [],
+          "standard_trace_events": null,
+          "standard_trace_format": null,
+          "standard_trace_output": null,
+          "status": "ok",
+          "unique_stacks": 28,
+          "unit": "count",
+          "view": "operations",
+          "warnings": [],
+          "where_rules": [
+            "dataset=agent-reward-bench"
+          ]
+        }
+      },
+      "summary": {
+        "compression_ratio": 52.071,
+        "hidden_label_fields_in_stack": [],
+        "max_stack_reuse": 451,
+        "operations": 1458,
+        "purpose": "A readable benchmark-level workload-shape view without per-session fragmentation.",
+        "stack": "source,dataset,analysis_task,phase,tool,action,status",
+        "title": "AgentReward overview",
+        "top_by_field": {
+          "action": [
+            [
+              "click",
+              924
+            ],
+            [
+              "fill",
+              218
+            ],
+            [
+              "send_msg_to_user",
+              80
+            ],
+            [
+              "hover",
+              54
+            ],
+            [
+              "select_option",
+              50
+            ],
+            [
+              "scroll",
+              38
+            ],
+            [
+              "goto",
+              28
+            ],
+            [
+              "go_back",
+              26
+            ],
+            [
+              "noop",
+              16
+            ],
+            [
+              "report_infeasible",
+              16
+            ]
+          ],
+          "analysis_task": [
+            [
+              "agentreward_looping",
+              729
+            ],
+            [
+              "agentreward_side_effect",
+              729
+            ]
+          ],
+          "dataset": [
+            [
+              "agent-reward-bench",
+              1458
+            ]
+          ],
+          "phase": [
+            [
+              "navigate",
+              1070
+            ],
+            [
+              "input",
+              220
+            ],
+            [
+              "finish",
+              96
+            ],
+            [
+              "browser-action",
+              56
+            ],
+            [
+              "observe",
+              16
+            ]
+          ],
+          "source": [
+            [
+              "mcgill-nlp/agent-reward-bench",
+              1458
+            ]
+          ],
+          "status": [
+            [
+              "failure",
+              1428
+            ],
+            [
+              "success",
+              30
+            ]
+          ]
+        },
+        "top_stacks": [
+          {
+            "matched_rank_rules": [],
+            "rank_score": 451.0,
+            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;phase:navigate;tool:browser;action:click;status:failure",
+            "weight": 451
+          },
+          {
+            "matched_rank_rules": [],
+            "rank_score": 451.0,
+            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;phase:navigate;tool:browser;action:click;status:failure",
+            "weight": 451
+          },
+          {
+            "matched_rank_rules": [],
+            "rank_score": 109.0,
+            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;phase:input;tool:browser;action:fill;status:failure",
+            "weight": 109
+          },
+          {
+            "matched_rank_rules": [],
+            "rank_score": 109.0,
+            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;phase:input;tool:browser;action:fill;status:failure",
+            "weight": 109
+          },
+          {
+            "matched_rank_rules": [],
+            "rank_score": 36.0,
+            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;phase:finish;tool:browser;action:send_msg_to_user;status:failure",
+            "weight": 36
+          },
+          {
+            "matched_rank_rules": [],
+            "rank_score": 36.0,
+            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;phase:finish;tool:browser;action:send_msg_to_user;status:failure",
+            "weight": 36
+          },
+          {
+            "matched_rank_rules": [],
+            "rank_score": 27.0,
+            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;phase:navigate;tool:browser;action:hover;status:failure",
+            "weight": 27
+          },
+          {
+            "matched_rank_rules": [],
+            "rank_score": 27.0,
+            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;phase:navigate;tool:browser;action:hover;status:failure",
+            "weight": 27
+          },
+          {
+            "matched_rank_rules": [],
+            "rank_score": 25.0,
+            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;phase:browser-action;tool:browser;action:select_option;status:failure",
+            "weight": 25
+          },
+          {
+            "matched_rank_rules": [],
+            "rank_score": 25.0,
+            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;phase:browser-action;tool:browser;action:select_option;status:failure",
+            "weight": 25
+          },
+          {
+            "matched_rank_rules": [],
+            "rank_score": 19.0,
+            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;phase:navigate;tool:browser;action:scroll;status:failure",
+            "weight": 19
+          },
+          {
+            "matched_rank_rules": [],
+            "rank_score": 19.0,
+            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;phase:navigate;tool:browser;action:scroll;status:failure",
+            "weight": 19
+          }
+        ],
+        "unique_stacks": 28,
+        "view": "agentreward-overview",
+        "where": "dataset=agent-reward-bench"
+      }
+    },
+    "agentreward-session-drilldown": {
+      "outputs": {
+        "folded": "agentreward-session-drilldown.folded",
+        "png": "agentreward-session-drilldown.png",
+        "profile_json": "agentreward-session-drilldown.profile.json",
+        "svg": "agentreward-session-drilldown.svg"
+      },
+      "statuses": {
+        "folded": {
+          "command": [
+            "cargo",
+            "run",
+            "--manifest-path",
+            "agentpprof/Cargo.toml",
+            "--",
+            "--operation-file",
+            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl",
+            "--view",
+            "operations",
+            "--format",
+            "folded",
+            "--output",
+            "docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-session-drilldown.folded",
+            "--where",
+            "dataset=agent-reward-bench",
+            "--stack",
+            "source,dataset,analysis_task,session,phase,tool,action,status",
+            "--deterministic-output"
+          ],
+          "deterministic_output": true,
+          "format": "folded",
+          "op_map_files": [],
+          "op_maps": [],
+          "operation_files": [
+            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl"
+          ],
+          "operations": 34539,
+          "output": "docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-session-drilldown.folded",
+          "profile_specs": [],
+          "rank_mode": "width-boost",
+          "rank_op_rules": [],
+          "rank_rules": [],
+          "sample_type": "operations",
+          "samples": 1458,
+          "stack": "source,dataset,analysis_task,session,phase,tool,action,status",
+          "stack_rules": [],
+          "standard_trace_events": null,
+          "standard_trace_format": null,
+          "standard_trace_output": null,
+          "status": "ok",
+          "unique_stacks": 170,
+          "unit": "count",
+          "view": "operations",
+          "warnings": [],
+          "where_rules": [
+            "dataset=agent-reward-bench"
+          ]
+        },
+        "profile_json": {
+          "command": [
+            "cargo",
+            "run",
+            "--manifest-path",
+            "agentpprof/Cargo.toml",
+            "--",
+            "--operation-file",
+            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl",
+            "--view",
+            "operations",
+            "--format",
+            "json",
+            "--output",
+            "docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-session-drilldown.profile.json",
+            "--where",
+            "dataset=agent-reward-bench",
+            "--stack",
+            "source,dataset,analysis_task,session,phase,tool,action,status",
+            "--deterministic-output"
+          ],
+          "deterministic_output": true,
+          "format": "json",
+          "op_map_files": [],
+          "op_maps": [],
+          "operation_files": [
+            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl"
+          ],
+          "operations": 34539,
+          "output": "docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-session-drilldown.profile.json",
+          "profile_specs": [],
+          "rank_mode": "width-boost",
+          "rank_op_rules": [],
+          "rank_rules": [],
+          "sample_type": "operations",
+          "samples": 1458,
+          "stack": "source,dataset,analysis_task,session,phase,tool,action,status",
+          "stack_rules": [],
+          "standard_trace_events": null,
+          "standard_trace_format": null,
+          "standard_trace_output": null,
+          "status": "ok",
+          "unique_stacks": 170,
+          "unit": "count",
+          "view": "operations",
+          "warnings": [],
+          "where_rules": [
+            "dataset=agent-reward-bench"
+          ]
+        },
+        "svg": {
+          "command": [
+            "cargo",
+            "run",
+            "--manifest-path",
+            "agentpprof/Cargo.toml",
+            "--",
+            "--operation-file",
+            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl",
+            "--view",
+            "operations",
+            "--format",
+            "svg",
+            "--output",
+            "docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-session-drilldown.svg",
+            "--where",
+            "dataset=agent-reward-bench",
+            "--stack",
+            "source,dataset,analysis_task,session,phase,tool,action,status",
+            "--deterministic-output",
+            "--svg-width",
+            "1600"
+          ],
+          "deterministic_output": true,
+          "format": "svg",
+          "op_map_files": [],
+          "op_maps": [],
+          "operation_files": [
+            "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl"
+          ],
+          "operations": 34539,
+          "output": "docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-session-drilldown.svg",
+          "profile_specs": [],
+          "rank_mode": "width-boost",
+          "rank_op_rules": [],
+          "rank_rules": [],
+          "sample_type": "operations",
+          "samples": 1458,
+          "stack": "source,dataset,analysis_task,session,phase,tool,action,status",
+          "stack_rules": [],
+          "standard_trace_events": null,
+          "standard_trace_format": null,
+          "standard_trace_output": null,
+          "status": "ok",
+          "unique_stacks": 170,
+          "unit": "count",
+          "view": "operations",
+          "warnings": [],
+          "where_rules": [
+            "dataset=agent-reward-bench"
+          ]
+        }
+      },
+      "summary": {
+        "compression_ratio": 8.576,
+        "hidden_label_fields_in_stack": [],
+        "max_stack_reuse": 61,
+        "operations": 1458,
+        "purpose": "A deeper view that adds session only after the benchmark overview is readable.",
+        "stack": "source,dataset,analysis_task,session,phase,tool,action,status",
+        "title": "AgentReward session drilldown",
+        "top_by_field": {
+          "action": [
+            [
+              "click",
+              924
+            ],
+            [
+              "fill",
+              218
+            ],
+            [
+              "send_msg_to_user",
+              80
+            ],
+            [
+              "hover",
+              54
+            ],
+            [
+              "select_option",
+              50
+            ],
+            [
+              "scroll",
+              38
+            ],
+            [
+              "goto",
+              28
+            ],
+            [
+              "go_back",
+              26
+            ],
+            [
+              "noop",
+              16
+            ],
+            [
+              "report_infeasible",
+              16
+            ]
+          ],
+          "analysis_task": [
+            [
+              "agentreward_looping",
+              729
+            ],
+            [
+              "agentreward_side_effect",
+              729
+            ]
+          ],
+          "dataset": [
+            [
+              "agent-reward-bench",
+              1458
+            ]
+          ],
+          "phase": [
+            [
+              "navigate",
+              1070
+            ],
+            [
+              "input",
+              220
+            ],
+            [
+              "finish",
+              96
+            ],
+            [
+              "browser-action",
+              56
+            ],
+            [
+              "observe",
+              16
+            ]
+          ],
+          "source": [
+            [
+              "mcgill-nlp/agent-reward-bench",
+              1458
+            ]
+          ],
+          "status": [
+            [
+              "failure",
+              1428
+            ],
+            [
+              "success",
+              30
+            ]
+          ]
+        },
+        "top_stacks": [
+          {
+            "matched_rank_rules": [],
+            "rank_score": 61.0,
+            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;session:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2;phase:navigate;tool:browser;action:click;status:failure",
+            "weight": 61
+          },
+          {
+            "matched_rank_rules": [],
+            "rank_score": 61.0,
+            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;session:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2;phase:navigate;tool:browser;action:click;status:failure",
+            "weight": 61
+          },
+          {
+            "matched_rank_rules": [],
+            "rank_score": 60.0,
+            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;session:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;phase:navigate;tool:browser;action:click;status:failure",
+            "weight": 60
+          },
+          {
+            "matched_rank_rules": [],
+            "rank_score": 60.0,
+            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;session:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;phase:navigate;tool:browser;action:click;status:failure",
+            "weight": 60
+          },
+          {
+            "matched_rank_rules": [],
+            "rank_score": 32.0,
+            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;session:visualwebarena.resized.580;phase:navigate;tool:browser;action:click;status:failure",
+            "weight": 32
+          },
+          {
+            "matched_rank_rules": [],
+            "rank_score": 32.0,
+            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;session:visualwebarena.resized.580;phase:navigate;tool:browser;action:click;status:failure",
+            "weight": 32
+          },
+          {
+            "matched_rank_rules": [],
+            "rank_score": 30.0,
+            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;session:workarena.servicenow.dashboard-retrieve-catalog-and-max-order-apple-watch-l2;phase:navigate;tool:browser;action:click;status:failure",
+            "weight": 30
+          },
+          {
+            "matched_rank_rules": [],
+            "rank_score": 30.0,
+            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;session:workarena.servicenow.dashboard-retrieve-catalog-and-max-order-apple-watch-l2;phase:navigate;tool:browser;action:click;status:failure",
+            "weight": 30
+          },
+          {
+            "matched_rank_rules": [],
+            "rank_score": 28.0,
+            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;session:visualwebarena.76;phase:navigate;tool:browser;action:click;status:failure",
+            "weight": 28
+          },
+          {
+            "matched_rank_rules": [],
+            "rank_score": 28.0,
+            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;session:workarena.servicenow.two-changes-wide-basic-varied-risk-change-request-scheduling-l2;phase:navigate;tool:browser;action:click;status:failure",
+            "weight": 28
+          },
+          {
+            "matched_rank_rules": [],
+            "rank_score": 28.0,
+            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;session:visualwebarena.76;phase:navigate;tool:browser;action:click;status:failure",
+            "weight": 28
+          },
+          {
+            "matched_rank_rules": [],
+            "rank_score": 28.0,
+            "stack": "source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;session:workarena.servicenow.two-changes-wide-basic-varied-risk-change-request-scheduling-l2;phase:navigate;tool:browser;action:click;status:failure",
+            "weight": 28
+          }
+        ],
+        "unique_stacks": 170,
+        "view": "agentreward-session-drilldown",
+        "where": "dataset=agent-reward-bench"
+      }
+    }
+  }
+}

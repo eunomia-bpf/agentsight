@@ -1,0 +1,95 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>R401 AgentReward Operation-Stack Flamegraphs</title>
+<style>
+body { font-family: system-ui, sans-serif; margin: 24px; color: #1f2933; }
+h1, h2, h3 { margin-bottom: 0.3rem; }
+p { max-width: 980px; line-height: 1.45; }
+table { border-collapse: collapse; margin: 12px 0 24px; width: 100%; }
+th, td { border: 1px solid #d8dee9; padding: 6px 8px; vertical-align: top; font-size: 13px; }
+th { background: #eef2f7; text-align: left; }
+.metric { display: inline-block; margin-right: 18px; font-weight: 650; }
+iframe { width: 100%; height: 420px; border: 1px solid #d8dee9; }
+code { background: #eef2f7; padding: 1px 4px; border-radius: 4px; }
+section { margin-bottom: 42px; }
+</style>
+<h1>R401 AgentReward Operation-Stack Flamegraphs</h1>
+<p>The profiler folds one real benchmark slice from the tracked R300 operation
+file. This avoids mixing unrelated benchmarks and shows why stack depth is a
+profile choice: the overview gives a compact benchmark structure, while the
+session drilldown adds session frames only when the reader wants deeper detail.</p>
+<p><strong>Source:</strong> <code>docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl</code><br>
+<strong>Filter:</strong> <code>dataset=agent-reward-bench</code></p>
+
+<section>
+<h2>AgentReward overview</h2>
+<p>A readable benchmark-level workload-shape view without per-session fragmentation.</p>
+<p>
+<span class="metric">operations: 1458</span>
+<span class="metric">unique stacks: 28</span>
+<span class="metric">hidden label fields in stack: 0</span>
+</p>
+<p><code>source,dataset,analysis_task,phase,tool,action,status</code></p>
+<iframe src="agentreward-overview.svg"></iframe>
+<h3>Analysis Tasks</h3>
+<table><thead><tr><th>analysis task</th><th>operations</th></tr></thead><tbody><tr><td>agentreward_looping</td><td>729</td></tr>
+<tr><td>agentreward_side_effect</td><td>729</td></tr></tbody></table>
+<h3>Phases</h3>
+<table><thead><tr><th>phase</th><th>operations</th></tr></thead><tbody><tr><td>navigate</td><td>1070</td></tr>
+<tr><td>input</td><td>220</td></tr>
+<tr><td>finish</td><td>96</td></tr>
+<tr><td>browser-action</td><td>56</td></tr>
+<tr><td>observe</td><td>16</td></tr></tbody></table>
+<h3>Top Stacks</h3>
+<table><thead><tr><th>weight</th><th>stack</th></tr></thead><tbody><tr><td>451</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;phase:navigate;tool:browser;action:click;status:failure</td></tr>
+<tr><td>451</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;phase:navigate;tool:browser;action:click;status:failure</td></tr>
+<tr><td>109</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;phase:input;tool:browser;action:fill;status:failure</td></tr>
+<tr><td>109</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;phase:input;tool:browser;action:fill;status:failure</td></tr>
+<tr><td>36</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;phase:finish;tool:browser;action:send_msg_to_user;status:failure</td></tr>
+<tr><td>36</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;phase:finish;tool:browser;action:send_msg_to_user;status:failure</td></tr>
+<tr><td>27</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;phase:navigate;tool:browser;action:hover;status:failure</td></tr>
+<tr><td>27</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;phase:navigate;tool:browser;action:hover;status:failure</td></tr>
+<tr><td>25</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;phase:browser-action;tool:browser;action:select_option;status:failure</td></tr>
+<tr><td>25</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;phase:browser-action;tool:browser;action:select_option;status:failure</td></tr></tbody></table>
+<h3>Replay Commands</h3>
+<table><thead><tr><th>output</th><th>command</th></tr></thead><tbody><tr><td>svg</td><td>cargo run --manifest-path agentpprof/Cargo.toml -- --operation-file docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl --view operations --format svg --output docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-overview.svg --where dataset=agent-reward-bench --stack source,dataset,analysis_task,phase,tool,action,status --deterministic-output --svg-width 1600</td></tr>
+<tr><td>folded</td><td>cargo run --manifest-path agentpprof/Cargo.toml -- --operation-file docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl --view operations --format folded --output docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-overview.folded --where dataset=agent-reward-bench --stack source,dataset,analysis_task,phase,tool,action,status --deterministic-output</td></tr>
+<tr><td>profile_json</td><td>cargo run --manifest-path agentpprof/Cargo.toml -- --operation-file docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl --view operations --format json --output docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-overview.profile.json --where dataset=agent-reward-bench --stack source,dataset,analysis_task,phase,tool,action,status --deterministic-output</td></tr></tbody></table>
+</section>
+
+<section>
+<h2>AgentReward session drilldown</h2>
+<p>A deeper view that adds session only after the benchmark overview is readable.</p>
+<p>
+<span class="metric">operations: 1458</span>
+<span class="metric">unique stacks: 170</span>
+<span class="metric">hidden label fields in stack: 0</span>
+</p>
+<p><code>source,dataset,analysis_task,session,phase,tool,action,status</code></p>
+<iframe src="agentreward-session-drilldown.svg"></iframe>
+<h3>Analysis Tasks</h3>
+<table><thead><tr><th>analysis task</th><th>operations</th></tr></thead><tbody><tr><td>agentreward_looping</td><td>729</td></tr>
+<tr><td>agentreward_side_effect</td><td>729</td></tr></tbody></table>
+<h3>Phases</h3>
+<table><thead><tr><th>phase</th><th>operations</th></tr></thead><tbody><tr><td>navigate</td><td>1070</td></tr>
+<tr><td>input</td><td>220</td></tr>
+<tr><td>finish</td><td>96</td></tr>
+<tr><td>browser-action</td><td>56</td></tr>
+<tr><td>observe</td><td>16</td></tr></tbody></table>
+<h3>Top Stacks</h3>
+<table><thead><tr><th>weight</th><th>stack</th></tr></thead><tbody><tr><td>61</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;session:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2;phase:navigate;tool:browser;action:click;status:failure</td></tr>
+<tr><td>61</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;session:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-l2;phase:navigate;tool:browser;action:click;status:failure</td></tr>
+<tr><td>60</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;session:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;phase:navigate;tool:browser;action:click;status:failure</td></tr>
+<tr><td>60</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;session:workarena.servicenow.infeasible-navigate-and-order-loaner-laptop-with-reason-l2;phase:navigate;tool:browser;action:click;status:failure</td></tr>
+<tr><td>32</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;session:visualwebarena.resized.580;phase:navigate;tool:browser;action:click;status:failure</td></tr>
+<tr><td>32</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;session:visualwebarena.resized.580;phase:navigate;tool:browser;action:click;status:failure</td></tr>
+<tr><td>30</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;session:workarena.servicenow.dashboard-retrieve-catalog-and-max-order-apple-watch-l2;phase:navigate;tool:browser;action:click;status:failure</td></tr>
+<tr><td>30</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_side_effect;session:workarena.servicenow.dashboard-retrieve-catalog-and-max-order-apple-watch-l2;phase:navigate;tool:browser;action:click;status:failure</td></tr>
+<tr><td>28</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;session:visualwebarena.76;phase:navigate;tool:browser;action:click;status:failure</td></tr>
+<tr><td>28</td><td>source:mcgill-nlp/agent-reward-bench;dataset:agent-reward-bench;analysis_task:agentreward_looping;session:workarena.servicenow.two-changes-wide-basic-varied-risk-change-request-scheduling-l2;phase:navigate;tool:browser;action:click;status:failure</td></tr></tbody></table>
+<h3>Replay Commands</h3>
+<table><thead><tr><th>output</th><th>command</th></tr></thead><tbody><tr><td>svg</td><td>cargo run --manifest-path agentpprof/Cargo.toml -- --operation-file docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl --view operations --format svg --output docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-session-drilldown.svg --where dataset=agent-reward-bench --stack source,dataset,analysis_task,session,phase,tool,action,status --deterministic-output --svg-width 1600</td></tr>
+<tr><td>folded</td><td>cargo run --manifest-path agentpprof/Cargo.toml -- --operation-file docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl --view operations --format folded --output docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-session-drilldown.folded --where dataset=agent-reward-bench --stack source,dataset,analysis_task,session,phase,tool,action,status --deterministic-output</td></tr>
+<tr><td>profile_json</td><td>cargo run --manifest-path agentpprof/Cargo.toml -- --operation-file docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl --view operations --format json --output docs/visexp/out/latest-real-trace-flamegraph-r401/agentreward-session-drilldown.profile.json --where dataset=agent-reward-bench --stack source,dataset,analysis_task,session,phase,tool,action,status --deterministic-output</td></tr></tbody></table>
+</section>
+
