@@ -26,13 +26,135 @@
       "passed": true
     },
     {
+      "check": "tagger_gap_has_no_current_free_text_oracle",
+      "detail": "Scanned 6 tracked operation JSONL sources and 67304 rows; 0 rows had public free-form text fields, 60305 rows had oracle fields, and 0 rows had both.",
+      "passed": true
+    },
+    {
       "check": "two_abstraction_boundary_preserved",
       "detail": "R405 routes mappings, tags, predicates, rankers, and profile specs back to the two profiler abstractions.",
       "passed": true
     }
   ],
-  "generated_at": "2026-07-07T22:57:18Z",
-  "git_commit": "d75ae3bd1eddc7bfb750ecd8418b23ca9b201a09",
+  "generated_at": "2026-07-07T23:00:59Z",
+  "git_commit": "e34079bcefa2e00b15cb82f324922ebed1870b7c",
+  "operation_text_oracle_scan": {
+    "sources": [
+      {
+        "categorical_task_values": [
+          "desktop-computer-use"
+        ],
+        "free_text_fields": [],
+        "oracle_fields": [
+          "step_correct",
+          "step_redundant"
+        ],
+        "path": "docs/visexp/out/external-agent-trace-agentnet-r291/agentnet-operations.jsonl",
+        "rows": 16741,
+        "rows_with_both": 0,
+        "rows_with_free_text": 0,
+        "rows_with_oracle": 16741,
+        "source": "AgentNet operations"
+      },
+      {
+        "categorical_task_values": [
+          "web-agent-eval"
+        ],
+        "free_text_fields": [],
+        "oracle_fields": [
+          "looping",
+          "side_effect"
+        ],
+        "path": "docs/visexp/out/external-agent-trace-agentreward-r288/agentreward-operations.jsonl",
+        "rows": 729,
+        "rows_with_both": 0,
+        "rows_with_free_text": 0,
+        "rows_with_oracle": 729,
+        "source": "AgentRewardBench operations"
+      },
+      {
+        "categorical_task_values": [
+          "desktop-computer-use"
+        ],
+        "free_text_fields": [],
+        "oracle_fields": [
+          "group_pattern",
+          "group_position",
+          "human_group"
+        ],
+        "path": "docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-operations.jsonl",
+        "rows": 6010,
+        "rows_with_both": 0,
+        "rows_with_free_text": 0,
+        "rows_with_oracle": 4011,
+        "source": "OSWorld-Human operations"
+      },
+      {
+        "categorical_task_values": [
+          "desktop-computer-use"
+        ],
+        "free_text_fields": [],
+        "oracle_fields": [
+          "attack_type",
+          "safety"
+        ],
+        "path": "docs/visexp/out/external-agent-trace-satraj-r289/satraj-operations.jsonl",
+        "rows": 4285,
+        "rows_with_both": 0,
+        "rows_with_free_text": 0,
+        "rows_with_oracle": 4285,
+        "source": "SATraj-OS operations"
+      },
+      {
+        "categorical_task_values": [
+          "desktop-computer-use"
+        ],
+        "free_text_fields": [],
+        "oracle_fields": [],
+        "path": "docs/visexp/out/external-agent-trace-scalecua-r292/scalecua-operations.jsonl",
+        "rows": 5000,
+        "rows_with_both": 0,
+        "rows_with_free_text": 0,
+        "rows_with_oracle": 0,
+        "source": "ScaleCUA operations"
+      },
+      {
+        "categorical_task_values": [
+          "desktop-computer-use",
+          "web-agent-eval"
+        ],
+        "free_text_fields": [],
+        "oracle_fields": [
+          "attack_type",
+          "group_pattern",
+          "group_position",
+          "human_group",
+          "looping",
+          "problem_oracle",
+          "problem_value",
+          "safety",
+          "side_effect",
+          "step_correct",
+          "step_redundant",
+          "target_positive"
+        ],
+        "path": "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl",
+        "rows": 34539,
+        "rows_with_both": 0,
+        "rows_with_free_text": 0,
+        "rows_with_oracle": 34539,
+        "source": "R300 query utility operations"
+      }
+    ],
+    "summary": {
+      "has_same_input_free_text_oracle": false,
+      "rows": 67304,
+      "rows_with_both": 0,
+      "rows_with_free_text": 0,
+      "rows_with_oracle": 60305,
+      "sources": 6
+    }
+  },
   "rows": [
     {
       "claim_or_gap": "English draft still presents three RQs, while the outer paper/evaluation ledger uses three empirical profiling experiments plus one replayability/scope-control block.",
@@ -46,7 +168,7 @@
     {
       "claim_or_gap": "Operation-stack groups localize dataset-provided hidden positives with less flat-summary inspection work and less fixed-session fragmentation.",
       "claim_rule": "Claim profiler localization/ranking fidelity against hidden labels, not human analyst accuracy or universal dominance.",
-      "english_line": "127",
+      "english_line": "128",
       "next_action": "Use as the main profiling-paper claim; keep flat/fixed-session counterpoints visible.",
       "outer_evidence": "R320/R344/R355/R368: 6 tasks, 34,539 operations, 3,699 positives; Work@5 0.0937 vs flat 1.0; median groups 157.5 vs fixed-session 285.0; metric counterpoints preserved.",
       "paper_area": "Fidelity / localization",
@@ -55,7 +177,7 @@
     {
       "claim_or_gap": "Profiler output can guide profile-configuration changes: stack fields, rank features, mapping rules, depth, and boundary-derived fields.",
       "claim_rule": "Actionability is 'what to tune and why', not an automatic optimizer.",
-      "english_line": "748",
+      "english_line": "749",
       "next_action": "Write actionability as configuration insight, not automatic patch selection or agent-driven diagnosis.",
       "outer_evidence": "R324/R325/R335/R340/R341/R345-R350/R354/R358/R366/R400 provide feature, patch, boundary, and suitability evidence; R354 has 5/6 accepted executable profile-spec patches.",
       "paper_area": "Actionability",
@@ -64,16 +186,16 @@
     {
       "claim_or_gap": "Direct regex-vs-embedding-vs-LLM tagger comparison on the same free-form prompts remains future work.",
       "claim_rule": "Mapping/tagging are operation-field derivation mechanisms; they are not evidence of universal intent recognition.",
-      "english_line": "674",
+      "english_line": "675",
       "next_action": "Do not claim LLM/regex/embedding tagger accuracy until a same-input evaluation exists.",
-      "outer_evidence": "R366 supports deterministic/supervised field derivation and suitability checks, but not a completed same-prompt backend comparison.",
+      "outer_evidence": "R366 supports deterministic/supervised field derivation and suitability checks, but not a completed same-prompt backend comparison. R405 scans 6 tracked operation JSONL sources / 67304 rows and finds 0 rows with both public free-form text and oracle semantic labels.",
       "paper_area": "Intent recognition / taggers",
       "status": "must_remain_future_work"
     },
     {
       "claim_or_gap": "Current boundary evidence is supervised or deterministic field derivation, not automatic discovery of every latent intent boundary.",
       "claim_rule": "Boundary backends write operation fields before folding and remain inside the two abstractions.",
-      "english_line": "472",
+      "english_line": "473",
       "next_action": "Keep 'automatic intent boundary discovery' out of the claim; require family-specific suitability.",
       "outer_evidence": "R297/R299/R355/R366/R400: OSWorld-Human and selected label families support scoped boundary fields; family suitability includes accept/caution/reject outcomes.",
       "paper_area": "Boundary detection",
@@ -82,7 +204,7 @@
     {
       "claim_or_gap": "The evidence does not show improved human/agent analyst accuracy, time-to-answer, or productivity.",
       "claim_rule": "The main claim is profiler fidelity/work/actionability on labeled traces, not analyst productivity.",
-      "english_line": "394",
+      "english_line": "395",
       "next_action": "Only run an analyst study if the paper wants human utility claims.",
       "outer_evidence": "R315/R316 are protocol/sensitivity artifacts; docs/evaluation.md explicitly gates human-utility claims.",
       "paper_area": "Human utility",
@@ -91,7 +213,7 @@
     {
       "claim_or_gap": "The project has standard-trace exchange smoke tests, but no complete compatibility claim for OpenTelemetry/Phoenix/LangSmith/Langfuse/Perfetto producer traces.",
       "claim_rule": "Current span-tree baseline is fixed-session-shaped drilldown, not full ecosystem parity.",
-      "english_line": "751",
+      "english_line": "752",
       "next_action": "Import one real producer trace before claiming ecosystem compatibility or span-tree superiority.",
       "outer_evidence": "R306/R353 cover Chrome/Perfetto-style exchange containers and byte-identical replay on fixtures/prefixes; real producer imports remain pending.",
       "paper_area": "Trace ecosystem compatibility",
@@ -112,13 +234,13 @@
   "source_status": [
     {
       "path": "script/paper_english_experiment_gap_audit.py",
-      "sha256": "49568c8df80d7dea657fb5b5c3b3779b03c78dfe728a880f249dc5c0629f83ce",
+      "sha256": "b19c31833e07a3a2f0aa90cf870ca3cf1734d99c1971a9431b4a382a6a5d0652",
       "source": "generator script",
       "status": "tracked_clean"
     },
     {
       "path": "docs/agentpprof-paper/main.tex",
-      "sha256": "9c88791718f2583b07dacc94fa951e084aa5d0710f4c50a515aa8a5bc7a95831",
+      "sha256": "2ada3c41f73be2771be006be80a45fd31e5a82ff6e06980b6325442e6d485163",
       "source": "English paper draft",
       "status": "tracked_dirty_allowed"
     },
@@ -186,6 +308,42 @@
       "path": "docs/visexp/out/operation-field-suitability-r400/field-suitability-report.json",
       "sha256": "8f85dddc0ed65f1de48ae62353454abd2d545c0748db6defc67c8e13afa1561f",
       "source": "R400 field suitability",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/external-agent-trace-agentnet-r291/agentnet-operations.jsonl",
+      "sha256": "e03ba3d30e79f6ce3d6c5f75059dd3f66c8fd5016a82b4067909865507066172",
+      "source": "AgentNet operations",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/external-agent-trace-agentreward-r288/agentreward-operations.jsonl",
+      "sha256": "ebefa409e182b53790fdf900820b3092b974e9ac84d29517ea8a5386c254118b",
+      "source": "AgentRewardBench operations",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/external-agent-trace-osworldhuman-r290/osworld-human-operations.jsonl",
+      "sha256": "d6b88ba65a089da4ab433f091d205f9a31286ae680a56f51baefcd7753bc84c3",
+      "source": "OSWorld-Human operations",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/external-agent-trace-satraj-r289/satraj-operations.jsonl",
+      "sha256": "686c69e9159a62225b6640ee2aa7783ec5de83bd6b64b59b045038a30811520d",
+      "source": "SATraj-OS operations",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/external-agent-trace-scalecua-r292/scalecua-operations.jsonl",
+      "sha256": "8523780ec8f1bc3e6570a4e577d9754414d15c66c6916b7a355558a64e7fd6ea",
+      "source": "ScaleCUA operations",
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/operation-query-utility-r300/query-utility-operations.jsonl",
+      "sha256": "0f714298afa13996ab6b49995ec30d1ec47f7eb7c6adf13072720d102673b5e4",
+      "source": "R300 query utility operations",
       "status": "tracked_clean"
     }
   ],
