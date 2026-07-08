@@ -35,41 +35,24 @@
 \vspace{-1.4em}
 
 \begin{abstract}
-AI agent 的执行历史已经不再只是一次 prompt 或一棵 trace tree。
-一个真实轨迹可能同时包含用户意图、LLM 响应、tool call、API 调用、GUI 动作、浏览器动作、进程、文件、网络、计划步骤、subagent 以及 benchmark 给出的成功、失败、安全、重复和冗余标签。
-现有 agent observability 工具通常把这些对象固定成 prompt、session 或 span 层级，传统 profiler 则固定成函数或进程层级。
-这两种做法都会把 profiling 问题过早绑定到某一种边界上，使同一段轨迹很难按任务、阶段、工具、动作、质量标签或人工分组递归折叠。
+AI agent 的执行历史已经不再是一条 prompt-response 记录或一棵固定 trace tree。
+真实轨迹会混合用户意图、LLM turn、tool/API 调用、GUI 或浏览器动作、进程和文件事件、计划步骤、subagent，以及 benchmark 给出的成功、失败、安全、重复、冗余和人工分组标签。
+如果 profiler 先把这些对象绑定到 prompt、session、span 或 tool-call tree，同一段轨迹就很难按任务、阶段、动作、质量问题或人工边界折叠到不同深度。
 
-本文提出一种更小的语义剖析模型，只保留 \op{} 和 \opstack{} 两个核心抽象。
-\op{} 是带字段和权重的观测。
-Prompt、tool call、process、syscall、GUI action 和 plan step 可以是 operation 记录或派生字段，session、span、task 和 trace id 则是 operation fields、交换容器或 baseline shape，不是新的 profiler 对象。
-\opstack{} 是由 operation fields 形成的递归 frame 序列。
-显式 \texttt{--stack} 只是复现某个分析视图的一种方式。
-Mapping 和 tagging 在 stack 构造前派生字段，而不是创建第三种 profiler 对象。
-当固定字段链不足以表达任务边界时，\toolname{} 也可以从可见 evidence、semantic shift 和 query hint 中给相邻 operation boundary 打分，递归诱导多层 operation frames，再用 operation-only stack 折叠。
-关键点是聚合不是第三个对象，也不是固定 trace tree。
-查询时选择的 stack 形态决定聚合结果。
-因此本文的新意不在单纯 query-time aggregation 或 flamegraph renderer。
-它在于把 agent operation record、递归多字段 operation-stack 投影和 hidden-label profile-group scoring 放进同一个 profiler 评估问题。
+本文提出一个只含两个抽象的语义 profiler 模型。
+\op{} 是带字段和权重的观测；prompt、tool call、process、syscall、GUI action 和 plan step 都是 operation 记录或字段。
+\opstack{} 是查询时从 operation fields 递归形成的 frame 序列；session、span、task 和 trace id 只是字段、交换容器或 baseline shape。
+Mapping、tagging 和 boundary backend 只在 folding 前派生 operation fields，不创建第三种 profiler 对象。
+当显式 stack spec 不足以表达任务边界时，\toolname{} 用可见 evidence、semantic shift、changed-field density 和 query hint 对相邻 operation boundary 打分，递归诱导 variable-depth operation frames，再用同一个 operation-stack path 折叠。
+因此本文的新意不是单个 flamegraph renderer，而是把 agent operation record、递归 operation-stack projection 和 hidden-label profile-group scoring 放进同一个 profiler 评估问题。
+
 我们在 Rust \toolname{} 中实现该模型，并用三个核心 profiling 实验和一个可重放性检查评估它。
-RQ1 验证泛化覆盖和递归 operation-stack 形成。
-在 15 个轻量采样的公开标注轨迹来源上，\toolname{} 把 47,590 个 samples 投影到同一 operation layer。
-同一批 13,265 个 operations 可以从 9 个 dataset stacks 折叠为 57 个 phase stacks、226 个 semantic stacks、455 个 action stacks，或 3,757 个 fixed-session stacks，而不改变输入 operation。
-这说明 prompt、tool、GUI action、process 和人工边界都进入 operation layer，session/span 只作为字段、容器或对照视图参与 stack 查询，不是新的 profiler 抽象。
-
-RQ2 是 hidden-label localization/ranking 主实验。
-在 AgentRewardBench、SATraj-OS、AgentNet 和 OSWorld-Human 的 4 个 oracle-rich 数据集、6 个任务、34,539 个 operations 和 3,699 个 positives 上，我们把 profile groups 当作 ranked localization outputs，比较 flat、fixed-session drilldown、dataset-native、raw-action 和 operation-stack views。
-Task-query operation-stack profiling 的 top-5 median work 为 0.0937，而 flat summary 为 1.0。
-相对 fixed-session drilldown，它在 5/6 tasks 上提高 top-5 recall，并把 median groups 从 285.0 降到 157.5。
-
-RQ3 隔离机制和 profile-configuration actionability。
-Rank feature、stack depth、mapping、transfer、diagnostic lens、case view 和 counterfactual 分析显示，有效配置随 task 和 objective 变化，operation-stack 是 Pareto point，不是 universal default。
-Executable profile-spec patches 在 5/6 tasks 上改善 AP、top-5 lift 和 first-positive work。
-Supervised held-out boundary-field ablation 把 OSWorld-Human AP 从 0.2402 提到 0.2583，并把 groups 从 108 降到 74，但保留 work 反例。
-Field-suitability synthesis 进一步把 mapping、stack-depth、rank-feature 和 boundary-field 证据变成 accept/caution/reject 配置决策。
-RQ4 验证可重放性、离线成本和复现边界。
-76 个 profile 配置在 deterministic replay 下保持语义和 byte-level 输出稳定，local-session、agent-trace 和 standard-trace 输入都通过同一 operation-stack path 重放。
-RQ4 只说明离线证据可重放，并约束数字、数据来源选择和主张边界，不作为第四个 empirical accuracy result。
+RQ1 显示，15 个轻量采样的公开标注轨迹来源可以投影到同一 operation layer；同一批 13,265 个 operations 可以折叠为 9 个 dataset stacks、57 个 phase stacks、226 个 semantic stacks、455 个 action stacks 或 3,757 个 fixed-session stacks，而不改变输入 operation。
+自动 induction 在 4/6 个 hidden-label tasks 上产生参差不齐的 variable-depth stacks，在 2/6 个任务上因可见 evidence 不足而停止，说明递归折叠是可配置 profile view，而不是固定 ontology。
+RQ2 是主 hidden-label localization/ranking 实验。
+在 4 个 oracle-rich 数据集、6 个任务、34,539 个 operations 和 3,699 个 positives 上，task-query operation-stack profiling 的 top-5 median work 为 0.0937，而 flat summary 为 1.0；相对 fixed-session drilldown，它在 5/6 tasks 上提高 top-5 recall，并把 median groups 从 285.0 降到 157.5。
+RQ3 显示 profile-configuration actionability：rank feature、stack depth、mapping、transfer、case view 和 counterfactual 分析指出不同任务需要不同 fields、depths 和 rankers；可执行 profile-spec patches 在 5/6 tasks 上同时改善 AP、top-5 lift 和 first-positive work。
+RQ4 显示 76 个 profile 配置在 deterministic replay 下保持语义和 byte-level 输出稳定，local-session、agent-trace 和 standard-trace 输入都通过同一 operation-stack path 重放。
 
 因此本文支持的是有范围限定的 profiling 主张：operation-stack profiling 能在公开真实标注 trace 的 dataset-provided hidden labels 下定位、排序和解释任务相关 failure、quality problem 和 dataset-provided semantic boundary，并相对 flat summary 减少 inspection work、相对 fixed-session drilldown proxy 改善 median fragmentation tradeoff。
 本文不声称提升 human productivity，不声称自动发现所有 intent boundary，不声称 free-form prompt/LLM tagger 已完成同输入准确率验证，不声称 metric dominance，也不声称完整兼容现有 trace ecosystem。
@@ -105,12 +88,16 @@ Profiler 的核心任务不是决定唯一正确边界，而是让用户和实�
 实现上，外部轨迹使用每行一个 JSON object 的 operation JSONL，并把原始任务文本、截图和长对话默认排除在提交复现包之外。
 
 \opstack{} 是由 operation fields 构成的递归 frame 列表。
-显式 stack spec 可以把字段投影成 frames，例如同一批 operations 可以用 \texttt{project,dataset} 查看数据来源，也可以用 \texttt{project,dataset,task,phase,op,tool,action,status} 查看动作深度，或者加入 \texttt{human\_group}、\texttt{step\_correct}、\texttt{safety} 和 \texttt{looping} 做诊断视图。
-Stack 不是 trace tree，也不是 session hierarchy。
-当显式字段链不足以表达任务边界时，自动 operation-stack induction 仍然只产生 \opstack{}：\toolname{} 在当前连续 operation segment 内用可见 evidence、semantic shift、changed-field density 和 query hint 给相邻 cut 打分，要求左右 child 有足够权重和不同 dominant evidence，然后递归写入多层 operation frames。
-因此 profile 配置给出 predicate、view 和 query hint。
-固定字段链只是一个可复现 view，而不是 profiler 必须依赖的 ontology。
-Operation stack 是一个查询结果，用户可以按问题改变深度和字段。
+它可以由显式 stack spec 复现，也可以由 boundary scoring 诱导。
+显式 stack spec 把字段投影成 frames，例如同一批 operations 可以用 \texttt{project,dataset} 查看数据来源，也可以用 \texttt{project,dataset,task,phase,op,tool,action,status} 查看动作深度，或者加入 \texttt{human\_group}、\texttt{step\_correct}、\texttt{safety} 和 \texttt{looping} 做诊断视图。
+这种字段链是可复现的分析视图，不是 profiler 依赖的 ontology。
+
+自动 operation-stack induction 不要求用户先给 \texttt{analysis\_task,phase,action,status} 这样的候选字段顺序。
+\toolname{} 从当前连续 operation segment 出发，用可见 evidence、semantic shift、changed-field density 和 query hint 给每个相邻 cut 打分。
+只有当左右 child 都有足够权重、cut score 超过阈值、并且 dominant evidence 发生实质变化时，算法才切分当前 segment，并把 child 的可见 dominant evidence 写成下一层 operation frame。
+然后它在每个 child segment 上重复同一过程，直到没有 material split 或达到 depth cap。
+因此 stack 深度会随局部 evidence 参差不齐。
+Stack 不是 trace tree，也不是 session hierarchy；operation stack 是一个查询结果，用户可以按问题改变 view、hint、depth cap、predicate 和字段派生规则。
 
 \subsection{Mapping 和 tagging}
 
