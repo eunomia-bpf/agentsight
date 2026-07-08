@@ -40,21 +40,28 @@ AI agent 的执行历史已经不再是一条 prompt-response 记录或一棵固
 如果 profiler 先把这些对象绑定到 prompt、session、span 或 tool-call tree，同一段轨迹就很难按任务、阶段、动作、质量问题或人工边界折叠到不同深度。
 
 本文提出一个只含两个抽象的语义 profiler 模型。
-\op{} 是带字段和权重的观测；prompt、tool call、process、syscall、GUI action 和 plan step 都是 operation 记录或字段。
-\opstack{} 是查询时从 operation fields 递归形成的 frame 序列；session、span、task 和 trace id 只是字段、交换容器或 baseline shape。
+\op{} 是带字段和权重的观测。
+Prompt、tool call、process、syscall、GUI action 和 plan step 都表现为 operation 记录或字段。
+\opstack{} 是查询时从 operation fields 递归形成的 frame 序列。
+Session、span、task 和 trace id 仍然可以参与折叠，但只作为字段、交换容器或 baseline shape。
 Mapping、tagging 和 boundary backend 只在 folding 前派生 operation fields，不创建第三种 profiler 对象。
 当显式 stack spec 不足以表达任务边界时，\toolname{} 用可见 evidence、semantic shift、changed-field density 和 query hint 对相邻 operation boundary 打分，递归诱导 variable-depth operation frames，再用同一个 operation-stack path 折叠。
 因此本文的新意不是单个 flamegraph renderer，而是把 agent operation record、递归 operation-stack projection 和 hidden-label profile-group scoring 放进同一个 profiler 评估问题。
 
 我们在 Rust \toolname{} 中实现该模型，并用三个核心 profiling 实验和一个可重放性检查评估它。
-RQ1 显示，15 个轻量采样的公开标注轨迹来源可以投影到同一 operation layer；同一批 13,265 个 operations 可以折叠为 9 个 dataset stacks、57 个 phase stacks、226 个 semantic stacks、455 个 action stacks 或 3,757 个 fixed-session stacks，而不改变输入 operation。
+RQ1 显示，15 个轻量采样的公开标注轨迹来源可以投影到同一 operation layer。
+同一批 13,265 个 operations 可以折叠为 9 个 dataset stacks、57 个 phase stacks、226 个 semantic stacks、455 个 action stacks 或 3,757 个 fixed-session stacks，而不改变输入 operation。
 自动 induction 在 4/6 个 hidden-label tasks 上产生参差不齐的 variable-depth stacks，在 2/6 个任务上因可见 evidence 不足而停止，说明递归折叠是可配置 profile view，而不是固定 ontology。
 RQ2 是主 hidden-label localization/ranking 实验。
-在 4 个 oracle-rich 数据集、6 个任务、34,539 个 operations 和 3,699 个 positives 上，task-query operation-stack profiling 的 top-5 median work 为 0.0937，而 flat summary 为 1.0；相对 fixed-session drilldown，它在 5/6 tasks 上提高 top-5 recall，并把 median groups 从 285.0 降到 157.5。
-RQ3 显示 profile-configuration actionability：rank feature、stack depth、mapping、transfer、case view 和 counterfactual 分析指出不同任务需要不同 fields、depths 和 rankers；可执行 profile-spec patches 在 5/6 tasks 上同时改善 AP、top-5 lift 和 first-positive work。
+在 4 个 oracle-rich 数据集、6 个任务、34,539 个 operations 和 3,699 个 positives 上，task-query operation-stack profiling 的 top-5 median work 为 0.0937，而 flat summary 为 1.0。
+相对 fixed-session drilldown，operation-stack profiling 在 5/6 tasks 上提高 top-5 recall，并把 median groups 从 285.0 降到 157.5。
+RQ3 显示 profiling 结果能给出配置层面的优化线索。
+Rank feature、stack depth、mapping、transfer、case view 和 counterfactual 分析指出不同任务需要不同 fields、depths 和 rankers。
+可执行 profile-spec patches 在 5/6 tasks 上同时改善 AP、top-5 lift 和 first-positive work。
 RQ4 显示 76 个 profile 配置在 deterministic replay 下保持语义和 byte-level 输出稳定，local-session、agent-trace 和 standard-trace 输入都通过同一 operation-stack path 重放。
 
-因此本文支持的是有范围限定的 profiling 主张：operation-stack profiling 能在公开真实标注 trace 的 dataset-provided hidden labels 下定位、排序和解释任务相关 failure、quality problem 和 dataset-provided semantic boundary，并相对 flat summary 减少 inspection work、相对 fixed-session drilldown proxy 改善 median fragmentation tradeoff。
+因此本文支持的是有范围限定的 profiling 主张。
+operation-stack profiling 能在公开真实标注 trace 的 dataset-provided hidden labels 下定位、排序和解释任务相关 failure、quality problem 和 dataset-provided semantic boundary，并相对 flat summary 减少 inspection work、相对 fixed-session drilldown proxy 改善 median fragmentation tradeoff。
 本文不声称提升 human productivity，不声称自动发现所有 intent boundary，不声称 free-form prompt/LLM tagger 已完成同输入准确率验证，不声称 metric dominance，也不声称完整兼容现有 trace ecosystem。
 \end{abstract}
 
@@ -786,9 +793,12 @@ Replay、数字对齐、数据来源选择和两个抽象的表述约束让正�
 本文将 agent 语义 profiling 的数据模型收敛为 operation 和 operation stack 两个抽象。
 Prompt、session、tool call、process、syscall、plan、subagent、GUI action 以及安全和质量标签，都作为 operations 或 operation fields 进入同一模型。
 字段派生、查询过滤、权重选择、递归折叠和复现配置只改变 operation 字段或 query 配置，而不产生新的 profiler 对象。
-Profile spec 固定这些选择，deterministic output 让同一 profile 可以 byte-stable replay。
+Profile spec 固定这些选择。
+Deterministic output 让同一 profile 可以 byte-stable replay。
 在 15 个轻量采样的公开标注轨迹数据源上，这个模型统一了 web、mobile、desktop、software、API、dialogue、failure、安全、human group 和 step-quality 轨迹，并产生 flamegraph 之外的 stack tree、transition、quality、boundary、case views 和 scope reports。
-E1 因此支持本文的机制主张：agent profiling 的边界可以从 prompt/session/span tree 中释放出来，成为 query-time operation-stack projection；这个 projection 可以由显式 stack spec 复现，也可以由可见边界证据递归诱导，并在证据不足时停止。
+E1 因此支持本文的机制主张。
+Agent profiling 的边界可以从 prompt/session/span tree 中释放出来，成为 query-time operation-stack projection。
+这个 projection 可以由显式 stack spec 复现，也可以由可见边界证据递归诱导，并在证据不足时停止。
 
 本文最强经验依据来自四类 oracle-rich 轨迹。
 OSWorld-Human 展示同一动作序列可以折叠到人工 grouped-action 深度，AgentNet 展示 step correctness 和 redundancy 可以作为普通 operation fields 进入 profiling，AgentRewardBench 和 SATraj-OS 展示 failure、looping、side-effect、安全和 attack-type diagnostics 可以用同一机制表达。
@@ -797,7 +807,8 @@ OSWorld-Human 展示同一动作序列可以折叠到人工 grouped-action 深�
 
 E3 进一步说明 operation-stack 的价值来自可调 profiling 配置，而不是单一默认层级。
 不同任务需要不同的 view、stack depth、ranker、mapping 或 boundary-derived fields。
-这些差异不是噪声，而是 profiler 给出的优化线索：36/36 objective rows 有具体 optimization action，27/36 best visible policies 不是默认 operation-stack query-aware。
+这些差异不是噪声，而是 profiler 给出的优化线索。
+36/36 objective rows 有具体 optimization action，27/36 best visible policies 不是默认 operation-stack query-aware。
 主张是可调诊断界面，不是 label-free automatic selector。
 Executable profile-spec patches 把这种 profile-configuration actionability 落到 Rust profiler 配置上，并在 6 个 patches 中让 5 个同时改善 AP、top-5 lift 和 first-positive work。
 OSWorld-Human reject 再由 boundary-derived operation fields 改善 AP 和 groups，但保留 work 反例。
