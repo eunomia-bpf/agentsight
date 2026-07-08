@@ -704,7 +704,10 @@ Stack frame 来自 agent operation fields，而不是语言运行时函数调用
 \subsection{Agent Tracing 和 LLM Observability}
 OpenTelemetry GenAI 和 OpenInference 标准化 GenAI spans、LLM calls、agent reasoning steps、tool invocations、retrieval operations、MCP 和 provider-specific telemetry~[2,11]。
 LangSmith、Langfuse、Phoenix 和 AgentOps 等系统进一步把 LLM call、tool call、latency、token、trace tree、session、observation、evaluation score、goal、plan 和 agent artifact 放进单次 workflow inspection 与生产监控~[12,13,14,15]。
+AgentTelemetry 把 agent-specific spans 和 fault taxonomy 结合为 agent observability 的 fault-detection benchmark~[27]。
+Datadog LLM Observability Patterns 则把生产 LLM 流量聚成层级 topic groups，用于理解覆盖缺口和 failure modes~[28]。
 这些系统是本文最接近的同问题相关工作。
+它们说明 agent observability 已经包含 span taxonomy、trace UI、evaluation、fault detection 和一部分 semantic grouping。
 本文因此把 trace/span/session 明确当作 exchange container 或 baseline shape，而不是加成第三个 profiler 抽象。
 E2 实际评估的是 fixed-session drilldown 这个 trace-tree-shaped baseline。
 真实 OpenTelemetry/OpenInference/Phoenix span-tree import 仍是后续互操作 baseline，不是当前已完成结果。
@@ -718,6 +721,7 @@ AgentRx 发布带 critical failure step 和 failure category 的失败轨迹，�
 TELBench/DRIFT 把 deep-research agent 轨迹转成 semantic spans，并标注 harmful error spans。
 Holistic Diagnosis 把 agent-level diagnosis 和 span-level evaluation 结合起来。
 AgentAtlas 则强调 outcome leaderboard 不能覆盖 trajectory quality 和 control-decision quality。
+TrajAD 把 trajectory anomaly detection 表述为检测并定位执行过程异常，AgentFixer 则从 failure detection 扩展到 root-cause analysis 和 fix recommendation~[29,30]。
 这些工作已经覆盖 failure localization、trajectory diagnosis 和 span-level evaluation 的问题定义。
 本文的差异更窄，把 profile groups 当作 profiler 输出，在同一批 operations 上比较 flat、fixed-session drilldown、dataset-native、raw-action 和 operation-stack views，并用 AP、nDCG、inspection budget recall、work-to-first-positive、fragmentation 和 profile-configuration actionability 评分。
 AgentRx/TELBench-style traces 是后续 oracle/baseline 候选，不是当前已完成的 broader span-localization 证据。
@@ -842,6 +846,10 @@ Controlled human 或 agent analyst study 可以作为后续增强，但不是本
 \noindent [23] AgentRx: Diagnosing AI Agent Failures from Execution Trajectories. \url{https://arxiv.org/abs/2602.02475}.\par
 \noindent [24] Where Do Deep-Research Agents Go Wrong? Span-Level Error Localization in Agent Trajectories. \url{https://arxiv.org/abs/2606.02060}.\par
 \noindent [25] Holistic Evaluation and Failure Diagnosis of AI Agents. \url{https://arxiv.org/abs/2605.14865}.\par
-\noindent [26] AgentAtlas: Beyond Outcome Leaderboards for LLM Agents. \url{https://arxiv.org/abs/2605.20530}.
+\noindent [26] AgentAtlas: Beyond Outcome Leaderboards for LLM Agents. \url{https://arxiv.org/abs/2605.20530}.\par
+\noindent [27] AgentTelemetry: A Fault Detection Benchmark and Toolkit for LLM Agent Observability. \url{https://dl.acm.org/doi/10.1145/3805760.3814931}.\par
+\noindent [28] Datadog LLM Observability Patterns. \url{https://docs.datadoghq.com/llm_observability/monitoring/patterns/}.\par
+\noindent [29] TrajAD: Trajectory Anomaly Detection for Trustworthy LLM Agents. \url{https://arxiv.org/abs/2602.06443}.\par
+\noindent [30] AgentFixer: From Failure Detection to Fix Recommendations in LLM Agentic Systems. \url{https://arxiv.org/abs/2603.29848}.
 
 \end{document}

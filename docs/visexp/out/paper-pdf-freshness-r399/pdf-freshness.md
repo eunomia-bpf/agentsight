@@ -12,7 +12,7 @@ The tracked Chinese paper PDF contains the same main-display path that the TeX s
 |---|---:|---|
 | prerequisite_gates_pass | True | Prerequisite statuses={'R396 paper build smoke': 'pass', 'R398 current three-plus-one': 'pass', 'R405 English read-only gap audit': 'pass'} |
 | pdftotext_available | True | pdftotext=/usr/bin/pdftotext |
-| tracked_pdfs_exist | True | PDF bytes={'chinese_pdf_bytes': 617934, 'english_pdf_bytes': 597905} |
+| tracked_pdfs_exist | True | PDF bytes={'chinese_pdf_bytes': 618865, 'english_pdf_bytes': 597905} |
 | pdftotext_extraction_succeeds | True | Chinese rc=0 stderr=; English rc=0 stderr= |
 | source_display_path_tokens_present | True | Chinese TeX source contains the main-display path tokens; English is synced or R405 records a read-only sync gap. |
 | tracked_pdfs_contain_display_path | True | Tracked Chinese PDF contains the display-path text after extraction; English PDF is synced or R405 records a read-only sync gap. |
