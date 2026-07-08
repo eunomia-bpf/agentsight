@@ -1,0 +1,43 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>R409 English Submodule Read-Only Policy Gate</title>
+<style>
+body { font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.45; }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+th, td { border: 1px solid #d0d7de; padding: 0.45rem; vertical-align: top; }
+th { background: #f6f8fa; }
+.status { font-weight: 700; }
+pre { white-space: pre-wrap; background: #f6f8fa; padding: 1rem; }
+</style>
+<h1>R409 English Submodule Read-Only Policy Gate</h1>
+<p class="status">Status: pass; checks 12/12.</p>
+<p>The current outer-repo workflow can continue Chinese-paper and evidence work while treating docs/agentpprof-paper as read-only. English-paper sync gaps are recorded by R405/R397/R398/R399, not repaired by editing the submodule. A direct push remains unsafe when the ahead history contains a submodule gitlink update.</p>
+<h2>Checks</h2>
+<table><tr><th>Check</th><th>Passed</th><th>Detail</th></tr><tr><td>root_matches_requested_worktree</td><td>True</td><td>ROOT=/home/yunwei37/workspace/agentsight-research-semantic-flamegraph expected=/home/yunwei37/workspace/agentsight-research-semantic-flamegraph</td></tr>
+<tr><td>branch_is_research_v2</td><td>True</td><td>branch=research/semantic-flamegraph-artifacts-v2</td></tr>
+<tr><td>agents_policy_forbids_submodule_edits</td><td>True</td><td>AGENTS/CLAUDE contain the read-only submodule policy and Chinese-paper separation rule.</td></tr>
+<tr><td>submodule_not_staged</td><td>True</td><td>No staged parent-index change for docs/agentpprof-paper.</td></tr>
+<tr><td>submodule_dirty_state_recorded_not_cleaned</td><td>True</td><td>Submodule dirty status is recorded and intentionally left alone: [&#x27;M main.pdf&#x27;, &#x27; M references.bib&#x27;, &#x27;?? scripts/verify_bib.py&#x27;]</td></tr>
+<tr><td>r405_gap_audit_passes</td><td>True</td><td>R405 records read-only English submodule scope and the current 3+1 sync gap.</td></tr>
+<tr><td>r397_uses_gap_aware_policy</td><td>True</td><td>R397 passes with English synced or R405-recorded read-only gap.</td></tr>
+<tr><td>r398_uses_gap_aware_policy</td><td>True</td><td>R398 treats Chinese as writable authority and English as synced or R405-recorded gap.</td></tr>
+<tr><td>r399_uses_gap_aware_policy</td><td>True</td><td>R399 checks Chinese PDF freshness and routes English drift through R405.</td></tr>
+<tr><td>canonical_docs_record_readonly_policy</td><td>True</td><td>Canonical docs describe R405 English read-only gap handling and avoid submodule edits.</td></tr>
+<tr><td>direct_push_safety_explicit</td><td>True</td><td>push_safety=unsafe_due_to_ahead_submodule_gitlink; upstream=origin/research/semantic-flamegraph-artifacts-v2</td></tr>
+<tr><td>source_status_tracked_or_dirty_allowed</td><td>True</td><td>All R409 sources are tracked or intentionally dirty while the gate is generated.</td></tr></table>
+<h2>Submodule</h2>
+<pre>{
+  &quot;ahead_history_changes_submodule&quot;: true,
+  &quot;cached_dirty&quot;: false,
+  &quot;parent_index&quot;: &quot;b6672cbf3e2316af67b5312ca3f1d1dee32b9ab4&quot;,
+  &quot;push_safety&quot;: &quot;unsafe_due_to_ahead_submodule_gitlink&quot;,
+  &quot;submodule_head&quot;: &quot;138b7a3ad3b6ae794ebf6c86ea94e8feaf8da86e&quot;,
+  &quot;summary&quot;: &quot;submodule_head=138b7a3ad3b6ae794ebf6c86ea94e8feaf8da86e;parent_index=b6672cbf3e2316af67b5312ca3f1d1dee32b9ab4&quot;,
+  &quot;unstaged_dirty&quot;: true,
+  &quot;upstream&quot;: &quot;origin/research/semantic-flamegraph-artifacts-v2&quot;,
+  &quot;worktree_status&quot;: [
+    &quot;M main.pdf&quot;,
+    &quot; M references.bib&quot;,
+    &quot;?? scripts/verify_bib.py&quot;
+  ]
+}</pre>
