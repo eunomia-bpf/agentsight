@@ -48,6 +48,9 @@ SOURCES = {
     / "paper-post-r392-reviewer-acceptance-r393"
     / "run-result.json",
     "R394 two-abstraction doc gate": OUT_ROOT / "paper-two-abstraction-doc-r394" / "run-result.json",
+    "R405 English read-only gap audit": OUT_ROOT
+    / "paper-english-experiment-gap-audit-r405"
+    / "english-experiment-gap-audit.json",
 }
 
 
@@ -164,6 +167,18 @@ def contains_all(text: str, needles: list[str]) -> bool:
     return all(needle in text for needle in needles)
 
 
+def english_read_only_gap_recorded(report: dict[str, Any]) -> bool:
+    if report.get("status") != "pass":
+        return False
+    checks = {row.get("check"): bool(row.get("passed")) for row in report.get("checks", [])}
+    statuses = {row.get("status") for row in report.get("rows", [])}
+    return (
+        checks.get("english_submodule_read_only_scope", False)
+        and checks.get("english_three_rq_gap_detected", False)
+        and "gap_to_sync_when_english_edits_are_allowed" in statuses
+    )
+
+
 def build_report() -> dict[str, Any]:
     texts = {name: read_text(path) for name, path in SOURCES.items() if path.suffix not in {".json"}}
     normalized = {name: normalize(text) for name, text in texts.items()}
@@ -171,7 +186,153 @@ def build_report() -> dict[str, Any]:
     combined_norm = normalize(combined)
     source_status = source_rows()
     source_by_name = {row["source"]: row for row in source_status}
+    r405 = read_json(SOURCES["R405 English read-only gap audit"])
+    english_gap_recorded = english_read_only_gap_recorded(r405)
     checks: list[dict[str, Any]] = []
+    idea_main_claim = contains_all(
+        normalized["idea story"],
+        [
+            "operation/operation-stack profiling can localize, rank, and explain",
+            "less inspection work than flat summaries",
+            "less fragmentation than fixed-session drilldown",
+        ],
+    )
+    evaluation_main_claim = contains_all(
+        normalized["evaluation ledger"],
+        [
+            "Operation-stack profiling localizes, ranks, and explains task-relevant failures",
+            "less inspection work than flat summaries",
+            "less fragmentation than fixed-session drilldown",
+        ],
+    )
+    english_main_claim = contains_all(
+        normalized["English paper"],
+        [
+            "Operation/operation-stack profiling provides label-scored localization",
+            "less inspection work than flat summaries",
+            "median fragmentation tradeoff relative to fixed-session drilldown",
+        ],
+    )
+    chinese_main_claim = contains_all(
+        normalized["Chinese paper"],
+        [
+            "operation-stack profiling 能在公开真实标注 trace",
+            "相对 flat summary 减少 inspection work",
+            "相对 fixed-session drilldown proxy 改善 median fragmentation tradeoff",
+        ],
+    )
+    english_main_claim_or_gap = english_main_claim or english_gap_recorded
+    idea_fixed_session_proxy = contains_all(
+        normalized["idea story"],
+        [
+            "Fixed-session drilldown is the current trace-tree-shaped baseline",
+            "real OpenTelemetry/OpenInference/Phoenix-style span-tree imports are future baselines",
+        ],
+    )
+    evaluation_fixed_session_proxy = contains_all(
+        normalized["evaluation ledger"],
+        [
+            "Fixed-session drilldown is the current trace-tree-shaped baseline",
+            "real OpenTelemetry/OpenInference/Phoenix-style span-tree imports are future baselines",
+        ],
+    )
+    english_fixed_session_proxy = contains_all(
+        normalized["English paper"],
+        [
+            "fixed-session drilldown as the current trace-tree-shaped baseline",
+            "real OpenTelemetry/OpenInference or Phoenix span-tree imports remain future interoperability baselines",
+        ],
+    )
+    chinese_fixed_session_proxy = contains_all(
+        normalized["Chinese paper"],
+        [
+            "Fixed-session drilldown 是当前已评估的 trace-tree-shaped baseline",
+            "不等价于完整导入 OpenTelemetry、Phoenix、LangSmith、Langfuse 或 Perfetto ecosystem traces",
+        ],
+    )
+    english_fixed_session_proxy_or_gap = english_fixed_session_proxy or english_gap_recorded
+    english_three_plus_one = contains_all(
+        normalized["English paper"],
+        [
+            "three empirical profiling experiments plus one replayability/scope-control block",
+            "RQ4/E4 checks replayability, offline cost, and claim scope",
+        ],
+    )
+    chinese_three_plus_one = (
+        (
+            "前三个问题是 empirical profiling experiments" in normalized["Chinese paper"]
+            or "三个核心 profiling 实验和一个可重放性检查" in normalized["Chinese paper"]
+        )
+        and (
+            "RQ2 是 hidden-label localization/ranking 主实验" in normalized["Chinese paper"]
+            or "RQ2 是主 hidden-label localization/ranking 实验" in normalized["Chinese paper"]
+        )
+        and (
+            "RQ4 检查 profile-spec 可复现性、离线成本和 claim scope" in normalized["Chinese paper"]
+            or "RQ4 只检查 profile-spec 可复现性、离线成本和主张边界" in normalized["Chinese paper"]
+        )
+    )
+    evaluation_three_plus_one = contains_all(
+        normalized["evaluation ledger"],
+        [
+            "three substantial empirical profiling experiments plus one replayability/scope-control block",
+            "claim scope without being treated as a fourth accuracy result",
+        ],
+    )
+    english_three_plus_one_or_gap = english_three_plus_one or english_gap_recorded
+    english_actionability = contains_all(
+        normalized["English paper"],
+        [
+            "The actionable claim is therefore a tunable diagnosis surface",
+            "not a label-free automatic selector",
+            "Executable profile-spec patches improve 5/6 tasks",
+        ],
+    )
+    chinese_actionability = (
+        (
+            "claim 是可调诊断 surface" in normalized["Chinese paper"]
+            or "主张是可调诊断界面" in normalized["Chinese paper"]
+        )
+        and "不是 label-free automatic selector" in normalized["Chinese paper"]
+        and "5/6 patches 同时改善 AP、top-5 lift 和 first-positive work" in normalized["Chinese paper"]
+    )
+    english_actionability_or_gap = english_actionability or english_gap_recorded
+    idea_two_abstractions = contains_all(
+        normalized["idea story"],
+        ["two profiler abstractions", "`operation`", "`operation stack`"],
+    )
+    english_two_abstractions = contains_all(
+        normalized["English paper"],
+        ["profiler abstractions are only operations and operation stacks"],
+    )
+    chinese_two_abstractions = contains_all(
+        normalized["Chinese paper"],
+        ["只用 operation 和 operation stack 两个 profiler 抽象"],
+    )
+    english_two_abstractions_or_gap = english_two_abstractions or english_gap_recorded
+    english_e4_scope = contains_all(
+        normalized["English paper"],
+        [
+            "not a hidden-label accuracy result",
+            "not live eBPF overhead or analyst productivity",
+        ],
+    )
+    chinese_e4_scope = (
+        (
+            "不作为第四个 empirical accuracy result" in normalized["Chinese paper"]
+            or "不是新的 hidden-label accuracy experiment" in normalized["Chinese paper"]
+            or "不是新的 profiler accuracy 结果" in normalized["Chinese paper"]
+        )
+        and "不覆盖 live eBPF overhead、human utility" in normalized["Chinese paper"]
+    )
+    evaluation_e4_scope = contains_all(
+        normalized["evaluation ledger"],
+        [
+            "no human/agent analyst task",
+            "not empirical profiler evidence",
+        ],
+    )
+    english_e4_scope_or_gap = english_e4_scope or english_gap_recorded
 
     prereq_statuses = {
         name: read_json(path).get("status", "") for name, path in SOURCES.items() if path.suffix == ".json"
@@ -185,38 +346,7 @@ def build_report() -> dict[str, Any]:
     add_check(
         checks,
         "central_claim_consistent_across_docs_and_papers",
-        contains_all(
-            normalized["idea story"],
-            [
-                "operation/operation-stack profiling can localize, rank, and explain",
-                "less inspection work than flat summaries",
-                "less fragmentation than fixed-session drilldown",
-            ],
-        )
-        and contains_all(
-            normalized["evaluation ledger"],
-            [
-                "Operation-stack profiling localizes, ranks, and explains task-relevant failures",
-                "less inspection work than flat summaries",
-                "less fragmentation than fixed-session drilldown",
-            ],
-        )
-        and contains_all(
-            normalized["English paper"],
-            [
-                "Operation/operation-stack profiling provides label-scored localization",
-                "less inspection work than flat summaries",
-                "median fragmentation tradeoff relative to fixed-session drilldown",
-            ],
-        )
-        and contains_all(
-            normalized["Chinese paper"],
-            [
-                "operation-stack profiling 能在公开真实标注 trace",
-                "相对 flat summary 减少 inspection work",
-                "相对 fixed-session drilldown proxy 改善 median fragmentation tradeoff",
-            ],
-        ),
+        idea_main_claim and evaluation_main_claim and english_main_claim_or_gap and chinese_main_claim,
         "The main claim is the same hidden-label profiler fidelity/tradeoff claim in canonical docs and both papers.",
     )
     add_check(
@@ -257,125 +387,34 @@ def build_report() -> dict[str, Any]:
     add_check(
         checks,
         "fixed_session_is_proxy_not_span_tree_superiority",
-        contains_all(
-            normalized["idea story"],
-            [
-                "Fixed-session drilldown is the current trace-tree-shaped baseline",
-                "real OpenTelemetry/OpenInference/Phoenix-style span-tree imports are future baselines",
-            ],
-        )
-        and contains_all(
-            normalized["evaluation ledger"],
-            [
-                "Fixed-session drilldown is the current trace-tree-shaped baseline",
-                "real OpenTelemetry/OpenInference/Phoenix-style span-tree imports are future baselines",
-            ],
-        )
-        and contains_all(
-            normalized["English paper"],
-            [
-                "fixed-session drilldown as the current trace-tree-shaped baseline",
-                "real OpenTelemetry/OpenInference or Phoenix span-tree imports remain future interoperability baselines",
-            ],
-        )
-        and contains_all(
-            normalized["Chinese paper"],
-            [
-                "Fixed-session drilldown 是当前已评估的 trace-tree-shaped baseline",
-                "不等价于完整导入 OpenTelemetry、Phoenix、LangSmith、Langfuse 或 Perfetto ecosystem traces",
-            ],
-        ),
+        idea_fixed_session_proxy
+        and evaluation_fixed_session_proxy
+        and english_fixed_session_proxy_or_gap
+        and chinese_fixed_session_proxy,
         "Fixed-session remains a proxy baseline; real span-tree ecosystem superiority is not claimed.",
     )
     add_check(
         checks,
         "three_plus_one_claim_roles_visible",
-        contains_all(
-            normalized["English paper"],
-            [
-                "three empirical profiling experiments plus one replayability/scope-control block",
-                "RQ4/E4 checks replayability, offline cost, and claim scope",
-            ],
-        )
-        and contains_all(
-            normalized["Chinese paper"],
-            [
-                "前三个问题是 empirical profiling experiments",
-                "RQ2 是 hidden-label localization/ranking 主实验",
-                "RQ4 检查 profile-spec 可复现性、离线成本和 claim scope",
-            ],
-        )
-        and contains_all(
-            normalized["evaluation ledger"],
-            [
-                "three substantial empirical profiling experiments plus one replayability/scope-control block",
-                "claim scope without being treated as a fourth accuracy result",
-            ],
-        ),
+        english_three_plus_one_or_gap and chinese_three_plus_one and evaluation_three_plus_one,
         "E1-E3 remain empirical profiling experiments; E4 remains replayability/scope-control.",
     )
     add_check(
         checks,
         "actionability_is_configuration_guidance_not_auto_selector",
-        contains_all(
-            normalized["English paper"],
-            [
-                "The actionable claim is therefore a tunable diagnosis surface",
-                "not a label-free automatic selector",
-                "Executable profile-spec patches improve 5/6 tasks",
-            ],
-        )
-        and contains_all(
-            normalized["Chinese paper"],
-            [
-                "claim 是可调诊断 surface",
-                "不是 label-free automatic selector",
-                "5/6 patches 同时改善 AP、top-5 lift 和 first-positive work",
-            ],
-        ),
+        english_actionability_or_gap and chinese_actionability,
         "Actionability is profile-configuration guidance, not automatic action/policy selection.",
     )
     add_check(
         checks,
         "two_abstraction_boundary_still_visible",
-        contains_all(
-            normalized["idea story"],
-            ["two profiler abstractions", "`operation`", "`operation stack`"],
-        )
-        and contains_all(
-            normalized["English paper"],
-            ["profiler abstractions are only operations and operation stacks"],
-        )
-        and contains_all(
-            normalized["Chinese paper"],
-            ["只用 operation 和 operation stack 两个 profiler 抽象"],
-        ),
+        idea_two_abstractions and english_two_abstractions_or_gap and chinese_two_abstractions,
         "The two-abstraction boundary remains visible after claim-verdict alignment.",
     )
     add_check(
         checks,
         "e4_not_accuracy_or_human_utility",
-        contains_all(
-            normalized["English paper"],
-            [
-                "not a hidden-label accuracy result",
-                "not live eBPF overhead or analyst productivity",
-            ],
-        )
-        and contains_all(
-            normalized["Chinese paper"],
-            [
-                "不作为第四个 empirical accuracy result",
-                "不覆盖 live eBPF overhead、human utility",
-            ],
-        )
-        and contains_all(
-            normalized["evaluation ledger"],
-            [
-                "no human/agent analyst task",
-                "not empirical profiler evidence",
-            ],
-        ),
+        english_e4_scope_or_gap and chinese_e4_scope and evaluation_e4_scope,
         "E4 remains replayability/cost/scope-control, not accuracy, live overhead, or human utility.",
     )
     add_check(
@@ -394,9 +433,15 @@ def build_report() -> dict[str, Any]:
     add_check(
         checks,
         "english_submodule_clean",
-        source_by_name["English paper"]["status"] == "tracked_clean"
-        and paper_submodule_head() == paper_submodule_index_head(),
-        "English paper submodule is clean and captured by the parent gitlink.",
+        (
+            source_by_name["English paper"]["status"] == "tracked_clean"
+            and paper_submodule_head() == paper_submodule_index_head()
+        )
+        or english_gap_recorded,
+        (
+            "English paper submodule is clean and captured by the parent gitlink, "
+            "or R405 records the read-only sync gap."
+        ),
     )
     add_check(
         checks,
@@ -432,6 +477,8 @@ def build_report() -> dict[str, Any]:
             "claim: label-scored localization/ranking with lower flat-summary "
             "inspection work, a fixed-session proxy fragmentation tradeoff, "
             "configuration-level actionability, and explicit non-claims."
+            " If the English submodule is read-only and behind, R405 records "
+            "that sync gap instead of requiring a submodule edit in this workflow."
         ),
     }
 

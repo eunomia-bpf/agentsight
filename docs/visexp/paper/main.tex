@@ -296,7 +296,7 @@ Prompt、tool、process 和 syscall 可以是 operation records 或 fields，ses
 所有这些标签都以 operation fields 形式进入同一 pipeline。
 没有任何数据集需要新增 prompt、session、GUI、safety 或 quality-specific profiler object。
 
-E1 支持 C1 的机制性版本，因为 \toolname{} 可以把异构 agent 轨迹统一为 operations，并用用户指定 stack 折叠。
+E1 支持 C1 的机制性版本，因为 \toolname{} 可以把异构 agent 轨迹统一为 operations，并用显式 stack spec 或 boundary scoring 诱导出的 recursive operation stack 折叠。
 这个结果不说明所有 agent 数据都容易转换。
 适合该方法的轨迹通常同时具备有序 step 或 turn、稳定 session/task id、动作或阶段标签，以及 outcome、quality、group 或 safety 等较高层 oracle。
 只有静态截图 grounding、缺少顺序、缺少 action label、强依赖大图片归档或 gated access 的数据源更适合作为后续扩展，而不是当前主证据。

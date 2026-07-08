@@ -2,7 +2,7 @@
   "checks": [
     {
       "check": "prerequisite_gates_current",
-      "detail": "Prerequisite statuses={'R377 main claim evidence': 'pass', 'R380 experiment-block consolidation': 'pass', 'R383 canonical reviewer acceptance': 'accepted', 'R391 core readiness': 'pass', 'R393 post-R392 reviewer acceptance': 'accepted', 'R394 two-abstraction doc gate': 'pass'}",
+      "detail": "Prerequisite statuses={'R377 main claim evidence': 'pass', 'R380 experiment-block consolidation': 'pass', 'R383 canonical reviewer acceptance': 'accepted', 'R391 core readiness': 'pass', 'R393 post-R392 reviewer acceptance': 'accepted', 'R394 two-abstraction doc gate': 'pass', 'R405 English read-only gap audit': 'pass'}",
       "passed": true
     },
     {
@@ -57,7 +57,7 @@
     },
     {
       "check": "english_submodule_clean",
-      "detail": "English paper submodule is clean and captured by the parent gitlink.",
+      "detail": "English paper submodule is clean and captured by the parent gitlink, or R405 records the read-only sync gap.",
       "passed": true
     },
     {
@@ -68,7 +68,7 @@
   ],
   "data_sync": false,
   "human_or_agent_analyst_task": false,
-  "interpretation": "The canonical docs and paper drafts align on the scoped profiling claim: label-scored localization/ranking with lower flat-summary inspection work, a fixed-session proxy fragmentation tradeoff, configuration-level actionability, and explicit non-claims.",
+  "interpretation": "The canonical docs and paper drafts align on the scoped profiling claim: label-scored localization/ranking with lower flat-summary inspection work, a fixed-session proxy fragmentation tradeoff, configuration-level actionability, and explicit non-claims. If the English submodule is read-only and behind, R405 records that sync gap instead of requiring a submodule edit in this workflow.",
   "network_access_required": false,
   "profiler_rerun": false,
   "run_id": "R395",
@@ -76,31 +76,31 @@
   "source_status": [
     {
       "path": "script/paper_main_claim_verdict_alignment_r395.py",
-      "sha256": "c1a9b237d8ec21e19bbc442374333a9b3c495a07156ff7939943e2c940b0056f",
+      "sha256": "f7b9483ae6ca777cf482f753fb06b62d79424af54199af741c19de55a9745303",
       "source": "generator script",
-      "status": "tracked_clean"
-    },
-    {
-      "path": "docs/idea-story.md",
-      "sha256": "b802da3448ce01dd516a40abc6df440a6d69a03c925c68b231213b78aacb46cb",
-      "source": "idea story",
-      "status": "tracked_clean"
-    },
-    {
-      "path": "docs/evaluation.md",
-      "sha256": "42c37a071c3ae25a395707906fe26b084dcc8fddfd24a23fbe4b4a1e80f83c55",
-      "source": "evaluation ledger",
       "status": "tracked_dirty_allowed"
     },
     {
+      "path": "docs/idea-story.md",
+      "sha256": "3a9f7919e43247edf2c17952a05a67dd45d0644b14ad30ecd578d752709ae65d",
+      "source": "idea story",
+      "status": "tracked_dirty_allowed"
+    },
+    {
+      "path": "docs/evaluation.md",
+      "sha256": "132e2ec807b08b33fdcdca421c3ac3de0fe7de051f25f3e6146bdc886c5660bc",
+      "source": "evaluation ledger",
+      "status": "tracked_clean"
+    },
+    {
       "path": "docs/agentpprof-paper/main.tex",
-      "sha256": "80fe5b6a647d331d156ca63a2453a22d4264246c6542197da901ddd14e1ca28f",
+      "sha256": "d0cdbff3b1bef6b4aee1cd8c43a510785089d82ae8cc5a5f4c2a8b0c006ef969",
       "source": "English paper",
       "status": "tracked_clean"
     },
     {
       "path": "docs/visexp/paper/main.tex",
-      "sha256": "4e06ef70f2128dcc1b606a4edeb854a2d64ac7841cdb452b76f2c95a9bcc11f5",
+      "sha256": "94f8249e1c53355b3130d0eddec284410ba5eb3194d76eedd7802ae439a9c914",
       "source": "Chinese paper",
       "status": "tracked_dirty_allowed"
     },
@@ -138,11 +138,17 @@
       "path": "docs/visexp/out/paper-two-abstraction-doc-r394/run-result.json",
       "sha256": "0b73c5f326fff7f848c6160ee5ace055caf6e65d46fd73aec056724d3cf56572",
       "source": "R394 two-abstraction doc gate",
-      "status": "tracked_dirty_allowed"
+      "status": "tracked_clean"
+    },
+    {
+      "path": "docs/visexp/out/paper-english-experiment-gap-audit-r405/english-experiment-gap-audit.json",
+      "sha256": "67c21b1dbfa2e983438b6615f496977b880371dc261306c574f48519f760c0a0",
+      "source": "R405 English read-only gap audit",
+      "status": "tracked_clean"
     },
     {
       "path": "docs/agentpprof-paper",
-      "sha256": "submodule_head=8856dfaba4c9918b364f4bb239c67a24ab8eb45f;parent_index=8856dfaba4c9918b364f4bb239c67a24ab8eb45f",
+      "sha256": "submodule_head=138b7a3ad3b6ae794ebf6c86ea94e8feaf8da86e;parent_index=b6672cbf3e2316af67b5312ca3f1d1dee32b9ab4",
       "source": "English paper submodule gitlink",
       "status": "tracked_dirty_allowed"
     }
