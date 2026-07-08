@@ -28,7 +28,7 @@
 
 \title{\vspace{-1.2em}面向 AI Agent 轨迹的可配置语义剖析}
 \author{AgentSight 研究原型}
-\date{2026 年 7 月 7 日}
+\date{2026 年 7 月 8 日}
 
 \begin{document}
 \maketitle
@@ -70,7 +70,8 @@ AI agent 轨迹的调试问题正在从单次调用回放变成跨任务剖析�
 本文所说的语义剖析，是指用 agent operation fields 在跨 session 轨迹上形成可聚合、可排序、可评分的诊断单元。
 一个 prompt 可以是 operation，一个 tool call 可以是 operation，一串 prompt 也可以通过 mapping 被派生为同一个 intent 或 task operation field。
 同样，GUI action、API call、browser action、process event、syscall、安全标签、step correctness 和人工 grouped-action id 都不是新的 profiler 抽象，而是 operation fields。
-Profiler 的核心任务不是决定唯一正确边界，而是让用户和实验可以在同一批 operations 上选择 stack 字段、派生 mappings，并得到不同深度的递归折叠。
+Profiler 的核心任务不是决定唯一正确边界，而是把边界选择推迟到 profile query。
+同一批 operations 可以通过显式 stack spec、派生 mapping 或自动 boundary induction 形成不同深度的递归折叠。
 
 这个问题有两个系统挑战。
 第一，抽象必须足够小，否则 prompt、session、tool call、plan、subagent 和 process 会各自形成独立 pipeline。
@@ -93,11 +94,12 @@ Profiler 的核心任务不是决定唯一正确边界，而是让用户和实�
 这种字段链是可复现的分析视图，不是 profiler 依赖的 ontology。
 
 自动 operation-stack induction 不要求用户先给 \texttt{analysis\_task,phase,action,status} 这样的候选字段顺序。
-\toolname{} 从当前连续 operation segment 出发，用可见 evidence、semantic shift、changed-field density 和 query hint 给每个相邻 cut 打分。
-只有当左右 child 都有足够权重、cut score 超过阈值、并且 dominant evidence 发生实质变化时，算法才切分当前 segment，并把 child 的可见 dominant evidence 写成下一层 operation frame。
-然后它在每个 child segment 上重复同一过程，直到没有 material split 或达到 depth cap。
-因此 stack 深度会随局部 evidence 参差不齐。
-Stack 不是 trace tree，也不是 session hierarchy；operation stack 是一个查询结果，用户可以按问题改变 view、hint、depth cap、predicate 和字段派生规则。
+\toolname{} 从当前连续 operation segment 出发，把每个相邻 pair 当作候选边界，并用可见 evidence、semantic shift、changed-field density 和 query hint 给 cut 打分。
+当左右 child 都有足够权重、cut score 超过阈值，并且 cut 两侧的 dominant evidence 发生实质变化时，算法才切分当前 segment。
+Profiler 随后从 child 内部最稳定、最能解释该 segment 的可见 evidence 生成下一层 operation frame，而不是按预设字段链取下一列。
+同一规则会递归作用在每个 child segment 上，直到没有 material split 或达到 depth cap。
+因此 stack 深度会随局部 evidence 参差不齐，某个 prompt/action 序列可以在一个任务下折叠为浅层热点，在另一个任务下展开为更深的 boundary-aware stack。
+Stack 不是 trace tree，也不是 session hierarchy；operation stack 是一个查询结果，profile spec 或 induction 参数可以按问题改变 view、hint、depth cap、predicate 和字段派生规则。
 
 \subsection{Mapping 和 tagging}
 
@@ -275,12 +277,8 @@ RQ4/E4 不是新的 hidden-label accuracy experiment，不是人工 analyst 或 
 \end{tabular}
 \end{table*}
 
-读者可以从三组证据判断该主张是否成立。
-表~\ref{tab:datasets} 和表~\ref{tab:results} 先给出 workload sources、oracles、主证据和范围。
-表~\ref{tab:e1-abstraction-evidence} 检查两抽象和递归折叠，表~\ref{tab:e2-localization} 与图~\ref{fig:e2e3-portfolio} 左图给出 hidden-label fidelity 和 baseline tradeoff，表~\ref{tab:actionability} 与图~\ref{fig:e2e3-portfolio} 右图给出 mechanism/actionability。
-表~\ref{tab:e4-replay-cost} 和表~\ref{tab:e4-determinism} 只给出 replay/cost 证据。
-Portfolio、case 和 verdict 视图解释这些主图表的数据来源、反例和适用边界。
-主文图表按这条路径阅读：表~\ref{tab:results} 是四个 block 的 claim map；表~\ref{tab:e2-localization} 和图~\ref{fig:e2e3-portfolio} 提供 hidden-label fidelity 和 baseline tradeoff；表~\ref{tab:actionability} 提供 mechanism/actionability；补充的 portfolio、case 和 verdict 视图只用于解释这些主图表的数据来源、反例和适用边界。
+主文图表按这条路径阅读：表~\ref{tab:datasets} 先给出 workload sources、oracles 和范围；表~\ref{tab:results} 是四个 block 的 claim map；表~\ref{tab:e1-abstraction-evidence} 检查两抽象、递归折叠和字段派生；表~\ref{tab:e2-localization} 与图~\ref{fig:e2e3-portfolio} 左图给出 hidden-label fidelity 和 baseline tradeoff；表~\ref{tab:actionability} 与图~\ref{fig:e2e3-portfolio} 右图给出 mechanism/actionability；表~\ref{tab:e4-replay-cost} 和表~\ref{tab:e4-determinism} 只给出 replay/cost 证据。
+补充的 portfolio、case 和 verdict 视图只用于解释这些主图表的数据来源、反例和适用边界。
 
 \subsection{RQ1/E1：泛化覆盖、递归折叠和边界字段}
 
@@ -371,7 +369,7 @@ Profile spec 把这个 query 自由度变成可复现实验配置。
 这种可配置性不只改变图的形状，也改变可验证的问题。
 Depth sweep、stack tree、transition/top-field、quality、grouped-boundary 和 history-depth views 都服务同一个机制问题，即 profiler 是否可以把边界选择延后到查询时，而不是在采集时固定为 prompt、session 或 span tree。
 当前证据支持三条带范围的结论。
-第一，异构轨迹和本地 session 可以先进入同一 operation layer，再用用户选择的 stack 折叠。
+第一，异构轨迹和本地 session 可以先进入同一 operation layer，再由显式 stack spec 或自动 induction 折叠。
 第二，recursive stacks 能表达 dataset、task、phase、tool、action、human-group、safety 和 quality-label 等多种深度，但不能声称恢复所有真实意图边界。
 第三，field derivation 是可扩展接口，因为 mapping 和 supervised backend 只写入 operation fields，profiler 仍按 operation stack 折叠。
 这些机制结果支撑本文的新意，但 user-utility、通用 boundary detector 和完整 trace-platform compatibility 仍是后续工作。
@@ -711,7 +709,7 @@ LangSmith、Langfuse、Phoenix 和 AgentOps 等系统进一步把 LLM call、too
 E2 实际评估的是 fixed-session drilldown 这个 trace-tree-shaped baseline。
 真实 OpenTelemetry/OpenInference/Phoenix span-tree import 仍是后续互操作 baseline，不是当前已完成结果。
 本文关注跨轨迹 semantic profiling，即按 agent operation fields 做跨 session 聚合、排序和评分。
-系统先把异构标注轨迹或本地 agent 历史统一为 operations，再允许用户选择 stack 深度、mappings、tagging 和 ranker。
+系统先把异构标注轨迹或本地 agent 历史统一为 operations，再用 profile spec 或 induction 参数选择 stack depth、mappings、tagging 和 ranker。
 这些系统构成最接近的基线威胁，本文定位为互补的 profiler abstraction，而不是替代现有 observability products。
 
 \subsection{Agent Failure 和 Span Localization}
