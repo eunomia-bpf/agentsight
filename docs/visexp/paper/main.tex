@@ -786,7 +786,7 @@ Prompt、session、tool call、process、syscall、plan、subagent、GUI action 
 字段派生、查询过滤、权重选择、递归折叠和复现配置只改变 operation 字段或 query 配置，而不产生新的 profiler 对象。
 Profile spec 固定这些选择，deterministic output 让同一 profile 可以 byte-stable replay。
 在 15 个轻量采样的公开标注轨迹数据源上，这个模型统一了 web、mobile、desktop、software、API、dialogue、failure、安全、human group 和 step-quality 轨迹，并产生 flamegraph 之外的 stack tree、transition、quality、boundary、case views 和 scope reports。
-E1 因此支持本文的机制主张，即 agent profiling 的边界可以从 prompt/session/span tree 中释放出来，成为 query-time operation-stack projection。
+E1 因此支持本文的机制主张：agent profiling 的边界可以从 prompt/session/span tree 中释放出来，成为 query-time operation-stack projection；这个 projection 可以由显式 stack spec 复现，也可以由可见边界证据递归诱导，并在证据不足时停止。
 
 本文最强经验依据来自四类 oracle-rich 轨迹。
 OSWorld-Human 展示同一动作序列可以折叠到人工 grouped-action 深度，AgentNet 展示 step correctness 和 redundancy 可以作为普通 operation fields 进入 profiling，AgentRewardBench 和 SATraj-OS 展示 failure、looping、side-effect、安全和 attack-type diagnostics 可以用同一机制表达。
@@ -794,9 +794,9 @@ OSWorld-Human 展示同一动作序列可以折叠到人工 grouped-action 深�
 相对 fixed-session，operation-stack top-5 recall 在 5/6 tasks 上更高，并把 median groups 从 285.0 降到 157.5。
 
 E3 进一步说明 operation-stack 的价值来自可调 profiling 配置，而不是单一默认层级。
-Task-paired uncertainty、label-permutation negative controls、view/depth task-fit、inspection-budget curves、fixed-recall target、sequence-scope scoring 和 oracle-depth scoring 共同把优势限定为 AP/work/fragmentation tradeoff。
-Actionability 证据显示 36/36 objective rows 有具体 optimization action，27/36 best visible policies 不是默认 operation-stack query-aware。
-Diagnostic lenses、case views、baseline contrasts、action counterfactuals 和 held-out transfer results 说明 profiler 暴露的是可调分析界面，而不是 automatic universal selector。
+不同任务需要不同的 view、stack depth、ranker、mapping 或 boundary-derived fields。
+这些差异不是噪声，而是 profiler 给出的优化线索：36/36 objective rows 有具体 optimization action，27/36 best visible policies 不是默认 operation-stack query-aware。
+主张是可调诊断界面，不是 label-free automatic selector。
 Executable profile-spec patches 把这种 profile-configuration actionability 落到 Rust profiler 配置上，并在 6 个 patches 中让 5 个同时改善 AP、top-5 lift 和 first-positive work。
 OSWorld-Human reject 再由 boundary-derived operation fields 改善 AP 和 groups，但保留 work 反例。
 
