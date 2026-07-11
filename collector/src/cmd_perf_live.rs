@@ -22,6 +22,8 @@ use std::time::Duration;
 const LIVE_EBPF_ROOT_NOTE: &str = "live eBPF process capture enabled";
 const LIVE_EBPF_SUDO_NOTE: &str = "live eBPF process capture enabled via sudo";
 const LIVE_EBPF_UNAVAILABLE_NOTE: &str = "no eBPF: showing process snapshots and agent-native sessions only (run with sudo or configure passwordless sudo for kernel probes)";
+#[cfg(not(target_os = "linux"))]
+const LIVE_EBPF_UNSUPPORTED_NOTE: &str = "no eBPF: live kernel probes are Linux-only; showing process snapshots and agent-native sessions only";
 
 struct LiveCaptureState {
     view: MaterializedView,
@@ -137,6 +139,14 @@ pub(crate) async fn start_live_ebpf_capture(
 }
 
 fn prepare_live_ebpf_privileges() -> Result<Option<String>, String> {
+    #[cfg(not(target_os = "linux"))]
+    {
+        if let Err(err) = ensure_agentsight_state_dir() {
+            log::warn!("could not create ~/.agentsight: {err}");
+        }
+        return Err(LIVE_EBPF_UNSUPPORTED_NOTE.to_string());
+    }
+
     let is_root = unsafe { libc::geteuid() } == 0;
     if !is_root {
         if let Err(err) = ensure_agentsight_state_dir() {
@@ -251,6 +261,15 @@ mod tests {
         assert_eq!(
             prepare_live_ebpf_privileges_for(false, false).unwrap_err(),
             LIVE_EBPF_UNAVAILABLE_NOTE.to_string()
+        );
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    #[test]
+    fn live_ebpf_privileges_degrade_on_non_linux() {
+        assert_eq!(
+            prepare_live_ebpf_privileges().unwrap_err(),
+            LIVE_EBPF_UNSUPPORTED_NOTE.to_string()
         );
     }
 
