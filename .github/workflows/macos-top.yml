@@ -26,6 +26,7 @@ jobs:
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
+          cache-workspaces: collector -> collector/target
 
       - name: Build collector and run top
         run: script/ci/macos_top_smoke.sh .artifacts/macos-top-output.txt
