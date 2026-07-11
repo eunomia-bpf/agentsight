@@ -66,28 +66,7 @@ jobs:
         cargo build --verbose
 
     - name: Smoke test top with fixture sessions and no sudo
-      run: |
-        set -euo pipefail
-        fixture_home="$PWD/collector/tests/fixtures/top-home"
-        unset SUDO_USER
-        HOME="$fixture_home" PATH=/nonexistent ./collector/target/debug/agentsight top --once --plain --limit 20 | tee top.out
-        grep -q "AgentSight top -" top.out
-        grep -q "codex:ci-codex" top.out
-        grep -q "claude:ci-claude" top.out
-        grep -q "gemini:ci-gemini" top.out
-        grep -q "gpt-ci-codex" top.out
-        grep -q "claude-ci" top.out
-        grep -q "gemini-ci" top.out
-        grep -q "portable top codex fixture" top.out
-        grep -q "portable top claude fixture" top.out
-        grep -q "portable top gemini fixture" top.out
-        grep -q "live eBPF capture requires sudo" top.out
-        {
-          echo "### AgentSight top fixture smoke"
-          echo '```'
-          sed -n '1,80p' top.out
-          echo '```'
-        } >> "$GITHUB_STEP_SUMMARY"
+      run: script/ci/top_fixture_smoke.sh
 
     - name: Run clippy (deny warnings)
       run: |

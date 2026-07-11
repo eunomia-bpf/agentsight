@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 // Copyright (c) 2026 eunomia-bpf org.
 
-use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
 fn fixture_session_path(
@@ -14,10 +13,6 @@ fn fixture_session_path(
         .with_file_name(file_name)
 }
 
-fn fixture_home() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/top-home")
-}
-
 fn agentsight_output(args: &[&str]) -> Output {
     agentsight_output_with_env(args, &[])
 }
@@ -25,7 +20,6 @@ fn agentsight_output(args: &[&str]) -> Output {
 fn agentsight_output_with_env(args: &[&str], envs: &[(&str, &std::ffi::OsStr)]) -> Output {
     let output = Command::new(env!("CARGO_BIN_EXE_agentsight"))
         .args(args)
-        .env_remove("SUDO_USER")
         .envs(envs.iter().copied())
         .output()
         .expect("agentsight command should run");
@@ -63,20 +57,30 @@ fn top_level_help_surfaces_perf_strace_flow() {
 }
 
 #[test]
-fn agent_native_summary_reads_shared_fixture_home() {
-    let home = fixture_home();
+fn agent_native_summary_reads_codex_session_jsonl() {
+    let temp = tempfile::tempdir().expect("tempdir");
+    let session_path =
+        fixture_session_path(agent_session::AGENT_CODEX, &temp, "rollout-test.jsonl");
+    std::fs::create_dir_all(session_path.parent().unwrap()).expect("session dir");
+    std::fs::write(
+        session_path,
+        concat!(
+            "{\"type\":\"turn_context\",\"payload\":{\"model\":\"gpt-5.5\"}}\n",
+            "{\"type\":\"event_msg\",\"payload\":{\"type\":\"token_count\",\"info\":{\"total_token_usage\":{\"input_tokens\":11,\"output_tokens\":4,\"total_tokens\":15}}}}\n",
+            "{\"type\":\"response_item\",\"payload\":{\"type\":\"function_call\",\"name\":\"shell\"}}\n",
+        ),
+    )
+    .expect("codex session");
 
-    let summary = agentsight_stdout_with_env(&["report", "--local"], &[("HOME", home.as_os_str())]);
+    let summary =
+        agentsight_stdout_with_env(&["report", "--local"], &[("HOME", temp.path().as_os_str())]);
     assert!(
         summary.contains("agent_native_session session"),
         "{summary}"
     );
-    assert!(summary.contains("gpt-ci-codex"), "{summary}");
-    assert!(summary.contains("claude-ci"), "{summary}");
-    assert!(summary.contains("gemini-ci"), "{summary}");
+    assert!(summary.contains("gpt-5.5"), "{summary}");
     assert!(summary.contains("15 tokens"), "{summary}");
-    assert!(summary.contains("shell(2)"), "{summary}");
-    assert!(summary.contains("Bash(1)"), "{summary}");
+    assert!(summary.contains("shell(1)"), "{summary}");
 }
 
 #[test]
@@ -94,44 +98,32 @@ fn top_without_db_uses_live_process_view() {
 
 #[test]
 fn top_discovers_agent_native_sessions() {
-    let home = fixture_home();
+    let temp = tempfile::tempdir().expect("tempdir");
+    let session_path =
+        fixture_session_path(agent_session::AGENT_CODEX, &temp, "rollout-test.jsonl");
+    std::fs::create_dir_all(session_path.parent().unwrap()).expect("session dir");
+    std::fs::write(
+        session_path,
+        concat!(
+            "{\"type\":\"turn_context\",\"payload\":{\"model\":\"gpt-5.5\"}}\n",
+            "{\"type\":\"event_msg\",\"payload\":{\"type\":\"token_count\",\"info\":{\"total_token_usage\":{\"input_tokens\":11,\"output_tokens\":4,\"total_tokens\":15}}}}\n",
+            "{\"type\":\"response_item\",\"payload\":{\"type\":\"function_call\",\"name\":\"shell\"}}\n",
+            "{\"type\":\"message\",\"content\":\"fix the test\"}\n",
+        ),
+    )
+    .expect("codex session");
 
     let top = agentsight_stdout_with_env(
-        &["top", "--once", "--plain", "--limit", "20"],
-        &[("HOME", home.as_os_str())],
+        &["top", "--once", "--limit", "20"],
+        &[("HOME", temp.path().as_os_str())],
     );
     assert!(top.contains("live sessions"), "{top}");
-    assert!(top.contains("codex:ci-codex"), "{top}");
-    assert!(top.contains("claude:ci-claude"), "{top}");
-    assert!(top.contains("gemini:ci-gemini"), "{top}");
+    assert!(top.contains("codex:rollout-test"), "{top}");
     assert!(top.contains("TOKENS"), "{top}");
     assert!(top.contains("ACTIVITY"), "{top}");
-    assert!(top.contains("gpt-ci-codex"), "{top}");
-    assert!(top.contains("claude-ci"), "{top}");
-    assert!(top.contains("gemini-ci"), "{top}");
+    assert!(top.contains("15"), "{top}");
     assert!(top.contains("1 tool"), "{top}");
-    assert!(top.contains("portable top codex fixture"), "{top}");
-    assert!(top.contains("portable top claude fixture"), "{top}");
-    assert!(top.contains("portable top gemini fixture"), "{top}");
-}
-
-#[cfg(target_os = "linux")]
-#[test]
-fn top_fixture_home_works_without_sudo() {
-    let home = fixture_home();
-    let top = agentsight_stdout_with_env(
-        &["top", "--once", "--plain", "--limit", "20"],
-        &[
-            ("HOME", home.as_os_str()),
-            ("PATH", std::ffi::OsStr::new("/nonexistent")),
-        ],
-    );
-
-    assert!(top.contains("AgentSight top -"), "{top}");
-    assert!(top.contains("codex:ci-codex"), "{top}");
-    assert!(top.contains("claude:ci-claude"), "{top}");
-    assert!(top.contains("gemini:ci-gemini"), "{top}");
-    assert!(top.contains("live eBPF capture requires sudo"), "{top}");
+    assert!(top.contains("fix the test"), "{top}");
 }
 
 #[test]
