@@ -17,19 +17,21 @@ static BOOT_TIME_SECS: OnceLock<i64> = OnceLock::new();
 /// This uses the platform process backend and caches the result.
 pub fn get_boot_time_secs() -> i64 {
     *BOOT_TIME_SECS.get_or_init(|| {
-        if let Ok(boot_time) = i64::try_from(sysinfo::System::boot_time())
-            && boot_time > 0
-        {
-            return boot_time;
-        }
-
         let now_secs = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
             .as_secs() as i64;
+
+        if let Ok(boot_time) = i64::try_from(sysinfo::System::boot_time())
+            && boot_time > 946684800
+            && boot_time < now_secs
+        {
+            return boot_time;
+        }
+
         let uptime_secs = i64::try_from(sysinfo::System::uptime())
             .ok()
-            .filter(|uptime| *uptime > 0)
+            .filter(|uptime| *uptime > 0 && *uptime < now_secs)
             .unwrap_or(1);
         now_secs.saturating_sub(uptime_secs)
     })
