@@ -117,12 +117,16 @@ fn resolve_command_path(command: &str) -> Result<std::path::PathBuf, String> {
 
 /// Minimal `which`: find an executable file named `cmd` in the `$PATH` dirs.
 ///
-/// When invoked under `sudo`, the inherited `$PATH` is root's secure path, which
-/// usually misses user-local installs like `~/.local/bin/claude`. To make
-/// `sudo agentsight record -- claude` find the *invoking user's* tools, we search
-/// that user's common bin dirs first (derived from `$SUDO_USER`).
+/// When invoked under `sudo`, the inherited `$PATH` is often root's secure path,
+/// which misses user-local installs like `~/.local/bin/claude`. Honor an
+/// explicit `$PATH` first, then fall back to the invoking user's common bin dirs
+/// derived from `$SUDO_USER`.
 fn find_in_path(cmd: &str) -> Option<std::path::PathBuf> {
     let mut dirs: Vec<std::path::PathBuf> = Vec::new();
+
+    if let Some(path) = std::env::var_os("PATH") {
+        dirs.extend(std::env::split_paths(&path));
+    }
 
     if let Some(user) = std::env::var_os("SUDO_USER")
         && let Some(home) = sudo_user_home(&user)
@@ -135,10 +139,13 @@ fn find_in_path(cmd: &str) -> Option<std::path::PathBuf> {
         }
     }
 
-    if let Some(path) = std::env::var_os("PATH") {
-        dirs.extend(std::env::split_paths(&path));
-    }
+    find_executable_in_dirs(cmd, dirs)
+}
 
+fn find_executable_in_dirs(
+    cmd: &str,
+    dirs: impl IntoIterator<Item = std::path::PathBuf>,
+) -> Option<std::path::PathBuf> {
     for dir in dirs {
         let full = dir.join(cmd);
         if let Ok(meta) = std::fs::metadata(&full)
@@ -450,7 +457,7 @@ fn canonicalize_attach_path(path: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::{
-        binary_embeds_ssl, canonicalize_attach_path, parse_container_ref,
+        binary_embeds_ssl, canonicalize_attach_path, find_executable_in_dirs, parse_container_ref,
         resolve_binary_path_for_ssl,
     };
 
@@ -581,5 +588,23 @@ mod tests {
         std::fs::write(&path, b"no tls marker here").unwrap();
 
         assert!(!binary_embeds_ssl(path.to_str().unwrap()));
+    }
+
+    #[test]
+    fn path_search_prefers_earlier_dirs() {
+        let first = tempfile::tempdir().unwrap();
+        let second = tempfile::tempdir().unwrap();
+        let first_cmd = first.path().join("agent");
+        let second_cmd = second.path().join("agent");
+        std::fs::write(&first_cmd, b"first").unwrap();
+        std::fs::write(&second_cmd, b"second").unwrap();
+
+        let found = find_executable_in_dirs(
+            "agent",
+            [first.path().to_path_buf(), second.path().to_path_buf()],
+        )
+        .unwrap();
+
+        assert_eq!(found, first_cmd);
     }
 }

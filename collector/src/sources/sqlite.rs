@@ -11,6 +11,7 @@ use std::collections::BTreeSet;
 use std::path::Path;
 
 const PROMPT_DEDUP_WINDOW_MS: u64 = 10_000;
+#[cfg_attr(not(test), allow(dead_code))]
 pub(crate) fn load_view(path: impl AsRef<Path>) -> ViewResult<MaterializedView> {
     load_view_inner(path, false)
 }
@@ -75,11 +76,16 @@ fn load_view_inner(
     }
     if include_observed_session_prompts {
         import_observed_process_nodes(&mut view, &llm_rows, &process_pids);
+        let observed_sessions = agent_native::observed_sessions_from_audit_rows(&audit_rows);
+        agent_native::import_into_view(&mut view, &observed_sessions);
         let mut prompt_rows = llm_call_prompt_rows(&llm_rows);
         append_deduped_local_session_prompt_rows(
             &mut prompt_rows,
             agent_native::observed_session_prompt_rows(&audit_rows),
         );
+        for row in local_prompt_llm_call_rows(&prompt_rows) {
+            view.apply_llm_call(&row);
+        }
         for row in prompt_rows {
             view.apply_audit_event(&row);
         }
@@ -194,6 +200,64 @@ fn append_deduped_local_session_prompt_rows(
     }
 }
 
+fn local_prompt_llm_call_rows(prompt_rows: &[AuditEventRow]) -> Vec<LlmCallRow> {
+    prompt_rows
+        .iter()
+        .filter(|row| {
+            row.details.get("prompt_source").and_then(Value::as_str) == Some("local")
+                && row
+                    .details
+                    .get("session_id")
+                    .and_then(Value::as_str)
+                    .is_none()
+                && row.audit_type == "llm"
+                && row.action.as_deref() == Some("request")
+        })
+        .filter_map(local_prompt_llm_call_row)
+        .collect()
+}
+
+fn local_prompt_llm_call_row(row: &AuditEventRow) -> Option<LlmCallRow> {
+    let text = prompt_text_from_details(&row.details)?;
+    let session_id = row
+        .details
+        .get("session_id")
+        .and_then(Value::as_str)
+        .map(ToString::to_string);
+    let conversation_id = row
+        .details
+        .get("conversation_id")
+        .and_then(Value::as_str)
+        .map(ToString::to_string);
+    Some(LlmCallRow {
+        id: format!("llm-{}", row.id),
+        session_id,
+        conversation_id,
+        start_timestamp_ms: row.timestamp_ms,
+        end_timestamp_ms: None,
+        pid: row.pid,
+        comm: row.comm.clone(),
+        provider: None,
+        model: row.subject.clone().or_else(|| row.comm.clone()),
+        call_kind: Some("agent_native_prompt".to_string()),
+        status: row.status.clone().unwrap_or_else(|| "observed".to_string()),
+        error_type: None,
+        finish_reason: None,
+        host: None,
+        path: row.target.clone(),
+        status_code: None,
+        input_tokens: 0,
+        output_tokens: 0,
+        total_tokens: 0,
+        request: json!({
+            "prompt": text,
+            "prompt_source": "local",
+            "target": row.target.as_deref(),
+        }),
+        response: Value::Null,
+    })
+}
+
 fn prompt_text_from_details(details: &Value) -> Option<String> {
     details
         .get("text_content")
@@ -245,6 +309,91 @@ mod tests {
 
             assert_eq!(prompt_rows.len(), expected_rows, "{name}");
         }
+    }
+
+    #[test]
+    fn observed_codex_exec_prompt_reprojects_as_llm_call() {
+        let temp = tempfile::tempdir().unwrap();
+        let db = temp.path().join("codex.db");
+        let store = SqliteStore::open(&db).unwrap();
+        store
+            .connection()
+            .execute(
+                "INSERT INTO audit_events (
+                    id, timestamp_ms, audit_type, pid, comm, action, target, status, details_json
+                 ) VALUES (
+                    'audit-1', 1000, 'process', 42, 'codex', 'exec', '/tmp/tools/bin/codex',
+                    'observed',
+                    '{\"full_command\":\"/tmp/tools/bin/codex exec --skip-git-repo-check -c model=gpt agentsight local codex prompt\"}'
+                 )",
+                [],
+            )
+            .unwrap();
+
+        let view = load_view_with_observed_session_prompts(&db).unwrap();
+        let rows = view.llm_call_rows(10);
+
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].comm.as_deref(), Some("codex"));
+        assert_eq!(
+            rows[0].request.get("prompt").and_then(Value::as_str),
+            Some("agentsight local codex prompt")
+        );
+    }
+
+    #[test]
+    fn observed_codex_home_reprojects_session_prompt_as_llm_call() {
+        let temp = tempfile::tempdir().unwrap();
+        let codex_home = temp.path().join("codex-home");
+        let session_dir = codex_home.join("sessions/2026/07/11");
+        std::fs::create_dir_all(&session_dir).unwrap();
+        std::fs::write(
+            session_dir.join("rollout-2026-07-11T00-00-00.jsonl"),
+            concat!(
+                "{\"timestamp\":\"2026-07-11T00:00:00.000Z\",",
+                "\"type\":\"event_msg\",",
+                "\"payload\":{\"type\":\"user_message\",",
+                "\"message\":\"agentsight inferred codex home prompt\"}}\n"
+            ),
+        )
+        .unwrap();
+        let state_path = codex_home.join("state_5.sqlite");
+        std::fs::write(&state_path, "").unwrap();
+
+        let db = temp.path().join("codex.db");
+        let store = SqliteStore::open(&db).unwrap();
+        store
+            .connection()
+            .execute(
+                "INSERT INTO audit_events (
+                    id, timestamp_ms, audit_type, pid, comm, action, target, status, details_json
+                 ) VALUES (
+                    'audit-file-1', 1000, 'file', 42, 'codex', 'write', ?1, 'observed', ?2
+                 )",
+                rusqlite::params![
+                    state_path.to_string_lossy().as_ref(),
+                    json!({"filepath": state_path.to_string_lossy()}).to_string(),
+                ],
+            )
+            .unwrap();
+
+        let view = load_view_with_observed_session_prompts(&db).unwrap();
+        let rows = view.llm_call_rows(10);
+        let snapshot = view.export_snapshot(crate::model::SnapshotOptions { audit_limit: 10 });
+
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].comm.as_deref(), Some("codex"));
+        assert_eq!(
+            rows[0].request.get("prompt").and_then(Value::as_str),
+            Some("agentsight inferred codex home prompt")
+        );
+        assert_eq!(snapshot.sessions.len(), 1);
+        assert!(
+            snapshot
+                .audit_events
+                .iter()
+                .any(|row| row.summary.as_deref() == Some("agentsight inferred codex home prompt"))
+        );
     }
 
     fn ssl_call_row(model: &str, text: &str) -> LlmCallRow {
