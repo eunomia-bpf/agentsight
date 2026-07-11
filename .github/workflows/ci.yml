@@ -69,7 +69,8 @@ jobs:
       run: |
         set -euo pipefail
         fixture_home="$PWD/collector/tests/fixtures/top-home"
-        SUDO_USER= HOME="$fixture_home" PATH=/nonexistent ./collector/target/debug/agentsight top --once --plain --limit 20 | tee top.out
+        unset SUDO_USER
+        HOME="$fixture_home" PATH=/nonexistent ./collector/target/debug/agentsight top --once --plain --limit 20 | tee top.out
         grep -q "AgentSight top -" top.out
         grep -q "codex:ci-codex" top.out
         grep -q "claude:ci-claude" top.out
