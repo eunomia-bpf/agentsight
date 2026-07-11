@@ -5,6 +5,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fs;
 use std::io;
 use std::path::PathBuf;
+use std::sync::OnceLock;
 use std::time::Instant;
 use sysinfo::{Pid, Process, ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
 
@@ -343,7 +344,12 @@ fn pid_to_u32(pid: Pid) -> u32 {
 }
 
 fn starttime_ticks_from_epoch(start_time_s: u64, boot_time_s: u64) -> u64 {
-    ((start_time_s.saturating_sub(boot_time_s) as f64) * ticks_per_second()).round() as u64
+    let since_boot_s = if start_time_s >= boot_time_s {
+        start_time_s - boot_time_s
+    } else {
+        start_time_s
+    };
+    ((since_boot_s as f64) * ticks_per_second()).round() as u64
 }
 
 pub(crate) fn process_start_timestamp_ms(starttime_ticks: u64) -> Option<u64> {
@@ -367,8 +373,11 @@ pub(crate) fn process_cpu_ms_delta(proc_info: &ProcInfo, previous: Option<&ProcS
 }
 
 fn ticks_per_second() -> f64 {
-    let value = unsafe { libc::sysconf(libc::_SC_CLK_TCK) };
-    if value > 0 { value as f64 } else { 100.0 }
+    static TICKS_PER_SECOND: OnceLock<f64> = OnceLock::new();
+    *TICKS_PER_SECOND.get_or_init(|| {
+        let value = unsafe { libc::sysconf(libc::_SC_CLK_TCK) };
+        if value > 0 { value as f64 } else { 100.0 }
+    })
 }
 
 #[cfg(test)]
@@ -402,6 +411,14 @@ mod tests {
         let _ = child.wait();
 
         assert_eq!(threads, Some(1));
+    }
+
+    #[test]
+    fn starttime_ticks_accepts_epoch_or_boot_relative_seconds() {
+        let ticks = ticks_per_second().round() as u64;
+
+        assert_eq!(starttime_ticks_from_epoch(125, 100), 25 * ticks);
+        assert_eq!(starttime_ticks_from_epoch(25, 100), 25 * ticks);
     }
 
     #[cfg(target_os = "linux")]
