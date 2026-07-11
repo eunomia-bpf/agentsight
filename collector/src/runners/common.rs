@@ -10,8 +10,8 @@ use log::debug;
 use std::path::Path;
 use std::pin::Pin;
 use std::process::Stdio;
-use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command as TokioCommand;
 
@@ -223,7 +223,7 @@ impl BinaryExecutor {
 
         let mut cmd = if needs_sudo {
             let mut c = TokioCommand::new("sudo");
-            c.arg(&self.binary_path);
+            c.arg("-n").arg(&self.binary_path);
             c
         } else {
             TokioCommand::new(&self.binary_path)
@@ -292,12 +292,19 @@ impl BinaryExecutor {
             }
         });
 
-        if self
+        let startup_delay_ms = if self
             .additional_args
             .iter()
             .any(|arg| arg == "--binary-path")
         {
-            tokio::time::sleep(tokio::time::Duration::from_millis(1500)).await;
+            Some(1500)
+        } else if needs_sudo {
+            Some(200)
+        } else {
+            None
+        };
+        if let Some(delay_ms) = startup_delay_ms {
+            tokio::time::sleep(tokio::time::Duration::from_millis(delay_ms)).await;
             if let Some(status) = child.try_wait()? {
                 let label = runner_name.as_deref().unwrap_or("binary");
                 return Err(RunnerError::from(format!(

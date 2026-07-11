@@ -164,11 +164,26 @@ fn ensure_agentsight_state_dir() -> io::Result<()> {
     let Some(home) = dirs::home_dir() else {
         return Ok(());
     };
-    fs::create_dir_all(agentsight_state_dir(&home))
+    let dir = agentsight_state_dir(&home);
+    fs::create_dir_all(&dir)?;
+    restrict_state_dir_permissions(&dir)
 }
 
 fn agentsight_state_dir(home: &Path) -> PathBuf {
     home.join(".agentsight")
+}
+
+#[cfg(unix)]
+fn restrict_state_dir_permissions(dir: &Path) -> io::Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+
+    let permissions = fs::Permissions::from_mode(0o700);
+    fs::set_permissions(dir, permissions)
+}
+
+#[cfg(not(unix))]
+fn restrict_state_dir_permissions(_dir: &Path) -> io::Result<()> {
+    Ok(())
 }
 
 async fn consume_live_ebpf_stream(
@@ -272,6 +287,22 @@ mod tests {
             agentsight_state_dir(Path::new("/tmp/agentsight-home")),
             PathBuf::from("/tmp/agentsight-home/.agentsight")
         );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn restrict_state_dir_permissions_sets_user_only_mode() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let temp = tempfile::tempdir().unwrap();
+        let dir = temp.path().join(".agentsight");
+        fs::create_dir(&dir).unwrap();
+        fs::set_permissions(&dir, fs::Permissions::from_mode(0o777)).unwrap();
+
+        restrict_state_dir_permissions(&dir).unwrap();
+
+        let mode = fs::metadata(&dir).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode, 0o700);
     }
 
     #[test]
