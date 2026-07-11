@@ -6,6 +6,7 @@ use std::fs;
 use std::io;
 use std::path::PathBuf;
 use std::time::Instant;
+use sysinfo::{Pid, Process, ProcessRefreshKind, ProcessesToUpdate, System, UpdateKind};
 
 pub(crate) use agent_session::{ProcessKey, ProcessTree};
 
@@ -35,6 +36,8 @@ pub(crate) struct ProcInfo {
     pub(crate) rss_mb: u64,
     pub(crate) vsz_kb: u64,
     pub(crate) threads: u32,
+    pub(crate) read_bytes: u64,
+    pub(crate) write_bytes: u64,
 }
 
 impl ProcInfo {
@@ -72,24 +75,21 @@ impl Default for ProcSnapshot {
 
 impl ProcSnapshot {
     pub(crate) fn collect() -> io::Result<Self> {
-        let page_size = page_size_bytes();
-        let mut procs = BTreeMap::new();
-
-        for entry in fs::read_dir("/proc")? {
-            let Ok(entry) = entry else { continue };
-            let file_name = entry.file_name();
-            let Some(pid) = file_name.to_str().and_then(|name| name.parse::<u32>().ok()) else {
-                continue;
-            };
-            let Some(proc_info) = read_proc_info(pid, page_size) else {
-                continue;
-            };
-            procs.insert(pid, proc_info);
-        }
+        let mut system = System::new();
+        system.refresh_processes_specifics(ProcessesToUpdate::All, true, process_refresh_kind());
+        let boot_time_s = System::boot_time();
+        let procs = system
+            .processes()
+            .values()
+            .map(|process| {
+                let info = proc_info_from_sysinfo(process, boot_time_s);
+                (info.pid, info)
+            })
+            .collect();
 
         Ok(Self {
             at: Instant::now(),
-            uptime_s: read_uptime_s().unwrap_or_default(),
+            uptime_s: System::uptime() as f64,
             procs,
         })
     }
@@ -224,33 +224,68 @@ pub(crate) fn process_age_s(proc_info: &ProcInfo, sample: &ProcSnapshot) -> f64 
     (sample.uptime_s - process_start_s).max(0.0)
 }
 
-fn read_proc_info(pid: u32, page_size: u64) -> Option<ProcInfo> {
-    let proc_dir = format!("/proc/{pid}");
-    let stat = fs::read_to_string(format!("{proc_dir}/stat")).ok()?;
-    let (comm, ppid, session_id, ticks, starttime_ticks) = parse_proc_stat(&stat)?;
-    let command = read_cmdline(pid).unwrap_or_else(|| comm.clone());
-    let cwd = read_cwd(pid);
-    let (rss_kb, rss_mb, vsz_kb) = read_statm(pid, page_size).unwrap_or_default();
-    let threads = read_thread_count(pid);
-    Some(ProcInfo {
+fn proc_info_from_sysinfo(process: &Process, boot_time_s: u64) -> ProcInfo {
+    let pid = process.pid().as_u32();
+    let comm = process.name().to_string_lossy().into_owned();
+    let command = process_command(process, &comm);
+    let rss_bytes = process.memory();
+    let disk = process.disk_usage();
+    ProcInfo {
         pid,
-        ppid,
-        session_id,
+        ppid: process.parent().map(pid_to_u32).unwrap_or_default(),
+        session_id: process.session_id().map(pid_to_u32).unwrap_or_default(),
         comm,
         command,
-        cwd,
-        ticks,
-        starttime_ticks,
-        rss_kb,
-        rss_mb,
-        vsz_kb,
-        threads,
-    })
+        cwd: process.cwd().map(PathBuf::from),
+        ticks: cpu_ms_to_ticks(process.accumulated_cpu_time()),
+        starttime_ticks: platform_starttime_ticks(pid)
+            .unwrap_or_else(|| starttime_ticks_from_epoch(process.start_time(), boot_time_s)),
+        rss_kb: bytes_to_kb(rss_bytes),
+        rss_mb: bytes_to_mb(rss_bytes),
+        vsz_kb: bytes_to_kb(process.virtual_memory()),
+        threads: process.tasks().map(|tasks| tasks.len() as u32).unwrap_or(1),
+        read_bytes: disk.total_read_bytes,
+        write_bytes: disk.total_written_bytes,
+    }
+}
+
+fn process_refresh_kind() -> ProcessRefreshKind {
+    ProcessRefreshKind::nothing()
+        .with_memory()
+        .with_cpu()
+        .with_disk_usage()
+        .with_cmd(UpdateKind::Always)
+        .with_cwd(UpdateKind::Always)
+        .with_tasks()
+}
+
+fn process_command(process: &Process, fallback: &str) -> String {
+    let command = process
+        .cmd()
+        .iter()
+        .map(|arg| arg.to_string_lossy())
+        .collect::<Vec<_>>()
+        .join(" ");
+    if command.is_empty() {
+        fallback.to_string()
+    } else {
+        command
+    }
 }
 
 pub(crate) fn process_starttime_ticks(pid: u32) -> Option<u64> {
-    let stat = fs::read_to_string(format!("/proc/{pid}/stat")).ok()?;
-    parse_proc_stat(&stat).map(|(_, _, _, _, starttime_ticks)| starttime_ticks)
+    platform_starttime_ticks(pid).or_else(|| {
+        let sys_pid = Pid::from_u32(pid);
+        let mut system = System::new();
+        system.refresh_processes_specifics(
+            ProcessesToUpdate::Some(&[sys_pid]),
+            true,
+            ProcessRefreshKind::nothing(),
+        );
+        system
+            .process(sys_pid)
+            .map(|process| starttime_ticks_from_epoch(process.start_time(), System::boot_time()))
+    })
 }
 
 pub(crate) fn scan_proc_fd_paths(pid: u32) -> BTreeSet<PathBuf> {
@@ -267,52 +302,21 @@ pub(crate) fn scan_proc_fd_paths(pid: u32) -> BTreeSet<PathBuf> {
     out
 }
 
-fn parse_proc_stat(stat: &str) -> Option<(String, u32, u32, u64, u64)> {
-    let open = stat.find('(')?;
+#[cfg(target_os = "linux")]
+fn platform_starttime_ticks(pid: u32) -> Option<u64> {
+    let stat = fs::read_to_string(format!("/proc/{pid}/stat")).ok()?;
+    parse_proc_starttime_ticks(&stat)
+}
+
+#[cfg(not(target_os = "linux"))]
+fn platform_starttime_ticks(_pid: u32) -> Option<u64> {
+    None
+}
+
+#[cfg(target_os = "linux")]
+fn parse_proc_starttime_ticks(stat: &str) -> Option<u64> {
     let close = stat.rfind(')')?;
-    let comm = stat[open + 1..close].to_string();
-    let fields: Vec<&str> = stat[close + 1..].split_whitespace().collect();
-    let ppid = fields.get(1)?.parse().ok()?;
-    let session_id = fields.get(3)?.parse().ok()?;
-    let utime: u64 = fields.get(11)?.parse().ok()?;
-    let stime: u64 = fields.get(12)?.parse().ok()?;
-    let starttime_ticks = fields.get(19)?.parse().ok()?;
-    Some((
-        comm,
-        ppid,
-        session_id,
-        utime.saturating_add(stime),
-        starttime_ticks,
-    ))
-}
-
-fn read_cmdline(pid: u32) -> Option<String> {
-    let bytes = fs::read(format!("/proc/{pid}/cmdline")).ok()?;
-    let command = bytes
-        .split(|byte| *byte == 0)
-        .filter_map(|part| std::str::from_utf8(part).ok())
-        .filter(|part| !part.is_empty())
-        .collect::<Vec<_>>()
-        .join(" ");
-    (!command.is_empty()).then_some(command)
-}
-
-fn read_cwd(pid: u32) -> Option<PathBuf> {
-    fs::read_link(format!("/proc/{pid}/cwd")).ok()
-}
-
-fn read_statm(pid: u32, page_size: u64) -> Option<(u64, u64, u64)> {
-    let statm = fs::read_to_string(format!("/proc/{pid}/statm")).ok()?;
-    let mut fields = statm.split_whitespace();
-    let vsz_pages: u64 = fields.next()?.parse().ok()?;
-    let rss_pages: u64 = fields.next()?.parse().ok()?;
-    let rss_bytes = rss_pages.saturating_mul(page_size);
-    let vsz_bytes = vsz_pages.saturating_mul(page_size);
-    Some((
-        bytes_to_kb(rss_bytes),
-        bytes_to_mb(rss_bytes),
-        bytes_to_kb(vsz_bytes),
-    ))
+    stat[close + 1..].split_whitespace().nth(19)?.parse().ok()
 }
 
 fn bytes_to_kb(bytes: u64) -> u64 {
@@ -327,13 +331,16 @@ fn bytes_to_mb(bytes: u64) -> u64 {
     }
 }
 
-fn read_uptime_s() -> Option<f64> {
-    fs::read_to_string("/proc/uptime")
-        .ok()?
-        .split_whitespace()
-        .next()?
-        .parse()
-        .ok()
+fn cpu_ms_to_ticks(cpu_ms: u64) -> u64 {
+    ((cpu_ms as f64 / 1000.0) * ticks_per_second()).round() as u64
+}
+
+fn pid_to_u32(pid: Pid) -> u32 {
+    pid.as_u32()
+}
+
+fn starttime_ticks_from_epoch(start_time_s: u64, boot_time_s: u64) -> u64 {
+    ((start_time_s.saturating_sub(boot_time_s) as f64) * ticks_per_second()).round() as u64
 }
 
 pub(crate) fn process_start_timestamp_ms(starttime_ticks: u64) -> Option<u64> {
@@ -356,46 +363,32 @@ pub(crate) fn process_cpu_ms_delta(proc_info: &ProcInfo, previous: Option<&ProcS
     ((delta_ticks as f64 / ticks_per_second()) * 1000.0).round() as u64
 }
 
-fn page_size_bytes() -> u64 {
-    let value = unsafe { libc::sysconf(libc::_SC_PAGESIZE) };
-    if value > 0 { value as u64 } else { 4096 }
-}
-
 fn ticks_per_second() -> f64 {
     let value = unsafe { libc::sysconf(libc::_SC_CLK_TCK) };
     if value > 0 { value as f64 } else { 100.0 }
 }
 
-fn read_thread_count(pid: u32) -> u32 {
-    fs::read_dir(format!("/proc/{pid}/task"))
-        .map(|entries| entries.count() as u32)
-        .unwrap_or(1)
-}
-
-pub(crate) fn read_process_io_bytes(pid: u32) -> Option<(u64, u64)> {
-    let io = fs::read_to_string(format!("/proc/{pid}/io")).ok()?;
-    let mut read_bytes = 0;
-    let mut write_bytes = 0;
-    for line in io.lines() {
-        if let Some(value) = line.strip_prefix("read_bytes:") {
-            read_bytes = value.trim().parse().ok()?;
-        } else if let Some(value) = line.strip_prefix("write_bytes:") {
-            write_bytes = value.trim().parse().ok()?;
-        }
-    }
-    Some((read_bytes, write_bytes))
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs::File;
 
+    #[test]
+    fn snapshot_collects_current_process() {
+        let snapshot = ProcSnapshot::collect().unwrap();
+        let current = snapshot.procs.get(&std::process::id()).unwrap();
+
+        assert_eq!(current.pid, std::process::id());
+        assert!(current.starttime_ticks > 0);
+        assert!(current.threads > 0);
+        assert!(!current.comm.is_empty() || !current.command.is_empty());
+    }
+
+    #[cfg(target_os = "linux")]
     #[test]
     fn proc_fd_scan_finds_open_file_path() {
         let temp = tempfile::tempdir().unwrap();
         let path = temp.path().join("fd-evidence.txt");
-        let _file = File::create(&path).unwrap();
+        let _file = std::fs::File::create(&path).unwrap();
 
         let paths = scan_proc_fd_paths(std::process::id());
         assert!(paths.contains(&path));

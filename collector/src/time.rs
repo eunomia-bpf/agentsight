@@ -6,7 +6,6 @@
 //! All timestamps in the system are standardized to milliseconds since UNIX epoch
 //! for consistency and ease of use in the frontend.
 
-use std::fs;
 use std::sync::OnceLock;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -15,35 +14,15 @@ static BOOT_TIME_SECS: OnceLock<i64> = OnceLock::new();
 
 /// Get the system boot time in seconds since UNIX epoch
 ///
-/// This reads from /proc/stat (btime field) and caches the result.
-/// Falls back to calculating from /proc/uptime if btime is not available.
+/// This uses the platform process backend and caches the result.
 pub fn get_boot_time_secs() -> i64 {
     *BOOT_TIME_SECS.get_or_init(|| {
-        // Try to read from /proc/stat (most reliable)
-        if let Ok(content) = fs::read_to_string("/proc/stat") {
-            for line in content.lines() {
-                if line.starts_with("btime ")
-                    && let Some(btime_str) = line.split_whitespace().nth(1)
-                    && let Ok(btime) = btime_str.parse::<i64>()
-                {
-                    return btime;
-                }
-            }
-        }
-
-        // Fallback: calculate from uptime
-        if let Ok(uptime_str) = fs::read_to_string("/proc/uptime")
-            && let Some(uptime_secs_str) = uptime_str.split_whitespace().next()
-            && let Ok(uptime_secs) = uptime_secs_str.parse::<f64>()
+        if let Ok(boot_time) = i64::try_from(sysinfo::System::boot_time())
+            && boot_time > 0
         {
-            let now_secs = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_secs() as i64;
-            return now_secs - uptime_secs as i64;
+            return boot_time;
         }
 
-        // Last resort: return current time (will be incorrect but won't crash)
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
