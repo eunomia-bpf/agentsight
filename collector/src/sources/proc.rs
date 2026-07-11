@@ -243,7 +243,10 @@ fn proc_info_from_sysinfo(process: &Process, boot_time_s: u64) -> ProcInfo {
         rss_kb: bytes_to_kb(rss_bytes),
         rss_mb: bytes_to_mb(rss_bytes),
         vsz_kb: bytes_to_kb(process.virtual_memory()),
-        threads: process.tasks().map(|tasks| tasks.len() as u32).unwrap_or(1),
+        threads: process
+            .tasks()
+            .map(|tasks| (tasks.len() as u32).saturating_add(1))
+            .unwrap_or(1),
         read_bytes: disk.total_read_bytes,
         write_bytes: disk.total_written_bytes,
     }
@@ -381,6 +384,24 @@ mod tests {
         assert!(current.starttime_ticks > 0);
         assert!(current.threads > 0);
         assert!(!current.comm.is_empty() || !current.command.is_empty());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn snapshot_counts_single_thread_process() {
+        let mut child = std::process::Command::new("sleep")
+            .arg("5")
+            .spawn()
+            .unwrap();
+        let snapshot = ProcSnapshot::collect().unwrap();
+        let threads = snapshot
+            .procs
+            .get(&child.id())
+            .map(|proc_info| proc_info.threads);
+        let _ = child.kill();
+        let _ = child.wait();
+
+        assert_eq!(threads, Some(1));
     }
 
     #[cfg(target_os = "linux")]

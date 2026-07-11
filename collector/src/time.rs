@@ -23,10 +23,15 @@ pub fn get_boot_time_secs() -> i64 {
             return boot_time;
         }
 
-        SystemTime::now()
+        let now_secs = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap()
-            .as_secs() as i64
+            .as_secs() as i64;
+        let uptime_secs = i64::try_from(sysinfo::System::uptime())
+            .ok()
+            .filter(|uptime| *uptime > 0)
+            .unwrap_or(1);
+        now_secs.saturating_sub(uptime_secs)
     })
 }
 
