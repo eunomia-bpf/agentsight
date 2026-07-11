@@ -658,7 +658,7 @@ mod tests {
             failures: Vec::new(),
             notes: vec![
                 "agent-native sessions are the primary token/tool source".to_string(),
-                "proc evidence uses /proc for CPU/RSS/process families".to_string(),
+                "proc evidence uses process snapshots for CPU/RSS/process families".to_string(),
                 "live eBPF capture did not start: sudo unavailable".to_string(),
             ],
         };

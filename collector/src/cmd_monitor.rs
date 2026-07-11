@@ -432,7 +432,7 @@ fn collect_process_samples(
         let cpu_ms = procfs::process_cpu_ms_delta(proc_info, previous);
         let rss_bytes = proc_info.rss_kb.saturating_mul(1024);
         let key = proc_info.process_key();
-        let (read_bytes, write_bytes) = process_io_delta(proc_info.pid, key, io_state, current_io);
+        let (read_bytes, write_bytes) = process_io_delta(proc_info, key, io_state, current_io);
         out.push(MonitorProcessSample {
             rank_kind: "all",
             pid: proc_info.pid,
@@ -468,14 +468,13 @@ fn aggregate_process_samples(samples: &[MonitorProcessSample]) -> (u64, u64, u64
 }
 
 fn process_io_delta(
-    pid: u32,
+    proc_info: &procfs::ProcInfo,
     key: procfs::ProcessKey,
     io_state: &MonitorIoState,
     current_io: &mut BTreeMap<procfs::ProcessKey, (u64, u64)>,
 ) -> (u64, u64) {
-    let Some((current_read, current_write)) = procfs::read_process_io_bytes(pid) else {
-        return (0, 0);
-    };
+    let current_read = proc_info.read_bytes;
+    let current_write = proc_info.write_bytes;
     current_io.insert(key, (current_read, current_write));
     io_state
         .previous

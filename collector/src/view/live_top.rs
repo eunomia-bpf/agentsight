@@ -345,7 +345,9 @@ impl LiveView {
             notes.push("agent-native sessions are the primary token/tool source".to_string());
         }
         if has_proc {
-            notes.push("proc evidence uses /proc for CPU/RSS/process families".to_string());
+            notes.push(
+                "proc evidence uses process snapshots for CPU/RSS/process families".to_string(),
+            );
         }
         if has_session_file_link {
             notes.push("agent-native sessions bind to live pids after the process touches the matching session path; binding stays until pid exits or a new session path is observed".to_string());
