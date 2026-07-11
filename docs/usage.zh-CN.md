@@ -44,13 +44,13 @@ make build-frontend  # 仅编译前端
 
 ## 从源码运行
 
-`make build` 完成后，在仓库根目录运行下面的命令。需要加载 eBPF probes
-的命令推荐显式使用 `sudo`；AgentSight 在你忘记 sudo 时可以自动请求提权，
-但那只是补救路径。
+`make build` 完成后，在仓库根目录运行下面的命令。除 `top` 外，需要加载 eBPF probes
+的命令推荐显式使用 `sudo`；`top` 无需 sudo 也能工作，并且只在 sudo 已可用时启用
+live eBPF capture。
 
 ```sh
 # 实时查看本机智能体 session
-sudo ./collector/target/release/agentsight top
+./collector/target/release/agentsight top
 
 # 启动并记录一个命令
 sudo ./collector/target/release/agentsight record -- claude
@@ -81,7 +81,7 @@ sudo ./collector/target/release/agentsight debug ssl --http-parser
 典型用法：
 
 ```sh
-sudo ./agentsight top
+./agentsight top
 ```
 
 ### record — 开箱即用的智能体录制
