@@ -215,6 +215,70 @@ run_mock_client_record_smoke() {
     echo "record/sslsniff mock canary captured prompt into $db"
 }
 
+codex_native_binary() {
+    find "$TOOLS_PREFIX" \
+        -path '*/node_modules/@openai/codex-linux-*/vendor/*/bin/codex' \
+        -type f \
+        -perm /111 \
+        -print \
+        -quit
+}
+
+run_codex_offset_table_canary() {
+    if [[ "$(uname -s)" != "Linux" ]]; then
+        if is_enabled "$REQUIRE_EBPF"; then
+            die "Codex offset-table canary requires Linux"
+        fi
+        echo "Skipping Codex offset-table canary on non-Linux host"
+        return
+    fi
+    if ! sudo_available; then
+        if is_enabled "$REQUIRE_EBPF"; then
+            die "Codex offset-table canary requires passwordless sudo"
+        fi
+        echo "Skipping Codex offset-table canary because sudo -n is unavailable"
+        return
+    fi
+    have timeout || die "timeout is required for the Codex offset-table canary"
+
+    local native
+    local stdout="$WORK_DIR/codex-sslsniff-offset.out"
+    local stderr="$WORK_DIR/codex-sslsniff-offset.err"
+    local status
+
+    native="$(codex_native_binary)"
+    [[ -n "$native" ]] || die "could not find latest Codex native binary under $TOOLS_PREFIX"
+
+    set +e
+    sudo -n timeout --foreground --signal=INT 5s \
+        "$REPO_ROOT/bpf/sslsniff" --binary-path "$native" \
+        >"$stdout" 2>"$stderr"
+    status=$?
+    set -e
+
+    if ! grep -Fq "Codex offset table matched" "$stderr" \
+        || ! grep -Fq "Attaching by offset" "$stderr"; then
+        echo "Codex sslsniff output did not prove offset-table attachment" >&2
+        sed -n '1,160p' "$stderr" >&2 || true
+        return 1
+    fi
+    if grep -Fq "binary-path attach failed" "$stderr"; then
+        echo "Codex sslsniff offset-table attachment failed" >&2
+        sed -n '1,160p' "$stderr" >&2 || true
+        return 1
+    fi
+    case "$status" in
+        0|124|130) ;;
+        *)
+            echo "Codex sslsniff offset-table canary exited with status $status" >&2
+            sed -n '1,160p' "$stderr" >&2 || true
+            return 1
+            ;;
+    esac
+
+    echo "sslsniff Codex offset-table canary matched latest native binary: $native"
+}
+
 write_opencode_config() {
     local config_dir="$1"
     mkdir -p "$config_dir"
@@ -369,6 +433,7 @@ main() {
     install_latest_agent_clis
     start_mock_server
     run_mock_client_record_smoke
+    run_codex_offset_table_canary
     run_real_agent_mock_canary
 
     echo "canary work dir: $WORK_DIR"

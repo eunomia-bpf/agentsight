@@ -184,15 +184,16 @@ fn append_deduped_local_session_prompt_rows(
             if local.timestamp_ms.abs_diff(ssl.timestamp_ms) > PROMPT_DEDUP_WINDOW_MS {
                 return false;
             }
-            let Some((local_model, ssl_model)) =
-                local.subject.as_deref().zip(ssl.subject.as_deref())
-            else {
+            if let (Some(local_model), Some(ssl_model)) =
+                (local.subject.as_deref(), ssl.subject.as_deref())
+                && local_model != ssl_model
+            {
                 return false;
-            };
+            }
             let Some(ssl_text) = prompt_text_from_details(&ssl.details) else {
                 return false;
             };
-            local_model == ssl_model && local_text.eq_ignore_ascii_case(&ssl_text)
+            local_text.eq_ignore_ascii_case(&ssl_text)
         });
         if !duplicate {
             ssl_rows.push(local);
@@ -269,6 +270,7 @@ fn prompt_text_from_details(details: &Value) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::model::ViewSink;
     use serde_json::json;
 
     #[test]
@@ -296,7 +298,7 @@ mod tests {
                 "missing model",
                 None,
                 json!({"text_content": "Run the command.", "prompt_source": "local"}),
-                2,
+                1,
             ),
         ] {
             let ssl_rows = [ssl_call_row("claude-opus-4-6", "Run the command.")];
@@ -338,6 +340,55 @@ mod tests {
         assert_eq!(
             rows[0].request.get("prompt").and_then(Value::as_str),
             Some("agentsight local codex prompt")
+        );
+    }
+
+    #[test]
+    fn codex_exec_prompt_dedupes_against_ssl_row_without_local_model() {
+        let temp = tempfile::tempdir().unwrap();
+        let db = temp.path().join("codex.db");
+        let mut store = SqliteStore::open(&db).unwrap();
+        store
+            .llm_call(&ssl_call_row(
+                "gpt-agentsight-mock",
+                "agentsight local codex prompt",
+            ))
+            .unwrap();
+        store
+            .audit_event(&AuditEventRow {
+                id: "audit-1".to_string(),
+                timestamp_ms: 1_500,
+                audit_type: "process".to_string(),
+                pid: Some(42),
+                comm: Some("codex".to_string()),
+                subject: None,
+                action: Some("exec".to_string()),
+                target: Some("/tmp/tools/bin/codex".to_string()),
+                status: Some("observed".to_string()),
+                summary: None,
+                details: json!({
+                    "full_command": concat!(
+                        "/tmp/tools/bin/codex exec --skip-git-repo-check ",
+                        "-c model=gpt agentsight local codex prompt"
+                    ),
+                }),
+            })
+            .unwrap();
+        drop(store);
+
+        let view = load_view_with_observed_session_prompts(&db).unwrap();
+        let rows = view.llm_call_rows(10);
+        let prompts = view.audit_rows(Some("llm"), 10);
+
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].id, "ssl-call");
+        assert_eq!(prompts.len(), 1);
+        assert_eq!(
+            prompts[0]
+                .details
+                .get("prompt_source")
+                .and_then(Value::as_str),
+            Some("ssl")
         );
     }
 

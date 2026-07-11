@@ -24,10 +24,13 @@ script/e2e/latest_agent_cli_canary.sh
 
 The e2e canary starts `script/e2e/mock_llm_server.py`, sends an HTTPS curl
 preflight request, then launches the latest real Claude Code, Codex, and
-OpenCode CLIs. For every real CLI it requires the mock server to receive the
-canary prompt, `record`/SSL capture to store the prompt, `report prompts` to
-return it, and `top --db` to show nonzero LLM calls. On Linux CI this requires
-passwordless `sudo` for eBPF; failures are hard failures, not skips.
+OpenCode CLIs. The curl preflight proves SSL prompt capture against the mock
+server. For every real CLI, the canary requires the mock server to receive the
+canary prompt, the recorded DB to surface it through `report prompts`, and
+`top --db` to show nonzero LLM calls. On Linux CI this requires passwordless
+`sudo` for eBPF; failures are hard failures, not skips. The canary also runs
+`sslsniff --binary-path` against the latest Codex native binary and requires the
+Codex offset table to match and attach by offset.
 
 ## SSL Analysis Pipeline
 
