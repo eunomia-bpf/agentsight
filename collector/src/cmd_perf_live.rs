@@ -9,14 +9,13 @@ use crate::model::SnapshotOptions;
 use crate::output::{TopOptions, clear_screen, print_agent_top};
 use crate::runners::{ProcessRunner, Runner};
 use crate::sources::proc as procfs;
+use crate::state::ensure_agentsight_state_dir;
 use crate::view::MaterializedView;
 use crate::view::live_top::{LiveCaptureSnapshot, LiveView};
 use crate::view::process_select;
 use crate::view::top::sort_agent_rows;
 use futures::StreamExt;
-use std::fs;
 use std::io::{self, Write};
-use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -160,32 +159,6 @@ fn prepare_live_ebpf_privileges_for(
     }
 }
 
-fn ensure_agentsight_state_dir() -> io::Result<()> {
-    let Some(home) = dirs::home_dir() else {
-        return Ok(());
-    };
-    let dir = agentsight_state_dir(&home);
-    fs::create_dir_all(&dir)?;
-    restrict_state_dir_permissions(&dir)
-}
-
-fn agentsight_state_dir(home: &Path) -> PathBuf {
-    home.join(".agentsight")
-}
-
-#[cfg(unix)]
-fn restrict_state_dir_permissions(dir: &Path) -> io::Result<()> {
-    use std::os::unix::fs::PermissionsExt;
-
-    let permissions = fs::Permissions::from_mode(0o700);
-    fs::set_permissions(dir, permissions)
-}
-
-#[cfg(not(unix))]
-fn restrict_state_dir_permissions(_dir: &Path) -> io::Result<()> {
-    Ok(())
-}
-
 async fn consume_live_ebpf_stream(
     mut stream: crate::runners::EventStream,
     state: Arc<Mutex<LiveCaptureState>>,
@@ -279,30 +252,6 @@ mod tests {
             prepare_live_ebpf_privileges_for(false, false).unwrap_err(),
             LIVE_EBPF_UNAVAILABLE_NOTE.to_string()
         );
-    }
-
-    #[test]
-    fn agentsight_state_dir_is_home_relative() {
-        assert_eq!(
-            agentsight_state_dir(Path::new("/tmp/agentsight-home")),
-            PathBuf::from("/tmp/agentsight-home/.agentsight")
-        );
-    }
-
-    #[cfg(unix)]
-    #[test]
-    fn restrict_state_dir_permissions_sets_user_only_mode() {
-        use std::os::unix::fs::PermissionsExt;
-
-        let temp = tempfile::tempdir().unwrap();
-        let dir = temp.path().join(".agentsight");
-        fs::create_dir(&dir).unwrap();
-        fs::set_permissions(&dir, fs::Permissions::from_mode(0o777)).unwrap();
-
-        restrict_state_dir_permissions(&dir).unwrap();
-
-        let mode = fs::metadata(&dir).unwrap().permissions().mode() & 0o777;
-        assert_eq!(mode, 0o700);
     }
 
     #[test]
