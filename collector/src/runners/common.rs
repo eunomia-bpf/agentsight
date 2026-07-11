@@ -39,6 +39,20 @@ fn runner_label(runner_name: Option<&str>, binary_path: &str) -> String {
     })
 }
 
+fn runner_startup_exit_message(
+    label: &str,
+    status: impl std::fmt::Display,
+    needs_sudo: bool,
+) -> String {
+    let mut message = format!("{label} exited during startup with {status}");
+    if needs_sudo {
+        message.push_str(
+            "; probe sudo is non-interactive, so run AgentSight with sudo or authenticate first with `sudo -v`",
+        );
+    }
+    message
+}
+
 fn runner_error_json(runner: &str, message: String) -> serde_json::Value {
     let timestamp = current_boot_time_ns();
     serde_json::json!({
@@ -307,8 +321,8 @@ impl BinaryExecutor {
             tokio::time::sleep(tokio::time::Duration::from_millis(delay_ms)).await;
             if let Some(status) = child.try_wait()? {
                 let label = runner_name.as_deref().unwrap_or("binary");
-                return Err(RunnerError::from(format!(
-                    "{label} exited during startup with {status}"
+                return Err(RunnerError::from(runner_startup_exit_message(
+                    label, status, needs_sudo,
                 )));
             }
         }
@@ -478,5 +492,24 @@ impl Runner for BinaryRunner {
     fn add_analyzer(mut self, analyzer: Box<dyn Analyzer>) -> Self {
         self.analyzers.push(analyzer);
         self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn sudo_startup_exit_message_names_noninteractive_sudo() {
+        let message = runner_startup_exit_message("Process", "exit status: 1", true);
+        assert!(message.contains("Process exited during startup with exit status: 1"));
+        assert!(message.contains("sudo -v"));
+        assert!(message.contains("non-interactive"));
+    }
+
+    #[test]
+    fn non_sudo_startup_exit_message_stays_short() {
+        let message = runner_startup_exit_message("Process", "exit status: 1", false);
+        assert_eq!(message, "Process exited during startup with exit status: 1");
     }
 }
