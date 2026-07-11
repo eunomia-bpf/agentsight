@@ -12,8 +12,8 @@ WORK_DIR="${AGENTSIGHT_AGENT_CANARY_WORK_DIR:-$(mktemp -d -t agentsight-agent-ca
 TOOLS_PREFIX="${AGENTSIGHT_AGENT_CANARY_TOOLS_PREFIX:-$WORK_DIR/npm-tools}"
 MOCK_PORT="${AGENTSIGHT_AGENT_CANARY_PORT:-18443}"
 PROMPT="${AGENTSIGHT_AGENT_CANARY_PROMPT:-agentsight mock prompt collect this exact text}"
-REAL_AGENT="${AGENTSIGHT_AGENT_CANARY_REAL_AGENT:-0}"
-REQUIRE_EBPF="${AGENTSIGHT_AGENT_CANARY_REQUIRE_EBPF:-0}"
+REQUIRE_EBPF="${AGENTSIGHT_AGENT_CANARY_REQUIRE_EBPF:-1}"
+BUILD_AGENTSIGHT="${AGENTSIGHT_AGENT_CANARY_BUILD:-1}"
 
 MOCK_LOG="$WORK_DIR/mock-llm-requests.jsonl"
 SERVER_STDOUT="$WORK_DIR/mock-llm-server.out"
@@ -23,6 +23,9 @@ TLS_KEY="$WORK_DIR/mock-llm.key"
 TLS_CA_CERT="$WORK_DIR/mock-llm-ca.crt"
 TLS_CA_KEY="$WORK_DIR/mock-llm-ca.key"
 SERVER_PID=""
+CODEX_BIN=""
+CLAUDE_BIN=""
+OPENCODE_BIN=""
 
 cleanup() {
     if [[ -n "$SERVER_PID" ]]; then
@@ -52,11 +55,17 @@ sudo_available() {
     have sudo && sudo -n true >/dev/null 2>&1
 }
 
-build_agentsight_if_needed() {
-    if [[ -x "$AGENTSIGHT_BIN" ]]; then
+build_agentsight() {
+    if ! is_enabled "$BUILD_AGENTSIGHT"; then
         return
     fi
-    (cd "$REPO_ROOT/collector" && cargo build)
+
+    make -C "$REPO_ROOT/bpf" sslsniff process stdiocap
+    if [[ ! -f "$REPO_ROOT/frontend/dist/index.html" ]]; then
+        npm --prefix "$REPO_ROOT/frontend" install
+        npm --prefix "$REPO_ROOT/frontend" run build
+    fi
+    (cd "$REPO_ROOT/collector" && AGENTSIGHT_SYNC_VENDOR=1 cargo build)
 }
 
 install_latest_agent_clis() {
@@ -70,10 +79,14 @@ install_latest_agent_clis() {
         opencode-ai@latest
 
     export PATH="$TOOLS_PREFIX/bin:$PATH"
+    CODEX_BIN="$(command -v codex)"
+    CLAUDE_BIN="$(command -v claude)"
+    OPENCODE_BIN="$(command -v opencode)"
+
     echo "Installed agent CLI versions:"
-    codex -V
-    claude -v
-    opencode --version
+    "$CODEX_BIN" -V
+    "$CLAUDE_BIN" -v
+    "$OPENCODE_BIN" --version
 }
 
 create_tls_cert() {
@@ -148,10 +161,6 @@ PY
     die "mock LLM server did not become healthy"
 }
 
-run_top_and_agent_session_smoke() {
-    AGENTSIGHT_BIN="$AGENTSIGHT_BIN" "$REPO_ROOT/script/ci/top_fixture_smoke.sh"
-}
-
 run_mock_client_record_smoke() {
     if [[ "$(uname -s)" != "Linux" ]]; then
         if is_enabled "$REQUIRE_EBPF"; then
@@ -195,14 +204,57 @@ run_mock_client_record_smoke() {
             -H "authorization: Bearer agentsight-test" \
             --data "$payload"
 
-    "$AGENTSIGHT_BIN" report prompts --db "$db" --json | tee "$prompts"
+    "$AGENTSIGHT_BIN" report prompts --db "$db" --json > "$prompts"
     grep -Fq "$PROMPT" "$prompts"
 
-    "$AGENTSIGHT_BIN" top --db "$db" --once --plain --limit 20 | tee "$top"
+    "$AGENTSIGHT_BIN" top --db "$db" --once --plain --limit 20 > "$top"
     grep -Fq "AgentSight top -" "$top"
+    grep -Eq "LLM: [1-9][0-9]*" "$top"
 
     grep -Fq "$PROMPT" "$MOCK_LOG"
     echo "record/sslsniff mock canary captured prompt into $db"
+}
+
+write_opencode_config() {
+    local config_dir="$1"
+    mkdir -p "$config_dir"
+    cat > "$config_dir/opencode.json" <<EOF
+{
+  "\$schema": "https://opencode.ai/config.json",
+  "enabled_providers": ["agentsight-mock"],
+  "model": "agentsight-mock/gpt-agentsight-mock",
+  "small_model": "agentsight-mock/gpt-agentsight-mock",
+  "agent": {
+    "build": {
+      "model": "agentsight-mock/gpt-agentsight-mock",
+      "steps": 1
+    },
+    "title": {
+      "model": "agentsight-mock/gpt-agentsight-mock"
+    }
+  },
+  "provider": {
+    "agentsight-mock": {
+      "name": "AgentSight Mock",
+      "env": ["OPENAI_API_KEY"],
+      "npm": "@ai-sdk/openai",
+      "api": "https://127.0.0.1:$MOCK_PORT/v1",
+      "models": {
+        "gpt-agentsight-mock": {
+          "id": "gpt-agentsight-mock",
+          "name": "AgentSight Mock",
+          "tool_call": true,
+          "temperature": true,
+          "limit": {"context": 128000, "output": 4096},
+          "cost": {"input": 0, "output": 0},
+          "modalities": {"input": ["text"], "output": ["text"]},
+          "status": "active"
+        }
+      }
+    }
+  }
+}
+EOF
 }
 
 record_real_agent() {
@@ -210,10 +262,18 @@ record_real_agent() {
     shift
     local db="$WORK_DIR/$name.db"
     local prompts="$WORK_DIR/$name-prompts.json"
+    local top="$WORK_DIR/$name-top.out"
+    local record_log="$WORK_DIR/$name-record.log"
+    local opencode_config="$WORK_DIR/$name-opencode-config"
+    local recent_mock_requests="$WORK_DIR/$name-mock-requests.jsonl"
+    local mock_before
+    local mock_after
 
     mkdir -p "$WORK_DIR/$name-home" "$WORK_DIR/$name-codex-home"
+    write_opencode_config "$opencode_config"
+    mock_before="$(wc -l < "$MOCK_LOG")"
 
-    sudo -n env \
+    if ! sudo -n env \
         PATH="$PATH" \
         HOME="$WORK_DIR/$name-home" \
         OPENAI_API_KEY=agentsight-test \
@@ -225,10 +285,44 @@ record_real_agent() {
         NODE_EXTRA_CA_CERTS="$TLS_CA_CERT" \
         NODE_TLS_REJECT_UNAUTHORIZED=0 \
         CODEX_HOME="$WORK_DIR/$name-codex-home" \
-        "$AGENTSIGHT_BIN" record --no-server --db "$db" -- "$@"
+        OPENCODE_CONFIG_DIR="$opencode_config" \
+        OPENCODE_DISABLE_PROJECT_CONFIG=1 \
+        OPENCODE_DISABLE_MODELS_FETCH=1 \
+        "$AGENTSIGHT_BIN" record --no-server --db "$db" -- "$@" \
+        > "$record_log" 2>&1; then
+        sed -n '1,240p' "$record_log" >&2 || true
+        return 1
+    fi
 
-    "$AGENTSIGHT_BIN" report prompts --db "$db" --json | tee "$prompts"
-    grep -Fq "$PROMPT" "$prompts"
+    mock_after="$(wc -l < "$MOCK_LOG")"
+    if ((mock_after <= mock_before)); then
+        echo "$name did not send a new request to the mock LLM server" >&2
+        sed -n '1,240p' "$record_log" >&2 || true
+        return 1
+    fi
+    tail -n "$((mock_after - mock_before))" "$MOCK_LOG" > "$recent_mock_requests"
+    if ! grep -Fq "$PROMPT" "$recent_mock_requests"; then
+        echo "$name mock LLM requests did not contain the canary prompt" >&2
+        sed -n '1,40p' "$recent_mock_requests" >&2 || true
+        return 1
+    fi
+
+    "$AGENTSIGHT_BIN" report prompts --db "$db" --json > "$prompts"
+    if ! grep -Fq "$PROMPT" "$prompts"; then
+        echo "$name report prompts did not contain the canary prompt" >&2
+        sed -n '1,240p' "$record_log" >&2 || true
+        sed -n '1,240p' "$prompts" >&2 || true
+        return 1
+    fi
+
+    "$AGENTSIGHT_BIN" top --db "$db" --once --plain --limit 20 > "$top"
+    if ! grep -Eq "LLM: [1-9][0-9]*" "$top"; then
+        echo "$name top --db did not report any LLM calls" >&2
+        sed -n '1,120p' "$top" >&2 || true
+        return 1
+    fi
+
+    echo "$name real-agent canary captured prompt into $db"
 }
 
 run_real_agent_mock_canary() {
@@ -239,7 +333,7 @@ run_real_agent_mock_canary() {
     local failures=()
 
     if ! record_real_agent codex \
-        codex exec --skip-git-repo-check --ignore-user-config \
+        "$CODEX_BIN" exec --skip-git-repo-check --ignore-user-config \
         -c "model_provider=\"agentsight-mock\"" \
         -c "model_providers.agentsight-mock.name=\"AgentSight Mock\"" \
         -c "model_providers.agentsight-mock.base_url=\"https://127.0.0.1:$MOCK_PORT/v1\"" \
@@ -253,13 +347,13 @@ run_real_agent_mock_canary() {
     fi
 
     if ! record_real_agent claude \
-        claude --bare -p "$PROMPT" --output-format json \
+        "$CLAUDE_BIN" --bare -p "$PROMPT" --output-format json \
         --model claude-agentsight-mock; then
         failures+=("claude")
     fi
 
     if ! record_real_agent opencode \
-        opencode run --pure --model openai/gpt-agentsight-mock \
+        "$OPENCODE_BIN" run --pure --model agentsight-mock/gpt-agentsight-mock \
         --format json "$PROMPT"; then
         failures+=("opencode")
     fi
@@ -271,17 +365,11 @@ run_real_agent_mock_canary() {
 
 main() {
     mkdir -p "$WORK_DIR"
-    build_agentsight_if_needed
+    build_agentsight
     install_latest_agent_clis
     start_mock_server
-    run_top_and_agent_session_smoke
     run_mock_client_record_smoke
-
-    if is_enabled "$REAL_AGENT"; then
-        run_real_agent_mock_canary
-    else
-        echo "Set AGENTSIGHT_AGENT_CANARY_REAL_AGENT=1 to also run latest Claude/Codex/OpenCode against the mock server."
-    fi
+    run_real_agent_mock_canary
 
     echo "canary work dir: $WORK_DIR"
 }

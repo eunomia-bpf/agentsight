@@ -57,6 +57,7 @@ def first_prompt(value: Any) -> str:
 
 class MockLlmHandler(BaseHTTPRequestHandler):
     server_version = "AgentSightMockLLM/1.0"
+    protocol_version = "HTTP/1.1"
 
     def log_message(self, fmt: str, *args: Any) -> None:
         if self.server.quiet:  # type: ignore[attr-defined]
@@ -217,12 +218,14 @@ class MockLlmHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("content-type", "text/event-stream")
         self.send_header("cache-control", "no-cache")
+        self.send_header("connection", "close")
         self.end_headers()
         for chunk in chunks:
             self.wfile.write(b"data: ")
             self.wfile.write(json.dumps(chunk, sort_keys=True).encode("utf-8"))
             self.wfile.write(b"\n\n")
         self.wfile.write(b"data: [DONE]\n\n")
+        self.close_connection = True
 
     def write_json(self, payload: dict[str, Any]) -> None:
         body = json.dumps(payload, sort_keys=True).encode("utf-8")

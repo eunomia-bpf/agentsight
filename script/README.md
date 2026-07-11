@@ -1,50 +1,33 @@
 # AgentSight Scripts
 
-This directory contains CI smoke tests, e2e canaries, deterministic fixtures, and
-manual analysis tools. Keep reusable test logic here; GitHub Actions should call
-these scripts instead of growing large inline shell blocks.
+This directory contains e2e canaries and manual analysis tools. Keep reusable
+test logic here; GitHub Actions should call these scripts instead of growing
+large inline shell blocks.
 
 ## Directory Layout
 
-- `ci/`: deterministic scripts that are safe for required PR CI.
-- `e2e/`: heavier canaries for manual or scheduled runs, including mock LLM
-  servers and latest agent CLI installation checks.
-- `fixtures/`: checked-in test homes and other deterministic data used by
-  scripts.
+- `e2e/`: canaries for required PR CI, including mock LLM servers and latest
+  real agent CLI installation checks.
 - `grafana-setup/`: local Grafana/Loki stack helpers.
 - `test-python/`: manual Python/OpenAI traffic generator used by SSL capture
   experiments.
 - Top-level `*_analyzer.py` scripts: offline SSL/TLS trace analysis tools.
 - Top-level `test_*.sh` scripts: legacy manual environment checks.
 
-## CI Smoke Tests
-
-```bash
-# Requires collector/target/debug/agentsight.
-script/ci/top_fixture_smoke.sh
-```
-
-`top_fixture_smoke.sh` sets `HOME` to `script/fixtures/top-home`, unsets
-`SUDO_USER`, runs `agentsight top --once --plain`, and verifies native
-Codex/Claude/Gemini session data plus the no-sudo eBPF warning path. It also
-runs `agentsight report --local` against the same fixture home.
-
 ## E2E Canaries
 
 ```bash
-# Installs latest Claude Code, Codex, and OpenCode into a temp npm prefix.
-# On Linux with sudo -n, also records HTTPS traffic to the mock LLM server.
+# Installs latest Claude Code, Codex, and OpenCode into a temp npm prefix,
+# then records each real CLI against the local HTTPS mock LLM server.
 script/e2e/latest_agent_cli_canary.sh
-
-# Also try running the latest real CLIs against the mock server.
-AGENTSIGHT_AGENT_CANARY_REAL_AGENT=1 script/e2e/latest_agent_cli_canary.sh
 ```
 
-The e2e canary starts `script/e2e/mock_llm_server.py`, sends deterministic HTTPS
-LLM traffic, and verifies `record`, SSL capture, `report prompts`, `top --db`,
-and native agent-session fixture reading. Real agent CLI execution is opt-in
-because each latest CLI can change provider/base-URL behavior independently of
-AgentSight.
+The e2e canary starts `script/e2e/mock_llm_server.py`, sends an HTTPS curl
+preflight request, then launches the latest real Claude Code, Codex, and
+OpenCode CLIs. For every real CLI it requires the mock server to receive the
+canary prompt, `record`/SSL capture to store the prompt, `report prompts` to
+return it, and `top --db` to show nonzero LLM calls. On Linux CI this requires
+passwordless `sudo` for eBPF; failures are hard failures, not skips.
 
 ## SSL Analysis Pipeline
 

@@ -65,8 +65,10 @@ jobs:
         cd collector
         cargo build --verbose
 
-    - name: Smoke test top with fixture sessions and no sudo
-      run: script/ci/top_fixture_smoke.sh
+    - name: E2E latest agent CLI canary
+      run: script/e2e/latest_agent_cli_canary.sh
+      env:
+        AGENTSIGHT_AGENT_CANARY_REQUIRE_EBPF: "1"
 
     - name: Run clippy (deny warnings)
       run: |
