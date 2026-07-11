@@ -189,12 +189,11 @@ async fn setup_signal_handler(suppress_terminal_output: bool) {
     about = "AgentSight: top/record/report for AI agent runs.\n\n\
              Common flow:\n\
                sudo agentsight record -- claude\n\
-               sudo agentsight top\n\
+               agentsight top\n\
                agentsight report\n\
                agentsight report prompts --json\n\n\
-             eBPF probes require root. Use sudo for live capture commands;\n\
-             AgentSight can auto-elevate if you forget, while your agent still\n\
-             runs as your normal user."
+             top works without sudo and enables eBPF automatically when sudo is already available;\n\
+             record keeps the monitored agent unprivileged while elevating only the probes."
 )]
 struct Cli {
     /// Web UI bind address when a command starts a server.

@@ -6,7 +6,7 @@ use crate::binary_extractor::BinaryExtractor;
 use crate::cmd_exec::sudo_cached;
 use crate::event::Event;
 use crate::model::SnapshotOptions;
-use crate::output::{TopOptions, clear_screen, print_agent_top, print_top_sudo_prompt};
+use crate::output::{TopOptions, clear_screen, print_agent_top};
 use crate::runners::{ProcessRunner, Runner};
 use crate::sources::proc as procfs;
 use crate::view::MaterializedView;
@@ -14,9 +14,15 @@ use crate::view::live_top::{LiveCaptureSnapshot, LiveView};
 use crate::view::process_select;
 use crate::view::top::sort_agent_rows;
 use futures::StreamExt;
+use std::fs;
 use std::io::{self, Write};
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
+
+const LIVE_EBPF_ROOT_NOTE: &str = "live eBPF process capture enabled";
+const LIVE_EBPF_SUDO_NOTE: &str = "live eBPF process capture enabled via sudo";
+const LIVE_EBPF_UNAVAILABLE_NOTE: &str = "no eBPF: showing process snapshots and agent-native sessions only (run with sudo or configure passwordless sudo for kernel probes)";
 
 struct LiveCaptureState {
     view: MaterializedView,
@@ -132,32 +138,37 @@ pub(crate) async fn start_live_ebpf_capture(
 }
 
 fn prepare_live_ebpf_privileges() -> Result<Option<String>, String> {
-    if unsafe { libc::geteuid() } == 0 {
-        return Ok(Some("live eBPF process capture enabled".to_string()));
+    let is_root = unsafe { libc::geteuid() } == 0;
+    if !is_root {
+        if let Err(err) = ensure_agentsight_state_dir() {
+            log::warn!("could not create ~/.agentsight: {err}");
+        }
     }
+    prepare_live_ebpf_privileges_for(is_root, !is_root && sudo_cached())
+}
 
-    if sudo_cached() {
-        return Ok(Some(
-            "live eBPF process capture enabled via cached sudo".to_string(),
-        ));
-    }
-
-    let interactive = unsafe { libc::isatty(libc::STDIN_FILENO) == 1 };
-    if !interactive {
-        return Err("live eBPF capture requires sudo; non-interactive top is showing /proc + agent-native sessions only".to_string());
-    }
-
-    print_top_sudo_prompt();
-    let ok = std::process::Command::new("sudo")
-        .arg("-v")
-        .status()
-        .map(|status| status.success())
-        .unwrap_or(false);
-    if ok {
-        Ok(Some("live eBPF process capture enabled".to_string()))
+fn prepare_live_ebpf_privileges_for(
+    is_root: bool,
+    sudo_ready: bool,
+) -> Result<Option<String>, String> {
+    if is_root {
+        Ok(Some(LIVE_EBPF_ROOT_NOTE.to_string()))
+    } else if sudo_ready {
+        Ok(Some(LIVE_EBPF_SUDO_NOTE.to_string()))
     } else {
-        Err("live eBPF capture did not start: sudo authentication failed".to_string())
+        Err(LIVE_EBPF_UNAVAILABLE_NOTE.to_string())
     }
+}
+
+fn ensure_agentsight_state_dir() -> io::Result<()> {
+    let Some(home) = dirs::home_dir() else {
+        return Ok(());
+    };
+    fs::create_dir_all(agentsight_state_dir(&home))
+}
+
+fn agentsight_state_dir(home: &Path) -> PathBuf {
+    home.join(".agentsight")
 }
 
 async fn consume_live_ebpf_stream(
@@ -230,6 +241,38 @@ pub(crate) async fn run_live_top_query(
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn live_ebpf_privileges_enable_for_root() {
+        assert_eq!(
+            prepare_live_ebpf_privileges_for(true, false).unwrap(),
+            Some(LIVE_EBPF_ROOT_NOTE.to_string())
+        );
+    }
+
+    #[test]
+    fn live_ebpf_privileges_enable_for_ready_sudo() {
+        assert_eq!(
+            prepare_live_ebpf_privileges_for(false, true).unwrap(),
+            Some(LIVE_EBPF_SUDO_NOTE.to_string())
+        );
+    }
+
+    #[test]
+    fn live_ebpf_privileges_degrade_without_sudo() {
+        assert_eq!(
+            prepare_live_ebpf_privileges_for(false, false).unwrap_err(),
+            LIVE_EBPF_UNAVAILABLE_NOTE.to_string()
+        );
+    }
+
+    #[test]
+    fn agentsight_state_dir_is_home_relative() {
+        assert_eq!(
+            agentsight_state_dir(Path::new("/tmp/agentsight-home")),
+            PathBuf::from("/tmp/agentsight-home/.agentsight")
+        );
+    }
 
     #[test]
     fn record_live_ebpf_event_ingests_process_file_and_network_events() {

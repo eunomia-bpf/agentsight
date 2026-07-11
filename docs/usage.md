@@ -45,12 +45,12 @@ make build-frontend  # Frontend only
 ## Running from Source
 
 Navigate to the repository root after `make build`. Commands that load eBPF
-probes should be run with `sudo`; AgentSight can request sudo if you forget, but
-explicit sudo is the recommended path.
+probes should be run with `sudo`, except `top`, which can run without sudo and
+uses live eBPF capture only when sudo is already available.
 
 ```sh
 # Live view of local agent sessions
-sudo ./collector/target/release/agentsight top
+./collector/target/release/agentsight top
 
 # Launch and record a command
 sudo ./collector/target/release/agentsight record -- claude

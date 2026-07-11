@@ -423,10 +423,6 @@ pub(crate) fn print_record_sudo_prompt() {
     println!("🔑 eBPF probes require root. Requesting sudo access...");
 }
 
-pub(crate) fn print_top_sudo_prompt() {
-    eprintln!("top live eBPF capture requires sudo. Requesting sudo access...");
-}
-
 pub(crate) fn print_record_drop_user(uid: libc::uid_t, gid: libc::gid_t) {
     println!("✓ Dropping child to uid={uid} gid={gid}");
 }
