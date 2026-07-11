@@ -8,7 +8,9 @@ use crate::output::{
     sorted_top_counts,
 };
 use crate::sources::agent_native as agent_native_sessions;
+#[cfg(test)]
 use crate::sources::sqlite::load_view as load_sqlite_view;
+use crate::sources::sqlite::load_view_with_observed_session_prompts as load_sqlite_view_with_observed_session_prompts;
 use crate::view::MaterializedView;
 
 #[cfg(test)]
@@ -26,7 +28,7 @@ pub(crate) fn load_agentsight_view(
     db: Option<&str>,
 ) -> Result<MaterializedView, Box<dyn std::error::Error + Send + Sync>> {
     match db {
-        Some(db) => load_sqlite_view(db),
+        Some(db) => load_sqlite_view_with_observed_session_prompts(db),
         None => {
             let mut view = MaterializedView::new();
             view.set_source(AGENT_NATIVE_SOURCE);
