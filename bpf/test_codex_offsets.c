@@ -93,7 +93,7 @@ static void test_nonmatching_binary_misses_table(void)
 
 static void test_codex_01425_table_entry(void)
 {
-	const struct codex_offset_entry *entry = &codex_offset_table[0];
+	const struct codex_offset_entry *entry = &codex_offset_table[1];
 	static const uint8_t expected_sha[32] = {
 		0xf0, 0xaa, 0xc9, 0x54, 0x9a, 0x69, 0x82, 0xa2,
 		0xd2, 0x9d, 0xb2, 0x03, 0x6b, 0xe7, 0x7e, 0xfe,
@@ -102,7 +102,7 @@ static void test_codex_01425_table_entry(void)
 	};
 
 	check(strcmp(entry->version, "0.142.5") == 0,
-	      "Codex 0.142.5 table entry is first");
+	      "Codex 0.142.5 table entry is present");
 	check(entry->file_size == 285929520ULL,
 	      "Codex 0.142.5 table entry records file size");
 	check(entry->ssl_write == 218231264ULL,
@@ -115,6 +115,32 @@ static void test_codex_01425_table_entry(void)
 	      "Codex 0.142.5 table entry uses *_ex uprobes");
 	check(memcmp(entry->head_sha256, expected_sha, sizeof(expected_sha)) == 0,
 	      "Codex 0.142.5 table entry records head SHA-256");
+}
+
+static void test_codex_01441_table_entry(void)
+{
+	const struct codex_offset_entry *entry = &codex_offset_table[0];
+	static const uint8_t expected_sha[32] = {
+		0xba, 0x88, 0x2b, 0x3d, 0xb6, 0x9c, 0x15, 0x31,
+		0xf3, 0xd1, 0x96, 0x97, 0x1a, 0x6c, 0x59, 0xba,
+		0x27, 0xbb, 0xb4, 0xc1, 0x1f, 0x3d, 0xc2, 0x7d,
+		0xf8, 0x4c, 0xcb, 0xce, 0xd9, 0x85, 0xb6, 0x8a,
+	};
+
+	check(strcmp(entry->version, "0.144.1") == 0,
+	      "Codex 0.144.1 table entry is first");
+	check(entry->file_size == 298520624ULL,
+	      "Codex 0.144.1 table entry records file size");
+	check(entry->ssl_write == 229089760ULL,
+	      "Codex 0.144.1 table entry records SSL_write_ex offset");
+	check(entry->ssl_read == 229089168ULL,
+	      "Codex 0.144.1 table entry records SSL_read_ex offset");
+	check(entry->ssl_do_handshake == 229087488ULL,
+	      "Codex 0.144.1 table entry records SSL_do_handshake offset");
+	check(entry->write_is_ex && entry->read_is_ex,
+	      "Codex 0.144.1 table entry uses *_ex uprobes");
+	check(memcmp(entry->head_sha256, expected_sha, sizeof(expected_sha)) == 0,
+	      "Codex 0.144.1 table entry records head SHA-256");
 }
 
 static void test_codex_01425_fixture_if_available(void)
@@ -147,6 +173,7 @@ int main(void)
 	test_sha256_abc();
 	test_marker_detection();
 	test_nonmatching_binary_misses_table();
+	test_codex_01441_table_entry();
 	test_codex_01425_table_entry();
 	test_codex_01425_fixture_if_available();
 	printf("Tests passed: %d\n", tests_run - tests_failed);
