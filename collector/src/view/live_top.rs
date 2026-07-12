@@ -722,10 +722,12 @@ mod tests {
             agent_type: "claude".to_string(),
             start_timestamp_ms: now_ms().saturating_sub(10_000),
             end_timestamp_ms: Some(now_ms().saturating_sub(5_000)),
+            total_tokens: 42,
             attributes: json!({
                 "path": path.to_string_lossy(),
                 "display_id": "claude:cwd",
                 "cwd": "/work",
+                "last_message_at": "2026-07-12T10:00:00Z",
             }),
             ..Default::default()
         };
@@ -760,6 +762,11 @@ mod tests {
         assert_eq!(top.rows[0].session, "claude:cwd");
         assert_eq!(top.rows[0].pid, Some(42));
         assert_eq!(top.rows[0].trace, "agent-native+proc+cwd_recent");
+        assert_eq!(top.rows[0].tokens, Some(42));
+        assert_eq!(
+            top.rows[0].last_message_at.as_deref(),
+            Some("2026-07-12T10:00:00Z")
+        );
     }
 
     #[test]

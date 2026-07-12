@@ -4,7 +4,7 @@
 //! Process-to-session matching logic.
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::parser::{normalize_session_log_path, session_log_path_from_str};
 use crate::{
@@ -165,7 +165,7 @@ impl SessionProcessMatcher {
 
     fn link_trace(
         &mut self,
-        session_path: &PathBuf,
+        session_path: &Path,
         process: &LiveProcessCandidate,
         path_evidence: &HashMap<u32, BTreeMap<PathBuf, &'static str>>,
     ) -> Option<&'static str> {
@@ -196,7 +196,7 @@ impl SessionProcessMatcher {
 
     fn can_use_cwd_trace(
         &self,
-        session_path: &PathBuf,
+        session_path: &Path,
         process: &LiveProcessCandidate,
         path_evidence: &HashMap<u32, BTreeMap<PathBuf, &'static str>>,
     ) -> bool {
@@ -289,13 +289,23 @@ fn recent_cwd_distance_ms(
 ) -> Option<u64> {
     let session_cwd = session.cwd.as_deref().filter(|value| !value.is_empty())?;
     let process_cwd = process.cwd.as_deref().filter(|value| !value.is_empty())?;
-    if session_cwd != process_cwd {
+    if normalize_cwd(session_cwd) != normalize_cwd(process_cwd) {
         return None;
     }
     let process_start_ms = process_start_ms(process, now_ms)?;
     let session_end_ms = session_end_ms(session);
     (session_end_ms.saturating_add(SESSION_PROCESS_START_SKEW_MS) >= process_start_ms)
         .then_some(session_end_ms.abs_diff(process_start_ms))
+}
+
+fn normalize_cwd(cwd: &str) -> String {
+    let path = Path::new(cwd);
+    if !path.is_absolute() {
+        return cwd.to_string();
+    }
+    std::fs::canonicalize(path)
+        .map(|path| path.to_string_lossy().into_owned())
+        .unwrap_or_else(|_| cwd.to_string())
 }
 
 fn process_start_ms(process: &LiveProcessCandidate, now_ms: u64) -> Option<u64> {
@@ -318,5 +328,37 @@ fn confidence_for_evidence(evidence: &str) -> f32 {
         TRACE_STICKY_BINDING => 0.70,
         TRACE_RECENT_CWD => 0.55,
         _ => 0.50,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn recent_cwd_match_uses_canonical_paths() {
+        let raw = std::env::temp_dir().join(format!(
+            "agent-session-cwd-test-{}",
+            std::process::id()
+        ));
+        std::fs::create_dir_all(&raw).unwrap();
+        let cwd = raw.canonicalize().unwrap();
+        let session = SessionProcessInput {
+            id: "session".to_string(),
+            agent: "codex".to_string(),
+            path: cwd.join(".codex/sessions/2026/07/12/session.jsonl"),
+            start_timestamp_ms: Some(1_000),
+            end_timestamp_ms: Some(10_000),
+            cwd: Some(cwd.to_string_lossy().to_string()),
+        };
+        let process = LiveProcessCandidate {
+            agent: "codex".to_string(),
+            age_s: Some(5.0),
+            cwd: Some(raw.to_string_lossy().to_string()),
+            ..Default::default()
+        };
+
+        assert!(recent_cwd_distance_ms(&session, &process, 12_000).is_some());
+        std::fs::remove_dir_all(&raw).unwrap();
     }
 }
