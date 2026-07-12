@@ -1,0 +1,13 @@
+% Generated from script/paper_headline_case_studies.py (R365).
+\begin{tabular}{p{0.15\linewidth}p{0.16\linewidth}p{0.17\linewidth}p{0.28\linewidth}p{0.16\linewidth}}
+  \toprule
+  Task / oracle & Best visible policy & Op-stack top-5 & Actionable knob & Counterpoint \\
+  \midrule
+  agentreward\_looping (failure-looping) & dataset\_native:query\_aware & work 0.4938; recall 0.6508; lift 1.3179 & Keep repeat\_signal in the stack, but add prevalence-aware ranking because looping positives are common. Patch: accept\_patch (0.1155). & top5\_recall->flat:width; first\_positive->raw\_action\_stack:query\_aware \\
+  agentreward\_side\_effect (failure-side-effect) & fixed\_session:width & work 0.1454; recall 0.1139; lift 0.7831 & Increase weight on write/input actions or use a deeper side-effect mapping before ranking. Patch: accept\_patch (0.0591). & top5\_recall->flat:width; top5\_lift->raw\_action\_stack:query\_aware \\
+  satraj\_unsafe (safety) & operation\_stack:query\_aware & work 0.042; recall 0.2621; lift 6.2384 & Use environment + phase + action stack fields; prioritize risky environments and write actions. Patch: accept\_patch (0.5081). & top5\_recall->flat:width; first\_positive->fixed\_session:query\_aware \\
+  agentnet\_incorrect\_step (step-quality) & raw\_action\_stack:width & work 0.0014; recall 0.0034; lift 2.4057 & Use desktop environment + phase + repeat/action fields, then drill into fixed sessions for examples. Patch: accept\_patch (0.016). & top5\_recall->flat:width \\
+  agentnet\_redundant\_step (step-quality) & raw\_action\_stack:width & work 0.0089; recall 0.0177; lift 1.9838 & Use desktop environment + phase + repeat/action fields, then drill into fixed sessions for examples. Patch: accept\_patch (0.0011). & top5\_recall->flat:width; first\_positive->fixed\_session:query\_aware \\
+  osworld\_group\_start (human-boundary) & flat:width & work 0.4074; recall 0.3874; lift 0.951 & Use group-depth or boundary-derived fields for higher recall; action-depth alone fragments starts. Patch: reject\_patch\_or\_needs\_new\_mapping (-0.0004). & top5\_recall->flat:width; top5\_lift->fixed\_session:query\_aware; first\_positive->fixed\_session:query\_aware \\
+  \bottomrule
+\end{tabular}

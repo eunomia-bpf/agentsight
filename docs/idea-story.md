@@ -1,137 +1,341 @@
-# Idea Story
+# AgentProf Idea Story
 
-Last updated: 2026-07-08
-Stage at update: stage 9 paper integration / stage 10 prose polish / stage 11 reproducibility prep
-Source/command: current branch `research/semantic-flamegraph-artifacts-v2`; `docs/evaluation.md`; `docs/design.md`; `docs/implementation.md`; `docs/background-related-work.md`; read-only audit of `docs/agentpprof-paper/main.tex`; latest outer commit `f2cdb8e9`; R320/R328/R392/R393/R394/R395/R396/R397/R398/R399/R402/R403/R404/R405/R407/R408/R409/R352/R356/R357/R360-R364 artifacts
-Completeness: partial. The scoped profiling claim is paper-ready against the current labeled-trace evidence, and the post-R392 reviewer gate is closed by R393; broader human-utility, full ecosystem-compatibility, and universal boundary-discovery claims remain unsupported.
+Read this file from the first line to the last before any idea-level decision
+or paper-level story change. The Initial Narrative is the permanent baseline;
+it must remain complete in this current file. The evolution entries record why
+each accepted change occurred. The latest entry is not presumed better merely
+because it is newer.
 
-## Current State And Blocking Gate
+## Initial Narrative — Permanent Baseline
 
-Purpose: Give the project a single canonical entry point for the paper story, claim ledger, and next gate.
+**Provenance.** This is the complete scientific narrative from which the
+AgentProf project began, reconstructed from the untouched
+`docs/agentpprof-paper/main.tex` baseline and the author's original intent. It
+preserves the original idea, not every original empirical sentence. Claims
+later shown invalid remain identified as original promises rather than current
+evidence.
 
-Draft paragraph: AgentSight's semantic profiling work is now in paper-integration mode. The design has been narrowed to two profiler abstractions, `operation` and `operation stack`. The strongest current claim is not human productivity, full automatic diagnosis, or complete trace-ecosystem compatibility. It is that operation/operation-stack profiling can localize, rank, and explain task-relevant failures, quality problems, and semantic boundaries in real labeled agent traces, while requiring less inspection work than flat summaries and less fragmentation than fixed-session drilldown. Fixed-session drilldown is the current trace-tree-shaped baseline in this benchmark; real OpenTelemetry/OpenInference/Phoenix-style span-tree imports are future baselines.
+### Problem And Stakes
 
-Evidence/claim dependency: The primary empirical gate is R320 over 6 tasks, 4 oracle-rich datasets, 34,539 operations, 3,699 positives, and 144 view/ranker policies. R333/R334/R337/R339/R344/R355 add work-budget, fragmentation, fixed-recall, sequence-scope, metric-surface, and oracle-depth checks. R354/R358 add executable profile-spec patch and boundary-derived-field actionability evidence. R402/R403/R404 add the maintained Rust operation-stack induction path: adjacent boundary scoring induces variable-depth stacks without a user-provided field chain, scores that induced view against the same hidden-label tasks, and exposes depth as a profile configuration knob rather than an automatic boundary detector. R327/R328 cover replayability and offline cost; R392 covers profile-spec input-source replay for local-session, agent-trace, and standard-trace inputs. The July 8 read-only audit of `docs/agentpprof-paper/main.tex` confirms that the English submodule still uses an older three-RQ structure and is missing the outer E3/E4 split and induction display; this is a recorded paper-organization gap, not a missing mandatory experiment for the current scoped claim. R395 checks that this main claim and the C4 verdict remain aligned across this file, the evaluation ledger, and paper drafts after the latest three-plus-one consolidation repair. R396 checks that the English and Chinese drafts build through temporary output locations, final logs have no unresolved references/citations, and the English ACM figure-description warning is gone. R405 records that the English paper submodule is read-only in the current workflow and remains behind the outer four-block organization. R407 converts R402/R403/R404 into a reader-facing induction table for the Chinese paper. R397 and R398 now treat the outer Chinese paper as the authoritative writable paper body: they keep R-numbered runs and internal checklist-style terms out of the main narrative, require the Chinese RQ1/E1--RQ4/E4 path and E2/E3/E4 role boundaries, and accept the English side only if it is synced or R405 records the read-only sync gap. R399 checks that the committed Chinese PDF contains the same main-display path as the TeX source, while English PDF/source drift is bounded by the R405 read-only gap instead of triggering submodule edits. R408 independently checks that the Chinese PDF contains the reader-facing induction display. R409 checks the worktree path, branch, AGENTS/CLAUDE submodule policy, unstaged-but-not-staged submodule state, R405/R397/R398/R399 gap-aware behavior, and direct-push safety. R338/R352/R356/R357/R359/R360/R361/R362/R364/R396/R397/R398/R399/R405/R408/R409 are scope, rubric, reviewer, structure, claim-scope, build-readiness, submodule-policy, or paper-organization checks, not new empirical profiler evidence.
+AI agents perform long, multi-step activities spanning prompts, model calls,
+tools, processes, files, and networks. As teams accumulate many trajectories,
+the important engineering questions become population-level questions:
 
-Completeness: Partial. The main paper evidence is organized into three empirical profiling experiments plus one replayability/scope-control block, R393 records 4/4 final reviewer ACCEPT after fixing one dataset-caption blocker, R394 checks the maintained docs against the two-abstraction field-derivation wording, R395 checks the main claim-verdict alignment, R396 checks paper-build readiness, R405 records the English submodule sync gap under the read-only policy, R397 keeps R-numbered run history and internal checklist-style terms out of the main paper bodies, R398 keeps the writable Chinese paper aligned on RQ/E subsection count, E2/E3/E4 role boundaries, new-run role rule, main-display path, internal-style check, and venue-self-undercut check, R399/R408 keep the tracked Chinese PDF fresh, and R409 makes the read-only submodule/push-safety state explicit. The next gate is prose and figure/table polish, not more small experiments; the read-only English audit reinforces that this work belongs in the outer Chinese paper rather than the submodule.
+- Which recurring kinds of work consume the token, time, or system budget?
+- Where do failures and wasted effort concentrate across workflows?
+- Which recurring behaviors are associated with unsafe system effects?
+- What should a developer optimize, inspect, or constrain across many runs?
 
-## Downstream Document Index
+Per-run tracing and debugging explain what happened in one execution. They do
+not by themselves provide the cross-run aggregation and attribution that
+traditional profiling provides for software. The original problem statement
+was therefore simple and consequential:
 
-Purpose: Point reviewers to the authoritative documents rather than leaving the project state in chat history.
+> **Agent observability needs profiling, not only debugging and tracing.**
 
-Draft paragraph: The current related-work and novelty map is in `docs/background-related-work.md`. The mechanism and abstraction boundary are in `docs/design.md`. Runnable implementation status is in `docs/implementation.md`. The claim-to-experiment map, run tracker, result summary, and reproducibility checklist are in `docs/evaluation.md`. The Chinese paper draft is `docs/visexp/paper/main.tex`, and the English paper submodule is `docs/agentpprof-paper/main.tex`.
+### Challenged Belief
 
-Evidence/claim dependency: These files are referenced by R338/R356/R360-R364 source-status checks and by the current paper text.
+Traditional profilers attribute additive measures to stable code identities
+and runtime call stacks. The original work challenged the belief that an
+agent's emitted execution structure is sufficient as the only responsibility
+hierarchy for questions about recurring work across heterogeneous runs.
+Equivalent behavior may appear under different prompts, tools, sessions, or
+runtime boundaries, while one execution tree can mix behavior with different
+operational meaning.
 
-Completeness: Complete for current repo navigation; post-R392 independent review is accepted by R393.
+The initial paper sometimes stated this too strongly as if agent traces had no
+execution hierarchy. The durable challenge was not the absence or uselessness
+of native trees. It was that execution occurrence and cross-run profiling
+responsibility are different questions.
 
-## Intro P1: Problem And Stakes
+### Central Insight And Thesis
 
-Purpose: Establish why ordinary prompt/session/span views are too rigid for agent profiling.
+The fundamental profiling method can transfer from code to agent behavior:
+record weighted activities and effects, then attribute the selected measure to
+responsible recurring entities at the granularity needed by the question.
+Agent trajectories should be treated as profiling samples from a population,
+not only as isolated traces.
 
-Draft paragraph: AI agent executions are no longer a single prompt, response, or fixed trace tree. A realistic trajectory can contain LLM turns, browser and GUI actions, tool calls, API calls, filesystem and process effects, plans, subagents, user intents, and dataset labels for success, safety, repetition, redundancy, and human grouping. A profiler that binds analysis to one boundary, such as session, prompt, or span, cannot ask the same trajectory to expose task, phase, action, quality, or boundary structure at different depths.
+The original thesis was that a semantic profile can reorganize recorded
+activity by reusable task, phase, action, execution, or effect meaning and thus
+complement per-run tracing. It was intended to cover cost, regression, safety,
+failure, and wasted-work questions rather than one narrow anomaly detector.
 
-Evidence/claim dependency: R279-R292 show heterogeneous public labeled trajectories entering the same operation layer. R286 shows the same operations fold into dataset, phase, semantic, action, and fixed-session stack depths.
+### Proposed Model And System
 
-Completeness: Supported for the sampled public trace families and local session fixtures. Not a claim about full conversion of every public agent dataset.
+The original model intentionally contained two core abstractions:
 
-## Intro P2: Status Quo And Gap
+1. **Operation:** a uniform, fielded observation of agent activity or effect
+   with one or more additive measures.
+2. **Operation stack:** an ordered, query-time path derived from operation
+   fields and used to fold a selected measure into a hierarchical profile.
 
-Purpose: Place the work against classic profiling, trace processors, and LLM/agent observability systems.
+Changing selected fields and measures lets the same recorded operations be
+viewed by task, phase, action, session, tool, system effect, token count, time,
+or another declared dimension. Mappings, taggers, boundary methods, filters,
+rankers, importers, pprof serialization, and flamegraph rendering are supporting
+mechanisms rather than additional scientific contributions by default.
 
-Draft paragraph: Classic profilers already support folded stacks, labels, and tag-derived pseudo frames, and trace systems already support rich query processing over spans. Modern LLM observability tools expose sessions, traces, observations, evaluations, dashboards, and OpenTelemetry/OpenInference style schemas. The gap is not generic aggregation. The gap is a profiler object model for agent trajectories in which prompt, session, tool call, process, syscall, plan, and subagent are operation forms or fields, and stack shape is a query-time projection over those fields.
+AgentProf was proposed as an offline profiler that ingests real agent histories
+and AgentSight recordings, constructs operation stacks, folds additive
+measures, and emits pprof-compatible, folded-stack, JSON, and visual outputs.
 
-Evidence/claim dependency: `docs/background-related-work.md` maps pprof, flamegraphs, Perfetto, OpenTelemetry GenAI, OpenInference, LangSmith, Langfuse, Phoenix, AgentOps, AgentRx, TELBench/DRIFT, Holistic Evaluation, and AgentAtlas. R314 and R352 gate the related-work and evaluation-rubric framing.
+### Intended Contributions
 
-Completeness: Supported as scoped novelty. The paper must not claim feature parity or complete compatibility with those ecosystems.
+The initial narrative promised three contributions:
 
-## Intro P3: Key Insight And Thesis
+1. identify the missing cross-run profiling problem in agent observability and
+   introduce operations plus query-time operation stacks as a compact model;
+2. implement the model in AgentProf with real trace ingestion and standard
+   profiler outputs;
+3. evaluate whether the profiles faithfully attribute recorded measures and
+   help locate real cost, failure, safety, or wasted-work behavior across real
+   trajectories and public benchmarks.
 
-Purpose: State the first-principles abstraction.
+### Original Scope And Non-Claims
 
-Draft paragraph: The key insight is to separate the observed event from the profiling stack. AgentSight represents each relevant unit as an `operation`, a fielded weighted observation. An `operation stack` is an ordered recursive projection over operation fields chosen by the user, profile spec, mapping, tagger, query, or boundary-scoring induction. Explicit stack specs are reproducible views, not the only algorithm: the maintained Rust induction path scores adjacent cuts inside each contiguous operation segment and recursively stops when visible evidence no longer supports a material split. Mapping, tagging, and boundary backends derive fields before folding; they are first-class configuration mechanisms, but they do not create a third profiler abstraction. This lets the same prompt or action sequence fold at different depths depending on the diagnostic task.
+The ambition was broad across agents, tasks, and additive measures, but the
+model was not meant to be a universal causal graph, complete execution ontology,
+automatic failure detector, or replacement for per-run debugging. Profiling
+and tracing were intended to be complementary. Semantic fields were hypotheses
+about useful responsibility, not permission to manufacture signal absent from
+the observations.
 
-Evidence/claim dependency: R281/R282/R285 validate generated mapping rules; R293/R321/R342 validate profile specs, predicates, rank rules, and explicit stack depth; R297/R358 validate boundary-derived fields as ordinary operation fields; R402/R403/R404 validate recursive operation-stack induction, hidden-label scoring of the induced view, and induced-depth sensitivity without oracle source fields; R394 checks that the Rust CLI, user guides, canonical docs, and paper drafts describe tagging/mapping/LLM tags/clustering as field derivation before stack folding rather than a third abstraction.
+### Original Research Questions And Evaluation Promise
 
-Completeness: Supported for deterministic and supervised field derivation. Fully unsupervised intent-boundary discovery is not supported.
+The first paper organized evaluation around four questions:
 
-## Intro P4: Artifact Or Method
+1. whether semantic profiling improves resource attribution;
+2. whether profiler output corresponds to real annotated problems;
+3. whether derived semantic tags agree with held-out annotations;
+4. what profiling costs.
 
-Purpose: Identify what was built.
+It promised real local trajectories, public annotated datasets, hidden-label
+problem localization, mapping transfer, and end-to-end profiling cost. The
+initial paper reported strong positive numbers. Later audits found that several
+positive interpretations were circular, target-guided, incomplete, or broader
+than the evidence. Those numbers are historical claims, not current evidence.
+The problem, stakes, two-object model, and broad evaluation promise remain the
+permanent baseline against which every later story is compared.
 
-Draft paragraph: The evaluated artifact is the Rust `agentpprof` offline profiler and its dataset/conversion/evaluation harness. It reads operation JSONL, local agent-session traces, and standard trace containers after normalization; applies mapping, tagging, filtering, rank rules, and profile specs; folds recursive operation stacks; and emits folded stacks, JSON profiles, pprof-compatible profiles, SVG/HTML views, and analysis outputs. Local session and standard trace exchange are containers around the operation path, not separate profiler objects.
+## Current Frontier
 
-Evidence/claim dependency: R294/R303/R306/R353 validate trace and standard-trace exchange. R319 validates implementation/docs consistency. R327/R328 validate deterministic replay over 76 profile specs and 152 profiler invocations. R392 validates that profile specs can replay local-session, agent-trace, and standard-trace input sources with effective metadata rather than silently ignoring configured paths.
+### Restored Position
 
-Completeness: Supported for the offline artifact path. Live eBPF overhead and full producer-ecosystem import are not part of the current claim.
+Agent traces record where activity occurred in individual runs. Agent profiling
+asks which recurring behavior across many runs accounts for a measured cost,
+regression, unsafe effect, failure, or wasted effort. AgentProf treats
+trajectories as profiling samples and makes the attribution hierarchy explicit
+through operations and operation stacks.
 
-## Intro P5: Claims And Evaluation Promise
+> **Agent observability needs cross-run profiling of recurring behavior and
+> measured effects, not only tracing individual executions. No emitted or
+> semantic hierarchy has automatic authority; the hierarchy used to attribute a
+> measure must be exposed and tested against the analyst's decision.**
 
-Purpose: Tie the thesis to three empirical profiling experiments plus one replayability/scope-control block.
+This restores the original consequential problem. Hierarchy and representation
+choice are load-bearing parts of the model and evaluation, not the paper-level
+thesis by themselves.
 
-Draft paragraph: The evaluation is organized around three core empirical profiling experiments plus one replayability/scope-control block. E1 tests whether one operation layer can cover heterogeneous labeled agent trajectories and be recursively folded into multiple stack depths by explicit specs or induced boundary scoring. E2 is the main hidden-label localization/ranking benchmark over real labeled traces. E3 isolates mechanism and actionability through ranker, mapping, induced depth, transfer, case, boundary-field, and profile-spec patch evidence. E4 checks replayability, offline cost, and claim scope, while claim-integrity and reviewer checks constrain scope rather than adding empirical profiler evidence.
+### Scientific Model
 
-Evidence/claim dependency: E1 uses R279-R292/R286/R290/R291/R293/R321/R342 plus exchange checks and R402 recursive induction. E2 uses R320 plus R330/R331/R333/R334/R337/R339/R344/R355 and the R403 induced-stack ablation. E3 uses R324-R326/R335/R336/R340/R341/R345-R350/R354/R358 plus R404 induced-depth sensitivity. E4 uses R327/R328/R392 plus source-status and scope checks.
+The two original abstractions remain the complete core model:
 
-Completeness: Supported as a scoped profiling-paper evaluation. The paper should keep R-runs as provenance rather than the main narrative.
+1. an **operation** is a weighted, fielded observation;
+2. an **operation stack** is a query-time path used to aggregate a selected
+   measure.
 
-## Intro P6: Contributions, Scope, And Non-Goals
+Flat summaries, genuine source-native paths, and semantic stacks are competing
+projections over the same evidence. Mappings, tags, rankers, importers,
+differential comparison, pprof output, and visualizations remain supporting
+mechanisms.
 
-Purpose: Close the introduction with calibrated contributions and explicit non-claims.
+### Admitted Evidence And Boundaries
 
-Draft paragraph: The contributions are a two-abstraction semantic profiler model for agent trajectories, a configurable Rust implementation with mappings, tagging, query predicates, rank rules, profile specs, and trace import/export bridges, and a labeled-trace evaluation showing faithful localization/ranking and actionable optimization insights. The paper does not claim improved human analyst productivity, automatic discovery of all intent boundaries, metric dominance on every task, full OpenTelemetry/Phoenix/LangSmith/Langfuse/Perfetto compatibility, or a universal policy selector.
+- The Rust artifact implements operation ingestion, mapping, predicates,
+  configurable stacks, weighted folding, multiple views, and pprof/folded/
+  JSON/SVG output.
+- Existing local and public trajectories establish representation reach,
+  reprojection, and measure conservation. They do not establish independently
+  correct semantic lineage or causal responsibility.
+- AgentRx/TELBench invalidates the tested positive semantic-leaf localization
+  claim: AP gains over prevalence are small and statistically unresolved, and
+  simple controls are stronger in important cases.
+- Hodoscope establishes a sparse-anomaly boundary: its published continuous
+  density-gap/FPS bundle finds the first oracle action at `2.9 +/- 0.3`, while
+  the tested recursive bundle reaches `24.9 +/- 15.8`; adding recursive parents
+  has no stable matched advantage.
+- A hierarchy attributes a recorded signal; it cannot manufacture a missing
+  failure signal. Semantic membership and recursive parents are not automatic
+  proof of decision value.
 
-Evidence/claim dependency: The non-claims are enforced by R338/R352/R356/R357/R360/R361/R362/R364 and by the paper text. The positive claim is grounded in R320/R333/R334/R337/R339/R344/R354/R355/R358.
+These negative results change the expected answer for their tested hypotheses.
+They do not directly challenge the paper-level profiling thesis or authorize
+shrinking cost, regression, safety, or failure out of the RQ.
 
-Completeness: Supported for current paper wording. Broader claims require additional experiments.
+### Current Research Questions
 
-## Claim Ledger
+The paper keeps three explicit RQs:
 
-| ID | Claim | Scope | Metric/evidence needed | Status |
-|---|---|---|---|---|
-| C1 | Agent trajectories can be represented as operations and recursively folded operation stacks without privileging prompt/session/span boundaries. | Public labeled trace samples, local agent sessions, and standard trace exchange fixtures. | Dataset coverage, operation counts, stack-depth sweep, profile-spec replay, exchange equality. | supported |
-| C2 | Recursive operation stacks expose useful task, phase, action, quality, safety, and available boundary structure. | Dataset-provided labels and available oracle depths, especially OSWorld-Human and AgentNet. | V-measure, boundary F1, oracle-depth recall/F1, fragmentation, counterpoint rows. | supported with scoped limits |
-| C3 | Mapping, tagging, and boundary-derived fields improve semantic aggregation as first-class field derivation before stack folding. | Deterministic mappings, held-out splits, leave-dataset-out stress, supervised boundary-field probes. | Compression, stack reduction, held-out boundary F1, patch acceptance, failure/counterpoint analysis. | partial |
-| C4 | Operation-stack profiling localizes, ranks, and explains task-relevant failures, quality problems, and semantic boundaries on real labeled traces. | Six hidden-label tasks over AgentRewardBench, SATraj-OS, AgentNet, and OSWorld-Human. | Precision@k, recall@budget, F1, AP/AUPRC-style score, nDCG, work-to-first-positive, fragmentation, actionability. | supported as hidden-label profiler benchmark |
-| C5 | The artifact is replayable and cheap enough for offline artifact evaluation. | Tracked operation inputs, local-session/agent-trace/standard-trace input-source specs, and profile specs. | Deterministic semantic/raw hashes, sample/stack equality, input-source replay coverage, median/p95 runtime, source-status rows. | supported for offline path |
+- **RQ1 — fidelity and comparability:** can heterogeneous traces be represented
+  and reprojected into flat, source-native, and semantic profiles while
+  preserving the declared measure and independently verifiable source context?
+- **RQ2 — analytical value:** for real cross-run cost, regression, safety, or
+  failure analyses, when does a semantic or differential operation-stack
+  profile improve the decision over flat and source-native views under matched
+  information and inspection effort?
+- **RQ3 — generality and limits:** which workload, query, and projection
+  properties predict whether the advantage transfers across agents and task
+  families, and when are native structure or simpler grouping sufficient?
 
-## Largest Plausible Claim
+These RQs preserve the original scope while repairing its organization. An
+experiment tests one hypothesis inside one RQ; it does not rewrite the RQ.
 
-Purpose: Keep the ambitious target visible without promoting it before evidence exists.
+### Competing Explanations
 
-Draft paragraph: The largest plausible current claim is that operation/operation-stack profiling gives a better inspection-work and fragmentation tradeoff than flat summaries and fixed-session drilldown for localizing task-relevant issues in real labeled agent traces, while also exposing actionable configuration knobs. A larger future claim would add true span-tree imports from production observability systems and broader tool/API/mobile oracle-rich families, then show the same tradeoff across more domains.
+1. Recurring semantic responsibility is the useful cross-run index for some
+   measured changes.
+2. Any apparent gain comes from extra visible fields or a stronger ranker.
+3. Arbitrary or simple grouping supplies the same benefit.
+4. Native execution hierarchy is sufficient for the relevant decisions.
+5. Different signal shapes and decisions favor different projections.
 
-Evidence/claim dependency: Current large claim uses R320/R333/R334/R337/R339/R344/R354/R355/R358. Future claim needs real span-tree/OTel-style imported traces and stronger oracle-rich expansion datasets.
+The current bold hypothesis is that additive changes distributed over recurring
+roles across many source trees are the condition most likely to benefit from a
+fixed semantic operation stack. Sparse isolated anomalies may favor continuous
+flat search, and subtree-local effects may favor native structure. This is a
+prediction to test, not an achieved law or new named taxonomy.
 
-Completeness: Current claim is supported; larger claim is a future expansion hypothesis.
+### Next Decisive Evidence
 
-## Reviewer Attack Surface
+First complete the following WRITE gate so the paper expresses the accepted
+story. Then reopen `research-literature-novelty` because the restored central
+position must be checked against closest work before the next empirical plan.
+After that, run one complete RQ2 experiment on a real published agent and
+benchmark, using a directly recorded additive regression, genuine native
+hierarchy, identical terminal operations and visible information, and only
+flat, native, and one semantic stack fixed before target inspection. The result
+must connect to an independently meaningful decision and retain all negative,
+failed, and nonterminated cells.
 
-| Attack | Current answer | Remaining risk |
-|---|---|---|
-| This is just flamegraphs with labels. | The novelty is agent operation records plus recursive multi-field operation-stack projections plus hidden-label localization scoring; flamegraphs are only one output. | Need keep related work precise around pprof tag frames and Perfetto SQL. |
-| The evaluation is a long run log. | The paper is organized as RQ1/E1-RQ4/E4; R-runs are provenance, ablations, counterpoints, or gates. | `docs/evaluation.md` remains long and should stay a ledger, not the paper narrative. |
-| Query-aware ranking leaks labels. | Rust visible inputs scrub oracle fields; hidden labels are used only for offline scoring; oracle policies are upper bounds. | Keep source-status and visible/hidden separation checks in every new run. |
-| Fixed sessions sometimes cost less. | The claim is Pareto tradeoff, not metric dominance; fixed-session counterpoints remain explicit. | Do not write "always better" or "replaces drilldown." |
-| Boundary detection is overclaimed. | Mappings and supervised boundary fields are field derivations; automatic discovery of all intent boundaries is not claimed. | Need stronger true subtask/solution-path oracles for broader boundary claims. |
-| Human productivity is unmeasured. | Correct. Current claim is profiler fidelity/localization/actionability against hidden labels, not analyst productivity. | Run human/agent analyst study only if claiming productivity or time-to-answer. |
+If no released dataset contains the required evidence, run two pinned real
+agent revisions or configurations on an official benchmark with AgentSight
+instrumentation. Do not substitute a toy trace or retune the failed Hodoscope
+construction.
 
-## Open Questions And Blockers
+## Narrative Evolution — Accepted Changes Only
 
-| Item | Status | Next action |
-|---|---|---|
-| Independent reviewer pass after the latest three-plus-one consolidation. | done | R393 records 4/4 final reviewer ACCEPT after fixing the Chinese dataset-caption blocker. |
-| Full real span-tree baseline import. | out of current claim | Import a real OpenTelemetry/OpenInference/Phoenix-style trace only before making ecosystem-specific or real span-tree superiority claims. |
-| Broader oracle-rich tool/API/mobile families. | optional expansion | Add only if the paper needs wider generality beyond the current four oracle-rich sources. |
-| Human or agent analyst study. | optional future work | Use R315/R316 protocol only for human-utility or time-to-answer claims. |
-| Claim-complete Chinese and English prose polish. | in progress | R395 keeps the claim-verdict alignment checked, R396 keeps paper-build readiness checked, R405 records the English submodule read-only sync gap, R397/R398 keep the writable Chinese paper on the exact three-plus-one organization, new-run role rule, main-display path, internal-style guard, and self-undercut guard, R399/R408 keep the tracked Chinese PDF fresh, and R409 records that direct push remains unsafe while ahead history contains a submodule gitlink update. The July 8 read-only English audit finds that the submodule still has the older RQ1/RQ2/RQ3 experiment organization, so continue tightening outer/Chinese prose and keep provenance in the ledger; do not edit the English submodule unless explicitly allowed. |
+### E000 — Initial profiling narrative
 
-## Next Action
+**Before/after:** project inception; the complete baseline above was the
+starting narrative.  
+**Reason:** cross-run agent development raised cost, failure, safety, and wasted
+work questions that per-run debugging did not aggregate.  
+**Root disposition:** accepted as the project objective and two-object system
+direction.  
+**Comparison:** no prior narrative; it defines the permanent baseline.  
+**Revisit:** never remove the baseline; only evidence and current conclusions
+may evolve.
 
-Purpose: Define the next concrete step.
+### E001 — Evidence-fidelity correction
 
-Draft paragraph: The next step is prose polish and figure/table presentation for the accepted three-plus-one paper structure. Do not add another empirical block unless it strengthens e1, e2, e3, or e4 directly; instead, keep R-numbered provenance and internal process vocabulary out of the main paper bodies, keep limitations framed as scoped-claim boundaries rather than venue-readiness self-disclaimers, preserve the R395/R396/R397/R398/R399/R405/R408/R409 paper-integration gates, and keep English-submodule changes out of this workflow unless explicitly allowed. The only future expansion candidates that would materially expand the claim are a real OpenTelemetry/OpenInference/Phoenix-style span-tree import for ecosystem-specific claims or a same-input free-form text plus hidden semantic-label oracle for tagger-accuracy claims.
+**Before:** semantic separation, hidden-annotation ranking, mapping agreement,
+and offline timing were presented as broad proof that AgentProf improved
+attribution and diagnosis.  
+**After:** conservation, declared-category separation, independent lineage,
+diagnostic correspondence, causality, and end-to-end decision value became
+distinct evidence levels; unsupported positive claims were withdrawn.  
+**Reason/evidence:** source audits found prompt-derived or hidden-label
+circularity, target-time tuning, weak native baselines, and incomplete cost and
+lineage evidence.  
+**Root disposition:** accept the evidence correction; reject shrinking the
+underlying profiling problem.  
+**Initial/previous/chosen comparison:** the initial story remained more
+important and simpler, while the chosen version became scientifically honest;
+the correction improved claim authorization without replacing the thesis.  
+**Detail:** [trajectory audit and recovery plan](tmp/cycle-0001-20260711T164850-0700/03-review-gate/idea-regression-recovery-20260712T021723-0700/trajectory-audit-and-recovery-plan.md).  
+**Revisit:** restore a positive result only through a clean real experiment.
 
-Evidence/claim dependency: R393 inspected the current branch, `docs/evaluation.md`, this file, and both paper drafts after the R392 E4 input-source replay update. It records four final ACCEPT verdicts, one resolved caption blocker, and no unresolved issues. R395 then checks that the central profiling claim, C4 verdict, fixed-session proxy wording, E4 non-accuracy scope, and must-not-claim boundaries still agree after the R380/R391 consolidation repair. R396 then checks that both paper drafts build in temporary output locations and that final logs/accessibility warnings are clean. R405 records the English submodule as read-only and behind the outer four-block organization. R397/R398 then check the writable Chinese main body, main-display path, E2/E3/E4 role boundaries, anti-run-ledger wording, and small-experiment guard while accepting English only as synced or R405-recorded gap. R399 checks the tracked Chinese PDF against the source display path and treats English PDF drift through the same R405 read-only gap. R408 checks the Chinese induction display in the tracked PDF. R409 records that the current worktree/branch is correct, the submodule is dirty but unstaged, and direct push is unsafe because ahead history contains a submodule gitlink update.
+### E002 — Revert reviewer-driven mechanism expansion
 
-Completeness: Review gate complete; prose polish remains.
+**Before:** repeated reviewer attacks had promoted stable identity, semantic
+scope trees, navigators, bundle emulation, cost contracts, and large comparator
+programs over the original operation/operation-stack center.  
+**After:** the accepted story returned to operations and operation stacks as the
+only core abstractions; the added mechanisms were demoted to optional techniques
+unless later implementation and evidence justified one independently.  
+**Reason/evidence:** each objection was treated as a mechanism obligation rather
+than classified as a fatal defect, evidence need, optional control, alternative,
+or future work.  
+**Root disposition:** reject the expanded mechanism-centered narrative and
+accept the reversion; retain only independently implemented or experimentally
+necessary pieces as supporting techniques.  
+**Initial/previous/chosen comparison:** the initial narrative had the clearer
+two-object center; the immediately previous expanded version was more defensive
+but less simple, less implemented, and less faithful; the chosen reversion was
+therefore stronger than the previous version and restored the initial strength
+without restoring unsupported empirical claims.  
+**Detail:** [trajectory audit and recovery plan](tmp/cycle-0001-20260711T164850-0700/03-review-gate/idea-regression-recovery-20260712T021723-0700/trajectory-audit-and-recovery-plan.md).  
+**Revisit:** only if a decisive experiment requires one mechanism and the
+artifact plus evidence justify it independently.
+
+### E003 — Representation-choice narrative after valid negative results
+
+**Before:** the restored center was cross-run semantic profiling as a complement
+to tracing.  
+**After:** the paper increasingly centered on flat, native, and recursive
+hierarchies as competing profiling indices and on the absence of automatic
+hierarchy authority.  
+**Reason/evidence:** AgentRx/TELBench and Hodoscope contradicted expected
+semantic-leaf and recursive advantages; the project correctly preserved native
+baselines and separated signal from grouping.  
+**Root disposition at the time:** accept hierarchy choice and signal shape as
+important scientific boundaries.  
+**Initial/previous/chosen comparison:** this version improved fairness,
+closest-work honesty, and negative-result interpretation, but lost the initial
+problem's scale by making a supporting comparison the headline. It is retained
+as the immediately previous narrative, not the current thesis.  
+**Detail:** [post-result full-paper review](tmp/cycle-0001-20260711T164850-0700/03-review-gate/post-result-full-paper-review-20260712T054200-0700.md).  
+**Revisit:** representation sensitivity may become central only after repeated
+complete matched experiments directly challenge the profiling thesis or show
+no useful regime.
+
+### E004 — Restore profiling as the paper-level thesis
+
+**Before:** representation/hierarchy choice occupied the center; the original
+profiling problem was present but subordinate.  
+**After:** agent observability again needs profiling across recurring behavior
+and measured effects, while hierarchy choice remains a falsifiable property of
+that profiling model. All valid negative evidence and novelty limits remain.  
+**Reason/evidence:** the user's explicit correction and three independent
+read-only idea discussions found that local method/workload negatives were not
+direct thesis challenges and that the submodule's problem framing had greater
+scientific potential.  
+**Root disposition:** accept the combined restoration; reject restoring
+unsupported old results; defer paper changes to WRITE.  
+**Initial/previous/chosen comparison:** the initial story supplies importance,
+simplicity, and ambition; the previous story supplies scientific discipline;
+the chosen story combines both and is therefore stronger and more faithful than
+either alone.  
+**Idea audit:** [root disposition](tmp/cycle-0001-20260711T164850-0700/03-review-gate/idea-story-restoration-20260712T134029-0700/500-idea-audit-20260712T140000-0700.md).  
+**Revisit:** only a direct thesis challenge—not one local negative result,
+reviewer objection, or unavailable dataset—can reopen the paper-level center.
+
+## Invariants For Every Future Story Decision
+
+- Read this entire file, including the Initial Narrative and every evolution
+  entry, before deciding.
+- Compare the initial, immediately previous, and proposed narratives explicitly;
+  recency is not evidence.
+- Preserve the largest faithful problem and use bold hypotheses with careful
+  validation. Negative results change tested answers or search branches before
+  they change the paper-level objective.
+- Keep operations and operation stacks as the only core abstractions unless
+  implementation and decisive evidence justify a genuine new abstraction.
+- Prefer one simple, non-obvious principle over stacked terminology.
+- Use real papers, benchmarks, systems, datasets, and complete experiments.
+- Record every accepted problem, thesis, contribution, system-direction, scope,
+  or RQ change here with before/after meaning, reason, evidence, root
+  disposition, comparison, report link, and revisit condition.
+- `iter-refine-ideas` proposes; the root records a disposition; the WRITE gate
+  alone changes the paper.
