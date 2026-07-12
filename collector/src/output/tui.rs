@@ -11,6 +11,17 @@ use ratatui::{
     widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table, TableState, Wrap},
 };
 
+#[derive(Debug, Clone)]
+pub(crate) enum TopRecordOverlay {
+    Prompt {
+        command: String,
+        error: Option<String>,
+    },
+    Running {
+        lines: Vec<String>,
+    },
+}
+
 pub(crate) fn draw_live_top_tui(
     frame: &mut Frame<'_>,
     top: &AgentTopOutput<'_>,
@@ -21,6 +32,8 @@ pub(crate) fn draw_live_top_tui(
     show_diagnostics: bool,
     interval_secs: u64,
     display_limit: usize,
+    record_status: Option<&str>,
+    record_overlay: Option<&TopRecordOverlay>,
 ) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
@@ -43,9 +56,11 @@ pub(crate) fn draw_live_top_tui(
     );
     render_session_table(frame, chunks[1], top, selected);
     render_session_detail(frame, chunks[2], top, selected, options);
-    render_top_footer(frame, chunks[3], top);
+    render_top_footer(frame, chunks[3], top, record_status);
 
-    if show_help {
+    if let Some(record_overlay) = record_overlay {
+        render_record_overlay(frame, record_overlay);
+    } else if show_help {
         render_top_help(frame);
     } else if show_diagnostics {
         render_top_diagnostics(frame, top);
@@ -195,18 +210,33 @@ fn render_session_detail(
     );
 }
 
-fn render_top_footer(frame: &mut Frame<'_>, area: Rect, top: &AgentTopOutput<'_>) {
+fn render_top_footer(
+    frame: &mut Frame<'_>,
+    area: Rect,
+    top: &AgentTopOutput<'_>,
+    record_status: Option<&str>,
+) {
+    let stop_hint = if record_status.is_some() {
+        " | S stop record"
+    } else {
+        ""
+    };
     let mut lines = vec![Line::from(vec![
         Span::styled("keys ", label_style()),
-        Span::raw(
-            "q quit | up/down select | s sort | v view | p pause | r refresh | +/- rows | e errors | ? help",
-        ),
+        Span::raw(format!(
+            "q quit | up/down select | s sort{stop_hint} | v view | p pause | r refresh | R record PID | +/- rows | e errors | ? help",
+        )),
     ])];
     lines.push(Line::from(vec![
         Span::styled("status ", label_style()),
         Span::raw(tui_status_line(top)),
     ]));
-    if let Some(message) = tui_diagnostic_lines(top, 1).into_iter().next() {
+    if let Some(record_status) = record_status {
+        lines.push(Line::from(vec![
+            Span::styled("record ", label_style()),
+            Span::raw(record_status.to_string()),
+        ]));
+    } else if let Some(message) = tui_diagnostic_lines(top, 1).into_iter().next() {
         lines.push(Line::from(vec![
             Span::styled("diagnostic ", label_style()),
             Span::raw(message),
@@ -298,15 +328,69 @@ fn render_top_help(frame: &mut Frame<'_>) {
         Line::from("q or Esc       exit"),
         Line::from("up/down, k/j   select a session"),
         Line::from("s              cycle sort: cpu, rss, tokens, execs, fail, files, net, agent"),
+        Line::from("S              when recording, prompt stop record"),
         Line::from("v              cycle detail view: all, processes, files, network, models"),
         Line::from("p              pause or resume refresh"),
         Line::from("r              refresh now"),
+        Line::from("R              record selected PID"),
         Line::from("+/-            change row limit"),
         Line::from("?              close this help"),
     ];
     frame.render_widget(
         Paragraph::new(lines)
             .block(Block::default().title("help").borders(Borders::ALL))
+            .wrap(Wrap { trim: true }),
+        area,
+    );
+}
+
+fn render_record_overlay(frame: &mut Frame<'_>, overlay: &TopRecordOverlay) {
+    let area = centered_rect(76, 34, frame.area());
+    frame.render_widget(Clear, area);
+    let (title, lines) = match overlay {
+        TopRecordOverlay::Prompt { command, error } => {
+            let mut lines = vec![
+                Line::from(vec![Span::styled(
+                    "Record selected PID",
+                    Style::default()
+                        .fg(Color::Cyan)
+                        .add_modifier(Modifier::BOLD),
+                )]),
+                Line::from(""),
+                Line::from("Attach options only; values are split on spaces."),
+                Line::from(""),
+                Line::from(command.clone()),
+                Line::from(""),
+                Line::from("Enter start | Esc cancel | Backspace edit"),
+            ];
+            if let Some(error) = error {
+                lines.push(Line::from(""));
+                lines.push(Line::from(vec![
+                    Span::styled("error ", Style::default().fg(Color::Red)),
+                    Span::raw(error.clone()),
+                ]));
+            }
+            ("record", lines)
+        }
+        TopRecordOverlay::Running { lines } => {
+            let mut rendered = vec![
+                Line::from(vec![Span::styled(
+                    "Record already running",
+                    Style::default()
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::BOLD),
+                )]),
+                Line::from(""),
+            ];
+            rendered.extend(lines.iter().cloned().map(Line::from));
+            rendered.push(Line::from(""));
+            rendered.push(Line::from("Enter/S stop | Esc cancel"));
+            ("record", rendered)
+        }
+    };
+    frame.render_widget(
+        Paragraph::new(lines)
+            .block(Block::default().title(title).borders(Borders::ALL))
             .wrap(Wrap { trim: true }),
         area,
     );

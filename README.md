@@ -27,7 +27,7 @@ closed-source CLI. **✨ Zero SDK Required**
 ```bash
 cargo install agentsight
 # or: wget https://github.com/eunomia-bpf/agentsight/releases/latest/download/agentsight && chmod +x agentsight
-sudo agentsight top
+agentsight top
 ```
 
 <div align="center">
@@ -64,7 +64,7 @@ AgentSight captures critical interactions that application-level tools miss:
 ### Prerequisites
 
 - **Linux kernel**: 4.1+ with eBPF support (5.0+ recommended)
-- **sudo access**: eBPF probes are auto-elevated; your agent stays unprivileged
+- **sudo access**: optional for `top`; eBPF probes are enabled automatically when sudo is already available
 
 For source builds, see [docs/build.md](https://github.com/eunomia-bpf/agentsight/blob/master/docs/build.md).
 
@@ -73,7 +73,7 @@ For source builds, see [docs/build.md](https://github.com/eunomia-bpf/agentsight
 #### Cargo or Release Binary
 
 For local use, install with `cargo install agentsight` or download the latest
-release binary, then start with `sudo agentsight top`. Use the examples below when
+release binary, then start with `agentsight top`. Use the examples below when
 you want to record a specific command or inspect saved sessions.
 
 #### Docker
@@ -91,14 +91,15 @@ file in the current directory. Start with the live and record commands, then
 use `agentsight report` for structured queries:
 
 ```bash
-sudo agentsight top                          # live ranked view of current agent sessions
+agentsight top                               # live ranked view; uses eBPF when sudo is already available
 agentsight monitor install-service           # install/start the background monitor service
 agentsight top --db run.db --once            # ranked view of a saved session
 sudo agentsight record -- claude             # record a command
 agentsight report                            # high-level run summary (default)
 agentsight report list                       # recorded sessions in this directory
 agentsight report prompts --json             # full LLM request/response JSON
-agentsight report token                      # token usage from latest session in this directory
+agentsight report token                      # token usage from latest DB, or local agent sessions
+agentsight report token --group-by dir       # token usage by session/process working directory
 agentsight report audit --json               # process spawns, file opens, API calls
 agentsight report serve                      # open the web UI for the latest session in this directory
 agentsight report export -o snapshot.json    # export for web dashboard
@@ -193,13 +194,13 @@ collector setup and backend integration.
 ## ❓ Frequently Asked Questions
 
 **Q: What permissions does AgentSight need?**
-A: eBPF probes need root privileges, so AgentSight may prompt for `sudo`. With `record -- <command>`, the monitored agent still runs as your normal user; only the probes are elevated.
+A: `top` works without sudo by using process snapshots and native agent session files. If you run it with sudo, or your user already has passwordless/cached sudo, it also enables live eBPF process capture. With `record -- <command>`, the monitored agent still runs as your normal user; only the probes are elevated.
 
 **Q: What's the performance impact?**
 A: Our evaluation reports less than 3% CPU overhead for typical traced agent workloads.
 
 **Q: Where does captured data go?**
-A: `record` stores sessions as `agentsight-*.db` files in the current directory by default, and `report` reads the latest matching file from that directory unless you pass `--db`. `monitor` stores its weekly background DBs under `~/.agentsight/monitor`, and `top` is read-only unless you explicitly pass `--db` to inspect a saved session. Use `agentsight report`, `agentsight report list`, `agentsight report audit --json`, and `agentsight report token` to inspect prior runs. Captured data can include prompts, responses, paths, headers, and network targets, so treat logs and DBs as sensitive.
+A: `record` stores sessions as `agentsight-*.db` files in the current directory by default, and `report` reads the latest matching file from that directory unless you pass `--db`. When no default DB exists, report commands warn and fall back to local Claude/Codex/Gemini agent sessions where available. `monitor` stores its weekly background DBs under `~/.agentsight/monitor`, and `top` is read-only unless you explicitly pass `--db` to inspect a saved session. Use `agentsight report`, `agentsight report list`, `agentsight report audit --json`, and `agentsight report token` to inspect prior runs. Captured data can include prompts, responses, paths, headers, and network targets, so treat logs and DBs as sensitive.
 
 **Q: Why doesn't AgentSight capture traffic from Claude Code, Node.js, or Gemini CLI?**
 A: These applications statically link their SSL library (BoringSSL for Claude/Bun, OpenSSL for **all** Node.js — both NVM and system installs) into their own binary instead of using system `libssl.so`, so there's nothing for sslsniff to hook by default. AgentSight handles this for you: `record -- <command>` always discovers the binary, and `record -c node` now auto-discovers the Node binary too. For Claude attach mode, pass `--binary-path`. See the "Zero-Config: record" and "Monitoring Node.js AI Tools" sections.

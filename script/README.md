@@ -1,12 +1,46 @@
-# SSL Analysis Pipeline
+# AgentSight Scripts
+
+This directory contains e2e canaries and manual analysis tools. Keep reusable
+test logic here; GitHub Actions should call these scripts instead of growing
+large inline shell blocks.
+
+## Directory Layout
+
+- `e2e/`: canaries for required PR CI, including mock LLM servers and latest
+  real agent CLI installation checks.
+- `grafana-setup/`: local Grafana/Loki stack helpers.
+- `test-python/`: manual Python/OpenAI traffic generator used by SSL capture
+  experiments.
+- Top-level `*_analyzer.py` scripts: offline SSL/TLS trace analysis tools.
+- Top-level `test_*.sh` scripts: legacy manual environment checks.
+
+## E2E Canaries
+
+```bash
+# Installs latest Claude Code, Codex, and OpenCode into a temp npm prefix,
+# then records each real CLI against the local HTTPS mock LLM server.
+script/e2e/latest_agent_cli_canary.sh
+```
+
+The e2e canary starts `script/e2e/mock_llm_server.py`, sends an HTTPS curl
+preflight request, then launches the latest real Claude Code, Codex, and
+OpenCode CLIs. The curl preflight proves SSL prompt capture against the mock
+server. For every real CLI, the canary requires the mock server to receive the
+canary prompt, the recorded DB to surface it through `report prompts`, and
+`top --db` to show nonzero LLM calls. On Linux CI this requires passwordless
+`sudo` for eBPF; failures are hard failures, not skips. The canary also runs
+`sslsniff --binary-path` against the latest Codex native binary and requires the
+Codex offset table to match and attach by offset.
+
+## SSL Analysis Pipeline
 
 A comprehensive toolkit for analyzing SSL/TLS traffic logs with focus on HTTP headers, metrics, and data flows.
 
-## 🚀 Quick Start
+## SSL Analysis Quick Start
 
 ```bash
 # Run the complete analysis pipeline
-./run_ssl_analysis.sh /path/to/ssl_trace.log
+script/run_ssl_analysis.sh /path/to/ssl_trace.log
 
 # Output files will be created in script/analysis/
 ```

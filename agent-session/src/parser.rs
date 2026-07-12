@@ -202,13 +202,23 @@ pub fn is_codex_cli_entrypoint(target: Option<&str>) -> bool {
 
 /// Extract the prompt from a Codex exec command.
 pub fn codex_exec_prompt(command: &str) -> Option<String> {
-    let mut args = command.split_once(" exec ")?.1.trim();
-    while let Some(rest) = strip_codex_exec_option(args) {
-        args = rest.trim_start();
+    let args = shell_words(command.split_once(" exec ")?.1.trim())?;
+    let mut index = 0usize;
+    while index < args.len() {
+        let arg = args[index].as_str();
+        if arg == "--" {
+            index += 1;
+            break;
+        }
+        if !arg.starts_with('-') {
+            break;
+        }
+        let consumed = codex_exec_option_arity(arg)?;
+        index += consumed;
     }
-    (!args.starts_with('-'))
-        .then(|| args.trim_matches(['"', '\'']))
-        .and_then(clean_prompt_text)
+    (index < args.len())
+        .then(|| args[index..].join(" "))
+        .and_then(|prompt| clean_prompt_text(&prompt))
 }
 
 // ---------------------------------------------------------------------------
@@ -1545,16 +1555,55 @@ fn first_json_string(obj: &Value, keys: &[&str], pointers: &[&str]) -> Option<St
         .map(str::to_string)
 }
 
-fn strip_codex_exec_option(args: &str) -> Option<&str> {
-    let (head, rest) = args.split_once(char::is_whitespace).unwrap_or((args, ""));
-    match head {
-        "--json" | "--skip-git-repo-check" | "--ephemeral" => Some(rest),
-        "-C" | "-a" | "-s" | "-m" | "-c" | "-p" => rest
-            .trim_start()
-            .split_once(char::is_whitespace)
-            .map(|(_, rest)| rest),
+fn codex_exec_option_arity(arg: &str) -> Option<usize> {
+    if arg.contains('=') && arg.starts_with("--") {
+        return Some(1);
+    }
+
+    match arg {
+        "--json"
+        | "--skip-git-repo-check"
+        | "--ephemeral"
+        | "--ignore-user-config"
+        | "--full-auto"
+        | "--dangerously-bypass-approvals-and-sandbox" => Some(1),
+        "-C" | "-a" | "-s" | "-m" | "-c" | "-p" | "--cd" | "--model" | "--sandbox"
+        | "--profile" | "--config" | "--ask-for-approval" | "--approval-policy"
+        | "--output-format" | "--color" => Some(2),
         _ => None,
     }
+}
+
+fn shell_words(input: &str) -> Option<Vec<String>> {
+    let mut words = Vec::new();
+    let mut current = String::new();
+    let mut quote = None::<char>;
+    let mut chars = input.chars().peekable();
+
+    while let Some(ch) = chars.next() {
+        match (quote, ch) {
+            (None, c) if c.is_whitespace() => {
+                if !current.is_empty() {
+                    words.push(std::mem::take(&mut current));
+                }
+            }
+            (None, '\'' | '"') => quote = Some(ch),
+            (Some(q), c) if c == q => quote = None,
+            (_, '\\') => {
+                if let Some(next) = chars.next() {
+                    current.push(next);
+                }
+            }
+            _ => current.push(ch),
+        }
+    }
+    if quote.is_some() {
+        return None;
+    }
+    if !current.is_empty() {
+        words.push(current);
+    }
+    Some(words)
 }
 
 fn claude_usage_key(obj: &Value) -> String {
@@ -1802,5 +1851,21 @@ mod tests {
                 .max(usage.input_tokens + usage.output_tokens + usage.cache_tokens);
             assert_eq!(total, tokens);
         }
+    }
+
+    #[test]
+    fn codex_exec_prompt_handles_latest_cli_options() {
+        let command = concat!(
+            "/tmp/tools/bin/codex exec --skip-git-repo-check --ignore-user-config ",
+            "-c model_provider=\"agentsight-mock\" ",
+            "-c model_providers.agentsight-mock.name=\"AgentSight Mock\" ",
+            "--sandbox read-only --model gpt-agentsight-mock ",
+            "agentsight mock prompt collect this exact text"
+        );
+
+        assert_eq!(
+            codex_exec_prompt(command).as_deref(),
+            Some("agentsight mock prompt collect this exact text")
+        );
     }
 }

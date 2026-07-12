@@ -201,6 +201,72 @@ Agent traces need **semantic aggregation** to group similar prompts/operations.
 3. **No summarization**: Individual span inspection, no aggregate view
 4. **Memory pressure**: Large traces stress browser-based UIs
 
+## Research Systems, Benchmarks, and Standards
+
+The product landscape above mostly shows what tools expose in user interfaces.
+The research landscape is converging on a related but distinct question: what
+execution units and relations should agent observability record in the first
+place?
+
+### Agent Observability Schemas
+
+Several systems try to define what an agent trace should contain:
+
+- **AgentOps: Enabling Observability of LLM Agents** frames observability around
+  goals, plans, workflows, tasks, tools, LLM calls, evals, guardrails, and
+  artifacts.
+- **AgentTrace** proposes schema-based structured logging across cognitive,
+  operational, and contextual surfaces.
+- **AgentTelemetry** argues that vanilla OpenTelemetry/GenAI spans do not cover
+  agent-specific planning, reasoning, delegation, memory, and safety faults.
+- **Observability for Delegated Execution in Agentic AI Systems** focuses on
+  preserving delegation context through a gateway and common information model.
+- **Evidence tracing / execution provenance work** focuses on relationships
+  among retrieved evidence, tool outputs, memory, intermediate claims, and final
+  answers.
+
+These efforts are complementary to semantic profiling. They make traces more
+structured; AgentPProf asks how structured or semi-structured traces can be
+projected into low-cardinality profiles.
+
+### Failure Attribution and Debugging Benchmarks
+
+Debugging-oriented work shows that agent traces are useful but hard to reason
+about:
+
+- **TRAIL: Trace Reasoning and Agentic Issue Localization** provides annotated
+  traces and shows that trace debugging remains difficult even for long-context
+  models.
+- **MAST / Why Do Multi-Agent LLM Systems Fail?** contributes a multi-agent
+  failure taxonomy and labeled trace data.
+- **Who&When** and **TraceElephant** study failure attribution in multi-agent
+  systems and emphasize the value of full execution traces.
+- **LADYBUG** and **AgentStepper** explore interactive debugging, intervention,
+  and stepwise execution for agent workflows.
+
+These systems usually operate at the level of failure localization or
+interactive replay. AgentPProf's narrower question is distributional: across
+many runs, where do resources, retries, errors, files, network actions, and
+system effects accumulate?
+
+### Performance and Serving Profiling
+
+Performance work on agentic workflows shows that agent cost is not just LLM
+latency:
+
+- **Agentic AI Workload Characteristics** connects agent trajectories, LLM
+  serving traces, and tool behavior.
+- **The Cost of Dynamic Reasoning** characterizes resource, latency, energy, and
+  test-time scaling costs.
+- **CPU-centric agent execution analysis** shows that retrieval, summarization,
+  shell/Python tools, and domain tools can dominate end-to-end latency.
+- **Helium**, **Scepsy**, and speculative tool-execution systems use workflow
+  traces and profiling to optimize serving or scheduling.
+
+This motivates multi-measure profiles. An agent profiler should not assume that
+width always means CPU time or span duration. Width may be tokens, wall time,
+tool calls, file effects, network effects, retries, failures, or risk.
+
 ## OpenTelemetry GenAI Semantic Conventions
 
 ### Current State (2026)
@@ -226,6 +292,24 @@ The OpenTelemetry GenAI SIG has developed semantic conventions that standardize:
   development
 - No standard for semantic categorization of prompts/responses
 
+### Relationship To Semantic Profiling
+
+OpenTelemetry and OpenInference are schema and interoperability layers. They
+standardize span kinds, attributes, and context propagation. They do not by
+themselves solve the profiling problem:
+
+- span names are often framework-specific;
+- raw prompt text is too high-cardinality and private;
+- tool names are too low-level to represent user intent;
+- trace timelines are optimized for single-run inspection, not cross-run
+  aggregation;
+- no standard projection turns agent traces into pprof-style token, time, file,
+  network, or system-effect profiles.
+
+AgentPProf should ingest OTel/OpenInference-shaped traces when available, but
+its contribution is one layer above schema normalization: semantic operation
+profiling.
+
 ## What's Missing: The Semantic Flamegraph Gap
 
 ### Current State Summary
@@ -244,22 +328,33 @@ The OpenTelemetry GenAI SIG has developed semantic conventions that standardize:
 4. **Long sessions fragment analysis**: Tools handle scale through better
    storage, but don't summarize or aggregate
 
+5. **No stable profiling unit**: Prompts are too high-cardinality, tool calls
+   are too low-level, and span names are framework-dependent.
+
 ### The Gap Semantic Flamegraphs Fill
 
 A semantic flamegraph would:
 
 1. **Aggregate across sessions**: Combine traces from many runs into one view
-2. **Cluster semantically similar operations**: Group "explain this code" and
-   "describe what this function does" as the same logical operation
+2. **Group semantically similar operations**: Map varied prompt/tool/system
+   activity onto stable operation labels such as `search_code`, `run_tests`, or
+   `review_changes`
 3. **Show proportional resource usage**: Width represents tokens/cost/time
-   spent on each category
-4. **Enable drill-down**: Click to see individual instances within a category
-5. **Support comparison**: Compare resource distribution across versions,
+   spent on each category, or file/network/system effects caused by it
+4. **Connect intent to effect**: Preserve paths from semantic context to
+   concrete tool, process, file, network, or test/build evidence
+5. **Enable drill-down**: Click to see individual instances within a category
+6. **Support comparison**: Compare resource distribution across versions,
    models, or time periods
 
 This addresses the fundamental question that current tools cannot answer:
 **"What categories of work is my agent doing, and how much of my budget goes
 to each?"**
+
+The more general design is captured in
+[semantic-operation-profiling.md](semantic-operation-profiling.md): semantic
+flamegraphs are folded paths over a weighted operation tree, not a separate
+dashboard primitive.
 
 ## References
 
@@ -296,6 +391,27 @@ to each?"**
 
 - [How we built automatic clustering for LLM traces](https://posthog.com/blog/llm-analytics-clustering-how-it-works) (PostHog)
 - [Tutorial: Semantic Clustering of User Messages with LLM Prompts](https://towardsdatascience.com/tutorial-semantic-clustering-of-user-messages-with-llm-prompts/) (Towards Data Science)
+
+### Agent Observability and Debugging Research
+
+- AgentOps: Enabling Observability of LLM Agents
+- AgentTrace: A Structured Logging Framework for Agent System Observability
+- AgentTelemetry: A Fault Detection Benchmark and Toolkit for LLM Agent Observability
+- TRAIL: Trace Reasoning and Agentic Issue Localization
+- Why Do Multi-Agent LLM Systems Fail?
+- Which Agent Causes Task Failures and When?
+- Seeing the Whole Elephant: A Benchmark for Failure Attribution in LLM-based Multi-Agent Systems
+- LADYBUG: an LLM Agent DeBUGger for data-driven applications
+- AgentStepper: Interactive Debugging of Software Development Agents
+
+### Agent Performance and Workload Profiling
+
+- Agentic AI Workload Characteristics
+- The Cost of Dynamic Reasoning: Demystifying AI Agents and Test-Time Scaling from an AI Infrastructure Perspective
+- Towards Understanding, Analyzing, and Optimizing Agentic AI Execution: A CPU-Centric Perspective
+- Efficient LLM Serving for Agentic Workflows: A Data Systems Perspective / Helium
+- Scepsy: Serving Agentic Workflows Using Aggregate LLM Pipelines
+- Act While Thinking: Accelerating LLM Agents via Pattern-Aware Speculative Tool Execution
 
 ### Flamegraph Analysis (Traditional)
 

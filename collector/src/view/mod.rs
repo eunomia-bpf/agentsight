@@ -21,7 +21,7 @@ use crate::model::{
 };
 use chrono::{SecondsFormat, Utc};
 use serde_json::Value;
-use std::collections::{BTreeMap, HashMap, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, HashMap, VecDeque};
 use std::sync::{Arc, Mutex};
 
 pub(crate) type SharedMaterializedView = Arc<Mutex<MaterializedView>>;
@@ -357,26 +357,29 @@ impl MaterializedView {
     }
 
     pub(crate) fn token_summary(&self, group_by: &str) -> Vec<TokenSummary> {
-        let mut groups: BTreeMap<String, TokenSummary> = BTreeMap::new();
+        let mut groups: BTreeMap<String, TokenSummaryGroup> = BTreeMap::new();
         for token in self.effective_tokens() {
-            let group = token_group(token, group_by);
-            let entry = groups.entry(group.clone()).or_insert(TokenSummary {
-                group,
-                input_tokens: 0,
-                output_tokens: 0,
-                cache_creation_tokens: 0,
-                cache_read_tokens: 0,
-                total_tokens: 0,
-                calls: 0,
-            });
-            entry.input_tokens += token.input_tokens;
-            entry.output_tokens += token.output_tokens;
-            entry.cache_creation_tokens += token.cache_creation_tokens;
-            entry.cache_read_tokens += token.cache_read_tokens;
-            entry.total_tokens += token.total_tokens;
-            entry.calls += 1;
+            let group = self.token_group(token, group_by);
+            let entry = groups
+                .entry(group.clone())
+                .or_insert_with(|| TokenSummaryGroup::new(group));
+            entry.row.input_tokens += token.input_tokens;
+            entry.row.output_tokens += token.output_tokens;
+            entry.row.cache_creation_tokens += token.cache_creation_tokens;
+            entry.row.cache_read_tokens += token.cache_read_tokens;
+            entry.row.total_tokens += token.total_tokens;
+            entry.row.calls += 1;
+            if let Some(session_key) = self.token_session_key(token) {
+                entry.sessions.insert(session_key);
+            }
         }
-        let mut rows = groups.into_values().collect::<Vec<_>>();
+        let mut rows = groups
+            .into_values()
+            .map(|mut group| {
+                group.row.sessions = group.sessions.len() as i64;
+                group.row
+            })
+            .collect::<Vec<_>>();
         sort_token_summary(&mut rows);
         rows
     }
@@ -517,17 +520,91 @@ impl MaterializedView {
             timestamp,
         );
     }
+
+    fn token_group(&self, token: &TokenUsageRow, group_by: &str) -> String {
+        match group_by {
+            "provider" => token.provider.clone(),
+            "comm" => token.comm.clone(),
+            "pid" => token.pid.map(|pid| pid.to_string()),
+            "dir" | "cwd" | "directory" => self.token_working_dir(token),
+            _ => token.model.clone(),
+        }
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| "unknown".to_string())
+    }
+
+    fn token_working_dir(&self, token: &TokenUsageRow) -> Option<String> {
+        self.token_session_key(token)
+            .and_then(|session_id| self.sessions.get(&session_id).and_then(session_cwd))
+            .or_else(|| self.token_process_cwd(token))
+    }
+
+    fn token_session_key(&self, token: &TokenUsageRow) -> Option<String> {
+        if let Some(session_id) = self
+            .llm_calls
+            .get(&token.llm_call_id)
+            .and_then(|row| row.session_id.as_ref())
+            .filter(|session_id| !session_id.is_empty())
+        {
+            return Some(session_id.clone());
+        }
+
+        self.sessions
+            .keys()
+            .find(|session_id| {
+                let session_id = session_id.as_str();
+                token.llm_call_id == session_id
+                    || token
+                        .llm_call_id
+                        .strip_prefix(session_id)
+                        .is_some_and(|suffix| suffix.starts_with('-'))
+            })
+            .cloned()
+    }
+
+    fn token_process_cwd(&self, token: &TokenUsageRow) -> Option<String> {
+        let pid = token.pid.or_else(|| {
+            self.llm_calls
+                .get(&token.llm_call_id)
+                .and_then(|row| row.pid)
+        })?;
+        self.process_nodes
+            .values()
+            .find(|row| row.pid == pid && row.cwd.as_deref().is_some_and(|cwd| !cwd.is_empty()))
+            .and_then(|row| row.cwd.clone())
+    }
 }
 
-fn token_group(token: &TokenUsageRow, group_by: &str) -> String {
-    match group_by {
-        "provider" => token.provider.clone(),
-        "comm" => token.comm.clone(),
-        "pid" => token.pid.map(|pid| pid.to_string()),
-        _ => token.model.clone(),
+struct TokenSummaryGroup {
+    row: TokenSummary,
+    sessions: BTreeSet<String>,
+}
+
+impl TokenSummaryGroup {
+    fn new(group: String) -> Self {
+        Self {
+            row: TokenSummary {
+                group,
+                input_tokens: 0,
+                output_tokens: 0,
+                cache_creation_tokens: 0,
+                cache_read_tokens: 0,
+                total_tokens: 0,
+                calls: 0,
+                sessions: 0,
+            },
+            sessions: BTreeSet::new(),
+        }
     }
-    .filter(|value| !value.is_empty())
-    .unwrap_or_else(|| "unknown".to_string())
+}
+
+fn session_cwd(session: &SessionRow) -> Option<String> {
+    session
+        .attributes
+        .get("cwd")
+        .and_then(Value::as_str)
+        .filter(|cwd| !cwd.is_empty())
+        .map(str::to_string)
 }
 
 fn token_has_higher_priority(candidate: &TokenUsageRow, current: &TokenUsageRow) -> bool {
@@ -621,6 +698,97 @@ mod tests {
         }
     }
 
+    fn session_row(id: &str, cwd: &str) -> SessionRow {
+        SessionRow {
+            id: id.to_string(),
+            agent_type: "codex".to_string(),
+            start_timestamp_ms: 1_000,
+            end_timestamp_ms: Some(2_000),
+            status: "observed".to_string(),
+            model: Some("gpt-5".to_string()),
+            input_tokens: 0,
+            output_tokens: 0,
+            total_tokens: 0,
+            view_source: AGENT_NATIVE_SOURCE.to_string(),
+            confidence: Some(0.95),
+            attributes: json!({ "cwd": cwd }),
+        }
+    }
+
+    fn token_row(
+        id: &str,
+        llm_call_id: &str,
+        model: &str,
+        input_tokens: i64,
+        output_tokens: i64,
+        cache_creation_tokens: i64,
+        cache_read_tokens: i64,
+        total_tokens: i64,
+    ) -> TokenUsageRow {
+        TokenUsageRow {
+            id: id.to_string(),
+            llm_call_id: llm_call_id.to_string(),
+            timestamp_ms: 1_500,
+            pid: None,
+            comm: Some("codex".to_string()),
+            provider: None,
+            model: Some(model.to_string()),
+            input_tokens,
+            output_tokens,
+            cache_creation_tokens,
+            cache_read_tokens,
+            total_tokens,
+            source: AGENT_NATIVE_SOURCE.to_string(),
+            view_source: AGENT_NATIVE_SOURCE.to_string(),
+            confidence: Some(0.95),
+        }
+    }
+
+    fn process_node(pid: u32, cwd: &str) -> ProcessNodeRow {
+        ProcessNodeRow {
+            id: format!("process-{pid}"),
+            pid,
+            ppid: None,
+            root_pid: Some(pid),
+            start_timestamp_ms: Some(1_000),
+            end_timestamp_ms: None,
+            comm: Some("agent".to_string()),
+            command: Some("agent".to_string()),
+            argv: Vec::new(),
+            cwd: Some(cwd.to_string()),
+            exit_code: None,
+            status: Some("observed".to_string()),
+            view_source: "process".to_string(),
+            confidence: Some(0.8),
+        }
+    }
+
+    fn llm_call_row(id: &str, pid: u32, session_id: Option<&str>) -> LlmCallRow {
+        LlmCallRow {
+            id: id.to_string(),
+            session_id: session_id.map(str::to_string),
+            conversation_id: None,
+            start_timestamp_ms: 1_100,
+            end_timestamp_ms: Some(1_400),
+            pid: Some(pid),
+            comm: Some("agent".to_string()),
+            provider: Some("anthropic".to_string()),
+            model: Some("claude-sonnet-4".to_string()),
+            call_kind: Some("messages".to_string()),
+            status: "ok".to_string(),
+            error_type: None,
+            finish_reason: None,
+            host: Some("api.anthropic.com".to_string()),
+            path: Some("/v1/messages".to_string()),
+            status_code: Some(200),
+            input_tokens: 0,
+            output_tokens: 0,
+            total_tokens: 0,
+            request: json!({}),
+            response: json!({}),
+        }
+    }
+
     #[test]
     fn audit_retention_keeps_counters_and_recent_rows() {
         let mut view = MaterializedView::bounded();
@@ -667,6 +835,76 @@ mod tests {
             MAX_RESOURCE_SAMPLES_IN_MEMORY
         );
         assert_eq!(snapshot.resource_samples[0].timestamp_ms, 5);
+    }
+
+    #[test]
+    fn token_summary_groups_agent_native_tokens_by_session_dir() {
+        let mut view = MaterializedView::new();
+        view.upsert_session(&session_row("local:codex:session-1", "/repo/one"));
+        view.apply_token_usage(&token_row(
+            "token-1",
+            "local:codex:session-1-gpt-5",
+            "gpt-5",
+            10,
+            5,
+            2,
+            3,
+            20,
+        ));
+        view.apply_token_usage(&token_row(
+            "token-2",
+            "local:codex:session-1-gpt-4",
+            "gpt-4",
+            7,
+            2,
+            0,
+            1,
+            10,
+        ));
+
+        let rows = view.token_summary("dir");
+
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].group, "/repo/one");
+        assert_eq!(rows[0].input_tokens, 17);
+        assert_eq!(rows[0].output_tokens, 7);
+        assert_eq!(rows[0].cache_creation_tokens, 2);
+        assert_eq!(rows[0].cache_read_tokens, 4);
+        assert_eq!(rows[0].total_tokens, 30);
+        assert_eq!(rows[0].calls, 2);
+        assert_eq!(rows[0].sessions, 1);
+    }
+
+    #[test]
+    fn token_summary_groups_saved_tokens_by_process_dir() {
+        let mut view = MaterializedView::new();
+        view.upsert_process_node(&process_node(42, "/repo/saved"));
+        view.apply_llm_call(&llm_call_row("llm-1", 42, Some("session-1")));
+        view.apply_token_usage(&TokenUsageRow {
+            source: "response_usage".to_string(),
+            view_source: "sqlite".to_string(),
+            ..token_row("token-1", "llm-1", "claude-sonnet-4", 11, 13, 0, 0, 24)
+        });
+
+        let rows = view.token_summary("dir");
+
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].group, "/repo/saved");
+        assert_eq!(rows[0].total_tokens, 24);
+        assert_eq!(rows[0].sessions, 1);
+    }
+
+    #[test]
+    fn token_summary_groups_missing_dir_as_unknown() {
+        let mut view = MaterializedView::new();
+        view.apply_token_usage(&token_row("token-1", "llm-1", "gpt-5", 1, 2, 3, 4, 10));
+
+        let rows = view.token_summary("dir");
+
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].group, "unknown");
+        assert_eq!(rows[0].total_tokens, 10);
+        assert_eq!(rows[0].sessions, 0);
     }
 
     #[test]

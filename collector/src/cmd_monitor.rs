@@ -3,6 +3,7 @@
 
 use crate::output::{AgentTopOutput, AgentTopRow, TopOptions, clear_screen, print_agent_top};
 use crate::sources::proc::{self as procfs, ProcSnapshot};
+use crate::state::{agentsight_state_dir_for_home, ensure_agentsight_state_dir_for_home};
 use crate::view::live_top::{LiveMonitorSample, LiveView};
 use crate::view::top::sort_agent_rows;
 use chrono::{Datelike, Local, NaiveDate};
@@ -432,7 +433,7 @@ fn collect_process_samples(
         let cpu_ms = procfs::process_cpu_ms_delta(proc_info, previous);
         let rss_bytes = proc_info.rss_kb.saturating_mul(1024);
         let key = proc_info.process_key();
-        let (read_bytes, write_bytes) = process_io_delta(proc_info.pid, key, io_state, current_io);
+        let (read_bytes, write_bytes) = process_io_delta(proc_info, key, io_state, current_io);
         out.push(MonitorProcessSample {
             rank_kind: "all",
             pid: proc_info.pid,
@@ -468,14 +469,13 @@ fn aggregate_process_samples(samples: &[MonitorProcessSample]) -> (u64, u64, u64
 }
 
 fn process_io_delta(
-    pid: u32,
+    proc_info: &procfs::ProcInfo,
     key: procfs::ProcessKey,
     io_state: &MonitorIoState,
     current_io: &mut BTreeMap<procfs::ProcessKey, (u64, u64)>,
 ) -> (u64, u64) {
-    let Some((current_read, current_write)) = procfs::read_process_io_bytes(pid) else {
-        return (0, 0);
-    };
+    let current_read = proc_info.read_bytes;
+    let current_write = proc_info.write_bytes;
     current_io.insert(key, (current_read, current_write));
     io_state
         .previous
@@ -750,9 +750,7 @@ fn active_monitor() -> Option<MonitorPidFile> {
 
 fn write_monitor_pid_file(pid_file: &MonitorPidFile) -> io::Result<()> {
     let path = monitor_pid_path();
-    if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
+    ensure_monitor_dir()?;
     let json = serde_json::to_vec(pid_file).map_err(io::Error::other)?;
     std::fs::write(path, json)
 }
@@ -883,6 +881,8 @@ struct MonitorStore {
 
 impl MonitorStore {
     fn open_default() -> rusqlite::Result<Self> {
+        ensure_monitor_dir()
+            .map_err(|err| rusqlite::Error::ToSqlConversionFailure(Box::new(err)))?;
         Self::open_path(default_monitor_db_path())
     }
 
@@ -1063,17 +1063,32 @@ fn monitor_windows_has_network_targets_column(conn: &Connection) -> rusqlite::Re
 }
 
 fn default_monitor_db_path() -> PathBuf {
-    let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
+    let home = default_monitor_home();
     monitor_db_path_for_home(&home, Local::now().date_naive())
 }
 
 fn monitor_pid_path() -> PathBuf {
-    let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
+    let home = default_monitor_home();
     monitor_dir_for_home(&home).join("monitor.pid")
 }
 
+fn default_monitor_home() -> PathBuf {
+    dirs::home_dir().unwrap_or_else(|| PathBuf::from("."))
+}
+
+fn ensure_monitor_dir() -> io::Result<PathBuf> {
+    let home = default_monitor_home();
+    ensure_monitor_dir_for_home(&home)
+}
+
+fn ensure_monitor_dir_for_home(home: &Path) -> io::Result<PathBuf> {
+    let dir = ensure_agentsight_state_dir_for_home(home)?.join("monitor");
+    std::fs::create_dir_all(&dir)?;
+    Ok(dir)
+}
+
 fn monitor_dir_for_home(home: &Path) -> PathBuf {
-    home.join(".agentsight").join("monitor")
+    agentsight_state_dir_for_home(home).join("monitor")
 }
 
 fn monitor_db_path_for_home(home: &Path, date: NaiveDate) -> PathBuf {
@@ -1177,6 +1192,24 @@ mod tests {
             path,
             PathBuf::from("/home/user/.agentsight/monitor/monitor-2026-W25.db")
         );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn ensure_monitor_dir_hardens_agentsight_state_dir() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let temp = tempfile::tempdir().unwrap();
+        let state_dir = temp.path().join(".agentsight");
+        std::fs::create_dir(&state_dir).unwrap();
+        std::fs::set_permissions(&state_dir, std::fs::Permissions::from_mode(0o777)).unwrap();
+
+        let monitor_dir = ensure_monitor_dir_for_home(temp.path()).unwrap();
+
+        assert_eq!(monitor_dir, state_dir.join("monitor"));
+        assert!(monitor_dir.is_dir());
+        let mode = std::fs::metadata(&state_dir).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode, 0o700);
     }
 
     #[test]

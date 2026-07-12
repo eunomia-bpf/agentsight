@@ -16,6 +16,47 @@ use crate::session::{
 };
 
 pub type Counter = BTreeMap<String, u64>;
+pub type OpId = usize;
+
+pub struct Operation {
+    pub parent: Option<OpId>,
+    pub kind: &'static str,
+    pub name: String,
+    pub value: u64,
+}
+
+pub struct Profile {
+    pub view: &'static str,
+    pub sample_type: &'static str,
+    pub unit: &'static str,
+    pub ops: Vec<Operation>,
+}
+
+impl Profile {
+    fn new(view: &'static str, sample_type: &'static str, unit: &'static str) -> Self {
+        Self {
+            view,
+            sample_type,
+            unit,
+            ops: Vec::new(),
+        }
+    }
+
+    fn sample(&mut self, frames: Vec<(&'static str, String)>, value: u64) {
+        let last = frames.len().saturating_sub(1);
+        let mut parent = None;
+        for (idx, (kind, name)) in frames.into_iter().enumerate() {
+            let id = self.ops.len();
+            self.ops.push(Operation {
+                parent,
+                kind,
+                name,
+                value: if idx == last { value } else { 0 },
+            });
+            parent = Some(id);
+        }
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum ProfileView {
@@ -58,14 +99,6 @@ struct FlameNode {
 struct FlameRenderStats {
     drawn: usize,
     hidden_tiny: usize,
-}
-
-#[derive(Serialize)]
-pub struct ProfileProjection {
-    pub view: String,
-    pub sample_type: &'static str,
-    pub unit: &'static str,
-    pub stacks: Counter,
 }
 
 #[derive(Clone, PartialEq, Message)]
@@ -166,61 +199,58 @@ impl StringInterner {
     }
 }
 
-pub fn build_profile_projection(
-    sessions: &[SessionRecord],
-    project_name: &str,
-    view: ProfileView,
-) -> ProfileProjection {
-    let stacks = match view {
-        ProfileView::Tokens => build_token_profile_stacks(sessions, project_name),
-        ProfileView::Files => build_file_stacks(sessions, project_name),
-        ProfileView::Network => build_network_stacks(sessions, project_name),
-        ProfileView::Time => build_time_stacks(sessions, project_name),
-    };
-    let (sample_type, unit) = match view {
-        ProfileView::Tokens => ("tokens", "count"),
-        ProfileView::Files => ("file_events", "count"),
-        ProfileView::Network => ("network_events", "count"),
-        ProfileView::Time => ("duration", "seconds"),
-    };
-    ProfileProjection {
-        view: format!("{:?}", view).to_ascii_lowercase(),
-        sample_type,
-        unit,
-        stacks,
+pub fn build_profile(sessions: &[SessionRecord], project_name: &str, view: ProfileView) -> Profile {
+    match view {
+        ProfileView::Tokens => build_token_profile(sessions, project_name),
+        ProfileView::Files => build_file_profile(sessions, project_name),
+        ProfileView::Network => build_network_profile(sessions, project_name),
+        ProfileView::Time => build_time_profile(sessions, project_name),
     }
 }
 
-fn build_time_stacks(sessions: &[SessionRecord], project_name: &str) -> Counter {
-    let mut out = Counter::new();
-    for session in sessions {
-        let agent = safe_frame(&session.source, Some("agent"));
-        let session_tag = safe_frame(&session.session_tag, Some("session"));
+fn base_frames(project_name: &str, session: &SessionRecord) -> Vec<(&'static str, String)> {
+    vec![
+        ("project", project_name.to_string()),
+        ("agent", session.source.clone()),
+        ("session", session.session_tag.clone()),
+    ]
+}
 
-        // Collect all events with timestamps and detailed frames
-        // (timestamp, prompt_tag, frames)
-        let mut events: Vec<(i64, String, Vec<String>)> = Vec::new();
+fn prompt_frames(
+    project_name: &str,
+    session: &SessionRecord,
+    prompt_tag: &str,
+) -> Vec<(&'static str, String)> {
+    let mut frames = base_frames(project_name, session);
+    frames.push(("prompt", prompt_tag.to_string()));
+    frames
+}
+
+fn build_time_profile(sessions: &[SessionRecord], project_name: &str) -> Profile {
+    let mut profile = Profile::new("time", "duration", "seconds");
+    for session in sessions {
+        let mut events = Vec::new();
 
         for req in &session.user_requests {
             if let Some(ts) = req.ts_ms {
-                events.push((ts, req.tag.clone(), vec!["kind:prompt".to_string()]));
+                events.push((ts, req.tag.clone(), vec![("kind", "prompt".to_string())]));
             }
         }
         for event in &session.tools {
             if let Some(ts) = event.ts_ms {
                 let req = session.request_by_index(event.prompt_index);
                 let mut frames = vec![
-                    "kind:tool".to_string(),
-                    safe_frame(&event.tool_name, Some("tool")),
+                    ("kind", "tool".to_string()),
+                    ("tool", event.tool_name.clone()),
                 ];
                 // For shell commands, add command name and process chain
                 if event.category == "shell" {
                     if !event.command_name.is_empty() {
-                        frames.push(safe_frame(&event.command_name, Some("cmd")));
+                        frames.push(("cmd", event.command_name.clone()));
                     }
                     // Add process chain if available (from agentsight)
                     for process in &event.process_chain {
-                        frames.push(safe_frame(process, Some("proc")));
+                        frames.push(("proc", process.clone()));
                     }
                 }
                 events.push((ts, req.tag.clone(), frames));
@@ -233,9 +263,9 @@ fn build_time_stacks(sessions: &[SessionRecord], project_name: &str) -> Counter 
                     ts,
                     req.tag.clone(),
                     vec![
-                        "kind:llm".to_string(),
-                        safe_frame(&format!("llm/{}", call.tag), Some("call")),
-                        safe_frame(last_model_segment(&call.model), Some("model")),
+                        ("kind", "llm".to_string()),
+                        ("call", format!("llm/{}", call.tag)),
+                        ("model", last_model_segment(&call.model).to_string()),
                     ],
                 ));
             }
@@ -253,47 +283,35 @@ fn build_time_stacks(sessions: &[SessionRecord], project_name: &str) -> Counter 
                 1 // Last event gets 1 second
             };
 
-            let mut frames = vec![
-                safe_frame(project_name, Some("project")),
-                agent.clone(),
-                session_tag.clone(),
-                safe_frame(prompt_tag, Some("prompt")),
-            ];
+            let mut frames = prompt_frames(project_name, session, prompt_tag);
             frames.extend(detail_frames.clone());
-
-            folded_add(&mut out, frames, duration_sec);
+            profile.sample(frames, duration_sec);
         }
     }
-    out
+    profile
 }
 
-fn build_token_profile_stacks(sessions: &[SessionRecord], project_name: &str) -> Counter {
-    let mut out = Counter::new();
+fn build_token_profile(sessions: &[SessionRecord], project_name: &str) -> Profile {
+    let mut profile = Profile::new("tokens", "tokens", "count");
     for session in sessions {
         for call in &session.llm_calls {
             let req = session.request_by_index(call.prompt_index);
             for (kind, value) in call.token_components() {
-                folded_add(
-                    &mut out,
-                    vec![
-                        safe_frame(project_name, Some("project")),
-                        safe_frame(&session.source, Some("agent")),
-                        safe_frame(&session.session_tag, Some("session")),
-                        safe_frame(&req.tag, Some("prompt")),
-                        safe_frame(&format!("llm/{}", call.tag), Some("call")),
-                        safe_frame(last_model_segment(&call.model), Some("model")),
-                        safe_frame(kind, Some("kind")),
-                    ],
-                    value,
-                );
+                let mut frames = prompt_frames(project_name, session, &req.tag);
+                frames.extend([
+                    ("call", format!("llm/{}", call.tag)),
+                    ("model", last_model_segment(&call.model).to_string()),
+                    ("kind", kind.to_string()),
+                ]);
+                profile.sample(frames, value);
             }
         }
     }
-    out
+    profile
 }
 
-fn build_file_stacks(sessions: &[SessionRecord], project_name: &str) -> Counter {
-    let mut out = Counter::new();
+fn build_file_profile(sessions: &[SessionRecord], project_name: &str) -> Profile {
+    let mut profile = Profile::new("files", "file_events", "count");
     for session in sessions {
         for event in &session.tools {
             if event.path_groups.is_empty() {
@@ -301,27 +319,21 @@ fn build_file_stacks(sessions: &[SessionRecord], project_name: &str) -> Counter 
             }
             let req = session.request_by_index(event.prompt_index);
             for group in &event.path_groups {
-                folded_add(
-                    &mut out,
-                    vec![
-                        safe_frame(project_name, Some("project")),
-                        safe_frame(&session.source, Some("agent")),
-                        safe_frame(&session.session_tag, Some("session")),
-                        safe_frame(&req.tag, Some("prompt")),
-                        safe_frame(group, Some("path")),
-                        safe_frame(&event.effect, Some("effect")),
-                        safe_frame(&event.status, Some("status")),
-                    ],
-                    1,
-                );
+                let mut frames = prompt_frames(project_name, session, &req.tag);
+                frames.extend([
+                    ("path", group.clone()),
+                    ("effect", event.effect.clone()),
+                    ("status", event.status.clone()),
+                ]);
+                profile.sample(frames, 1);
             }
         }
     }
-    out
+    profile
 }
 
-fn build_network_stacks(sessions: &[SessionRecord], project_name: &str) -> Counter {
-    let mut out = Counter::new();
+fn build_network_profile(sessions: &[SessionRecord], project_name: &str) -> Profile {
+    let mut profile = Profile::new("network", "network_events", "count");
     for session in sessions {
         for event in &session.tools {
             if event.effect != "network" && event.domains.is_empty() {
@@ -334,22 +346,41 @@ fn build_network_stacks(sessions: &[SessionRecord], project_name: &str) -> Count
                 event.domains.clone()
             };
             for domain in domains {
-                let mut frames = vec![
-                    safe_frame(project_name, Some("project")),
-                    safe_frame(&session.source, Some("agent")),
-                    safe_frame(&session.session_tag, Some("session")),
-                    safe_frame(&req.tag, Some("prompt")),
-                    safe_frame(&domain, Some("domain")),
-                ];
+                let mut frames = prompt_frames(project_name, session, &req.tag);
+                frames.push(("domain", domain));
                 for process in &event.process_chain {
-                    frames.push(safe_frame(process, Some("process")));
+                    frames.push(("process", process.clone()));
                 }
-                frames.push(safe_frame(&event.status, Some("status")));
-                folded_add(&mut out, frames, 1);
+                frames.push(("status", event.status.clone()));
+                profile.sample(frames, 1);
             }
         }
     }
+    profile
+}
+
+pub fn profile_to_stacks(profile: &Profile) -> Counter {
+    let mut out = Counter::new();
+    for id in 0..profile.ops.len() {
+        let value = profile.ops[id].value;
+        if value == 0 {
+            continue;
+        }
+        folded_add(&mut out, op_frames(profile, id), value);
+    }
     out
+}
+
+fn op_frames(profile: &Profile, id: OpId) -> Vec<String> {
+    let mut frames = Vec::new();
+    let mut current = Some(id);
+    while let Some(id) = current {
+        let op = &profile.ops[id];
+        frames.push(safe_frame(&op.name, Some(op.kind)));
+        current = op.parent;
+    }
+    frames.reverse();
+    frames
 }
 
 pub fn folded_add(counter: &mut Counter, frames: Vec<String>, weight: u64) {
@@ -403,7 +434,7 @@ fn top_stacks(counter: &Counter, limit: usize) -> Vec<WeightedStack> {
 }
 
 pub fn write_projection(
-    projection: &ProfileProjection,
+    projection: &Profile,
     format: OutputFormat,
     output: &Path,
     include_previews: bool,
@@ -411,13 +442,14 @@ pub fn write_projection(
     svg_width: u32,
 ) -> Result<()> {
     ensure_parent_dir(output)?;
+    let stacks = profile_to_stacks(projection);
     match format {
-        OutputFormat::Pprof => write_pprof_projection(projection, output),
-        OutputFormat::Folded => write_folded(output, &projection.stacks),
+        OutputFormat::Pprof => write_pprof_projection(projection, &stacks, output),
+        OutputFormat::Folded => write_folded(output, &stacks),
         OutputFormat::Svg => fs::write(
             output,
             flamegraph_svg(
-                &projection.stacks,
+                &stacks,
                 &format!("agentpprof {} profile", projection.view),
                 projection.unit,
                 svg_width,
@@ -433,8 +465,8 @@ pub fn write_projection(
                     "view": projection.view,
                     "sample_type": projection.sample_type,
                     "unit": projection.unit,
-                    "summary": summarize_counter(&projection.stacks, 20),
-                    "stacks": projection.stacks,
+                    "summary": summarize_counter(&stacks, 20),
+                    "stacks": stacks,
                 },
                 "sessions": sessions.iter().map(|s| session_to_json(s, include_previews)).collect::<Vec<_>>(),
             }))?,
@@ -452,40 +484,23 @@ fn ensure_parent_dir(path: &Path) -> Result<()> {
     Ok(())
 }
 
-fn pprof_root_to_leaf_frames<'a>(view: &str, stack: &'a str) -> Vec<&'a str> {
-    let mut frames = stack
-        .split(';')
-        .filter(|frame| !frame.is_empty())
-        .collect::<Vec<_>>();
-    if view == "tasks"
-        && let Some(prompt_index) = frames.iter().position(|frame| frame.starts_with("prompt:"))
-    {
-        let prompt = frames.remove(prompt_index);
-        frames.push(prompt);
-    }
-    frames
-}
-
-fn write_pprof_projection(projection: &ProfileProjection, output: &Path) -> Result<()> {
+fn write_pprof_projection(projection: &Profile, stacks: &Counter, output: &Path) -> Result<()> {
     let mut strings = StringInterner::with_pprof_root();
     let sample_type = PprofValueType {
         type_: strings.intern(projection.sample_type),
         unit: strings.intern(projection.unit),
     };
     let label_view = strings.intern("view");
-    let label_view_value = strings.intern(&projection.view);
+    let label_view_value = strings.intern(projection.view);
     let filename = strings.intern("agentpprof");
     let mut functions = Vec::new();
     let mut locations = Vec::new();
     let mut frame_locations = BTreeMap::<String, u64>::new();
     let mut samples = Vec::new();
 
-    for (stack, weight) in &projection.stacks {
+    for (stack, weight) in stacks {
         let mut location_ids = Vec::new();
-        for frame in pprof_root_to_leaf_frames(&projection.view, stack)
-            .into_iter()
-            .rev()
-        {
+        for frame in stack.split(';').filter(|frame| !frame.is_empty()).rev() {
             let id = if let Some(id) = frame_locations.get(frame) {
                 *id
             } else {
@@ -979,6 +994,71 @@ mod tests {
     use crate::session::{LlmEvent, ToolEvent, UserRequest};
     use std::path::PathBuf;
 
+    fn test_session(
+        source: &str,
+        session_tag: &str,
+        prompts: Vec<UserRequest>,
+        tools: Vec<ToolEvent>,
+        llm_calls: Vec<LlmEvent>,
+    ) -> SessionRecord {
+        SessionRecord {
+            source: source.to_string(),
+            path: PathBuf::from("session.jsonl"),
+            session_id: "s1".to_string(),
+            cwd: "/repo".to_string(),
+            agent_role: "agent".to_string(),
+            model: source.to_string(),
+            title: "test session".to_string(),
+            start_ts_ms: prompts.first().and_then(|prompt| prompt.ts_ms),
+            user_requests: prompts,
+            tools,
+            llm_calls,
+            session_tag: session_tag.to_string(),
+        }
+    }
+
+    fn prompt(index: usize, ts_ms: i64, hash: &str, preview: &str, tag: &str) -> UserRequest {
+        UserRequest {
+            index,
+            ts_ms: Some(ts_ms),
+            text_hash: hash.to_string(),
+            preview: preview.to_string(),
+            tag: tag.to_string(),
+        }
+    }
+
+    fn shell_tool(ts_ms: i64, prompt_index: usize, status: &str, paths: Vec<&str>) -> ToolEvent {
+        ToolEvent {
+            ts_ms: Some(ts_ms),
+            prompt_index,
+            tool_name: "exec_command".to_string(),
+            category: "shell".to_string(),
+            command: "cargo test".to_string(),
+            command_name: "cargo".to_string(),
+            effect: "test".to_string(),
+            process_chain: vec!["cargo".to_string()],
+            status: status.to_string(),
+            path_groups: paths.into_iter().map(str::to_string).collect(),
+            domains: Vec::new(),
+            call_id: Some("call-1".to_string()),
+        }
+    }
+
+    fn llm(ts_ms: i64, prompt_index: usize, model: &str, tag: &str) -> LlmEvent {
+        LlmEvent {
+            ts_ms: Some(ts_ms),
+            prompt_index,
+            model: model.to_string(),
+            text_hash: "l0".to_string(),
+            preview: "answer".to_string(),
+            input_tokens: 1,
+            output_tokens: 1,
+            cache_tokens: 0,
+            total_tokens: 0,
+            tag: tag.to_string(),
+        }
+    }
+
     #[test]
     fn path_frames_do_not_look_absolute() {
         assert_eq!(safe_frame("/.git", Some("path")), "path:.git");
@@ -1005,51 +1085,15 @@ mod tests {
 
     #[test]
     fn time_stacks_calculate_duration_between_events() {
-        let session = SessionRecord {
-            source: "codex".to_string(),
-            path: PathBuf::from("session.jsonl"),
-            session_id: "s1".to_string(),
-            cwd: "/repo".to_string(),
-            agent_role: "agent".to_string(),
-            model: "gpt-5".to_string(),
-            title: "fix tests".to_string(),
-            start_ts_ms: Some(1000),
-            user_requests: vec![UserRequest {
-                index: 0,
-                ts_ms: Some(1000),
-                text_hash: "h1".to_string(),
-                preview: "fix rust tests".to_string(),
-                tag: "debug".to_string(),
-            }],
-            tools: vec![ToolEvent {
-                ts_ms: Some(3000),
-                prompt_index: 0,
-                tool_name: "exec_command".to_string(),
-                category: "shell".to_string(),
-                command: "cargo test".to_string(),
-                command_name: "cargo".to_string(),
-                effect: "test".to_string(),
-                process_chain: vec!["cargo".to_string()],
-                status: "ok".to_string(),
-                path_groups: vec!["repo".to_string()],
-                domains: Vec::new(),
-                call_id: Some("call-1".to_string()),
-            }],
-            llm_calls: vec![LlmEvent {
-                ts_ms: Some(8000),
-                prompt_index: 0,
-                model: "gpt-5".to_string(),
-                text_hash: "l1".to_string(),
-                preview: "ran tests".to_string(),
-                input_tokens: 11,
-                output_tokens: 7,
-                cache_tokens: 0,
-                total_tokens: 0,
-                tag: "summarize".to_string(),
-            }],
-            session_tag: "rustfix".to_string(),
-        };
-        let stacks = build_time_stacks(&[session], "agentsight");
+        let session = test_session(
+            "codex",
+            "rustfix",
+            vec![prompt(0, 1000, "h1", "fix rust tests", "debug")],
+            vec![shell_tool(3000, 0, "ok", vec!["repo"])],
+            vec![llm(8000, 0, "gpt-5", "summarize")],
+        );
+        let profile = build_time_profile(&[session], "agentsight");
+        let stacks = profile_to_stacks(&profile);
         // prompt at 1000ms, tool at 3000ms -> 2 seconds
         assert_eq!(
             stacks.get("project:agentsight;agent:codex;session:rustfix;prompt:debug;kind:prompt"),
@@ -1069,59 +1113,19 @@ mod tests {
 
     #[test]
     fn json_report_exports_prompt_keys_when_prompt_indexes_repeat() {
-        let session = SessionRecord {
-            source: "claude".to_string(),
-            path: PathBuf::from("session.jsonl"),
-            session_id: "s1".to_string(),
-            cwd: "/repo".to_string(),
-            agent_role: "agent".to_string(),
-            model: "claude".to_string(),
-            title: "duplicate indexes".to_string(),
-            start_ts_ms: Some(1),
-            user_requests: vec![
-                UserRequest {
-                    index: 0,
-                    ts_ms: Some(1),
-                    text_hash: "h0".to_string(),
-                    preview: "first prompt".to_string(),
-                    tag: "review".to_string(),
-                },
-                UserRequest {
-                    index: 0,
-                    ts_ms: Some(2),
-                    text_hash: "h1".to_string(),
-                    preview: "second prompt".to_string(),
-                    tag: "test".to_string(),
-                },
+        let mut tool = shell_tool(3, 1, "ok", Vec::new());
+        tool.tool_name = "Bash".to_string();
+        tool.call_id = None;
+        let session = test_session(
+            "claude",
+            "review",
+            vec![
+                prompt(0, 1, "h0", "first prompt", "review"),
+                prompt(0, 2, "h1", "second prompt", "test"),
             ],
-            tools: vec![ToolEvent {
-                ts_ms: Some(3),
-                prompt_index: 1,
-                tool_name: "Bash".to_string(),
-                category: "shell".to_string(),
-                command: "cargo test".to_string(),
-                command_name: "cargo".to_string(),
-                effect: "test".to_string(),
-                process_chain: vec!["cargo".to_string()],
-                status: "ok".to_string(),
-                path_groups: Vec::new(),
-                domains: Vec::new(),
-                call_id: None,
-            }],
-            llm_calls: vec![LlmEvent {
-                ts_ms: Some(4),
-                prompt_index: 0,
-                model: "claude".to_string(),
-                text_hash: "l0".to_string(),
-                preview: "answer".to_string(),
-                input_tokens: 1,
-                output_tokens: 1,
-                cache_tokens: 0,
-                total_tokens: 0,
-                tag: "answer".to_string(),
-            }],
-            session_tag: "review".to_string(),
-        };
+            vec![tool],
+            vec![llm(4, 0, "claude", "answer")],
+        );
 
         let payload = session_to_json(&session, false);
         let prompts = payload["prompts"].as_array().expect("prompts array");
@@ -1145,60 +1149,25 @@ mod tests {
 
     #[test]
     fn pprof_writer_emits_gzip_profile() {
-        let dir = tempfile::tempdir().unwrap();
-        let path = dir.path().join("profile.pb.gz");
-        let projection = ProfileProjection {
-            view: "tasks".to_string(),
-            sample_type: "events",
-            unit: "count",
-            stacks: BTreeMap::from([("project:test;agent:codex;prompt:debug".to_string(), 7)]),
-        };
-        write_pprof_projection(&projection, &path).unwrap();
-        let bytes = fs::read(path).unwrap();
-        assert_eq!(&bytes[..2], &[0x1f, 0x8b]);
-    }
-
-    #[test]
-    fn pprof_tasks_make_prompt_tag_the_leaf_frame() {
         use flate2::read::GzDecoder;
         use std::io::Read;
 
         let dir = tempfile::tempdir().unwrap();
         let path = dir.path().join("profile.pb.gz");
-        let projection = ProfileProjection {
-            view: "tasks".to_string(),
-            sample_type: "events",
-            unit: "count",
-            stacks: BTreeMap::from([(
-                concat!(
-                    "project:test;agent:codex;session:rustfix;prompt:review;",
-                    "kind:tool;call:tool/shell;effect:test;status:ok"
-                )
-                .to_string(),
-                7,
-            )]),
-        };
-        write_pprof_projection(&projection, &path).unwrap();
+        let projection = Profile::new("tokens", "tokens", "count");
+        let stacks = BTreeMap::from([(
+            "project:test;agent:codex;session:rustfix;prompt:review;kind:input".to_string(),
+            7,
+        )]);
+        write_pprof_projection(&projection, &stacks, &path).unwrap();
 
         let bytes = fs::read(path).unwrap();
         let mut decoder = GzDecoder::new(&bytes[..]);
         let mut decoded = Vec::new();
         decoder.read_to_end(&mut decoded).unwrap();
         let profile = PprofProfile::decode(&decoded[..]).unwrap();
-        let leaf_location_id = profile.sample[0].location_id[0];
-        let leaf_location = profile
-            .location
-            .iter()
-            .find(|location| location.id == leaf_location_id)
-            .expect("leaf location");
-        let leaf_function_id = leaf_location.line[0].function_id;
-        let leaf_function = profile
-            .function
-            .iter()
-            .find(|function| function.id == leaf_function_id)
-            .expect("leaf function");
-        let leaf_name = &profile.string_table[usize::try_from(leaf_function.name).unwrap()];
-        assert_eq!(leaf_name, "prompt:review");
+        assert_eq!(profile.sample.len(), 1);
+        assert_eq!(profile.sample[0].value, vec![7]);
     }
 
     #[test]

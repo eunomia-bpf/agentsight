@@ -31,14 +31,14 @@ CFLAGS += $(ASAN_FLAGS)
 ALL_LDFLAGS += $(ASAN_FLAGS)
 endif
 
-APPS = sslsniff stdiocap process test_process_utils test_process_filter test_process_ext_map_flush test_process_ext_types # minimal minimal_legacy uprobe kprobe fentry usdt sockfilter tc ksyscall
+APPS = sslsniff stdiocap process test_process_utils test_process_filter test_process_ext_map_flush test_process_ext_types test_codex_offsets # minimal minimal_legacy uprobe kprobe fentry usdt sockfilter tc ksyscall
 
 # Experimental programs: built only via `make experimental` (or by name), not
 # shipped in the default build or embedded into the collector.
 EXPERIMENTAL_APPS = browsertrace
 
 # All test programs (no BPF skeleton needed)
-TEST_APPS = test_process_utils test_process_filter test_process_ext_map_flush test_process_ext_types
+TEST_APPS = test_process_utils test_process_filter test_process_ext_map_flush test_process_ext_types test_codex_offsets
 
 CARGO ?= $(shell which cargo)
 ifeq ($(strip $(CARGO)),)
@@ -122,7 +122,7 @@ help:
 test: unit-test
 	@$(MAKE) runtime-test
 
-unit-test: test_process_utils test_process_filter test_process_ext_map_flush test_process_ext_types
+unit-test: test_process_utils test_process_filter test_process_ext_map_flush test_process_ext_types test_codex_offsets
 	@echo "Running process_utils tests..."
 	@./test_process_utils
 	@echo ""
@@ -134,6 +134,9 @@ unit-test: test_process_utils test_process_filter test_process_ext_map_flush tes
 	@echo ""
 	@echo "Running process_ext types tests..."
 	@./test_process_ext_types
+	@echo ""
+	@echo "Running codex offset tests..."
+	@./test_codex_offsets
 
 runtime-test: process stdiocap
 	@echo ""
@@ -211,6 +214,8 @@ $(patsubst %,$(OUTPUT)/%.o,$(filter-out $(TEST_APPS),$(APPS) $(EXPERIMENTAL_APPS
 # Shared JSONL emit helpers used by all userspace loaders
 $(patsubst %,$(OUTPUT)/%.o,$(filter-out $(TEST_APPS),$(APPS))): jsonl.h
 
+$(OUTPUT)/sslsniff.o: codex_offsets.h
+
 # Special rule for test programs (no BPF skeleton needed)
 $(OUTPUT)/test_process_utils.o: test_process_utils.c $(wildcard *.h) | $(OUTPUT)
 	$(call msg,CC,$@)
@@ -225,6 +230,10 @@ $(OUTPUT)/test_process_ext_map_flush.o: tests/test_process_ext_map_flush.c $(wil
 	$(Q)$(CC) $(CFLAGS) -I. -Itests -c $< -o $@
 
 $(OUTPUT)/test_process_ext_types.o: tests/test_process_ext_types.c $(wildcard *.h) $(wildcard process_ext/*.h) | $(OUTPUT)
+	$(call msg,CC,$@)
+	$(Q)$(CC) $(CFLAGS) -I. -c $< -o $@
+
+$(OUTPUT)/test_codex_offsets.o: test_codex_offsets.c codex_offsets.h | $(OUTPUT)
 	$(call msg,CC,$@)
 	$(Q)$(CC) $(CFLAGS) -I. -c $< -o $@
 
@@ -256,6 +265,10 @@ test_process_ext_map_flush: $(OUTPUT)/test_process_ext_map_flush.o $(LIBBPF_OBJ)
 	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -lelf -lz -o $@
 
 test_process_ext_types: $(OUTPUT)/test_process_ext_types.o | $(OUTPUT)
+	$(call msg,BINARY,$@)
+	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -o $@
+
+test_codex_offsets: $(OUTPUT)/test_codex_offsets.o | $(OUTPUT)
 	$(call msg,BINARY,$@)
 	$(Q)$(CC) $(CFLAGS) $^ $(ALL_LDFLAGS) -o $@
 

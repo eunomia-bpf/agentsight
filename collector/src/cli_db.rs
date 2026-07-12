@@ -8,7 +8,9 @@ use crate::output::{
     sorted_top_counts,
 };
 use crate::sources::agent_native as agent_native_sessions;
+#[cfg(test)]
 use crate::sources::sqlite::load_view as load_sqlite_view;
+use crate::sources::sqlite::load_view_with_observed_session_prompts as load_sqlite_view_with_observed_session_prompts;
 use crate::view::MaterializedView;
 
 #[cfg(test)]
@@ -26,7 +28,7 @@ pub(crate) fn load_agentsight_view(
     db: Option<&str>,
 ) -> Result<MaterializedView, Box<dyn std::error::Error + Send + Sync>> {
     match db {
-        Some(db) => load_sqlite_view(db),
+        Some(db) => load_sqlite_view_with_observed_session_prompts(db),
         None => {
             let mut view = MaterializedView::new();
             view.set_source(AGENT_NATIVE_SOURCE);
@@ -37,11 +39,11 @@ pub(crate) fn load_agentsight_view(
 }
 
 pub(crate) fn run_token_query(
-    db: &str,
+    db: Option<&str>,
     group_by: &str,
     json: bool,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let view = load_agentsight_view(Some(db))?;
+    let view = load_agentsight_view(db)?;
     let rows = view.token_summary(group_by);
     if json {
         print_json(&rows)?;
@@ -52,12 +54,12 @@ pub(crate) fn run_token_query(
 }
 
 pub(crate) fn run_audit_query(
-    db: &str,
+    db: Option<&str>,
     audit_type: Option<&str>,
     limit: usize,
     json: bool,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let view = load_agentsight_view(Some(db))?;
+    let view = load_agentsight_view(db)?;
     let rows = view.audit_rows(audit_type, limit);
     if json {
         print_json(&rows)?;
@@ -68,11 +70,11 @@ pub(crate) fn run_audit_query(
 }
 
 pub(crate) fn run_prompts_query(
-    db: &str,
+    db: Option<&str>,
     limit: usize,
     json: bool,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let view = load_agentsight_view(Some(db))?;
+    let view = load_agentsight_view(db)?;
     let rows = view.llm_call_rows(limit);
     if json {
         print_json(&rows)?;
@@ -83,11 +85,11 @@ pub(crate) fn run_prompts_query(
 }
 
 pub(crate) fn run_export(
-    db: &str,
+    db: Option<&str>,
     output: &str,
     audit_limit: usize,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let view = load_agentsight_view(Some(db))?;
+    let view = load_agentsight_view(db)?;
     let snapshot = view.export_snapshot(SnapshotOptions { audit_limit });
     let json = serde_json::to_vec_pretty(&snapshot)?;
     if output == "-" {

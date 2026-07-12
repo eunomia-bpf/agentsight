@@ -1,4 +1,4 @@
-# agentpprof: 用语义 flamegraph 分析 AI agent
+# agentpprof: 用语义 flamegraph 分析 AI agent intent
 
 月底账单显示 agent 花了 $3000。哪些类型的工作消耗了这些预算？代码审查占多少、debug 占多少、文档生成占多少？这个问题看似简单，但现有的 agent 可观测性工具都无法直接回答。
 
@@ -8,7 +8,7 @@
 
 LangSmith、Langfuse、Phoenix 这类 LLM 可观测性平台能展示每次调用的 token 数和 latency，但当你有 80000 次调用时，它们只能按时间戳排列成 timeline。你可以逐条检查「这次调用花了 500 tokens」，但无法回答「审查类任务总共花了多少」。这些工具的设计目标是单次 trace 调试：timeline view 帮你定位 14:03 那个失败的 span，span tree 展示调用层级，waterfall chart 显示并行度。它们在回答「发生了什么」这个问题上表现出色，但对于「预算花在哪类工作上」这种聚合问题，逐条检查 80000 个 span 显然行不通。
 
-Datadog 和 Laminar 开始尝试语义分类。Datadog 用 topic clustering 对用户消息做聚类，Laminar 用 Signals 从 trace 中提取结构化事件。这是正确的方向，但它们的聚类主要针对用户输入的分布，而不是产生「宽度代表预算占比」的聚合视图。你能看到「30% 的用户在问代码问题」，但看不到「代码审查消耗了 40% 的 token 预算」。
+Datadog 和 Laminar 开始尝试语义分类。Datadog 用 topic clustering 对用户消息做聚类，Laminar 用 Signals 从 trace 中提取结构化事件。这是正确的方向，但这类聚类刻画的是用户输入的分布，并不产生「宽度代表预算占比」的聚合视图。你能看到「30% 的用户在问代码问题」，但看不到「代码审查消耗了 40% 的 token 预算」。
 
 CPU profiler 早就解决了类似的聚合问题。Flamegraph 把百万次函数调用压缩成一张图，宽度代表时间占比。调用栈表示事件所属的上下文，对同一函数的重复调用会合并成更宽的条带。这之所以有效，是因为函数名是**确定性的**：相同的代码路径产生相同的调用栈，相同的调用栈可以直接合并。
 
@@ -16,9 +16,9 @@ Agent trace 打破了这个假设。Prompt 是自然语言：非确定性的、�
 
 ## 语义 flamegraph
 
-`agentpprof` 通过引入**语义标签**来恢复聚合能力：将自由格式的 prompt 映射为简短、稳定的标签，如 `debug`、`review`、`paper` 或 `misc`。标签化之后，prompt 的行为就像函数名一样，重复的活动会合并，flamegraph 变得可读。
+`agentpprof` 通过**意图识别**来恢复聚合能力：将自由格式的 prompt 归类为简短、稳定的意图标签，如 `debug`、`review`、`paper` 或 `misc`。打上标签之后，prompt 就获得了和函数名一样的性质：每条轨迹和它触发的活动被关联成堆栈折叠起来，相同的栈合并成更宽的条带，flamegraph 重新变得可读。
 
-Flamegraph 的价值不只是聚合，还有**堆栈表达因果关联**。传统 CPU flamegraph 的堆栈是函数调用链：`main → parse → tokenize`，表示 tokenize 是被 parse 调用的，parse 是被 main 调用的。语义 flamegraph 的堆栈是 agent 行为的因果链：`prompt:debug → call:llm/analysis → tool:bash → file:src/main.rs`，表示这次文件修改是由 bash 工具触发的，bash 是 LLM 决定调用的，LLM 是在响应一个 debug 类型的 prompt。
+Flamegraph 的价值不只是聚合，还在于**用堆栈表达因果关联**。传统 CPU flamegraph 的堆栈是函数调用链：`main → parse → tokenize`，表示 tokenize 是被 parse 调用的，parse 是被 main 调用的。语义 flamegraph 的堆栈是 agent 行为的因果链：`prompt:debug → call:llm/analysis → tool:bash → file:src/main.rs`，表示这次文件修改是由 bash 工具触发的，bash 是 LLM 决定调用的，LLM 是在响应一个 debug 类型的 prompt。
 
 | | 传统 CPU Flamegraph | 语义 Flamegraph |
 | --- | --- | --- |
@@ -29,7 +29,7 @@ Flamegraph 的价值不只是聚合，还有**堆栈表达因果关联**。传�
 
 这种因果关联让你能从任意一层回溯或下钻：从某个文件被修改，追溯到是哪个工具、哪个 LLM 决策、哪个用户意图导致的；或者从某类 prompt 出发，看它触发了什么 LLM 调用、什么工具执行、什么系统效果。
 
-`agentpprof` 对同一数据提供多种投影视图，每种回答不同的问题：
+在这个模型里，视图不是固定的图，而是对同一批数据的查询：选哪些事件、栈怎么排、宽度算什么，换一个问题只需换一组投影。`agentpprof` 内置了四个这样的视图，每种回答不同的问题：
 
 | 视图 | 宽度含义 | 主要回答的问题 |
 | --- | ---: | --- |
@@ -42,7 +42,7 @@ Flamegraph 的价值不只是聚合，还有**堆栈表达因果关联**。传�
 
 ## Flamegraph 示例
 
-以下示例来自 AgentSight 项目自身的开发 trace（Claude Code）。它们展示了每个视图能提供什么洞察。
+以下示例来自 AgentSight 项目自身的开发 trace（Claude Code），展示了每个视图各自能回答什么问题。
 
 ### Tokens 视图
 
@@ -58,7 +58,7 @@ Token 分布显示代码审查（`prompt:review`）主导了模型预算，其�
 
 ![Time flamegraph](https://github.com/eunomia-bpf/agentsight/raw/master/docs/flamegraph-example/agentsight-time.svg)
 
-Wall-clock 时间分布与 token 消耗相似：review（`prompt:review`）领先，其次是 git、edit、docs 和 code 类 prompt。continuation prompt（`prompt:continue`）频繁出现，反映了复杂任务需要多轮后续交流的工作流模式。`prompt:inspect` 捕获了迭代开发中常见的「看一下」类请求。
+Wall-clock 时间分布与 token 消耗相似：review（`prompt:review`）领先，其次是 git、edit、docs 和 code 类 prompt。continuation prompt（`prompt:continue`）频繁出现，说明复杂任务往往需要多轮后续交流才能完成。`prompt:inspect` 捕获了迭代开发中常见的「看一下」类请求。
 
 ### Files 视图
 
@@ -66,7 +66,7 @@ Wall-clock 时间分布与 token 消耗相似：review（`prompt:review`）领�
 
 ![Files flamegraph](https://github.com/eunomia-bpf/agentsight/raw/master/docs/flamegraph-example/agentsight-files.svg)
 
-文件访问模式显示 `collector/src/`（Rust 代码库）和 `collector/Cargo.toml` 活动频繁，与开发工作一致。外部路径（`external/tmp`、`external/home`、`external/codex`）也频繁出现，反映了工具调用触及临时文件、home 目录配置和 Codex session 数据。Flamegraph 区分了读取和写入效果，揭示了项目路径和外部路径上检查与修改之间的平衡。
+文件访问模式显示 `collector/src/`（Rust 代码库）和 `collector/Cargo.toml` 活动频繁，与开发工作一致。外部路径（`external/tmp`、`external/home`、`external/codex`）也频繁出现，反映了工具调用触及临时文件、home 目录配置和 Codex session 数据。Flamegraph 区分读和写两类效果，可以看出在项目路径和外部路径上，检查和修改各占多少。
 
 ### Network 视图
 
@@ -74,13 +74,21 @@ Wall-clock 时间分布与 token 消耗相似：review（`prompt:review`）领�
 
 ![Network flamegraph](https://github.com/eunomia-bpf/agentsight/raw/master/docs/flamegraph-example/agentsight-network.svg)
 
-相对于文件操作，网络活动很少，确认大部分开发工作在本地完成。被联系的域名包括 `anthropic.com`（模型推理）、`crates.io`（Rust 依赖）、`github.com`（版本控制）以及各种 localhost 端口（本地开发服务器）。上层 frame 中可见的进程链显示了哪些工具发起了网络请求，使网络活动可以归因到具体的 agent 操作。
+网络活动比文件操作少得多，说明大部分开发工作在本地完成。被联系的域名包括 `anthropic.com`（模型推理）、`crates.io`（Rust 依赖）、`github.com`（版本控制）以及各种 localhost 端口（本地开发服务器）。上层 frame 展示了发起请求的进程链，网络活动因此可以归因到具体的 agent 操作。
 
 生成脚本及标签规则见 `docs/flamegraph-example/agentsight.sh`。
 
-## 标签化
+## 工作原理
 
-把自然语言 prompt 映射为稳定的语义标签并不容易。同一个项目里的 prompt 可能混合多种语言（「fix the 编译 error」），长度从单个字符（「嗯」、「ok」）到长段落不等，还有很多孤立看来没有意义的片段（「继续」、「好」、系统生成的上下文恢复消息）。为了应对这些挑战，`agentpprof` 提供了一个可插拔的标签器框架，支持多种后端：
+`agentpprof` 的核心是两个抽象：**操作**（operation，历史中一次可计量的活动）和**操作栈**（operation stack，表达这次活动归因上下文的帧序列）。整个工具分三层围绕它们工作：解析层把本地 trace 还原成操作集合，意图识别层为操作打上语义标签，投影层把带标签的操作折叠成操作栈并渲染。
+
+### 解析层：从 trace 到操作
+
+`agent-session` 解析器读取 Codex/Claude 的 JSONL 历史，恢复出 prompt、LLM 调用、工具调用以及它们触发的文件和网络效果。每个这样的活动就是一个操作，带着自己的属性（时间戳、token 数、路径、域名、状态等），构成后续两层共享的操作表。解析同时保留序列结构：每个操作都记着自己落在哪条 prompt 的跨度内。
+
+### 意图识别层：从 prompt 到标签
+
+解析和投影都是常规工程，真正的难点在这一层。同一个项目里的 prompt 可能混合多种语言（「fix the 编译 error」），长度从单个字符（「嗯」、「ok」）到长段落不等，还有很多孤立看来没有意义的片段（「继续」、「好」、系统生成的上下文恢复消息）。为了应对这些挑战，`agentpprof` 提供了一个可插拔的标签器框架，支持多种后端：
 
 | 后端 | 方法 | 适用场景 |
 | --- | --- | --- |
@@ -88,9 +96,9 @@ Wall-clock 时间分布与 token 消耗相似：review（`prompt:review`）领�
 | LLM 标签器 | 本地 LLM 推理（llama.cpp） | 复杂 prompt、初始规则发现 |
 | Python 聚类 | TF-IDF + K-Means 无监督聚类 | 探索性分析、发现自然分组 |
 
-### Regex 标签器与 Agent 迭代工作流
+#### Regex 标签器与 Agent 迭代工作流
 
-Regex 标签器是生产环境的默认选择，但它的使用方式和传统正则表达式不同。**你不需要手写所有规则**。正确的工作流是让 AI agent 观察实际的 prompt 样本，不断迭代规则直到 unmatched 率降到 5% 以下。
+Regex 标签器是生产环境的默认选择，但它的使用方式和传统正则表达式不同：**你不需要手写所有规则**，而是让 AI agent 观察实际的 prompt 样本，不断迭代规则，直到 unmatched 率降到 5% 以下。
 
 AgentSight 提供了 `agentpprof-flamegraph` skill，指导 agent 完成这个迭代过程：
 
@@ -121,7 +129,7 @@ agentpprof -o tokens.svg \
 agentpprof -o tokens.svg --tagger regex --preset
 ```
 
-### LLM 标签器
+#### LLM 标签器
 
 对于复杂 prompt 或初始规则发现，可以用本地 LLM 生成标签。运行一个 llama.cpp 兼容的服务器：
 
@@ -132,7 +140,7 @@ agentpprof -o tokens.svg --tagger llm --llama-url http://127.0.0.1:8080
 
 LLM 标签默认缓存在 `$XDG_CACHE_HOME/agentpprof/tags.json`。LLM 标签器的输出可以作为编写 regex 规则的参考：观察 LLM 产生了哪些类别，然后为每个类别写一条 regex 规则。
 
-### Python 聚类后端（实验性）
+#### Python 聚类后端（实验性）
 
 对于探索性分析，可以用 Python 聚类后端发现 prompt 的自然分组。这个后端使用 TF-IDF 向量化和 K-Means 聚类，无需预定义规则：
 
@@ -149,6 +157,35 @@ agentpprof --project-root . --tag-cache tags.json -o flamegraph.svg
 ```
 
 聚类后端会自动选择最优的聚类数（5-25），并根据每个聚类的关键词生成标签名。这对于理解「我的 prompt 分布里有哪些自然类别」很有用，可以作为编写 regex 规则的起点。
+
+### 投影层：从操作到 folded stacks
+
+前两层的产出可以用一个小的形式模型精确刻画，投影层就是对这个模型的查询求值。开头说的两个核心抽象在这里给出正式定义。
+
+**定义 1（operation，操作）。** 一次 agent 执行历史被解析为操作集合 O。一个操作 o ∈ O 是历史中一次可计量的活动：一条用户 prompt、一次 LLM 调用，或一次工具触发的文件/网络效果。每个操作携带属性元组 attr(o) = (project, agent, session, prompt, kind, model, path, domain, status, …) 以及若干可加度量，如 token 数、持续时间、发生次数。解析层产出 O，意图识别层为其中的意图属性提供稳定取值。
+
+操作的粒度在解析时就固定了，与视图无关。视图改变的是计量方式：一个操作可以展开成多个样本，tokens 视图把一次 LLM 调用按 input/output/cache 展开成三个样本，files 视图把一次工具调用按触碰的路径逐一展开。样本是视图相关的，操作不是。
+
+**定义 2（operation stack，操作栈）。** 栈化函数 σ 把操作映射为有序帧序列 σ(o) = [f₁; f₂; …; f_k]。低层帧是语义上下文（project → agent → session → prompt 意图），高层帧是机制与效果（LLM 调用、模型、工具、进程链、路径、域名、状态）。与 CPU 调用栈不同，操作栈表达的是**归因链**而非控制流：每一帧回答「这个活动发生在什么上下文里」。
+
+层级从哪里来？agent 历史本身是一条线性事件序列，没有现成的树。解析层按 prompt 把这条序列切成段：一条 prompt 开启一个跨度，直到下一条 prompt 出现，期间的 LLM 调用、工具调用和系统效果都嵌套在它之下。这一步把平坦的时间线折叠出了 task/subtask 式的结构：prompt 像任务，横跨它名下的多次调用和效果，宽度是这些原子操作的权重之和。但此时每个跨度还带着独一无二的 prompt 原文，只有经过意图识别把跨度换成稳定标签，不同 session 里做同类任务的跨度才能互相合并。折叠出结构在前，标签聚合在后。
+
+**定义 3（view，视图）。** 视图是三元组 V = (φ, σ, w)：谓词 φ 选择参与统计的操作子集，σ 决定栈结构，权重函数 w 把每个操作映射为非负数。视图的求值结果是 folded stacks，即按栈分组、权重求和的多重集：
+
+```text
+eval(V, O) = { (s, w_s) : w_s = Σ w(o), 对所有 o ∈ O 满足 φ(o) 且 σ(o) = s }
+```
+
+这个模型的直接推论是：栈不是预定义的固定结构，视图也不是预先画好的图，两者都由查询决定，换一个分析问题只需换一组 (φ, σ, w)。栈里的语义帧也不是内置词表，而是来自意图识别层你为项目定义的标签规则。四个内置视图就是四组预定义查询：
+
+| 视图 | φ（选择哪些操作） | σ（栈结构） | w（权重） |
+| --- | --- | --- | --- |
+| `tokens` | LLM 调用 | project; agent; session; prompt; call; model; kind | token 数（input/output/cache 各为一个样本） |
+| `time` | 全部带时间戳的操作 | project; agent; session; prompt; kind; ⟨机制帧⟩ | 到下一事件的间隔秒数 |
+| `files` | 有路径效果的工具操作 | project; agent; session; prompt; path; effect; status | 事件次数 |
+| `network` | 有网络效果的工具操作 | project; agent; session; prompt; domain; ⟨进程链⟩; status | 事件次数 |
+
+四个视图共享同一操作集合 O 和同一低层语义前缀，只在高层帧和权重函数上不同，因此跨视图对照是良定义的：`tokens` 视图里的 `prompt:review` 与 `files` 视图里的 `prompt:review` 指同一批操作在不同 (σ, w) 下的投影。flamegraph、pprof、folded 文本和 JSON 只是同一求值结果的不同序列化，各视图的具体栈示例见后文「调用栈模型」。
 
 ## 安装
 
@@ -223,7 +260,7 @@ agentpprof -o tokens.svg --prompt-tag review
 
 ## 调用栈模型
 
-语义 flamegraph 的调用栈是一种投影而非字面意义的函数调用栈：下层 frame 提供上下文（project、agent、prompt 类型），上层 frame 描述被计数的活动，具体形状随视图而变。
+语义 flamegraph 的调用栈是一种投影而非字面意义的函数调用栈：下层 frame 提供上下文（project、agent、prompt 类型），上层 frame 描述被计数的活动，具体形状由每个视图的 σ 决定。
 
 `tokens` 视图以模型预算作为宽度：
 
@@ -253,8 +290,6 @@ project:agentsight;agent:codex;session:release;prompt:docs;path:docs/flamegraph;
 project:agentsight;agent:codex;session:release;prompt:publish;domain:crates.io;process:cargo;status:ok 1
 ```
 
-选择哪个视图取决于你的问题：tokens 用于成本分析，time 用于性能分析，files 用于评估影响范围，network 用于安全审计。
-
 ## 隐私与脱敏
 
 本地 agent 历史可能包含 prompt、工具输出、路径、命令、仓库名称和模型响应。`agentpprof` 默认采取保守策略：
@@ -282,8 +317,8 @@ agentpprof --project-root . --view files -o files.svg
 
 如果找不到 trace，传入明确的 `--session-file` 路径，并确认 trace 的 `cwd` 与 `--project-root` 匹配。
 
-如果标签过于笼统，为项目添加几条 `--tag-rule`。不要试图让每个 prompt 都独一无二。好的标签应该保留有用的语义多样性，同时合并无意义的长尾碎片。
+如果标签过于笼统，为项目添加几条 `--tag-rule`，但不要试图让每个 prompt 都独一无二：好的标签保留有用的语义多样性，同时合并无意义的长尾碎片。
 
-如果 pprof 输出可以打开但看起来不熟悉，请记住样本单位不是 CPU 时间。使用 `go tool pprof -top` 检查最宽的语义 frame，然后在需要完整调用栈形状时生成 SVG 或 folded 输出。
+如果 pprof 输出能打开但看起来不太对劲，那通常是因为样本单位不是 CPU 时间。先用 `go tool pprof -top` 检查最宽的语义 frame，需要看完整调用栈形状时再生成 SVG 或 folded 输出。
 
-如果公开产物可能包含敏感信息，优先使用 SVG、folded 或 pprof 输出，不要传 `--include-previews`。
+如果要公开分享产物，优先使用 SVG、folded 或 pprof 输出，并且不要传 `--include-previews`，避免敏感信息外泄。

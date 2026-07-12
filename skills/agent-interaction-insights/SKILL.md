@@ -1,6 +1,7 @@
 ---
 name: agent-interaction-insights
-description: Analyze agent transcripts, OTel GenAI spans, LangSmith/Langfuse/Datadog exports, or Claude/Codex/Gemini logs to recommend collaboration improvements—reduce corrections, improve trust, stop loops, compare agent fit—and generate decision-oriented, reader-safe HTML reports.
+description: Analyze agent transcripts and traces to recommend collaboration improvements and generate decision-oriented HTML reports.
+when_to_use: Use when the user asks to analyze agent sessions, reduce corrections, improve trust, stop retry loops, compare agents, or generate insights from Claude/Codex/Gemini logs, OTel spans, or LangSmith/Langfuse exports.
 ---
 
 # Agent Interaction Insights

@@ -6,13 +6,11 @@ for a shareable skills pack, not AgentSight runtime code.
 
 ## Skills
 
-- `agent-interaction-insights`: analyze user-agent interaction behavior from
-  transcripts, local agent logs, and observability traces. Use it to reduce
-  user corrections, improve summary trust, stop retry loops, and decide what
-  should change in prompts, AGENTS.md/CLAUDE.md, skills, evals, or workflows.
-- `agentsight-system-friction`: analyze AgentSight system evidence. Use it to
-  improve heavy-command budgets, retry behavior, service lifecycle cleanup,
-  network binding, file/log hygiene, and next-run capture quality.
+| Skill | Use for |
+|-------|---------|
+| `agentpprof-flamegraph` | Generate semantic flamegraphs to visualize where token budget went |
+| `agent-interaction-insights` | Analyze transcripts to reduce corrections, improve trust, stop loops |
+| `agentsight-system-friction` | Analyze AgentSight system data for resource/retry/cleanup improvements |
 
 ## Design Principles
 
@@ -31,9 +29,18 @@ for a shareable skills pack, not AgentSight runtime code.
 - Add scripts only after an adapter pattern repeats and needs deterministic
   behavior.
 
-## Local Testing
+## Usage
 
-These skills are stored in the repository so they can be reviewed and iterated
-with the rest of the design docs. For local tests, point a client at this
-directory or copy only the skill under test into that client's supported skills
-location.
+**In this repo**: Skills are symlinked from `.claude/skills` and work directly.
+
+**In other projects**: Symlink or copy individual skill directories to `.claude/skills/`:
+
+```bash
+ln -s /path/to/agentsight/skills/agentpprof-flamegraph .claude/skills/
+```
+
+Or install the full pack:
+
+```bash
+ln -s /path/to/agentsight/skills .claude/skills
+```

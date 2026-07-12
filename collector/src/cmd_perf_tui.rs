@@ -4,7 +4,12 @@
 use crate::binary_extractor::BinaryExtractor;
 use crate::cmd_perf::load_top_output;
 use crate::cmd_perf_live::{LiveEbpfCapture, start_live_ebpf_capture};
-use crate::output::{AgentTopOutput, TopOptions, draw_live_top_tui, next_view_key};
+use crate::cmd_tui_record::{
+    TuiRecordStatus, TuiRecordTask, default_record_command_for_row, parse_tui_record_command,
+};
+use crate::output::{
+    AgentTopOutput, TopOptions, TopRecordOverlay, draw_live_top_tui, next_view_key,
+};
 use crate::view::live_top::LiveView;
 use crate::view::top::{normalize_sort_key, sort_agent_rows};
 use crossterm::{
@@ -26,14 +31,21 @@ pub(crate) async fn run_live_top_tui(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let capture = start_live_ebpf_capture(binary_extractor, options).await;
     let mut live_view = LiveView::default();
-    let result = run_top_tui_loop(interval_secs, limit, count, options, |display_limit, options| {
-        let capture_snapshot = capture.as_ref().map(LiveEbpfCapture::snapshot);
-        let mut top = live_view.refresh(capture_snapshot.as_ref(), display_limit, options)?;
-        if let Some(note) = capture.as_ref().and_then(|capture| capture.start_note()) {
-            top.notes.push(note.to_string());
-        }
-        Ok(top)
-    });
+    let result = run_top_tui_loop(
+        interval_secs,
+        limit,
+        count,
+        options,
+        true,
+        |display_limit, options| {
+            let capture_snapshot = capture.as_ref().map(LiveEbpfCapture::snapshot);
+            let mut top = live_view.refresh(capture_snapshot.as_ref(), display_limit, options)?;
+            if let Some(note) = capture.as_ref().and_then(|capture| capture.start_note()) {
+                top.notes.push(note.to_string());
+            }
+            Ok(top)
+        },
+    );
     if let Some(capture) = capture {
         capture.stop();
     }
@@ -47,10 +59,17 @@ pub(crate) fn run_saved_top_tui(
     count: Option<u32>,
     options: &TopOptions,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    run_top_tui_loop(interval_secs, limit, count, options, |display_limit, options| {
-        load_top_output(db, display_limit, options)
-    })
+    run_top_tui_loop(
+        interval_secs,
+        limit,
+        count,
+        options,
+        false,
+        |display_limit, options| load_top_output(db, display_limit, options),
+    )
 }
+
+const TUI_RECORD_SHUTDOWN_WAIT: Duration = Duration::from_secs(2);
 
 struct LiveTopTerminalGuard;
 
@@ -76,6 +95,7 @@ fn run_top_tui_loop<'a, F>(
     limit: usize,
     count: Option<u32>,
     options: &TopOptions,
+    allow_record: bool,
     mut refresh: F,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>
 where
@@ -97,6 +117,8 @@ where
     let mut paused = false;
     let mut show_help = false;
     let mut show_diagnostics = false;
+    let mut record_prompt: Option<RecordPrompt> = None;
+    let mut record_task: Option<TuiRecordTask> = None;
     let mut last_refresh = Instant::now() - interval;
     let mut force_refresh = true;
     let mut refreshes = 0u32;
@@ -118,6 +140,10 @@ where
         let top = current_top
             .as_ref()
             .expect("live top TUI refreshes before first render");
+        let record_status = record_task
+            .as_ref()
+            .map(|task| record_status_line(&task.status()));
+        let record_overlay = record_overlay(&record_prompt, record_task.as_ref());
         terminal.draw(|frame| {
             draw_live_top_tui(
                 frame,
@@ -129,6 +155,8 @@ where
                 show_diagnostics,
                 interval_secs,
                 display_limit,
+                record_status.as_deref(),
+                record_overlay.as_ref(),
             );
         })?;
 
@@ -154,6 +182,34 @@ where
             continue;
         }
 
+        if record_prompt.is_some() {
+            match handle_record_prompt_key(
+                &mut record_prompt,
+                record_task.as_ref().is_some_and(|task| !task.is_finished()),
+                key.code,
+                key.modifiers,
+            ) {
+                RecordPromptAction::Start(command) => {
+                    crate::push_tui_diagnostic(&format!(
+                        "record started: pid {} -> {}",
+                        command.pid, command.db_path
+                    ));
+                    record_task = Some(TuiRecordTask::spawn(
+                        command,
+                        crate::cmd_trace::DEFAULT_SERVER_LISTEN.to_string(),
+                    ));
+                }
+                RecordPromptAction::StopRunning => {
+                    if let Some(task) = &mut record_task {
+                        task.stop();
+                        crate::push_tui_diagnostic("record stop requested");
+                    }
+                }
+                RecordPromptAction::None => {}
+            }
+            continue;
+        }
+
         match key.code {
             KeyCode::Char('q') | KeyCode::Esc => break,
             KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => break,
@@ -161,12 +217,36 @@ where
             KeyCode::Char('e') => show_diagnostics = !show_diagnostics,
             KeyCode::Char('p') => paused = !paused,
             KeyCode::Char('r') => force_refresh = true,
+            KeyCode::Char('R') => {
+                match open_record_prompt_for_selection(
+                    allow_record,
+                    current_top.as_ref(),
+                    selected,
+                    record_task.as_ref().is_some_and(|task| !task.is_finished()),
+                ) {
+                    RecordOpenAction::Open(prompt) => {
+                        show_help = false;
+                        show_diagnostics = false;
+                        record_prompt = Some(prompt);
+                    }
+                    RecordOpenAction::Diagnostic(message) => crate::push_tui_diagnostic(&message),
+                }
+            }
             KeyCode::Char('s') => {
                 options.sort = next_sort_key(&options.sort);
                 if let Some(top) = &mut current_top {
                     sort_agent_rows(&mut top.rows, &options.sort);
                     top.rows.truncate(display_limit);
                     clamp_selected(&mut selected, top.rows.len());
+                }
+            }
+            KeyCode::Char('S') => {
+                if let Some(prompt) = handle_record_stop_shortcut(
+                    record_task.as_ref().is_some_and(|task| !task.is_finished()),
+                ) {
+                    show_help = false;
+                    show_diagnostics = false;
+                    record_prompt = Some(prompt);
                 }
             }
             KeyCode::Char('v') => options.view = next_view_key(&options.view),
@@ -201,7 +281,175 @@ where
         }
     }
 
+    if let Some(task) = record_task {
+        task.shutdown_blocking(TUI_RECORD_SHUTDOWN_WAIT);
+    }
+
     Ok(())
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum RecordPrompt {
+    Start {
+        command: String,
+        error: Option<String>,
+    },
+    StopConfirm,
+}
+
+impl RecordPrompt {
+    fn start(command: String) -> Self {
+        Self::Start {
+            command,
+            error: None,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum RecordPromptAction {
+    None,
+    Start(crate::cmd_tui_record::TuiRecordCommand),
+    StopRunning,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum RecordOpenAction {
+    Open(RecordPrompt),
+    Diagnostic(String),
+}
+
+fn open_record_prompt_for_selection(
+    allow_record: bool,
+    current_top: Option<&AgentTopOutput<'_>>,
+    selected: usize,
+    record_running: bool,
+) -> RecordOpenAction {
+    if !allow_record {
+        return RecordOpenAction::Diagnostic(
+            "record from top is only available for live sessions".to_string(),
+        );
+    }
+    if record_running {
+        return RecordOpenAction::Open(RecordPrompt::StopConfirm);
+    }
+    match current_top
+        .and_then(|top| top.rows.get(selected))
+        .map(|row| default_record_command_for_row(Some(row), 7395))
+        .unwrap_or_else(|| default_record_command_for_row(None, 7395))
+    {
+        Ok(command) => RecordOpenAction::Open(RecordPrompt::start(command.display_command())),
+        Err(error) => RecordOpenAction::Diagnostic(error),
+    }
+}
+
+fn handle_record_stop_shortcut(record_running: bool) -> Option<RecordPrompt> {
+    record_running.then_some(RecordPrompt::StopConfirm)
+}
+
+fn handle_record_prompt_key(
+    prompt: &mut Option<RecordPrompt>,
+    record_running: bool,
+    key_code: KeyCode,
+    modifiers: KeyModifiers,
+) -> RecordPromptAction {
+    let Some(current) = prompt else {
+        return RecordPromptAction::None;
+    };
+
+    match current {
+        RecordPrompt::StopConfirm => match key_code {
+            KeyCode::Esc => {
+                *prompt = None;
+                RecordPromptAction::None
+            }
+            KeyCode::Enter | KeyCode::Char('S') => {
+                *prompt = None;
+                if record_running {
+                    RecordPromptAction::StopRunning
+                } else {
+                    RecordPromptAction::None
+                }
+            }
+            _ => RecordPromptAction::None,
+        },
+        RecordPrompt::Start { command, error } => match key_code {
+            KeyCode::Esc => {
+                *prompt = None;
+                RecordPromptAction::None
+            }
+            KeyCode::Enter => match parse_tui_record_command(command) {
+                Ok(parsed_command) => {
+                    if record_running {
+                        *error = Some("a record task is already running".to_string());
+                        RecordPromptAction::None
+                    } else {
+                        *prompt = None;
+                        RecordPromptAction::Start(parsed_command)
+                    }
+                }
+                Err(parse_error) => {
+                    *error = Some(parse_error);
+                    RecordPromptAction::None
+                }
+            },
+            KeyCode::Backspace => {
+                command.pop();
+                *error = None;
+                RecordPromptAction::None
+            }
+            KeyCode::Char(ch) => {
+                if !modifiers.contains(KeyModifiers::CONTROL) {
+                    command.push(ch);
+                    *error = None;
+                }
+                RecordPromptAction::None
+            }
+            _ => RecordPromptAction::None,
+        },
+    }
+}
+
+fn record_status_line(status: &TuiRecordStatus) -> String {
+    let server = status
+        .server_url
+        .as_deref()
+        .map(|url| format!("  server={url}"))
+        .unwrap_or_default();
+    format!(
+        "{}  db={}  status={}{}",
+        status.target, status.db_path, status.message, server
+    )
+}
+
+fn record_overlay(
+    prompt: &Option<RecordPrompt>,
+    task: Option<&TuiRecordTask>,
+) -> Option<TopRecordOverlay> {
+    if let Some(prompt) = prompt {
+        return match prompt {
+            RecordPrompt::StopConfirm => task.map(|task| TopRecordOverlay::Running {
+                lines: record_running_lines(&task.status()),
+            }),
+            RecordPrompt::Start { command, error } => Some(TopRecordOverlay::Prompt {
+                command: command.clone(),
+                error: error.clone(),
+            }),
+        };
+    }
+    None
+}
+
+fn record_running_lines(status: &TuiRecordStatus) -> Vec<String> {
+    let mut lines = vec![
+        format!("target: {}", status.target),
+        format!("db: {}", status.db_path),
+        format!("status: {}", status.message),
+    ];
+    if let Some(url) = &status.server_url {
+        lines.push(format!("server: {url}"));
+    }
+    lines
 }
 
 fn clamp_selected(selected: &mut usize, rows: usize) {
@@ -226,9 +474,154 @@ fn next_sort_key(current: &str) -> String {
 
 #[cfg(test)]
 mod tests {
+    use super::{
+        RecordOpenAction, RecordPrompt, RecordPromptAction, handle_record_prompt_key,
+        handle_record_stop_shortcut, next_sort_key, open_record_prompt_for_selection,
+        record_running_lines, record_status_line,
+    };
+    use crate::cmd_tui_record::TuiRecordStatus;
     use crate::output::tui::{tui_diagnostic_lines, tui_status_line};
     use crate::output::{AgentTopOutput, AgentTopRow};
+    use crossterm::event::{KeyCode, KeyModifiers};
 
+    #[test]
+    fn record_status_and_running_lines_include_target_db_and_server() {
+        let status = TuiRecordStatus {
+            target: "pid 42".to_string(),
+            db_path: "agentsight-test.db".to_string(),
+            server_url: Some("http://127.0.0.1:7395/".to_string()),
+            message: "recording".to_string(),
+            finished: false,
+        };
+
+        assert_eq!(
+            record_status_line(&status),
+            "pid 42  db=agentsight-test.db  status=recording  server=http://127.0.0.1:7395/"
+        );
+        assert_eq!(
+            record_running_lines(&status),
+            vec![
+                "target: pid 42".to_string(),
+                "db: agentsight-test.db".to_string(),
+                "status: recording".to_string(),
+                "server: http://127.0.0.1:7395/".to_string(),
+            ]
+        );
+
+        let prompt = RecordPrompt::start(
+            "agentsight record -p 42 --db agentsight-test.db --server-port 7395".to_string(),
+        );
+        let RecordPrompt::Start { command, .. } = prompt else {
+            panic!("expected start prompt");
+        };
+        assert!(command.contains("record -p 42"));
+    }
+
+    #[test]
+    fn record_r_with_selected_pid_opens_prompt_with_default_command() {
+        let top = AgentTopOutput {
+            mode: "live sessions",
+            db: None,
+            duration_s: 0.0,
+            view_events: 0,
+            llm_calls: 0,
+            total_tokens: 0,
+            rows: vec![AgentTopRow {
+                pid: Some(42),
+                ..AgentTopRow::default()
+            }],
+            sections: Vec::new(),
+            failures: Vec::new(),
+            notes: Vec::new(),
+        };
+
+        let action = open_record_prompt_for_selection(true, Some(&top), 0, false);
+
+        let RecordOpenAction::Open(prompt) = action else {
+            panic!("expected record prompt");
+        };
+        let RecordPrompt::Start { command, error } = prompt else {
+            panic!("expected start prompt");
+        };
+        assert!(command.contains("record -p 42"));
+        assert!(command.contains("--db agentsight-"));
+        assert!(command.contains("--server-port 7395"));
+        assert_eq!(error, None);
+    }
+
+    #[test]
+    fn record_prompt_esc_closes_without_starting_task() {
+        let mut prompt = Some(RecordPrompt::start(
+            "agentsight record -p 42 --db out.db --server-port 7395".to_string(),
+        ));
+
+        let action = handle_record_prompt_key(&mut prompt, false, KeyCode::Esc, KeyModifiers::NONE);
+
+        assert_eq!(action, RecordPromptAction::None);
+        assert_eq!(prompt, None);
+    }
+
+
+    #[test]
+    fn lower_s_remains_sort_shortcut_even_when_recording() {
+        assert_eq!(next_sort_key("cpu"), "rss");
+        assert_eq!(handle_record_stop_shortcut(false), None);
+    }
+
+    #[test]
+    fn record_shift_s_when_task_running_opens_stop_prompt() {
+        assert_eq!(
+            handle_record_stop_shortcut(true),
+            Some(RecordPrompt::StopConfirm)
+        );
+        assert_eq!(handle_record_stop_shortcut(false), None);
+    }
+
+    #[test]
+    fn record_stop_prompt_shift_s_stops_running_task() {
+        let mut prompt = Some(RecordPrompt::StopConfirm);
+
+        let action =
+            handle_record_prompt_key(&mut prompt, true, KeyCode::Char('S'), KeyModifiers::NONE);
+
+        assert_eq!(action, RecordPromptAction::StopRunning);
+        assert_eq!(prompt, None);
+    }
+
+    #[test]
+    fn record_stop_prompt_esc_cancels_without_stopping() {
+        let mut prompt = Some(RecordPrompt::StopConfirm);
+
+        let action = handle_record_prompt_key(&mut prompt, true, KeyCode::Esc, KeyModifiers::NONE);
+
+        assert_eq!(action, RecordPromptAction::None);
+        assert_eq!(prompt, None);
+    }
+    #[test]
+    fn record_r_when_task_running_opens_running_dialog() {
+        let action = open_record_prompt_for_selection(true, None, 0, true);
+
+        let RecordOpenAction::Open(prompt) = action else {
+            panic!("expected running prompt");
+        };
+        assert_eq!(prompt, RecordPrompt::StopConfirm);
+    }
+
+    #[test]
+    fn record_enter_when_task_running_prevents_second_task() {
+        let mut prompt = Some(RecordPrompt::start(
+            "agentsight record -p 42 --db out.db --server-port 7395".to_string(),
+        ));
+
+        let action =
+            handle_record_prompt_key(&mut prompt, true, KeyCode::Enter, KeyModifiers::NONE);
+
+        assert_eq!(action, RecordPromptAction::None);
+        let Some(RecordPrompt::Start { error, .. }) = prompt else {
+            panic!("expected start prompt with error");
+        };
+        assert_eq!(error.as_deref(), Some("a record task is already running"));
+    }
     #[test]
     fn tui_status_compacts_source_notes() {
         let top = AgentTopOutput {
@@ -265,7 +658,7 @@ mod tests {
             failures: Vec::new(),
             notes: vec![
                 "agent-native sessions are the primary token/tool source".to_string(),
-                "proc evidence uses /proc for CPU/RSS/process families".to_string(),
+                "proc evidence uses process snapshots for CPU/RSS/process families".to_string(),
                 "live eBPF capture did not start: sudo unavailable".to_string(),
             ],
         };
