@@ -195,3 +195,40 @@ source/label sequencing, family-local aggregation, vote accounting, bootstrap
 recomputation, tests, and unchanged prior/paper/submodule state. Any concrete
 must-fix is repaired and reviewed again. Zero must-fix authorizes only REAL
 PREFLIGHT, not a scientific conclusion.
+
+## Independent implementation review
+
+**Reviewed:** 2026-07-13T06:42:26-07:00
+
+**Required skill:** `research-experiment-design`
+
+**Reviewer mode:** independent and read-only
+
+**Verdict:** **PASS**
+
+**Must-fix:** **zero**
+
+The reviewer read the complete approved plan and review history, method report,
+implementation report, both new files, and every relevant reused function. It
+reran all focused and joint tests without running preflight/full or calculating
+human-label outcomes.
+
+It independently verified the exact score formula and zero rule; family-local
+identity in points, shuffles, and bootstrap; flat-per-family behavior; real
+AgentProf construction; operation/vote accounting; point-score materialization
+before label-value loading; label-free artifacts; complete-tier metrics;
+matched shuffles; per-draw score recomputation; CLI/verdict rules; and unchanged
+paper, submodule, prior script, shared skills, thesis, RQs, and story.
+
+Validation reproduced by the reviewer:
+
+- focused Wilson tests: 8/8 passed;
+- joint prior and Wilson tests: 17/17 passed;
+- real-AgentProf synthetic integration passed;
+- `py_compile` passed.
+
+The only optional note is to enumerate exact zero-vote group-to-operation
+mappings in the eventual execution report if that path occurs. The existing
+machine artifacts already retain both identities, and this note adds no gate.
+
+**Disposition:** implementation is approved for REAL PREFLIGHT.
