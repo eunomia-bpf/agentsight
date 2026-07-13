@@ -2140,7 +2140,230 @@ def run_real_preflight(args: argparse.Namespace) -> None:
 
 
 def run_full(args: argparse.Namespace) -> None:
-    run_end_to_end(args, "full")
+    started = time.perf_counter()
+    full_rows = load_manifest(args.full_manifest)
+    verified_rows = load_manifest(args.verified_manifest)
+    full_by_id = {row.traj_id: row for row in full_rows}
+    if len(full_by_id) != len(full_rows):
+        raise SourceError("full manifest contains duplicate trajectory IDs")
+    if not {row.traj_id for row in verified_rows}.issubset(full_by_id):
+        raise SourceError("verified manifest is not a subset of full manifest")
+
+    run_out = args.out / "full"
+    run_out.mkdir(parents=True, exist_ok=True)
+    print(f"full-source extraction start: {len(full_rows)} manifest rows", flush=True)
+    with tempfile.TemporaryDirectory(prefix="codetracebench-rq2-classifier-") as tmp:
+        classifier = load_classifier(
+            args.codetracer_root, Path(tmp) / "classifications.jsonl"
+        )
+        all_profiles, all_failures = extract_profile_population(
+            full_rows, args.raw_root, classifier
+        )
+    print(
+        f"full-source extraction complete: {len(all_profiles)} valid; "
+        f"{len(all_failures)} excluded",
+        flush=True,
+    )
+
+    coverage_path = run_out / "full-source-coverage.md"
+    write_full_source_coverage(coverage_path, full_rows, all_profiles, all_failures)
+    verified_by_id = {row.traj_id: row for row in verified_rows}
+    target_profiles: dict[str, tuple[ManifestRow, list[ProfiledStep], str]] = {}
+    for traj_id, verified_row in verified_by_id.items():
+        if verified_row.solved is not False or traj_id not in all_profiles:
+            continue
+        _, steps, adapter = all_profiles[traj_id]
+        target_profiles[traj_id] = verified_row, steps, adapter
+    reference_profiles = {
+        traj_id: profile
+        for traj_id, profile in all_profiles.items()
+        if profile[0].solved is not None
+    }
+    if not target_profiles:
+        raise SourceError("full run has no source-valid failed verified targets")
+
+    reference_operations = run_out / "reference-operations.jsonl"
+    target_operations = run_out / "target-operations.jsonl"
+    write_combined_operation_jsonl(
+        reference_operations,
+        ((row, steps) for row, steps, _ in reference_profiles.values()),
+    )
+    write_combined_operation_jsonl(
+        target_operations,
+        ((row, steps) for row, steps, _ in target_profiles.values()),
+    )
+    verify_agentprof_views(
+        args.agentpprof_bin,
+        reference_operations,
+        run_out / "agentprof-reference",
+        include_trajectory=True,
+    )
+    verify_agentprof_views(
+        args.agentpprof_bin,
+        target_operations,
+        run_out / "agentprof-target",
+        include_trajectory=True,
+    )
+    print("release-AgentProf exact-count checks complete", flush=True)
+
+    group_cache = build_group_cache(reference_profiles)
+    reference_index = build_reference_index(
+        reference_profiles, group_cache=group_cache
+    )
+    primary_scored, support_counts = score_targets(target_profiles, reference_index)
+    prediction_path = run_out / "predictions-pre-label.md"
+    write_prediction_markdown(prediction_path, primary_scored)
+
+    bucket_count, partitions = select_frequency_matched_partitions(
+        all_profiles,
+        first_seed=args.seed,
+        candidate_count=args.partition_candidates,
+        retain_count=args.partition_retained,
+    )
+    partition_path = run_out / "frequency-partitions-pre-label.md"
+    write_partition_selection(
+        partition_path,
+        bucket_count=bucket_count,
+        candidate_count=args.partition_candidates,
+        partitions=partitions,
+        first_seed=args.seed,
+    )
+    print(
+        f"pre-label outputs complete: {len(primary_scored)} targets; "
+        f"{len(partitions)} frequency partitions",
+        flush=True,
+    )
+
+    absolute_controls: dict[str, dict[str, dict[str, Any]]] = {}
+    for view in VIEW_FIELDS:
+        name = f"absolute-{view}"
+        group_fn = lambda step, current=view: group_for_step(step, current)
+        absolute_index = build_absolute_reference_index(all_profiles, group_fn)
+        absolute_controls[name] = score_absolute_view(
+            target_profiles, absolute_index, group_fn, name
+        )
+    flat_scored = make_flat_control(target_profiles)
+
+    label_families = terminal_load_label_families(
+        args.verified_manifest, set(primary_scored)
+    )
+    incorrect_gold = label_families["incorrect"]
+    primary_metrics = {
+        view: pooled_tie_block_metrics(primary_scored, incorrect_gold, view)
+        for view in VIEW_FIELDS
+    }
+    compatibility = {
+        view: compatibility_metrics(primary_scored, incorrect_gold, view)
+        for view in VIEW_FIELDS
+    }
+    secondary_metrics = {
+        family: {
+            view: pooled_tie_block_metrics(primary_scored, labels, view)
+            for view in VIEW_FIELDS
+        }
+        for family, labels in label_families.items()
+        if family != "incorrect"
+    }
+    frameworks = sorted({record["row"].agent for record in primary_scored.values()})
+    framework_metrics: dict[str, dict[str, dict[str, float | int | None]]] = {}
+    framework_targets: dict[str, int] = {}
+    for framework in frameworks:
+        subset = subset_scored(primary_scored, framework)
+        framework_targets[framework] = len(subset)
+        framework_metrics[framework] = {
+            view: pooled_tie_block_metrics(subset, incorrect_gold, view)
+            for view in VIEW_FIELDS
+        }
+
+    control_metrics: dict[str, dict[str, float | int | None]] = {
+        "flat/session-one-block": pooled_tie_block_metrics(
+            flat_scored, incorrect_gold, "flat"
+        )
+    }
+    for name, scored in absolute_controls.items():
+        control_metrics[name] = pooled_tie_block_metrics(
+            scored, incorrect_gold, name
+        )
+
+    partition_metrics: list[dict[str, Any]] = []
+    for index, (partition_seed, distance) in enumerate(partitions, 1):
+        group_fn = lambda step, current=partition_seed: partition_bucket(
+            step.raw_action_key, current, bucket_count
+        )
+        custom_index = build_custom_reference_index(reference_profiles, group_fn)
+        view_name = f"partition-{partition_seed}"
+        scored = score_custom_view(
+            target_profiles,
+            primary_scored,
+            custom_index,
+            group_fn,
+            view_name,
+        )
+        partition_metrics.append(
+            {
+                "seed": partition_seed,
+                "distance": distance,
+                "metrics": pooled_tie_block_metrics(
+                    scored, incorrect_gold, view_name
+                ),
+            }
+        )
+        if index % 25 == 0 or index == len(partitions):
+            print(f"frequency-control {index}/{len(partitions)}", flush=True)
+
+    null_results = run_outcome_null_trials(
+        reference_profiles,
+        target_profiles,
+        incorrect_gold,
+        repetitions=args.permutations,
+        seed=args.seed,
+        group_cache=group_cache,
+    )
+    bootstrap_results, bootstrap_attempts = run_task_cluster_bootstrap(
+        reference_profiles,
+        target_profiles,
+        incorrect_gold,
+        repetitions=args.bootstraps,
+        seed=args.seed,
+        group_cache=group_cache,
+    )
+
+    complete = (
+        len(full_rows) == 3316
+        and len(target_profiles) == 405
+        and args.partition_candidates >= 10000
+        and len(partition_metrics) >= 200
+        and len(null_results["semantic"]) >= 2000
+        and len(bootstrap_results["semantic"]) >= 10000
+        and set(support_counts) <= {name for name, _ in SUPPORT_LEVELS}
+    )
+    result = {
+        "status": "PASS" if complete else "INCOMPLETE",
+        "full_rows": len(full_rows),
+        "source_valid_full": len(all_profiles),
+        "source_excluded_full": len(all_failures),
+        "target_count": len(target_profiles),
+        "target_steps": sum(len(steps) for _, steps, _ in target_profiles.values()),
+        "reference_count": len(reference_profiles),
+        "runtime_seconds": time.perf_counter() - started,
+        "coverage_path": coverage_path,
+        "prediction_path": prediction_path,
+        "partition_path": partition_path,
+        "primary_metrics": primary_metrics,
+        "compatibility": compatibility,
+        "secondary_metrics": secondary_metrics,
+        "framework_metrics": framework_metrics,
+        "framework_targets": framework_targets,
+        "control_metrics": control_metrics,
+        "partition_metrics": partition_metrics,
+        "partition_candidates": args.partition_candidates,
+        "null_results": null_results,
+        "bootstrap_results": bootstrap_results,
+        "bootstrap_attempts": bootstrap_attempts,
+    }
+    report = run_out / "report.md"
+    write_full_experiment_report(report, result)
+    print(report, flush=True)
 
 
 def select_preflight_rows(
