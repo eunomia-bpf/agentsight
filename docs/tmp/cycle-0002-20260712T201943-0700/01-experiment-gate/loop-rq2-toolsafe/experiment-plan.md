@@ -3,7 +3,7 @@
 **Started:** 2026-07-13T00:51:04-07:00  
 **Cycle/gate:** cycle 0002 / EXPERIMENT  
 **Source audit:** `source-protocol-baseline-report.md`  
-**Plan revision:** 1 — PROPOSE; independent review required  
+**Plan revision:** 2 — Round 1 REVISE repaired; serial re-review required
 **Paper edits:** forbidden during this experiment
 
 ## Research Question and One Tested Hypothesis
@@ -19,13 +19,19 @@
   published three-part causal judgment — malicious user request, third-party
   attack, and candidate-action harmfulness — will achieve higher hidden-label
   AP and recall at 30% operation-inspection work, and lower work to 50% recall,
-  than both an equally trained raw-tool profile and an equally trained
-  risk-rating-only profile, with no direction reversal on AgentHarm, ASB, or
-  AgentDojo.
+  than both an equally trained `risk rating -> raw tool` profile and an equally
+  trained risk-rating-only profile, with no direction reversal on AgentHarm,
+  ASB, or AgentDojo.
 
 This tests one safety-transfer instance under RQ2. An experiment judges this
 hypothesis, not the whole RQ, the four-RQ program, or the thesis. The canonical
 thesis remains **“Agent observability needs profiling, not only debugging.”**
+
+**Planned paper role:** strong supporting RQ2 evidence. The experiment tests
+whether a published external detector's structured judgments can become a
+transferable cross-run profile. It does not test whether AgentProf independently
+discovers safety problems, prove that tuple order is causal, or replace the
+published guardrail classifier.
 
 ## Why This Is the Highest-Value Next Experiment
 
@@ -83,7 +89,7 @@ Every record appears once as target. No target family contributes labels,
 problem density, smoothing parameters, cutoff choices, or fallback values to
 its own predictions.
 
-## Source Join and Operation Extraction
+## Source Preparation, Join, and Operation Extraction
 
 Follow the official evaluator's fixed concatenation order:
 
@@ -93,7 +99,24 @@ Follow the official evaluator's fixed concatenation order:
 
 The source audit already proves exact equality between every official
 `meta_sample` and the corresponding TS-Bench record, and between every official
-label and `score`. The runner must repeat these assertions before projection.
+label and `score`. Those assertions belong only to a `prepare` stage because
+`meta_sample` embeds `score` and ASB attack metadata. They must not be repeated
+inside prediction.
+
+The `prepare` stage emits two ordinary data products:
+
+1. an allowlisted source projection containing family-scoped record identity,
+   visible operation fields, parsed tool identity, official TS-Guard risk
+   rating, and the three official auxiliary judgments; and
+2. one separate label table per family containing only family-scoped record
+   identity and the official score.
+
+The projection must contain no full `meta_sample`, `score`, attack metadata,
+harmful/benign or attack-success/failure subset identity, or source path token
+that reveals those subsets. It uses neutral source indices assigned in official
+concatenation order. Prediction accepts the projection and only the two named
+reference-family label tables. Scoring is a distinct command that first loads
+the held-out target-family label table after saved target predictions exist.
 
 Parse the proposed tool from the last line matching:
 
@@ -116,7 +139,7 @@ view. `None`, empty, and `Final Answer` are visible non-operations.
   `Harmfulness_Rating` judgments;
 - family/file/interaction identity for splitting, clustered resampling, and
   reporting;
-- strict labels from the two reference families only.
+- strict labels from the two explicitly named reference families only.
 
 ### Forbidden before target predictions are complete
 
@@ -127,9 +150,10 @@ view. `None`, empty, and `Final Answer` are visible non-operations.
 - target-label group density, tuning, filtering, thresholding, or tie breaking.
 
 The runner must build and write every target prediction row from a projection
-that does not contain target labels. Only a separate scoring phase may join the
-saved predictions to target labels. This is a scientific data-flow boundary,
-not a Git/hash/freeze protocol.
+that does not contain target labels. The prediction command cannot accept the
+raw ToolSafe root or the held-out label path. Only a separate scoring command
+may join saved predictions to target labels. This is a scientific data-flow
+boundary, not a Git/hash/freeze protocol.
 
 ## Profile Views
 
@@ -154,14 +178,16 @@ Only the grouping key changes.
    This asks whether the structured causal hierarchy adds transfer value beyond
    the same detector collapsed to its scalar published decision.
 
-3. **Raw-tool profile — traditional identity baseline**
+3. **Risk-conditioned raw-tool profile — matched identity baseline**
 
    ```text
-   exact parsed tool name
+   risk_rating -> exact parsed tool name
    ```
 
-   It receives the same reference labels and the same smoothing. Unseen target
-   tools use the same source-global fallback defined below.
+   It receives the same published detector signal, reference labels, and
+   smoothing as the semantic profile. If the exact joint key is unseen, it
+   backs off to the source density for the same risk rating. Only a missing
+   risk-rating key may use source-global prevalence.
 
 4. **Per-interaction debugging view — descriptive baseline**
 
@@ -179,9 +205,11 @@ Only the grouping key changes.
    much grouping changes the already published detector. It is not presented as
    an equally trained AgentProf baseline.
 
-One secondary ablation uses only
-`malicious_request -> being_attacked`. It may explain whether candidate-action
-harmfulness is necessary, but it cannot alter the main verdict.
+Controls that cannot alter the main verdict are: exact tool identity with
+global fallback, per-interaction debugging, direct TS-Guard step ranking, and a
+two-field `malicious_request -> being_attacked` semantic ablation. Exact tool
+identity without the shared detector score is explicitly a lower bound, not a
+matched main baseline.
 
 ## Cross-Family Problem-Density Estimation
 
@@ -197,14 +225,17 @@ For each target fold and each transferable profile view:
                 / (reference operations for key + 2)
    ```
 
-4. assign a key absent from the reference families the equally smoothed global
+4. for `risk_rating -> raw_tool`, back an unseen joint key off to the smoothed
+   reference density for its risk rating; for every other main view, and only
+   if a required risk-rating key is absent, use the equally smoothed global
    reference prevalence;
 5. save the key, reference support, fallback status, and score before loading
    target labels.
 
-The formula is identical for semantic, risk-only, and raw-tool profiles. There
-is no tuned minimum support, target-dependent cutoff, family-specific mapping,
-or favorable-key selection.
+The formula is identical for semantic, risk-only, and risk-conditioned raw-tool
+profiles. The only hierarchical fallback is the predeclared raw-tool-to-risk
+backoff. There is no tuned minimum support, target-dependent cutoff,
+family-specific mapping, or favorable-key selection.
 
 ## Real AgentProf Execution
 
@@ -229,15 +260,28 @@ not evidence for or against the tested hypothesis.
 
 ### Primary hidden-label localization metrics
 
-Evaluate strict unsafe/controversial labels over pooled target operations:
+Evaluate strict benchmark-positive unsafe/controversial labels over pooled
+target operations. This is the official strict mode: `0.0 -> 0` and both
+`0.5/1.0 -> 1`. A `0.5` label is a potentially unsafe triage target, not proof
+that harm occurred.
+
+For every method report:
 
 1. tie-aware average precision (AP);
 2. recall after exposing 30% of target operations;
 3. fraction of operations required to recover 50% of target positives.
 
-Every operation in a group receives its source-learned group score. Metrics must
-treat equal scores as a tie block rather than use target labels or lexical order
-inside ties.
+Every operation in a group receives its source-learned group score. Equal scores
+form one whole tie block. AP credits precision only at the end of each complete
+tie block; recall at 30% work includes only complete blocks whose cumulative
+work does not exceed 30%; work to 50% includes the entire block that first
+reaches 50% recall. This conservative rule is identical for every method and
+never uses lexical or target-label ordering inside a tie.
+
+The official unsafe-only/loose mapping (`1.0 -> 1`, `0.0/0.5 -> 0`) is a
+mandatory robustness analysis. A direction reversal there does not invalidate
+strict safety-triage evidence, but it forbids an unconditional unsafe-operation
+interpretation.
 
 ### Analyst-unit and compatibility metrics
 
@@ -248,6 +292,9 @@ Also report:
   predicted positive mass, then a stable target-label-blind key;
 - groups required to recover 50% of positives;
 - positive yield per opened group;
+- `Work@5`, the fraction of operations contained in the first five opened
+  groups;
+- maximum single-group share of all operations;
 - official strict accuracy, F1, and recall for the published TS-Guard outputs;
 - exact counts for missing/unseen keys and the share receiving global fallback.
 
@@ -256,10 +303,25 @@ profile cannot win merely by placing most operations in one group.
 
 ### Uncertainty
 
-Run 10,000 paired bootstrap replicates over interaction clusters, stratified by
-target family. Recompute reference group counts, smoothed densities,
-predictions, and metrics in each replicate. Report percentile 95% confidence
-intervals for each method and paired semantic-minus-baseline differences.
+The cluster identity is `(family, neutral source index group, id-interaction)`,
+where the neutral source group distinguishes the original official file without
+encoding harmful/benign or attack outcome in a feature. In each bootstrap
+attempt:
+
+1. independently resample interaction clusters with replacement inside each of
+   the three families;
+2. use exactly the same sampled clusters for every method;
+3. for each held-out-family fold, reconstruct reference counts, smoothing, and
+   fallback from the resampled clusters in the other two families;
+4. evaluate on the resampled target-family clusters; and
+5. discard the entire paired replicate if any required target fold lacks either
+   class under the current label mapping.
+
+Continue until 10,000 valid paired replicates are obtained, with a maximum of
+50,000 attempts. Fewer than 10,000 valid replicates is INCONCLUSIVE, not a
+scientific negative. Report percentile 95% confidence intervals for every
+method and paired semantic-minus-baseline differences. Recompute everything
+separately for strict and unsafe-only mappings.
 
 The family-level tables are mandatory. A pooled result may not hide a direction
 reversal.
@@ -270,8 +332,9 @@ reversal.
 
 Classify the tested hypothesis as supported only if:
 
-1. semantic-minus-raw-tool AP and semantic-minus-risk-only AP both have paired
-   95% confidence intervals strictly above zero;
+1. semantic-minus-risk-conditioned-raw-tool AP and
+   semantic-minus-risk-only AP both have paired 95% confidence intervals
+   strictly above zero;
 2. semantic has higher recall at 30% work and lower work to 50% recall than
    both main baselines;
 3. all three target-family AP differences are positive against both main
@@ -279,24 +342,35 @@ Classify the tested hypothesis as supported only if:
 4. the semantic view uses at least 10x fewer groups than raw-tool and
    per-interaction views;
 5. AgentProf counts, source coverage, target-label isolation, and official
-   TS-Guard metric reproduction all pass.
+   TS-Guard metric reproduction all pass;
+6. operation-level localization passes independently of group-count
+   compression; compression can never compensate for lower AP or worse work
+   against either matched main baseline.
 
-This is intentionally a bold success condition. A merely compressed histogram
-or one favorable family is not headline evidence.
+This is intentionally a bold success condition. A merely compressed histogram,
+one favorable family, or success only on non-tool rows is not headline evidence.
 
 ### Mixed
 
-Classify the result as mixed if semantic profiling clearly beats raw tool
-identity and compresses alerts, but fails to beat the scalar risk-only baseline
-with stable cross-family evidence. This would support semantic normalization
-while showing that the three-level causal decomposition adds no reliable
-transfer beyond the published detector score.
+Classify the result as mixed if semantic profiling clearly beats the
+risk-conditioned raw-tool profile and compresses alerts, but fails to beat the
+scalar risk-only baseline with stable cross-family evidence; or if the full
+strict result is positive but the unsafe-only direction reverses. This can
+support strict triage organization while showing that the three-field
+decomposition adds no unconditional unsafe-call transfer beyond the published
+detector score.
 
 ### Contradiction for this construction
 
-Classify this construction as contradicted if it does not beat raw-tool AP, if
-the main direction reverses across families, or if improvement exists only in
-the 396 non-tool compatibility records.
+Classify this construction as contradicted if it does not beat the matched
+risk-conditioned raw-tool AP, if the main strict direction reverses across
+families, or if improvement exists only in the 396 non-tool compatibility
+records.
+
+Classify execution as inconclusive if source counts, label isolation,
+AgentProf folding, official metric reproduction, required population/fold
+coverage, or 10,000-valid-bootstrap completion fails. Repair only that execution
+defect and rerun the same approved plan.
 
 No outcome automatically changes the fixed RQ, thesis, four RQs, or canonical
 paper story. A mixed/contradictory result is recorded in experiment history and
@@ -307,8 +381,9 @@ paper result and does not authorize narrowing the hypothesis.
 
 - **Expected:** causal semantic cells recur across all three families, while
   exact tool strings are almost entirely family-specific. Reference problem
-  density should therefore transfer through semantic cells and expose unsafe
-  target operations with fewer groups and less work.
+  density should therefore transfer through semantic cells and expose strict
+  benchmark-positive target operations with fewer groups and less work than
+  both equally informed matched alternatives.
 - **Strongest competing explanation:** TS-Guard's scalar rating already
   contains all transferable information. Decomposing it into cause/action
   fields adds fragmentation or family-specific calibration rather than useful
@@ -339,6 +414,64 @@ docs/tmp/.../loop-rq2-toolsafe/
 No YAML, manifest contract, seal, packet, attestation, finalizer, private key,
 or Git-bound authorization artifact is required.
 
+## Exact Commands and Cost
+
+Prepare the audited allowlisted projection and family-separated labels once:
+
+```bash
+python3 script/toolsafe_agentprof_eval.py prepare \
+  --toolsafe-root .agentsight/experiments/toolsafe-rq2/ToolSafe \
+  --out docs/visexp/out/toolsafe-rq2/source
+```
+
+`preflight` and `full` are coordinators only: they do not deserialize labels.
+For each fold they launch a prediction subprocess that receives the projection
+and exactly two explicit reference-label files, then close it after saved target
+predictions exist. Only afterward do they launch a scoring subprocess with the
+single held-out target-label file. The coordinator may resolve paths in
+`--labels-dir`, but the prediction process cannot receive or open the held-out
+file.
+
+Run a real preflight over the first 32 interaction clusters in neutral source
+order from each family, using both populations, all three folds, all main views,
+both label mappings, and 200 valid paired bootstraps:
+
+```bash
+python3 script/toolsafe_agentprof_eval.py preflight \
+  --projection docs/visexp/out/toolsafe-rq2/source/projection.jsonl \
+  --labels-dir docs/visexp/out/toolsafe-rq2/source/labels \
+  --agentpprof-bin agentpprof/target/release/agentpprof \
+  --out docs/visexp/out/toolsafe-rq2/preflight \
+  --clusters-per-family 32 --bootstraps 200 --seed 4203
+```
+
+Run the complete experiment:
+
+```bash
+python3 script/toolsafe_agentprof_eval.py full \
+  --projection docs/visexp/out/toolsafe-rq2/source/projection.jsonl \
+  --labels-dir docs/visexp/out/toolsafe-rq2/source/labels \
+  --agentpprof-bin agentpprof/target/release/agentpprof \
+  --out docs/visexp/out/toolsafe-rq2/full \
+  --bootstraps 10000 --max-bootstrap-attempts 50000 --seed 4203
+```
+
+This is CPU-only analysis over 7,182 records with no API or model inference.
+Expected wall time is under 20 minutes and output under 250 MiB on the current
+host; the full run, not the preflight, is required.
+
+Terminal execution PASS requires all of the following in one full report:
+
+- 7,182 complete-set records and exactly 6,786 real-tool records accounted for;
+- exact official prediction/source joins in preparation;
+- exact AgentProf stack/count agreement for every main view;
+- three held-out-family folds, two populations, strict and unsafe-only mappings;
+- semantic, risk-conditioned raw-tool, and risk-only main comparisons plus the
+  declared controls;
+- 10,000 valid paired bootstrap replicates for each mapping;
+- mandatory family, support/fallback, tie, group-size, and work reports; and
+- exact reproduction of the checked official TS-Guard strict metrics.
+
 ## Execution Sequence
 
 ```text
@@ -354,6 +487,17 @@ PROPOSE
 The real preflight verifies source joins, field boundaries, AgentProf execution,
 metrics, and all three folds. It is not accepted as the experiment result and
 cannot replace the full run.
+
+After a valid result:
+
+- **supported:** return to the outer EXPERIMENT decision with strong supporting
+  RQ2 evidence and authorize WRITE to incorporate only the supported evidence,
+  without changing the canonical story;
+- **mixed:** preserve the hypothesis and route to a materially different real
+  tool-effect experiment rather than tuning TS-Bench labels;
+- **contradicted:** record this construction and choose a different mechanism
+  or benchmark family without narrowing RQ2/thesis;
+- **inconclusive:** repair the execution/source defect and rerun this plan.
 
 ## Review Questions
 
