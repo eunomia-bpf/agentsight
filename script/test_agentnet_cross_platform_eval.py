@@ -54,6 +54,7 @@ def visible_rows(platform: str, tasks: int = 4, steps: int = 4) -> list[dict]:
                 {
                     "operation_id": f"{task_id}:{step}",
                     "task_id": task_id,
+                    "trajectory_id": task_id,
                     "platform": platform,
                     "dataset": "agentnet",
                     "session": task_id,
@@ -86,6 +87,7 @@ def label_rows(rows: list[dict], invert: bool = False) -> list[dict]:
             {
                 "operation_id": row["operation_id"],
                 "task_id": row["task_id"],
+                "trajectory_id": row["trajectory_id"],
                 "platform": row["platform"],
                 "correct": not positive,
                 "redundant": positive,
@@ -167,6 +169,62 @@ class AgentNetCrossPlatformTests(unittest.TestCase):
             self.assertEqual("Office", projection[0]["source_domain"])
             self.assertEqual(False, windows_labels[0]["correct"])
             self.assertEqual(True, windows_labels[0]["redundant"])
+
+    def test_projection_keeps_released_duplicate_trajectories_in_one_task(self) -> None:
+        with tempfile.TemporaryDirectory() as raw_tmp:
+            root = Path(raw_tmp)
+            raw = root / "raw.jsonl"
+            out = root / "prepared"
+            metadata = {
+                "win": {
+                    "task_id": "win",
+                    "platform": "windows",
+                    "source_domain": "Office",
+                    "source_applications": ["Notepad"],
+                    "domain": "office",
+                    "application": "notepad",
+                },
+                "mac": {
+                    "task_id": "mac",
+                    "platform": "darwin",
+                    "source_domain": "Office",
+                    "source_applications": ["Writer"],
+                    "domain": "office",
+                    "application": "writer",
+                },
+            }
+            write_jsonl(
+                raw,
+                [
+                    {
+                        "task_id": "win",
+                        "traj": [{"value": {"code": "pyautogui.click(10, 20)"}}],
+                    },
+                    {
+                        "task_id": "mac",
+                        "traj": [{"value": {"code": "pyautogui.click(30, 40)"}}],
+                    },
+                    {
+                        "task_id": "win",
+                        "traj": [{"value": {"code": "pyautogui.write('later')"}}],
+                    },
+                ],
+            )
+            with mock.patch.object(
+                agentnet, "EXPECTED_TASKS", {"windows": 1, "darwin": 1}
+            ):
+                status = agentnet.projection_and_labels(raw, metadata, out)
+
+            projection = read_jsonl(out / "projection.jsonl")
+            windows = [row for row in projection if row["platform"] == "windows"]
+            self.assertEqual({"windows": 1, "darwin": 1}, status["task_counts"])
+            self.assertEqual({"windows": 2, "darwin": 1}, status["trajectory_counts"])
+            self.assertEqual({"windows": 1, "darwin": 0}, status["repeated_task_counts"])
+            self.assertEqual(2, len(windows))
+            self.assertEqual({"win"}, {row["task_id"] for row in windows})
+            self.assertEqual(2, len({row["trajectory_id"] for row in windows}))
+            self.assertEqual(2, len({row["operation_id"] for row in windows}))
+            self.assertEqual(2, len({row["session"] for row in windows}))
 
     def test_predictor_cli_has_no_target_label_input(self) -> None:
         parser = agentnet.build_parser()

@@ -1,6 +1,6 @@
 # Experiment plan: AgentNet cross-platform step-quality localization
 
-**Plan revision:** 3  
+**Plan revision:** 4
 **Proposed:** 2026-07-13T02:46:31-07:00  
 **Outer gate:** EXPERIMENT  
 **Research question:** RQ2 — Does Profiler Output Correspond to Real Problems?  
@@ -32,14 +32,22 @@ prior construction.
 
 - Official dataset: `xlangai/AgentNet`, revision
   `d76ee50a63fad81cfdbe576416757d7c2091ed50`.
-- Raw target file: `agentnet_win_mac_18k.jsonl`, expected 17,532 tasks.
+- Raw target file: `agentnet_win_mac_18k.jsonl`, containing 17,625 released
+  trajectory records for 17,532 unique task IDs. Exactly 93 task IDs occur
+  twice in the official file; all other task IDs occur once.
 - Semantic metadata: `meta_data_merged.jsonl`, expected 12,364 Windows and
   5,168 Darwin task IDs for the target file.
 - Unit of observation: one released trajectory step with executable action
   code.
-- Unit of dependence/bootstrap: task/trajectory, never individual steps.
-- Full-run population: every raw Windows and macOS task that joins one-to-one
-  to official metadata and has a nonempty trajectory. No sampling.
+- Unit of dependence/bootstrap: original released `task_id`, never individual
+  steps. Both records of a repeated task ID remain in the same bootstrap
+  cluster.
+- Full-run population: every released Windows and macOS trajectory record whose
+  task ID joins to exactly one official metadata row and has a nonempty
+  trajectory. No record is selected or discarded. Each raw row receives a
+  deterministic `trajectory_id` from its source row position; operation and
+  session IDs use `trajectory_id`, while resampling uses the original
+  `task_id`.
 - Scorable population: after all predictions and profiles are saved, apply
   exactly this truth table: `incorrect OR redundant` is positive; `correct AND
   necessary` is negative; every other combination is unresolved. Exclude only
@@ -120,6 +128,8 @@ It writes one ordinary `projection.jsonl` containing only allowed visible
 fields and two separate label files, `labels/windows.jsonl` and
 `labels/darwin.jsonl`. It also writes a Markdown source/join report. The raw
 file, source directory, and target-label path are not valid predictor inputs.
+The report must show all 17,625 raw records, all 17,532 unique task IDs, the 93
+repeated IDs, their Windows/Darwin distribution, and exact metadata coverage.
 
 Each fold runs a predictor subprocess whose complete inputs are the visible
 projection, exactly one reference-platform label file, the reference and target
@@ -312,10 +322,27 @@ Expected environment is Python 3.12, scikit-learn 1.4.1, NumPy 1.26.4,
 SciPy 1.11.4, and AgentProf 0.2.37. The full source is 1.42 GB; reserve at
 least 20 GB free disk and six wall-clock hours. Terminal completion requires:
 the two official source checksums; exactly 12,364 Windows and 5,168 Darwin
-metadata tasks; one-to-one raw/metadata task IDs; saved predictions for every
-held-out operation before held-out label access; exact AgentProf/source counts
-for every view; risk-mass reconstruction; 10,000 valid paired draws; both fold
-reports; optional stratified-effect report; and no stale partial-run status.
+metadata task IDs; exactly 17,625 raw trajectory records covering those 17,532
+IDs with every raw ID joining one official metadata row; saved predictions for
+every held-out operation before held-out label access; exact AgentProf/source
+counts for every view; risk-mass reconstruction; 10,000 valid paired draws;
+both fold reports; optional stratified-effect report; and no stale partial-run
+status.
+
+## Revision 4 source-schema amendment
+
+The first real `prepare` run discovered that the checksum-verified official
+Win/Mac JSONL has 17,625 rows but 17,532 unique task IDs. Ninety-three IDs have
+two nonidentical trajectory rows; 63 are Windows and 30 are Darwin. The
+official metadata remains unique by task ID and covers every raw row. The
+official OpenCUA viewer reads every trajectory line and directly merges it to
+metadata by task ID without a deduplication step.
+
+Revision 4 therefore keeps all released trajectory rows and clusters the two
+records of a repeated ID together. It does not choose the first, last, longer,
+or more favorable row and does not inspect any label to resolve duplication.
+This is a source-schema correction only: the RQ, hypothesis, features,
+baselines, metrics, verdict, and paper boundary are unchanged.
 
 ## Expected artifacts
 

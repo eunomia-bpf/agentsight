@@ -119,3 +119,28 @@ invariance. These are implementation checks under the approved plan, not a
 reason to add further protocol machinery.
 
 **Files modified by reviewer:** none.
+
+## Round 4 — PASS
+
+**Reviewed:** Revision 4 source-schema amendment
+**Disposition:** approve implementation and rerun source preparation; zero
+must-fix.
+
+The checksum-verified official Win/Mac JSONL contains 17,625 trajectory rows
+for 17,532 unique task IDs. Ninety-three IDs each have two nonidentical,
+non-prefix rows, every ID joins one metadata row, and the official viewer reads
+all rows before a direct task-ID metadata merge. The reviewer found no official
+or scientific basis for first, last, longest, or random one-row selection.
+
+The approved primary therefore retains every released row, uses a deterministic
+source-row `trajectory_id` for operation/session identity, and keeps original
+`task_id` as the paired-bootstrap cluster. This preserves the complete
+operation-weighted released-row population without pretending that two records
+of one task are independent. It does not change the RQ, hypothesis, features,
+baselines, metrics, verdict, or paper boundary.
+
+Rejected alternatives were: discarding one row, concatenating two released
+trajectories into a synthetic trajectory, independently bootstrapping duplicate
+records, or changing the estimand to task-equal weighting.
+
+**Files modified by reviewer:** none.

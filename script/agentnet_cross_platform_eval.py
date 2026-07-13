@@ -54,6 +54,9 @@ EXPECTED_FILES = {
 }
 PLATFORMS = ("windows", "darwin")
 EXPECTED_TASKS = {"windows": 12_364, "darwin": 5_168}
+EXPECTED_TRAJECTORIES = {"windows": 12_427, "darwin": 5_198}
+EXPECTED_REPEATED_TASKS = {"windows": 63, "darwin": 30}
+EXPECTED_RAW_RECORDS = 17_625
 FORBIDDEN_PROJECTION_FIELDS = {
     "correct",
     "redundant",
@@ -224,8 +227,8 @@ def application_label(value: Any) -> str:
     return "+".join(labels) if labels else "none"
 
 
-def operation_id(task_id: str, ordinal: int) -> str:
-    return f"{task_id}:{ordinal}"
+def operation_id(trajectory_id: str, ordinal: int) -> str:
+    return f"{trajectory_id}:{ordinal}"
 
 
 def label_value(correct: Any, redundant: Any) -> int | None:
@@ -276,23 +279,29 @@ def projection_and_labels(
     for path in label_paths.values():
         path.parent.mkdir(parents=True, exist_ok=True)
 
-    task_counts: Counter[str] = Counter()
+    task_ids_by_platform: dict[str, set[str]] = {
+        platform: set() for platform in PLATFORMS
+    }
+    trajectory_counts: Counter[str] = Counter()
     operation_counts: Counter[str] = Counter()
     label_states: dict[str, Counter[str]] = {platform: Counter() for platform in PLATFORMS}
-    seen_tasks: set[str] = set()
+    raw_task_occurrences: Counter[str] = Counter()
     with projection_path.open("w", encoding="utf-8") as projection_out, \
         label_paths["windows"].open("w", encoding="utf-8") as windows_out, \
         label_paths["darwin"].open("w", encoding="utf-8") as darwin_out:
         label_outputs = {"windows": windows_out, "darwin": darwin_out}
         for row_index, raw in enumerate(iter_jsonl(raw_path)):
             task_id = str(raw.get("task_id") or "")
-            if not task_id or task_id in seen_tasks:
-                raise ExperimentError(f"raw row {row_index}: duplicate/missing task_id")
-            seen_tasks.add(task_id)
+            if not task_id:
+                raise ExperimentError(f"raw row {row_index}: missing task_id")
             meta = metadata.get(task_id)
             if not meta or meta["platform"] not in PLATFORMS:
                 raise ExperimentError(f"raw task has no Windows/Darwin metadata: {task_id}")
             platform = meta["platform"]
+            trajectory_id = f"{task_id}@row-{row_index:05d}"
+            raw_task_occurrences[task_id] += 1
+            task_ids_by_platform[platform].add(task_id)
+            trajectory_counts[platform] += 1
             traj = [step for step in raw.get("traj") or [] if isinstance(step, dict)]
             if not traj:
                 raise ExperimentError(f"{task_id}: empty trajectory")
@@ -312,13 +321,14 @@ def projection_and_labels(
             for ordinal, ((code, action, target, value), repeat) in enumerate(
                 zip(parsed, repeats, strict=True)
             ):
-                op_id = operation_id(task_id, ordinal)
+                op_id = operation_id(trajectory_id, ordinal)
                 visible = {
                     "operation_id": op_id,
                     "task_id": task_id,
+                    "trajectory_id": trajectory_id,
                     "platform": platform,
                     "dataset": "agentnet",
-                    "session": sanitize_label(task_id),
+                    "session": sanitize_label(trajectory_id),
                     "system": platform,
                     "source_domain": meta["source_domain"],
                     "source_applications": meta["source_applications"],
@@ -342,6 +352,7 @@ def projection_and_labels(
                 label_row = {
                     "operation_id": op_id,
                     "task_id": task_id,
+                    "trajectory_id": trajectory_id,
                     "platform": platform,
                     "correct": value.get("last_step_correct"),
                     "redundant": value.get("last_step_redundant"),
@@ -353,22 +364,37 @@ def projection_and_labels(
                 label_states[platform]["unresolved" if state is None else str(state)] += 1
                 operation_counts[platform] += 1
                 previous_action = action
-            task_counts[platform] += 1
-
     expected_ids = {
         task_id for task_id, meta in metadata.items() if meta["platform"] in PLATFORMS
     }
-    if seen_tasks != expected_ids:
-        missing = len(expected_ids - seen_tasks)
-        extra = len(seen_tasks - expected_ids)
+    seen_task_ids = set(raw_task_occurrences)
+    if seen_task_ids != expected_ids:
+        missing = len(expected_ids - seen_task_ids)
+        extra = len(seen_task_ids - expected_ids)
         raise ExperimentError(f"raw/metadata task mismatch: missing={missing}, extra={extra}")
+    task_counts = {
+        platform: len(task_ids_by_platform[platform]) for platform in PLATFORMS
+    }
     for platform in PLATFORMS:
         if task_counts[platform] != EXPECTED_TASKS[platform]:
             raise ExperimentError(
                 f"raw {platform}: expected {EXPECTED_TASKS[platform]}, got {task_counts[platform]}"
             )
+    repeated_task_counts: Counter[str] = Counter()
+    for task_id, occurrences in raw_task_occurrences.items():
+        if occurrences > 2:
+            raise ExperimentError(f"raw task {task_id} occurs {occurrences} times")
+        if occurrences == 2:
+            repeated_task_counts[metadata[task_id]["platform"]] += 1
     return {
-        "task_counts": dict(task_counts),
+        "raw_records": sum(trajectory_counts.values()),
+        "task_counts": task_counts,
+        "trajectory_counts": {
+            platform: trajectory_counts[platform] for platform in PLATFORMS
+        },
+        "repeated_task_counts": {
+            platform: repeated_task_counts[platform] for platform in PLATFORMS
+        },
         "operation_counts": dict(operation_counts),
         "label_state_counts": {
             platform: dict(label_states[platform]) for platform in PLATFORMS
@@ -385,6 +411,22 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
     files = download_sources(out, args.revision)
     metadata = source_metadata(out / META_FILE)
     conversion = projection_and_labels(out / RAW_FILE, metadata, out)
+    if conversion["raw_records"] != EXPECTED_RAW_RECORDS:
+        raise ExperimentError(
+            f"expected {EXPECTED_RAW_RECORDS} raw trajectory records, "
+            f"got {conversion['raw_records']}"
+        )
+    for platform in PLATFORMS:
+        if conversion["trajectory_counts"][platform] != EXPECTED_TRAJECTORIES[platform]:
+            raise ExperimentError(
+                f"{platform}: expected {EXPECTED_TRAJECTORIES[platform]} trajectories, "
+                f"got {conversion['trajectory_counts'][platform]}"
+            )
+        if conversion["repeated_task_counts"][platform] != EXPECTED_REPEATED_TASKS[platform]:
+            raise ExperimentError(
+                f"{platform}: expected {EXPECTED_REPEATED_TASKS[platform]} repeated tasks, "
+                f"got {conversion['repeated_task_counts'][platform]}"
+            )
     status = {
         "status": "VALID",
         "revision": args.revision,
@@ -406,7 +448,10 @@ def prepare(args: argparse.Namespace) -> dict[str, Any]:
         f"- status: `{status['status']}`",
         f"- official revision: `{args.revision}`",
         f"- raw tasks: Windows {conversion['task_counts']['windows']:,}; Darwin {conversion['task_counts']['darwin']:,}",
+        f"- released trajectory records: Windows {conversion['trajectory_counts']['windows']:,}; Darwin {conversion['trajectory_counts']['darwin']:,}",
+        f"- repeated task IDs: Windows {conversion['repeated_task_counts']['windows']:,}; Darwin {conversion['repeated_task_counts']['darwin']:,}",
         f"- operations: Windows {conversion['operation_counts']['windows']:,}; Darwin {conversion['operation_counts']['darwin']:,}",
+        "- every released trajectory row is retained; repeated task IDs remain one bootstrap cluster",
         "- visible projection and platform label files are separate",
         "- only the four approved pure helpers were used; `normalize_agentnet` was not used",
         "",
@@ -471,10 +516,11 @@ def load_platform_labels(path: Path, expected_platform: str) -> dict[str, int | 
 
 def validate_projection_rows(rows: list[dict[str, Any]]) -> None:
     required = {
-        "operation_id", "task_id", "platform", "dataset", "session", "system",
-        "domain", "application", "action_code", "action", "target", "phase",
-        "repeat_state", "repeat_signal", "repeat_run", "previous_action",
-        "action_changed", "step_fraction", "log_trajectory_length",
+        "operation_id", "task_id", "trajectory_id", "platform", "dataset",
+        "session", "system", "domain", "application", "action_code", "action",
+        "target", "phase", "repeat_state", "repeat_signal", "repeat_run",
+        "previous_action", "action_changed", "step_fraction",
+        "log_trajectory_length",
     }
     operation_ids: set[str] = set()
     for index, row in enumerate(rows):
@@ -504,16 +550,23 @@ def validate_full_source(source: Path) -> dict[str, Any]:
     rows = read_jsonl(source / "projection.jsonl")
     validate_projection_rows(rows)
     tasks: dict[str, set[str]] = {platform: set() for platform in PLATFORMS}
+    trajectories: dict[str, set[str]] = {platform: set() for platform in PLATFORMS}
     operation_ids: dict[str, set[str]] = {platform: set() for platform in PLATFORMS}
     for row in rows:
         platform = row["platform"]
         tasks[platform].add(str(row["task_id"]))
+        trajectories[platform].add(str(row["trajectory_id"]))
         operation_ids[platform].add(str(row["operation_id"]))
     for platform in PLATFORMS:
         if len(tasks[platform]) != EXPECTED_TASKS[platform]:
             raise ExperimentError(
                 f"full {platform}: expected {EXPECTED_TASKS[platform]} tasks, "
                 f"got {len(tasks[platform])}"
+            )
+        if len(trajectories[platform]) != EXPECTED_TRAJECTORIES[platform]:
+            raise ExperimentError(
+                f"full {platform}: expected {EXPECTED_TRAJECTORIES[platform]} trajectories, "
+                f"got {len(trajectories[platform])}"
             )
         labels = load_platform_labels(source / "labels" / f"{platform}.jsonl", platform)
         if set(labels) != operation_ids[platform]:
@@ -523,6 +576,9 @@ def validate_full_source(source: Path) -> dict[str, Any]:
     return {
         "revision": REVISION,
         "tasks": {platform: len(tasks[platform]) for platform in PLATFORMS},
+        "trajectories": {
+            platform: len(trajectories[platform]) for platform in PLATFORMS
+        },
         "operations": {
             platform: len(operation_ids[platform]) for platform in PLATFORMS
         },
@@ -699,7 +755,7 @@ def validate_label_blind_artifacts(
     for index, (prediction, assignment) in enumerate(
         zip(predictions, assignments, strict=True)
     ):
-        for field in ("operation_id", "task_id", "platform"):
+        for field in ("operation_id", "task_id", "trajectory_id", "platform"):
             if prediction.get(field) != assignment.get(field):
                 raise ExperimentError(
                     f"prediction/group assignment {index} differs on {field}"
@@ -818,6 +874,7 @@ def predict_fold(args: argparse.Namespace) -> dict[str, Any]:
         {
             "operation_id": row["operation_id"],
             "task_id": row["task_id"],
+            "trajectory_id": row["trajectory_id"],
             "platform": row["platform"],
             "risk": float(risk),
         }
@@ -836,6 +893,7 @@ def predict_fold(args: argparse.Namespace) -> dict[str, Any]:
             {
                 "operation_id": row["operation_id"],
                 "task_id": row["task_id"],
+                "trajectory_id": row["trajectory_id"],
                 "platform": row["platform"],
                 "session": row["session"],
                 "domain": row["domain"],
@@ -871,6 +929,7 @@ def predict_fold(args: argparse.Namespace) -> dict[str, Any]:
         "reference_label_counts": {str(key): value for key, value in sorted(classes.items())},
         "target_operations": len(target),
         "target_tasks": len({row["task_id"] for row in target}),
+        "target_trajectories": len({row["trajectory_id"] for row in target}),
         "C": 1.0,
         "penalty": "l2",
         "class_weight": "balanced",
@@ -1016,6 +1075,11 @@ def build_score_state(
     task_ids = sorted({row["task_id"] for row in assignments})
     task_lookup = {task_id: index for index, task_id in enumerate(task_ids)}
     all_task_index = np.asarray([task_lookup[row["task_id"]] for row in assignments], dtype=np.int32)
+    session_ids = sorted({row["session"] for row in assignments})
+    session_lookup = {session_id: index for index, session_id in enumerate(session_ids)}
+    all_session_index = np.asarray(
+        [session_lookup[row["session"]] for row in assignments], dtype=np.int32
+    )
     all_risk = np.asarray([float(row["risk"]) for row in assignments], dtype=np.float64)
     scorable_positions = np.asarray(
         [index for index, row in enumerate(assignments)
@@ -1033,7 +1097,10 @@ def build_score_state(
     state: dict[str, Any] = {
         "task_ids": task_ids,
         "task_count": len(task_ids),
+        "session_ids": session_ids,
+        "session_count": len(session_ids),
         "all_task_index": all_task_index,
+        "all_session_index": all_session_index,
         "all_risk": all_risk,
         "scored_task_index": all_task_index[scorable_positions],
         "scored_labels": scored_labels,
@@ -1126,7 +1193,7 @@ def grouped_secondary_diagnostics(
     first_end = int(starts[1]) if len(starts) > 1 else len(ranked_groups)
     hot_groups = ranked_groups[:first_end]
     hot_session_counts = sorted(
-        int(len(np.unique(state["all_task_index"][all_groups == group])))
+        int(len(np.unique(state["all_session_index"][all_groups == group])))
         for group in hot_groups
     )
     return {
@@ -1316,6 +1383,7 @@ def score_fold(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         "positives": int(state["scored_labels"].sum()),
         "negatives": int(len(state["scored_labels"]) - state["scored_labels"].sum()),
         "tasks": state["task_count"],
+        "trajectories": state["session_count"],
     }
     coverage["annotation_coverage"] = (
         coverage["scorable_operations"] / coverage["target_operations"]
@@ -1343,6 +1411,7 @@ def score_fold(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         f"# AgentNet held-out fold: {target_platform}", "",
         "- execution: `VALID`",
         f"- tasks: {coverage['tasks']:,}",
+        f"- trajectories: {coverage['trajectories']:,}",
         f"- operations: {coverage['target_operations']:,}",
         f"- scorable: {coverage['scorable_operations']:,}",
         f"- positives: {coverage['positives']:,}",
@@ -1536,6 +1605,8 @@ def coordinator(args: argparse.Namespace, mode: str) -> dict[str, Any]:
         value = fold_metrics[platform]
         lines.extend([
             f"### Held-out {platform}", "",
+            f"- tasks: {value['coverage']['tasks']:,}",
+            f"- trajectories: {value['coverage']['trajectories']:,}",
             f"- operations: {value['coverage']['target_operations']:,}",
             f"- scorable: {value['coverage']['scorable_operations']:,}",
             f"- positives: {value['coverage']['positives']:,}",
