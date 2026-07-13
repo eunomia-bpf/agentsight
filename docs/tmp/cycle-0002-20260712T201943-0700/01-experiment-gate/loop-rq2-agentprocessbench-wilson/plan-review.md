@@ -106,3 +106,48 @@ separate.
 **Round-2 disposition:** the sole must-fix is addressed in Revision 3. Round 3
 must independently audit the complete plan and return zero must-fix before
 REAL PREFLIGHT.
+
+## Round 3
+
+**Reviewed:** 2026-07-13T06:28:30-07:00
+
+**Plan read:** Revision 3
+
+**Required skill:** `research-experiment-design`
+
+**Reviewer mode:** independent and read-only
+
+**Verdict:** **PASS**
+
+**Must-fix:** **zero**
+
+The third reviewer independently read the complete skill, all revised plan
+artifacts, the prior AgentProcessBench plan and full result, evaluation
+frontier, user instructions, and complete idea-story. It did not inspect or
+calculate human-label outcomes, edit files, use Git, or touch the paper or
+submodule.
+
+The reviewer verified:
+
+- all three Round-1 fixes remain complete;
+- every score identity is `(family, AgentProf stack key)`, flat is one group
+  per family, and points, shuffles, and bootstrap draws never pool families;
+- the plan tests exactly one positive construction hypothesis inside unchanged
+  RQ2;
+- the score formula, fixed `z`, zero-vote rule, correlated-judge interpretation,
+  and vote accounting are executable;
+- human labels enter only after visible fields, real AgentProf assignments,
+  vote aggregation, score materialization, and shuffle construction are fixed;
+- raw and semantic retain the same complete local leaf and receive the same
+  score and evaluation budget;
+- matched shuffles and paired query-cluster bootstrap are scientifically
+  aligned with the hypothesis;
+- commands, paths, tests, preflight, completion counts, artifacts, and
+  independent result recalculation form a complete execution path;
+- verdict conditions add no hidden gate;
+- thesis, four RQs, RQ2, positive hypothesis, `target`, raw leaf, paper,
+  submodule, and canonical story are unchanged.
+
+**Serial-review convergence:** Revision 3 is approved for implementation,
+focused tests, and REAL PREFLIGHT. No further plan review is required unless
+implementation reveals a scientific change that would revise the plan.
