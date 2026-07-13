@@ -87,3 +87,35 @@ command, and completion issues were closed.
   mean of within-fold effects may appear as a secondary summary.
 
 **Files modified by reviewer:** none.
+
+## Round 3 — PASS
+
+**Reviewed:** Revision 3
+**Disposition:** approve implementation and REAL PREFLIGHT. No plan must-fix
+remains.
+
+### Reviewer confirmation
+
+- The implementation boundary permits only the four pure visible-field helpers
+  and prohibits the leaky legacy adapter.
+- Raw source access, visible projection, reference labels, target labels,
+  predictor inputs, label-blind group artifacts, bootstrap draws, and scorer
+  inputs now form an explicit executable dataflow.
+- Phase semantics match the helper, including uncommon `fail` and `system`
+  values.
+- Raw risks from independently fitted platform models are never pooled or
+  ranked together; each held-out fold must independently satisfy its paired
+  interval conditions.
+- One RQ, one tested hypothesis, official source/provenance, fresh target,
+  fixed baselines, density ranking, complete ties, AgentProf integer counts,
+  bootstrap completion, commands, and execution/scientific status separation
+  are mutually consistent.
+
+### Preflight obligations retained
+
+REAL PREFLIGHT must demonstrate subprocess label isolation, pure-helper use,
+model convergence, exact AgentProf count conservation, and label-swap
+invariance. These are implementation checks under the approved plan, not a
+reason to add further protocol machinery.
+
+**Files modified by reviewer:** none.

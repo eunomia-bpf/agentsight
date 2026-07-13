@@ -213,8 +213,8 @@ Secondary diagnostic measurements:
 - sessions represented per hot group;
 - raw step-risk AP and exact-repeat AP;
 - annotation coverage and positive prevalence;
-- per-domain results for domains with enough scorable tasks, reported only as
-  disaggregation rather than separate verdicts;
+- per-domain results for domains with at least 30 scorable tasks and both
+  classes, reported only as disaggregation rather than separate verdicts;
 - profile counter and predicted-risk mass conservation.
 
 Fit each reciprocal-fold model once on the complete reference platform. Then
@@ -298,7 +298,8 @@ python3 script/agentnet_cross_platform_eval.py preflight \
   --source docs/visexp/out/agentnet-rq2/source \
   --agentpprof-bin agentpprof/target/release/agentpprof \
   --out docs/visexp/out/agentnet-rq2/preflight \
-  --bootstraps 200 --max-bootstrap-attempts 1000 --seed 4204
+  --bootstraps 200 --max-bootstrap-attempts 1000 --seed 4204 \
+  --tasks-per-platform 256
 
 python3 script/agentnet_cross_platform_eval.py full \
   --source docs/visexp/out/agentnet-rq2/source \
