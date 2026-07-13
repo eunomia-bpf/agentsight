@@ -1,8 +1,11 @@
 # AgentNet complete-population arithmetic correction
 
-**Recorded:** 2026-07-13T04:14:00-07:00  
-**Scope:** report-only correction before FULL authorization  
-**Implementation change:** none  
+**Recorded:** 2026-07-13T04:11:20-07:00
+
+**Scope:** report-only correction before FULL authorization
+
+**Implementation change:** none
+
 **Experiment-definition change:** none
 
 ## Discovery
